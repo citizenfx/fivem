@@ -124,9 +124,9 @@ static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBound
 
 	out->SetVertices(outVertices.size(), &outVertices[0]);
 
-	// polys
+	// polygons
 	ny::phBoundPoly* polys = in->GetPolygons();
-	uint32_t numPolys = in->GetNumPolygons();
+	uint_fast32_t numPolygons = in->GetNumPolygons();
 
 	// TODO: save polygon mapping in a temporary variable (for BVH purposes)
 	auto vertToVector = [&] (const auto& vertex)
@@ -161,7 +161,7 @@ static inline void fillPolyhedronBound(five::phBoundPolyhedron* out, ny::phBound
 	std::vector<PolyEdge> outPolyEdges;
 	std::vector<uint8_t> outPolyMaterials;
 
-	for (uint16_t i = 0; i < numPolys; i++)
+	for (uint_fast32_t i = 0; i < numPolygons; i++)
 	{
 		auto& poly = polys[i];
 

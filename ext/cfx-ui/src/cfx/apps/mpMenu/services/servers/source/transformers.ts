@@ -1,7 +1,8 @@
-import { DEFAULT_SERVER_LOCALE, DEFAULT_SERVER_LOCALE_COUNTRY, filterServerProjectName } from "cfx/base/serverUtils";
-import { processServerDataVariables } from "cfx/common/services/servers/transformers";
-import { IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
-import { IDynamicServerData, IQueriedServerData } from "./types";
+import { DEFAULT_SERVER_LOCALE, DEFAULT_SERVER_LOCALE_COUNTRY, filterServerProjectName } from 'cfx/base/serverUtils';
+import { processServerDataVariables } from 'cfx/common/services/servers/transformers';
+import { IServerView, ServerViewDetailsLevel } from 'cfx/common/services/servers/types';
+
+import { IDynamicServerData, IQueriedServerData } from './types';
 
 export function dynamicServerData2ServerView(endpoint: string, data: IDynamicServerData): IServerView {
   return {

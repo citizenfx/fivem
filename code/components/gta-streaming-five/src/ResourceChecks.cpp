@@ -35,8 +35,7 @@ uint32_t GetCurrentStreamingIndex()
 
 class strStreamingModule
 {
-public:
-	virtual ~strStreamingModule() {}
+	void* vtbl;
 
 public:
 	uint32_t baseIdx;
@@ -116,8 +115,9 @@ static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
 		}
 	};
 
-	auto stub = new StreamingOnLoadStub(vt[6]);
-	hook::put(&vt[6], stub->GetCode());
+	int index = (xbr::IsGameBuildOrGreater<2802>()) ? 12 : 6;
+	auto stub = new StreamingOnLoadStub(vt[index]);
+	hook::put(&vt[index], stub->GetCode());
 
 	return g_origInsertModule(moduleMgr, strModule);
 }
@@ -155,13 +155,6 @@ static void ValidateGeometry(void* geomPtr)
 	auto polys = geom->GetPolygons();
 	auto numPolys = geom->GetNumPolygons();
 	auto numVerts = geom->GetNumVertices();
-
-	// Some exporter exports broken octant maps, which at this time (2020-11-23) is a #9 top crasher.
-	// Therefore, remove octant maps for any custom assets (pending research on what exactly is broken).
-	if (g_customStreamingFileRefs.find(g_currentStreamingName) != g_customStreamingFileRefs.end())
-	{
-		geom->ClearOctantMap();
-	}
 
 	bool error = false;
 

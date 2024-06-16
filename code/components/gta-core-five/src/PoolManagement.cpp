@@ -8,6 +8,8 @@
 
 #include <Error.h>
 
+#include "CrossBuildRuntime.h"
+
 class RageHashList
 {
 public:
@@ -377,57 +379,79 @@ static void* GetNetObjPositionWrap(void* a1, void* a2)
 
 static HookFunction hookFunction([] ()
 {
-	auto registerPools = [] (hook::pattern& patternMatch, int callOffset, int hashOffset)
+	auto generateAndCallStub = [](hook::pattern_match match, int callOffset, uint32_t hash, bool isAssetStore)
+	{
+		struct : jitasm::Frontend
+		{
+			uint32_t hash;
+			uint64_t origFn;
+			bool isAssetStore;
+
+			void InternalMain() override
+			{
+				sub(rsp, 0x38);
+
+				mov(rax, qword_ptr[rsp + 0x38 + 0x28]);
+				mov(qword_ptr[rsp + 0x20], rax);
+
+				mov(rax, qword_ptr[rsp + 0x38 + 0x30]);
+				mov(qword_ptr[rsp + 0x28], rax);
+
+				mov(rax, origFn);
+				call(rax);
+
+				mov(rcx, rax);
+
+				if(isAssetStore == true)
+				 add(rcx, 0x38);
+
+				mov(edx, hash);
+
+				mov(rax, (uint64_t)&SetPoolFn);
+				call(rax);
+
+				add(rsp, 0x38);
+
+				ret();
+			}
+		} *stub = new std::remove_pointer_t<decltype(stub)>();
+
+		stub->hash = hash;
+		stub->isAssetStore = isAssetStore;
+
+		auto call = match.get<void>(callOffset);
+		hook::set_call(&stub->origFn, call);
+		hook::call(call, stub->GetCode());
+	};
+	
+	auto registerPools = [&](hook::pattern& patternMatch, int callOffset, int hashOffset)
 	{
 		for (size_t i = 0; i < patternMatch.size(); i++)
 		{
 			auto match = patternMatch.get(i);
-			auto hash = *match.get<uint32_t>(hashOffset);
-
-			struct : jitasm::Frontend
-			{
-				uint32_t hash;
-				uint64_t origFn;
-
-				void InternalMain() override
-				{
-					sub(rsp, 0x38);
-
-					mov(rax, qword_ptr[rsp + 0x38 + 0x28]);
-					mov(qword_ptr[rsp + 0x20], rax);
-
-					mov(rax, qword_ptr[rsp + 0x38 + 0x30]);
-					mov(qword_ptr[rsp + 0x28], rax);
-
-					mov(rax, origFn);
-					call(rax);
-
-					mov(rcx, rax);
-					mov(edx, hash);
-
-					mov(rax, (uint64_t)&SetPoolFn);
-					call(rax);
-
-					add(rsp, 0x38);
-
-					ret();
-				}
-			}* stub = new std::remove_pointer_t<decltype(stub)>();
-
-			stub->hash = hash;
-
-			auto call = match.get<void>(callOffset);
-			hook::set_call(&stub->origFn, call);
-			hook::call(call, stub->GetCode());
+			generateAndCallStub(match, callOffset, *match.get<uint32_t>(hashOffset), false);
 		}
 	};
 
-	// find initial pools
+	auto registerAssetPools = [&](hook::pattern& patternMatch, int callOffset, int nameOffset)
+	{
+		for (size_t i = 0; i < patternMatch.size(); i++)
+		{
+			auto match = patternMatch.get(i);
+			char* name = hook::get_address<char*>(match.get<void*>(nameOffset));
+			generateAndCallStub(match, callOffset, HashString(name), true);
+		}
+	};
+
+	// Find initial pools
 	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? ? 00 E8 ? ? ? ? 4C 8D 05"), 0x2C, 1);
 	registerPools(hook::pattern("C6 BA ? ? ? ? E8 ? ? ? ? 4C 8D 05"), 0x27, 2);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? C6 ? ? ? 01 4C"), 0x2F, 1);
-	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? 00 00 E8 ? ? ? ? C6"), 0x35, 1);
+	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? 00 00 E8 ? ? ? ? C6 44"), 0x35, 1);
 	registerPools(hook::pattern("44 8B C0 BA ? ? ? ? E8 ? ? ? ? 4C 8D 05"), 0x25, 4);
+	
+	// fwAssetStores
+	registerAssetPools(hook::pattern("48 8D 15 ? ? ? ? 45 8D 41 ? 48 8B ? C7"), 0x15, 3); 
 
 	// min hook
 	MH_CreateHook(hook::get_pattern("18 83 F9 FF 75 03 33 C0 C3 41", -6), PoolAllocateWrap, (void**)&g_origPoolAllocate);
@@ -441,7 +465,14 @@ static HookFunction hookFunction([] ()
 	// cloning stuff
 	MH_CreateHook(hook::get_pattern("41 8B D9 41 8A E8 4C 8B F2 48 8B F9", -0x19), ShouldWriteToPlayerWrap, (void**)&g_origShouldWriteToPlayer);
 
-	MH_CreateHook(hook::get_pattern("41 8A E8 48 8B DA 48 85 D2 0F", -0x1E), GetRelevantSectorPosPlayersWrap, (void**)&g_origGetRelevantSectorPosPlayers);
+	if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		MH_CreateHook(hook::get_pattern("45 8A F8 48 8B DA 48 85 D2 0F", -0x1E), GetRelevantSectorPosPlayersWrap, (void**)&g_origGetRelevantSectorPosPlayers);
+	}
+	else
+	{
+		MH_CreateHook(hook::get_pattern("41 8A E8 48 8B DA 48 85 D2 0F", -0x1E), GetRelevantSectorPosPlayersWrap, (void**)&g_origGetRelevantSectorPosPlayers);
+	}
 
 	//MH_CreateHook((void*)0x14159A8F0, AssignObjectIdWrap, (void**)&g_origAssignObjectId);
 

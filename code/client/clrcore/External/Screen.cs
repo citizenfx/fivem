@@ -3,10 +3,12 @@ using CitizenFX.Core;
 using API = CitizenFX.FiveM.Native.Natives;
 using PointF = CitizenFX.Core.Vector2;
 using Size = CitizenFX.Core.Size2;
+using String = CitizenFX.Core.CString;
 
-namespace CitizenFX.FiveM.UI
+namespace CitizenFX.FiveM.GUI
 #else
 using CitizenFX.Core.Native;
+using System;
 using System.Drawing;
 
 namespace CitizenFX.Core.UI
@@ -199,23 +201,10 @@ namespace CitizenFX.Core.UI
 
 	public static class Screen
 	{
-		/// <summary>
-		/// Converts the inputString into a string[] (array) containing strings each 99 or less characters long.
-		/// </summary>
-		/// <param name="inputString">The string to convert.</param>
-		/// <returns>string[] containing strings each 99 or less characters long.</returns>
-		public static string[] StringToArray(string inputString)
-		{
-			int stringsNeeded = (inputString.Length % 99 == 0) ? (inputString.Length / 99) : ((inputString.Length / 99) + 1);
-
-			string[] outputString = new string[stringsNeeded];
-			for (int i = 0; i < stringsNeeded; i++)
-			{
-				outputString[i] = inputString.Substring(i * 99, MathUtil.Clamp(inputString.Substring(i * 99).Length, 0, 99));
-			}
-
-			return outputString;
-		}
+#if !MONO_V2
+		/// <inheritdoc cref="Text.SplitString(String)"/>
+		public static String[] StringToArray(String inputString) => Text.SplitString(inputString);
+#endif
 
 		/// <summary>
 		/// The base width of the screen used for all UI Calculations, unless ScaledDraw is used
@@ -263,15 +252,18 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		/// <param name="message">The message to display.</param>
 		/// <param name="duration">The duration to display the subtitle in milliseconds.</param>
-		public static void ShowSubtitle(string message, int duration = 2500)
-		{
-			string[] strings = StringToArray(message);
+		public static void ShowSubtitle(String message, int duration = 2500)
+			=> ShowSubtitle(Text.SplitString(message), duration);
 
+		/// <remarks>Use this with an array of <see cref="String"/>s that have 99 or less characters for better performance</remarks>
+		/// <inheritdoc cref="ShowSubtitle(String, int)"/>
+		public static void ShowSubtitle(String[] message, int duration = 2500)
+		{
 			API.BeginTextCommandPrint("CELL_EMAIL_BCON");
 
-			foreach (string s in strings)
+			for (int i = 0; i < message?.Length; ++i)
 			{
-				API.AddTextComponentSubstringPlayerName(s);
+				API.AddTextComponentSubstringPlayerName(message[i]);
 			}
 
 			API.EndTextCommandPrint(duration, true);
@@ -281,15 +273,18 @@ namespace CitizenFX.Core.UI
 		/// Displays a help message in the top corner of the screen this frame.
 		/// </summary>
 		/// <param name="helpText">The text to display.</param>
-		public static void DisplayHelpTextThisFrame(string helpText)
-		{
-			string[] strings = StringToArray(helpText);
+		public static void DisplayHelpTextThisFrame(String helpText)
+			=> DisplayHelpTextThisFrame(Text.SplitString(helpText));
 
+		/// <remarks>Use this with an array of <see cref="String"/>s that have 99 or less characters for better performance</remarks>
+		/// <inheritdoc cref="DisplayHelpTextThisFrame(String)"/>
+		public static void DisplayHelpTextThisFrame(String[] helpText)
+		{
 			API.BeginTextCommandDisplayHelp("CELL_EMAIL_BCON");
 
-			foreach (string s in strings)
+			for (int i = 0; i < helpText?.Length; ++i)
 			{
-				API.AddTextComponentSubstringPlayerName(s);
+				API.AddTextComponentSubstringPlayerName(helpText[i]);
 			}
 
 			API.EndTextCommandDisplayHelp(0, false, false, -1);
@@ -301,14 +296,16 @@ namespace CitizenFX.Core.UI
 		/// <param name="message">The message in the notification.</param>
 		/// <param name="blinking">if set to <c>true</c> the notification will blink.</param>
 		/// <returns>The handle of the <see cref="Notification"/> which can be used to hide it using <see cref="Notification.Hide()"/></returns>
-		public static Notification ShowNotification(string message, bool blinking = false)
+		public static Notification ShowNotification(String message, bool blinking = false)
+			=> ShowNotification(Text.SplitString(message), blinking);
+
+		/// <remarks>Use this with an array of <see cref="String"/>s that have 99 or less characters for better performance</remarks>
+		/// <inheritdoc cref="ShowNotification(String, bool)"/>
+		public static Notification ShowNotification(String[] message, bool blinking = false)
 		{
-			string[] strings = StringToArray(message);
-
-
 			API.BeginTextCommandThefeedPost("CELL_EMAIL_BCON");
 
-			foreach (string s in strings)
+			foreach (String s in message)
 			{
 				API.AddTextComponentSubstringPlayerName(s);
 			}

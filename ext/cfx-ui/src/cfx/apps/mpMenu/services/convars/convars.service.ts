@@ -1,9 +1,11 @@
-import { defineService, ServicesContainer, useService } from "cfx/base/servicesContainer";
-import { Deferred } from "cfx/utils/async";
-import { injectable } from "inversify";
-import { makeAutoObservable } from "mobx";
-import { mpMenu } from "../../mpMenu";
-import { IConvar } from "./types";
+import { injectable } from 'inversify';
+import { makeAutoObservable } from 'mobx';
+
+import { defineService, ServicesContainer, useService } from 'cfx/base/servicesContainer';
+import { Deferred } from 'cfx/utils/async';
+
+import { IConvar } from './types';
+import { mpMenu } from '../../mpMenu';
 
 export const IConvarService = defineService<IConvarService>('ConvarService');
 export type IConvarService = ConvarService;
@@ -23,6 +25,7 @@ export function registerConvarService(container: ServicesContainer) {
 @injectable()
 export class ConvarService {
   private _convars: Record<IConvar, string> = {};
+
   private _convarsPopulatedDeferred = new Deferred<void>();
 
   constructor() {
@@ -66,11 +69,16 @@ export class ConvarService {
   }
 
   setBoolean(convar: IConvar, value: boolean) {
-    this.set(convar, value ? 'true' : 'false');
+    this.set(convar, value
+      ? 'true'
+      : 'false');
   }
 
-  private readonly handleConvarSet = (data: { name?: string, value?: string }) => {
-    const { name, value } = data;
+  private readonly handleConvarSet = (data: { name?: string; value?: string }) => {
+    const {
+      name,
+      value,
+    } = data;
 
     if (!name) {
       return;
@@ -79,14 +87,19 @@ export class ConvarService {
     this.setConvar(name, value || '');
   };
 
-  private readonly handleInitialConvarsSet = (data: { vars: Array<{ key: string, value: string }> }) => {
-    const { vars } = data;
+  private readonly handleInitialConvarsSet = (data: { vars: Array<{ key: string; value: string }> }) => {
+    const {
+      vars,
+    } = data;
 
     if (!Array.isArray(vars)) {
       return;
     }
 
-    for (const { key, value } of vars) {
+    for (const {
+      key,
+      value,
+    } of vars) {
       this._convars[key] = value || '';
       this.setConvar(key, value);
     }
@@ -107,7 +120,9 @@ export class ConvarService {
         window.localStorage.removeItem('darkThemeNew');
 
         this.setBoolean('ui_preferLightColorScheme', useLightColorScheme);
-      } catch (e) { }
+      } catch (e) {
+        // Do nothing
+      }
     }
   }
 }
@@ -126,4 +141,7 @@ const ARCHIVED_CONVARS: Record<IConvar, boolean> = [
   KnownConvars.customBackdrop,
   KnownConvars.preferLightColorScheme,
   KnownConvars.preferBlurredBackdrop,
-].reduce((acc, convar) => ({ ...acc, [convar]: true }), {});
+].reduce((acc, convar) => ({
+  ...acc,
+  [convar]: true,
+}), {});

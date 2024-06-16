@@ -1,7 +1,13 @@
-using System;
-using CitizenFX.Core.Native;
-using System.Security;
-
+#if MONO_V2
+namespace CitizenFX.Server
+{
+	public sealed class Object : Entity, Shared.IObject
+	{
+		public Object(int handle) : base(handle)
+		{
+		}
+	}
+#else
 namespace CitizenFX.Core
 {
 	public sealed class Prop : Entity
@@ -10,4 +16,5 @@ namespace CitizenFX.Core
 		{
 		}
 	}
+#endif
 }

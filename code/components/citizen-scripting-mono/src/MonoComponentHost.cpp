@@ -12,6 +12,23 @@
 #include <fxScripting.h>
 #include <Error.h>
 
+#ifndef IS_FXSERVER
+#include "DeferredInitializer.h"
+static std::shared_ptr<DeferredInitializer> g_monoInitializer;
+
+static inline void WaitForMono()
+{
+	if (auto initializer = g_monoInitializer)
+	{
+		initializer->Wait();
+	}
+}
+#else
+static inline void WaitForMono()
+{
+}
+#endif
+
 #include <EASTL/fixed_hash_map.h>
 
 #include <mono/jit/jit.h>
@@ -252,6 +269,7 @@ static void InitMono()
 	// initializes the mono runtime
 	fx::mono::MonoComponentHostShared::Initialize();
 
+	mono_thread_attach(mono_get_root_domain());
 	g_rootDomain = mono_get_root_domain();
 
 	mono_add_internal_call("CitizenFX.Core.GameInterface::PrintLog", reinterpret_cast<void*>(GI_PrintLogCall));
@@ -343,6 +361,8 @@ extern "C" DLL_EXPORT void MonoEnsureThreadAttached()
 
 result_t MonoCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef)
 {
+	WaitForMono();
+
 	if (!g_rootDomain)
 	{
 		return FX_E_NOINTERFACE;
@@ -378,6 +398,8 @@ result_t MonoCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** 
 
 std::vector<guid_t> MonoGetImplementedClasses(const guid_t& iid)
 {
+	WaitForMono();
+
 	if (!g_rootDomain)
 	{
 		return {};
@@ -412,5 +434,12 @@ static InitFunction initFunction([] ()
 		}, INT32_MIN);
 	});
 
+#ifndef IS_FXSERVER
+	g_monoInitializer = DeferredInitializer::Create([]()
+	{
+		InitMono();
+	});
+#else
 	InitMono();
+#endif
 });

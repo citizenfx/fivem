@@ -37,6 +37,8 @@ using namespace Microsoft::WRL;
 
 class MumbleClient;
 
+struct DenoiseState;
+
 class MumbleAudioInput
 {
 private:
@@ -58,6 +60,8 @@ private:
 
 	webrtc::AudioProcessing* m_apm;
 
+	DenoiseState* m_denoiseState;
+
 	uint8_t* m_resampledBytes;
 
 	uint32_t m_cachedLen;
@@ -71,6 +75,10 @@ private:
 	int m_curBitrate;
 
 	std::shared_ptr<ConVar<int>> m_bitrateVar;
+
+	bool m_denoise = true;
+
+	std::shared_ptr<ConVar<bool>> m_denoiseVar;
 
 	OpusEncoder* m_opus;
 

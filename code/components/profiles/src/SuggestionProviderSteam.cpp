@@ -69,7 +69,7 @@ void SteamSuggestionProvider::GetProfiles(std::function<void(fwRefContainer<Prof
 					if (steamUtils.Invoke<bool>("GetImageSize", avatarId, &width, &height))
 					{
 						std::vector<char> imageData;
-						imageData.resize(width * height * 4);
+						imageData.resize(static_cast<std::vector<char>::size_type>(width) * height * 4);
 
 						if (steamUtils.Invoke<bool>("GetImageRGBA", avatarId, &imageData[0], imageData.size()))
 						{
@@ -171,7 +171,7 @@ char* SteamSuggestionProvider::EncodeImageAsPNG(const char* inData, int width, i
 	{
 		// swap the pixels before writing (as they're RGBA and the PNG encoder only wants BGRA)
 		std::vector<uint8_t> inDataConverted;
-		inDataConverted.resize(width * height * 4);
+		inDataConverted.resize(static_cast<std::vector<uint8_t>::size_type>(width) * height * 4);
 
 		ConvertImageDataRGBA_BGRA(0, 0, width, height, width * 4, inData, width * 4, &inDataConverted[0]);
 

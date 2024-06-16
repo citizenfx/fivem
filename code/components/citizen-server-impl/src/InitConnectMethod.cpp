@@ -31,6 +31,7 @@
 
 #include <MonoThreadAttachment.h>
 #include <GameBuilds.h>
+#include <CrossBuildRuntime.h>
 
 #include <json.hpp>
 
@@ -46,6 +47,8 @@
 #include <boost/algorithm/string.hpp>
 
 #include <utf8.h>
+
+#include "NetBitVersion.h"
 
 using json = nlohmann::json;
 
@@ -215,7 +218,7 @@ static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
 		return {};
 	}
 
-	uint32_t length = *(uint32_t*)&ticketData[20 + 4 + 128];
+	size_t length = static_cast<size_t>(*(uint32_t*)&ticketData[20 + 4 + 128]);
 
 	// validate full length
 	if (ticketData.size() < 20 + 4 + 128 + 4 + length)
@@ -401,6 +404,8 @@ static InitFunction initFunction([]()
 			cb(json(nullptr));
 		});
 
+		auto experimentalStateBagsHandler = instance->AddVariable<bool>("sv_experimentalStateBagsHandler", ConVar_None, false);
+
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
 			auto sendError = [=](const std::string& error)
@@ -433,7 +438,7 @@ static InitFunction initFunction([]()
 			auto name = nameIt->second;
 			auto guid = guidIt->second;
 			auto protocol = atoi(protocolIt->second.c_str());
-			auto gameBuild = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
+			auto gameBuildField = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
 			auto gameName = (gameNameIt != postMap.end()) ? gameNameIt->second : "";
 
 			if (protocol < 12)
@@ -547,7 +552,16 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x202103292050;
+
+			if (experimentalStateBagsHandler->GetValue())
+			{
+				data["bitVersion"] = net::NetBitVersion::netVersion2;
+			}
+			else
+			{
+				data["bitVersion"] = net::NetBitVersion::netVersion1;
+			}
+
 			data["pure"] = pureVar->GetValue();
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !fx::IsOneSync();
@@ -633,6 +647,39 @@ static InitFunction initFunction([]()
 			auto it = g_serverProviders.begin();
 
 			fx::ClientWeakPtr clientWeak{ client };
+
+			struct ClientHolder
+			{
+				explicit ClientHolder(fx::ClientRegistry* clientRegistry, fx::ClientWeakPtr client)
+					: clientRegistry(clientRegistry), client(client)
+				{
+
+				}
+
+				void Disown()
+				{
+					client = {};
+				}
+
+				~ClientHolder()
+				{
+					if (client)
+					{
+						if (auto clientPtr = client.lock())
+						{
+							clientRegistry->RemoveClient(clientPtr);
+						}
+					}
+				}
+
+			private:
+				fx::ClientRegistry* clientRegistry;
+
+				fx::ClientWeakPtr client;
+			};
+
+			auto clientHolder = std::make_shared<ClientHolder>(clientRegistry.GetRef(), clientWeak);
+
 			auto done = [=]()
 			{
 				auto lockedClient = clientWeak.lock();
@@ -646,6 +693,8 @@ static InitFunction initFunction([]()
 
 				auto allowClient = [=]()
 				{
+					clientHolder->Disown();
+
 					auto client = clientWeak.lock();
 
 					if (client)
@@ -669,7 +718,17 @@ static InitFunction initFunction([]()
 
 					for (const auto& [ key, value ] : deferrals->GetHandoverData())
 					{
-						handoverData[key] = json::parse(value);
+						std::vector<char> handoverValue;
+						utf8::replace_invalid(value.begin(), value.end(), std::back_inserter(handoverValue));
+
+						try
+						{
+							handoverData[key] = json::parse(handoverValue);
+						}
+						catch (std::exception&)
+						{
+
+						}
 					}
 
 					data["handover"] = std::move(handoverData);
@@ -693,8 +752,6 @@ static InitFunction initFunction([]()
 
 				if (maxTrust < minTrustVar->GetValue() || minVariance > maxVarianceVar->GetValue())
 				{
-					clientRegistry->RemoveClient(lockedClient);
-
 					sendError("You can not join this server due to your identifiers being insufficient. Please try starting Steam or another identity provider and try again.");
 					return;
 				}
@@ -702,20 +759,53 @@ static InitFunction initFunction([]()
 				auto svGame = instance->GetComponent<fx::GameServer>()->GetGameName();
 				bool canEnforceBuild = (svGame == fx::GameName::GTA5 || svGame == fx::GameName::RDR3);
 
-				if (canEnforceBuild && !enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != gameBuild)
+				if (canEnforceBuild)
 				{
-					clientRegistry->RemoveClient(lockedClient);
+					const auto gameBuildData = xbr::ParseGameBuildFromString(gameBuildField);
 
-					sendError(
-						fmt::sprintf(
-							"This server requires a different game build (%s) from the one you're using (%s).%s",
-							enforceGameBuildVar->GetValue(),
-							gameBuild,
-							(svGame == fx::GameName::GTA5) ? " Tell the server owner to remove this check." : ""
-						)
-					);
+					if (gameBuildData.first == 0 && gameBuildData.second == 0)
+					{
+						sendError(fmt::sprintf("Invalid game build has been passed (%s).", gameBuildField));
+						return;
+					}
 
-					return;
+					const auto buildNumberStr = fmt::sprintf("%d", gameBuildData.first);
+
+					if (!enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != buildNumberStr)
+					{
+						sendError(
+							fmt::sprintf(
+								"This server requires a different game build (%s) from the one you're using (%s).%s",
+								enforceGameBuildVar->GetValue(),
+								buildNumberStr,
+								(svGame == fx::GameName::GTA5) ? " Tell the server owner to remove this check." : ""
+							)
+						);
+
+						return;
+					}
+
+					// Default expected revision is always "0".
+					auto expectedRevision = 0;
+
+					if (const auto uniquifier = xbr::GetGameBuildUniquifier(gameName, gameBuildData.first))
+					{
+						expectedRevision = uniquifier->m_revision;
+					}
+
+					if (expectedRevision != gameBuildData.second)
+					{
+						sendError(
+							fmt::sprintf(
+								"Client/Server game build revision mismatch: you are running game build %d revision %d, "
+								"while server expects revision %d.\n\nFor more information, please "
+								"<a href=\"https://aka.cfx.re/game-build-revision-mismatch\">click here</a>.",
+								gameBuildData.first, gameBuildData.second, expectedRevision
+							)
+						);
+
+						return;
+					}	
 				}
 
 				auto resman = instance->GetComponent<fx::ResourceManager>();
@@ -781,7 +871,7 @@ static InitFunction initFunction([]()
 				auto weakEarlyReject = std::weak_ptr(earlyReject);
 				auto weakNoReason = std::weak_ptr(noReason);
 
-				(*deferrals)->SetRejectCallback([deferrals, cbRef, clientWeak, clientRegistry, weakEarlyReject, weakNoReason](const std::string& message)
+				(*deferrals)->SetRejectCallback([deferrals, cbRef, clientWeak, weakEarlyReject, weakNoReason](const std::string& message)
 				{
 					auto earlyReject = weakEarlyReject.lock();
 					auto noReason = weakNoReason.lock();
@@ -795,8 +885,6 @@ static InitFunction initFunction([]()
 					auto newLockedClient = clientWeak.lock();
 					if (newLockedClient)
 					{
-						clientRegistry->RemoveClient(newLockedClient);
-
 						auto ref1 = *cbRef;
 
 						if (ref1)
@@ -810,14 +898,8 @@ static InitFunction initFunction([]()
 					*deferrals = nullptr;
 				});
 
-				request->SetCancelHandler([cbRef, deferrals, clientWeak, clientRegistry, didSucceed]()
+				request->SetCancelHandler([cbRef, deferrals]()
 				{
-					auto newLockedClient = clientWeak.lock();
-					if (!*didSucceed && newLockedClient)
-					{
-						clientRegistry->RemoveClient(newLockedClient);
-					}
-
 					*cbRef = nullptr;
 					*deferrals = nullptr;
 				});
@@ -901,16 +983,14 @@ static InitFunction initFunction([]()
 
 					if (!shouldAllow)
 					{
-						clientRegistry->RemoveClient(lockedClient);
-
+						*deferrals = {};
 						sendError(**noReason);
 						return;
 					}
 
 					if (*earlyReject)
 					{
-						clientRegistry->RemoveClient(lockedClient);
-
+						*deferrals = {};
 						sendError(**noReason);
 						return;
 					}
@@ -978,8 +1058,6 @@ static InitFunction initFunction([]()
 						// if an auth method fails, bail
 						if (err)
 						{
-							clientRegistry->RemoveClient(newClientLocked);
-
 							sendError(*err);
 
 							// unset the callback

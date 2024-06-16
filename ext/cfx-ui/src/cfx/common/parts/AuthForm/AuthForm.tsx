@@ -1,55 +1,48 @@
 import { observer } from 'mobx-react-lite';
+
+import { useAccountService } from 'cfx/common/services/account/account.service';
+// eslint-disable-next-line camelcase
+import { $L, $L_nl2br } from 'cfx/common/services/intl/l10n';
+import { Avatar } from 'cfx/ui/Avatar/Avatar';
 import { Button } from 'cfx/ui/Button/Button';
 import { BrandIcon } from 'cfx/ui/Icons';
 import { Indicator } from 'cfx/ui/Indicator/Indicator';
+import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
 import { Input } from 'cfx/ui/Input/Input';
+import { Flex } from 'cfx/ui/Layout/Flex/Flex';
 import { Separator } from 'cfx/ui/Separator/Separator';
 import { Text } from 'cfx/ui/Text/Text';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
+
 import { IAuthFormState, totpFieldRef, useAuthFormState, usernameRegexp } from './AuthFormState';
-import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
-import { Avatar } from 'cfx/ui/Avatar/Avatar';
-import { useAccountService } from 'cfx/common/services/account/account.service';
-import { $L, $L_nl2br } from 'cfx/common/services/intl/l10n';
+
 import s from './AuthForm.module.scss';
 
-export type AuthFormProps = Partial<Pick<
-  IAuthFormState,
-  | 'onDone'
-  | 'onModeChange'
-  | 'onDisabledChange'
->>
+export type AuthFormProps = Partial<Pick<IAuthFormState, 'onDone' | 'onModeChange' | 'onDisabledChange'>>;
 
 export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
   const AccountService = useAccountService();
 
   const state = useAuthFormState();
 
-  {
-    state.onDone = props.onDone;
-    state.onModeChange = props.onModeChange;
-    state.onDisabledChange = props.onDisabledChange;
-  }
+  // ---
+  state.onDone = props.onDone;
+  state.onModeChange = props.onModeChange;
+  state.onDisabledChange = props.onDisabledChange;
+  // ---
 
   if (state.isAuthenticated) {
     return (
       <Flex vertical fullWidth fullHeight centered gap="xlarge">
         <Flex centered vertical gap="xlarge">
           <Flex centered vertical gap="large">
-            <Avatar
-              size="large"
-              url={AccountService.account?.getAvatarUrl() || ''}
-              className={s.avatar}
-            />
+            <Avatar size="large" url={AccountService.account?.getAvatarUrl() || ''} className={s.avatar} />
 
             <Flex gap="small">
               <Text size="xlarge" opacity="50">
                 {$L('#AuthForm_Success_Welcome')}
               </Text>
 
-              <Text size="xlarge">
-                {AccountService.account?.username}
-              </Text>
+              <Text size="xlarge">{AccountService.account?.username}</Text>
             </Flex>
           </Flex>
 
@@ -72,9 +65,7 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
         <>
           <Indicator />
 
-          <Text>
-            {$L('#AuthForm_External_Instruction')}
-          </Text>
+          <Text>{$L('#AuthForm_External_Instruction')}</Text>
         </>
       )}
 
@@ -116,7 +107,6 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
             onChange={state.email.set}
             disabled={state.disabled}
             onSubmit={state.handleSubmit}
-
             decorator={state.renderEmailDecorator()}
           />
         )}
@@ -131,7 +121,6 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
             onChange={state.setPassword}
             disabled={state.disabled}
             onSubmit={state.handleSubmit}
-
             decorator={state.renderPasswordDecorator()}
           />
         )}
@@ -146,7 +135,6 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
             disabled={state.disabled}
             onSubmit={state.handleSubmit}
             pattern={usernameRegexp}
-
             decorator={state.renderUsernameDecorator()}
           />
         )}
@@ -170,7 +158,9 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
 
         {!!state.submitMessage.hasMessage && (
           <InfoPanel
-            type={state.submitMessage.isError ? 'error' : 'success'}
+            type={state.submitMessage.isError
+              ? 'error'
+              : 'success'}
             className={s.message}
           >
             {$L_nl2br(state.submitMessage.message)}
@@ -182,10 +172,12 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
 });
 
 interface SubmitControlsProps {
-  state: IAuthFormState,
+  state: IAuthFormState;
 }
 
-const SubmitControls = observer(function SubmitControls({ state }: SubmitControlsProps) {
+const SubmitControls = observer(function SubmitControls({
+  state,
+}: SubmitControlsProps) {
   if (state.isLogIn) {
     return (
       <Flex centered repell>
@@ -196,11 +188,17 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
           onClick={state.switchToRegistration}
         />
 
-        {state.disabled ? <Indicator /> : null}
+        {state.disabled
+          ? (
+            <Indicator />
+            )
+          : null}
 
         <Button
           text={$L('#AuthForm_LogIn_Submit')}
-          theme={state.disabled ? 'default' : 'primary'}
+          theme={state.disabled
+            ? 'default'
+            : 'primary'}
           disabled={state.disabled || !state.canSubmit}
           onClick={state.handleSubmit}
         />
@@ -218,11 +216,17 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
           onClick={state.switchToLogIn}
         />
 
-        {state.disabled ? <Indicator /> : null}
+        {state.disabled
+          ? (
+            <Indicator />
+            )
+          : null}
 
         <Button
           text={$L('#AuthForm_LogIn_Submit')}
-          theme={state.disabled ? 'default' : 'primary'}
+          theme={state.disabled
+            ? 'default'
+            : 'primary'}
           disabled={state.disabled || !state.canSubmit}
           onClick={state.handleSubmit}
         />
@@ -233,10 +237,7 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
   if (state.isExternal) {
     return (
       <Flex centered>
-        <Button
-          text={$L('#AuthForm_Back')}
-          onClick={state.switchToLogIn}
-        />
+        <Button text={$L('#AuthForm_Back')} onClick={state.switchToLogIn} />
       </Flex>
     );
   }
@@ -250,7 +251,11 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
           onClick={state.resendActivationEmail}
         />
 
-        {state.disabled ? <Indicator /> : null}
+        {state.disabled
+          ? (
+            <Indicator />
+            )
+          : null}
 
         <Button
           theme="primary"
@@ -271,11 +276,17 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
         onClick={state.switchToLogIn}
       />
 
-      {state.disabled ? <Indicator /> : null}
+      {state.disabled
+        ? (
+          <Indicator />
+          )
+        : null}
 
       <Button
         text={$L('#AuthForm_Registration_Submit')}
-        theme={state.disabled ? 'default' : 'primary'}
+        theme={state.disabled
+          ? 'default'
+          : 'primary'}
         disabled={state.disabled || !state.canSubmit}
         onClick={state.handleSubmit}
       />

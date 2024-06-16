@@ -182,13 +182,9 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 		useNew = true;
 #endif
 
-		std::string policyVal;
-		if (icgi->GetData("policy", &policyVal) && icgi->OneSyncEnabled)
+		if (icgi->OneSyncEnabled)
 		{
-			if (policyVal.find("[new_interior_hash]") != std::string::npos)
-			{
-				useNew = true;
-			}
+			useNew = true;
 		}
 
 		if (!useNew)
@@ -243,7 +239,7 @@ static void (*g_origReadOrient)(rage::CSyncDataBase* self, float* mat, const cha
 
 static void ReadOrient(rage::CSyncDataBase* self, float* mat, const char* name)
 {
-	if (icgi->NetProtoVersion < 0x202006140932 || !icgi->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origReadOrient(self, mat, name);
 	}
@@ -269,7 +265,7 @@ static void(*g_origWriteOrient)(rage::CSyncDataBase* self, float* mat, const cha
 
 static void WriteOrient(rage::CSyncDataBase* self, float* mat, const char* name)
 {
-	if (icgi->NetProtoVersion < 0x202006140932 || !icgi->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origWriteOrient(self, mat, name);
 	}
@@ -289,7 +285,7 @@ static void WriteOrient(rage::CSyncDataBase* self, float* mat, const char* name)
 
 static void SizeOrient(char* self)
 {
-	if (icgi->NetProtoVersion < 0x202006140932 || !icgi->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		*(uint32_t*)(self + 24) += 9 * 3;
 		return;
@@ -301,7 +297,7 @@ static void SizeOrient(char* self)
 static HookFunction hookFunction([]()
 {
 	g_readerVtbl = hook::get_address<uintptr_t>(hook::get_pattern("48 83 EC 48 48 8B 49 08 49 89 53 F0 48 8D 05", 0xF));
-	g_writerVtbl = hook::get_address<uintptr_t>(hook::get_pattern("4C 8B 10 48 8B C8 41 FF 52 08 48 8B 4B 08", 0x11));
+	g_writerVtbl = hook::get_address<uintptr_t>(hook::get_pattern("4C 8B 10 48 8B C8 41 FF 52 ? 48 8B 4B 08", 0x11));
 	g_loggerVtbl = hook::get_address<uintptr_t>(hook::get_pattern("48 8B 90 10 27 00 00 48 8D 05 ? ? ? ? 49 89 53 E8", 10));
 
 	// CDynamicEntityGameStateDataNode Serialize

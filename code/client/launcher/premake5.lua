@@ -1,3 +1,10 @@
+-- This env var is originating from and must be kept in sync with cfx-build-toolkit/setupEnv.ps1
+local gameDumpsRoot = os.getenv("CFX_BUILD_TOOLKIT_GAME_DUMPS_ROOT")
+
+if not gameDumpsRoot or not os.isdir(gameDumpsRoot) then
+	gameDumpsRoot = "C:\\f"
+end
+
 local delayDLLs = {
 }
 
@@ -53,7 +60,7 @@ local function isGamePersonality(name)
 		return true
 	end
 
-	if name == 'game_1604' or name == 'game_2060' or name == 'game_372' or name == 'game_2189' or name == 'game_2372' or name == 'game_2545' or name == 'game_2612' or name == 'game_2699' then
+	if name == 'game_1604' or name == 'game_2060' or name == 'game_2189' or name == 'game_2372' or name == 'game_2545' or name == 'game_2612' or name == 'game_2699' or name == 'game_2802' or name == 'game_2944' or name == 'game_3095' then
 		return true
 	end
 	
@@ -73,11 +80,14 @@ local function isGamePersonality(name)
 	return false
 end
 
-local function launcherpersonality_inner(name, aslr)
+local function launcherpersonality_inner(name)
 	local projectName = name == 'main' and 'CitiLaunch' or ('CitiLaunch_' .. name)
+	local subprocessName = name
 
-	if aslr then
+	-- suffix '_aslr' for game processes so these match older binaries
+	if name:sub(1, 5) == 'game_' and _OPTIONS['game'] ~= 'ny' and name ~= 'game_mtl' then
 		projectName = projectName .. '_aslr'
+		subprocessName = subprocessName .. '_aslr'
 	end
 
 	if not isLauncherPersonality(name) then
@@ -142,27 +152,29 @@ local function launcherpersonality_inner(name, aslr)
 			if _OPTIONS['game'] == 'five' then
 				gameBuild = '1604'
 
+				if name == 'game_3095' then gameBuild = '3095_0' end
+				if name == 'game_2944' then gameBuild = '2944_0' end
+				if name == 'game_2802' then gameBuild = '2802_0' end
 				if name == 'game_2699' then gameBuild = '2699_0' end
 				if name == 'game_2612' then gameBuild = '2612_1' end
 				if name == 'game_2545' then gameBuild = '2545_0' end
 				if name == 'game_2372' then gameBuild = '2372_0' end
 				if name == 'game_2189' then gameBuild = '2189_0' end
 				if name == 'game_2060' then gameBuild = '2060_2' end
-				if name == 'game_372' then gameBuild = '372' end
 
-				gameDump = ("C:\\f\\GTA5_%s_dump.exe"):format(gameBuild)
+				gameDump = ("%s\\GTA5_%s_dump.exe"):format(gameDumpsRoot, gameBuild)
 			elseif _OPTIONS['game'] == 'rdr3' then
 				gameBuild = '1311'
 
 				if name == 'game_1355' then gameBuild = '1355_18' end
 				if name == 'game_1436' then gameBuild = '1436_31' end
-				if name == 'game_1491' then gameBuild = '1491_16' end
+				if name == 'game_1491' then gameBuild = '1491_50' end
 
-				gameDump = ("C:\\f\\RDR2_%s.exe"):format(gameBuild)
+				gameDump = ("%s\\RDR2_%s.exe"):format(gameDumpsRoot, gameBuild)
 			end
 
 			if name == 'game_mtl' then
-				gameDump = "C:\\f\\Launcher.exe"
+				gameDump = ("%s\\Launcher.exe"):format(gameDumpsRoot)
 				gameBuild = 'mtl'
 			end
 
@@ -224,7 +236,7 @@ local function launcherpersonality_inner(name, aslr)
 		filter {}
 			
 		if name ~= 'main' then
-			targetname("CitizenFX_SubProcess_" .. name .. (aslr and "_aslr" or ""))
+			targetname("CitizenFX_SubProcess_" .. subprocessName)
 		end
 		
 		linkoptions "/IGNORE:4254 /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
@@ -239,12 +251,9 @@ local function launcherpersonality_inner(name, aslr)
 			-- V8 requires a 1.5 MB stack at minimum (default is 1 MB stack space for V8 only, so 512 kB safety)
 			linkoptions "/STACK:0x180000"
 
-			if not aslr and not isLauncherPersonality(name) then
+			-- for debug builds, we will load at the default base to allow easier copy/paste of addresses from disassembly
+			filter { "configurations:Debug" }
 				linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
-			else
-				filter { "configurations:Debug" }
-					linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
-			end
 
 			-- add NOTHING below here (`filter` from `isGamePersonality` would break, otherwise)
 		end
@@ -257,6 +266,7 @@ local function launcherpersonality_inner(name, aslr)
 			linkoptions "/STACK:0x800000"
 		end
 			
+
 		for _, dll in ipairs(delayDLLs) do
 			linkoptions("/DELAYLOAD:" .. dll)
 		end
@@ -265,11 +275,7 @@ local function launcherpersonality_inner(name, aslr)
 end
 
 local function launcherpersonality(name)
-	launcherpersonality_inner(name, false)
-
-	if name:sub(1, 5) == 'game_' and _OPTIONS['game'] ~= 'ny' and name ~= 'game_mtl' then
-		launcherpersonality_inner(name, true)
-	end
+	launcherpersonality_inner(name)
 end
 
 launcherpersonality 'main'
@@ -277,13 +283,15 @@ launcherpersonality 'chrome'
 
 if _OPTIONS['game'] == 'five' then
 	launcherpersonality 'game_1604'
-	--launcherpersonality 'game_372'
 	launcherpersonality 'game_2060'
 	launcherpersonality 'game_2189'
 	launcherpersonality 'game_2372'
 	launcherpersonality 'game_2545'
 	launcherpersonality 'game_2612'
 	launcherpersonality 'game_2699'
+	launcherpersonality 'game_2802'
+	launcherpersonality 'game_2944'
+	launcherpersonality 'game_3095'
 	launcherpersonality 'game_mtl'
 elseif _OPTIONS['game'] == 'rdr3' then
 	launcherpersonality 'game_1311'

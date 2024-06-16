@@ -42,6 +42,7 @@
 	"scrbind:base",
 	"nui:resources",
 	"citizen:game:ipc",
+	"devtools:rdr3",
 	"extra-natives:rdr3",
 	"citizen:playernames:rdr3",
 	"rage:formats:x",

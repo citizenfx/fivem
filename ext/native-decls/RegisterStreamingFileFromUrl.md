@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## REGISTER_STREAMING_FILE_FROM_URL
 

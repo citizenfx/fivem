@@ -3,47 +3,23 @@
 
 #include <nutsnbolts.h>
 #include <sfFontStuff.h>
+#include <sfDefinitions.h>
 
+#include <CoreConsole.h>
 #include <Streaming.h>
 #include <CrossBuildRuntime.h>
 
-struct GFxObjectInterface
-{
-
-};
-
-struct GFxValue;
-
-static hook::cdecl_stub<bool(GFxObjectInterface*, void*, GFxValue*, const char*)> __GFxObjectInterface_CreateEmptyMovieClip([]()
+static hook::cdecl_stub<bool(GFxObjectInterface*, void*, GFxValue*, const char*, int)> __GFxObjectInterface_CreateEmptyMovieClip([]()
 {
 	return hook::get_pattern("4D 8B E0 4C 8B F9 48 85 DB 75 18 48", -0x25);
 });
 
-struct GFxDisplayInfo
-{
-	double X;
-	double Y;
-	double Rotation;
-	double XScale;
-	double YScale;
-	double Alpha;
-	bool Visible;
-	double Z;
-	double XRotation;
-	double YRotation;
-	double ZScale;
-	double FOV;
-	float ViewMatrix3D[4][4];
-	float ProjectionMatrix3D[4][4];
-	uint16_t VarsSet;
-};
-
-static hook::cdecl_stub<bool(GFxObjectInterface*, void*, GFxDisplayInfo*)> __GFxObjectInterface_GetDisplayInfo([]()
+static hook::cdecl_stub<bool(GFxObjectInterface*, void*, GFxValue::DisplayInfo*)> __GFxObjectInterface_GetDisplayInfo([]()
 {
 	return hook::get_pattern("83 65 9B 00 83 65 97 00 F2", -0x60);
 });
 
-static hook::cdecl_stub<bool(GFxObjectInterface*, void*, const GFxDisplayInfo&)> __GFxObjectInterface_SetDisplayInfo([]()
+static hook::cdecl_stub<bool(GFxObjectInterface*, void*, const GFxValue::DisplayInfo&)> __GFxObjectInterface_SetDisplayInfo([]()
 {
 	return hook::get_pattern("48 8B 5A 08 0F 29 70 B8 0F 29 78 A8", -0x1D);
 });
@@ -63,197 +39,60 @@ static hook::cdecl_stub<bool(GFxObjectInterface*, void*, const char*, GFxValue*,
 	return hook::get_pattern("38 9C 24 80 00 00 00 74 56 48 8B 42 08", -0x26);
 });
 
-struct GFxValue
+void GFxValue::ReleaseManagedValue()
 {
-	enum ValueTypeControl
-	{
-		VTC_ConvertBit = 0x80,
-		VTC_ManagedBit = 0x40,
+	__GFxObjectInterface_ObjectRelease(pObjectInterface, this, mValue.pData);
+	pObjectInterface = nullptr;
+}
 
-		VTC_TypeMask = VTC_ConvertBit | 0x0F,
-	};
-
-	enum ValueType
-	{
-		VT_Undefined = 0x00,
-		VT_Null = 0x01,
-		VT_Boolean = 0x02,
-		VT_Number = 0x03,
-		VT_String = 0x04,
-		VT_StringW = 0x05,
-		VT_Object = 0x06,
-		VT_Array = 0x07,
-		VT_DisplayObject = 0x08,
-
-		VT_ConvertBoolean = VTC_ConvertBit | VT_Boolean,
-		VT_ConvertNumber = VTC_ConvertBit | VT_Number,
-		VT_ConvertString = VTC_ConvertBit | VT_String,
-		VT_ConvertStringW = VTC_ConvertBit | VT_StringW
-	};
-
-	union ValueUnion
-	{
-		double          NValue;
-		bool            BValue;
-		const char*     pString;
-		const char**    pStringManaged;
-		const wchar_t*  pStringW;
-		void*           pData;
-	};
-
-	inline GFxValue()
-	{
-		pObjectInterface = nullptr;
-		Type = VT_Undefined;
-		mValue.pData = nullptr;
-	}
-
-	inline GFxValue(const char* str)
-	{
-		pObjectInterface = nullptr;
-		Type = VT_String;
-		mValue.pString = str;
-	}
-
-	inline ~GFxValue()
-	{
-		if (Type & VTC_ManagedBit)
-		{
-			ReleaseManagedValue();
-		}
-	}
-
-	inline bool IsDisplayObject() const
-	{
-		return (Type & VTC_TypeMask) == VT_DisplayObject;
-	}
-
-	inline const char* GetString() const
-	{
-		assert((Type & VTC_TypeMask) == VT_String);
-		return (Type & VTC_ManagedBit) ? *mValue.pStringManaged : mValue.pString;
-	}
-
-	GFxObjectInterface* pObjectInterface;
-	ValueType Type;
-	ValueUnion mValue;
-
-	inline void ReleaseManagedValue()
-	{
-		__GFxObjectInterface_ObjectRelease(pObjectInterface, this, mValue.pData);
-		pObjectInterface = nullptr;
-	}
-
-	inline bool CreateEmptyMovieClip(GFxValue* movieClip, const char* instanceName)
-	{
-		return __GFxObjectInterface_CreateEmptyMovieClip(pObjectInterface, mValue.pData, movieClip, instanceName);
-	}
-
-	inline bool GetDisplayInfo(GFxDisplayInfo* info)
-	{
-		return __GFxObjectInterface_GetDisplayInfo(pObjectInterface, mValue.pData, info);
-	}
-
-	inline bool SetDisplayInfo(const GFxDisplayInfo& info)
-	{
-		return __GFxObjectInterface_SetDisplayInfo(pObjectInterface, mValue.pData, info);
-	}
-
-	inline bool Invoke(const char* name, GFxValue* presult, const GFxValue* pargs, int nargs)
-	{
-		return __GFxObjectInterface_Invoke(pObjectInterface, mValue.pData, presult, name, (GFxValue*)pargs, nargs, IsDisplayObject());
-	}
-
-	inline bool GetMember(const char* name, GFxValue* pval) const
-	{
-		return __GFxObjectInterface_GetMember(pObjectInterface, mValue.pData, name, pval, IsDisplayObject());
-	}
-};
-
-class GFxMemoryHeap
+bool GFxValue::CreateEmptyMovieClip(GFxValue* movieClip, const char* instanceName, int depth)
 {
-public:
-	virtual void m_00() = 0;
-	virtual void m_08() = 0;
-	virtual void m_10() = 0;
-	virtual void m_18() = 0;
-	virtual void m_20() = 0;
-	virtual void m_28() = 0;
-	virtual void m_30() = 0;
-	virtual void m_38() = 0;
-	virtual void m_40() = 0;
-	virtual void m_48() = 0;
-	virtual void* Alloc(uint32_t size) = 0;
-	virtual void m_58() = 0;
-	virtual void Free(void* memory) = 0;
-};
-
-GFxMemoryHeap** g_gfxMemoryHeap;// = (GFxMemoryHeap**)0x142CBB3E8;
-
-class GFxRefCountBase
-{
-private:
-	volatile int refCount;
-
-public:
-	virtual ~GFxRefCountBase() = default;
-
-	inline void* operator new(size_t size)
+	// CreateEmptyMovieClip will fail if depth >0x7EFFFFFD
+	if (depth > 0x7EFFFFFD)
 	{
-		return (*g_gfxMemoryHeap)->Alloc(size);
+		depth = 0x7EFFFFFD;
 	}
 
-	inline void operator delete(void* ptr)
-	{
-		(*g_gfxMemoryHeap)->Free(ptr);
-	}
+	return __GFxObjectInterface_CreateEmptyMovieClip(pObjectInterface, mValue.pData, movieClip, instanceName, depth);
+}
 
-	inline void operator delete[](void* ptr)
-	{
-		(*g_gfxMemoryHeap)->Free(ptr);
-	}
-};
-
-class GFxFunctionHandler : public GFxRefCountBase
+bool GFxValue::GetDisplayInfo(GFxValue::DisplayInfo* info)
 {
-public:
-	struct Params
-	{
-		GFxValue* pRetVal;
-		void* pMovie;
-		GFxValue* pThis;
-		GFxValue* pArgsWithThisRef;
-		GFxValue* pArgs;
-		uint32_t ArgCount;
-		void* pUserData;
-	};
+	return __GFxObjectInterface_GetDisplayInfo(pObjectInterface, mValue.pData, info);
+}
 
-	virtual ~GFxFunctionHandler() {}
-
-	virtual void Call(const Params& params) = 0;
-};
-
-class GFxMovieRoot
+bool GFxValue::SetDisplayInfo(const GFxValue::DisplayInfo& info)
 {
-public:
-	virtual void m_00() = 0;
-	virtual void m_08() = 0;
-	virtual void m_10() = 0;
-	virtual void m_18() = 0;
-	virtual void m_20() = 0;
-	virtual void m_28() = 0;
-	virtual void m_30() = 0;
-	virtual void m_38() = 0;
-	virtual void m_40() = 0;
-	virtual void m_48() = 0;
-	virtual void m_50() = 0;
-	virtual void m_58() = 0;
-	virtual void m_60() = 0;
-	virtual void m_68() = 0;
-	virtual void m_70() = 0;
-	virtual void CreateFunction(GFxValue* value, GFxFunctionHandler* pfc, void* puserData = nullptr) = 0;
-	virtual void SetVariable(const char* path, const GFxValue& value, int type) = 0;
-};
+	return __GFxObjectInterface_SetDisplayInfo(pObjectInterface, mValue.pData, info);
+}
+
+bool GFxValue::Invoke(const char* name, GFxValue* presult, const GFxValue* pargs, int nargs)
+{
+	return __GFxObjectInterface_Invoke(pObjectInterface, mValue.pData, presult, name, (GFxValue*)pargs, nargs, IsDisplayObject());
+}
+
+bool GFxValue::GetMember(const char* name, GFxValue* pval) const
+{
+	return __GFxObjectInterface_GetMember(pObjectInterface, mValue.pData, name, pval, IsDisplayObject());
+}
+
+static GMemoryHeap** g_gfxMemoryHeap;// = (GFxMemoryHeap**)0x142CBB3E8;
+
+void* GRefCountBase::operator new(size_t size)
+{
+	//assert(size <= static_cast<size_t>(std::numeric_limits<uint32_t>::max()));
+	return (*g_gfxMemoryHeap)->Alloc(static_cast<uint32_t>(size));
+}
+
+void GRefCountBase::operator delete(void* ptr)
+{
+	(*g_gfxMemoryHeap)->Free(ptr);
+}
+
+void GRefCountBase::operator delete[](void* ptr)
+{
+	(*g_gfxMemoryHeap)->Free(ptr);
+}
 
 static hook::cdecl_stub<void(GFxValue* value, uint32_t movie)> _getScaleformASRoot([]()
 {
@@ -277,7 +116,7 @@ public:
 			return;
 		}
 
-		int movieId = params.pArgs[0].mValue.NValue;
+		int movieId = static_cast<int>(params.pArgs[0].GetNumber());
 
 		auto& clipVal = g_overlayClips[movieId];
 
@@ -307,7 +146,7 @@ static void SetupTerritories()
 	
 	overlayRootClip = {};
 
-	g_foregroundOverlay3D->CreateEmptyMovieClip(&overlayRootClip, "asTestClip3D");
+	g_foregroundOverlay3D->CreateEmptyMovieClip(&overlayRootClip, "asTestClip3D", -1);
 
 	auto movie = _getScaleformMovie(*g_gfxId);
 
@@ -319,9 +158,15 @@ static void SetupTerritories()
 	movie->SetVariable("TIMELINE.OVERLAY_METHOD", overlayMethodValue, 1);
 }
 
-static std::map<std::string, int> g_swfLoadQueue;
-static std::set<int> g_swfRemoveQueue;
-static int g_swfId;
+struct MinimapOverlayLoadRequest
+{
+	int sfwId;
+	int depth;
+};
+
+static std::map<std::string, MinimapOverlayLoadRequest> g_minimapOverlayLoadQueue;
+static std::set<int> g_minimapOverlayRemoveQueue;
+static int g_minimapOverlaySwfId;
 
 static hook::cdecl_stub<void(const char*, bool)> _gfxPushString([]()
 {
@@ -340,17 +185,18 @@ static hook::cdecl_stub<bool(uint32_t, int, const char*, int, int)> _setupGfxCal
 
 namespace sf
 {
-	int AddMinimapOverlay(const std::string& swfName)
+	int AddMinimapOverlay(const std::string& swfName, int depth)
 	{
-		auto id = ++g_swfId;
-		g_swfLoadQueue.insert({ swfName, id });
+		auto id = ++g_minimapOverlaySwfId;
+
+		g_minimapOverlayLoadQueue.insert({ swfName, { id, depth } });
 
 		return id;
 	}
 
 	void RemoveMinimapOverlay(int swfId)
 	{
-		g_swfRemoveQueue.insert(swfId);
+		g_minimapOverlayRemoveQueue.insert(swfId);
 	}
 
 	bool HasMinimapLoaded(int swfId)
@@ -376,7 +222,7 @@ namespace sf
 
 		if (clip)
 		{
-			GFxDisplayInfo dispInfo;
+			GFxValue::DisplayInfo dispInfo;
 			dispInfo.VarsSet = 0x1 | 0x2 | 0x8 | 0x10 | 0x20; // x, y, xscale, yscale, alpha
 			dispInfo.X = x;
 			dispInfo.Y = y;
@@ -389,45 +235,86 @@ namespace sf
 	}
 }
 
+namespace sf::logging
+{
+	const char* const g_scriptTypes[] = {
+		"GENERIC_TYPE",
+		"SCRIPT_TYPE",
+		"HUD_TYPE",
+		"MINIMAP_TYPE",
+		"WEB_TYPE",
+		"CUTSCENE_TYPE",
+		"PAUSE_TYPE",
+		"STORE",
+		"GAMESTREAM",
+		"SF_BASE_CLASS_VIDEO_EDITOR",
+		"SF_BASE_CLASS_MOUSE",
+		"SF_BASE_CLASS_TEXT_INPUT",
+	};
+
+	static bool g_scaleformDebugLog = 0;
+	static ConVar<bool> g_scaleformDebugLogVar("game_enableScaleformDebugLog", ConVar_Archive | ConVar_UserPref, false, &g_scaleformDebugLog);
+
+	static void (*g_origSfCallGameFromFlash)(void* _this, void* movieView, const char* methodName, const GFxValue* args, uint32_t argCount);
+	static void SfCallGameFromFlash(void* _this, void* movieView, const char* methodName, const GFxValue* args, uint32_t argCount)
+	{
+		// only print debug log calls
+		if ((g_scaleformDebugLog && argCount >= 2 && strcmp(methodName, "DEBUG_LOG") == 0))
+		{
+			if (args[0].GetType() == GFxValue::ValueType::VT_Number)
+			{
+				if (args[1].GetType() == GFxValue::ValueType::VT_String)
+				{
+					uint32_t scriptType = (int32_t)args[0].GetNumber(); // uint32 requires only 1 check
+					trace("[%s] %s\n", scriptType < std::size(g_scriptTypes) ? g_scriptTypes[scriptType] : "UNKNOWN", args[1].GetString());
+				}
+			}
+		}
+
+		g_origSfCallGameFromFlash(_this, movieView, methodName, args, argCount);
+	}
+}
+
 static HookFunction hookFunction([]()
 {
 	OnMainGameFrame.Connect([]()
 	{
-		std::set<std::string> toRemove;
+		std::set<std::string> toRemoveFromMinimapOverlayLoadQueue;
 
 		auto cstreaming = streaming::Manager::GetInstance();
 
-		for (const auto& swf : g_swfLoadQueue)
+		for (const auto& [gfxFileName, request] : g_minimapOverlayLoadQueue)
 		{
-			auto val = std::make_shared<GFxValue>();
-			overlayRootClip.CreateEmptyMovieClip(val.get(), va("id%d", swf.second));
+			auto swf = std::make_shared<GFxValue>();
 
-			GFxValue rv;
+			auto instanceName = va("id%d", request.sfwId);
 
-			GFxValue args(swf.first.c_str());
-			val->Invoke("loadMovie", &rv, &args, 1);
+			overlayRootClip.CreateEmptyMovieClip(swf.get(), instanceName, request.depth);
 
-			g_overlayClips[swf.second] = val;
+			GFxValue result;
+			GFxValue args(gfxFileName.c_str());
 
-			toRemove.insert(swf.first);
+			swf->Invoke("loadMovie", &result, &args, 1);
+
+			g_overlayClips[request.sfwId] = swf;
+
+			toRemoveFromMinimapOverlayLoadQueue.insert(gfxFileName);
 		}
 
-		for (const auto& swf : toRemove)
+		for (const auto& gfxFileName : toRemoveFromMinimapOverlayLoadQueue)
 		{
-			g_swfLoadQueue.erase(swf);
+			g_minimapOverlayLoadQueue.erase(gfxFileName);
 		}
 
-		for (int swfKey : g_swfRemoveQueue)
+		for (int swfId : g_minimapOverlayRemoveQueue)
 		{
-			auto swf = g_overlayClips[swfKey];
-
-			if (swf)
+			if (auto swf = g_overlayClips[swfId]; swf)
 			{
 				swf->Invoke("removeMovieClip", nullptr, nullptr, 0);
 			}
 		}
 
-		g_swfRemoveQueue.clear();
+		g_minimapOverlayRemoveQueue.clear();
 	});
 
 	{
@@ -448,5 +335,13 @@ static HookFunction hookFunction([]()
 		g_gfxId = hook::get_address<uint32_t*>(hook::get_pattern("66 C7 45 E4 01 01 E8", 0x2A));
 	}
 
-	g_gfxMemoryHeap = hook::get_address<GFxMemoryHeap**>(hook::get_pattern("F0 FF 4A 08 75 0E 48 8B 0D", 9));
+	g_gfxMemoryHeap = hook::get_address<GMemoryHeap**>(hook::get_pattern("F0 FF 4A 08 75 0E 48 8B 0D", 9));
+
+
+	// scaleform -> game call hook, for debug logging
+	{
+		void** sfCallGameFromFlashVTable = hook::get_address<void**>(hook::get_pattern<char>("48 8D 0D ? ? ? ? C7 40 ? ? ? ? ? 48 89 08 89 68 08", 3));
+		hook::put(&sf::logging::g_origSfCallGameFromFlash, sfCallGameFromFlashVTable[1]);
+		hook::put(&sfCallGameFromFlashVTable[1], &sf::logging::SfCallGameFromFlash);
+	}
 });

@@ -65,6 +65,12 @@ bool IsValidGraphicsLibrary(const std::wstring& path)
 						{
 							return false;
 						}
+						// ReShade == 5.9 causes heap corruption basically *all the time* so we hard-block it
+						else if (fixedInfo->dwProductVersionMS == 0x50009 && fixedInfo->dwProductVersionLS < 0x10000)
+						{
+							console::Printf("script:reshade", "Blocked load of ReShade version 5.9, it causes crashes in RtlReportFatalFailure.\nUpgrade to 5.9.1 or below to be able to use ReShade.\n");
+							return false;
+						}
 						// as is ReShade v5+ because of an unknown crash (unless setting an override)
 						else if (fixedInfo->dwProductVersionMS >= 0x50000)
 						{
@@ -103,6 +109,20 @@ bool IsValidGraphicsLibrary(const std::wstring& path)
 
 									shown = true;
 								}
+
+								return false;
+							}
+						}
+
+						// in-process GPU is incompatible with ReShade (it'll swap out the D3D device underneath, failing a check in ANGLE)
+						// this was fixed in 5.9 so allow it if the version is above such
+						if (fixedInfo->dwProductVersionMS < 0x50009)
+						{
+							static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, false);
+
+							if (nuiUseInProcessGpu.GetValue())
+							{
+								console::Printf("script:reshade", "Blocked load of ReShade, as it is incompatible with NUI in-process GPU. Update ReShade to version 5.9.1 or above to be able to use it.\n");
 
 								return false;
 							}
@@ -154,7 +174,7 @@ static HMODULE LoadLibraryAHook(const char* libName)
 {
 	if (strcmp(libName, "dxgi.dll") == 0)
 	{
-		auto refPath = MakeRelativeGamePath(L"dxgi.dll");
+		auto refPath = MakeRelativeCitPath(L"plugins/dxgi.dll");
 
 		if (GetFileAttributes(refPath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
@@ -184,15 +204,22 @@ void ScanForReshades()
 		L"d3d11.dll",
 		L"dxgi.dll" };
 
-	// Try loading all dll files in the directory, that are in the list
+	// try loading all dll files *from plugins/*
 	for (auto graphicsDll : reshadeFiles)
 	{
-		auto dllPath = MakeRelativeGamePath(std::wstring{ graphicsDll });
+		auto dllPath = MakeRelativeCitPath(L"plugins/") + std::wstring{ graphicsDll };
 		if (GetFileAttributesW(dllPath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
 			if (IsValidGraphicsLibrary(dllPath))
 			{
-				LoadLibraryW(dllPath.c_str());
+				auto hMod = LoadLibraryW(dllPath.c_str());
+
+				if (hMod)
+				{
+					// pin the module since it appears sometimes ReShade or similar unloads despite being hooked
+					HMODULE _;
+					GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN, (LPCWSTR)hMod, &_);
+				}
 
 				trace("Loaded graphics mod: %s\n", ToNarrow(dllPath));
 			}
@@ -202,6 +229,16 @@ void ScanForReshades()
 			}
 
 			found = true;
+		}
+	}
+
+	// warn about ignored DLLs
+	for (auto graphicsDll : reshadeFiles)
+	{
+		auto dllPath = MakeRelativeGamePath(std::wstring{ graphicsDll });
+		if (GetFileAttributesW(dllPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			console::Printf("script:dll", "Ignored graphics mod: %s - these should go in plugins/ now!\n", ToNarrow(dllPath));
 		}
 	}
 

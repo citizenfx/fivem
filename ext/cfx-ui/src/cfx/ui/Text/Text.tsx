@@ -1,79 +1,19 @@
 import React from 'react';
+
 import { clsx } from 'cfx/utils/clsx';
-import s from './Text.module.scss';
+
+import { TextOpacity, TextProps } from './Text.types';
 import { ui } from '../ui';
 
-export type TextColor =
-  | 'inherit'
-  | 'main'
-  | 'primary'
-  | 'teal'
-  | 'success'
-  | 'warning'
-  | 'error'
-
-export type TextSize =
-  | 'xsmall'
-  | 'small'
-  | 'normal'
-  | 'large'
-  | 'xlarge'
-  | 'xxlarge'
-
-export type TextWeight =
-  | 'thin'
-  | 'normal'
-  | 'bold'
-  | 'bolder'
-
-export type TextOpacity =
-  | '0'
-  | '25'
-  | '50'
-  | '75'
-  | '100'
+import s from './Text.module.scss';
 
 export const TEXT_OPACITY_MAP: Record<TextOpacity, number | string> = {
-  0: 0,
-  25: 'var(--text-opacity-25)',
-  50: 'var(--text-opacity-50)',
-  75: 'var(--text-opacity-75)',
-  100: 1,
+  '0': 0,
+  '25': 'var(--text-opacity-25)',
+  '50': 'var(--text-opacity-50)',
+  '75': 'var(--text-opacity-75)',
+  '100': 1,
 };
-
-interface TextPropsBase {
-  asDiv?: boolean,
-  centered?: boolean,
-  truncated?: boolean,
-
-  /**
-   * If it'll be a multiline text, use this to add extra spacing between lines
-   */
-  typographic?: boolean,
-
-  uppercase?: boolean,
-
-  size?: TextSize,
-  weight?: TextWeight,
-
-  family?: 'primary' | 'secondary' | 'monospace',
-
-  children?: React.ReactNode,
-  className?: string,
-}
-
-interface TextPropsFullControl extends TextPropsBase {
-  color?: TextColor,
-  opacity?: TextOpacity,
-}
-
-interface TextPropsColorToken extends TextPropsBase {
-  colorToken: string,
-}
-
-export type TextProps =
-  | TextPropsFullControl
-  | TextPropsColorToken;
 
 function getTextColor(props: TextProps): string {
   if ('colorToken' in props) {
@@ -107,6 +47,7 @@ export const Text = React.forwardRef(function Text(props: TextProps, ref: React.
     truncated = false,
     typographic = false,
     uppercase = false,
+    userSelectable = false,
 
     children,
     className,
@@ -117,6 +58,7 @@ export const Text = React.forwardRef(function Text(props: TextProps, ref: React.
     [s.centered]: centered,
     [s.truncated]: truncated,
     [s.typographic]: typographic,
+    [ui.cls.userSelectableText]: userSelectable,
   });
 
   const style: Partial<React.CSSProperties> = {
@@ -141,7 +83,10 @@ export const Text = React.forwardRef(function Text(props: TextProps, ref: React.
   );
 });
 
-export const TextBlock = React.forwardRef((props: TextProps & { asDiv?: undefined }, ref: React.Ref<HTMLDivElement>) => {
+export const TextBlock = React.forwardRef(function TextBlock(
+  props: TextProps & { asDiv?: undefined },
+  ref: React.Ref<HTMLDivElement>,
+) {
   return (
     <Text ref={ref} {...props} asDiv />
   );

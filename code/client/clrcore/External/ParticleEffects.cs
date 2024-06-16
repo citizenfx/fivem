@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using CitizenFX.Core.Native;
+using System.Security;
 
 #if MONO_V2
 using CitizenFX.Core;
@@ -299,11 +300,16 @@ namespace CitizenFX.Core
 		protected readonly string _effectName;
 		protected Vector3 _offset;
 		protected Vector3 _rotation;
+#if MONO_V2
+		protected Vector4 _color;
+#else
 		protected Color _color;
+#endif
 		protected float _scale;
 		protected float _range;
 		protected InvertAxis _InvertAxis;
 		#endregion
+
 		internal ParticleEffect(ParticleEffectsAsset asset, string effectName)
 		{
 			Handle = -1;
@@ -361,6 +367,10 @@ namespace CitizenFX.Core
 		/// </summary>
 		public Vector3 Offset
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 144, ref _offset);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 144, _offset = value);
+#else
 			get
 			{
 				IntPtr address = MemoryAddress;
@@ -387,6 +397,7 @@ namespace CitizenFX.Core
 					}
 				}
 			}
+#endif
 		}
 
 		/// <summary>
@@ -413,6 +424,13 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Gets or sets the <see cref="Color"/> of this <see cref="ParticleEffect"/>.
 		/// </summary>
+#if MONO_V2
+		public Vector4 Color
+		{
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 320, ref _color);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 320, _color = value);
+		}
+#else
 		public Color Color
 		{
 			get
@@ -443,6 +461,7 @@ namespace CitizenFX.Core
 				}
 			}
 		}
+#endif
 
 		/// <summary>
 		/// Gets or sets the size scaling factor of this <see cref="ParticleEffect"/>
@@ -454,6 +473,10 @@ namespace CitizenFX.Core
 		/// </value>
 		public float Scale
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 336, ref _scale);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 336, _scale = value);
+#else
 			get
 			{
 				IntPtr address = MemoryAddress;
@@ -472,10 +495,15 @@ namespace CitizenFX.Core
 					MemoryAccess.WriteFloat(MemoryAccess.ReadPtr(address + 32) + 336, value);
 				}
 			}
+#endif
 		}
 
 		public float Range
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 384, ref _range);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 384, _range = value);
+#else
 			get
 			{
 				IntPtr address = MemoryAddress;
@@ -490,6 +518,7 @@ namespace CitizenFX.Core
 				_range = value;
 				API.SetParticleFxLoopedFarClipDist(Handle, value);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -642,6 +671,7 @@ namespace CitizenFX.Core
 			var result = new EntityParticleEffect(_asset, _effectName, entity)
 			{
 				Bone = entity.Bones[_entityBone.Index],
+
 				Offset = _offset,
 				Rotation = _rotation,
 				Color = _color,
@@ -716,6 +746,7 @@ namespace CitizenFX.Core
 		{
 			var result = new CoordinateParticleEffect(_asset, _effectName, position)
 			{
+
 				Rotation = _rotation,
 				Color = _color,
 				Scale = _scale,

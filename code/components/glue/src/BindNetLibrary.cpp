@@ -106,16 +106,31 @@ static InitFunction initFunction([] ()
 				console::GetDefaultContext()->GetVariableManager()->Unregister(convarName);
 			}
 
+			se::ScopedPrincipal principalScopeInternal(se::Principal{ "system.internal" });
+			auto varManager = console::GetDefaultContext()->GetVariableManager();
+
 			// Revert values modified by server back to their old values
 			for (const std::string& convarName : convarsModifiedByServer)
 			{
-				auto convar = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw(convarName);
-				if (convar)
+				if (auto convar = varManager->FindEntryRaw(convarName))
 				{
-					console::GetDefaultContext()->GetVariableManager()->RemoveEntryFlags(convarName, ConVar_Replicated);
+					// Restore flags to default state
+					auto defaultFlags = varManager->GetEntryDefaultFlags(convarName);
+					if ((defaultFlags & ConVar_Replicated) == 0)
+					{
+						varManager->RemoveEntryFlags(convarName, ConVar_Replicated);
+					}
+
 					convar->SetValue(convar->GetOfflineValue());
+
+					// Replicated-by-default convars go back to unmodified
+					if ((defaultFlags & ConVar_Replicated) != 0)
+					{
+						varManager->RemoveEntryFlags(convarName, ConVar_Modified);
+					}
 				}
 			}
+
 			convarsCreatedByServer.clear();
 			convarsModifiedByServer.clear();
 		});

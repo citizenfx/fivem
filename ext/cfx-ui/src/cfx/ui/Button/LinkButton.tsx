@@ -1,28 +1,33 @@
 import React from 'react';
-import { clsx } from 'cfx/utils/clsx';
 import { Link } from 'react-router-dom';
-import { isExternalUrl } from 'cfx/utils/links';
-import type { ButtonSize, ButtonTheme } from './Button';
-import s from './Button.module.scss';
-import { noop } from 'cfx/utils/functional';
 
+import { clsx } from 'cfx/utils/clsx';
+import { noop } from 'cfx/utils/functional';
+import { isExternalUrl } from 'cfx/utils/links';
+
+import type { ButtonSize, ButtonTheme } from './Button';
+
+import s from './Button.module.scss';
 
 export interface LinkButtonProps {
-  to: string,
-  text?: React.ReactNode,
-  title?: string,
-  icon?: React.ReactNode,
-  theme?: ButtonTheme,
-  size?: ButtonSize,
-  disabled?: boolean,
-  onClick?(): void,
-  tabIndex?: number,
-  className?: string,
+  to: string;
+  text?: React.ReactNode;
+  title?: string;
+  icon?: React.ReactNode;
+  theme?: ButtonTheme;
+  size?: ButtonSize;
+  disabled?: boolean;
+  onClick?(): void;
+  tabIndex?: number;
+  className?: string;
 
-  decorator?: React.ReactNode,
+  decorator?: React.ReactNode;
 }
 
-export const LinkButton = React.forwardRef(function LinkButton(props: LinkButtonProps, ref: React.Ref<HTMLAnchorElement>) {
+export const LinkButton = React.forwardRef(function LinkButton(
+  props: LinkButtonProps,
+  ref: React.Ref<HTMLAnchorElement>,
+) {
   const {
     to,
     text = null,
@@ -67,9 +72,7 @@ export const LinkButton = React.forwardRef(function LinkButton(props: LinkButton
       )}
       {text}
       {!!decorator && (
-        <div className={s.decorator}>
-          {decorator}
-        </div>
+        <div className={s.decorator}>{decorator}</div>
       )}
     </Component>
   );

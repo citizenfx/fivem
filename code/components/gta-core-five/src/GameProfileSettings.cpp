@@ -195,9 +195,9 @@ static std::map<int, std::shared_ptr<ProfileConVar>> _profileConVars;
 
 static hook::cdecl_stub<void(int idx, int, int)> _updatePref([]()
 {
-	if (Is372())
+	if (xbr::IsGameBuildOrGreater<2944>())
 	{
-		return (void*)nullptr;
+		return hook::get_pattern("48 2B E0 44 8B F2 BB 8B 00 00 00 83 F9 63 0F 8F", -0x29);
 	}
 
 	return hook::get_pattern("83 F9 62 0F 8F ? ? 00 00 83 F9 61 0F", (xbr::IsGameBuildOrGreater<2060>()) ? -0x29 : -0x23);
@@ -207,11 +207,6 @@ void ProfileSettingsInit()
 {
 	OnGameFrame.Connect([]()
 	{
-		if (Is372())
-		{
-			return;
-		}
-
 		if (!*g_profileSettings || !**(void***)g_profileSettings)
 		{
 			return;
@@ -317,10 +312,18 @@ static HookFunction hookFunction([]()
 	}
 	
 	// Patches enabling ShadowQuality=OFF in pausemenu
-	// 
-    // 8D 4B 42      lea     ecx, [rbx+42h]
-    // FF CA         dec     edx    <---------------
-	hook::nop(hook::get_pattern<unsigned char>("8D 4B 42 FF CA", 3), 2);
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		// 44 8B C6      mov     r8d, esi
+		// FF CA         dec     edx    <---------------
+		hook::nop(hook::get_pattern<unsigned char>("44 8B C6 FF CA", 3), 2);
+	}
+	else
+	{
+		// 8D 4B 42      lea     ecx, [rbx+42h]
+		// FF CA         dec     edx    <---------------
+		hook::nop(hook::get_pattern<unsigned char>("8D 4B 42 FF CA", 3), 2);
+	}
 
 	// 8B 45 88      mov     eax, [rbp+0D0h+var_148]
     // FF C8         dec     eax   <--------------

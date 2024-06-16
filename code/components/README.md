@@ -25,7 +25,6 @@ CitizenFX implementation components.
 * [**font-renderer/**](./font-renderer): Watermark renderer and DirectWrite font client.
 * [**glue/**](./glue): High-level 'glue' to link other components together.
 * [**http-client/**](./http-client): Async cURL wrapper library.
-* [**legacy-game-re3/**](./legacy-game-re3): ...
 * [**lovely-script/**](./lovely-script): Background script.
 * [**n19ui/**](./n19ui): Jupiter-based UI. Not currently used.
 * [**net/**](./net): Network client for game servers.

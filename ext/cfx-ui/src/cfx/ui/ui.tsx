@@ -1,4 +1,4 @@
-import { TextProps } from "./Text/Text";
+import { TextProps } from './Text/Text.types';
 
 export namespace ui {
   /**
@@ -8,7 +8,9 @@ export namespace ui {
     return `calc(var(--quant) * ${multiplier})`;
   }
 
-  export function offset(size: 'none' | 'xsmall' | 'small' | 'normal' | 'large' | 'xlarge' | 'safezone' = 'normal'): string {
+  export function offset(
+    size: 'none' | 'xsmall' | 'small' | 'normal' | 'large' | 'xlarge' | 'safezone' = 'normal',
+  ): string {
     return `var(--offset-${size})`;
   }
 
@@ -20,15 +22,20 @@ export namespace ui {
     return `var(--border-radius-${size})`;
   }
 
-  export function color(name: string, variant?: string | number, alpha = 1.0): string {
+  export function color(name: string, variantRaw?: string | number, alpha = 1.0): string {
+    let variant = variantRaw;
+
     if (variant === 'pure') {
       variant = '';
     }
+
     if (typeof variant === 'number') {
       variant = `${variant}`;
     }
 
-    return `rgba(var(--color-${name}${variant ? '-' + variant : ''}), ${alpha})`;
+    return `rgba(var(--color-${name}${variant
+      ? `-${variant}`
+      : ''}), ${alpha})`;
   }
 
   export namespace cls {
@@ -37,6 +44,8 @@ export namespace ui {
 
     export const flexGrow = 'util-flex-grow';
     export const flexNoShrink = 'util-flex-no-shrink';
+
+    export const userSelectableText = 'util-text-selectable';
 
     export const zIndex9000 = 'util-z-index-9000';
   }

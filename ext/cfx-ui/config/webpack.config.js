@@ -20,6 +20,8 @@ module.exports = (env, argv) => {
 
   const app = env.app;
 
+  const isWithGtm = env.withGtm == true || env.withGtm == "true";
+
   verifyApp(app);
   const appPath = path.join(srcPath, 'cfx/apps', app);
   const appBuildPath = path.join(buildPath, app);
@@ -173,6 +175,7 @@ module.exports = (env, argv) => {
         template: path.join(appPath, 'index.html'),
         templateParameters: {
           isProd,
+          isWithGtm,
         },
       }),
 

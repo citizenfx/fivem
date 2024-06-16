@@ -1,13 +1,15 @@
-import React from "react";
-import { clsx } from "cfx/utils/clsx";
+import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
+
 import s from './Decorate.module.scss';
 
 export interface DecorateProps {
-  decorator: React.ReactNode,
+  decorator: React.ReactNode;
 
-  children?: React.ReactNode,
-  className?: string,
-  decoratorClassName?: string,
+  children?: React.ReactNode;
+  className?: string;
+  decoratorClassName?: string;
 }
 
 export const Decorate = React.forwardRef(function Decorate(props: DecorateProps, ref: React.Ref<HTMLDivElement>) {
@@ -26,9 +28,7 @@ export const Decorate = React.forwardRef(function Decorate(props: DecorateProps,
       {children}
 
       {!!decorator && (
-        <div className={decoratorClassName}>
-          {decorator}
-        </div>
+        <div className={decoratorClassName}>{decorator}</div>
       )}
     </div>
   );

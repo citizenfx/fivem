@@ -5,10 +5,7 @@
  * regarding licensing.
  */
 
-// Microsoft Visual C++ generated resource script.
-//
-#define IDI_ICON1                       1
-#define IDS_FOLDER_NAME					101
+#include "launcher.rc.h"
 #include <windows.h>
 
 #include <launcher_version.h>
@@ -32,18 +29,21 @@ IDI_ICON1               ICON                    "redm.ico"
 #endif
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
-201						ICON					"snail.ico"
-202						ICON					"fivem_sp.ico"
-203						ICON					"fivem_sdk.ico"
+IDI_SNAIL				ICON					"snail.ico"
+
+#if defined(GTA_FIVE)
+IDI_SP					ICON					"fivem_sp.ico"
+IDI_SDK					ICON					"fivem_sdk.ico"
+#endif
 #endif
 
 1						RT_MANIFEST				"launcher.manifest"
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
 #if defined(GTA_FIVE) || defined(GTA_NY)
-1010					MEOW					"backdrop.png"
+IDM_BACKDROP			MEOW					"backdrop.png"
 #else
-1010					MEOW					"backdrop_rdr.png"
+IDM_BACKDROP			MEOW "backdrop_rdr.png"
 #endif
 #endif
 

@@ -1,12 +1,14 @@
-import React from "react";
-import { clsx } from "cfx/utils/clsx";
+import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
+
 import s from './Dot.module.scss';
 
 export interface DotProps {
-  color?: 'primary',
+  color?: 'primary';
 }
 
-export const Dot = React.forwardRef((props: DotProps, ref: React.Ref<HTMLDivElement>) => {
+export const Dot = React.forwardRef(function Dot(props: DotProps, ref: React.Ref<HTMLDivElement>) {
   const {
     color = 'primary',
   } = props;

@@ -42,7 +42,8 @@ private:
 
 	CefRefPtr<CefBrowser> m_browser;
 
-	std::vector<std::regex> m_requestBlacklist;
+	std::shared_mutex m_requestBlocklistLock;
+	std::vector<std::regex> m_requestBlocklist;
 
 public:
 	NUIClient(NUIWindow* window);

@@ -1,18 +1,18 @@
 import React from 'react';
+
 import { clsx } from 'cfx/utils/clsx';
+
 import s from './Checkbox.module.scss';
 
-export type CheckboxSize =
-  | 'normal'
-  | 'large';
+export type CheckboxSize = 'normal' | 'large';
 
 export interface CheckboxProps {
-  value: boolean,
-  onChange: (value: boolean) => void,
-  size?: CheckboxSize,
-  label?: React.ReactNode,
-  disabled?: boolean,
-  className?: string,
+  value: boolean;
+  onChange: (value: boolean) => void;
+  size?: CheckboxSize;
+  label?: React.ReactNode;
+  disabled?: boolean;
+  className?: string;
 }
 
 export const Checkbox = React.memo(function Checkbox(props: CheckboxProps) {
@@ -24,6 +24,7 @@ export const Checkbox = React.memo(function Checkbox(props: CheckboxProps) {
     disabled = false,
     className,
   } = props;
+  const controlId = React.useId();
 
   const handleChange = React.useCallback(() => {
     onChange(!value);
@@ -35,17 +36,10 @@ export const Checkbox = React.memo(function Checkbox(props: CheckboxProps) {
   });
 
   return (
-    <label className={rootClassName}>
-      <input
-        type="checkbox"
-        checked={value}
-        disabled={disabled}
-        onChange={handleChange}
-      />
-      <div className={s.indicator}/>
-      <div className={s.label}>
-        {label}
-      </div>
+    <label className={rootClassName} htmlFor={controlId}>
+      <input type="checkbox" id={controlId} checked={value} disabled={disabled} onChange={handleChange} />
+      <div className={s.indicator} />
+      <div className={s.label}>{label}</div>
     </label>
   );
 });

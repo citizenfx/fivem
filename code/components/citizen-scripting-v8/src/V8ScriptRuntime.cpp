@@ -39,6 +39,30 @@ inline static std::chrono::milliseconds msec()
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
+// This copies behavior from mono
+#ifdef WIN32
+#include <windows.h>
+// Gets scaled (max * 0.9) max memory in bytes.
+size_t GetScaledPhysicalMemorySize()
+{
+	MEMORYSTATUSEX status;
+	status.dwLength = sizeof(status);
+	GlobalMemoryStatusEx(&status);
+	return status.ullTotalPhys * 0.9;
+}
+#else 
+#include <unistd.h>
+// Gets scaled (max * 0.9) max memory in bytes.
+size_t GetScaledPhysicalMemorySize()
+{
+	long pages = sysconf(_SC_PHYS_PAGES);
+	long pageSize = sysconf(_SC_PAGE_SIZE);
+
+	return (pages * pageSize) * 0.9;
+}
+#endif
+
+
 inline bool UseNode()
 {
 #ifndef IS_FXSERVER
@@ -151,7 +175,7 @@ struct PointerField
 // this is *technically* per-isolate, but we only register the callback for our host isolate
 static std::atomic<int> g_isV8InGc;
 
-class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptStackWalkingRuntime>
+class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptStackWalkingRuntime, IScriptWarningRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -331,6 +355,8 @@ public:
 	NS_DECL_ISCRIPTREFRUNTIME;
 
 	NS_DECL_ISCRIPTSTACKWALKINGRUNTIME;
+
+	NS_DECL_ISCRIPTWARNINGRUNTIME;
 };
 
 static Local<Value> GetStackTrace(TryCatch& eh, V8ScriptRuntime* runtime)
@@ -906,7 +932,7 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 	fxNativeContext context = { 0 };
 
 	context.numArguments = 4;
-	context.nativeIdentifier = 0xe3551879; // INVOKE_FUNCTION_REFERENCE
+	context.nativeIdentifier = HashString("INVOKE_FUNCTION_REFERENCE");
 
 	// identifier string
 	context.arguments[0] = reinterpret_cast<uintptr_t>(refData->ref.GetRef().c_str());
@@ -1045,6 +1071,47 @@ struct IntHashGetter
 		return (args[1]->Uint32Value(scrt->GetContext()).ToChecked() | (((uint64_t)args[0]->Uint32Value(scrt->GetContext()).ToChecked()) << 32));
 	}
 };
+
+//
+// Sanitization for string result types
+// Loops through all values given by the ScRT and deny any that equals the result value which isn't of the string type
+template<typename HashGetter>
+void NativeStringResultSanitization(const v8::FunctionCallbackInfo<v8::Value>& inputArguments, fxNativeContext& context, decltype(context.arguments)& initialArguments)
+{
+	const auto resultValue = context.arguments[0];
+
+	// Step 1: quick compare all values until we found a hit
+	// By not switching between all the buffers (incl. input arguments) we'll not introduce unnecessary cache misses.
+	for (int a = 0; a < context.numArguments; ++a)
+	{
+		if (initialArguments[a] == resultValue)
+		{
+			// Step 2: loop our input list for as many times as `a` was increased
+			const int inputSize = inputArguments.Length();
+			for (int i = HashGetter::BaseArgs; i < inputSize; ++i)
+			{
+				const auto& v8Input = inputArguments[i];
+
+				// `a` can be reused by simply decrementing it, we'll go negative when we hit our goal as we decrement before checking (e.g.: `0 - 1 = -1` or `0 - 4 = -4`)
+				a -= v8Input->IsArray() ? std::min(Local<Array>::Cast(v8Input)->Length(), 4u) : 1u;
+
+				// string type is allowed
+				if (a < 0)
+				{
+					if (!v8Input->IsString())
+					{
+						ScriptTrace("Warning: Sanitized coerced string result for native %016x.\n", context.nativeIdentifier);
+						context.arguments[0] = 0;
+					}
+
+					return; // we found our arg, no more to check
+				}
+			}
+
+			return; // found our value, no more to check
+		}
+	}
+}
 
 template<typename HashGetter>
 static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -1367,8 +1434,8 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	bool needsResultCheck = (numReturnValues == 0 || returnResultAnyway);
 	bool hadComplexType = !a1.IsEmpty() && (!a1->IsNumber() && !a1->IsBoolean() && !a1->IsNull());
 
-	auto initialArg1 = context.arguments[0];
-	auto initialArg3 = context.arguments[2];
+	decltype(context.arguments) initialArguments;
+	memcpy(initialArguments, context.arguments, sizeof(context.arguments));
 #endif
 
 	// invoke the native on the script host
@@ -1385,14 +1452,20 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	if ((needsResultCheck || hadComplexType) && context.numArguments > 0)
 	{
 		// if this is scrstring but nothing changed (very weird!), fatally fail
-		if (static_cast<uint32_t>(context.arguments[2]) == 0xFEED1212 && initialArg3 == context.arguments[2])
+		if (static_cast<uint32_t>(context.arguments[2]) == 0xFEED1212 && initialArguments[2] == context.arguments[2])
 		{
 			FatalError("Invalid native call in V8 resource '%s'. Please see https://aka.cfx.re/scrstring-mitigation for more information.", runtime->GetResourceName());
 		}
 
+		// If return coercion is String type
+		// Don't allow deref'ing arbitrary pointers passed in any of the arguments.
+		if (returnValueCoercion == V8MetaFields::ResultAsString && context.arguments[0])
+		{
+			NativeStringResultSanitization<HashGetter>(args, context, initialArguments);
+		}
 		// if the first value (usually result) is the same as the initial argument, clear the result (usually, result was no-op)
 		// (if vector results, these aren't directly unsafe, and may get incorrectly seen as complex)
-		if (context.arguments[0] == initialArg1 && returnValueCoercion != V8MetaFields::ResultAsVector)
+		else if (context.arguments[0] == initialArguments[0] && returnValueCoercion != V8MetaFields::ResultAsVector)
 		{
 			// complex type in first result means we have to clear that result
 			if (hadComplexType)
@@ -2178,6 +2251,11 @@ global.require = m.exports.require;
 )"
 		);
 
+		node::SetProcessExitHandler(env, [](node::Environment*, int exitCode)
+		{
+			FatalError("Node.js exiting (exit code %d)\nSee console for details", exitCode);
+		});
+
 		g_envRuntimes[env] = this;
 
 		m_nodeEnvironment = env;
@@ -2525,6 +2603,45 @@ result_t V8ScriptRuntime::WalkStack(char* boundaryStart, uint32_t boundaryStartL
 	return FX_S_OK;
 }
 
+result_t V8ScriptRuntime::EmitWarning(char* channel, char* message)
+{
+	if (!m_context.IsEmpty())
+	{
+		auto context = m_context.Get(GetV8Isolate());
+		auto consoleMaybe = context->Global()->Get(context, String::NewFromUtf8(GetV8Isolate(), "console").ToLocalChecked());
+		v8::Local<v8::Value> console;
+
+		if (consoleMaybe.ToLocal(&console))
+		{
+			auto consoleObject = console.As<v8::Object>();
+			auto warnMaybe = consoleObject->Get(context, String::NewFromUtf8(GetV8Isolate(), "warn").ToLocalChecked());
+
+			v8::Local<v8::Value> warn;
+
+			if (warnMaybe.ToLocal(&warn))
+			{
+				auto messageStr = fmt::sprintf("[%s] %s", channel, message);
+
+				// console.warn() will append a newline itself, so we remove any redundant newline
+				auto length = messageStr.length();
+				if (messageStr[length - 1] == '\n')
+				{
+					--length;
+				}
+
+				v8::Local<v8::Value> args[] = {
+					String::NewFromUtf8(GetV8Isolate(), messageStr.c_str(), v8::NewStringType::kNormal, length).ToLocalChecked()
+				};
+
+				auto warnFunction = warn.As<v8::Function>();
+				warnFunction->Call(context, Null(GetV8Isolate()), std::size(args), args);
+			}
+		}
+	}
+
+	return FX_S_OK;
+}
+
 class V8ScriptGlobals
 {
 private:
@@ -2796,7 +2913,6 @@ void V8ScriptGlobals::Initialize()
 
 	V8::SetFlagsFromCommandLine(&argc, (char**)argv, false);
 #endif
-
 	const char* flags = "--turbo-inline-js-wasm-calls --expose_gc --harmony-top-level-await";
 	V8::SetFlagsFromString(flags, strlen(flags));
 
@@ -2827,6 +2943,14 @@ void V8ScriptGlobals::Initialize()
 	Isolate::CreateParams params;
 	params.array_buffer_allocator = m_arrayBufferAllocator.get();
 
+	const auto kScaledMemory = GetScaledPhysicalMemorySize();
+
+	auto constraints = ResourceConstraints{};
+
+	constraints.ConfigureDefaultsFromHeapSize(0, kScaledMemory);
+
+	params.constraints = constraints;
+
 	m_isolate = Isolate::Allocate();
 
 	m_isolate->AddGCPrologueCallback([](Isolate* isolate, GCType type,
@@ -2848,6 +2972,7 @@ void V8ScriptGlobals::Initialize()
 	}
 #endif
 
+#ifndef V8_NODE
 	m_isolate->SetPromiseRejectCallback([](PromiseRejectMessage message)
 	{
 		Local<Promise> promise = message.GetPromise();
@@ -2865,6 +2990,9 @@ void V8ScriptGlobals::Initialize()
 
 		scRT->HandlePromiseRejection(message);
 	});
+#else
+	m_isolate->SetPromiseRejectCallback(node::PromiseRejectCallback);
+#endif
 
 	Isolate::Initialize(m_isolate, params);
 
@@ -2945,7 +3073,8 @@ void V8ScriptGlobals::Initialize()
 #else
 			"",
 #endif
-			"--expose-internals"
+			"--expose-internals",
+			"--unhandled-rejections=warn",
 		};
 
 		for (int i = 1; i < g_argc; i++)

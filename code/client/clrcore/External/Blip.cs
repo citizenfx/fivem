@@ -3,7 +3,9 @@ using System.Security;
 
 #if MONO_V2
 using CitizenFX.Core;
+using CitizenFX.FiveM.Native;
 using API = CitizenFX.FiveM.Native.Natives;
+using Function = CitizenFX.FiveM.Native.Natives;
 
 namespace CitizenFX.FiveM
 #else
@@ -480,6 +482,34 @@ namespace CitizenFX.Core
 		public void RemoveNumberLabel()
 		{
 			API.HideNumberOnBlip(Handle);
+		}
+
+		/// <summary>
+		/// Adds a cone for this <see cref="Blip"/>
+		/// </summary>
+		/// <param name="halfAngle">'Width' of the cone (0.0f - pi)</param>
+		/// <param name="distance">Distance of the cone</param>
+		/// <param name="heading">Heading of the cone in radians (degrees * pi / 180)</param>
+		/// <param name="color">Color of the cone (see <see href="https://docs.fivem.net/docs/game-references/hud-colors/">hud colors</see>/></param>
+		/// <param name="unk0">Unknown at this time</param>
+		/// <param name="unk1">Unknown at this time</param>
+		/// <param name="unk2">Unknown at this time</param>
+		/// <param name="unk3">Unknown at this time</param>
+		public void ShowCone(float halfAngle, float distance, float heading, int color, float unk0 = -1.0f, float unk1 = 1.0f, float unk2 = 1.0f, int unk3 = 1)
+		{
+			// SETUP_FAKE_CONE_DATA
+			Function.Call((Hash)0xF83D0FEBE75E62C9, Handle, unk0, unk1, halfAngle, unk2, distance, heading, unk3, color);
+			API.SetBlipShowCone(Handle, true);
+		}
+
+		/// <summary>
+		/// Removes the cone for this <see cref="Blip"/>
+		/// </summary>
+		public void HideCone()
+		{
+			// REMOVE_FAKE_CONE_DATA
+			Function.Call((Hash)0x35A3CD97B2C0A6D2, Handle);
+			API.SetBlipShowCone(Handle, false);
 		}
 
 		/// <summary>

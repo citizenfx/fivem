@@ -6,6 +6,8 @@
 #include <Resource.h>
 #include <fxScripting.h>
 
+#include "CrossBuildRuntime.h"
+
 static bool g_forceSnowPass;
 static bool* g_weatherNetFlag;
 
@@ -62,7 +64,8 @@ static uint32_t getWeatherByNameHook(void* a1, const char* a2)
 static HookFunction hookFunction([]()
 {
 	{
-		auto location = hook::get_pattern<char>("C6 45 20 00 E8 ? ? ? ? 48 8D 15");
+		auto location = (xbr::IsGameBuildOrGreater<3095>()) ? hook::get_pattern<char>("44 88 7D 30 E8 ? ? ? ? 48 8D 15") : hook::get_pattern<char>("C6 45 20 00 E8 ? ? ? ? 48 8D 15");
+
 		hook::set_call(&getWeatherByName, location + 23);
 		hook::call(location + 23, getWeatherByNameHook);
 

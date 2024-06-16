@@ -26,7 +26,7 @@ static hook::cdecl_stub<bool(void*, uint32_t, int)> g_releaseSystemObject([]()
 
 static hook::cdecl_stub<streaming::strStreamingModule**(void*, uint32_t)> g_getStreamingModule([]()
 {
-	return hook::get_pattern("44 0F B7 51 10 45 33 C9 4C 8B 59 08", 0);
+	return hook::get_pattern("44 0F B7 51 10 45 33 C9 4C 8B 59 08", -4);
 });
 
 static hook::cdecl_stub<int(const char*)> g_getStreamingExtIndex([]()

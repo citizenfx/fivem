@@ -90,35 +90,52 @@ namespace CitizenFX.Core
 		};
 		#endregion
 
+		/// <remarks>This method allocates a sound ID. It is imperative you release the sound ID when you are done using it through <see cref="ReleaseSound"/></remarks>
 		public static int PlaySoundAt(Vector3 position, string sound, string set)
 		{
-			API.PlaySoundFromCoord(-1, sound, position.X, position.Y, position.Z, set, false, 0, false);
-			return API.GetSoundId();
+			var soundId = API.GetSoundId();
+			API.PlaySoundFromCoord(soundId, sound, position.X, position.Y, position.Z, set, false, 0, false);
+			return soundId;
 		}
+
+		/// <inheritdoc cref="PlaySoundAt(Vector3, string, string)"/>
 		public static int PlaySoundAt(Vector3 position, string sound)
 		{
-			API.PlaySoundFromCoord(-1, sound, position.X, position.Y, position.Z, null, false, 0, false);
-			return API.GetSoundId();
+			var soundId = API.GetSoundId();
+			API.PlaySoundFromCoord(soundId, sound, position.X, position.Y, position.Z, null, false, 0, false);
+			return soundId;
 		}
+
+		/// <inheritdoc cref="PlaySoundAt(Vector3, string, string)"/>
 		public static int PlaySoundFromEntity(Entity entity, string sound, string set)
 		{
-			API.PlaySoundFromEntity(-1, sound, entity.Handle, set, false, 0);
-			return API.GetSoundId();
+			var soundId = API.GetSoundId();
+			API.PlaySoundFromEntity(soundId, sound, entity.Handle, set, false, 0);
+			return soundId;
 		}
+
+		/// <inheritdoc cref="PlaySoundAt(Vector3, string, string)"/>
 		public static int PlaySoundFromEntity(Entity entity, string sound)
 		{
-			API.PlaySoundFromEntity(-1, sound, entity.Handle, null, false, 0);
-			return API.GetSoundId();
+			var soundId = API.GetSoundId();
+			API.PlaySoundFromEntity(soundId, sound, entity.Handle, null, false, 0);
+			return soundId;
 		}
+
+		/// <inheritdoc cref="PlaySoundAt(Vector3, string, string)"/>
 		public static int PlaySoundFrontend(string sound, string set)
 		{
-			API.PlaySoundFrontend(-1, sound, set, false);
-			return API.GetSoundId();
+			var soundId = API.GetSoundId();
+			API.PlaySoundFrontend(soundId, sound, set, false);
+			return soundId;
 		}
+
+		/// <inheritdoc cref="PlaySoundAt(Vector3, string, string)"/>
 		public static int PlaySoundFrontend(string sound)
 		{
-			API.PlaySoundFrontend(-1, sound, null, false);
-			return API.GetSoundId();
+			var soundId = API.GetSoundId();
+			API.PlaySoundFrontend(soundId, sound, null, false);
+			return soundId;
 		}
 
 		public static void StopSound(int id)

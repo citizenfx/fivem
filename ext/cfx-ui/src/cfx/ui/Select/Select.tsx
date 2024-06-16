@@ -1,26 +1,29 @@
-import React from 'react';
 import * as RadSelect from '@radix-ui/react-select';
-import { clsx } from 'cfx/utils/clsx';
-import { Icons } from '../Icons';
+import React from 'react';
 import { BsChevronDown, BsChevronUp } from 'react-icons/bs';
+
+import { clsx } from 'cfx/utils/clsx';
+
+import { Icons } from '../Icons';
+
 import s from './Select.module.scss';
 
 export interface SelectOption<T> {
-  value: T,
-  label: React.ReactNode,
+  value: T;
+  label: React.ReactNode;
 }
 
 export interface SelectProps<T = string> {
-  options: SelectOption<T>[],
-  value: T,
-  onChange: (value: T) => void,
+  options: SelectOption<T>[];
+  value: T;
+  onChange: (value: T) => void;
 
-  className?: string,
-  disabled?: boolean,
-  size?: 'normal' | 'small',
+  className?: string;
+  disabled?: boolean;
+  size?: 'normal' | 'small';
 }
 
-export const Select = React.forwardRef((props: SelectProps, ref: React.RefObject<HTMLDivElement>) => {
+export const Select = React.forwardRef(function Select(props: SelectProps) {
   const {
     value,
     options,
@@ -38,12 +41,7 @@ export const Select = React.forwardRef((props: SelectProps, ref: React.RefObject
   });
 
   return (
-    <RadSelect.Root
-      value={value}
-      onValueChange={onChange}
-      onOpenChange={setOpen}
-      open={open}
-    >
+    <RadSelect.Root value={value} onValueChange={onChange} onOpenChange={setOpen} open={open}>
       <RadSelect.Trigger disabled={disabled} className={triggerClassName}>
         <RadSelect.Value />
         <RadSelect.Icon>
@@ -58,22 +56,12 @@ export const Select = React.forwardRef((props: SelectProps, ref: React.RefObject
           </RadSelect.ScrollUpButton>
 
           <RadSelect.Viewport>
-
             {options.map((option) => (
-              <RadSelect.Item
-                key={option.value}
-                value={option.value}
-                className={s.radOption}
-              >
-                <RadSelect.ItemText>
-                  {option.label}
-                </RadSelect.ItemText>
-                <RadSelect.ItemIndicator className={s.radIcon}>
-                  {Icons.checkmark}
-                </RadSelect.ItemIndicator>
+              <RadSelect.Item key={option.value} value={option.value} className={s.radOption}>
+                <RadSelect.ItemText>{option.label}</RadSelect.ItemText>
+                <RadSelect.ItemIndicator className={s.radIcon}>{Icons.checkmark}</RadSelect.ItemIndicator>
               </RadSelect.Item>
             ))}
-
           </RadSelect.Viewport>
 
           <RadSelect.ScrollDownButton className={s.radArrow}>
@@ -85,7 +73,7 @@ export const Select = React.forwardRef((props: SelectProps, ref: React.RefObject
   );
 });
 
-export const Select2 = function Select<T extends string | number>(props: SelectProps<T>) {
+export const Select2 = function Select2<T extends string | number>(props: SelectProps<T>) {
   const {
     value,
     options,
@@ -96,19 +84,16 @@ export const Select2 = function Select<T extends string | number>(props: SelectP
     className,
   } = props;
 
-  const handleChange = React.useCallback(({ target }) => onChange(target.value), [onChange]);
+  const handleChange = React.useCallback(({
+    target,
+  }) => onChange(target.value), [onChange]);
 
   const rootClassName = clsx(s.root, s[size], className, {
     [s.disabled]: disabled,
   });
 
   return (
-    <select
-      disabled={disabled}
-      className={rootClassName}
-      value={value}
-      onChange={handleChange}
-    >
+    <select disabled={disabled} className={rootClassName} value={value} onChange={handleChange}>
       {options.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}

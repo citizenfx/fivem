@@ -1,17 +1,16 @@
-import React from 'react';
-import { clsx } from 'cfx/utils/clsx';
 import { observer } from 'mobx-react-lite';
-import s from './Title.module.scss';
+import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
 import mergeRefs from 'cfx/utils/mergeRefs';
+
 import { TitleOutlet } from '../outlets';
+
+import s from './Title.module.scss';
 
 const TITLE_OFFSET = 10;
 
-type FixedOn =
-  | 'top' | 'top-left'
-  | 'right'
-  | 'bottom' | 'bottom-left' | 'bottom-right'
-  | 'left';
+type FixedOn = 'top' | 'top-left' | 'right' | 'bottom' | 'bottom-left' | 'bottom-right' | 'left';
 
 function getCssStyle(fixed: boolean, delay: number, [x, y]: number[]): React.CSSProperties {
   const top = fixed
@@ -33,14 +32,16 @@ function getCssStyle(fixed: boolean, delay: number, [x, y]: number[]): React.CSS
 }
 
 function getCoords(element: HTMLElement, fixedOn: FixedOn): [number, number] {
-  const { x, y, width, height } = element.getBoundingClientRect();
+  const {
+    x, y, width, height,
+  } = element.getBoundingClientRect();
 
-  let xOffset: number;
-  let yOffset: number;
+  let xOffset: number = 0;
+  let yOffset: number = 0;
 
   switch (fixedOn) {
     case 'top': {
-      xOffset = x + (width / 2);
+      xOffset = x + width / 2;
       yOffset = y - TITLE_OFFSET;
       break;
     }
@@ -51,7 +52,7 @@ function getCoords(element: HTMLElement, fixedOn: FixedOn): [number, number] {
     }
 
     case 'bottom': {
-      xOffset = x + (width / 2);
+      xOffset = x + width / 2;
       yOffset = y + height + TITLE_OFFSET;
       break;
     }
@@ -68,44 +69,39 @@ function getCoords(element: HTMLElement, fixedOn: FixedOn): [number, number] {
 
     case 'left': {
       xOffset = x - TITLE_OFFSET;
-      yOffset = y + (height / 2);
+      yOffset = y + height / 2;
       break;
     }
 
     case 'right': {
       xOffset = x + width + TITLE_OFFSET;
-      yOffset = y + (height / 2);
+      yOffset = y + height / 2;
+      break;
+    }
+
+    default: {
       break;
     }
   }
 
-  return [
-    xOffset,
-    yOffset,
-  ];
+  return [xOffset, yOffset];
 }
 
-type TitleChildren =
-  | ((ref: React.RefObject<any>) => React.ReactNode)
-  | React.ReactElement;
+type TitleChildren = ((ref: React.RefObject<any>) => React.ReactNode) | React.ReactElement;
 
 export interface TitleProps {
-  title?: React.ReactNode,
+  title?: React.ReactNode;
 
-  delay?: number,
-  animated?: boolean,
-  fixedOn?: FixedOn,
+  delay?: number;
+  animated?: boolean;
+  fixedOn?: FixedOn;
 
-  children: TitleChildren,
+  children: TitleChildren;
 }
 
-export const Title = observer(function Title(props: TitleProps) {
+export const Title = observer((props: TitleProps) => {
   const {
-    title,
-    children,
-    animated = true,
-    fixedOn = 'bottom',
-    delay = 0,
+    title, children, animated = true, fixedOn = 'bottom', delay = 0,
   } = props;
 
   const fixedOnRef = React.useRef(fixedOn);
@@ -159,6 +155,7 @@ export const Title = observer(function Title(props: TitleProps) {
   }, []);
 
   let titleNode: React.ReactNode = null;
+
   if (active && title) {
     const wrapperClassName = clsx(s.wrapper, s[`fixed-on-${fixedOn}`], {
       [s.animated]: animated,
@@ -166,13 +163,8 @@ export const Title = observer(function Title(props: TitleProps) {
 
     titleNode = (
       <TitleOutlet>
-        <div
-          className={wrapperClassName}
-          style={getCssStyle(!!fixedOn, delay, coords)}
-        >
-          <div className={s.root}>
-            {title}
-          </div>
+        <div className={wrapperClassName} style={getCssStyle(!!fixedOn, delay, coords)}>
+          <div className={s.root}>{title}</div>
         </div>
       </TitleOutlet>
     );

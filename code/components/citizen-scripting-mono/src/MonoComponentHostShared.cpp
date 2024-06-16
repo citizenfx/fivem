@@ -26,15 +26,15 @@ namespace fx::mono
 {
 // assembly trust and resolving
 #ifndef IS_FXSERVER
-const char* const MonoComponentHostShared::s_platformAssemblies[] = {
-	"mscorlib.dll",
-	"Mono.CSharp.dll",
-	"System.dll",
-	"System.Core.dll",
-	"CitizenFX.Core.dll",
-	"CitizenFX.Core.Client.dll",
-	"CitizenFX." PRODUCT_NAME ".dll",
-	"CitizenFX." PRODUCT_NAME ".NativesImpl.dll",
+const wchar_t* const MonoComponentHostShared::s_platformAssemblies[] = {
+	L"mscorlib.dll",
+	L"Mono.CSharp.dll",
+	L"System.dll",
+	L"System.Core.dll",
+	L"CitizenFX.Core.dll",
+	//L"CitizenFX.Core.Client.dll",
+	L"CitizenFX." PRODUCT_NAME ".dll",
+	L"CitizenFX." PRODUCT_NAME ".NativeImpl.dll",
 };
 #endif
 
@@ -52,7 +52,7 @@ _MonoProfiler MonoComponentHostShared::s_monoProfiler;
 bool SetEnvironmentVariableNarrow(const char* key, const char* value)
 {
 #ifdef _WIN32
-	return SetEnvironmentVariableA(key, value);
+	return SetEnvironmentVariableW(ToWide(key).c_str(), ToWide(value).c_str());
 #else
 	// POSIX doesn't copy our strings with putenv, setenv does
 	return setenv(key, value, true) == 0;
@@ -67,6 +67,10 @@ extern "C" void mono_handle_native_crash_nop(const char* signal, void* sigctx, v
 
 void MonoComponentHostShared::Initialize()
 {
+	// TODO: remove this particular mutex lock
+	// for some reason mono-v2 starts its initialization before mono-v1 is done, let's use a mutex that's unused at this stage
+	std::unique_lock lk(s_memoryUsagesMutex);
+
 	static ConVar<bool> memoryUsageVar("mono_enableMemoryUsageTracking", ConVar_None, true, &s_enableMemoryUsage);
 
 	if (mono_get_root_domain() == nullptr)
@@ -75,7 +79,7 @@ void MonoComponentHostShared::Initialize()
 
 		// MONO_PATH
 		std::string citizenClrLibPath = basePath + "lib/mono/4.5/";
-		// citizenClrLibPath = citizenClrLibPath + FX_SEARCHPATH_SEPARATOR + citizenClrLibPath + "v2/"; // throws warnings when v2 folder isn't present, re-enable later
+		citizenClrLibPath += FX_SEARCHPATH_SEPARATOR + citizenClrLibPath + "v2/";
 		SetEnvironmentVariableNarrow("MONO_PATH", citizenClrLibPath.c_str());
 
 		// https://github.com/mono/mono/pull/9811
@@ -97,7 +101,7 @@ void MonoComponentHostShared::Initialize()
 		mono_security_core_clr_set_options((MonoSecurityCoreCLROptions)(MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_DELEGATE | MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_REFLECTION));
 		mono_security_set_core_clr_platform_callback(CoreCLRIsTrustedCode);
 
-		//mono_profiler_install(&s_monoProfiler, ProfilerShutDown);
+		mono_profiler_install(&s_monoProfiler, ProfilerShutDown);
 		mono_profiler_install_gc(gc_event, gc_resize);
 		mono_profiler_set_events(MONO_PROFILE_GC);
 #elif defined(_WIN32)
@@ -179,23 +183,24 @@ int MonoComponentHostShared::CoreCLRIsTrustedCode(const char* imageName)
 {
 	if (imageName)
 	{
-		char* filePart = nullptr;
-		char fullPath[512];
+		wchar_t* filePart = nullptr;
+		wchar_t fullPath[512];
 
-		if (GetFullPathNameA(imageName, _countof(fullPath), fullPath, &filePart) != 0 && filePart != nullptr)
+		// *W variants (like `GetFullPathNameW`) are guaranteed to be Unicode, *A are dependent on locale and other settings.
+		if (GetFullPathNameW(ToWide(imageName).c_str(), _countof(fullPath), fullPath, &filePart) != 0 && filePart != nullptr)
 		{
 			std::size_t folderPathSize = filePart - fullPath;
-			std::string base = ToNarrow(GetAbsoluteCitPath()) + "citizen\\clr2\\lib\\mono\\4.5\\";
+			std::wstring base = GetAbsoluteCitPath() + L"citizen\\clr2\\lib\\mono\\4.5\\";
 
 			// check if the path is or is a child of the /mono/4.5/ directory
 			// if this needs to be faster then we can introduce a reverse strcmp() in which we omit the above ToNarrow() by comparing char* and wchar_t* directly and do inline to_lower()
 			if (folderPathSize >= base.size()
-				&& _strnicmp(fullPath, base.data(), base.size()) == 0)
+				&& _wcsnicmp(fullPath, base.data(), base.size()) == 0)
 			{
 				// compare file name
 				for (int i = 0; i < _countof(s_platformAssemblies); ++i)
 				{
-					if (_stricmp(filePart, s_platformAssemblies[i]) == 0)
+					if (_wcsicmp(filePart, s_platformAssemblies[i]) == 0)
 					{
 						return TRUE;
 					}

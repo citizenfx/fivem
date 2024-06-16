@@ -23,9 +23,13 @@ ConsoleVariableManager::ConsoleVariableManager(console::Context* parentContext)
 
 			if (entry)
 			{
-				entry->variable->SetValue(value);
-
-				entry->flags |= addFlags;
+				// Only update flag if the value could be set - this prevents
+				// Replicated, ReadOnly, and Internal convars from having its
+				// flags modified.
+				if (entry->variable->SetValue(value))
+				{
+					entry->flags |= addFlags;
+				}
 
 				return;
 			}
@@ -225,6 +229,20 @@ int ConsoleVariableManager::GetEntryFlags(const std::string& name)
 	if (it != m_entries.end())
 	{
 		return it->second.flags;
+	}
+
+	return 0;
+}
+
+int ConsoleVariableManager::GetEntryDefaultFlags(const std::string& name)
+{
+	std::unique_lock<std::shared_mutex> lock(m_mutex);
+
+	auto it = m_entries.find(name);
+
+	if (it != m_entries.end())
+	{
+		return it->second.defaultFlags;
 	}
 
 	return 0;

@@ -167,6 +167,8 @@ std::map<std::string, std::string> BOTAN_PUBLIC_API(2,8) read_kv(const std::stri
 
 std::string BOTAN_PUBLIC_API(2,0) clean_ws(const std::string& s);
 
+std::string tolower_string(const std::string& s);
+
 /**
 * Check if the given hostname is a match for the specified wildcard
 */

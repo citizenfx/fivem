@@ -24,6 +24,16 @@ newoption {
 	description = "Root directory for bin/ files."
 }
 
+local PROGRAM_DETAILS = {
+	['server']  = { publicName = 'Server',   cSharp = { nativesFile = 'NativesServer.cs', gameFiles = 'Server/*.cs' } },
+	
+	['five']    = { publicName = 'FiveM',    cSharp = { nativesFile = 'NativesFive.cs',   gameFiles = 'Client/FiveM/**.cs' } },
+	['fivem']   = { publicName = 'FiveM',    cSharp = { nativesFile = 'NativesFive.cs',   gameFiles = 'Client/FiveM/**.cs' } },
+	
+	['rdr3']    = { publicName = 'RedM',     cSharp = { nativesFile = 'NativesRDR3.cs',   gameFiles = 'Client/RedM/*.cs' } },
+	['ny']      = { publicName = 'LibertyM', cSharp = { nativesFile = 'NativesNY.cs',     gameFiles = 'Client/LibertyM/*.cs' } },
+}
+
 dofile('tools/build/init.lua')
 
 -- perform component processing
@@ -65,13 +75,82 @@ workspace "CitizenMP"
 		"../vendor/rapidjson/include/",
 		"../vendor/fmtlib/include/",
 		"deplibs/include/",
-		os.getenv("BOOST_ROOT")
+		"../vendor/boost-submodules/boost-context/include/",
+		"../vendor/boost-submodules/boost-filesystem/include/",
+		"../vendor/boost-submodules/boost-locale/include/",
+		"../vendor/boost-submodules/boost-preprocessor/include/",
+		"../vendor/boost-submodules/boost-program-options/include/",
+		"../vendor/boost-submodules/boost-random/include/",
+		"../vendor/boost-submodules/boost-system/include/",
+		"../vendor/boost-submodules/boost-thread/include/",
+		
+		"../vendor/boost-submodules/boost-config/include/",
+		"../vendor/boost-submodules/boost-any/include/",
+		"../vendor/boost-submodules/boost-assert/include/",
+		"../vendor/boost-submodules/boost-detail/include/",
+		"../vendor/boost-submodules/boost-function/include/",
+		"../vendor/boost-submodules/boost-smart-ptr/include/",
+		"../vendor/boost-submodules/boost-static-assert/include/",
+		"../vendor/boost-submodules/boost-throw-exception/include/",
+		"../vendor/boost-submodules/boost-type-traits/include/",
+		"../vendor/boost-submodules/boost-type-index/include/",
+		"../vendor/boost-submodules/boost-predef/include/",
+		"../vendor/boost-submodules/boost-core/include/",
+		"../vendor/boost-submodules/boost-iterator/include/",
+		"../vendor/boost-submodules/boost-move/include/",
+		"../vendor/boost-submodules/boost-winapi/include/",
+		"../vendor/boost-submodules/boost-mpl/include/",
+		"../vendor/boost-submodules/boost-integer/include/",
+		"../vendor/boost-submodules/boost-container-hash/include/",
+		"../vendor/boost-submodules/boost-bind/include/",
+		"../vendor/boost-submodules/boost-unordered/include/",
+		"../vendor/boost-submodules/boost-lexical-cast/include/",
+		"../vendor/boost-submodules/boost-io/include/",
+		"../vendor/boost-submodules/boost-date-time/include/",
+		"../vendor/boost-submodules/boost-range/include/",
+		"../vendor/boost-submodules/boost-tuple/include/",
+		"../vendor/boost-submodules/boost-concept-check/include/",
+		"../vendor/boost-submodules/boost-utility/include/",
+		"../vendor/boost-submodules/boost-numeric-conversion/include/",
+		"../vendor/boost-submodules/boost-chrono/include/",
+		"../vendor/boost-submodules/boost-array/include/",
+		"../vendor/boost-submodules/boost-ratio/include/",
+		"../vendor/boost-submodules/boost-container/include/",
+		"../vendor/boost-submodules/boost-math/include/",
+		"../vendor/boost-submodules/boost-tokenizer/include/",
+		"../vendor/boost-submodules/boost-property-tree/include/",
+		"../vendor/boost-submodules/boost-optional/include/",
+		"../vendor/boost-submodules/boost-fusion/include/",
+		"../vendor/boost-submodules/boost-function-types/include/",
+		"../vendor/boost-submodules/boost-circular-buffer/include/",
+		"../vendor/boost-submodules/boost-bimap/include/",
+		"../vendor/boost-submodules/boost-algorithm/include/",
+		"../vendor/boost-submodules/boost-variant/include/",
+		"../vendor/boost-submodules/boost-serialization/include/",
+		"../vendor/boost-submodules/boost-exception/include/",
+		"../vendor/boost-submodules/boost-multi-index/include/",
+		"../vendor/boost-submodules/boost-foreach/include/",
+		"../vendor/boost-submodules/boost-uuid/include/",
+		"../vendor/boost-submodules/boost-regex/include/",
+		"../vendor/boost-submodules/boost-crc/include/",
+		"../vendor/boost-submodules/boost-tti/include/",
+		"../vendor/boost-submodules/boost-outcome/include/",
+		"../vendor/boost-submodules/boost-coroutine/include/",
+		"../vendor/boost-submodules/boost-asio/include/",
+		"../vendor/boost-submodules/boost-atomic/include/",
+		"../vendor/boost-submodules/boost-beast/include/",
+		"../vendor/boost-submodules/boost-intrusive/include/",
+		"../vendor/boost-submodules/boost-iostreams/include/",
+		"../vendor/boost-submodules/boost-mp11/include/",
+		"../vendor/boost-submodules/boost-logic/include/",
+		"../vendor/boost-submodules/boost-endian/include/",
 	}
 
 	filter { 'language:C or language:C++'}
 		defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
-
+ 		defines { "BOOST_NULLPTR=nullptr" }
 		defines { "_HAS_AUTO_PTR_ETC" } -- until boost gets fixed
+		defines { "_PPLTASK_ASYNC_LOGGING=0"}
 
 	filter {}
 
@@ -85,6 +164,8 @@ workspace "CitizenMP"
 		if _OPTIONS['game'] ~= 'server' then
 			buildoptions { '/await', '/d2FH4-' }
 		end
+
+		buildoptions { '/Zc:preprocessor' }
 
 		systemversion '10.0.22000.0'
 	else
@@ -194,6 +275,7 @@ workspace "CitizenMP"
 		include 'client/diag'
 	else
 		include 'server/launcher'
+		include 'tests'
 	end
 	
 	if os.istarget('windows') then
@@ -203,10 +285,6 @@ workspace "CitizenMP"
 	-- TARGET: corert
 	include 'client/citicore'
 
-if _OPTIONS['game'] == 'rdr3' then
-	include 'client/ipfsdl'
-end
-	
 if _OPTIONS['game'] ~= 'server' then
 	project "CitiGame"
 		targetname "CitizenGame"
@@ -308,12 +386,12 @@ local function WriteDocumentationFileXml(_premake, _cfg)
 
 		return
 	end
-
-	if _cfg.project.name ~= 'CitiMono' then
-		return
+	
+	if _cfg.project.name:find('^CitizenFX.') ~= nil then
+		_premake.w('<DocumentationFile>$(OutputPath)ref\\' .. _cfg.targetname .. '.xml</DocumentationFile>')
+	elseif _cfg.project.name == 'CitiMono' then
+		_premake.w('<DocumentationFile>' .. string.gsub(_cfg.buildtarget.relpath, ".dll", ".xml") .. '</DocumentationFile>')
 	end
-
-    _premake.w('<DocumentationFile>' .. string.gsub(_cfg.buildtarget.relpath, ".dll", ".xml") .. '</DocumentationFile>')
 end
 
 premake.override(premake.vstudio.dotnetbase, "propertyGroup", function(base, cfg)
@@ -343,10 +421,10 @@ premake.override(premake.vstudio.cs2005, "targets", function(base, prj)
 		_p(1, '<PropertyGroup>')
 		_p(2, '<GenAPITargetDir>%s</GenAPITargetDir>', path.getabsolute("client/clrref/" .. _OPTIONS['game']))
 		_p(2, '<GenAPITargetPath>$(GenAPITargetDir)\\$(TargetName).cs</GenAPITargetPath>')
-		_p(2, '<GenAPIAdditionalParameters>%s</GenAPIAdditionalParameters>', ('--exclude-api-list "%s" --exclude-attributes-list "%s"'):format(
+		_p(2, '<GenAPIAdditionalParameters>--exclude-api-list "%s" --exclude-attributes-list "%s"</GenAPIAdditionalParameters>', 
 			path.getabsolute("client/clrref/exclude_list.txt"),
 			path.getabsolute("client/clrref/exclude_attributes_list.txt")
-		))
+		)
 		_p(2, '<GenerateReferenceAssemblySource>true</GenerateReferenceAssemblySource>')
 		_p(1, '</PropertyGroup>')
 		
@@ -355,10 +433,30 @@ premake.override(premake.vstudio.cs2005, "targets", function(base, prj)
 		_p(1, '<Target Name="CreateReferenceAssemblyDirectory" BeforeTargets="GenerateReferenceAssemblySource">')
 		_p(2, '<MakeDir Directories="$(GenAPITargetDir)" />')
 		_p(1, '</Target>')
-    end
-
-	if prj.name == 'CitiMonoRef' then
+		
+	elseif prj.name == 'CitiMonoRef' then
 		_p(1, '<Import Project="%s" />', path.getabsolute("client/clrref/GenFacades.targets"))
+		
+	elseif prj.name:find('^CitizenFX.') ~= nil then
+		_p(1, '<PropertyGroup>')
+		_p(2, '<ProduceReferenceAssembly>true</ProduceReferenceAssembly>')
+		_p(1, '</PropertyGroup>')
+		_p(1, '<Target Name="CopyFilesToOutputDirectory">')
+		_p(2, '<!-- .exe/.dll -->')
+		_p(2, '<Copy SourceFiles="@(IntermediateAssembly)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="$(SkipCopyUnchangedFiles)" OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)" Retries="$(CopyRetryCount)" RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)" UseHardlinksIfPossible="$(CreateHardLinksForCopyFilesToOutputDirectoryIfPossible)" UseSymboliclinksIfPossible="$(CreateSymbolicLinksForCopyFilesToOutputDirectoryIfPossible)" ErrorIfLinkFails="$(ErrorIfLinkFailsForCopyFilesToOutputDirectory)" Condition="\'$(SkipCopyBuildProduct)\' != \'true\'">')
+		_p(3, '<Output TaskParameter="DestinationFiles" ItemName="MainAssembly" />')
+		_p(3, '<Output TaskParameter="DestinationFiles" ItemName="FileWrites" />')
+		_p(2, '</Copy>')
+		_p(2, '<!-- .pdb -->')
+		_p(2, '<Copy SourceFiles="@(_DebugSymbolsIntermediatePath)" DestinationFiles="@(_DebugSymbolsOutputPath)" SkipUnchangedFiles="$(SkipCopyUnchangedFiles)" OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)" Retries="$(CopyRetryCount)" RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)" UseHardlinksIfPossible="$(CreateHardLinksForCopyFilesToOutputDirectoryIfPossible)" UseSymboliclinksIfPossible="$(CreateSymbolicLinksForCopyFilesToOutputDirectoryIfPossible)" ErrorIfLinkFails="$(ErrorIfLinkFailsForCopyFilesToOutputDirectory)" Condition="\'$(_DebugSymbolsProduced)\'==\'true\' and \'$(SkipCopyingSymbolsToOutputDirectory)\' != \'true\'">')
+		_p(3, '<Output TaskParameter="DestinationFiles" ItemName="FileWrites" />')
+		_p(2, '</Copy>')
+		_p(2, '<!-- reference assembly -->')
+		_p(2, '<CopyRefAssembly SourcePath="@(IntermediateRefAssembly)" DestinationPath="$(OutDir)ref\\$(TargetName).dll" Condition="\'$(ProduceReferenceAssembly)\' == \'true\' and \'$(SkipCopyBuildProduct)\' != \'true\'">')
+		_p(3, '<Output TaskParameter="DestinationPath" ItemName="ReferenceAssembly" />')
+		_p(3, '<Output TaskParameter="DestinationPath" ItemName="FileWrites" />')
+		_p(2, '</CopyRefAssembly>')
+		_p(1, '</Target>')
 	end
 end)
 
@@ -385,51 +483,65 @@ premake.override(premake.vstudio.dotnetbase, "nuGetReferences", function(base, c
 end)
 
 if _OPTIONS['game'] ~= 'launcher' then
-	project "CitiMono"
-		targetname "CitizenFX.Core"
-		language "C#"
-		kind "SharedLib"
 
-		-- Missing XML comment for publicly visible type or member
-		disablewarnings 'CS1591'
-
-		dotnetframework '4.6'
-
-		clr 'Unsafe'
-
-		csversion '7.3'
-
-		files { "client/clrcore/*.cs", "client/clrcore/Math/*.cs" }
-
-		files { "../vendor/ben-demystifier/src/Ben.Demystifier/**.cs" }
-		
-		if _OPTIONS['game'] == 'five' then
-			files { "client/clrcore/NativesFive.cs" }
-		elseif _OPTIONS['game'] == 'rdr3' then
-			files { "client/clrcore/NativesRDR3.cs" }
-		elseif _OPTIONS['game'] == 'server' then
-			files { "client/clrcore/NativesServer.cs" }
-		elseif _OPTIONS['game'] == 'ny' then
-			files { "client/clrcore/NativesNY.cs" }
-		end
-
-		if _OPTIONS['game'] ~= 'server' then
-			defines { 'USE_HYPERDRIVE' }
-
-			if _OPTIONS['game'] == 'five' then
-				files { "client/clrcore/External/*.cs" }
-			end
-		else
-			files { "client/clrcore/Server/*.cs" }
-		end
-
-		if os.istarget('windows') then
-			nuget {
-				"Microsoft.DotNet.GenAPI:6.0.0-beta.21063.5",
-				"Microsoft.DotNet.GenFacades:6.0.0-beta.21063.5",
+	function csproject(projectName, targetName)
+		do project(projectName)
+			targetname(targetName or projectName)
+			language 'C#'
+			kind 'SharedLib'
+			
+			disablewarnings 'CS1591' -- Missing XML comment for publicly visible type or member
+			dotnetframework '4.6'
+			buildoptions '/debug:portable /langversion:7.3'
+			csversion '7.3'
+			
+			links {
+				'System.dll',
+				'System.Core.dll',
+				'Microsoft.CSharp.dll',
+				'../data/client/citizen/clr2/lib/mono/4.5/System.Reflection.Metadata.dll',
+				'../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll'
 			}
-			nugetsource "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/index.json"
+			
+			if os.istarget('windows') then
+				defines { 'OS_WIN' }
+			elseif os.istarget('linux') then
+				defines { 'OS_LINUX' }
+			end
+		end
+	end
+	
+	function cstargets(targetDirectory)
+		filter { "configurations:Debug" }
+			targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/'.. (targetDirectory or ''))
+		
+		filter { "configurations:Release" }
+			targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/'.. (targetDirectory or ''))
+	end
+			
+	group "mono/v1"
+	
+	do csproject ("CitiMono", "CitizenFX.Core")
+		clr 'Unsafe'
+		files { 'client/clrcore/*.cs', 'client/clrcore/Math/*.cs' }
+		files { '../vendor/ben-demystifier/src/Ben.Demystifier/**.cs' }
+		
+		if _OPTIONS['game'] == 'server' then
+			files { 'client/clrcore/Server/*.cs' }
 		else
+			if _OPTIONS['game'] == 'five' then
+				files { 'client/clrcore/External/*.cs' }
+			end
+			
+			defines { 'USE_HYPERDRIVE' }
+		end
+	
+		if os.istarget('windows') then		
+			dependson 'CfxPrebuild'
+			nuget { 'Microsoft.DotNet.GenAPI:6.0.0-beta.21063.5', 'Microsoft.DotNet.GenFacades:6.0.0-beta.21063.5' }
+			nugetsource 'https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/index.json'
+		elseif os.istarget('linux') then
+			links { '/usr/lib/mono/4.5/Facades/System.Runtime.dll', '/usr/lib/mono/4.5/Facades/System.IO.dll' }
 			postbuildcommands {
 				("%s '%s' '%s' '%%{cfg.linktarget.abspath}'"):format(
 					path.getabsolute("client/clrref/genapi.sh"),
@@ -438,104 +550,143 @@ if _OPTIONS['game'] ~= 'launcher' then
 				)
 			}
 		end
-
-		links {
-			"System.dll",
-			"Microsoft.CSharp.dll",
-			"System.Core.dll",
-			"../data/client/citizen/clr2/lib/mono/4.5/System.Reflection.Metadata.dll",
-			"../data/client/citizen/clr2/lib/mono/4.5/System.Collections.Immutable.dll",
-			"../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll"
-		}
-
-		if os.istarget('linux') then
-			links {
-				"/usr/lib/mono/4.5/Facades/System.Runtime.dll",
-				"/usr/lib/mono/4.5/Facades/System.IO.dll"
-			}
-		end
-
-		buildoptions '/debug:portable /langversion:7.3'
-
-		filter { "configurations:Debug" }
-			targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/')
-
-		filter { "configurations:Release" }
-			targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/')
-
-	if _OPTIONS['game'] ~= 'server' then
-		project "CitiMonoSystemDrawingStub"
-			targetname "System.Drawing"
-			language "C#"
-			kind "SharedLib"
-
-			links { "CitiMono" }
-
-			files {
-				"client/clrref/System.Drawing.cs"
-			}
-
-			filter { "configurations:Debug" }
-				targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/')
-
-			filter { "configurations:Release" }
-				targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/')
+		
+		links { '../data/client/citizen/clr2/lib/mono/4.5/System.Collections.Immutable.dll' }
+		cstargets ''
 	end
-
+	
+	local csharpCoreReferenceDllName = _OPTIONS['game'] == 'server' and "CitizenFX.Core.Server" or "CitizenFX.Core.Client"
+	
+	-- reference assembly project
 	if os.istarget('windows') then
-		project "CitiMonoRef"
-			if _OPTIONS['game'] == 'server' then
-				targetname "CitizenFX.Core.Server"
-			else
-				targetname "CitizenFX.Core.Client"
-			end
-
-			language "C#"
-			kind "SharedLib"
-
-			dependson "CitiMono"
-
-			dotnetframework '4.6'
+		do csproject ("CitiMonoRef", csharpCoreReferenceDllName)
 			clr 'Unsafe'
-			csversion '7.3'
-
-			links {
-				"System.dll",
-				"System.Drawing.dll",
-				"System.Core.dll",
-			}
+			files { 'client/clrref/' .. _OPTIONS['game'] .. '/CitizenFX.Core.cs' }
+			links { 'System.dll', 'System.Drawing.dll', 'System.Core.dll' }
+			dependson 'CitiMono'
+			cstargets 'ref/'
+		end
+	elseif os.istarget('linux') then
+		do project "CitiMonoRef"
+			kind 'Utility'
+			files { 'client/clrref/CitizenFX.Core.Server.csproj' }
+			dependson 'CitiMono'
 			
-			files { "client/clrref/" .. _OPTIONS['game'] .. "/CitizenFX.Core.cs" }
+			local absMonoRoot = path.getabsolute(binroot) .. '/%{cfg.name:lower()}/citizen/clr2/lib/mono/4.5/'
 			
-			buildoptions '/debug:portable /langversion:7.3'
-			targetdir (binroot .. '/%{cfg.name:lower()}/citizen/clr2/lib/mono/4.5/ref/')
-	else
-		project "CitiMonoRef"
-			kind "Utility"
-
-			dependson "CitiMono"
-
-			files {
-				"client/clrref/CitizenFX.Core.Server.csproj"
-			}
-
 			filter 'files:**.csproj'
 				buildmessage 'Generating facades'
-				buildinputs { "client/clrref/server/CitizenFX.Core.cs" }
+				buildinputs { 'client/clrref/server/CitizenFX.Core.cs' }
 				buildcommands {
 					("dotnet msbuild '%%{file.abspath}' /p:Configuration=%%{cfg.name} /p:FacadeOutPath=%s /t:Restore"):format(
-						path.getabsolute(binroot) .. '/%{cfg.name:lower()}/citizen/clr2/lib/mono/4.5/'
+						absMonoRoot
 					),
 					("dotnet msbuild '%%{file.abspath}' /p:Configuration=%%{cfg.name} /p:FacadeOutPath=%s"):format(
-						path.getabsolute(binroot) .. '/%{cfg.name:lower()}/citizen/clr2/lib/mono/4.5/'
+						absMonoRoot
 					),
 					("rm -rf '%s'"):format(
-						path.getabsolute(binroot) .. '/%{cfg.name:lower()}/citizen/clr2/lib/mono/4.5/ref/'
+						absMonoRoot .. 'ref/'
 					)
 				}
 				buildoutputs { binroot .. '/%{cfg.name:lower()}/citizen/clr2/lib/mono/4.5/CitizenFX.Core.Server.dll' }
+		end
+	end
+	
+	if _OPTIONS['game'] ~= 'server' then
+		do csproject ("CitiMonoSystemDrawingStub", "System.Drawing")
+			files { 'client/clrref/System.Drawing.cs' }
+			links { 'CitiMono' }
+			cstargets ''
+		end
+	end
+	
+	group "mono/v2"
+	
+	local csharpCoreAssemblyName = "CitizenFX.Core"
+	
+	-- Get game name and files
+	-- '.*' should not load any file, replace it with something else if it does
+	local program = PROGRAM_DETAILS[_OPTIONS['game']]
+	if not program then
+		print('Program "'.._OPTIONS['game']..'" was not found in the PROGRAM_DETAILS list, you either provided an incorrect program or PROGRAM_DETAILS is missing this options, premake5.lua')
+		program = { publicName = 'Unknown', cSharp = { nativesFile = '.*', gameFiles = '.*' } }
+	end
+	
+	do csproject (csharpCoreAssemblyName)
+		clr 'Unsafe'
+		files {
+			'client/clrcore-v2/*.cs',
+			'client/clrcore-v2/Coroutine/**.cs',
+			'client/clrcore-v2/Interop/**.cs',
+			'client/clrcore-v2/Math/v2/**.cs',
+			'client/clrcore-v2/Native/**.cs',
+			'client/clrcore-v2/Shared/**.cs',
+			'client/clrcore-v2/System/**.cs',
+			
+			-- Math, cherry pick from v1 files for now
+			'client/clrcore-v2/Math/GameMath.cs',
+			'client/clrcore-v2/Math/MathUtil.cs',
+			'client/clrcore-v2/Math/Matrix.cs',
+			'client/clrcore-v2/Math/Matrix3x3.cs',
+			'client/clrcore-v2/Math/Quaternion.cs',
+			'client/clrcore-v2/Math/Vector2.cs',
+			'client/clrcore-v2/Math/Vector3.cs',
+			'client/clrcore-v2/Math/Vector4.cs',
+		}
+		
+		-- Add MsgPack source files directly, otherwise we'd get a cyclic dependency
+		files { '../vendor/msgpack-cs/MsgPack/**.cs' }
+		removefiles {
+			'../vendor/msgpack-cs/MsgPack/AssemblyInfo.cs',
+			'../vendor/msgpack-cs/MsgPack/PlatformTypes/**',
+			'../vendor/msgpack-cs/MsgPack/obj/**', -- allows working in the submodule
+		}
+		
+		defines { 'MONO_V2' }
+		
+		do  -- prev. disabled on certain games
+			defines { 'NATIVE_SHARED_INCLUDE' }
+		end
+		
+		cstargets 'v2'
+	end
+	
+	if _OPTIONS['game'] ~= 'server' then
+		do csproject ("CitizenFX."..program.publicName..".NativeImpl")
+			clr 'Unsafe'
+			files { 'client/clrcore-v2/Native/'..program.cSharp.nativesFile }
+			links { csharpCoreAssemblyName }
+			defines { 'MONO_V2', 'NATIVE_WRAPPER_USE_VERSION', 'NATIVE_IMPL_INCLUDE' }
+			cstargets 'v2'
+		end
+		
+		do csproject ("CitizenFX."..program.publicName..".Native")
+			files { 'client/clrcore-v2/Native/'..program.cSharp.nativesFile, 'client/clrcore-v2/Native/CustomNativeWrapper.cs' }
+			links { csharpCoreAssemblyName, 'CitizenFX.'..program.publicName..'.NativeImpl' }
+			defines { 'MONO_V2', 'NATIVE_WRAPPER_USE_VERSION', 'NATIVE_HASHES_INCLUDE', 'NATIVE_WRAPPERS_INCLUDE' }
+			cstargets 'v2/Native/'
+		end
+	end
+	
+	do -- prev. disabled on certain games
+		do csproject ("CitizenFX."..program.publicName)
+			clr 'Unsafe'
+			files { 'client/clrcore-v2/'..program.cSharp.gameFiles, 'client/clrcore-v2/Game/Shared/*.cs' }
+			links { csharpCoreAssemblyName }
+			defines { 'MONO_V2' }
+			
+			if _OPTIONS['game'] == 'server' then
+				files { 'client/clrcore-v2/Native/'..program.cSharp.nativesFile, 'client/clrcore-v2/Native/CustomNativeWrapper.cs' }
+				defines { 'NATIVE_IMPL_INCLUDE', 'NATIVE_HASHES_INCLUDE', 'NATIVE_WRAPPERS_INCLUDE' }
+			else
+				links { 'CitizenFX.'..program.publicName..'.Native' } -- isn't separated in server environments
+			end
+			
+			cstargets 'v2'
+		end
 	end
 end
+
 	group ""
 
 	-- TARGET: shared component

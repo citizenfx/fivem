@@ -1,4 +1,4 @@
-import { createOutlet } from "cfx/utils/outlet";
+import { createOutlet } from 'cfx/utils/outlet';
 
 export const PreTitleOutlet = createOutlet();
 export const TitleOutlet = createOutlet();

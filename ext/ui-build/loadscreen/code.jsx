@@ -80,8 +80,6 @@ const handlers = {
 	    	done: 0
 	    }));
 
-	    gstate.orderCount = data.count;
-
 	    printLog(2, `Running functions of order ${data.order} (${data.count} total)`);
 
 	    doInit();
@@ -89,7 +87,7 @@ const handlers = {
 
 	initFunctionInvoking(data)
 	{
-		printLog(3, `Invoking ${data.name} ${data.type} init (${data.idx} of ${gstate.orderCount})`);
+		printLog(3, `Invoking ${data.name} ${data.type} init (${data.idx} of ${data.count})`);
 
 	    doInit();
 	},
@@ -251,7 +249,7 @@ if (!window.invokeNative)
 {
 	const newType = name => () => handlers.startInitFunction({type: name});
 	const newOrder = (name, idx, count) => () => handlers.startInitFunctionOrder({type: name, order: idx, count });
-	const newInvoke = (name, func) => () => { handlers.initFunctionInvoking({ type: name, name: func, idx: 0 }); handlers.initFunctionInvoked({ type: name }); };
+	const newInvoke = (name, func) => () => { handlers.initFunctionInvoking({ type: name, name: func, idx: 0, count }); handlers.initFunctionInvoked({ type: name }); };
 	const startEntries = (count) => () => handlers.startDataFileEntries({ count });
 	const addEntry = () => () => handlers.onDataFileEntry({ name: 'meow', isNew: true });
 	const stopEntries = () => () => handlers.endDataFileEntries({});

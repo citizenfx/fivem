@@ -18,6 +18,7 @@
 #include "INetMetricSink.h"
 
 #include "NetLibraryImplBase.h"
+#include "ComponentHolder.h"
 
 #include <NetAddress.h>
 #include <shared_mutex>
@@ -96,7 +97,7 @@ class
 #ifdef COMPILING_NET
 	__declspec(dllexport)
 #endif
-	NetLibrary : public INetLibrary, public INetLibraryInherit
+	NetLibrary : public INetLibrary, public INetLibraryInherit, public fx::ComponentHolderImpl<NetLibrary>
 {
 public:
 	enum ConnectionState

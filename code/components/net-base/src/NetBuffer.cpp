@@ -93,14 +93,14 @@ void Buffer::Initialize()
 
 bool Buffer::Read(void* buffer, size_t length)
 {
-	if ((m_curOff + length) >= m_bytes->size())
+	if (EndsAfterRead(length))
 	{
 		m_end = true;
 
 		// and if it really doesn't fit out of our buffer
-		if ((m_curOff + length) > m_bytes->size())
+		if (!CanRead(length))
 		{
-			memset(buffer, 0xCE, sizeof(length));
+			memset(buffer, 0x00, length);
 			return false;
 		}
 	}

@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## ADD_AUDIO_SUBMIX_OUTPUT
 

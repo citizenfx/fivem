@@ -8,7 +8,7 @@ $SaveDir = "$WorkDir\code\build\"
 
 if (!(Test-Path $SaveDir)) { New-Item -ItemType Directory -Force $SaveDir | Out-Null }
 
-$CefName = (Get-Content $PSScriptRoot\..\ci\build.ps1 | Select-String "CefName =") -replace ".*`"(.*?)`"", "`$1"
+$CefName = (Get-Content -Encoding ascii $WorkDir\vendor\cef\cef_build_name.txt).Trim()
 
 if (!(Test-Path "$SaveDir\$CefName.zip")) {
 	curl.exe --create-dirs -Lo "$SaveDir\$CefName.zip" "https://runtime.fivem.net/build/cef/$CefName.zip"

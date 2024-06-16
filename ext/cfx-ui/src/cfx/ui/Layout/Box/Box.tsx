@@ -1,33 +1,43 @@
 import React from 'react';
+
+import { useContextualStyle } from 'cfx/ui/Style/Style';
 import { ui } from 'cfx/ui/ui';
 import { clsx } from 'cfx/utils/clsx';
+
 import s from './Box.module.scss';
-import { useContextualStyle } from 'cfx/ui/Style/Style';
 
-export interface BoxProps {
-  noOverflow?: boolean,
-  noShrink?: boolean,
-  grow?: boolean,
+function quantOrRaw(value: number | string): string {
+  if (typeof value === 'string') {
+    return value;
+  }
 
-  /**
-   * Number values is treated like quant multiplier
-   * String value used as is
-   */
-  width?: number | string,
-
-  /**
-   * Number values is treated like quant multiplier
-   * String value used as is
-   */
-  height?: number | string,
-
-  children?: React.ReactNode,
-
-  className?: string,
-  style?: React.CSSProperties,
+  return ui.q(value);
 }
 
-export const Box = React.forwardRef((props: BoxProps, ref: React.Ref<HTMLDivElement>) => {
+export interface BoxProps {
+  noOverflow?: boolean;
+  noShrink?: boolean;
+  grow?: boolean;
+
+  /**
+   * Number values is treated like quant multiplier
+   * String value used as is
+   */
+  width?: number | string;
+
+  /**
+   * Number values is treated like quant multiplier
+   * String value used as is
+   */
+  height?: number | string;
+
+  children?: React.ReactNode;
+
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export const Box = React.forwardRef(function Box(props: BoxProps, ref: React.Ref<HTMLDivElement>) {
   const {
     noOverflow = false,
     noShrink = false,
@@ -46,7 +56,7 @@ export const Box = React.forwardRef((props: BoxProps, ref: React.Ref<HTMLDivElem
     [s.grow]: grow === true,
   });
 
-  let style: React.CSSProperties = {
+  const style: React.CSSProperties = {
     ...useContextualStyle(),
     ...(props.style || {}),
   };
@@ -55,6 +65,7 @@ export const Box = React.forwardRef((props: BoxProps, ref: React.Ref<HTMLDivElem
     if (width) {
       style.width = quantOrRaw(width);
     }
+
     if (height) {
       style.height = quantOrRaw(height);
     }
@@ -70,11 +81,3 @@ export const Box = React.forwardRef((props: BoxProps, ref: React.Ref<HTMLDivElem
     </div>
   );
 });
-
-function quantOrRaw(value: number | string): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  return ui.q(value);
-}

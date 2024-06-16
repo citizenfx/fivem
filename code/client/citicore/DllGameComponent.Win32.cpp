@@ -16,6 +16,7 @@
 #include <optional>
 #include <sstream>
 
+#include "ErrorFormat.Win32.h"
 #include <Hooking.Aux.h>
 
 #include <MinHook.h>
@@ -152,12 +153,7 @@ Component* DllGameComponent::CreateComponent()
 			addtlInfo = fmt::sprintf("\n\nAdditional information:\n%s", errors);
 		}
 
-		wchar_t errorText[512];
-		errorText[0] = L'\0';
-
-		FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorText, std::size(errorText), nullptr);
-
-		FatalError("Could not load component %s - Windows error code %d. %s%s", converter.to_bytes(m_path).c_str(), errorCode, ToNarrow(errorText), addtlInfo);
+		FatalError("Could not load component %s - Windows error code %d. %s%s", converter.to_bytes(m_path).c_str(), errorCode, win32::FormatMessage(errorCode), addtlInfo);
 
 		return nullptr;
 	}
@@ -201,12 +197,7 @@ void DllGameComponent::ReadManifest()
 		// delete caches.xml so the game will be verified
 		_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
 
-		wchar_t errorText[512];
-		errorText[0] = L'\0';
-
-		FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorText, std::size(errorText), nullptr);
-
-		FatalError("Could not load component manifest %s - Windows error code %d. %s", converter.to_bytes(m_path).c_str(), errorCode, ToNarrow(errorText));
+		FatalError("Could not load component manifest %s - Windows error code %d. %s", converter.to_bytes(m_path).c_str(), errorCode, win32::FormatMessage(errorCode));
 
 		return;
 	}

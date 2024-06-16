@@ -1,0 +1,33 @@
+name: Remove triage
+on:
+  issues:
+    types: [ closed, deleted ]
+  pull_request:
+    types: [ closed, deleted ]
+
+jobs:
+  label_issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            try
+            {
+                await github.rest.issues.removeLabel({
+                    issue_number: context.issue.number,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: ["triage"]
+                });
+            }
+            catch (exception)
+            {
+                // we don't care if the label wasn't present, as long as it's gone now
+                if (exception.status !== 404)
+                {
+                    console.log(exception);
+                }
+            }

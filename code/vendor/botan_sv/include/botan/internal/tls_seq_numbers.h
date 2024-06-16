@@ -130,6 +130,7 @@ class Datagram_Sequence_Numbers final : public Connection_Sequence_Numbers
 
          if(sequence > m_window_highest)
             {
+            // We've received a later sequence which advances our window
             const uint64_t offset = sequence - m_window_highest;
             m_window_highest += offset;
 
@@ -143,7 +144,18 @@ class Datagram_Sequence_Numbers final : public Connection_Sequence_Numbers
          else
             {
             const uint64_t offset = m_window_highest - sequence;
-            m_window_bits |= (static_cast<uint64_t>(1) << offset);
+
+            if(offset < window_size)
+               {
+               // We've received an old sequence but still within our window
+               m_window_bits |= (static_cast<uint64_t>(1) << offset);
+               }
+            else
+               {
+               // This occurs only if we have reset state (DTLS reconnection case)
+               m_window_highest = sequence;
+               m_window_bits = 0;
+               }
             }
          }
 

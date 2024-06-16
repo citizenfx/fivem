@@ -1,13 +1,15 @@
-import { inject, injectable, named } from "inversify";
-import { IServersBoostService } from "cfx/common/services/servers/serversBoost.service";
-import { IServerBoost, IServerView } from "cfx/common/services/servers/types";
-import { IDiscourseService } from "../discourse/discourse.service";
-import { ServicesContainer } from "cfx/base/servicesContainer";
-import { ScopedLogger } from "cfx/common/services/log/scopedLogger";
-import { makeAutoObservable } from "mobx";
-import { MpMenuServersService } from "./servers.mpMenu";
-import { fetcher } from "cfx/utils/fetcher";
-import { IIntlService } from "cfx/common/services/intl/intl.service";
+import { inject, injectable, named } from 'inversify';
+import { makeAutoObservable } from 'mobx';
+
+import { ServicesContainer } from 'cfx/base/servicesContainer';
+import { IIntlService } from 'cfx/common/services/intl/intl.service';
+import { ScopedLogger } from 'cfx/common/services/log/scopedLogger';
+import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
+import { IServerBoost, IServerView } from 'cfx/common/services/servers/types';
+import { fetcher } from 'cfx/utils/fetcher';
+
+import { MpMenuServersService } from './servers.mpMenu';
+import { IDiscourseService } from '../discourse/discourse.service';
 
 export enum BoostUIState {
   Idle,
@@ -24,27 +26,48 @@ export function registerMpMenuServersBoostService(container: ServicesContainer) 
 @injectable()
 export class MpMenuServersBoostService implements IServersBoostService {
   private _currentBoost: IServerBoost | null = null;
-  public get currentBoost(): IServerBoost | null { return this._currentBoost }
-  private set currentBoost(currentBoost: IServerBoost | null) { this._currentBoost = currentBoost }
+  public get currentBoost(): IServerBoost | null {
+    return this._currentBoost;
+  }
+  private set currentBoost(currentBoost: IServerBoost | null) {
+    this._currentBoost = currentBoost;
+  }
 
   private _currentBoostLoadComplete: boolean = false;
-  public get currentBoostLoadComplete(): boolean { return this._currentBoostLoadComplete }
-  private set currentBoostLoadComplete(currentBoostLoadComplete: boolean) { this._currentBoostLoadComplete = currentBoostLoadComplete }
+  public get currentBoostLoadComplete(): boolean {
+    return this._currentBoostLoadComplete;
+  }
+  private set currentBoostLoadComplete(currentBoostLoadComplete: boolean) {
+    this._currentBoostLoadComplete = currentBoostLoadComplete;
+  }
 
   private _currentBoostLoadError: string = '';
-  public get currentBoostLoadError(): string { return this._currentBoostLoadError }
-  private set currentBoostLoadError(currentBoostLoadError: string) { this._currentBoostLoadError = currentBoostLoadError }
+  public get currentBoostLoadError(): string {
+    return this._currentBoostLoadError;
+  }
+  private set currentBoostLoadError(currentBoostLoadError: string) {
+    this._currentBoostLoadError = currentBoostLoadError;
+  }
 
   private _uiState: BoostUIState = BoostUIState.Idle;
-  public get uiState(): BoostUIState { return this._uiState }
-  private set uiState(uiState: BoostUIState) { this._uiState = uiState }
+  public get uiState(): BoostUIState {
+    return this._uiState;
+  }
+  private set uiState(uiState: BoostUIState) {
+    this._uiState = uiState;
+  }
 
   private _uiError: string = '';
-  public get uiError(): string { return this._uiError }
-  private set uiError(uiError: string) { this._uiError = uiError }
+  public get uiError(): string {
+    return this._uiError;
+  }
+  private set uiError(uiError: string) {
+    this._uiError = uiError;
+  }
 
   constructor(
-    @inject(ScopedLogger) @named('MpMenuServersBoostService')
+    @inject(ScopedLogger)
+    @named('MpMenuServersBoostService')
     protected readonly logService: ScopedLogger,
     @inject(IDiscourseService)
     protected readonly discourseService: IDiscourseService,
@@ -55,7 +78,9 @@ export class MpMenuServersBoostService implements IServersBoostService {
   ) {
     makeAutoObservable(this);
 
-    discourseService.accountChange.addListener(({ account }) => {
+    discourseService.accountChange.addListener(({
+      account,
+    }) => {
       if (account) {
         this.loadCurrentBoost();
       }
@@ -69,19 +94,26 @@ export class MpMenuServersBoostService implements IServersBoostService {
   async boostServer(serverId: string): Promise<void> {
     if (!this.discourseService.account) {
       this.uiState = BoostUIState.NoAccount;
+
       return;
     }
 
     this.uiState = BoostUIState.Boosting;
 
     try {
-      const response: UpvoteResponse = await this.discourseService.makeExternalCall('https://servers-frontend.fivem.net/api/upvote/', 'POST', {
-        address: serverId,
-      });
+      const response: UpvoteResponse = await this.discourseService.makeExternalCall(
+        'https://servers-frontend.fivem.net/api/upvote/',
+        'POST',
+        {
+          address: serverId,
+        },
+      );
 
       if ('error' in response) {
-        this.uiError = response.error || ':( Assigning BOOST™ failed. Please try again later, or contact FiveM support if this issue persists!';
+        this.uiError = response.error
+        || ':( Assigning BOOST™ failed. Please try again later, or contact FiveM support if this issue persists!';
         this.uiState = BoostUIState.Error;
+
         return;
       }
 
@@ -90,6 +122,7 @@ export class MpMenuServersBoostService implements IServersBoostService {
       await this.loadCurrentBoost();
 
       const server = this.serversService.getServer(serverId);
+
       if (!server) {
         return;
       }
@@ -108,12 +141,13 @@ export class MpMenuServersBoostService implements IServersBoostService {
       if (fetcher.HttpError.is(e)) {
         try {
           this.uiError = (await e.response.json()).error;
-        } catch (e) {
+        } catch {
           // noop
         }
       }
 
       if (!this.uiError) {
+        // eslint-disable-next-line @stylistic/max-len
         this.uiError = ':( Assigning BOOST™ failed. Please try again later, or contact FiveM support if this issue persists!';
       }
 
@@ -131,13 +165,16 @@ export class MpMenuServersBoostService implements IServersBoostService {
 
     if (!this.discourseService.account) {
       this.currentBoostLoadComplete = true;
+
       return;
     }
 
     this.currentBoostLoadComplete = false;
 
     try {
-      this.currentBoost = await this.discourseService.makeExternalCall('https://servers-frontend.fivem.net/api/upvote/');
+      this.currentBoost = await this.discourseService.makeExternalCall(
+        'https://servers-frontend.fivem.net/api/upvote/',
+      );
     } catch (e) {
       if (fetcher.HttpError.is(e)) {
         if (e.status >= 500) {
@@ -155,6 +192,4 @@ export class MpMenuServersBoostService implements IServersBoostService {
   }
 }
 
-type UpvoteResponse =
-  | { success: true, power: string, burst: string }
-  | { error: string }
+type UpvoteResponse = { success: true; power: string; burst: string } | { error: string };

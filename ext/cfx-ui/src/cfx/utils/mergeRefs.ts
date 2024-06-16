@@ -1,9 +1,11 @@
-import React from "react";
+import React from 'react';
 
-export default function mergeRefs<T = any>(...refs: Array<React.MutableRefObject<T> | React.LegacyRef<T> | undefined>): React.RefCallback<T> {
+export default function mergeRefs<T = any>(
+  ...refs: (React.MutableRefObject<T> | React.LegacyRef<T> | undefined)[]
+): React.RefCallback<T> {
   return (value) => {
     refs.forEach((ref) => {
-      if (typeof ref === "function") {
+      if (typeof ref === 'function') {
         ref(value);
       } else if (ref != null) {
         (ref as React.MutableRefObject<T | null>).current = value;

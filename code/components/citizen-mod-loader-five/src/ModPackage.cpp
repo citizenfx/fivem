@@ -100,6 +100,15 @@ void ModPackage::ParsePackage(const std::string& path)
 
 		m_metadata = ParseMetadata(doc.RootElement()->FirstChildElement("metadata"));
 
+		if (fx::client::GetPureLevel() >= 1)
+		{
+			// outdated 'NaturalVision Evolved' weapon addon with incorrect clip size
+			if (!strcmp(doc.RootElement()->Attribute("id"), "{62AB8F34-BE20-46D5-9F0F-84729F087E5E}"))
+			{
+				return;
+			}
+		}
+
 		m_content = ParseContent(doc.RootElement()->FirstChildElement("content"));
 	}
 }
@@ -170,9 +179,13 @@ static HookFunction hookFunction([]()
 				vfs::Mount(addonPack, addonRoot);
 
 				auto modPackage = std::make_shared<fx::ModPackage>(addonRoot);
-				fx::MountModDevice(modPackage);
 
-				packages.push_front(modPackage);
+				if (modPackage.get()->GetContent().entries.size() > 0)
+				{
+					fx::MountModDevice(modPackage);
+
+					packages.push_front(modPackage);
+				}
 			}
 		}
 

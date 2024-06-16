@@ -77,11 +77,6 @@ namespace fx
 	{
 		fx::ClientSharedPtr client = fx::ClientSharedPtr::Construct(guid);
 		fx::ClientWeakPtr weakClient(client);
-
-		{
-			std::unique_lock writeHolder(m_clientMutex);
-			m_clients.emplace(guid, client);
-		}
 		
 		client->OnAssignNetId.Connect([this, weakClient]()
 		{
@@ -146,6 +141,11 @@ namespace fx
 
 		OnClientCreated(client);
 
+		{
+			std::unique_lock writeHolder(m_clientMutex);
+			m_clients.emplace(guid, client);
+		}
+
 		return client;
 	}
 
@@ -173,6 +173,9 @@ namespace fx
 
 		client->SetNetId(m_curNetId);
 		incrementId();
+
+		// increment amount of connected clients
+		++m_amountConnectedClients;
 	}
 
 	void ClientRegistry::HandleConnectedClient(const fx::ClientSharedPtr& client, uint32_t oldNetID)

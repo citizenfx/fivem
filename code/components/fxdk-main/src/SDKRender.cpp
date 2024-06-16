@@ -57,7 +57,7 @@ struct GameRenderData
 
 static void CreateTextures(int width, int height)
 {
-	std::vector<uint32_t> mem(width * height);
+	std::vector<uint32_t> mem(static_cast<std::vector<uint32_t>::size_type>(width) * height);
 
 	for (size_t i = 0; i < mem.size(); i++)
 	{

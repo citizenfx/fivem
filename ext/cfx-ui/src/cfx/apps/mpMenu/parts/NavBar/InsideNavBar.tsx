@@ -1,8 +1,11 @@
 import { observer } from 'mobx-react-lite';
 import ReactDOM from 'react-dom';
-import { NavBarState } from "./NavBarState";
 
-export const InsideNavBar = observer(function InsideNavBar({ children }: ChildrenProps) {
+import { NavBarState } from './NavBarState';
+
+export const InsideNavBar = observer(function InsideNavBar({
+  children,
+}: ChildrenProps) {
   if (!NavBarState.ready) {
     return null;
   }
@@ -11,8 +14,5 @@ export const InsideNavBar = observer(function InsideNavBar({ children }: Childre
     return null;
   }
 
-  return ReactDOM.createPortal(
-    children,
-    NavBarState.outletRef.current,
-  );
+  return ReactDOM.createPortal(children, NavBarState.outletRef.current);
 });

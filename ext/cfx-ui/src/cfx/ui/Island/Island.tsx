@@ -1,6 +1,10 @@
-import { clsx } from 'cfx/utils/clsx';
+/* eslint-disable no-bitwise */
 import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
+
 import { ui } from '../ui';
+
 import s from './Island.module.scss';
 
 export enum IslandCorner {
@@ -18,19 +22,19 @@ export enum IslandCorner {
 }
 
 export interface IslandProps {
-  grow?: boolean,
+  grow?: boolean;
 
-  widthQ?: number,
+  widthQ?: number;
 
   /**
    * Use IslandCorner enum to compose corner bits
    *
    * For example: two top corners would be `IslandCorner.TopLeft | IslandCorner.TopRight` or just `IslandCorner.Top`
    */
-  straightCorner?: number,
+  straightCorner?: number;
 
-  children?: React.ReactNode,
-  className?: string,
+  children?: React.ReactNode;
+  className?: string;
 }
 
 export const Island = React.forwardRef(function Island(props: IslandProps, ref: React.Ref<HTMLDivElement>) {

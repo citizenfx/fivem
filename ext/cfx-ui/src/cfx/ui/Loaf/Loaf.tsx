@@ -1,23 +1,19 @@
-import React from "react";
-import { clsx } from "cfx/utils/clsx";
+import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
+
 import s from './Loaf.module.scss';
 
-export type LoafSize =
-  | 'small'
-  | 'normal'
-  | 'large';
+export type LoafSize = 'small' | 'normal' | 'large';
 
-export type LoafColor =
-  | 'normal'
-  | 'gold'
-  | 'error';
+export type LoafColor = 'normal' | 'gold' | 'error';
 
 export interface LoafProps {
-  size?: LoafSize,
-  color?: LoafColor,
-  bright?: boolean,
-  className?: string,
-  children: React.ReactNode,
+  size?: LoafSize;
+  color?: LoafColor;
+  bright?: boolean;
+  className?: string;
+  children: React.ReactNode;
 }
 
 export const Loaf = React.forwardRef(function Loaf(props: LoafProps, ref: React.Ref<HTMLDivElement>) {

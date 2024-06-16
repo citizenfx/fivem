@@ -360,7 +360,7 @@ static std::vector<uint32_t> LoadFileBitmap(const std::string& filename, int* ou
 			}
 
 			// create a pixel data buffer
-			std::vector<uint32_t> pixelData(width * height);
+			std::vector<uint32_t> pixelData(static_cast<std::vector<uint32_t>::size_type>(width) * height);
 
 			hr = source->CopyPixels(nullptr, width * 4, width * height * 4, reinterpret_cast<BYTE*>(pixelData.data()));
 

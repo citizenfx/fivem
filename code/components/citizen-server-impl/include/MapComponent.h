@@ -47,6 +47,6 @@ namespace fx
 		}
 
 	private:
-		std::map<TKey, TValue> m_map;
+		std::unordered_map<TKey, TValue> m_map;
 	};
 }

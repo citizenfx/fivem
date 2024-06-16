@@ -9,11 +9,9 @@
 
 //#define USE_NUI_ROOTLESS
 
-#ifdef COMPILING_NUI_CORE
-#define OVERLAY_DECL __declspec(dllexport)
-#else
-#define OVERLAY_DECL __declspec(dllimport)
-#endif
+#include "ComponentExport.h"
+
+#define OVERLAY_DECL COMPONENT_EXPORT(NUI_CORE)
 
 #if defined(COMPILING_NUI_CORE) || defined(COMPILING_NUI_RESOURCES) || defined(COMPILING_GLUE)
 #define WANT_CEF_INTERNALS
@@ -364,6 +362,7 @@ namespace nui
 	bool OVERLAY_DECL HasFrame(const std::string& frameName);
 	void OVERLAY_DECL SignalPoll(fwString frameName);
 
+	bool OVERLAY_DECL HasCursor();
 	bool OVERLAY_DECL HasFocus();
 	bool OVERLAY_DECL HasFocusKeepInput();
 	void OVERLAY_DECL GiveFocus(const std::string& frameName, bool hasFocus, bool hasCursor = false);
@@ -418,6 +417,8 @@ namespace nui
 	extern OVERLAY_DECL
 		fwEvent<std::function<void(bool, const char*, size_t)>>
 		RequestNUIBlocklist;
+
+	extern OVERLAY_DECL fwEvent<> OnInitialize;
 
 	OVERLAY_DECL void SetAudioSink(IAudioSink* sinkRef);
 

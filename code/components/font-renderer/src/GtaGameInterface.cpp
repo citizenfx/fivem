@@ -11,11 +11,11 @@
 #include <grcTexture.h>
 #include <ICoreGameInit.h>
 #include <CoreConsole.h>
-#include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
 #include <utf8.h>
 #include <Hooking.h>
 #include <CL2LaunchMode.h>
+#include <CfxReleaseInfo.h>
 
 #include "memdbgon.h"
 
@@ -306,7 +306,7 @@ static InitFunction initFunction([] ()
 	inGame = true;
 #endif
 
-	if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
+	if (!getenv("CitizenFX_ToolMode"))
 	{
 		Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
 		{
@@ -404,7 +404,7 @@ static InitFunction initFunction([] ()
 			brandingEmoji = L"\U0001F5FD";
 #endif
 
-			if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
+			if (!getenv("CitizenFX_ToolMode"))
 			{
 				auto emoji = customBrandingEmoji.GetValue();
 
@@ -453,27 +453,7 @@ static InitFunction initFunction([] ()
 		}
 		else // (!inGame), i.e. menu
 		{
-			static auto version = ([]()
-			{
-				FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
-				int version = -1;
-
-				if (f)
-				{
-					char ver[128];
-
-					fgets(ver, sizeof(ver), f);
-					fclose(f);
-
-					version = atoi(ver);
-				}
-				else
-				{
-					version = 0;
-				}
-
-				return version;
-			})();
+			static auto version = cfx::GetPlatformRelease();
 
 			static auto updateChannelTag = ([]() -> std::wstring
 			{

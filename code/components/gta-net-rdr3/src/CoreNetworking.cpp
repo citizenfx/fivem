@@ -9,6 +9,8 @@
 #include <CrossBuildRuntime.h>
 #include <Error.h>
 
+#include "netTimeSync.h"
+
 NetLibrary* g_netLibrary;
 
 // shared relay functions (from early rev. gta:net:five; do update!)
@@ -233,12 +235,7 @@ static HookFunction initFunction([]()
 
 		auto icgi = Instance<ICoreGameInit>::Get();
 
-		uint8_t strictLockdown = 0;
-
-		if (icgi->NetProtoVersion >= 0x202002271209)
-		{
-			strictLockdown = buffer.Read<uint8_t>();
-		}
+		uint8_t strictLockdown = buffer.Read<uint8_t>();
 
 		static uint8_t lastStrictLockdown;
 
@@ -711,8 +708,6 @@ struct LoggedInt
 	int value;
 };
 
-bool IsWaitingForTimeSync();
-
 static int ReturnTrue()
 {
 	return true;
@@ -722,7 +717,7 @@ static HookFunction hookFunction([]()
 {
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
 	{
-		g_quitMsg = message;
+		g_quitMsg = "Quit: " + message;
 		ExitProcess(-1);
 	});
 
@@ -892,7 +887,7 @@ static HookFunction hookFunction([]()
 		case 5:
 			if (cgi->OneSyncEnabled)
 			{
-				if (IsWaitingForTimeSync())
+				if (sync::IsWaitingForTimeSync())
 				{
 					return;
 				}
@@ -1071,5 +1066,12 @@ static HookFunction hookFunction([]()
 	else
 	{
 		hook::nop(hook::get_pattern("84 C0 75 6C 44 39 7B 20 75", 2), 2);
+	}
+
+	// ignore tunable (0xE3AFC5BD/0x7CEC5CDA) which intentionally breaking some certain
+	// ped models appearance from syncing between clients, initially added in 1436.31
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		hook::jump(hook::get_pattern("B9 BD C5 AF E3 BA DA 5C EC 7C E8", -19), Return<bool, false>);
 	}
 });

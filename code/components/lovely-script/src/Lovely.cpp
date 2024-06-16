@@ -69,7 +69,14 @@ public:
 #ifdef GTA_FIVE
 		if (!m_attached)
 		{
-			CGameScriptHandlerMgr::GetInstance()->AttachScript(this);
+			auto instance = CGameScriptHandlerMgr::GetInstance();
+
+			if (!instance)
+			{
+				return;
+			}
+
+			instance->AttachScript(this);
 			m_attached = true;
 		}
 

@@ -18,7 +18,7 @@ class BOTAN_PUBLIC_API(2,0) RDRAND_RNG final : public Hardware_RNG
       /**
       * Constructor will throw if CPU does not have RDRAND bit set
       */
-      RDRAND_RNG();
+      BOTAN_DEPRECATED("Use Processor_RNG instead") RDRAND_RNG();
 
       /**
       * Return true if RDRAND is available on the current processor
@@ -54,13 +54,13 @@ class BOTAN_PUBLIC_API(2,0) RDRAND_RNG final : public Hardware_RNG
       * retries RDRAND has still not suceeded, sets ok = false and
       * returns 0.
       */
-      static uint32_t BOTAN_DEPRECATED("Use RDRAND_RNG::randomize") rdrand_status(bool& ok);
+      static uint32_t BOTAN_DEPRECATED("Use Processor_RNG::randomize") rdrand_status(bool& ok);
 
       /*
       * Calls RDRAND until it succeeds, this could hypothetically
       * loop forever on broken hardware.
       */
-      static uint32_t BOTAN_DEPRECATED("Use RDRAND_RNG::randomize") rdrand();
+      static uint32_t BOTAN_DEPRECATED("Use Processor_RNG::randomize") rdrand();
    };
 
 }

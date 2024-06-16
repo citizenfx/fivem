@@ -1,14 +1,17 @@
-import { useService } from "cfx/base/servicesContainer";
-import { IServersList } from "cfx/common/services/servers/lists/types";
-import { IServersService } from "cfx/common/services/servers/servers.service";
-import { observer } from "mobx-react-lite";
-import { ServerListItem, ServerListItemProps } from "./ServerListItem";
+import { observer } from 'mobx-react-lite';
+
+import { useService } from 'cfx/base/servicesContainer';
+import { ElementPlacements } from 'cfx/common/services/analytics/types';
+import { IServersList } from 'cfx/common/services/servers/lists/types';
+import { IServersService } from 'cfx/common/services/servers/servers.service';
+
+import { ServerListItem, ServerListItemProps } from './ServerListItem';
 
 export type IndexedServerListItemProps = Omit<ServerListItemProps, 'server' | 'pinned'> & {
-  list: IServersList,
-  index: number,
+  list: IServersList;
+  index: number;
 
-  ignorePinned?: boolean,
+  ignorePinned?: boolean;
 };
 
 export const IndexedServerListItem = observer(function IndexedServerListItem(props: IndexedServerListItemProps) {
@@ -21,7 +24,7 @@ export const IndexedServerListItem = observer(function IndexedServerListItem(pro
 
   const ServersService = useService(IServersService);
 
-  const serverId= list.sequence[index];
+  const serverId = list.sequence[index];
   const server = ServersService.getServer(serverId);
 
   const pinned = ignorePinned
@@ -29,10 +32,6 @@ export const IndexedServerListItem = observer(function IndexedServerListItem(pro
     : ServersService.isServerPinned(serverId);
 
   return (
-    <ServerListItem
-      {...rest}
-      pinned={pinned}
-      server={server}
-    />
+    <ServerListItem {...rest} pinned={pinned} server={server} elementPlacement={ElementPlacements.ServerList} />
   );
 });

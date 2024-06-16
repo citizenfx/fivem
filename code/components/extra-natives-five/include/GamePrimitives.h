@@ -54,7 +54,7 @@ struct alignas(16) Vec3V
 	float pad;
 
 	Vec3V()
-		: x(0), y(0), z(0), pad(0)
+		: x(0), y(0), z(0), pad(NAN)
 	{
 	}
 
@@ -74,8 +74,8 @@ struct alignas(16) Vec4V
 
 struct spdAABB
 {
-	rage::Vec3V mins;
-	rage::Vec3V maxs;
+	Vec3V mins;
+	Vec3V maxs;
 };
 
 struct spdSphere
@@ -88,8 +88,8 @@ struct spdSphere
 // fake name
 struct spdRay
 {
-	rage::Vec3V start;
-	rage::Vec3V end;
+	Vec3V start;
+	Vec3V end;
 };
 
 enum class eSearchVolumeType : int
@@ -114,11 +114,11 @@ struct fwSearchVolume
 
 struct grcViewport
 {
-	float m_mat1[16];
-	float m_mat2[16];
-	float m_viewProjection[16];
+	float m_world[16];
+	float m_worldView[16];
+	float m_worldViewProj[16];
 	float m_inverseView[16];
-	char m_pad[64];
+	float m_view[16];
 	float m_projection[16];
 };
 
@@ -146,7 +146,7 @@ inline rage::Vec3V Unproject(const rage::grcViewport& viewport, const rage::Vec3
 {
 	using namespace DirectX;
 
-	auto invVP = XMMatrixInverse(NULL, XMLoadFloat4x4((const XMFLOAT4X4*)viewport.m_viewProjection));
+	auto invVP = XMMatrixInverse(NULL, XMLoadFloat4x4((const XMFLOAT4X4*)viewport.m_worldViewProj));
 	auto inVec = XMVectorSet((viewPos.x * 2.0f) - 1.0f, ((1.0 - viewPos.y) * 2.0f) - 1.0f, viewPos.z, 1.0f);
 	auto outCoord = XMVector3TransformCoord(inVec, invVP);
 

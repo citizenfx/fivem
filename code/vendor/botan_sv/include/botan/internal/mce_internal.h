@@ -16,6 +16,7 @@
 #include <botan/types.h>
 #include <botan/pk_ops.h>
 #include <botan/mceliece.h>
+#include <botan/polyn_gf2m.h>
 
 namespace Botan {
 
@@ -32,7 +33,7 @@ void mceliece_decrypt(secure_vector<uint8_t>& plaintext_out,
 
 secure_vector<uint8_t> mceliece_decrypt(
    secure_vector<gf2m> & error_pos,
-   const uint8_t *ciphertext, uint32_t ciphertext_len,
+   const uint8_t *ciphertext, size_t ciphertext_len,
    const McEliece_PrivateKey & key);
 
 void mceliece_encrypt(secure_vector<uint8_t>& ciphertext_out,

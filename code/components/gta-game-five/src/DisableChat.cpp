@@ -58,6 +58,13 @@ namespace game
 	}
 }
 
+static inline void PatchTextChatCheck(const hook::pattern_match& match, uint32_t offset)
+{
+	auto location = match.get<char>();
+	hook::nop(location, offset);
+	hook::put<uint8_t>(location + offset, 0xEB);
+}
+
 static HookFunction hookFunction([] ()
 {
 	OnKillNetwork.Connect([](const char*)
@@ -93,7 +100,14 @@ static HookFunction hookFunction([] ()
 		MH_CreateHook((xbr::IsGameBuildOrGreater<2372>()) ? hook::get_pattern("84 C0 75 04 B0 01 EB 23", -0x19) : hook::get_pattern("32 DB 84 C0 74 2D 48 8B", -0x22), TextChatShutdownWrap, (void**)&g_origTextChatShutdown);
 		MH_EnableHook(MH_ALL_HOOKS);
 
-		g_textChat = hook::get_address<void**>(hook::get_pattern("75 5D 48 8B 05 ? ? ? ? 44 38 60 14", 5));
+		if (xbr::IsGameBuildOrGreater<3095>())
+		{
+			g_textChat = hook::get_address<void**>(hook::get_pattern("75 61 48 8B 0D ? ? ? ? 38 59 14", 5));
+		}
+		else
+		{
+			g_textChat = hook::get_address<void**>(hook::get_pattern("75 5D 48 8B 05 ? ? ? ? 44 38 60 14", 5));
+		}
 	}
 #endif
 
@@ -103,14 +117,24 @@ static HookFunction hookFunction([] ()
 	hook::call(func, WrapInputCheck);
 
 	// some task checks for text chat that shouldn't *really* be needed... we hope.
-	auto p = hook::pattern("44 38 60 14 75 06 44 39 60 04 74").count(2);
-
-	for (int i = 0; i < p.size(); i++)
+	if (xbr::IsGameBuildOrGreater<3095>())
 	{
-		auto loc = p.get(i).get<char>(0);
+		PatchTextChatCheck(hook::pattern("40 38 70 14 75 05 39 70 04 74").count(1).get(0), 9);
+		PatchTextChatCheck(hook::pattern("80 78 14 00 75 06 83 78 04 00 74 18").count(1).get(0), 10);
+	}
+	else if (xbr::IsGameBuildOrGreater<2944>())
+	{
+		PatchTextChatCheck(hook::pattern("44 38 60 14 75 06 44 39 60 04 74").count(1).get(0), 10);
+		PatchTextChatCheck(hook::pattern("80 78 14 00 75 06 83 78 04 00 74 18").count(1).get(0), 10);
+	}
+	else
+	{
+		auto pattern = hook::pattern("44 38 60 14 75 06 44 39 60 04 74").count(2);
 
-		hook::nop(loc, 10);
-		hook::put<uint8_t>(loc + 10, 0xEB);
+		for (int i = 0; i < pattern.size(); i++)
+		{
+			PatchTextChatCheck(pattern.get(i), 10);
+		}	
 	}
 
 	auto loc = hook::pattern("38 59 14 75 05 39 59 04 74").count(1).get(0).get<char>(0);

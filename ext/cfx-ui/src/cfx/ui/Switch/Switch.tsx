@@ -1,26 +1,28 @@
 import React from 'react';
+
 import { clsx } from 'cfx/utils/clsx';
+
+import { Interactive } from '../Interactive/Interactive';
+
 import s from './Switch.module.scss';
 
-
-const getDefaultOptionDescription = (value: string, options: SwitchOption[]): string => {
-  return options.find((option) => option.value === value)?.description || '';
-};
-
 export interface SwitchOption {
-  value: string,
-  label: React.ReactNode,
-  icon?: React.ReactNode,
-  description?: string,
+  value: string;
+  label: React.ReactNode;
+  icon?: React.ReactNode;
+  description?: string;
 }
 
+const getDefaultOptionDescription = (value: string, options: SwitchOption[]): string => options
+  .find((option) => option.value === value)?.description || '';
+
 export interface SwitchProps {
-  value: string,
-  options: SwitchOption[],
-  onChange: <T extends string>(value: T) => void,
-  className?: string,
-  disabled?: boolean,
-  multiline?: boolean,
+  value: string;
+  options: SwitchOption[];
+  onChange: <T extends string>(value: T) => void;
+  className?: string;
+  disabled?: boolean;
+  multiline?: boolean;
 }
 
 export const Switch = React.memo(function Switch(props: SwitchProps) {
@@ -35,38 +37,41 @@ export const Switch = React.memo(function Switch(props: SwitchProps) {
 
   const [optionDescription, setOptionDescription] = React.useState(getDefaultOptionDescription(value, options));
 
-  const optionsNodes = React.useMemo(() => options.map((option, tabIndex) => {
-    const handleClick = () => {
-      onChange(option.value);
-    };
+  const optionsNodes = React.useMemo(
+    () => options.map((option, tabIndex) => {
+      const handleClick = () => {
+        onChange(option.value);
+      };
 
-    const handleMouseEnter = () => {
-      setOptionDescription(option.description || '');
-    };
+      const handleMouseEnter = () => {
+        setOptionDescription(option.description || '');
+      };
 
-    const handleMouseLeave = () => {
-      setOptionDescription(getDefaultOptionDescription(value, options));
-    };
+      const handleMouseLeave = () => {
+        setOptionDescription(getDefaultOptionDescription(value, options));
+      };
 
-    const optionClassName = clsx(s.option, {
-      [s.active]: option.value === value,
-    });
+      const optionClassName = clsx(s.option, {
+        [s.active]: option.value === value,
+      });
 
-    return (
-      <div
-        key={option.value}
-        className={optionClassName}
-        tabIndex={tabIndex}
-        onClick={handleClick}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        {option.icon || null}
+      return (
+        <Interactive
+          key={option.value}
+          className={optionClassName}
+          tabIndex={tabIndex}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {option.icon || null}
 
-        {option.label}
-      </div>
-    );
-  }), [value, options, onChange, setOptionDescription]);
+          {option.label}
+        </Interactive>
+      );
+    }),
+    [value, options, onChange, setOptionDescription],
+  );
 
   const rootClassName = clsx(s.root, className, {
     [s.disabled]: disabled,
@@ -76,14 +81,10 @@ export const Switch = React.memo(function Switch(props: SwitchProps) {
 
   return (
     <div className={rootClassName}>
-      <div className={s.options}>
-        {optionsNodes}
-      </div>
+      <div className={s.options}>{optionsNodes}</div>
 
       {optionDescription && (
-        <div className={s.description}>
-          {optionDescription}
-        </div>
+        <div className={s.description}>{optionDescription}</div>
       )}
     </div>
   );

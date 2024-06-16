@@ -1,22 +1,27 @@
-import React from "react";
-import { Overlay } from "../Overlay/Overlay";
-import { Button } from "../Button/Button";
-import { Icons } from "../Icons";
+import React from 'react';
+
+import { noop } from 'cfx/utils/functional';
+import { useKeyboardClose } from 'cfx/utils/hooks';
+
+import { Button } from '../Button/Button';
+import { Icons } from '../Icons';
+import { Overlay } from '../Overlay/Overlay';
+
 import s from './Modal.module.scss';
 
 export interface ModalProps {
-  children: React.ReactNode,
-  onClose?: () => void,
+  children: React.ReactNode;
+  onClose?: () => void;
 
-  backdropClassName?: string,
-  contentClassName?: string,
+  backdropClassName?: string;
+  contentClassName?: string;
 
-  disableBackdropClose?: boolean,
+  disableBackdropClose?: boolean;
 }
 
 export function Modal(props: ModalProps) {
   const {
-    onClose,
+    onClose = noop,
     children,
     backdropClassName,
     contentClassName,
@@ -24,8 +29,10 @@ export function Modal(props: ModalProps) {
   } = props;
 
   const handleBackdropClick = disableBackdropClose
-    ? undefined
+    ? noop
     : onClose;
+
+  useKeyboardClose(handleBackdropClick);
 
   return (
     <Overlay>
@@ -34,12 +41,7 @@ export function Modal(props: ModalProps) {
         <div className={s.root}>
           {!!onClose && (
             <div className={s.close}>
-              <Button
-                size="large"
-                theme="transparent"
-                icon={Icons.exit}
-                onClick={onClose}
-              />
+              <Button size="large" theme="transparent" icon={Icons.exit} onClick={onClose} />
             </div>
           )}
 
@@ -50,14 +52,18 @@ export function Modal(props: ModalProps) {
   );
 }
 
-Modal.Header = (props: { children?: React.ReactNode }) => (
-  <div className={s.header}>
-    {props.children}
-  </div>
-);
+Modal.Header = function ModalHeader({
+  children,
+}: { children?: React.ReactNode }) {
+  return (
+    <div className={s.header}>{children}</div>
+  );
+};
 
-Modal.Footer = (props: { children?: React.ReactNode }) => (
-  <div className={s.footer}>
-    {props.children}
-  </div>
-);
+Modal.Footer = function ModalFooter({
+  children,
+}: { children?: React.ReactNode }) {
+  return (
+    <div className={s.footer}>{children}</div>
+  );
+};

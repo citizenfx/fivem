@@ -37,7 +37,7 @@ public:
 
 	bool SyncIsARQ = false;
 
-	uint64_t NetProtoVersion = 0;
+	uint64_t BitVersion = 0;
 
 private:
 	std::set<std::string, std::less<>> VariableList;
@@ -95,6 +95,11 @@ public:
 		DataList[key] = value;
 	}
 
+	template<typename NetBitVersion>
+	bool IsNetVersionOrHigher(NetBitVersion netVersion) const
+	{
+		return BitVersion >= static_cast<uint64_t>(netVersion);
+	}
 public:
 	// a1: error message
 	fwEvent<const std::string&> OnTriggerError;

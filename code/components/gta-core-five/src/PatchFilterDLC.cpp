@@ -9,6 +9,9 @@
 // Ignore 'stub' assets (exclusive content) that may crash the game.
 // - dlc_mpG9EC, as of b2612
 // - dlc_mpSum2_g9ec, as of b2699
+// - dlc_mpChristmas3_G9EC, as of b2802
+// - dlc_mp2023_01_G9EC, as of b2944
+// - dlc_mp2023_02_G9EC, as of b3095
 //
 
 struct CDataFileMgr
@@ -62,6 +65,25 @@ static std::unordered_set<std::string> g_badFiles{
 	"dlc_mpSum2_g9ec:/common/data/effects/peds/first_person_alternates.meta",
 	"dlc_mpSum2_g9ec:/common/data/effects/peds/first_person.meta",
 	"dlc_mpSum2_g9ecCRC:/common/data/pedalternatevariations.meta",
+
+	"dlc_mpChristmas3_G9EC:/x64/levels/mpChristmas3_G9EC/vehiclemods/entity3hsw_mods.rpf",
+	"dlc_mpChristmas3_G9EC:/x64/levels/mpChristmas3_G9EC/vehiclemods/issi8hsw_mods.rpf",
+
+	"dlc_mp2023_01_G9EC:/common/data/overlayinfo.xml",
+	"dlc_mp2023_01_G9EC:/x64/levels/gta5/mp2023_01_g9ec_additions/mp2023_01_g9ec_additions.rpf",
+	"dlc_mp2023_01_G9EC:/x64/levels/gta5/mp2023_01_g9ec_additions/mp2023_01_g9ec_additions_metadata.rpf",
+	"dlc_mp2023_01_G9EC:/x64/levels/mp2023_01_G9EC/vehiclemods/buffalo5hsw_mods.rpf",
+	"dlc_mp2023_01_G9EC:/x64/levels/mp2023_01_G9EC/vehiclemods/coureurhsw_mods.rpf",
+	"dlc_mp2023_01_G9EC:/x64/levels/mp2023_01_G9EC/vehiclemods/monstrocitihsw_mods.rpf",
+	"dlc_mp2023_01_G9EC:/x64/levels/mp2023_01_G9EC/vehiclemods/stingertthsw_mods.rpf",
+
+	"dlc_mp2023_02_G9EC:/common/data/overlayinfo.xml",
+	"dlc_mp2023_02_G9EC:/common/data/interiorProxies.meta",
+	"dlc_mp2023_02_G9EC:/x64/levels/gta5/mp2023_02_g9ec_additions/mp2023_02_g9ec_additions.rpf",
+	"dlc_mp2023_02_G9EC:/x64/levels/gta5/mp2023_02_g9ec_additions/mp2023_02_g9ec_additions_metadata.rpf",
+	"dlc_mp2023_02_G9EC:/x64/levels/gta5/interiors/int_placement_m23_2_g9ec.rpf",
+	"dlc_mp2023_02_G9EC:/x64/levels/gta5/interiors/mp2023_02_dlc_int_3.rpf",
+	"dlc_mp2023_02_G9EC:/x64/levels/mp2023_02_G9EC/vehiclemods/vivanitehsw_mods.rpf",
 };
 
 static void (*_applyChangeSetEntry)(ChangeSetEntry* entry);

@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING
 

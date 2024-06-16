@@ -1,0 +1,81 @@
+name: Label issues
+on:
+  issues:
+    types:
+      - reopened
+      - opened
+env:
+  ISSUE_BODY: ${{ github.event.issue.body }}
+  ISSUE_TITLE: ${{ github.event.issue.title }}
+
+jobs:
+  label_issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = {
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo
+            };
+            
+            // Is the title long enough to convey any useful meaning?
+            if (process.env.ISSUE_TITLE.length < 10)
+            {
+              github.rest.issues.createComment({
+                ...issue,
+                body: "Closing this issue, the title is too short to convey any real meaning, please create another issue with an explanatory title."
+              });
+              
+              github.rest.issues.update({
+                ...issue,
+                state: "closed",
+                state_reason: "not_planned"
+              });
+              
+              return;
+            }
+            
+            // labels
+            {
+              var addLabels = ["triage"];
+              
+              const issueBody = process.env.ISSUE_BODY;
+              
+              const areasStringRegex = /### Area\(s\)\s*(.*)/;
+              const areasLabels = [ "FxDK", "RedM", "ScRT: Lua", "ScRT: C#", "ScRT: JS" ];
+              
+              var areasString = areasStringRegex.exec(issueBody);
+              if (areasString && areasString.length > 1)
+              {
+                var areas = areasString[1].split(/\s*[,\n]\s*/);
+                for (var i = 0; i < areas.length; ++i)
+                {
+                  const area = areas[i];
+                  if (areasLabels.includes(area))
+                  {
+                    addLabels.push(area);
+                  }
+                }
+              }
+              
+              const priorityStringRegex = /### Importancy\s*(.*)/;
+              
+              var priorityString = priorityStringRegex.exec(issueBody);
+              if (priorityString)
+              {
+                switch (priorityString[1])
+                {
+                  case "Crash": addLabels.push("crash"); break;
+                }
+              }
+            
+              github.rest.issues.addLabels({
+                ...issue,
+                labels: addLabels
+              });
+            }

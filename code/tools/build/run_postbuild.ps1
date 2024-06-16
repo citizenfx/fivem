@@ -159,6 +159,8 @@ if (!$IsServer) {
     Copy-Item -Force -Recurse $WorkDir\data\shared\* $LayoutDir\
     Copy-Item -Force -Recurse $WorkDir\data\server\* $LayoutDir\
     Copy-Item -Force -Recurse $WorkDir\data\server_windows\* $LayoutDir\
+    $ConfigurationLower = $Configuration.ToLower()
+    Copy-Item -Force -Recurse $WorkDir\data\server_windows_$ConfigurationLower\* $LayoutDir\
 
     Remove-Item -Force $LayoutDir\citizen\.gitignore
     

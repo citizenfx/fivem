@@ -10,6 +10,7 @@
 
 #include <ResourceManager.h>
 #include <ResourceScriptingComponent.h>
+#include "ResourceCallbackComponent.h"
 
 #include <tbb/concurrent_queue.h>
 
@@ -26,24 +27,34 @@ static fx::OMPtr<IScriptRefRuntime> ValidateAndLookUpRef(const std::string& refS
 	// get the resource manager and find stuff in it
 	fx::ResourceManager* manager = fx::ResourceManager::GetCurrent(false);
 
-	// if there's a resource by that name...
-	fwRefContainer<fx::Resource> resource = manager->GetResource(resourceName);
+	fx::OMPtr<IScriptRuntime> runtime;
 
-	if (!resource.GetRef())
+	// special code path if this is '_cfx_internal' (ResourceCallbackComponent)
+	if (resourceName == "_cfx_internal")
 	{
-		return nullptr;
+		runtime = manager->GetComponent<fx::ResourceCallbackComponent>()->GetScriptRuntime();
 	}
-
-	// ... and it has a scripting component...
-	fwRefContainer<fx::ResourceScriptingComponent> scriptingComponent = resource->GetComponent<fx::ResourceScriptingComponent>();
-
-	if (!scriptingComponent.GetRef())
+	else
 	{
-		return nullptr;
-	}
+		// if there's a resource by that name...
+		fwRefContainer<fx::Resource> resource = manager->GetResource(resourceName);
 
-	// ... and there's an instance by this instance ID...
-	fx::OMPtr<IScriptRuntime> runtime = scriptingComponent->GetRuntimeById(instanceId);
+		if (!resource.GetRef())
+		{
+			return nullptr;
+		}
+
+		// ... and it has a scripting component...
+		fwRefContainer<fx::ResourceScriptingComponent> scriptingComponent = resource->GetComponent<fx::ResourceScriptingComponent>();
+
+		if (!scriptingComponent.GetRef())
+		{
+			return nullptr;
+		}
+
+		// ... and there's an instance by this instance ID...
+		runtime = scriptingComponent->GetRuntimeById(instanceId);
+	}
 
 	if (!runtime.GetRef())
 	{

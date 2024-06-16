@@ -314,8 +314,6 @@ namespace fx
 					entry.rscPagesPhysical = rsc7Header.physPages;
 					entry.rscPagesVirtual = rsc7Header.virtPages;
 					entry.isResource = true;
-
-					ValidateSize(entry.entryName, ConvertRSC7Size(rsc7Header.physPages), ConvertRSC7Size(rsc7Header.virtPages));
 				}
 				else if (rsc7Header.magic == 0x05435352) // RSC\x05
 				{
@@ -419,9 +417,9 @@ namespace fx
 		return (uint32_t)size;
 	}
 
-	void ResourceStreamComponent::ValidateSize(std::string_view name, uint32_t physSize, uint32_t virtSize)
+	void ResourceStreamComponent::ValidateSize(std::string_view name, uint32_t physSize, uint32_t virtSize, int* numWarnings)
 	{
-		auto checkSize = [&name, this](uint32_t size, std::string_view why)
+		auto checkSize = [this, &name, numWarnings](uint32_t size, std::string_view why)
 		{
 			auto divSize = fmt::sprintf("%.1f", size / 1024.0 / 1024.0);
 			int warnColor = 0;
@@ -441,10 +439,14 @@ namespace fx
 
 			if (warnColor != 0)
 			{
-				trace("^%dAsset %s/%s uses %s MiB of %s memory.%s^7\n", warnColor, m_resource->GetName(), name, divSize, why,
+				console::Printf(fmt::sprintf("resources:%s:stream", m_resource->GetName()),
+					"^%dAsset %s/%s uses %s MiB of %s memory.%s^7\n",
+					warnColor, m_resource->GetName(), name, divSize, why,
 					(size > (48 * 1024 * 1024))
-						? " Oversized assets can and WILL lead to streaming issues (models not loading/rendering, commonly known as 'texture loss', 'city bug' or 'streaming isn't great')."
+						? " Oversized assets can and WILL lead to streaming issues (such as models not loading/rendering)."
 						: "");
+
+				++*numWarnings;
 			}
 		};
 
@@ -452,17 +454,25 @@ namespace fx
 		checkSize(virtSize, "virtual");
 	}
 
+	void ResourceStreamComponent::CheckSizes(int* numWarnings)
+	{
+		auto instance = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+		if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5)
+		{
+			for (const auto& [_, entry] : m_resourcePairs)
+			{
+				if (entry.isResource)
+				{
+					ValidateSize(entry.entryName, ConvertRSC7Size(entry.rscPagesPhysical), ConvertRSC7Size(entry.rscPagesVirtual), numWarnings);
+				}
+			}
+		}
+	}
+
 	auto ResourceStreamComponent::AddStreamingFile(const Entry& entry) -> RuntimeEntry*
 	{
 		RuntimeEntry se(entry);
 		se.isAutoScan = false;
-
-		static auto instance = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
-
-		if (entry.isResource && instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5)
-		{
-			ValidateSize(entry.entryName, ConvertRSC7Size(entry.rscPagesPhysical), ConvertRSC7Size(entry.rscPagesVirtual));
-		}
 
 		auto it = m_resourcePairs.insert({ entry.entryName, se }).first;
 		m_hashPairs[se.hashString] = &it->second;
@@ -472,11 +482,6 @@ namespace fx
 
 	void ResourceStreamComponent::AttachToObject(fx::Resource* object)
 	{
-		if (object->GetName() == "_cfx_internal")
-		{
-			return;
-		}
-
 		m_resource = object;
 
 		object->OnStart.Connect([=]()

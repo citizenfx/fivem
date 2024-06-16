@@ -1,30 +1,48 @@
-import { IServerReviewReport, IServerReviewReportOption } from "cfx/common/services/servers/reviews/types";
-import { ObservableAsyncValue } from "cfx/utils/observable";
-import { makeAutoObservable } from "mobx";
-import { IDiscourseService } from "../../discourse/discourse.service";
-import { IDiscourse } from "../../discourse/types";
+import { makeAutoObservable } from 'mobx';
+
+import { IServerReviewReport, IServerReviewReportOption } from 'cfx/common/services/servers/reviews/types';
+import { ObservableAsyncValue } from 'cfx/utils/observable';
+
+import { IDiscourseService } from '../../discourse/discourse.service';
+import { IDiscourse } from '../../discourse/types';
 
 export class DiscourseServerReviewReport implements IServerReviewReport {
   public get canReport(): boolean {
-		// 2 seems to be 'like', explicitly ignore
+    // 2 seems to be 'like', explicitly ignore
     return this.post.actions_summary.filter((action) => action.can_act && action.id !== 2).length > 0;
   }
 
   private _reportInProgress: boolean = false;
-  public get reportInProgress(): boolean { return this._reportInProgress }
-  private set reportInProgress(flagInProgress: boolean) { this._reportInProgress = flagInProgress }
+  public get reportInProgress(): boolean {
+    return this._reportInProgress;
+  }
+  private set reportInProgress(flagInProgress: boolean) {
+    this._reportInProgress = flagInProgress;
+  }
 
   private _options: IServerReviewReportOption[] = [];
-  public get options(): IServerReviewReportOption[] { return this._options }
-  private set options(options: IServerReviewReportOption[]) { this._options = options }
+  public get options(): IServerReviewReportOption[] {
+    return this._options;
+  }
+  private set options(options: IServerReviewReportOption[]) {
+    this._options = options;
+  }
 
   private _optionsLoading: boolean = true;
-  public get optionsLoading(): boolean { return this._optionsLoading }
-  private set optionsLoading(optionsLoading: boolean) { this._optionsLoading = optionsLoading }
+  public get optionsLoading(): boolean {
+    return this._optionsLoading;
+  }
+  private set optionsLoading(optionsLoading: boolean) {
+    this._optionsLoading = optionsLoading;
+  }
 
   private _optionsError: string | null = null;
-  public get optionsError(): string | null { return this._optionsError }
-  private set optionsError(optionsError: string | null) { this._optionsError = optionsError }
+  public get optionsError(): string | null {
+    return this._optionsError;
+  }
+  private set optionsError(optionsError: string | null) {
+    this._optionsError = optionsError;
+  }
 
   private optionsInitialized = false;
 
@@ -47,9 +65,10 @@ export class DiscourseServerReviewReport implements IServerReviewReport {
     this.optionsInitialized = true;
 
     try {
-      this.options = (await this.flagOptions.waitGet()).filter((option) => {
-        return this.post.actions_summary.find(({ id }) => id === option.id)?.can_act;
-      });
+      this.options = (await this.flagOptions.waitGet())
+        .filter((option) => this.post.actions_summary.find(({
+          id,
+        }) => id === option.id)?.can_act);
     } catch (e) {
       console.warn(e);
 

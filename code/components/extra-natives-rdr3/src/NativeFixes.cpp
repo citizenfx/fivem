@@ -12,6 +12,8 @@
 #include <Hooking.h>
 #include <scrEngine.h>
 #include <CrossBuildRuntime.h>
+#include "RageParser.h"
+#include "ScriptWarnings.h"
 
 static bool* g_textCentre;
 static bool* g_textDropshadow;
@@ -65,6 +67,57 @@ static void ImplementRemovedTextNatives()
 	});
 }
 
+static void FixPedCombatAttributes()
+{
+	const auto structDef = rage::GetStructureDefinition("CCombatInfo");
+
+	if (!structDef)
+	{
+		trace("Couldn't find struct definition for CCombatInfo!\n");
+		return;
+	}
+
+	static uint32_t attributesCount = 0;
+	for (const auto member : structDef->m_members)
+	{
+		if (member->m_definition && member->m_definition->hash == HashRageString("BehaviourFlags"))
+		{
+			attributesCount = member->m_definition->enumElemCount;
+			break;
+		}
+	}
+
+	if (!attributesCount)
+	{
+		trace("Couldn't get max enum size for BehaviourFlags!\n");
+		return;
+	}
+
+	constexpr const uint64_t nativeHash = 0x9F7794730795E019; // SET_PED_COMBAT_ATTRIBUTES
+
+	auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!originalHandler)
+	{
+		return;
+	}
+
+	auto handler = *originalHandler;
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	{
+		auto attributeIndex = ctx.GetArgument<uint32_t>(1);
+
+		if (attributeIndex >= attributesCount)
+		{
+			fx::scripting::Warningf("natives", "SET_PED_COMBAT_ATTRIBUTES: invalid attribute index was passed (%d), should be from 0 to %d\n", attributeIndex, attributesCount - 1);
+			return;
+		}
+
+		handler(ctx);
+	});
+}
+
 static HookFunction hookFunction([]()
 {
 	if (xbr::IsGameBuildOrGreater<1436>())
@@ -85,5 +138,7 @@ static HookFunction hookFunction([]()
 			RedirectNoppedTextNatives();
 			ImplementRemovedTextNatives();
 		}
+
+		FixPedCombatAttributes();
 	});
 });

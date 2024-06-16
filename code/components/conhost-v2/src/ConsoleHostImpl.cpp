@@ -10,6 +10,7 @@
 
 #include "ConsoleHost.h"
 #include "ConsoleHostImpl.h"
+#include "CoreConsole.h"
 
 #include <d3d11.h>
 
@@ -20,6 +21,12 @@
 
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
+
+#if __has_include("CefOverlay.h")
+#include "CefOverlay.h"
+
+#define WITH_NUI 1
+#endif
 
 #ifndef IS_LAUNCHER
 #include <DrawCommands.h>
@@ -69,6 +76,46 @@ extern bool g_consoleFlag;
 extern bool g_cursorFlag;
 int g_scrollTop;
 int g_bufferHeight;
+
+bool ConsoleHasAnything()
+{
+	return g_consoleFlag || g_cursorFlag;
+}
+
+bool ConsoleHasMouse()
+{
+	if (ConsoleHasAnything())
+	{
+#if WITH_NUI
+		if (nui::HasCursor())
+		{
+			return ImGui::GetIO().WantCaptureMouse;
+		}
+#endif
+
+		return true;
+	}
+
+	return false;
+}
+
+bool ConsoleHasKeyboard()
+{
+	// g_cursorFlag is cursor-only (for when we want to use the dear ImGui cursor for other purposes)
+	if (g_consoleFlag)
+	{
+#if WITH_NUI
+		if (nui::HasFocus())
+		{
+			return ImGui::GetIO().WantCaptureKeyboard;
+		}
+#endif
+
+		return true;
+	}
+
+	return false;
+}
 
 #ifndef IS_LAUNCHER
 static uint32_t g_pointSamplerState;
@@ -264,10 +311,11 @@ static void RenderDrawLists(ImDrawData* drawData)
 void DrawConsole();
 void DrawDevGui();
 
-static std::mutex g_conHostMutex;
+static std::recursive_mutex g_conHostMutex;
 ImFont* consoleFontSmall;
 
 void DrawMiniConsole();
+void DrawWinConsole(bool* pOpen);
 
 static void HandleFxDKInput(ImGuiIO& io)
 {
@@ -306,12 +354,23 @@ extern ID3D11DeviceContext* g_pd3dDeviceContext;
 extern float ImGui_ImplWin32_GetWindowDpiScale(ImGuiViewport* viewport);
 extern void ImGui_ImplDX11_RecreateFontsTexture();
 
+static bool g_winConsole;
+
 void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 {
-	if (!g_conHostMutex.try_lock())
+	std::unique_lock lock(g_conHostMutex, std::defer_lock);
+	if (!lock.try_lock())
 	{
 		return;
 	}
+	else if (g_pd3dDeviceContext == nullptr)
+	{
+		return;
+	}
+
+#ifndef IS_FXSERVER
+	static ConVar<bool> winConsoleVar("con_winconsole", ConVar_Archive | ConVar_UserPref, false, &g_winConsole);
+#endif
 
 #ifndef IS_LAUNCHER
 	static float lastScale = 1.0f;
@@ -347,11 +406,15 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 	ConHost::OnShouldDrawGui(&shouldDrawGui);
 
-	if (!g_cursorFlag && !g_consoleFlag && !shouldDrawGui)
+	if (!g_cursorFlag && !g_consoleFlag && !shouldDrawGui && !g_winConsole)
 	{
+		// if not drawing the gui, we're also not owning the cursor
+#ifdef WITH_NUI
+		nui::SetHideCursor(false);
+#endif
+
 		lastDrawTime = timeGetTime();
 
-		g_conHostMutex.unlock();
 		return;
 	}
 
@@ -359,7 +422,11 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 	HandleFxDKInput(io);
 
-	io.MouseDrawCursor = g_consoleFlag || g_cursorFlag;
+	io.MouseDrawCursor = ConsoleHasMouse();
+
+#ifdef WITH_NUI
+	nui::SetHideCursor(io.MouseDrawCursor);
+#endif
 
 	{
 		io.DisplaySize = ImVec2(width, height);
@@ -419,6 +486,11 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 	DrawMiniConsole();
 
+	if (g_winConsole)
+	{
+		DrawWinConsole(&g_winConsole);
+	}
+
 	ConHost::OnDrawGui();
 
 	if (wasSmallFont)
@@ -458,8 +530,6 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	}
 
 	lastDrawTime = timeGetTime();
-
-	g_conHostMutex.unlock();
 }
 
 static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& result)
@@ -468,12 +538,17 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 
 	ConHost::OnShouldDrawGui(&shouldDrawGui);
 
-	if ((!g_consoleFlag && !g_cursorFlag) || !pass)
+	if (!pass)
 	{
 		return;
 	}
 
-	std::unique_lock<std::mutex> g_conHostMutex;
+	if (!ConsoleHasAnything())
+	{
+		return;
+	}
+
+	std::unique_lock _(g_conHostMutex);
 	ImGuiIO& io = ImGui::GetIO();
 
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam) == TRUE)
@@ -485,12 +560,18 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 	
 	if (msg == WM_INPUT || (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST))
 	{
-		pass = false;
+		if (ConsoleHasMouse())
+		{
+			pass = false;
+		}
 	}
 
-	if (g_consoleFlag && ((msg >= WM_KEYFIRST && msg <= WM_KEYLAST) || msg == WM_CHAR))
+	if ((msg >= WM_KEYFIRST && msg <= WM_KEYLAST) || msg == WM_CHAR)
 	{
-		pass = false;
+		if (ConsoleHasKeyboard())
+		{
+			pass = false;
+		}
 	}
 
 	if (!pass)
@@ -719,7 +800,7 @@ static HookFunction initFunction([]()
 
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{
-		if (!g_consoleFlag && !g_cursorFlag)
+		if (!ConsoleHasAnything())
 		{
 			return true;
 		}
@@ -728,7 +809,7 @@ static HookFunction initFunction([]()
 		{
 			virtual inline void KeyDown(UINT vKey, UINT scanCode) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 				
 				ImGuiIO& io = ImGui::GetIO();
 
@@ -740,7 +821,7 @@ static HookFunction initFunction([]()
 
 			virtual inline void KeyUp(UINT vKey, UINT scanCode) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 
@@ -752,7 +833,7 @@ static HookFunction initFunction([]()
 
 			virtual inline void MouseDown(int buttonIdx, int x, int y) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 
@@ -764,7 +845,7 @@ static HookFunction initFunction([]()
 
 			virtual inline void MouseUp(int buttonIdx, int x, int y) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 
@@ -781,7 +862,7 @@ static HookFunction initFunction([]()
 					return;
 				}
 
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 				io.AddMouseWheelEvent(0.0f, delta > 0 ? +1.0f : -1.0f);
@@ -789,7 +870,7 @@ static HookFunction initFunction([]()
 
 			virtual inline void MouseMove(int x, int y) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 				io.AddMousePosEvent((signed short)(x), (signed short)(y));
@@ -808,7 +889,7 @@ static HookFunction initFunction([]()
 
 	InputHook::QueryMayLockCursor.Connect([](int& may)
 	{
-		if (g_consoleFlag || g_cursorFlag)
+		if (ConsoleHasAnything())
 		{
 			may = 0;
 		}
@@ -864,7 +945,7 @@ static decltype(&ReleaseCapture) g_origReleaseCapture;
 
 static void WINAPI ReleaseCaptureStub()
 {
-	if (g_consoleFlag || g_cursorFlag)
+	if (ConsoleHasAnything())
 	{
 		return;
 	}

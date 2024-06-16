@@ -33,6 +33,14 @@ inline void ConvertToMsgPack(const rapidjson::Value& json, msgpack::object& obje
 			{
 				object = msgpack::object{ json.GetUint64() };
 			}
+#if 0
+			// GH-2171: trying to round-trip float32 will lead to issues with
+			// backwards compatibility and often lossy conversions.
+			else if (json.IsLosslessFloat())
+			{
+				object = msgpack::object{ json.GetFloat() };
+			}
+#endif
 			else if (json.IsDouble())
 			{
 				object = msgpack::object{ json.GetDouble() };
@@ -102,6 +110,9 @@ inline void ConvertToJSON(const msgpack::object& object, rapidjson::Value& value
 			value.SetInt64(object.as<int64_t>());
 			break;
 
+		case msgpack::type::FLOAT32:
+			value.SetFloat(object.as<float>());
+			break;
 		case msgpack::type::FLOAT:
 			value.SetDouble(object.as<double>());
 			break;

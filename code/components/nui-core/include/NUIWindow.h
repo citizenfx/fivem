@@ -205,10 +205,7 @@ public:
 		m_parentTextures[type] = texture;
 	}
 
-	inline const CefRect& GetPopupRect()
-	{
-		return m_popupRect;
-	}
+	CefRect GetPopupRect();
 
 	void SetPopupRect(const CefRect& rect);
 

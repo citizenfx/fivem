@@ -10,15 +10,24 @@
 #include "include/wrapper/cef_closure_task.h"
 #include "include/base/cef_callback_helpers.h"
 
+#include "include/wrapper/cef_stream_resource_handler.h"
+
 #include <boost/property_tree/xml_parser.hpp>
 #include <sstream>
 #include <json.hpp>
 
 #include <CfxSubProcess.h>
 
+enum class ScuiAuthFlow
+{
+	LegitimacyNui,
+	SteamAuth,
+	EpicAuth,
+};
+
 class SimpleApp : public CefApp, public CefBrowserProcessHandler {
 public:
-	SimpleApp();
+	SimpleApp(ScuiAuthFlow flow, const std::string& extraJson);
 
 	// CefApp methods:
 	virtual CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler()
@@ -32,11 +41,15 @@ public:
 	virtual void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) override;
 
 private:
+	ScuiAuthFlow flow_;
+	std::string extra_json_;
+
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(SimpleApp);
 };
 
-SimpleApp::SimpleApp()
+SimpleApp::SimpleApp(ScuiAuthFlow flow, const std::string& extraJson)
+	: flow_(flow), extra_json_(extraJson)
 {
 
 }
@@ -66,7 +79,9 @@ namespace {
 			window->AddChildView(browser_view_);
 			//window->CenterWindow(CefSize(705, 535));
 			window->CenterWindow(CefSize(1280, 720));
-			window->Show();
+
+			// Do not show by default
+			//window->Show();
 
 			// Give keyboard focus to the browser view.
 			browser_view_->RequestFocus();
@@ -100,7 +115,7 @@ class SimpleHandler : public CefClient,
 	public CefRequestHandler,
 	public CefResourceRequestHandler{
 public:
-	explicit SimpleHandler();
+	explicit SimpleHandler(ScuiAuthFlow flow, const std::string& extraJson);
 	~SimpleHandler();
 
 	// Provide access to the single global instance of this object.
@@ -152,16 +167,72 @@ public:
 
 	bool IsClosing() const { return is_closing_; }
 
+	void SetWindow(CefRefPtr<CefWindow> window)
+	{
+		window_ = window;
+	}
+
+	CefRefPtr<CefWindow> GetWindow()
+	{
+		return window_;
+	}
+
+	virtual CefRefPtr<CefResourceHandler> GetResourceHandler(
+		CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
+		CefRefPtr<CefRequest> request) override
+	{
+		if (request->GetURL() == "https://rgl.rockstargames.com/temp.css")
+		{
+			static std::string file = fmt::sprintf(R"(
+.rememberContainer, p[class^="AuthHeader__signUpLink"]
+{
+	display: none;
+}
+
+.UI__Alert__info .UI__Alert__text
+{
+	display: none;
+}
+
+.UI__Alert__info .UI__Alert__content:after
+{
+	content: 'A Rockstar Games Social Club account owning %s is required to play %s.';
+	max-width: 600px;
+	display: inline-block;
+}
+)",
+#ifdef GTA_FIVE
+			"Grand Theft Auto V",
+			"FiveM"
+#elif defined(IS_RDR3)
+			"Red Dead Redemption 2 or Red Dead Online",
+			"RedM"
+#else
+			"Grand Theft Auto IV: Complete Edition",
+			"LibertyM"
+#endif
+			);
+
+			return new CefStreamResourceHandler("text/css", CefStreamReader::CreateForData(file.data(), file.size()));
+		}
+
+		return nullptr;
+	}
+
 private:
-	// Platform-specific implementation.
-	void PlatformTitleChange(CefRefPtr<CefBrowser> browser,
-		const CefString& title);
+	std::string GetRgscInitCode();
 
 	// List of existing browser windows. Only accessed on the CEF UI thread.
 	typedef std::list<CefRefPtr<CefBrowser>> BrowserList;
 	BrowserList browser_list_;
 
+	CefRefPtr<CefWindow> window_;
+
 	bool is_closing_;
+
+	ScuiAuthFlow flow_;
+	std::string extra_json_;
 
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(SimpleHandler);
@@ -171,7 +242,7 @@ void SimpleApp::OnContextInitialized()
 {
 	CEF_REQUIRE_UI_THREAD();
 
-	CefRefPtr<SimpleHandler> handler(new SimpleHandler());
+	CefRefPtr<SimpleHandler> handler(new SimpleHandler(flow_, extra_json_));
 
 	// Specify CEF browser settings here.
 	CefBrowserSettings browser_settings;
@@ -183,7 +254,13 @@ void SimpleApp::OnContextInitialized()
 	handler, url, browser_settings, {}, nullptr, nullptr);
 
 	// Create the Window. It will show itself after creation.
-	CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view));
+	handler->SetWindow(CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view)));
+
+	// Show window for normal flow, i.e. not steam/epic
+	if (flow_ == ScuiAuthFlow::LegitimacyNui)
+	{
+		handler->GetWindow()->Show();
+	}
 }
 
 namespace {
@@ -192,8 +269,8 @@ namespace {
 
 }  // namespace
 
-SimpleHandler::SimpleHandler()
-	: is_closing_(false) {
+SimpleHandler::SimpleHandler(ScuiAuthFlow flow, const std::string& extraJson)
+	: is_closing_(false), flow_(flow), extra_json_(extraJson) {
 	DCHECK(!g_instance);
 	g_instance = this;
 }
@@ -315,8 +392,14 @@ auto SimpleHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPt
 }
 
 extern std::string g_rosData;
+extern std::string g_rosData2;
 extern bool g_oldAge;
 extern std::string g_rosEmail;
+
+extern std::string g_tpaId;
+extern std::string g_tpaToken;
+
+extern std::string GetAuthSessionTicket(uint32_t appID);
 
 bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
 {
@@ -341,6 +424,17 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 
 			}
 		}
+		else if (nativeType == "refreshSteamTicket")
+		{
+			frame->ExecuteJavaScript(fmt::sprintf("RGSC_JS_REFRESH_STEAM_TICKET_RESULT(JSON.stringify({ Ticket: '%s' }));",
+				GetAuthSessionTicket(0)), "https://rgl.rockstargames.com/scui.js", 0);
+		}
+		else if (nativeType == "signinFailed")
+		{
+			trace(__FUNCTION__ ": Auto-SignIn failed, showing login window.\n");
+
+			GetWindow()->Show();
+		}
 		else if (nativeType == "signin")
 		{
 			trace(__FUNCTION__ ": Processing NUI sign-in.\n");
@@ -350,6 +444,7 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 
 			auto age = json["Age"].get<int>();
 			g_rosEmail = json["Email"].get<std::string>();
+			g_tpaToken = json.value<std::string>("TpaToken", "");
 
 			// 1900 age
 			if (age >= 120)
@@ -373,7 +468,18 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 				{ "OrigNickname", json["Nickname"] },
 			});
 
+			auto obj2 = nlohmann::json::object({
+			{ "Ticket", json["ticket"] },
+			{ "SessionKey", json["sessionKey"] },
+			{ "RockstarId", std::stoull(tree.get<std::string>("Response.RockstarAccount.RockstarId")) },
+			{ "SessionTicket", tree.get<std::string>("Response.SessionTicket") },
+			{ "Nickname", json["Nickname"] },
+			{ "Email", g_rosEmail },
+			});
+
+			g_tpaId = tree.get<std::string>("Response.RockstarAccount.RockstarId");
 			g_rosData = obj.dump();
+			g_rosData2 = obj2.dump();
 
 			trace(__FUNCTION__ ": Processed NUI sign-in - closing all browsers.\n");
 
@@ -384,7 +490,23 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 	return true;
 }
 
-static std::string g_rgscInitCode = fmt::sprintf(R"(
+std::string SimpleHandler::GetRgscInitCode()
+{
+	std::string flowString = "base";
+	
+	if (flow_ == ScuiAuthFlow::SteamAuth)
+	{
+		flowString = "steam";
+	}
+	else if (flow_ == ScuiAuthFlow::EpicAuth)
+	{
+		flowString = "epic";
+	}	
+
+	return fmt::sprintf(R"(
+const flowType = '%s';
+const flowData = %s;
+
 function RGSC_GET_PROFILE_LIST()
 {
 	return JSON.stringify({
@@ -406,7 +528,7 @@ function RGSC_UI_STATE_RESPONSE(arg)
 
 function RGSC_GET_TITLE_ID()
 {
-	return JSON.stringify({
+	let titleId = {
 		RosTitleName: 'gta5',
 		RosEnvironment: 'prod',
 		RosTitleVersion: 11,
@@ -414,13 +536,24 @@ function RGSC_GET_TITLE_ID()
 		Platform: 'viveport',
 		IsLauncher: true,
 		Language: 'en-US'
-	});
+	};
+
+	if (flowType == 'steam')
+	{
+		titleId = {...titleId, RosTitleName: 'launcher', Platform: 'Steam', ...flowData};
+	}
+	else if (flowType == 'epic')
+	{
+		titleId = {...titleId, RosTitleName: 'launcher', Platform: 'Epic', epicAccessToken: flowData.epicAccessToken};
+	}
+
+	return JSON.stringify(titleId);
 }
 
 function RGSC_GET_VERSION_INFO()
 {
 	return JSON.stringify({
-		Version: '2.0.3.7',
+		Version: '9.9.9.9',
 		TitleVersion: ''
 	});
 }
@@ -439,6 +572,30 @@ function RGSC_SIGN_IN(s)
 	if (data.XMLResponse)
 	{
 		window.invokeNative('signin', s);
+	}
+	else if (data.Error)
+	{
+		window.invokeNative('signinFailed', '');
+	}
+	else
+	{
+		data = {
+    "SignedIn": false,
+    "SignedOnline": false,
+    "ScAuthToken": "",
+    "ScAuthTokenError": false,
+    "ProfileSaved": false,
+    "AchievementsSynced": false,
+    "FriendsSynced": false,
+    "Local": false,
+    "NumFriendsOnline": 0,
+    "NumFriendsPlayingSameTitle": 0,
+    "NumBlocked": 0,
+    "NumFriends": 0,
+    "NumInvitesReceieved": 0,
+    "NumInvitesSent": 0,
+    "CallbackData": 0
+};
 	}
 
 	RGSC_JS_FINISH_SIGN_IN(JSON.stringify(data));
@@ -498,8 +655,68 @@ function RGSC_REQUEST_UI_STATE(a)
 
 function RGSC_READY_TO_ACCEPT_COMMANDS()
 {
-	RGSC_JS_REQUEST_UI_STATE(JSON.stringify({ Visible: true, Online: true, State: "SIGNIN" }));
+	RGSC_JS_REQUEST_UI_STATE(JSON.stringify({ Visible: true, Online: true, State: flowType === 'base' ? "SIGNIN" : "MAIN" }));
+
+	if (flowType === 'steam' || flowType === 'epic')
+	{
+		const ORIG_fetch = window.fetch;
+
+		window.fetch = (...args) => {
+			const requestUrl = args[0];
+
+			if (typeof requestUrl === 'string') {
+				if (requestUrl.endsWith('autologinsteam') || requestUrl.endsWith('autologinepic')) {
+					const newBody = {
+						...JSON.parse(args[1].body),
+						tpaTokens: flowData.TpaTokens,
+					};
+
+					if (flowType === 'steam') {
+						newBody.AppId = flowData.SteamAppId;
+						newBody.authTicket = flowData.SteamAuthTicket;
+					}
+					if (flowType === 'epic') {
+						newBody.authTicket = flowData.epicAccessToken;
+						newBody.platformUserId = flowData.EpicAccountId;
+					}
+
+					args[1].body = JSON.stringify(newBody);
+				}	
+			}
+
+			return ORIG_fetch(...args);
+		};
+
+		RGSC_JS_SIGN_IN(JSON.stringify({
+			"RockstarId": "0",
+			"Nickname": "",
+			"LastSignInTime": "0",
+			"AutoSignIn": false,
+			"Local": false,
+			"SaveEmail": false,
+			"SavePassword": false,
+			"Ticket": "",
+			"AvatarUrl": "",
+			"RememberedMachineToken": ""
+		}));
+	}
+
 	return true;
+}
+
+function RGSC_REFRESH_STEAM_TICKET()
+{
+	window.invokeNative('refreshSteamTicket', '');
+}
+
+function RGSC_GET_PROFILE_LIST_FILTERED()
+{
+	return RGSC_GET_PROFILE_LIST();
+}
+
+function RGSC_DEBUG_EVENT(e)
+{
+	console.log(e);
 }
 
 RGSC_JS_READY_TO_ACCEPT_COMMANDS();
@@ -511,23 +728,19 @@ if (!localStorage.getItem('loadedOnce')) {
 	}, 500);
 }
 
-var css = '.rememberContainer, p[class^="AuthHeader__signUpLink"] { display: none; } .UI__Alert__info .UI__Alert__text { display: none; } .UI__Alert__info .UI__Alert__content:after { content: \'A Rockstar Games Social Club account owning %s is required to play %s.\'; max-width: 600px; display: inline-block; }',
-    head = document.head || document.getElementsByTagName('head')[0],
-    style = document.createElement('style');
+globals.isLog = true;
 
-head.appendChild(style);
-
-style.type = 'text/css';
-style.appendChild(document.createTextNode(css));
+const head	= document.getElementsByTagName('head')[0];
+const link	= document.createElement('link');
+link.rel	= 'stylesheet';
+link.type	= 'text/css';
+link.href	= 'https://rgl.rockstargames.com/temp.css';
+head.appendChild(link);
 )",
-#ifdef GTA_FIVE
-"Grand Theft Auto V",
-"FiveM"
-#else
-"Grand Theft Auto IV: Complete Edition",
-"LibertyM"
-#endif
-);
+	flowString,
+	extra_json_
+	);
+};
 
 void SimpleHandler::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transition_type)
 {
@@ -537,11 +750,11 @@ void SimpleHandler::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 {
 	if (frame->GetURL().ToString().find("/launcher") != std::string::npos)
 	{
-		frame->ExecuteJavaScript(g_rgscInitCode, "https://rgl.rockstargames.com/temp.js", 0);
+		frame->ExecuteJavaScript(GetRgscInitCode(), "https://rgl.rockstargames.com/temp.js", 0);
 	}
 }
 
-void RunLegitimacyNui()
+static bool RunScuiAuthFlow(ScuiAuthFlow flow, const std::string& extraJson = "{}")
 {
 	SetEnvironmentVariable(L"CitizenFX_ToolMode", nullptr);
 
@@ -574,7 +787,7 @@ void RunLegitimacyNui()
 	// SimpleApp implements application-level callbacks for the browser process.
 	// It will create the first browser instance in OnContextInitialized() after
 	// CEF has initialized.
-	CefRefPtr<SimpleApp> app(new SimpleApp);
+	CefRefPtr<SimpleApp> app(new SimpleApp(flow, extraJson));
 
 	trace(__FUNCTION__ ": Initializing CEF.\n");
 
@@ -593,4 +806,21 @@ void RunLegitimacyNui()
 	//CefShutdown();
 
 	trace(__FUNCTION__ ": Shut down CEF.\n");
+
+	return !g_rosData.empty();
+}
+
+void RunLegitimacyNui()
+{
+	RunScuiAuthFlow(ScuiAuthFlow::LegitimacyNui);
+}
+
+bool RunSteamAuthUi(const nlohmann::json& json)
+{
+	return RunScuiAuthFlow(ScuiAuthFlow::SteamAuth, json.dump());
+}
+
+bool RunEpicAuthUi(const nlohmann::json& json)
+{
+	return RunScuiAuthFlow(ScuiAuthFlow::EpicAuth, json.dump());
 }

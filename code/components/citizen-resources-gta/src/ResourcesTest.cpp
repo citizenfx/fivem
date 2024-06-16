@@ -154,11 +154,6 @@ static InitFunction initFunction([] ()
 #if __has_include(<streaming.h>)
 		resource->OnStart.Connect([=] ()
 		{
-			if (resource->GetName() == "_cfx_internal")
-			{
-				return;
-			}
-
 			fwRefContainer<fx::ResourceMetaDataComponent> metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 			std::string resourceRoot = resource->GetPath();
 

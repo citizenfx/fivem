@@ -309,3 +309,53 @@ std::wstring ToWide(std::string_view narrow)
 
 	return std::move(outVec);
 }
+
+std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString)
+{
+	std::map<std::string, std::string> postMap;
+
+	for (int i = 0; i < postDataString.size(); i++)
+	{
+		int keyIndex = 0;
+		int keyLen = 0;
+		for (int keyItr = i; keyItr < postDataString.size(); keyItr++)
+		{
+			if (postDataString[keyItr] == '=')
+			{
+				break;
+			}
+			keyLen++;
+		}
+
+		keyIndex = i;
+		i = (i + keyLen + 1);
+
+		int valueLen = 0;
+		for (int valueItr = i; valueItr < postDataString.size(); valueItr++)
+		{
+			if (postDataString[valueItr] == '&')
+			{
+				break;
+			}
+			valueLen++;
+		}
+
+		if (valueLen)
+		{
+			std::string key(&postDataString[keyIndex], keyLen);
+			std::string value(&postDataString[i], valueLen);
+
+			std::string keyDecoded;
+			std::string valueDecoded;
+
+			UrlDecode(key, keyDecoded);
+			UrlDecode(value, valueDecoded);
+
+			postMap[keyDecoded] = valueDecoded;
+		}
+
+		i += valueLen;
+	}
+
+	return postMap;
+}

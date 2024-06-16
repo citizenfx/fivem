@@ -14,7 +14,7 @@
 #include <botan/tls_magic.h>
 #include <botan/tls_version.h>
 #include <botan/secmem.h>
-#include <botan/x509_dn.h>
+#include <botan/pkix_types.h>
 #include <vector>
 #include <string>
 #include <map>

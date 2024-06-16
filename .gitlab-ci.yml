@@ -6,95 +6,171 @@ stages:
   - deploy
   - postdeploy
 
-# --------------------------
-# -- SHARED WINDOWS BUILD --
-# --------------------------
-.build_windows:
-  stage: build
-  script:
-    - ".\\code\\tools\\ci\\build.ps1 -DontUpload $true"
-  variables:
-    IS_LAUNCHER: '0'
-  except:
-    - tags
+variables:
+  # Dry run is for builds-only mode, no uploading/deploying/notifying, helpful when experimenting with pipelines
+  CFX_DRY_RUN: 'false'
+  CFX_RELEASE_BUILD: 'false'
+  CFX_CLONE_ROOT: $CI_BUILDS_DIR\$CI_PROJECT_PATH_SLUG\$CI_COMMIT_REF_SLUG
 
-.build_client:
-  extends: .build_windows
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH && ($CI_COMMIT_BRANCH == 'master' || $CI_COMMIT_BRANCH == 'beta' || $CI_COMMIT_BRANCH == 'production')
+      variables:
+        CFX_RELEASE_BUILD: 'true'
+    # never run pipelines for tags
+    - if: $CI_COMMIT_TAG
+      when: never
+    # never run pipelines for MRs
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: never
+    # otherwise, always run pipelines
+    - when: always
+
+# helper for jobs that are only meant to be run for releases
+.only_for_release:
+  rules:
+    - if: $CFX_RELEASE_BUILD == 'true'
+      when: on_success
+    - when: never
+
+# helper for jobs that are only meant to be run on master branch
+.only_for_master:
+  rules:
+    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
+      when: on_success
+    - when: never
+
+# helper for windows builds of clients and server
+.base_build_windows:
+  stage: build
+  tags:
+    - windows
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
+    # archives are heavier this way, but much faster to pack/unpack
+    FF_USE_FASTZIP: "true"
+    CACHE_COMPRESSION_LEVEL: "fastest"
+  cache:
+    key: $CI_JOB_NAME--$CI_COMMIT_REF_SLUG
+
+# -------------------
+# -- CLIENT BUILDS --
+# -------------------
+.base_build_client:
+  extends: [.base_build_windows]
+  script:
+    - ".\\code\\tools\\ci\\build_client.ps1"
   artifacts:
     paths:
-      - caches/
+      - caches
       - ext/native-doc-gen/natives_cfx.json
     expire_in: 1 month
   cache:
-    key: $CI_JOB_NAME-$CI_BUILD_REF_NAME
-    untracked: true
     paths:
+      # Build files (bin, build, etc.)
+      - .build-cache
+      - code/tools/build/prebuild_run.txt
+      # IDL tool generated files
+      - code/tools/idl/xpidl/__pycache__
+      - code/tools/idl/xpidl/xpidllex.py
+      - code/tools/idl/xpidl/xpidlyacc.py
+      # IDL generated files to avoid large recompilations
+      - code/client/citicore/fxcore.h
+      - code/client/citicore/fxIBase.h
+      - code/components/citizen-scripting-core/include/fxScripting.h
+      # Launcher delay list
+      - code/client/launcher/DelayList.h
+      # Versioning files
       - code/shared/citversion.h
       - code/shared/launcher_version.h
-      - code/build/
+      # native-doc-gen files
+      - ext/native-doc-gen/node.exe
+      # natives files
+      - ext/natives/inp
+      - ext/natives/out
+      # ui files
+      - ext/ui-build/data/.commit
+      - ext/ui-build/data.zip
+      - ext/ui-build/data_big.zip
+      # Chromium tools precompiled python
+      - vendor/chromium/**/*.pyc
+      # V8 binaries
+      - vendor/v8/**/*.dll
 
-# -------------------
-# -- WINDOWS BUILD --
-# -------------------
 build_client:
-  extends: .build_client
-  tags:
-    - client
-    - vs2017
+  extends: [.base_build_client]
   variables:
-    IS_FXSERVER: '0'
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT\fivem
+    CFX_PRODUCT_NAME: fivem
+  tags:
+    - release_fivem
+    - windows
+    - vs2022
 
 build_client_rdr3:
-  extends: .build_client
-  tags:
-    - client2
-    - vs2017
+  extends: [.base_build_client]
   variables:
-    IS_FXSERVER: '0'
-    IS_RDR3: '1'
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT\redm
+    CFX_PRODUCT_NAME: redm
+  tags:
+    - release_redm
+    - windows
+    - vs2022
+
+build_sdk:
+  stage: build
+  tags:
+    - release_fivem
+    - windows
+  variables:
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT\fivem-sdk
+  artifacts:
+    paths:
+      - caches
+    expire_in: 1 month
+  cache:
+    key: $CI_JOB_NAME--$CI_COMMIT_REF_SLUG
+    paths:
+      - caches
+  script:
+    - ".\\code\\tools\\ci\\build_sdk.ps1"
+
+# -------------------
+# -- SERVER BUILDS --
+# -------------------
+.base_build_server:
+  rules:
+    - if: $CI_COMMIT_BRANCH && ($CI_COMMIT_BRANCH != 'beta' && $CI_COMMIT_BRANCH != 'production')
+      when: always
+    - when: never
 
 build_server_windows:
-  extends: .build_windows
+  extends: [.base_build_windows, .base_build_server]
   tags:
-    - server
-    - vs2017
+    - release_fxserver
+    - windows
+    - vs2022
   variables:
-    IS_FXSERVER: '1'
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT\fxserver
+    CFX_PRODUCT_NAME: fxserver
+  script:
+    - ".\\code\\tools\\ci\\build_server_windows.ps1"
   artifacts:
     paths:
       - out/server.zip
       - out/server.7z
     expire_in: 1 month
   cache:
-    key: server
     untracked: true
 
-build_sdk:
+build_proot_linux:
+  extends: [.base_build_server]
   stage: build
   tags:
-    - sdk
-  artifacts:
-    paths:
-      - caches/
-      - caches/caches_sdk.xml
-    expire_in: 1 month
-  cache:
-    key: sdk
-  except:
-    - tags
-  script:
-    - ".\\code\\tools\\ci\\build_sdk.ps1"
-
-# -----------------
-# -- LINUX BUILD --
-# -----------------
-build_proot_linux:
-  stage: build
+    - linux
   image: mcr.microsoft.com/dotnet/sdk:6.0-alpine3.15
   variables:
     GIT_SUBMODULE_STRATEGY: normal
+    GIT_SUBMODULE_DEPTH: 3
     # workaround gitlab-ci-multi-runner#2148
     GIT_SSL_CAPATH: /etc/ssl/certs/
     DOCKER_TLS_CERTDIR: ""
@@ -104,114 +180,132 @@ build_proot_linux:
     paths:
       - fx.tar.xz
     expire_in: 1 month
-  except:
-    - tags
-  tags:
-    - linux
 
 # -------------------
 # -- CLIENT DEPLOY --
 # -------------------
-
-.deploy:
+.base_deploy_client:
   stage: deploy
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
-  script:
-    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
-
-.deploy_five:
-  extends: .deploy
   tags:
-    - vs2017
-    - client
+    - windows
+  script:
+    - ".\\code\\tools\\ci\\deploy_client.ps1"
+  cache:
+    key: $CI_JOB_NAME--$CI_COMMIT_REF_SLUG
+    paths:
+      - .build-cache
+
+.base_fivem_deploy:
+  extends: [.base_deploy_client]
+  variables:
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT\fivem-deploy
+    CFX_PRODUCT_NAME: fivem
   needs:
     - job: build_client
       artifacts: true
     - job: build_sdk
       artifacts: true
 
-.deploy_rdr3:
-  extends: .deploy
-  tags:
-    - vs2017
-    - client2
+.base_redm_deploy:
+  extends: [.base_deploy_client]
+  variables:
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT\redm-deploy
+    CFX_PRODUCT_NAME: redm
   needs:
     - job: build_client_rdr3
       artifacts: true
-  variables:
-    IS_RDR3: '1'
 
-.deploy_specific:
-  environment:
-    name: specific/$CI_BUILD_REF_NAME
-  only:
-    - branches
-  except:
-    - master
-    - tags
-
-.deploy_manual:
-  when: manual
-  only:
-   - master
-
-.deploy_canary:
+# FiveM deployments
+fivem_deploy_canary:
+  extends: [.base_fivem_deploy]
   environment:
     name: canary
-  only:
-    - master
+  rules:
+    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
+      when: on_success
+    - when: never
 
-# -------------------------
-# -- CLIENT DEPLOY IMPLS --
-# -------------------------
-deploy_specific:
-  extends: [.deploy_five, .deploy_specific]
-    
-deploy_rdr3_specific:
-  extends: [.deploy_rdr3, .deploy_specific]
-
-deploy_canary:
-  extends: [.deploy_five, .deploy_canary]
-
-deploy_canary_rdr3:
-  extends: [.deploy_rdr3, .deploy_canary]
-
-deploy_beta:
-  extends: [.deploy_five, .deploy_manual]
+fivem_deploy_beta:
+  extends: [.base_fivem_deploy]
   environment:
     name: beta
+  rules:
+    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
+      when: on_success
+    - when: never
 
-deploy_beta_rdr3:
-  extends: [.deploy_rdr3, .deploy_manual]
+fivem_deploy_production:
+  extends: [.base_fivem_deploy]
+  environment:
+    name: production
+  rules:
+    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
+      when: on_success
+    - when: never
+
+fivem_deploy_specific:
+  extends: [.base_fivem_deploy]
+  environment:
+    name: specific/$CI_COMMIT_BRANCH
+  rules:
+    - if: $CFX_RELEASE_BUILD == 'false' && $CI_COMMIT_BRANCH
+      when: manual
+      allow_failure: true
+    - when: never
+
+# RedM deployments
+redm_deploy_canary:
+  extends: [.base_redm_deploy]
+  environment:
+    name: canary
+  rules:
+    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
+      when: on_success
+    - when: never
+
+redm_deploy_beta:
+  extends: [.base_redm_deploy]
   environment:
     name: beta
+  rules:
+    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
+      when: on_success
+    - when: never
 
-deploy_prod:
-  extends: [.deploy_five, .deploy_manual]
+redm_deploy_production:
+  extends: [.base_redm_deploy]
   environment:
     name: production
+  rules:
+    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
+      when: on_success
+    - when: never
 
-deploy_prod_rdr3:
-  extends: [.deploy_rdr3, .deploy_manual]
+redm_deploy_specific:
+  extends: [.base_redm_deploy]
   environment:
-    name: production
+    name: specific/$CI_COMMIT_BRANCH
+  rules:
+    - if: $CFX_RELEASE_BUILD == 'false' && $CI_COMMIT_BRANCH
+      when: manual
+      allow_failure: true
+    - when: never
 
 # -------------------
 # -- ScRT PACKAGES --
 # -------------------
 typings_server:
   stage: deploy
+  extends: [.only_for_master]
   needs:
     - job: build_server_windows
       artifacts: true
   image: node:alpine
   tags:
     - linux
-  only:
-    - master
   variables:
     GIT_SUBMODULE_STRATEGY: normal
+    GIT_SUBMODULE_DEPTH: 3
     # workaround gitlab-ci-multi-runner#2148
     GIT_SSL_CAPATH: /etc/ssl/certs/
   script:
@@ -219,63 +313,61 @@ typings_server:
     
 typings_client:
   stage: deploy
+  extends: [.only_for_master]
   needs:
     - job: build_client
       artifacts: true
   tags:
-    - vs2017
-  only:
-    - master
+    - windows
   script:
     - "cmd /c ext\\typings\\client\\build.bat"
     
 nuget_client:
   stage: deploy
+  extends: [.only_for_master]
   needs:
     - job: build_client
       artifacts: true
   tags:
-    - vs2017
-  only:
-    - master
+    - windows
   script:
     - "cmd /c ext\\nuget\\client\\build.bat"
     
 nuget_server:
   stage: deploy
+  extends: [.only_for_master]
   needs:
     - job: build_server_windows
       artifacts: true
   tags:
-    - vs2017
-  only:
-    - master
+    - windows
   script:
     - "cmd /c ext\\nuget\\server\\build.bat"
 
-# ------------------------
-# -- SHARED POST-DEPLOY --
-# ------------------------
-
-.upload_review:
+# --------------------
+# -- UPLOAD REVIEWS --
+# --------------------
+.base_upload_review:
   stage: postdeploy
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
+  extends: [.only_for_release]
+  allow_failure: true
   script:
     - ".\\code\\tools\\ci\\upload_review.ps1"
   tags:
-    - vs2017
-  only:
-    - master
+    - windows
 
-upload_review:
-  extends: .upload_review
+fivem_upload_review:
+  extends: [.base_upload_review]
+  variables:
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT\fivem-review
   needs:
     - job: build_client
       artifacts: true
 
-upload_review_rdr3:
-  extends: .upload_review
+redm_upload_review:
+  extends: [.base_upload_review]
+  variables:
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT\redm-review
   needs:
     - job: build_client_rdr3
       artifacts: true

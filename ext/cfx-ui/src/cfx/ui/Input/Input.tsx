@@ -1,46 +1,51 @@
 import React from 'react';
-import { clsx } from 'cfx/utils/clsx';
+
 import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { useDynamicRef } from 'cfx/utils/hooks';
+import { clsx } from 'cfx/utils/clsx';
 import { getValue } from 'cfx/utils/getValue';
+import { useDynamicRef } from 'cfx/utils/hooks';
+
 import s from './Input.module.scss';
 
-export type InputSize =
-  | 'small'
-  | 'normal'
-  | 'large'
+export type InputSize = 'small' | 'normal' | 'large';
 
 type TypeSpecific =
-// For normal stringy types
-  | { type?: 'text' | 'password' | 'search', value: string, onChange(value: string): void }
-// Number is kinda a special snowflake
-  | { type: 'number', min?: number | string, max?: number | string, value: number | string, onChange(value: string): void }
+  // For normal stringy types
+  | { type?: 'text' | 'password' | 'search'; value: string; onChange(value: string): void }
+  // Number is kinda a special snowflake
+  | {
+    type: 'number';
+    min?: number | string;
+    max?: number | string;
+    value: number | string;
+    onChange(value: string): void;
+  };
 
 export type InputProps = TypeSpecific & {
-  fullWidth?: boolean,
-  size?: InputSize,
-  tabIndex?: number,
-  disabled?: boolean,
-  autofocus?: boolean,
-  pattern?: RegExp,
-  className?: string,
-  backdropBlur?: boolean,
-  inputClassName?: string,
-  inputRef?: React.Ref<HTMLInputElement>,
-  label?: React.ReactNode,
-  placeholder?: string,
-  description?: React.ReactNode,
+  fullWidth?: boolean;
+  size?: InputSize;
+  tabIndex?: number;
+  disabled?: boolean;
+  autofocus?: boolean;
+  pattern?: RegExp;
+  className?: string;
+  backdropBlur?: boolean;
+  inputClassName?: string;
+  inputRef?: React.Ref<HTMLInputElement>;
+  label?: React.ReactNode;
+  placeholder?: string;
+  description?: React.ReactNode;
 
-  error?: boolean,
+  error?: boolean;
 
-  decorator?: React.ReactNode | (() => React.ReactNode),
+  decorator?: React.ReactNode | (() => React.ReactNode);
 
-  onSubmit?: () => void,
-  onKeyDown?(event: React.KeyboardEvent<HTMLInputElement>): void | boolean,
+  onSubmit?: () => void;
+  onKeyDown?(event: React.KeyboardEvent<HTMLInputElement>): void | boolean;
 
-  showLoader?: boolean,
-  noSpellCheck?: boolean,
-}
+  showLoader?: boolean;
+  noSpellCheck?: boolean;
+};
 
 export const Input = React.forwardRef(function Input(props: InputProps, ref: React.Ref<HTMLDivElement>) {
   const {
@@ -68,26 +73,32 @@ export const Input = React.forwardRef(function Input(props: InputProps, ref: Rea
     backdropBlur = false,
   } = props;
 
-  const min = props.type === 'number' && (props.min ?? Number.MIN_SAFE_INTEGER) || undefined;
-  const max = props.type === 'number' && (props.max ?? Number.MAX_SAFE_INTEGER) || undefined;
+  const min = (props.type === 'number' && (props.min ?? Number.MIN_SAFE_INTEGER)) || undefined;
+  const max = (props.type === 'number' && (props.max ?? Number.MAX_SAFE_INTEGER)) || undefined;
+  const controlId = React.useId();
 
   const onChangeRef = useDynamicRef(onChange);
   const onKeyDownRef = useDynamicRef(onKeyDown);
   const onSubmitRef = useDynamicRef(onSubmit);
 
-  const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target;
+  const handleChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const {
+        value: eventValue,
+      } = event.target;
 
-    if (pattern) {
-      if (pattern.test(value)) {
-        onChangeRef.current(value);
+      if (pattern) {
+        if (pattern.test(eventValue)) {
+          onChangeRef.current(eventValue);
+        }
+
+        return;
       }
 
-      return;
-    }
-
-    return onChangeRef.current(value);
-  }, [pattern]);
+      return onChangeRef.current(eventValue);
+    },
+    [pattern],
+  );
 
   const handleKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
     if (onKeyDownRef.current(event)) {
@@ -99,18 +110,21 @@ export const Input = React.forwardRef(function Input(props: InputProps, ref: Rea
     }
   }, []);
 
-  const decoratorNode = (showLoader || !!decorator)
+  const decoratorNode = showLoader || !!decorator
     ? (
       <div className={s.decorator}>
-        {!!showLoader && <Indicator />}
+        {!!showLoader && (
+          <Indicator />
+        )}
         {!!decorator && getValue(decorator)}
       </div>
-    )
+      )
     : null;
 
   const inputNode = (
     <div className={s.input}>
       <input
+        id={controlId}
         ref={inputRef}
         type={type}
         tabIndex={tabIndex}
@@ -131,20 +145,20 @@ export const Input = React.forwardRef(function Input(props: InputProps, ref: Rea
 
   const descriptionNode = description
     ? (
-      <div className={s.description}>
-        {description}
-      </div>
-    )
+      <div className={s.description}>{description}</div>
+      )
     : null;
 
   const contentNode = label
     ? (
-      <label>
+      <label htmlFor={controlId}>
         {label}
         {inputNode}
       </label>
-    )
-    : inputNode;
+      )
+    : (
+        inputNode
+      );
 
   const rootClassName = clsx(s.root, s[size], className, {
     [s['full-width']]: fullWidth,

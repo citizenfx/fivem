@@ -24,7 +24,11 @@ static inline int GetServerId(const rlGamerInfo<Build>& platformData)
 
 static inline int DoGetServerId(CNetGamePlayer* player)
 {
-	if (xbr::IsGameBuildOrGreater<2372>())
+	if (xbr::IsGameBuildOrGreater<2824>())
+	{
+		return GetServerId(*player->GetGamerInfo<2824>());
+	}
+	else if (xbr::IsGameBuildOrGreater<2372>())
 	{
 		return GetServerId(*player->GetGamerInfo<2372>());
 	}

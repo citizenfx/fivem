@@ -14,7 +14,6 @@
 #include <wchar.h>
 
 #include <CoreConsole.h>
-#include <LaunchMode.h>
 #include <PureModeState.h>
 
 #include <Error.h>
@@ -195,32 +194,29 @@ bool ComponentInstance::DoGameLoad(void* module)
 
 				if (LoadPEFile(it->path(), libraryBuffer))
 				{
-					if (!CfxIsSinglePlayer())
+					for (auto itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt)
 					{
-						for (auto itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt)
+						if (*itt != L"")
 						{
-							if (*itt != L"")
+							if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0)
 							{
-								if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0)
+								bad = true;
+								trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+								if (*itt == L"openiv.asi")
 								{
-									bad = true;
-									trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
-									if (*itt == L"openiv.asi")
-									{
-										FatalError("You cannot use OpenIV with FiveM. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with FiveM.");
-									}
+									FatalError("You cannot use OpenIV with FiveM. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with FiveM.");
 								}
 							}
 						}
+					}
 
-						if (!bad)
+					if (!bad)
+					{
+						if (IsCLRAssembly(libraryBuffer))
 						{
-							if (IsCLRAssembly(libraryBuffer))
-							{
-								trace("Skipping blacklisted CLR assembly %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+							trace("Skipping blacklisted CLR assembly %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
 
-								bad = true;
-							}
+							bad = true;
 						}
 					}
 

@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import imp
+import importlib
 import os.path
 import sys
 import unittest
@@ -21,7 +21,7 @@ sys.path.insert(1, os.path.join(_GetDirAbove("mojo"), "third_party"))
 from ply import lex
 
 try:
-  imp.find_module("mojom")
+  importlib.util.find_spec("mojom")
 except ImportError:
   sys.path.append(os.path.join(_GetDirAbove("pylib"), "pylib"))
 import mojom.parse.lexer

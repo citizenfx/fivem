@@ -26,7 +26,6 @@ fi
 cp -a tools/ci/build_server_2.sh /tmp/build_server.sh
 sed -i -e '1,/^## SETUP-CUTOFF/d' -e '/^## BUILD-CUTOFF/,$ d' -e 's/.*make clean.*//g' -e 's/config=release/config=debug/g' -e 's/linux\/release/linux\/debug/g' /tmp/build_server.sh
 
-export BOOST_ROOT=/tmp/boost/
 JOB_SLOTS=$(nproc) sh -e /tmp/build_server.sh
 
 echo '------------------'

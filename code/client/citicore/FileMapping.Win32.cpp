@@ -54,6 +54,7 @@ static std::wstring g_programFilesRoot = GetRoot(CSIDL_PROGRAM_FILES);
 static std::wstring g_programFilesX86Root = GetRoot(CSIDL_PROGRAM_FILESX86);
 static std::wstring g_programDataRoot = GetRoot(CSIDL_COMMON_APPDATA);
 
+static std::wstring g_rsgDocumentsRoot = g_documentsRoot + L"\\Rockstar Games";
 static std::wstring g_scDocumentsRoot = g_documentsRoot + L"\\Rockstar Games\\Social Club";
 static std::wstring g_launcherDocumentsRoot = g_documentsRoot + L"\\Rockstar Games\\Launcher";
 static std::wstring g_launcherAppDataRoot = g_localAppDataRoot + L"\\Rockstar Games\\Launcher";
@@ -178,6 +179,11 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_documents" ROS_SUFFIX_W) + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
+	if (wcsstr(origFileName, L"Documents\\Rockstar Games") != nullptr || wcsstr(origFileName, g_rsgDocumentsRoot.c_str()) != nullptr)
+	{
+		return g_localAppDataRoot + L"\\" + &wcsstr(origFileName, L"Rockstar Games")[0];
+	}
+
 	if (getenv("CitizenFX_ToolMode"))
 	{
 		if (wcsstr(origFileName, L".lnk"))
@@ -299,6 +305,12 @@ static bool IsMappedFilename(const std::wstring& fileName)
 
 	if (fileName.find(L"Documents\\Rockstar Games\\Launcher") != std::string::npos ||
 		fileName.find(g_launcherDocumentsRoot) != std::string::npos)
+	{
+		return true;
+	}
+
+	if (fileName.find(L"Documents\\Rockstar Games") != std::string::npos ||
+		fileName.find(g_rsgDocumentsRoot) != std::string::npos)
 	{
 		return true;
 	}
@@ -573,6 +585,15 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		}
 	}
 
+	// MTL bits do not like nvapi64.dll, maybe
+	if (moduleNameStr.find(L"nvapi64.dll") != std::string::npos)
+	{
+		if (wcsstr(GetCommandLineW(), L"ros:launcher"))
+		{
+			return 0xC0000428;
+		}
+	}
+
 	// anything in this if statement **has to be lowercase**, see line above
 	if (moduleNameStr.find(L"fraps64.dll") != std::string::npos || moduleNameStr.find(L"avghooka.dll") != std::string::npos ||
 		// apparently crashes NUI
@@ -602,6 +623,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		moduleNameStr.find(L"crashhandler64.dll") != std::string::npos ||
 		// Ad Muncher, causes LoopbackTcpServer to crash
 		moduleNameStr.find(L"am64-34121.dll") != std::string::npos ||
+		// some unknown force feedback driver ('USB Vibration')
+		moduleNameStr.find(L"ezfrd64.dll") != std::string::npos ||
 #if defined(IS_RDR3)
 		// 'Overwolf', corrupts memory on RDR (and is generally undesirable)
 		moduleNameStr.find(L"owclient.dll") != std::string::npos ||
@@ -609,6 +632,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		moduleNameStr.find(L"ow-graphics-hook64.dll") != std::string::npos ||
 		// 'Twitch Native Overlay' crashes Vulkan drivers again ('woo another Vulkan layer crash')
 		moduleNameStr.find(L"twitchnativeoverlay64.dll") != std::string::npos ||
+		// Mirillis Action! also has a broken Vulkan layer (seriously?)
+		moduleNameStr.find(L"mirillisactionvulkanlayer.dll") != std::string::npos ||
 #endif
 		// 'Lenovo Nerve Center'/'Lenovo Artery', leads to chrome_elf.dll crashing
 		moduleNameStr.find(L"gm_gametooldll_x64.dll") != std::string::npos ||
@@ -619,6 +644,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		// VulkanRT loader, we don't use Vulkan, CEF does (to 'collect info'), and this crashes a lot of Vulkan drivers
 		(moduleNameStr.find(L"vulkan-1.dll") != std::string::npos && getenv("CitizenFX_ToolMode")) ||
 #endif
+		// omen gaming hub (HP's software) - it crashes everyone that has this software installed for unknown reasons
+		moduleNameStr.find(L"omen_camera_x64.dll") != std::string::npos ||
 		false
 	)
 	{

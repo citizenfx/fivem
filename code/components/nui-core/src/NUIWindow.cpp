@@ -30,7 +30,6 @@ extern nui::GameInterface* g_nuiGi;
 extern std::wstring GetNUIStoragePath();
 
 static bool nuiFixedSizeEnabled;
-static ConVar<bool> nuiFixedSize("nui_useFixedSize", ConVar_Archive | ConVar_UserPref, false, &nuiFixedSizeEnabled);
 
 namespace nui
 {
@@ -664,7 +663,14 @@ void NUIWindow::UpdateFrame()
 											   m_lastDirtyRect.bottom,
 											   1);
 
-					if (m_swapTexture && m_swapRtv && m_swapSrv)
+					ID3D11Resource* nativeTexture = nullptr;
+
+					if (auto texture = GetTexture(); texture.GetRef())
+					{
+						nativeTexture = (ID3D11Resource*)texture->GetNativeTexture();
+					}
+
+					if (m_swapTexture && m_swapRtv && m_swapSrv && nativeTexture)
 					{
 						//
 						// LOTS of D3D11 garbage to flip a texture...
@@ -748,7 +754,7 @@ void NUIWindow::UpdateFrame()
 
 						deviceContext->Draw(4, 0);
 
-						deviceContext->CopyResource((ID3D11Resource*)GetTexture()->GetNativeTexture(), m_swapTexture.Get());
+						deviceContext->CopyResource(nativeTexture, m_swapTexture.Get());
 
 						deviceContext->OMSetRenderTargets(1, &oldRtv, oldDsv);
 
@@ -876,7 +882,7 @@ void NUIWindow::UpdateFrame()
 					auto _ = GetRenderBufferLock();
 					m_dirtyRects = std::queue<CefRect>();
 
-					memcpy(pBits, m_renderBuffer, m_height * pitch);
+					memcpy(pBits, m_renderBuffer, static_cast<size_t>(m_height) * pitch);
 				}
 
 				GetTexture()->Unmap(&lockedTexture);
@@ -907,6 +913,29 @@ void NUIWindow::HandlePopupShow(bool show)
 	}
 }
 
+extern void TranslateWindowRect(const fwRefContainer<NUIWindow>& window, CRect* rect);
+
+CefRect NUIWindow::GetPopupRect()
+{
+	auto rect = m_popupRect;
+
+	if (IsFixedSizeWindow())
+	{
+		CRect baseRect;
+		TranslateWindowRect(this, &baseRect);
+
+		float scaleX = (baseRect.Width() / float(m_width));
+		float scaleY = (baseRect.Height() / float(m_height));
+
+		rect.x = (rect.x * scaleX) + baseRect.Left();
+		rect.y = (rect.y * scaleY) + baseRect.Top();
+		rect.width *= scaleX;
+		rect.height *= scaleY;
+	}
+
+	return rect;
+}
+
 void NUIWindow::SetPopupRect(const CefRect& rect)
 {
 	m_popupRect = rect;
@@ -929,3 +958,8 @@ bool NUIWindow::IsFixedSizeWindow() const
 {
 	return nuiFixedSizeEnabled && m_name == "root";
 }
+
+static InitFunction initFunction([]
+{
+	static ConVar<bool> nuiFixedSize("nui_useFixedSize", ConVar_Archive | ConVar_UserPref, false, &nuiFixedSizeEnabled);
+});

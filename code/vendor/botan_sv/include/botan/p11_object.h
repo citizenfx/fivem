@@ -10,7 +10,7 @@
 #define BOTAN_P11_OBJECT_H_
 
 #include <botan/p11.h>
-#include <botan/p11_session.h>
+#include <botan/p11_types.h>
 #include <botan/secmem.h>
 
 #include <vector>

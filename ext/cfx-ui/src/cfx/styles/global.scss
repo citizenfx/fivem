@@ -125,7 +125,7 @@ kbd {
 }
 
 p {
-  padding: calc(var(--offset-normal) / 2) 0;
+  padding: ui.offset('small') 0;
 
   line-height: 1.4;
 }
@@ -156,7 +156,8 @@ li::marker {
 .util-z-index-9000 {
   z-index: 9000;
 }
-.util-text-selectable {
+.util-text-selectable,
+.util-text-selectable * {
   user-select: text !important;
 }
 .util-flex-grow {

@@ -8,8 +8,7 @@
 #ifndef BOTAN_DATA_STORE_H_
 #define BOTAN_DATA_STORE_H_
 
-#include <botan/x509_dn.h>
-#include <botan/asn1_alt_name.h>
+#include <botan/pkix_types.h>
 #include <functional>
 #include <string>
 #include <vector>

@@ -72,10 +72,7 @@ private:
 		CefBrowserHost::DragOperationsMask effect) override;
 
 public:
-	inline CComPtr<DropTargetWin> GetDropTarget()
-	{
-		return m_dropTarget;
-	}
+	CComPtr<DropTargetWin> GetDropTarget();
 
 private:
 	CComPtr<DropTargetWin> m_dropTarget;

@@ -1,10 +1,14 @@
-import { useStreamerMode } from "cfx/apps/mpMenu/services/convars/convars.service";
-import { useHomeScreenServerList } from "cfx/apps/mpMenu/services/servers/list/HomeScreenServerList.service";
-import { ServerTileItem } from "cfx/common/parts/Server/ServerTileItem/ServerTileItem";
-import { $L } from "cfx/common/services/intl/l10n";
-import { Text } from "cfx/ui/Text/Text";
-import { useOpenFlag } from "cfx/utils/hooks";
-import { observer } from "mobx-react-lite";
+import { observer } from 'mobx-react-lite';
+
+import { useStreamerMode } from 'cfx/apps/mpMenu/services/convars/convars.service';
+import { useHomeScreenServerList } from 'cfx/apps/mpMenu/services/servers/list/HomeScreenServerList.service';
+import { ServerTileItem } from 'cfx/common/parts/Server/ServerTileItem/ServerTileItem';
+import { ElementPlacements } from 'cfx/common/services/analytics/types';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { Interactive } from 'cfx/ui/Interactive/Interactive';
+import { Text } from 'cfx/ui/Text/Text';
+import { useOpenFlag } from 'cfx/utils/hooks';
+
 import s from './LastConnectedTile.module.scss';
 
 export const LastConnectedTile = observer(function LastConnectedTile() {
@@ -14,6 +18,7 @@ export const LastConnectedTile = observer(function LastConnectedTile() {
   const showStreamerWarning = !warningHidden && streamerMode;
 
   const server = useLastHistoryServer();
+
   if (!server) {
     return null;
   }
@@ -27,28 +32,28 @@ export const LastConnectedTile = observer(function LastConnectedTile() {
   return (
     <div className={s.root}>
       <ServerTileItem
-        growHeight
+        placeControlsBelow
         hideBanner
+        hideBoost
         label={label}
         server={server}
+        elementPlacement={ElementPlacements.LastConnected}
       />
 
       {showStreamerWarning && (
-        <div onClick={hide} className={s.warning}>
+        <Interactive onClick={hide} className={s.warning}>
           <Text color="inherit" size="large">
             {$L('#Home_LastConnectedServer_PrivacyCover_Header')}
           </Text>
 
-          <Text color="inherit">
-            {$L('#Home_LastConnectedServer_PrivacyCover_Reason')}
-          </Text>
+          <Text color="inherit">{$L('#Home_LastConnectedServer_PrivacyCover_Reason')}</Text>
 
           <div />
 
           <Text color="inherit" weight="bold">
             {$L('#Home_LastConnectedServer_PrivacyCover_ClickToShow')}
           </Text>
-        </div>
+        </Interactive>
       )}
     </div>
   );

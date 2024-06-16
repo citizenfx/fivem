@@ -7,6 +7,7 @@ return function()
 			"rage:input",
 			"rage:graphics",
 			"rage:nutsnbolts",
+			"nui:core",
 		}
 	end
 	
