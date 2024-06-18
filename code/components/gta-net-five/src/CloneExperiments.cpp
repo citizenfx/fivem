@@ -3366,11 +3366,12 @@ static uint32_t* GetFireApplicability(void* event, uint32_t* result, void* pos)
 
 #if defined(GTA_FIVE) || IS_RDR3
 /// ReportCashSpawnEvent: Sanitize the gamer handle pointer since player31 may
-/// not include a reference that value.
+/// not include a reference that value. Since we really aren't doing much with
+/// rlMetric, this path will be nop'd.
 static bool (*g_origMetricCASHIsGamerHandleValid)(void*);
 static bool MetricCASH_IsGamerHandleValid(void* pGamerHandle)
 {
-	return pGamerHandle != nullptr && g_origMetricCASHIsGamerHandleValid(pGamerHandle);
+	return false;
 }
 #endif
 
