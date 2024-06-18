@@ -32,6 +32,11 @@ namespace net
 			return m_capacity;
 		}
 
+		const uint8_t* GetData() const
+		{
+			return m_data;
+		}
+
 		bool CanRead(const size_t length) const
 		{
 			return m_offset + length <= m_capacity;
