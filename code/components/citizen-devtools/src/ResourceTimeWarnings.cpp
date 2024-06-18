@@ -6,7 +6,10 @@
 #include <json.hpp>
 
 #include <CoreConsole.h>
+
+#ifndef IS_FXSERVER
 #include <Pool.h>
+#endif
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -750,6 +753,7 @@ static InitFunction initFunction([]()
 		}
 	});
 
+#ifndef IS_FXSERVER
 	static ConVar<bool> poolVar("net_showPools", ConVar_Archive | ConVar_UserPref, false, &m_enabledPools);
 
 	ConHost::OnShouldDrawGui.Connect([this](bool* should)
@@ -806,21 +810,10 @@ static InitFunction initFunction([]()
 			BytesToHumanReadable(humanSizeUsed, totalSizeUsed);
 			ImGui::Text("Total size used: %s", humanSizeUsed.c_str());
 
+			bool shouldExport = false;
 			if (ImGui::Button("Export"))
 			{
-				trace("--- Pools memory usage report ---\n");
-				trace("Allocated: %s\n", humanSizeAllocated.c_str());
-				trace("Used: %s\n", humanSizeUsed.c_str());
-				trace("Pools details:\n");
-
-				for (const auto& poolData : poolsInfo)
-				{
-					std::string humanSize;
-					BytesToHumanReadable(humanSize, poolData.totalSize);
-
-					trace(" - %s, item size = %d, total size = %s, items count = %d, pool size = %d\n", poolData.name.c_str(), poolData.itemSize, humanSize.c_str(), poolData.items, poolData.maxItems);
-				}
-				trace("--- Pools memory usage report end ---\n");
+				shouldExport = true;
 			}
 
 			if (ImGui::BeginTable("Pool values", 6, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
@@ -871,7 +864,7 @@ static InitFunction initFunction([]()
 									return (sortSpec->SortDirection == ImGuiSortDirection_Ascending) ? true : false;
 							}
 
-							return strcmpi(left.name.c_str(), right.name.c_str()) > 0;
+							return strcmpi(left.name.c_str(), right.name.c_str()) < 0;
 						});
 					}
 				}
@@ -902,7 +895,31 @@ static InitFunction initFunction([]()
 				}
 				ImGui::EndTable();
 			}
+
+			if (shouldExport)
+			{
+				// Properly sort it before export
+				std::sort(poolsInfo.begin(), poolsInfo.end(), [](const PoolInfo& left, const PoolInfo& right)
+				{
+					return strcmpi(left.name.c_str(), right.name.c_str()) < 0;
+				});
+
+				trace("--- Pools memory usage report ---\n");
+				trace("Allocated: %s\n", humanSizeAllocated.c_str());
+				trace("Used: %s\n", humanSizeUsed.c_str());
+				trace("Pools details:\n");
+
+				for (const auto& poolData : poolsInfo)
+				{
+					std::string humanSize;
+					BytesToHumanReadable(humanSize, poolData.totalSize);
+
+					trace(" - %s, item size = %d, total size = %s, items count = %d, pool size = %d\n", poolData.name.c_str(), poolData.itemSize, humanSize.c_str(), poolData.items, poolData.maxItems);
+				}
+				trace("--- Pools memory usage report end ---\n");
+			}
 		}
 		ImGui::End();
 	});
+#endif
 });
