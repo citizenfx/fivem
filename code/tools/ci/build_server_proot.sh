@@ -10,7 +10,7 @@ apk add curl git xz sudo rsync openssh-client binutils
 git config --global safe.directory '*'
 
 # announce building
-text="Woop, building a new $CI_PROJECT_NAME $CI_COMMIT_REF_NAME SERVER/LINUX-PROOT build, triggered by $GITLAB_USER_EMAIL"
+text="Woop, building a new $CI_PROJECT_NAME $CI_COMMIT_REF_NAME SERVER/LINUX-PROOT build"
 
 escapedText=$(echo $text | sed 's/"/\"/g' | sed "s/'/\'/g" )
 json="{\"text\":\"$escapedText\"}"
