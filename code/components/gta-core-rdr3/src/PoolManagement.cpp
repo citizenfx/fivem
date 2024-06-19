@@ -589,6 +589,7 @@ static void PoolDtorWrap(atPoolBase* pool)
 
 		g_pools.erase(hash);
 		g_inversePools.erase(pool);
+		g_namedPools.erase(poolEntries.LookupHash(hash));
 	}
 
 	return g_origPoolDtor(pool);
