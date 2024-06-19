@@ -73,6 +73,9 @@ enum ConsoleVariableFlags
 
 	// blocks any modifications to the convar via set(s|a|r) commands
 	ConVar_Internal = 0x40,
+
+	// can't be read by script API
+	ConVar_ScriptRestricted = 0x80,
 };
 
 inline std::string ConsoleFlagsToString(ConsoleVariableFlags flags)
@@ -92,6 +95,8 @@ inline std::string ConsoleFlagsToString(ConsoleVariableFlags flags)
 		value += "ReadOnly ";
 	if (flags & ConVar_Internal)
 		value += "Internal ";
+	if (flags & ConVar_ScriptRestricted)
+		value += "ScriptRestricted ";
 	
 	return value;
 }
