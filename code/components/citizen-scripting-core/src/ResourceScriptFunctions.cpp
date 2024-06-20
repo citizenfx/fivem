@@ -396,4 +396,27 @@ static InitFunction initFunction([] ()
 
 		sbac->OnStateBagChange.Disconnect(size_t(cookie));
 	});
+
+#if IS_FXSERVER
+
+	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+	{
+		resource->OnStop.Connect([resource]()
+		{
+			fx::OMPtr<IScriptRuntime> runtime;
+			if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+			{
+				std::string currentResourceName = reinterpret_cast<fx::Resource*>(runtime->GetParentObject())->GetName();
+
+				if (resource->GetName() == currentResourceName)
+				{
+					console::PrintWarning(resource->GetName(), "Cannot stop/restart the resource within itself\n");
+					return false;
+				}
+			}
+			return true;
+		});
+	});
+#endif
+
 });
