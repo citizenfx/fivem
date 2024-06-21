@@ -32,6 +32,11 @@
 
 #include <Error.h>
 
+#include "ByteReader.h"
+#include "ByteWriter.h"
+#include "NetBitVersion.h"
+#include "NetGameEventV2.h"
+
 extern NetLibrary* g_netLibrary;
 
 class CNetGamePlayer;
@@ -2339,6 +2344,7 @@ static HookFunction hookFunction([]()
 static void* g_netEventMgr;
 
 static std::unordered_set<uint16_t> g_eventBlacklist;
+static std::unordered_set<uint32_t> g_eventBlacklistV2;
 #ifdef IS_RDR3
 static std::unordered_map<uint16_t, const char*> g_eventNames;
 #endif
@@ -2396,6 +2402,72 @@ static void netEventMgr_PopulateEventBlacklist()
 	BlacklistEvent("NETWORK_CHECK_CATALOG_CRC");
 }
 
+static std::unordered_map<uint32_t, uint16_t> netEventMgr_GetEventHashIdents()
+{
+	std::unordered_map<uint32_t, uint16_t> eventIdents;
+
+#ifdef GTA_FIVE
+	auto eventMgr = *(char**)g_netEventMgr;
+	for (uint16_t i = 0; i < netEventMgr_GetMaxEventType(); ++i)
+	{
+		if (auto name = _netEventMgr_GetNameFromType(eventMgr, i))
+		{
+			eventIdents.insert({ HashRageString(name), i });
+		}
+	}
+#elif defined(IS_RDR3)
+	for (auto [type, name] : g_eventNames)
+	{
+		eventIdents.insert({  HashRageString(name), type });
+	}
+#endif
+
+	return eventIdents;
+}
+
+static std::vector<uint32_t> netEventMgr_GetIdentsToEventHash()
+{
+	std::vector<uint32_t> eventIdents;
+
+#ifdef GTA_FIVE
+	auto eventMgr = *(char**)g_netEventMgr;
+
+	eventIdents.resize(netEventMgr_GetMaxEventType());
+
+	for (uint16_t i = 0; i < netEventMgr_GetMaxEventType(); ++i)
+	{
+		if (auto name = _netEventMgr_GetNameFromType(eventMgr, i))
+		{
+			eventIdents[i] = HashRageString(name);
+		}
+	}
+#elif IS_RDR3
+	for (auto [type, name] : g_eventNames)
+	{
+		eventIdents.resize(type + 1);
+		eventIdents[type] =  HashRageString(name);
+	}
+#endif
+
+	return eventIdents;
+}
+
+static void netEventMgr_PopulateEventBlacklistV2()
+{
+	auto BlacklistEvent = [&](const char* name)
+	{
+		g_eventBlacklistV2.emplace(HashRageString(name));
+	};
+
+	BlacklistEvent("GIVE_CONTROL_EVENT"); // don't give control using events!
+	BlacklistEvent("BLOW_UP_VEHICLE_EVENT"); // used only during migration
+	BlacklistEvent("KICK_VOTES_EVENT");
+	BlacklistEvent("NETWORK_CRC_HASH_CHECK_EVENT");
+	BlacklistEvent("NETWORK_CHECK_EXE_SIZE_EVENT");
+	BlacklistEvent("NETWORK_CHECK_CODE_CRCS_EVENT");
+	BlacklistEvent("NETWORK_CHECK_CATALOG_CRC");
+}
+
 /// Ignore processing events that do not apply to OneSyncEnabled.
 ///
 /// If the event implements a Reply method, or is exposed via script command,
@@ -2406,6 +2478,18 @@ static bool netEventMgr_IsBlacklistedEvent(uint16_t type)
 	std::call_once(generated, netEventMgr_PopulateEventBlacklist);
 
 	return g_eventBlacklist.find(type) != g_eventBlacklist.end();
+}
+
+/// Ignore processing events that do not apply to OneSyncEnabled.
+///
+/// If the event implements a Reply method, or is exposed via script command,
+/// ensure blacklisting it will not negatively impact the game or network state.
+static bool netEventMgr_IsBlacklistedEventV2(uint16_t type)
+{
+	static std::once_flag generated;
+	std::call_once(generated, netEventMgr_PopulateEventBlacklistV2);
+
+	return g_eventBlacklistV2.find(type) != g_eventBlacklistV2.end();
 }
 
 /// TEMPORARY: Event ID overriding process. Should be used for RedM only for now
@@ -2750,6 +2834,7 @@ struct netGameEventState
 };
 
 static std::map<std::tuple<uint16_t, uint16_t>, netGameEventState> g_events;
+static std::map<std::tuple<uint32_t, uint16_t>, netGameEventState> g_eventsV2;
 
 static void(*g_origAddEvent)(void*, rage::netGameEvent*);
 static uint16_t g_eventHeader;
@@ -2786,6 +2871,16 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 			}
 		}
 
+		for (auto& eventPair : g_eventsV2)
+		{
+			auto [key, tup] = eventPair;
+
+			if (tup.ev && strcmp(tup.ev->GetName(), "ALTER_WANTED_LEVEL_EVENT") == 0)
+			{
+				count++;
+			}
+		}
+
 		if (count >= 5)
 		{
 			delete ev;
@@ -2799,6 +2894,16 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 		int count = 0;
 
 		for (auto& eventPair : g_events)
+		{
+			auto [key, tup] = eventPair;
+
+			if (tup.ev && strcmp(tup.ev->GetName(), "PED_SPEECH_") != -1)
+			{
+				count++;
+			}
+		}
+
+		for (auto& eventPair : g_eventsV2)
 		{
 			auto [key, tup] = eventPair;
 
@@ -2854,20 +2959,51 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 		}
 	}
 
+	for (auto& eventPair : g_eventsV2)
+	{
+		auto [key, tup] = eventPair;
+
+		if (tup.ev && !isSentModifying(tup) && tup.ev->Equals(ev))
+		{
+			delete ev;
+			return;
+		}
+	}
+
 	auto eventId = (ev->hasEventId) ? ev->eventId : g_eventHeader++;
 
-	auto [it, inserted] = g_events.insert({ { ev->eventType, eventId }, { ev, msec() } });
-
-	if (!inserted)
+	if (icgi->IsNetVersionOrHigher(net::NetBitVersion::netVersion4))
 	{
-		delete ev;
+		static std::vector<uint32_t> eventIdentsToHash = netEventMgr_GetIdentsToEventHash();
+		if (ev->eventType >= eventIdentsToHash.size())
+		{
+			// invalid event id
+			delete ev;
+			return;
+		}
+
+		auto [it, inserted] = g_eventsV2.insert({ { eventIdentsToHash[ev->eventType], eventId }, { ev, msec() } });
+
+		if (!inserted)
+		{
+			delete ev;
+		}
 	}
 	else
 	{
+		auto [it, inserted] = g_events.insert({ { ev->eventType, eventId }, { ev, msec() } });
+
+		if (!inserted)
+		{
+			delete ev;
+		}
+		else
+		{
 #if defined(GTA_FIVE) && 0
-		auto em = reinterpret_cast<rage::netEventMgr*>(eventMgr);
-		em->AddEvent(ev);
+			auto em = reinterpret_cast<rage::netEventMgr*>(eventMgr);
+			em->AddEvent(ev);
 #endif
+		}
 	}
 }
 
@@ -2909,7 +3045,7 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 	net::Buffer outBuffer;
 
 	// TODO: replace with bit array?
-	std::set<int> targetPlayers;
+	std::set<uint16_t> targetPlayers;
 
 	for (auto& player : g_players)
 	{
@@ -2949,29 +3085,88 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 		}
 	}
 
-	outBuffer.Write<uint8_t>(targetPlayers.size());
-
-	for (int playerId : targetPlayers)
+	if (icgi->IsNetVersionOrHigher(net::NetBitVersion::netVersion4))
 	{
-		outBuffer.Write<uint16_t>(playerId);
+		static std::vector<uint32_t> eventIdentsToHash = netEventMgr_GetIdentsToEventHash();
+		static std::vector<uint8_t> eventSendBuffer (net::SerializableComponent::GetSize<net::packet::ClientNetGameEventV2>());
+
+		if (ev->eventType >= eventIdentsToHash.size())
+		{
+			// invalid event id
+			return;
+		}
+
+		net::packet::ClientNetGameEventV2 clientNetGameEvent;
+		std::vector<uint16_t> targetPlayersVector;
+		targetPlayersVector.reserve(targetPlayers.size());
+		for (const uint16_t playerId : targetPlayers)
+		{
+			targetPlayersVector.push_back(playerId);
+		}
+		clientNetGameEvent.targetPlayers.SetValue({ targetPlayersVector.data(), targetPlayersVector.size() });
+		clientNetGameEvent.eventId = eventId;
+		clientNetGameEvent.isReply = false;
+		clientNetGameEvent.eventNameHash = eventIdentsToHash[ev->eventType];
+		clientNetGameEvent.data.SetValue(net::Span{static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength()});
+
+		net::ByteWriter writer {eventSendBuffer.data(), eventSendBuffer.size()};
+		if (!clientNetGameEvent.Process(writer))
+		{
+			// event could not be written
+			return;
+		}
+
+		g_netLibrary->SendReliableCommand("msgNetGameEventV2", (const char*)eventSendBuffer.data(), writer.GetOffset());
 	}
+	else
+	{
+		outBuffer.Write<uint8_t>(targetPlayers.size());
 
-	outBuffer.Write<uint16_t>(eventId);
-	outBuffer.Write<uint8_t>(0); // is reply
-	outBuffer.Write<uint16_t>(ev->eventType);
+		for (const uint16_t playerId : targetPlayers)
+		{
+			outBuffer.Write<uint16_t>(playerId);
+		}
 
-	uint32_t len = rlBuffer.GetDataLength();
-	outBuffer.Write<uint16_t>(len); // length (short)
-	outBuffer.Write(rlBuffer.m_data, len); // data
+		outBuffer.Write<uint16_t>(eventId);
+		outBuffer.Write<uint8_t>(0); // is reply
+		outBuffer.Write<uint16_t>(ev->eventType);
 
-	// max packet size and the buffer layout should match up with the serverside handler in ServerGameState.cpp
-	g_netLibrary->SendReliableCommand("msgNetGameEvent", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+		uint32_t len = rlBuffer.GetDataLength();
+		outBuffer.Write<uint16_t>(len); // length (short)
+		outBuffer.Write(rlBuffer.m_data, len); // data
+
+		// max packet size and the buffer layout should match up with the serverside handler in ServerGameState.cpp
+		g_netLibrary->SendReliableCommand("msgNetGameEvent", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+	}
 }
 
 static atPoolBase** g_netGameEventPool;
 
 static std::deque<net::Buffer> g_reEventQueue;
+
+struct ReEventQueueItem
+{
+	uint32_t eventNameHash;
+	uint16_t clientNetId;
+	uint16_t eventId;
+	bool isReply;
+	std::vector<uint8_t> eventData;
+
+	ReEventQueueItem(net::packet::ServerNetGameEventV2& serverNetGameEvent):
+		eventNameHash(serverNetGameEvent.eventNameHash),
+		clientNetId(serverNetGameEvent.clientNetId),
+		eventId(serverNetGameEvent.eventId),
+		isReply(serverNetGameEvent.isReply),
+		eventData(serverNetGameEvent.data.GetValue().begin(), serverNetGameEvent.data.GetValue().end())
+	{
+
+	}
+};
+
+static std::deque<ReEventQueueItem> g_reEventQueueV2;
+
 static void HandleNetGameEvent(const char* idata, size_t len);
+static void HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGameEvent);
 
 static void EventManager_Update()
 {
@@ -3029,6 +3224,38 @@ static void EventManager_Update()
 		g_events.erase(var);
 	}
 
+	std::set<decltype(g_eventsV2)::key_type> toRemoveV2;
+
+	for (auto& eventPair : g_eventsV2)
+	{
+		auto& evSet = eventPair.second;
+		auto ev = evSet.ev;
+
+		if (ev)
+		{
+			if (!evSet.sent)
+			{
+				SendGameEventRaw(std::get<1>(eventPair.first), ev);
+
+				evSet.sent = true;
+			}
+
+			auto expiryDuration = 5s;
+
+			if (ev->HasTimedOut() || (msec() - evSet.time) > expiryDuration)
+			{
+				delete ev;
+
+				toRemoveV2.insert(eventPair.first);
+			}
+		}
+	}
+
+	for (auto var : toRemoveV2)
+	{
+		g_eventsV2.erase(var);
+	}
+
 	// re-events
 	std::vector<net::Buffer> reEvents;
 
@@ -3036,6 +3263,20 @@ static void EventManager_Update()
 	{
 		reEvents.push_back(std::move(g_reEventQueue.front()));
 		g_reEventQueue.pop_front();
+	}
+
+	while (!g_reEventQueueV2.empty())
+	{
+		net::packet::ServerNetGameEventV2 serverNetGameEvent;
+		serverNetGameEvent.eventNameHash = g_reEventQueueV2.front().eventNameHash;
+		serverNetGameEvent.clientNetId = g_reEventQueueV2.front().clientNetId;
+		serverNetGameEvent.eventId = g_reEventQueueV2.front().eventId;
+		serverNetGameEvent.isReply = g_reEventQueueV2.front().isReply;
+		serverNetGameEvent.data = {g_reEventQueueV2.front().eventData.data(), g_reEventQueueV2.front().eventData.size()};
+
+		HandleNetGameEventV2(serverNetGameEvent);
+
+		g_reEventQueueV2.pop_front();
 	}
 
 	for (auto& evBuf : reEvents)
@@ -3156,6 +3397,107 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	}
 }
 
+static void HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGameEventV2)
+{
+	if (!icgi->HasVariable("networkInited"))
+	{
+		return;
+	}
+
+	// TODO: use a real player for some things that _are_ 32-safe
+	EnsurePlayer31();
+
+	const uint16_t sourcePlayerId = serverNetGameEventV2.clientNetId.GetValue();
+	const uint16_t eventHeader =  serverNetGameEventV2.eventId.GetValue();
+	const bool isReply = serverNetGameEventV2.isReply.GetValue();
+	const uint32_t eventNameHash = serverNetGameEventV2.eventNameHash.GetValue();
+
+	auto player = g_playersByNetId[sourcePlayerId];
+
+	if (!player)
+	{
+		player = g_player31;
+	}
+
+	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(serverNetGameEventV2.data.GetValue().data())), serverNetGameEventV2.data.GetValue().size());
+	rlBuffer.m_f1C = 1;
+
+	if (isReply)
+	{
+		auto evSetIt = g_eventsV2.find({ eventNameHash, eventHeader });
+
+		if (evSetIt != g_eventsV2.end())
+		{
+			auto ev = evSetIt->second.ev;
+
+			if (ev)
+			{
+				ev->HandleReply(&rlBuffer, player);
+
+#ifdef GTA_FIVE
+				ev->HandleExtraData(&rlBuffer, true, player, GetLocalPlayer());
+#elif IS_RDR3
+				ev->HandleExtraData(&rlBuffer, player, GetLocalPlayer());
+#endif
+
+				delete ev;
+				g_eventsV2.erase({ eventNameHash, eventHeader });
+			}
+		}
+	}
+	else
+	{
+		using TEventHandlerFn = void(*)(rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t, uint32_t, uint32_t);
+		if (netEventMgr_IsBlacklistedEventV2(eventNameHash))
+		{
+			//trace("Rejecting Blacklisted Event: %d\n", eventType);
+			return;
+		}
+
+		bool rejected = false;
+
+		// for all intents and purposes, the player will be 31
+		auto lastIndex = player->physicalPlayerIndex();
+		player->physicalPlayerIndex() = 31;
+
+		auto eventMgr = *(char**)g_netEventMgr;
+
+		static std::unordered_map<uint32_t, uint16_t> eventIdents = netEventMgr_GetEventHashIdents();
+
+		const auto eventIdentRes = eventIdents.find(eventNameHash);
+
+		if (eventIdentRes == eventIdents.end())
+		{
+			// unknown event
+			return;
+		}
+
+		if (eventMgr)
+		{
+#ifdef GTA_FIVE
+			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + (xbr::IsGameBuildOrGreater<2372>() ? 0x3B3D0 : xbr::IsGameBuildOrGreater<2060>() ? 0x3ABD0 : 0x3AB80));
+#elif IS_RDR3
+			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + 0x3BF10);
+#endif
+
+			auto eh = eventHandlerList[eventIdentRes->second];
+
+			if (eh && (uintptr_t)eh >= hook::get_adjusted(0x140000000) && (uintptr_t)eh < hook::get_adjusted(hook::exe_end()))
+			{
+				eh(&rlBuffer, player, GetLocalPlayer(), eventHeader, 0, 0);
+				rejected = g_lastEventGotRejected;
+			}
+		}
+
+		player->physicalPlayerIndex() = lastIndex;
+
+		if (rejected)
+		{
+			g_reEventQueueV2.emplace_back(serverNetGameEventV2);
+		}
+	}
+}
+
 static void DecideNetGameEvent(rage::netGameEvent* ev, CNetGamePlayer* player, CNetGamePlayer* unkConn, rage::datBitBuffer* buffer, uint16_t evH)
 {
 	g_lastEventGotRejected = false;
@@ -3181,20 +3523,58 @@ static void DecideNetGameEvent(rage::netGameEvent* ev, CNetGamePlayer* player, C
 			ev->PrepareExtraData(&rlBuffer, player, nullptr);
 #endif
 
-			net::Buffer outBuffer;
-			outBuffer.Write<uint8_t>(1);
-			outBuffer.Write<uint16_t>(g_netIdsByPlayer[player]);
+			if (icgi->IsNetVersionOrHigher(net::NetBitVersion::netVersion4))
+			{
+				static std::vector<uint32_t> eventIdentsToHash = netEventMgr_GetIdentsToEventHash();
+				static std::vector<uint8_t> eventSendBuffer (net::SerializableComponent::GetSize<net::packet::ClientNetGameEventV2>());
 
-			outBuffer.Write<uint16_t>(evH);
-			outBuffer.Write<uint8_t>(1); // is reply
-			outBuffer.Write<uint16_t>(ev->eventType);
+				if (ev->eventType >= eventIdentsToHash.size())
+				{
+					// invalid event id
+					return;
+				}
 
-			uint32_t len = rlBuffer.GetDataLength();
-			outBuffer.Write<uint16_t>(len); // length (short)
-			outBuffer.Write(rlBuffer.m_data, len); // data
+				const auto targetPlayerRes = g_netIdsByPlayer.find(player);
 
-			// max packet size and the buffer layout should match up with the serverside handler in ServerGameState.cpp
-			g_netLibrary->SendReliableCommand("msgNetGameEvent", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+				net::packet::ClientNetGameEventV2 clientNetGameEvent;
+				uint16_t targetPlayerId;
+				if (targetPlayerRes != g_netIdsByPlayer.end())
+				{
+					// target player is not available for the reply
+					// but sending it to the server for event processing is fine
+					targetPlayerId = targetPlayerRes->second;
+					clientNetGameEvent.targetPlayers.SetValue({&targetPlayerId, 1});
+				}
+				clientNetGameEvent.eventId = evH;
+				clientNetGameEvent.isReply = true;
+				clientNetGameEvent.eventNameHash = eventIdentsToHash[ev->eventType];
+				clientNetGameEvent.data = {static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength()};
+
+				net::ByteWriter writer {eventSendBuffer.data(), eventSendBuffer.size()};
+				if (!clientNetGameEvent.Process(writer))
+				{
+					// event could not be written
+					return;
+				}
+
+				g_netLibrary->SendReliableCommand("msgNetGameEventV2", (const char*)eventSendBuffer.data(), writer.GetOffset());
+			} else
+			{
+				net::Buffer outBuffer;
+				outBuffer.Write<uint8_t>(1);
+				outBuffer.Write<uint16_t>(g_netIdsByPlayer[player]);
+
+				outBuffer.Write<uint16_t>(evH);
+				outBuffer.Write<uint8_t>(1); // is reply
+				outBuffer.Write<uint16_t>(ev->eventType);
+
+				uint32_t len = rlBuffer.GetDataLength();
+				outBuffer.Write<uint16_t>(len); // length (short)
+				outBuffer.Write(rlBuffer.m_data, len); // data
+
+				// max packet size and the buffer layout should match up with the serverside handler in ServerGameState.cpp
+				g_netLibrary->SendReliableCommand("msgNetGameEvent", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+			}
 		}
 	}
 	else
@@ -3267,6 +3647,25 @@ static InitFunction initFunctionEv([]()
 			}
 
 			HandleNetGameEvent(data, len);
+		}, true);
+
+		netLibrary->AddReliableHandler("msgNetGameEventV2", [](const char* data, size_t len)
+		{
+			if (!icgi->OneSyncEnabled)
+			{
+				return;
+			}
+
+			net::packet::ServerNetGameEventV2 serverNetGameEventV2;
+
+			net::ByteReader reader { reinterpret_cast<const uint8_t*>(data), len };
+
+			if (!serverNetGameEventV2.Process(reader))
+			{
+				return;
+			}
+
+			HandleNetGameEventV2(serverNetGameEventV2);
 		}, true);
 	});
 });
@@ -4167,6 +4566,7 @@ static InitFunction initFunction([]()
 #endif
 
 		g_events.clear();
+		g_eventsV2.clear();
 		g_reEventQueue.clear();
 
 		trackedObjects.clear();
