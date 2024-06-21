@@ -162,10 +162,13 @@ namespace net
 					return false;
 				}
 
-				m_value.resize(size);
-				if (!stream.Field(reinterpret_cast<Type&>(*m_value.data()), sizeof(typename Type::value_type) * size))
+				if (size > 0)
 				{
-					return false;
+					m_value.resize(size);
+					if (!stream.Field(reinterpret_cast<Type&>(*m_value.data()), sizeof(typename Type::value_type) * size))
+					{
+						return false;
+					}
 				}
 
 				return true;
