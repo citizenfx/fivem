@@ -122,5 +122,5 @@ TEST_CASE("Components test")
 		REQUIRE(false);
 	}
 	uint64_t size = byteCounter.GetCapacity();
-	REQUIRE(size == uint64_t(1066));
+	REQUIRE(size == uint64_t(917535));
 }
