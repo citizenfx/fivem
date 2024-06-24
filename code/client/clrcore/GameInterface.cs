@@ -28,6 +28,14 @@ namespace CitizenFX.Core
 		public static extern bool WalkStackBoundary(string resourceName, byte[] start, byte[] end, out byte[] blob);
 
 		[SecurityCritical]
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		public static extern byte[] InvokeFunctionReference(string refId, byte[] argsSerialized);
+
+		[SecurityCritical]
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		public static extern IntPtr MakeMemoryBuffer(byte[] buffer);
+
+		[SecurityCritical]
 		[DllImport("CoreRT", EntryPoint = "CoreFxCreateObjectInstance")]
 		public static extern int CreateObjectInstance([MarshalAs(UnmanagedType.LPStruct)] Guid clsid, [MarshalAs(UnmanagedType.LPStruct)] Guid iid, out IntPtr objectPtr);
     }
