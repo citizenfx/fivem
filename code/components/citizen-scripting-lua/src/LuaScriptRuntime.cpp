@@ -13,6 +13,7 @@
 #include "LuaScriptRuntime.h"
 #include "LuaScriptNatives.h"
 #include "ResourceScriptingComponent.h"
+#include "fxScriptBuffer.h"
 
 #include <msgpack.hpp>
 #include <json.hpp>
@@ -461,7 +462,7 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 	// set the event callback in the current routine
 	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
 
-	luaRuntime->SetCallRefRoutine([=](int32_t refId, const char* argsSerialized, size_t argsSize, char** retval, size_t* retvalLength)
+	luaRuntime->SetCallRefRoutine([=](int32_t refId, const char* argsSerialized, size_t argsSize)
 	{
 		// static array for retval output (sadly)
 		static std::vector<char> retvalArray(32768);
@@ -480,30 +481,25 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 		lua_pushlstring(L, argsSerialized, argsSize);
 
 		// invoke the tick routine
+		fx::OMPtr<IScriptBuffer> rv;
+
 		if (lua_pcall(L, 2, 1, eh) != 0)
 		{
 			LUA_SCRIPT_TRACE(L, "Error running call reference function for resource %s", luaRuntime->GetResourceName());
-
-			*retval = nullptr;
-			*retvalLength = 0;
 		}
 		else
 		{
-			const char* retvalString = lua_tolstring(L, -1, retvalLength);
+			size_t retvalLength = 0;
+			const char* retvalString = lua_tolstring(L, -1, &retvalLength);
 
-			if (*retvalLength > retvalArray.size())
-			{
-				retvalArray.resize(*retvalLength);
-			}
-
-			memcpy(&retvalArray[0], retvalString, fwMin(retvalArray.size(), *retvalLength));
-
-			*retval = &retvalArray[0];
+			rv = fx::MemoryScriptBuffer::Make(retvalString, retvalLength);
 
 			lua_pop(L, 1); // as there's a result
 		}
 
 		lua_pop(L, 1);
+
+		return rv;
 	});
 
 	return 0;
@@ -613,41 +609,30 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 	fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
 	LuaProfilerScope _profile(luaRuntime.GetRef(), false);
 
-	constexpr uint32_t kInvokeFunctionReferenceHash = HashString("INVOKE_FUNCTION_REFERENCE");
-
-	// variables to hold state
-	fxNativeContext context = { 0 };
-
-	context.numArguments = 4;
-	context.nativeIdentifier = kInvokeFunctionReferenceHash;
-
-	// identifier string
-	context.arguments[0] = reinterpret_cast<uintptr_t>(luaL_checkstring(L, 1));
-
-	// argument data
 	size_t argLength;
 	const char* argString = luaL_checklstring(L, 2, &argLength);
 
-	context.arguments[1] = reinterpret_cast<uintptr_t>(argString);
-	context.arguments[2] = static_cast<uintptr_t>(argLength);
-
-	// return value length
-	size_t retLength = 0;
-	context.arguments[3] = reinterpret_cast<uintptr_t>(&retLength);
-
 	// invoke
-	if (FX_FAILED(scriptHost->InvokeNative(context)))
+	fx::OMPtr<IScriptBuffer> retvalBuffer;
+	if (FX_FAILED(scriptHost->InvokeFunctionReference(const_cast<char*>(luaL_checkstring(L, 1)), const_cast<char*>(argString), argLength, retvalBuffer.GetAddressOf())))
 	{
 		char* error = "Unknown";
 		scriptHost->GetLastErrorText(&error);
 
 		_profile.Close();
-		lua_pushstring(L, va("Execution of native %016x in script host failed: %s", kInvokeFunctionReferenceHash, error));
+		lua_pushstring(L, va("Execution of function reference in script host failed: %s", error));
 		return lua_error(L);
 	}
 
 	// get return values
-	lua_pushlstring(L, reinterpret_cast<const char*>(context.arguments[0]), retLength);
+	if (retvalBuffer.GetRef())
+	{
+		lua_pushlstring(L, retvalBuffer->GetBytes(), retvalBuffer->GetLength());
+	}
+	else
+	{
+		lua_pushnil(L);
+	}
 
 	// return as such
 	return 1;
@@ -1747,19 +1732,16 @@ result_t LuaScriptRuntime::TriggerEvent(char* eventName, char* eventPayload, uin
 	return FX_S_OK;
 }
 
-result_t LuaScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, char** retvalSerialized, uint32_t* retvalLength)
+result_t LuaScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, IScriptBuffer** retval)
 {
-	*retvalLength = 0;
-	*retvalSerialized = nullptr;
+	*retval = nullptr;
 
 	if (m_callRefRoutine)
 	{
 		LuaPushEnvironment pushed(this);
 
-		size_t retvalLengthS;
-		m_callRefRoutine(refIdx, argsSerialized, argsLength, retvalSerialized, &retvalLengthS);
-
-		*retvalLength = retvalLengthS;
+		auto rv = m_callRefRoutine(refIdx, argsSerialized, argsLength);
+		return rv.CopyTo(retval);
 	}
 
 	return FX_S_OK;

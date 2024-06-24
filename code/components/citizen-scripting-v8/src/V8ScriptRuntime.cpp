@@ -22,6 +22,8 @@
 #include <CoreConsole.h>
 #include <SharedFunction.h>
 
+#include "fxScriptBuffer.h"
+
 #include <v8-version.h>
 
 #ifndef IS_FXSERVER
@@ -180,7 +182,7 @@ class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptF
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
 
-	typedef std::function<void(int32_t, const char*, size_t, char**, size_t*)> TCallRefRoutine;
+	typedef std::function<fx::OMPtr<IScriptBuffer>(int32_t, const char*, size_t)> TCallRefRoutine;
 
 	typedef std::function<int32_t(int32_t)> TDuplicateRefRoutine;
 
@@ -651,11 +653,8 @@ static void V8_SetCallRefFunction(const v8::FunctionCallbackInfo<v8::Value>& arg
 	Local<Function> function = Local<Function>::Cast(args[0]);
 	UniquePersistent<Function> functionRef(GetV8Isolate(), function);
 
-	runtime->SetCallRefRoutine(make_shared_function([runtime, functionRef{ std::move(functionRef) }](int32_t refId, const char* argsSerialized, size_t argsSize, char** retval, size_t* retvalLength)
+	runtime->SetCallRefRoutine(make_shared_function([runtime, functionRef{ std::move(functionRef) }](int32_t refId, const char* argsSerialized, size_t argsSize)
 	{
-		// static array for retval output
-		static std::vector<char> retvalArray(32768);
-
 		Local<Function> function = functionRef.Get(GetV8Isolate());
 
 		{
@@ -671,6 +670,8 @@ static void V8_SetCallRefFunction(const v8::FunctionCallbackInfo<v8::Value>& arg
 
 			MaybeLocal<Value> maybeValue = function->Call(runtime->GetContext(), Null(GetV8Isolate()), 2, arguments);
 
+			fx::OMPtr<IScriptBuffer> rv;
+
 			if (eh.HasCaught())
 			{
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
@@ -682,22 +683,16 @@ static void V8_SetCallRefFunction(const v8::FunctionCallbackInfo<v8::Value>& arg
 			{
 				Local<Value> value = maybeValue.ToLocalChecked();
 
-				if (!value->IsArrayBufferView())
+				if (value->IsArrayBufferView())
 				{
-					return;
+					Local<ArrayBufferView> abv = value.As<ArrayBufferView>();
+					std::vector<char> buffer(abv->ByteLength());
+					abv->CopyContents(buffer.data(), buffer.size());
+					rv = fx::MemoryScriptBuffer::Make(std::move(buffer));
 				}
-
-				Local<ArrayBufferView> abv = value.As<ArrayBufferView>();
-				*retvalLength = abv->ByteLength();
-
-				if (*retvalLength > retvalArray.size())
-				{
-					retvalArray.resize(*retvalLength);
-				}
-
-				abv->CopyContents(retvalArray.data(), fwMin(retvalArray.size(), *retvalLength));
-				*retval = retvalArray.data();
 			}
+
+			return rv;
 		}
 	}));
 }
@@ -928,30 +923,12 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 
 	Local<ArrayBufferView> abv = Local<ArrayBufferView>::Cast(args[0]);
 
-	// variables to hold state
-	fxNativeContext context = { 0 };
-
-	context.numArguments = 4;
-	context.nativeIdentifier = HashString("INVOKE_FUNCTION_REFERENCE");
-
-	// identifier string
-	context.arguments[0] = reinterpret_cast<uintptr_t>(refData->ref.GetRef().c_str());
-
-	// argument data
-	size_t argLength;
 	std::vector<uint8_t> argsBuffer(abv->ByteLength());
 
 	abv->CopyContents(argsBuffer.data(), argsBuffer.size());
 
-	context.arguments[1] = reinterpret_cast<uintptr_t>(argsBuffer.data());
-	context.arguments[2] = static_cast<uintptr_t>(argsBuffer.size());
-
-	// return value length
-	size_t retLength = 0;
-	context.arguments[3] = reinterpret_cast<uintptr_t>(&retLength);
-
-	// invoke
-	if (FX_FAILED(scriptHost->InvokeNative(context)))
+	fx::OMPtr<IScriptBuffer> retvalBuffer;
+	if (FX_FAILED(scriptHost->InvokeFunctionReference(const_cast<char*>(refData->ref.GetRef().c_str()), reinterpret_cast<char*>(argsBuffer.data()), argsBuffer.size(), retvalBuffer.GetAddressOf())))
 	{
 		char* error = "Unknown";
 		scriptHost->GetLastErrorText(&error);
@@ -963,11 +940,16 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 
 		return throwException(error);
 	}
+	
+	size_t retLength = (retvalBuffer.GetRef()) ? retvalBuffer->GetLength() : 0;
 
 	// get return values
 	Local<ArrayBuffer> outValueBuffer = ArrayBuffer::New(GetV8Isolate(), retLength);
-	auto abs = outValueBuffer->GetBackingStore();
-	memcpy(abs->Data(), (const void*)context.arguments[0], retLength);
+	if (retLength > 0)
+	{
+		auto abs = outValueBuffer->GetBackingStore();
+		memcpy(abs->Data(), retvalBuffer->GetBytes(), retLength);
+	}
 
 	Local<Uint8Array> outArray = Uint8Array::New(outValueBuffer, 0, retLength);
 	args.GetReturnValue().Set(outArray);
@@ -2529,19 +2511,16 @@ result_t V8ScriptRuntime::TriggerEvent(char* eventName, char* eventPayload, uint
 	return FX_S_OK;
 }
 
-result_t V8ScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, char** retvalSerialized, uint32_t* retvalLength)
+result_t V8ScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, IScriptBuffer** retval)
 {
-	*retvalLength = 0;
-	*retvalSerialized = nullptr;
+	*retval = nullptr;
 
 	if (m_callRefRoutine)
 	{
 		V8PushEnvironment pushed(this);
 
-		size_t retvalLengthS = 0;
-		m_callRefRoutine(refIdx, argsSerialized, argsLength, retvalSerialized, &retvalLengthS);
-
-		*retvalLength = retvalLengthS;
+		auto rv = m_callRefRoutine(refIdx, argsSerialized, argsLength);
+		return rv.CopyTo(retval);
 	}
 
 	return FX_S_OK;

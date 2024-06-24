@@ -45,6 +45,23 @@ namespace CitizenFX.Core
 
 			return null;
 		}
+		
+		/// <summary>
+		/// Starts deserialization from an array type
+		/// </summary>
+		/// <param name="data">a byte array</param>
+		/// <param name="netSource">from whom came this?</param>
+		/// <returns>arguments that can be passed into dynamic delegates</returns>
+		public static unsafe object[] DeserializeArray(byte[] data, string netSource = null)
+		{
+			if (data?.Length > 0)
+			{
+				fixed (byte* dataPtr = data)
+					return DeserializeArray(dataPtr, data.Length, netSource);
+			}
+
+			return null;
+		}
 
 		/// <summary>
 		/// Starts deserialization from an array type

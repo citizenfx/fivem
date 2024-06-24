@@ -51,7 +51,7 @@ private:
 	Thunk<void(uint64_t gameTime, bool profiling)> m_tick;
 	Thunk<void(MonoString* eventName, const char* argsSerialized, uint32_t serializedSize, MonoString* sourceId, uint64_t gameTime, bool profiling)> m_triggerEvent;
 
-	Thunk<void(int32_t refIndex, char* argsSerialized, uint32_t argsSize, char** retvalSerialized, uint32_t* retvalSize, uint64_t gameTime, bool profiling)> m_callRef;
+	Thunk<void(int32_t refIndex, char* argsSerialized, uint32_t argsSize, MonoArray** retval, uint64_t gameTime, bool profiling)> m_callRef;
 	Thunk<void(int32_t refIndex, int32_t* newRefIdx)> m_duplicateRef = nullptr;
 	Thunk<void(int32_t refIndex)> m_removeRef = nullptr;
 
@@ -65,6 +65,8 @@ public:
 	virtual ~MonoScriptRuntime() override = default;
 
 	MonoArray* CanonicalizeRef(int referenceId) const;
+
+	MonoArray* InvokeFunctionReference(MonoString* referenceId, MonoArray* argsSerialized) const;
 
 	bool ReadAssembly(MonoString* name, MonoArray** assembly, MonoArray** symbols) const;
 

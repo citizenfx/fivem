@@ -19,6 +19,14 @@ interface fxIStream : fxIBase
 	void GetLength(out uint64_t length);
 };
 
+[uuid(AD1B9D69-B984-4D30-8D33-BB1E6CF9E1BA)]
+interface IScriptBuffer : fxIBase
+{
+	[notxpcom] charPtr GetBytes();
+
+	[notxpcom] uint32_t GetLength();
+};
+
 [ref] native NativeCtx(fxNativeContext);
 
 [uuid(8FFDC384-4767-4EA2-A935-3BFCAD1DB7BF)]
@@ -39,6 +47,8 @@ interface IScriptHost : fxIBase
 	void SubmitBoundaryEnd(in charPtr boundaryData, in int32_t boundarySize);
 
 	void GetLastErrorText(out charPtr errorString);
+
+	void InvokeFunctionReference(in charPtr refId, in charPtr argsSerialized, in uint32_t argsSize, out IScriptBuffer ret);
 };
 
 [uuid(9568DF2D-27C8-4B9E-B29D-48272C317084)]
@@ -110,7 +120,7 @@ interface IScriptEventRuntime : fxIBase
 [uuid(A2F1B24B-A29F-4121-8162-86901ECA8097)]
 interface IScriptRefRuntime : fxIBase
 {
-	void CallRef(in int32_t refIdx, in charPtr argsSerialized, in uint32_t argsSize, out charPtr retvalSerialized, out uint32_t retvalSize);
+	void CallRef(in int32_t refIdx, in charPtr argsSerialized, in uint32_t argsSize, out IScriptBuffer ret);
 
 	void DuplicateRef(in int32_t refIdx, out int32_t newRefIdx);
 

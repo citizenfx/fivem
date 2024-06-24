@@ -34,6 +34,8 @@ inline std::chrono::microseconds usec()
 	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
+extern fx::OMPtr<IScriptRefRuntime> ValidateAndLookUpRef(const std::string& refString, int32_t* refIdx);
+
 struct Bookmark
 {
 	fx::Resource* resource;
@@ -416,6 +418,19 @@ result_t TestScriptHost::CanonicalizeRef(int32_t refIdx, int32_t instanceId, cha
 	strcpy(*outRefText, refString);
 
 	return FX_S_OK;
+}
+
+result_t TestScriptHost::InvokeFunctionReference(char* refId, char* argsSerialized, uint32_t argsSize, IScriptBuffer** ret)
+{
+	int32_t refIdx;
+	fx::OMPtr<IScriptRefRuntime> refRuntime = ValidateAndLookUpRef(refId, &refIdx);
+
+	if (refRuntime.GetRef())
+	{
+		return refRuntime->CallRef(refIdx, argsSerialized, argsSize, ret);
+	}
+
+	return FX_E_INVALIDARG;
 }
 
 result_t TestScriptHost::GetResourceName(char** outResourceName)
