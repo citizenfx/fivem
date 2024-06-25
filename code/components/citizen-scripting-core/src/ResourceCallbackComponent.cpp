@@ -100,7 +100,7 @@ result_t ResourceCallbackScriptRuntime::CallRef(int32_t refIdx, char* argsSerial
 
 			msgpack::packer<msgpack::sbuffer> packer(sb);
 			packer.pack_array(0);
-			return fx::MemoryScriptBuffer::Make(sb.data(), sb.size());
+			return fx::MemoryScriptBuffer::Make(sb.data(), static_cast<uint32_t>(sb.size()));
 		})();
 		
 		rv.CopyTo(retval);

@@ -686,9 +686,8 @@ static void V8_SetCallRefFunction(const v8::FunctionCallbackInfo<v8::Value>& arg
 				if (value->IsArrayBufferView())
 				{
 					Local<ArrayBufferView> abv = value.As<ArrayBufferView>();
-					std::vector<char> buffer(abv->ByteLength());
-					abv->CopyContents(buffer.data(), buffer.size());
-					rv = fx::MemoryScriptBuffer::Make(std::move(buffer));
+					rv = fx::MemoryScriptBuffer::Make(abv->ByteLength());
+					abv->CopyContents(rv->GetBytes(), abv->ByteLength());
 				}
 			}
 
