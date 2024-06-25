@@ -1689,7 +1689,7 @@ std::map<std::string, std::string> UpdateGameCache()
 
 	if (IsTargetGameBuildOrGreater<3095>())
 	{
-		g_requiredEntries.push_back({ "update/x64/dlcpacks/mp2023_02/dlc.rpf", "a522fe3be01f730e24cc3f43b03b39135cd3b937", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1605117952 });
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mp2023_02/dlc.rpf", "22afecbf20f46f1a871f442b2822b120bb41fbbf", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1604741120 });
 	}
 #elif IS_RDR3
 	if (IsTargetGameBuild<1491>())
