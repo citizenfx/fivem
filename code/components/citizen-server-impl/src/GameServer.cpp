@@ -1298,6 +1298,10 @@ void gscomms_execute_callback_on_sync_thread(const std::function<void()>& fn)
 
 void gscomms_reset_peer(int peer)
 {
+	if (!g_gameServer)
+	{
+		return;
+	}
 	gscomms_execute_callback_on_net_thread([=]()
 	{
 		g_gameServer->InternalResetPeer(peer);
@@ -1306,6 +1310,10 @@ void gscomms_reset_peer(int peer)
 
 void gscomms_send_packet(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType flags)
 {
+	if (!g_gameServer)
+	{
+		return;
+	}
 	g_gameServer->InternalSendPacket(client, peer, channel, buffer, flags);
 }
 
