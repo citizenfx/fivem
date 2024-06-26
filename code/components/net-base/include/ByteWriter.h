@@ -34,7 +34,7 @@ namespace net
 
 		bool CanWrite(size_t length) const
 		{
-			return m_offset + length < m_capacity;
+			return m_offset + length <= m_capacity;
 		}
 
 		/// <summary>
