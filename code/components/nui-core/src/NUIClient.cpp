@@ -571,6 +571,17 @@ void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, Termina
 	}
 }
 
+bool NUIClient::OnOpenURLFromTab(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& target_url, CefRequestHandler::WindowOpenDisposition target_disposition, bool user_gesture)
+{
+	// Discards middle mouse clicks / ctrl-clicks of links
+	// Default behavior is to open them in a new tab and switch to it, with no back button the player had no way to go back to CfxUI
+	if (target_disposition == CefRequestHandler::WindowOpenDisposition::WOD_NEW_BACKGROUND_TAB && user_gesture)
+	{
+		return true;
+	}
+	return false;
+}
+
 void NUIClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 {
 	m_browser = nullptr;
