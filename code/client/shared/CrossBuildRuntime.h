@@ -5,6 +5,7 @@
 
 #ifdef GTA_FIVE
 #define GAME_BUILDS \
+	(3258) \
 	(3095) \
 	(2944) \
 	(2802) \

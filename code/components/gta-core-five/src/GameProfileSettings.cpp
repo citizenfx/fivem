@@ -195,7 +195,11 @@ static std::map<int, std::shared_ptr<ProfileConVar>> _profileConVars;
 
 static hook::cdecl_stub<void(int idx, int, int)> _updatePref([]()
 {
-	if (xbr::IsGameBuildOrGreater<2944>())
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		return hook::get_pattern("48 89 5C 24 ? 44 89 44 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 ? ? ? ? B8");
+	}
+	else if (xbr::IsGameBuildOrGreater<2944>())
 	{
 		return hook::get_pattern("48 2B E0 44 8B F2 BB 8B 00 00 00 83 F9 63 0F 8F", -0x29);
 	}

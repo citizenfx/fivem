@@ -9,6 +9,14 @@ inline int MapNetObjectMethod()
 {
 	int offset = Offset;
 
+	if constexpr (Offset >= 0xA8)
+	{
+		if (xbr::IsGameBuildOrGreater<3258>())
+		{
+			offset += 0x8;
+		}
+	}
+
 	if constexpr (Offset >= 0x8)
 	{
 		if (xbr::IsGameBuildOrGreater<2802>())

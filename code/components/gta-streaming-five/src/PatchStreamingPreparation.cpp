@@ -511,6 +511,10 @@ static bool CEntity_SetModelIdWrap(rage::fwEntity* entity, rage::fwModelId* id)
 
 static hook::thiscall_stub<void(void*, const rage::fwModelId&)> _fwEntity_SetModelId([]()
 {
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		return hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8B D9 48 8B 49 ? 48 8B FA 48 85 C9 74 ? 8B 41");
+	}
 	return hook::get_pattern("E8 ? ? ? ? 45 33 D2 3B 05", -12);
 });
 

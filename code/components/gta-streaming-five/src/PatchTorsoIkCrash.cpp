@@ -2,6 +2,7 @@
 
 #include <jitasm.h>
 #include <Hooking.h>
+#include <CrossBuildRuntime.h>
 
 static hook::cdecl_stub<int(void*, uint16_t)> getBoneIndexFromTag([]()
 {
@@ -49,7 +50,14 @@ static HookFunction hookFunction([]()
 
         virtual void InternalMain() override
         {
-            mov(rcx, qword_ptr[rdi + 0x30]); // CPed*
+			if (xbr::IsGameBuildOrGreater<3258>())
+			{
+				mov(rcx, qword_ptr[rbx + 0x30]); // CPed*
+			}
+			else
+			{
+				mov(rcx, qword_ptr[rdi + 0x30]); // CPed*
+			}
             mov(rdx, r15); // rage::crSkeleton*
 
             mov(rax, (uintptr_t)IsPedSkeletonApplicable);
@@ -69,7 +77,16 @@ static HookFunction hookFunction([]()
     } patchStub;
 
     {
-        auto start = hook::get_pattern("4D 85 FF 0F 84 83 09 00 00", 0);
+		void* start = nullptr;
+		if (xbr::IsGameBuildOrGreater<3258>())
+		{
+			start = hook::get_pattern("4D 85 FF 0F 84 ? ? ? ? 48 8B 4B", 0);
+		}
+		else
+		{
+			start = hook::get_pattern("4D 85 FF 0F 84 83 09 00 00", 0);
+		}
+
         auto finish = hook::get_pattern("8B 95 A0 01 00 00 41 B0 01 49 8B CF", 17);
 
         patchStub.Init(reinterpret_cast<intptr_t>(start) + 9, reinterpret_cast<intptr_t>(finish));

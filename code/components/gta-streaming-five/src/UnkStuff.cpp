@@ -327,7 +327,15 @@ static HookFunction hookFunction([]()
 		}
 
 		hook::put<uint8_t>(hook::get_pattern("74 24 84 D2 74 20 8B 83", 4), 0xEB);
-		hook::put<uint8_t>(hook::get_pattern("84 D2 75 41 8B 83", 0x5F), 0xEB);
+			
+		if (xbr::IsGameBuildOrGreater<3258>())
+		{
+			hook::put<uint8_t>(hook::get_pattern("8B 83 ? ? ? ? C1 E8 ? 41 84 C5 74 ? 8B 87", -2), 0xEB);
+		}
+		else
+		{
+			hook::put<uint8_t>(hook::get_pattern("84 D2 75 41 8B 83", 0x5F), 0xEB);
+		}
 		//hook::put<uint8_t>(hook::get_pattern("40 B6 01 74 52 F3 0F 10 01", 3), 0xEB); // this skips a world grid check, might be bad!
 
 		// another scenario cluster network game check

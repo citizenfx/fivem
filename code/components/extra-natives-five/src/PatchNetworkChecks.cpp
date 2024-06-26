@@ -56,7 +56,15 @@ static HookFunction hookFunction([]()
 	// replace netgame check for dynamic door creation with our variable
 	{
 		g_dynamicDoorCreationDisabled = (bool*)hook::AllocateStubMemory(1);
-		auto location = hook::get_pattern<uint32_t>("44 8A 15 ? ? ? ? C1 E8 13 A8 01 74 0E", 3);
+		void* location = nullptr;
+		if (xbr::IsGameBuildOrGreater<3258>())
+		{
+			location = hook::get_pattern<uint32_t>("44 8A 15 ? ? ? ? C1 E8", 3);
+		}
+		else
+		{
+			location = hook::get_pattern<uint32_t>("44 8A 15 ? ? ? ? C1 E8 13 A8 01 74 0E", 3);
+		}
 		hook::put<int32_t>(location, (intptr_t)g_dynamicDoorCreationDisabled - (intptr_t)location - 4);
 	}
 
