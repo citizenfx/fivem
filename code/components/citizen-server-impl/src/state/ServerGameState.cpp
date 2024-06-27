@@ -289,7 +289,7 @@ static auto CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 
 		if (client && data)
 		{
-			if (client->GetNetId() < 0xFFFF)
+			if (client->HasConnected())
 			{
 				data->playerBag = state->GetStateBags()->RegisterStateBag(fmt::sprintf("player:%d", client->GetNetId()));
 
@@ -303,13 +303,13 @@ static auto CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 		}
 	};
 
-	if (client->GetNetId() < 0xFFFF)
+	if (client->HasConnected())
 	{
 		setupBag();
 	}
 	else
 	{
-		client->OnAssignNetId.Connect([setupBag]()
+		client->OnAssignNetId.Connect([setupBag](const uint32_t previousNetId)
 		{
 			setupBag();
 		},
@@ -1412,15 +1412,16 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	{
 		// get our own pointer ownership
 		auto client = clientRef;
-		auto slotId = client->GetSlotId();
 
 		// no
 		// #TODO: imagine if this mutates state alongside but after OnDrop clears it. WHAT COULD GO WRONG?
 		// serialize OnDrop for gamestate onto the sync thread?
-		if (slotId == -1)
+		if (!client->HasSlotId())
 		{
 			return;
 		}
+
+		auto slotId = client->GetSlotId();
 
 		uint64_t time = curTime.count();
 
@@ -2616,11 +2617,12 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 	const auto& clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 	clientRegistry->ForAllClients([&, uniqPair](const fx::ClientSharedPtr& crClient)
 	{
-		const auto slotId = crClient->GetSlotId();
-		if (slotId == 0xFFFFFFFF)
+		if (!crClient->HasSlotId())
 		{
 			return;
 		}
+
+		const auto slotId = crClient->GetSlotId();
 		{
 			std::lock_guard _(entity->guidMutex);
 			if (!entity->relevantTo.test(slotId))
@@ -2836,6 +2838,8 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 		return;
 	}
 
+	const bool hasSlotId = slotId != 0xFFFFFFFF;
+
 	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 
 	GS_LOG("client drop - reassigning\n", 0);
@@ -2880,7 +2884,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 				entity->firstOwnerDropped = true;
 			}
 
-			if (slotId != -1)
+			if (hasSlotId)
 			{
 				{
 					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
@@ -2928,7 +2932,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 	}
 
 	// remove ACKs for this client
-	if (slotId != 0xFFFFFFFF)
+	if (hasSlotId)
 	{
 		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
 

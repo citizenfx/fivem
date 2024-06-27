@@ -132,16 +132,34 @@ namespace fx
 
 		void SetNetId(uint32_t netId);
 
-		void SetNetBase(uint32_t netBase);
+		inline void SetNetBase(uint32_t netBase)
+		{
+			m_netBase = netBase;
+		}
 
 		// updates the last-seen timer
 		void Touch();
 
 		bool IsDead();
 
+		inline bool HasNetId() const
+		{
+			return m_netId != 0xFFFF;
+		}
+
+		inline bool HasConnected() const
+		{
+			return m_netId < 0xFFFF;
+		}
+
 		inline uint32_t GetNetId()
 		{
 			return m_netId;
+		}
+
+		inline bool HasSlotId() const
+		{
+			return m_slotId != 0xFFFFFFFF;
 		}
 
 		inline uint32_t GetSlotId()
@@ -331,7 +349,7 @@ namespace fx
 
 		void SendPacket(int channel, const net::Buffer& buffer, NetPacketType flags = NetPacketType_Unreliable);
 
-		fwEvent<> OnAssignNetId;
+		fwEvent<uint32_t> OnAssignNetId;
 		fwEvent<> OnAssignPeer;
 		fwEvent<> OnAssignTcpEndPoint;
 		fwEvent<> OnAssignConnectionToken;

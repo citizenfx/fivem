@@ -115,7 +115,7 @@ namespace fx
 			client->SetSlotId(-1);
 
 			// decrement amount of connected clients if the client was connected
-			if (client->GetNetId() < 0xFFFF)
+			if (client->HasConnected())
 			{
 				--m_amountConnectedClients;
 			}

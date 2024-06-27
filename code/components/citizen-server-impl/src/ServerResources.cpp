@@ -362,17 +362,19 @@ static InitFunction initFunction([]()
 		{
 			//TODO: improve client to use smart pointer and not unsafe ptr
 			fx::Client* unsafeClient = client.get();
-			unsafeClient->OnAssignNetId.Connect([rac, unsafeClient]()
+			unsafeClient->OnAssignNetId.Connect([rac, unsafeClient](const uint32_t previousNetId)
 			{
-				if (unsafeClient->GetNetId() < 0xFFFF)
+				if (!unsafeClient->HasConnected())
 				{
-					rac->RegisterTarget(unsafeClient->GetNetId());
-					
-					unsafeClient->OnDrop.Connect([rac, unsafeClient]()
-					{
-						rac->UnregisterTarget(unsafeClient->GetNetId());
-					});
+					return;
 				}
+
+				rac->RegisterTarget(unsafeClient->GetNetId());
+	
+				unsafeClient->OnDrop.Connect([rac, unsafeClient]()
+				{
+					rac->UnregisterTarget(unsafeClient->GetNetId());
+				});
 			});
 		});
 

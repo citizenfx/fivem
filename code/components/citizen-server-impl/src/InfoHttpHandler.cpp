@@ -384,7 +384,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 
 		clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 		{
-			if (client->GetNetId() >= 0xFFFF)
+			if (!client->HasConnected())
 			{
 				return;
 			}

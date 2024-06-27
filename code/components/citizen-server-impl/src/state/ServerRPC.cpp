@@ -282,7 +282,7 @@ static InitFunction initFunction([]()
 
 						clientRegistry->ForAllClients([&candidates, gameState, pos](const fx::ClientSharedPtr& tgtClient)
 						{
-							if (tgtClient->GetSlotId() == 0xFFFFFFFF)
+							if (!tgtClient->HasSlotId())
 							{
 								return;
 							}
