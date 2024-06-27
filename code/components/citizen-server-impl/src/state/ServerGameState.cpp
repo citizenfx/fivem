@@ -272,7 +272,7 @@ static auto CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 
 	if (auto existingData = client->GetSyncData())
 	{
-		return std::static_pointer_cast<GameStateClientData>(existingData);
+		return existingData;
 	}
 
 	fx::ClientWeakPtr weakClient(client);
@@ -338,20 +338,13 @@ static auto CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 
 inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameState* state, const fx::ClientSharedPtr& client)
 {
-	// NOTE: static_pointer_cast typically will lead to an unneeded refcount increment+decrement
-	// Doing this makes it so that there's only *one* increment for the fast case.
-#ifndef _MSC_VER
-	auto data = std::static_pointer_cast<GameStateClientData>(client->GetSyncData());
-#else
-	auto data = std::shared_ptr<GameStateClientData>{ reinterpret_cast<std::shared_ptr<GameStateClientData>&&>(client->GetSyncData()) };
-#endif
-
-	if (!data)
+	std::shared_ptr<GameStateClientData> data = client->GetSyncData();
+	if (data)
 	{
-		data = CreateSyncData(state, client);
+		return data;
 	}
 
-	return data;
+	return CreateSyncData(state, client);
 }
 
 inline std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> GetClientData(ServerGameState* state, const fx::ClientSharedPtr& client)
