@@ -316,6 +316,11 @@ public:
 
 	}
 
+	void StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout) override
+	{
+		m_tcpStream->StartConnectionTimeout(timeout);
+	}
+
 	virtual void WriteHead(int statusCode, const std::string& statusMessage, const HeaderMap& headers) override
 	{
 		bool sentHeaders = false;
