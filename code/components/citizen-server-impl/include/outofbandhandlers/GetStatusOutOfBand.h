@@ -48,7 +48,7 @@ public:
 			server->GetInstance()->template GetComponent<fx::ClientRegistry>()->ForAllClients(
 				[&](const fx::ClientSharedPtr& client)
 				{
-					if (client->GetNetId() < 0xFFFF)
+					if (client->HasConnected())
 					{
 						response += "0 0 \"" + client->GetName() + "\"\n";
 					}

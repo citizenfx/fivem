@@ -78,9 +78,13 @@ namespace fx
 		fx::ClientSharedPtr client = fx::ClientSharedPtr::Construct(guid);
 		fx::ClientWeakPtr weakClient(client);
 		
-		client->OnAssignNetId.Connect([this, weakClient]()
+		client->OnAssignNetId.Connect([this, weakClient](const uint32_t previousNetId)
 		{
 			m_clientsByNetId[weakClient.lock()->GetNetId()] = weakClient;
+			if (previousNetId != 0xFFFF)
+			{
+				m_clientsByNetId[previousNetId].reset();
+			}
 		});
 
 		client->OnAssignPeer.Connect([this, weakClient]()

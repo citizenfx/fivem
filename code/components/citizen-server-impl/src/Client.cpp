@@ -19,16 +19,12 @@ namespace fx
 		OnAssignPeer();
 	}
 
-	void Client::SetNetBase(uint32_t netBase)
-	{
-		m_netBase = netBase;
-	}
-
 	void Client::SetNetId(uint32_t netId)
 	{
+		const uint32_t previousNetId = m_netId;
 		m_netId = netId;
 
-		OnAssignNetId();
+		OnAssignNetId(previousNetId);
 
 		UpdateCachedPrincipalValues();
 	}
@@ -48,7 +44,7 @@ namespace fx
 	bool Client::IsDead()
 	{
 		// if we've not connected yet, we can't be dead
-		if (m_netId >= 0xFFFF)
+		if (!HasConnected())
 		{
 			auto canBeDead = GetData("canBeDead");
 
