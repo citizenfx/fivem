@@ -101,15 +101,6 @@ namespace fx
 		return entry->GetData();
 	}
 
-	namespace sync
-	{
-		class ClientSyncDataBase
-		{
-		public:
-			virtual ~ClientSyncDataBase() = default;
-		};
-	}
-
 	struct gs_peer_deleter
 	{
 		inline void operator()(int* data)
@@ -122,6 +113,7 @@ namespace fx
 		}
 	};
 
+	class GameStateClientData;
 
 	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>, public se::PrincipalSource
 	{
@@ -281,13 +273,13 @@ namespace fx
 			}
 		}
 
-		inline std::shared_ptr<sync::ClientSyncDataBase> GetSyncData()
+		inline std::shared_ptr<GameStateClientData> GetSyncData()
 		{
 			std::shared_lock _(m_syncDataMutex);
 			return m_syncData;
 		}
 
-		inline void SetSyncData(const std::shared_ptr<sync::ClientSyncDataBase>& ptr)
+		inline void SetSyncData(const std::shared_ptr<GameStateClientData>& ptr)
 		{
 			std::unique_lock _(m_syncDataMutex);
 			m_syncData = ptr;
@@ -412,7 +404,7 @@ namespace fx
 		std::unique_ptr<int, gs_peer_deleter> m_peer;
 
 		// sync data
-		std::shared_ptr<sync::ClientSyncDataBase> m_syncData;
+		std::shared_ptr<GameStateClientData> m_syncData;
 		std::shared_mutex m_syncDataMutex;
 		std::mutex m_syncDataCreationMutex;
 
