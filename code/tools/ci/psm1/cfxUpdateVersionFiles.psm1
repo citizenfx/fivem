@@ -41,6 +41,9 @@ function Invoke-UpdateVersionFiles {
 
     if ($Context.GitTag) {
         $gitDescription += $Context.GitTag
+    } elseif ($Context.GitBranchName.StartsWith("feature/")) {
+        $dateVersion = (Get-Date).ToString("yyyyMMdd");
+        $gitDescription += "v1.0.0.$dateVersion";
     }
 
     @(
