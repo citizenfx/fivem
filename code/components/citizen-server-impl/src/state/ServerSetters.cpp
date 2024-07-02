@@ -5,13 +5,16 @@
 #include <state/ServerGameState.h>
 #include <ScriptEngine.h>
 
+#include <parser/TrainParser.h>
 #include <GameServer.h>
 
+#include <ResourceManager.h>
 #include <Resource.h>
 #include <fxScripting.h>
 
 #include <boost/mpl/at.hpp>
 #include <boost/function_types/parameter_types.hpp>
+#include <ServerInstanceBaseRef.h>
 
 namespace fx
 {
@@ -156,6 +159,64 @@ std::shared_ptr<sync::SyncTreeBase> MakeVehicle(uint32_t model, float posX, floa
 	return tree;
 }
 
+template<typename TTree>
+std::shared_ptr<sync::CTrainSyncTree> MakeTrain(uint32_t model, float posX, float posY, float posZ, float heading, uint32_t resourceHash, bool isEngine, bool direction, bool stopAtStation, float speed, int trackid, int trainConfigIndex)
+{
+	auto tree = std::make_shared<sync::CTrainSyncTree>();
+
+	SetupNode(tree, [model](sync::CVehicleCreationDataNode& cdn)
+	{
+		cdn.m_model = model;
+		cdn.m_creationToken = msec().count();
+		cdn.m_needsToBeHotwired = false;
+		cdn.m_maxHealth = 1000;
+		cdn.m_popType = sync::POPTYPE_MISSION;
+		cdn.m_randomSeed = rand();
+		cdn.m_tyresDontBurst = false;
+		cdn.m_vehicleStatus = 2;
+		cdn.m_unk5 = false;
+	});
+
+	SetupPosition<sync::CSectorDataNode, sync::CSectorPositionDataNode>(tree, posX, posY, posZ);
+	SetupHeading(tree, heading);
+
+	SetupNode(tree, [resourceHash](sync::CEntityScriptInfoDataNode& cdn)
+	{
+		cdn.m_scriptHash = resourceHash;
+		cdn.m_timestamp = msec().count();
+	});
+
+	SetupNode(tree, [isEngine, speed, direction, trackid, trainConfigIndex, stopAtStation](sync::CTrainGameStateDataNode& cdn)
+	{
+		cdn.data.linkedToBackwardId = 0;
+		cdn.data.linkedToForwardId = 0;
+		cdn.data.distanceFromEngine = 0.0f;
+
+		cdn.data.trainState = 3;
+
+		cdn.data.isEngine = isEngine;
+		cdn.data.cruiseSpeed = speed;
+		cdn.data.direction = direction;
+		cdn.data.trackId = trackid;
+		cdn.data.trainConfigIndex = trainConfigIndex;
+
+		cdn.data.isCaboose = true;
+
+		cdn.data.isMissionTrain = true;
+		cdn.data.hasPassengerCarriages = true;
+		cdn.data.renderDerailed = false;
+
+		if (Is2372())
+		{
+			cdn.data.allowRemovalByPopulation = false;
+			cdn.data.shouldStopAtStations = stopAtStation;
+			cdn.data.highPrecisionBlending = false;
+		}
+	});
+
+	return tree;
+}
+
 std::shared_ptr<sync::SyncTreeBase> MakePed(uint32_t model, float posX, float posY, float posZ, uint32_t resourceHash, float heading = 0.0f)
 {
 	auto tree = std::make_shared<sync::CPedSyncTree>();
@@ -292,6 +353,38 @@ void DisownEntityScript(const fx::sync::SyncEntityPtr& entity)
 			n->timestamp = msec().count();
 		}
 	}
+}
+
+static auto GetTrainCarriageCount(fx::ServerGameState* sgs, const fx::sync::SyncEntityPtr& engine) -> int
+{
+	if (engine->type != fx::sync::NetObjEntityType::Train) 
+	{
+		return -1;
+	}
+
+	int carriageCount = 0;
+	for (auto link = GetNextTrain(sgs, engine); link; link = GetNextTrain(sgs, link))
+	{
+		carriageCount++;
+	}
+
+	return carriageCount;
+};
+
+static auto GetTrainCabooseCarriage(fx::ServerGameState* sgs, const fx::sync::SyncEntityPtr& engine) -> fx::sync::SyncEntityPtr
+{
+	fx::sync::SyncEntityPtr caboose = engine;
+	for (auto link = GetNextTrain(sgs, engine); link; link = GetNextTrain(sgs, link))
+	{
+		auto state = link->syncTree->GetTrainState();
+
+		if (state->linkedToBackwardId == 0 || state->isCaboose)
+		{
+			caboose = link;
+			break;
+		}
+	}
+	return caboose;
 }
 
 static InitFunction initFunction([]()
@@ -445,6 +538,172 @@ static InitFunction initFunction([]()
 			auto entity = sgs->CreateEntityFromTree(sync::NetObjEntityType::Ped, tree);
 
 			ctx.SetResult(sgs->MakeScriptHandle(entity));
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("CREATE_TRAIN", [=](fx::ScriptContext& ctx)
+		{
+			uint32_t resourceHash = 0;
+
+			fx::OMPtr<IScriptRuntime> runtime;
+
+			if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+			{
+				fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+				if (resource)
+				{
+					resourceHash = HashString(resource->GetName().c_str());
+				}
+			}
+
+			uint32_t modelHash = ctx.GetArgument<uint32_t>(0);
+			float x = ctx.GetArgument<float>(1);
+			float y = ctx.GetArgument<float>(2);
+			float z = ctx.GetArgument<float>(3);
+			bool direction = ctx.GetArgument<bool>(4);
+			bool stopAtStations = ctx.GetArgument<bool>(5);
+			float speed = ctx.GetArgument<float>(6);
+			int trackId = ctx.GetArgument<int>(7);
+			int trainConfigIndex = ctx.CheckArgument<int>(8);
+			
+			auto& trackConfigs = ref->GetComponent<fx::CTrainTrackParser>();
+
+			static int32_t maxTrainTrackIndex = 11;
+
+			//Don't create train if an invalid trackId has been provided.
+			if (trackId < 0 || trackId > (trackConfigs->GetData().empty() ? maxTrainTrackIndex : trackConfigs->GetData().size()))
+			{
+				throw std::runtime_error(va("Tried to spawn train on invalid track id: %u", trackId));
+
+				ctx.SetResult(0);
+				return;
+			}
+
+			auto& trainConfigs = ref->GetComponent<fx::CTrainConfigParser>();
+
+			static int32_t maxTrainConfigIndex = (int32_t)(Is3095() ? 27 : (Is2802() ? 26 : (Is2372() ? 25 : 24)));
+
+			//Don't create train if an invalid trainConfigIndex has been provided, otherwise the client crashes.
+			if (trainConfigIndex < 0 || trainConfigIndex > (trainConfigs->GetData().empty() ? maxTrainConfigIndex : trainConfigs->GetData().size()))
+			{
+				throw std::runtime_error(va("Tried to spawn train with invalid train config index: %u", trainConfigIndex));
+
+				ctx.SetResult(0);
+				return;
+			}
+
+			auto tree = MakeTrain<sync::CTrainSyncTree>(modelHash, x, y, z, 0.0f, resourceHash, true, direction, stopAtStations, speed, trackId, trainConfigIndex);
+			auto sgs = ref->GetComponent<fx::ServerGameState>();
+			auto entity = sgs->CreateEntityFromTree(sync::NetObjEntityType::Train, tree);
+
+			//Edit CTrainGameStateData node to assign engineCarriage to the newly created objectID
+			/*
+			SetupNode(tree, [entity](sync::CTrainGameStateDataNode& cdn)
+			{
+				cdn.data.engineCarriage = entity->handle;
+			});
+			*/
+
+			ctx.SetResult(sgs->MakeScriptHandle(entity));
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("CREATE_TRAIN_CARRIAGE", [=](fx::ScriptContext& ctx)
+		{
+			// get the current resource manager
+			auto resourceManager = fx::ResourceManager::GetCurrent();
+
+			// get the owning server instance
+			auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+			// get the server's game state
+			auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+			// parse the client ID
+			auto id = ctx.GetArgument<uint32_t>(0);
+
+			if (!id)
+			{
+				ctx.SetResult(0);
+				return;
+			}
+
+			auto entity = gameState->GetEntity(id);
+
+			//Make sure entity exists.
+			if (!entity)
+			{
+				throw std::runtime_error(va("Tried to access invalid entity: %d", id));
+
+				ctx.SetResult(0);
+				return;
+			}
+
+			auto trainState = entity->syncTree->GetTrainState();
+
+			// Make sure entity is a train
+			if (entity->type != fx::sync::NetObjEntityType::Train)
+			{
+				throw std::runtime_error(va("Entity is not a train: %d", id));
+
+				ctx.SetResult(0);
+				return;
+			}
+
+			// Make sure entity is the engine carriage
+			if (!trainState || !trainState->isEngine)
+			{
+				throw std::runtime_error(va("Tried to attach train carriage to invalid train entity: %d", id));
+
+				ctx.SetResult(0);
+				return;
+			}
+
+			uint32_t resourceHash = 0;
+			fx::OMPtr<IScriptRuntime> runtime;
+
+			if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+			{
+				fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+				if (resource)
+				{
+					resourceHash = HashString(resource->GetName().c_str());
+				}
+			}
+
+			uint32_t modelHash = ctx.GetArgument<uint32_t>(1);
+			float distanceFromEngine = ctx.GetArgument<float>(2);
+
+			float position[3];
+			entity->syncTree->GetPosition(position);
+
+			auto tree = MakeTrain<sync::CTrainSyncTree>(modelHash, position[0], position[1], position[2], 0.0f, resourceHash, false, trainState->direction, trainState->shouldStopAtStations, trainState->cruiseSpeed, trainState->trackId, trainState->trainConfigIndex);
+			auto& sgs = ref->GetComponent<fx::ServerGameState>();
+
+			if (tree) 
+			{
+				SetupNode(tree, [sgs, entity, trainState, distanceFromEngine](sync::CTrainGameStateDataNode& cdn){
+					cdn.data.engineCarriage = entity->handle;
+					cdn.data.linkedToForwardId = GetTrainCabooseCarriage(sgs.GetRef(), entity)->handle;
+					cdn.data.carriageIndex = GetTrainCarriageCount(sgs.GetRef(), entity) + 1;
+					// If the train direction is forward the distanceFromEngine has to be negative
+					cdn.data.distanceFromEngine = trainState->direction ? -distanceFromEngine : +distanceFromEngine;
+					cdn.data.isEngine = false;
+					cdn.data.isCaboose = true;		
+				});
+			}
+
+			auto carriageEntity = sgs->CreateEntityFromTree(fx::sync::NetObjEntityType::Train, tree);
+			auto caboose = GetTrainCabooseCarriage(sgs.GetRef(), entity);
+
+			auto trainSyncTree = std::static_pointer_cast<sync::CTrainSyncTree>(caboose->syncTree);
+			SetupNode(trainSyncTree, [carriageEntity](sync::CTrainGameStateDataNode& cdn)
+			{
+				cdn.data.linkedToBackwardId = carriageEntity->handle;
+				cdn.data.isCaboose = false;
+			});
+
+			ctx.SetResult(sgs->MakeScriptHandle(carriageEntity));
 		});
 
 		fx::ScriptEngine::RegisterNativeHandler("CREATE_OBJECT_NO_OFFSET", [=](fx::ScriptContext& ctx)

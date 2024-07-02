@@ -1,6 +1,13 @@
 #include <StdInc.h>
 #include <Hooking.h>
 
+//Required for server-spawned train blending
+#ifdef GTA_FIVE
+#include <netBlender.h>
+#include <netSyncTree.h>
+#include <EntitySystem.h>
+#endif
+
 #include <netObject.h>
 #include <netObjectMgr.h>
 
@@ -80,6 +87,15 @@ static void netObjectMgrBase__DestroyNetworkObject(rage::netObjectMgr* manager, 
 		delete object;
 	}
 }
+	
+
+#ifdef GTA_FIVE
+static int TrainTrackNodeIndexOffset;
+static hook::cdecl_stub<void(CVehicle*, int, int)> _SetTrainCoord([]()
+{
+	return hook::pattern("41 B1 01 48 8B D9 45 8A C1 C6 44 24 ? ? FF 90 ? ? ? ? 83 CA FF").count(1).get(0).get<void>(0x22);
+});
+#endif
 
 static void(*g_orig_netObjectMgrBase__ChangeOwner)(rage::netObjectMgr*, rage::netObject*, CNetGamePlayer*, int);
 
@@ -96,6 +112,24 @@ static void netObjectMgrBase__ChangeOwner(rage::netObjectMgr* manager, rage::net
 	object->PostMigrate(migrationType);
 
 	CloneObjectMgr->ChangeOwner(object, oldOwnerId, targetPlayer, migrationType);
+#ifdef GTA_FIVE
+	//Check that the entity is a train and that we own the entity
+	if (object->objectType == (uint16_t)NetObjEntityType::Train && targetPlayer->physicalPlayerIndex() == 128)
+	{
+		//Make sure that the gameObject isn't a nullptr
+		if (auto pVehicle = object->GetGameObject())
+		{
+			//Only force blend if the train track node is 0, as this is the only time we need to correct position
+			//this does not have any affect on trains that are actually at track node 0
+			if ((int)*(int*)((char*)pVehicle + TrainTrackNodeIndexOffset) == 0)
+			{
+				_SetTrainCoord((CVehicle*)pVehicle, -1, -1);
+				// Force blend
+				object->GetBlender()->m_30();
+			}
+		}
+	}
+#endif
 }
 
 static rage::netObject* (*g_orig_netObjectMgrBase__GetNetworkObject)(rage::netObjectMgr* manager, uint16_t id, bool evenIfDeleting);
@@ -148,6 +182,8 @@ static HookFunction hookFunction([]()
 	MH_Initialize();
 
 #if GTA_FIVE
+	//Taken from extra-natives-five/VehicleExtraNatives.cpp
+	TrainTrackNodeIndexOffset = *hook::get_pattern<uint32_t>("E8 ? ? ? ? 40 8A F8 84 C0 75 ? 48 8B CB E8", -4);
 	MH_CreateHook(hook::get_pattern("48 8B F2 0F B7 52 0A 41 B0 01", -0x19), netObjectMgrBase__RegisterNetworkObject, (void**)&g_orig_netObjectMgrBase__RegisterNetworkObject); //
 	MH_CreateHook(hook::get_pattern("8A 42 4C 45 33 FF 48 8B DA C0 E8 02", -0x21), netObjectMgrBase__DestroyNetworkObject, (void**)&g_orig_netObjectMgrBase__DestroyNetworkObject); //
 	MH_CreateHook(hook::get_pattern("44 8A 62 4B 33 DB 41 8B E9", -0x20), netObjectMgrBase__ChangeOwner, (void**)&g_orig_netObjectMgrBase__ChangeOwner); //
