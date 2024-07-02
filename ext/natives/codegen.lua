@@ -500,7 +500,7 @@ function trim(s)
 	return s:gsub("^%s*(.-)%s*$", "%1")
 end
 
-function parseDocString(native)
+function parseDocString(native, keepCodeFencing)
 	local docString = native.doc
 
 	if not docString then
@@ -515,7 +515,9 @@ function parseDocString(native)
 		summary = ''
 	end
 
-	summary = trim(summary:gsub('^```(.+)```$', '%1'))
+	if not keepCodeFencing then
+		summary = trim(summary:gsub('^```(.+)```$', '%1'))
+	end
 
 	local paramsData = {}
 	local hasParams = false
