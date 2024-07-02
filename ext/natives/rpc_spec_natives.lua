@@ -67,6 +67,8 @@ context_rpc 'TASK_LEAVE_VEHICLE'
 context_rpc 'TASK_GO_STRAIGHT_TO_COORD'
 context_rpc 'TASK_GO_TO_COORD_ANY_MEANS'
 context_rpc 'TASK_GO_TO_ENTITY'
+context_rpc 'TASK_TURN_PED_TO_FACE_COORD'
+context_rpc 'TASK_TURN_PED_TO_FACE_ENTITY'
 
 -- VEHICLE
 entity_rpc 'CREATE_VEHICLE'
