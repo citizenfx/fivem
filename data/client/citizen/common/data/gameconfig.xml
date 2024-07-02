@@ -3131,7 +3131,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>ROPE</ResourceTypeName>
-							<ExpectedMaximum value="12"/>
+							<ExpectedMaximum value="32"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>CAMERA</ResourceTypeName>
