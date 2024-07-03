@@ -4275,7 +4275,7 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 	m_globalBag->SetOwningPeer(-1);
 	m_sbac = sbac;
 
-	creg->OnConnectedClient.Connect([this](fx::Client* client)
+	creg->OnConnectedClient.Connect([this](const fx::ClientSharedPtr& client)
 	{
 		if (!fx::IsOneSync())
 		{
@@ -4286,8 +4286,15 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 
 		m_sbac->RegisterTarget(client->GetSlotId());
 
-		client->OnDrop.Connect([this, client]()
+		fx::ClientWeakPtr weakClient{ client };
+		client->OnDrop.Connect([this, weakClient]()
 		{
+			auto client = weakClient.lock();
+			if (!client)
+			{
+				return;
+			}
+
 			m_sbac->UnregisterTarget(client->GetSlotId());
 		}, INT32_MIN);
 	});

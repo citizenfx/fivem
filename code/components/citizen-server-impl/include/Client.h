@@ -293,12 +293,13 @@ namespace fx
 
 		inline bool IsDropping() const
 		{
-			return m_dropping;
+			return m_dropping.load(std::memory_order_relaxed);
 		}
 
-		inline void SetDropping()
+		inline bool SetDropping()
 		{
-			m_dropping = true;
+			bool expected = false;
+			return m_dropping.compare_exchange_strong(expected, true);
 		}
 
 		inline auto GetNetworkMetricsSendCallback()
@@ -419,7 +420,7 @@ namespace fx
 		std::list<se::Principal> m_principals;
 
 		// whether the client is currently being dropped
-		volatile bool m_dropping;
+		std::atomic<bool> m_dropping;
 
 		void (*m_clientNetworkMetricsSendCallback)(Client *thisptr, int channel, const net::Buffer& buffer, NetPacketType flags);
 
