@@ -8,6 +8,7 @@
 #include <StdInc.h>
 #include <jitasm.h>
 #include <Hooking.h>
+#include <Hooking.Stubs.h>
 
 #include <Pool.h>
 
@@ -3309,9 +3310,27 @@ static void FreeArchetypesHook(uint32_t idx)
 DLL_IMPORT extern fwEvent<> PreSetupLoadingScreens;
 #endif
 
+#ifdef GTA_FIVE
+static int32_t chunkyArrayCountOffset = 0;
+void* (*g_chunkyArrayAppend)(hook::FlexStruct* self);
+void* chunkyArrayAppend(hook::FlexStruct* self)
+{
+	const int32_t loadedEntriesCount = self->Get<int32_t>(chunkyArrayCountOffset);
+	if (loadedEntriesCount >= 0xFFFF)
+	{
+		FatalError("ERR_STR_FAILURE: trying to add more assets to pgRawStreamer when it's already full (65535)."); 
+	}
+	return g_chunkyArrayAppend(self);
+}
+#endif
+
 static HookFunction hookFunction([]()
 {
 #ifdef GTA_FIVE
+	auto chunkyArrayAppendLoc = hook::get_pattern<uint8_t>("40 53 48 83 EC ? F7 81 ? ? ? ? ? ? ? ? 48 8B D9 75");
+	chunkyArrayCountOffset = *(int32_t*)(chunkyArrayAppendLoc + 8);
+	g_chunkyArrayAppend = hook::trampoline(chunkyArrayAppendLoc, &chunkyArrayAppend);
+
 	loadChangeSet = hook::get_pattern<char>("48 81 EC 50 03 00 00 49 8B F0 4C", -0x18);
 
 	PreSetupLoadingScreens.Connect([]()
