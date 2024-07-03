@@ -4,38 +4,45 @@
 #include <Hooking.h>
 #include <Hooking.Stubs.h>
 
-static int32_t forceReevalOffset = 0;
-static int32_t condAnimGroupOffset = 0;
-static uint8_t targetFlagValue = 0;
+static int32_t allocationSize = 0;
+static int32_t allocationAlign = 0;
+static void* (*g_allocateTask)(void* allocator, uint64_t size, uint64_t align);
+static void (*g_quitCritical)(uint32_t errorHash);
 
-int (*g_NoClipPlayingFSMUpdateOrig)(hook::FlexStruct* task);
-int NoClipPlayingFSMUpdate(hook::FlexStruct* task)
+static void* allocator = nullptr;
+
+void* (*g_CTaskAmbientClipsCtor)(void* memAllocated, uintptr_t unk1, uintptr_t condGroupPtr, uintptr_t unk2, uintptr_t unk3);
+void* CTaskAmbientClipsCtor(void* memAllocated, uintptr_t unk1, uintptr_t condGroupPtr, uintptr_t unk2, uintptr_t unk3)
 {
-	uint8_t flags = task->Get<uint8_t>(forceReevalOffset);
-	if (flags & targetFlagValue)
+	if (!condGroupPtr)
 	{
-		void* condAnimGroupPtr = task->Get<void*>(condAnimGroupOffset);
-		if (!condAnimGroupPtr)
-		{
-			// TODO: Remove log after approve from players that crash fixed
-			trace("Crash was possible here earlier. Seems to be fixed\n");
-
-			flags ^= targetFlagValue;
-			task->Set<uint8_t>(forceReevalOffset, flags);
-		}
+		return nullptr;
 	}
 
-	return g_NoClipPlayingFSMUpdateOrig(task);
+	void* allocatedMemory = g_allocateTask(*(void**)allocator, allocationSize, allocationAlign);
+	if (!allocatedMemory)
+	{
+		g_quitCritical(HashString("ERR_MEM_POOLALLOC_ALLOC_2"));
+		return nullptr;
+	}
+	
+	return g_CTaskAmbientClipsCtor(allocatedMemory, unk1, condGroupPtr, unk2, unk3);
 }
 
 static HookFunction hookFunction([]
 {
-	auto checkReevalFlagLocation = hook::get_pattern<uint8_t>("F6 83 ? ? ? ? ? 74 ? 0F B7 8B");
-	forceReevalOffset = *(int32_t*)(checkReevalFlagLocation + 2);
-	targetFlagValue = *(checkReevalFlagLocation + 6);
-	condAnimGroupOffset = *hook::get_pattern<int32_t>("48 8B 83 ? ? ? ? 0F BF C9", 3);
+	auto createCloneFsmAlloc = hook::get_pattern<uint8_t>("48 8B 0D ? ? ? ? BA ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 48 85 C0 75 ? B9 ? ? ? ? E8 ? ? ? ? EB ? 44 8B 4D");
+	
+	allocator = *(int32_t*)(createCloneFsmAlloc + 3) + createCloneFsmAlloc + 7;
+	allocationSize = *(int32_t*)(createCloneFsmAlloc + 8);
+	allocationAlign = *(int32_t*)(createCloneFsmAlloc + 14);
+	g_allocateTask = (decltype(g_allocateTask))hook::get_call(createCloneFsmAlloc + 18);
+	g_quitCritical = (decltype(g_quitCritical))hook::get_call(createCloneFsmAlloc + 33);
 
-	auto noClipPlayingFSMUpdateAddr = hook::get_pattern<void>("48 8B C4 48 89 58 ? 55 56 57 41 54 41 56 48 8D 68 ? 48 81 EC ? ? ? ? 48 8B 71");
+	// Completely removing memory allocation here
+	hook::nop(createCloneFsmAlloc, 40);
 
-	g_NoClipPlayingFSMUpdateOrig = hook::trampoline(noClipPlayingFSMUpdateAddr, &NoClipPlayingFSMUpdate);
+	// Proxying constructor call and doing allocation right before ctor if allocation needed
+	g_CTaskAmbientClipsCtor = (decltype(g_CTaskAmbientClipsCtor))hook::get_call(createCloneFsmAlloc + 58);
+	hook::call(createCloneFsmAlloc + 58, &CTaskAmbientClipsCtor);
 });
