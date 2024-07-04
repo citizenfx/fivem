@@ -1,17 +1,19 @@
+import {
+  Avatar,
+  Button,
+  BrandIcon,
+  Indicator,
+  InfoPanel,
+  Input,
+  Flex,
+  Separator,
+  Text,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { useAccountService } from 'cfx/common/services/account/account.service';
 // eslint-disable-next-line camelcase
 import { $L, $L_nl2br } from 'cfx/common/services/intl/l10n';
-import { Avatar } from 'cfx/ui/Avatar/Avatar';
-import { Button } from 'cfx/ui/Button/Button';
-import { BrandIcon } from 'cfx/ui/Icons';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
-import { Input } from 'cfx/ui/Input/Input';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Separator } from 'cfx/ui/Separator/Separator';
-import { Text } from 'cfx/ui/Text/Text';
 
 import { IAuthFormState, totpFieldRef, useAuthFormState, usernameRegexp } from './AuthFormState';
 

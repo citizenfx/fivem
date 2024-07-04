@@ -1,7 +1,8 @@
+import { returnTrue } from '@cfx-dev/ui-components';
+
 import { ISearchTerm } from 'cfx/base/searchTermsParser';
 import { normalizeSearchString } from 'cfx/base/serverUtils';
 import { arrayAll, arraySome } from 'cfx/utils/array';
-import { returnTrue } from 'cfx/utils/functional';
 
 import { IListableServerView } from './types';
 import { IServerListConfig } from '../lists/types';

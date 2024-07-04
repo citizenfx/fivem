@@ -1,11 +1,12 @@
+import { Title, matchLinks } from '@cfx-dev/ui-components';
 import { decode } from 'html-entities';
 import React from 'react';
 
-import { Title } from 'cfx/ui/Title/Title';
-import { ILinkSubstitute } from 'cfx/utils/links';
 import { nl2brx } from 'cfx/utils/nl2br';
 
 import { IActivityItem, IActivityItemData } from './types';
+
+type LinksType = ReturnType<typeof matchLinks>;
 
 export function compileActivityItem(data: IActivityItemData): IActivityItem {
   return {
@@ -21,7 +22,7 @@ export function compileActivityItem(data: IActivityItemData): IActivityItem {
   };
 }
 
-export function compileText(text: Map<number, string>, links: ILinkSubstitute[]): React.ReactNode {
+export function compileText(text: Map<number, string>, links: LinksType): React.ReactNode {
   const linkItems = Object.fromEntries(links.map((link) => [link.indices[0], link.url]));
 
   const parts: React.ReactNode[] = [];

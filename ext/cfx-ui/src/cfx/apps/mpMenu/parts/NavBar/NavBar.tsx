@@ -1,3 +1,12 @@
+import {
+  Badge,
+  Button,
+  ButtonBar,
+  Icons,
+  Box,
+  Flex,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
@@ -6,19 +15,15 @@ import { useEventHandler } from 'cfx/common/services/analytics/analytics.service
 import { EventActionNames, ElementPlacements } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { ISettingsUIService } from 'cfx/common/services/settings/settings.service';
-import { Badge } from 'cfx/ui/Badge/Badge';
-import { Button, ButtonTheme } from 'cfx/ui/Button/Button';
-import { ButtonBar } from 'cfx/ui/Button/ButtonBar';
-import { Icons } from 'cfx/ui/Icons';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Title } from 'cfx/ui/Title/Title';
+import { LinkButton } from 'cfx/ui/Button/LinkButton';
 
 import { Exitter } from './Exitter/Exitter';
 import { HomeButton } from './HomeButton/HomeButton';
 import { NavBarState } from './NavBarState';
 import { UserBar } from './UserBar/UserBar';
 import { IChangelogService } from '../../services/changelog/changelog.service';
+
+type ButtonTheme = React.ComponentProps<typeof Button>['theme'];
 
 export const NavBar = observer(function NavBar() {
   const ChangelogService = useService(IChangelogService);
@@ -74,7 +79,7 @@ export const NavBar = observer(function NavBar() {
 
       <ButtonBar>
         <Title title={$L('#Changelogs')}>
-          <Button
+          <LinkButton
             to="/changelog"
             size="large"
             theme={buttonTheme}

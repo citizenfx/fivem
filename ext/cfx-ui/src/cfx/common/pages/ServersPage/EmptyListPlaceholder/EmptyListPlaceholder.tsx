@@ -1,3 +1,10 @@
+import {
+  Button,
+  Island,
+  Flex,
+  Page,
+  Text,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { WiWindy } from 'react-icons/wi';
@@ -5,12 +12,7 @@ import { WiWindy } from 'react-icons/wi';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { ServerListConfigController } from 'cfx/common/services/servers/lists/ServerListConfigController';
 import { ServersListType } from 'cfx/common/services/servers/lists/types';
-import { Button } from 'cfx/ui/Button/Button';
 import { LinkButton } from 'cfx/ui/Button/LinkButton';
-import { Island } from 'cfx/ui/Island/Island';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Page } from 'cfx/ui/Layout/Page/Page';
-import { Text } from 'cfx/ui/Text/Text';
 
 import { SERVER_LIST_DESCRIPTORS } from '../ListTypeTabs';
 

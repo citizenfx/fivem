@@ -1,3 +1,10 @@
+import {
+  ButtonBar,
+  Icons,
+  Tabular,
+  Title,
+  Icon,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -9,18 +16,13 @@ import { $L } from 'cfx/common/services/intl/l10n';
 import { LocaleKeyOrString, LocaleKey } from 'cfx/common/services/intl/types';
 import { ServersListType } from 'cfx/common/services/servers/lists/types';
 import { IServersService } from 'cfx/common/services/servers/servers.service';
-import { Button } from 'cfx/ui/Button/Button';
-import { ButtonBar } from 'cfx/ui/Button/ButtonBar';
-import { Icons } from 'cfx/ui/Icons';
-import { Tabular } from 'cfx/ui/Tabular/Tabular';
-import { TextColor } from 'cfx/ui/Text/Text.types';
-import { Title } from 'cfx/ui/Title/Title';
+import { LinkButton } from 'cfx/ui/Button/LinkButton';
 
 interface ServerListDescriptor {
   titleKey: LocaleKeyOrString<LocaleKey>;
   icon: React.ReactNode;
   to: string;
-  color: TextColor;
+  color: React.ComponentProps<typeof Icon>['color'];
 }
 
 export const SERVER_LIST_DESCRIPTORS: Record<string, ServerListDescriptor> = {
@@ -117,7 +119,7 @@ export const ListTypeTabs2 = observer(function ListTypeTabs() {
 
     return (
       <Title key={type} title={$L(titleKey)}>
-        <Button
+        <LinkButton
           key={type}
           to={to}
           size="large"

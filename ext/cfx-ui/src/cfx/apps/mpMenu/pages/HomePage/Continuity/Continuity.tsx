@@ -1,3 +1,4 @@
+import { Interactive, Flex, Text, clsx } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { BsPlayFill } from 'react-icons/bs';
@@ -14,10 +15,6 @@ import { $L } from 'cfx/common/services/intl/l10n';
 import { ServersListType } from 'cfx/common/services/servers/lists/types';
 import { useServersService } from 'cfx/common/services/servers/servers.service';
 import { IServersConnectService } from 'cfx/common/services/servers/serversConnect.service';
-import { Interactive } from 'cfx/ui/Interactive/Interactive';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Text } from 'cfx/ui/Text/Text';
-import { clsx } from 'cfx/utils/clsx';
 
 import { LastConnectedTile, useLastHistoryServer } from './LastConnectedTile/LastConnectedTile';
 

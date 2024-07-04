@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
+import { BrandIcon, Icons, Input, Select } from '@cfx-dev/ui-components';
 import emojiList from 'emoji.json/emoji-compact.json';
 import { BsDisplay } from 'react-icons/bs';
 
@@ -10,9 +11,6 @@ import { useIntlService } from 'cfx/common/services/intl/intl.service';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { ILinkedIdentitiesService } from 'cfx/common/services/linkedIdentities/linkedIdentities.service';
 import { ISetting, ISettings } from 'cfx/common/services/settings/types';
-import { BrandIcon, Icons } from 'cfx/ui/Icons';
-import { Input } from 'cfx/ui/Input/Input';
-import { Select } from 'cfx/ui/Select/Select';
 
 import { mpMenu } from './mpMenu';
 import { LinkedIdentitiesList } from './parts/LinkedIdentitiesList/LinkedIdentitiesList';

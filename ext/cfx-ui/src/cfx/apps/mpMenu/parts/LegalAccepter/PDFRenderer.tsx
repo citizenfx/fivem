@@ -1,16 +1,18 @@
 /* eslint-disable react/no-unescaped-entities */
-import 'pdfjs-dist/web/pdf_viewer.css';
-
+import {
+  Icons,
+  Flex,
+  Text,
+  Title,
+} from '@cfx-dev/ui-components';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as pdfjsViewer from 'pdfjs-dist/web/pdf_viewer';
 import React from 'react';
 
 import { LinkButton } from 'cfx/ui/Button/LinkButton';
-import { Icons } from 'cfx/ui/Icons';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Text } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
 import { useTimeoutFlag } from 'cfx/utils/hooks';
+
+import 'pdfjs-dist/web/pdf_viewer.css';
 
 import s from './PDFRenderer.module.scss';
 

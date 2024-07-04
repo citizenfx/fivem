@@ -1,17 +1,19 @@
+import {
+  Button,
+  Icons,
+  Input,
+  Box,
+  Flex,
+  FlexRestricter,
+  Scrollable,
+  Loaf,
+  Separator,
+  Text,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
-import { Button } from 'cfx/ui/Button/Button';
 import { Flyout } from 'cfx/ui/Flyout/Flyout';
-import { Icons } from 'cfx/ui/Icons';
-import { Input } from 'cfx/ui/Input/Input';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { FlexRestricter } from 'cfx/ui/Layout/Flex/FlexRestricter';
-import { Scrollable } from 'cfx/ui/Layout/Scrollable/Scrollable';
-import { Loaf } from 'cfx/ui/Loaf/Loaf';
-import { Separator } from 'cfx/ui/Separator/Separator';
-import { Text } from 'cfx/ui/Text/Text';
 
 import s from './LongListSideSection.module.scss';
 

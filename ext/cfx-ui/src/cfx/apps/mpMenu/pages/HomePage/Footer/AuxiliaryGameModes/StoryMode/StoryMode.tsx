@@ -1,11 +1,14 @@
+import {
+  Button,
+  Icons,
+  Flex,
+  Pad,
+  Modal,
+  TextBlock,
+} from '@cfx-dev/ui-components';
+
 import { mpMenu } from 'cfx/apps/mpMenu/mpMenu';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Button } from 'cfx/ui/Button/Button';
-import { Icons } from 'cfx/ui/Icons';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Modal } from 'cfx/ui/Modal/Modal';
-import { TextBlock } from 'cfx/ui/Text/Text';
 import { useOpenFlag } from 'cfx/utils/hooks';
 
 import s from './StoryMode.module.scss';

@@ -1,3 +1,11 @@
+import {
+  Box,
+  Flex,
+  FlexRestricter,
+  Page,
+  Scrollable,
+  NavList,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { useLocation } from 'react-router-dom';
@@ -8,12 +16,6 @@ import { EventActionNames, ElementPlacements } from 'cfx/common/services/analyti
 import { ISettingsUIService } from 'cfx/common/services/settings/settings.service';
 import { ICategory } from 'cfx/common/services/settings/types';
 import { Flyout } from 'cfx/ui/Flyout/Flyout';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { FlexRestricter } from 'cfx/ui/Layout/Flex/FlexRestricter';
-import { Page } from 'cfx/ui/Layout/Page/Page';
-import { Scrollable } from 'cfx/ui/Layout/Scrollable/Scrollable';
-import { NavList } from 'cfx/ui/NavList/NavList';
 
 import { SettingItem } from '../../../../common/parts/Settings/SettingItem/SettingItem';
 

@@ -1,11 +1,13 @@
+import {
+  Checkbox,
+  Flex,
+  Text,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
 import { KnownConvars, useConvarService } from 'cfx/apps/mpMenu/services/convars/convars.service';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Checkbox } from 'cfx/ui/Checkbox/Checkbox';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Text } from 'cfx/ui/Text/Text';
 
 export const BlurredBackdrop = observer(function BlurredBackdrop() {
   const ConvarService = useConvarService();

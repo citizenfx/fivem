@@ -1,10 +1,8 @@
+import { Icons, Flex, Title } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { $L } from 'cfx/common/services/intl/l10n';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { Icons } from 'cfx/ui/Icons';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Title } from 'cfx/ui/Title/Title';
 
 export interface ServerPowerProps {
   server: IServerView;

@@ -1,3 +1,20 @@
+import {
+  Button,
+  ButtonBar,
+  Checkbox,
+  ControlBox,
+  Decorate,
+  Dot,
+  Icons,
+  Interactive,
+  Flex,
+  Pad,
+  VirtualScrollable,
+  Separator,
+  Text,
+  Title,
+  clsx,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import {
@@ -19,22 +36,7 @@ import { ServerListSortDir, ServersListSortBy } from 'cfx/common/services/server
 import { useServersService } from 'cfx/common/services/servers/servers.service';
 import { IAutocompleteIndexLocaleItem } from 'cfx/common/services/servers/source/types';
 import { useUiService } from 'cfx/common/services/ui/ui.service';
-import { Button } from 'cfx/ui/Button/Button';
-import { ButtonBar } from 'cfx/ui/Button/ButtonBar';
-import { Checkbox } from 'cfx/ui/Checkbox/Checkbox';
-import { ControlBox } from 'cfx/ui/ControlBox/ControlBox';
-import { Decorate } from 'cfx/ui/Decorate/Decorate';
-import { Dot } from 'cfx/ui/Dot/Dot';
-import { Icons } from 'cfx/ui/Icons';
-import { Interactive } from 'cfx/ui/Interactive/Interactive';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { VirtualScrollable } from 'cfx/ui/Layout/Scrollable/VirtualScrollable';
 import { Popover } from 'cfx/ui/Popover/Popover';
-import { Separator } from 'cfx/ui/Separator/Separator';
-import { Text } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
-import { clsx } from 'cfx/utils/clsx';
 
 import { SearchInput } from './SearchInput/SearchInput';
 
@@ -76,8 +78,8 @@ export const ServerFilters = observer(function ServerFilters(props: ServerFilter
 
       <ButtonBar>
         <Popover at="top-right" popover={<FiltersPopover config={config} />}>
-          {(ref, active) => (
-            <Decorate ref={ref as any} decorator={filtersDecorator}>
+          {(active) => (
+            <Decorate decorator={filtersDecorator}>
               <Button
                 size="large"
                 theme={(active && 'primary') || 'default-blurred'}
@@ -89,9 +91,8 @@ export const ServerFilters = observer(function ServerFilters(props: ServerFilter
         </Popover>
 
         <Popover at="top-right" popover={<SortPopover config={config} />}>
-          {(ref, active) => (
+          {(active) => (
             <Button
-              ref={ref as any}
               theme={(active && 'primary') || 'default-blurred'}
               size="large"
               icon={iconsMap[config.sortBy][config.sortDir]}
