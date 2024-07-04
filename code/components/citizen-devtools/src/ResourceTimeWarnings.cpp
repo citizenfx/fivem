@@ -9,7 +9,13 @@
 
 #ifndef IS_FXSERVER
 #include <Pool.h>
+#include <Streaming.h>
 #endif
+
+#include <iomanip>
+#include <sstream>
+#include <ctime>
+#include <chrono>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -42,6 +48,34 @@ void BytesToHumanReadable(std::string& humanSize, int totalBytes)
 		humanSize = fmt::sprintf("%.2f KiB", totalBytes / 1024.0);
 	}
 }
+
+#ifndef IS_FXSERVER
+std::string PrettyFormatFileTime(uint64_t filetime)
+{
+	// Convert uint64_t to FILETIME
+	FILETIME ft;
+	ft.dwLowDateTime = static_cast<DWORD>(filetime & 0xFFFFFFFF);
+	ft.dwHighDateTime = static_cast<DWORD>(filetime >> 32);
+
+	// Convert FILETIME to SYSTEMTIME
+	SYSTEMTIME st;
+	if (!FileTimeToSystemTime(&ft, &st))
+	{
+		return "Invalid FILETIME";
+	}
+
+	// Create a string stream to format the date and time
+	std::stringstream ss;
+	ss << std::setfill('0') << std::setw(2) << st.wDay << "."
+	   << std::setfill('0') << std::setw(2) << st.wMonth << "."
+	   << std::setw(4) << st.wYear << " "
+	   << std::setfill('0') << std::setw(2) << st.wHour << ":"
+	   << std::setfill('0') << std::setw(2) << st.wMinute << ":"
+	   << std::setfill('0') << std::setw(2) << st.wSecond;
+
+	return ss.str();
+}
+#endif
 
 inline std::chrono::microseconds usec()
 {
@@ -394,6 +428,7 @@ static InitFunction initFunction([]()
 
 	static bool taskMgrEnabled;
 	static bool m_enabledPools;
+	static bool m_enabledPgRawStreamerStats;
 
 	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive | ConVar_UserPref, false, &taskMgrEnabled);
 
@@ -917,6 +952,61 @@ static InitFunction initFunction([]()
 					trace(" - %s, item size = %d, total size = %s, items count = %d, pool size = %d\n", poolData.name.c_str(), poolData.itemSize, humanSize.c_str(), poolData.items, poolData.maxItems);
 				}
 				trace("--- Pools memory usage report end ---\n");
+			}
+		}
+		ImGui::End();
+	});
+
+
+	static ConVar<bool> pgStatsVar("net_pgStats", ConVar_Archive | ConVar_UserPref, false, &m_enabledPgRawStreamerStats);
+
+	ConHost::OnShouldDrawGui.Connect([this](bool* should)
+	{
+		*should = *should || m_enabledPgRawStreamerStats;
+	});
+
+	ConHost::OnDrawGui.Connect([this]()
+	{
+		if (!m_enabledPgRawStreamerStats)
+		{
+			return;
+		}
+
+		if (ImGui::Begin("Loaded pgRawStreamer assets", &m_enabledPgRawStreamerStats))
+		{
+			static char search[100];
+			ImGui::InputText("Search", search, IM_ARRAYSIZE(search));
+			auto assets = rage::GetPgRawStreamerEntries();
+			ImGui::LabelText("Assets total", "%d/65535", assets.GetCount());
+
+			if (ImGui::BeginTable("Assets", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
+			{
+				ImGui::TableSetupColumn("Asset path", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableSetupColumn("Add timestamp", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableHeadersRow();
+
+				for (int i = 0; i < assets.GetCount(); ++i)
+				{
+					if (!assets[i].name)
+					{
+						continue;
+					}
+
+					const std::string name = assets[i].name;
+					if (!name._Starts_with(search))
+					{
+						continue;
+					}
+
+					const std::string datetime = PrettyFormatFileTime(assets[i].timestamp);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", assets[i].name);
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", datetime.c_str());
+				}
+				ImGui::EndTable();
 			}
 		}
 		ImGui::End();

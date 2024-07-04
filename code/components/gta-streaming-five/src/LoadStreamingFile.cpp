@@ -3332,6 +3332,21 @@ static ConsoleCommand pgRawStreamer_AssetsCountCmd("assetscount", []()
 	trace("Total loaded assets in pgRawStreamer - %d/65535\n", loadedEntriesCount);
 });
 
+const rage::chunkyArray<rage::pgRawEntry, 1024, 64>& rage::GetPgRawStreamerEntries()
+{
+	static rage::chunkyArray<rage::pgRawEntry, 1024, 64> empty;
+	hook::FlexStruct* rawStreamerFlex = *(hook::FlexStruct**)rawStreamer;
+
+	if (rawStreamerFlex)
+	{
+		return rawStreamerFlex->Get<rage::chunkyArray<rage::pgRawEntry, 1024, 64>>(chunkyArrayOffset);
+	}
+	else
+	{
+		return empty;
+	}
+}
+
 #endif
 
 static HookFunction hookFunction([]()
