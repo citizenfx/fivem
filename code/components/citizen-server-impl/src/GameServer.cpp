@@ -335,7 +335,7 @@ namespace fx
 
 			auto processSendList = [this]()
 			{
-				while (auto *packet = m_netSendList.pop(&fx::GameServerPacket::queueKey))
+				while (auto *packet = m_netSendList.pop_until_empty(&fx::GameServerPacket::queueKey))
 				{
 					m_net->SendPacket(packet->peer, packet->channel, packet->buffer, packet->type);
 					m_packetPool.destruct(packet);
