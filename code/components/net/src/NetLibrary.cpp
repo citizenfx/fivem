@@ -33,6 +33,8 @@
 
 #include <json.hpp>
 
+#include "NetBitVersion.h"
+
 #ifdef FIVEM_INTERNAL_POSTMAP
 #include "InternalServerPostmap_includes.h"
 #endif
@@ -1289,6 +1291,21 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						{
 							AddCrashometry("onesync_big", "false");
 							Instance<ICoreGameInit>::Get()->ClearVariable("onesync_big");
+						}
+
+						if (Instance<ICoreGameInit>::Get()->IsNetVersionOrHigher(net::NetBitVersion::netVersion3))
+						{
+							const bool oneSyncPopulation = (!node["onesync_population"].is_null() && node["onesync_population"].get<bool>());
+							if (oneSyncPopulation)
+							{
+								AddCrashometry("onesync_population", "true");
+								Instance<ICoreGameInit>::Get()->SetVariable("onesync_population");
+							}
+							else
+							{
+								AddCrashometry("onesync_population", "false");
+								Instance<ICoreGameInit>::Get()->ClearVariable("onesync_population");
+							}
 						}
 
 						auto maxClients = (!node["maxClients"].is_null()) ? node["maxClients"].get<int>() : 64;

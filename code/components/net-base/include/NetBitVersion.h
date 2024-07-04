@@ -38,6 +38,11 @@ namespace net
 		/// <summary>
 		/// Added new stateBagHandlerV2.
 		/// </summary>
-		netVersion2 = BuildNetVersion(2024, 05, 01, 00, 00)
+		netVersion2 = BuildNetVersion(2024, 05, 01, 00, 00),
+
+		/// <summary>
+		/// Improve onesync_population variable
+		/// </summary>
+		netVersion3 = BuildNetVersion(2024, 07, 01, 00, 00)
 	};
 }

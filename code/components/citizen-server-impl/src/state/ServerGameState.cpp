@@ -85,6 +85,7 @@ std::shared_ptr<ConVar<std::string>> g_oneSyncLogVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncWorkaround763185;
 std::shared_ptr<ConVar<bool>> g_oneSyncBigMode;
 std::shared_ptr<ConVar<bool>> g_oneSyncLengthHack;
+std::shared_ptr<ConVar<bool>> g_experimentalOneSyncPopulation;
 std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
 std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
@@ -7153,6 +7154,8 @@ static InitFunction initFunction([]()
 		// or maybe, beyond?
 		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_ReadOnly, false);
 
+		g_experimentalOneSyncPopulation = instance->AddVariable<bool>("sv_experimentalOneSyncPopulation", ConVar_None, false);
+
 		constexpr bool canLengthHack =
 #ifdef STATE_RDR3
 		false
@@ -7162,10 +7165,21 @@ static InitFunction initFunction([]()
 		;
 
 		fx::SetBigModeHack(g_oneSyncBigMode->GetValue(), canLengthHack && g_oneSyncLengthHack->GetValue());
+		if (g_experimentalOneSyncPopulation->GetValue())
+		{
+			fx::SetOneSyncPopulation(g_oneSyncPopulation->GetValue());
+		}
 
 		if (g_oneSyncVar->GetValue() == fx::OneSyncState::On)
 		{
-			fx::SetBigModeHack(true, canLengthHack && g_oneSyncPopulation->GetValue());
+			if (g_experimentalOneSyncPopulation->GetValue())
+			{
+				fx::SetBigModeHack(true, canLengthHack);
+			}
+			else
+			{
+				fx::SetBigModeHack(true, canLengthHack && g_oneSyncPopulation->GetValue());
+			}
 
 			g_oneSyncBigMode->GetHelper()->SetRawValue(true);
 			g_oneSyncLengthHack->GetHelper()->SetRawValue(fx::IsLengthHack());

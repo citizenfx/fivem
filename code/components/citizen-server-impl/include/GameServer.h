@@ -350,8 +350,10 @@ namespace fx
 	SVIMP_EXPORT bool IsBigMode();
 	SVIMP_EXPORT bool IsOneSync();
 	SVIMP_EXPORT bool IsLengthHack();
+	SVIMP_EXPORT bool IsOneSyncPopulation();
 	SVIMP_EXPORT void SetOneSyncGetCallback(bool (*cb)());
 	SVIMP_EXPORT void SetBigModeHack(bool bigMode, bool lengthHack);
+	SVIMP_EXPORT void SetOneSyncPopulation(bool population);
 	SVIMP_EXPORT std::string_view GetEnforcedGameBuild();
 	SVIMP_EXPORT int GetEnforcedGameBuildNumber();
 }
