@@ -3311,7 +3311,9 @@ DLL_IMPORT extern fwEvent<> PreSetupLoadingScreens;
 #endif
 
 #ifdef GTA_FIVE
+pgRawStreamer* rawStreamer = nullptr;
 static int32_t chunkyArrayCountOffset = 0;
+static int32_t chunkyArrayOffset = 0;
 void* (*g_chunkyArrayAppend)(hook::FlexStruct* self);
 void* chunkyArrayAppend(hook::FlexStruct* self)
 {
@@ -3322,6 +3324,14 @@ void* chunkyArrayAppend(hook::FlexStruct* self)
 	}
 	return g_chunkyArrayAppend(self);
 }
+
+static ConsoleCommand pgRawStreamer_AssetsCountCmd("assetscount", []()
+{
+	hook::FlexStruct* rawStreamerFlex = *(hook::FlexStruct**)rawStreamer;
+	const int32_t loadedEntriesCount = rawStreamerFlex->Get<int32_t>(chunkyArrayOffset + chunkyArrayCountOffset);
+	trace("Total loaded assets in pgRawStreamer - %d/65535\n", loadedEntriesCount);
+});
+
 #endif
 
 static HookFunction hookFunction([]()
@@ -3329,6 +3339,11 @@ static HookFunction hookFunction([]()
 #ifdef GTA_FIVE
 	auto chunkyArrayAppendLoc = hook::get_pattern<uint8_t>("40 53 48 83 EC ? F7 81 ? ? ? ? ? ? ? ? 48 8B D9 75");
 	chunkyArrayCountOffset = *(int32_t*)(chunkyArrayAppendLoc + 8);
+	chunkyArrayOffset = *hook::get_pattern<int32_t>("48 8D 8F ? ? ? ? E8 ? ? ? ? 48 8D 4C 24", 3);
+
+	auto rawStreamerLoc = hook::get_pattern<uint8_t>("48 89 15 ? ? ? ? 44 0F B7 C3");
+	rawStreamer = (pgRawStreamer*)(*(int32_t*)(rawStreamerLoc + 3) + rawStreamerLoc + 7);
+	
 	g_chunkyArrayAppend = hook::trampoline(chunkyArrayAppendLoc, &chunkyArrayAppend);
 
 	loadChangeSet = hook::get_pattern<char>("48 81 EC 50 03 00 00 49 8B F0 4C", -0x18);
