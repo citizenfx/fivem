@@ -43,6 +43,8 @@
 
 #include <InfoHttpHandler.h>
 
+#include "ClientDropReasons.h"
+
 constexpr const char kDefaultServerList[] = "https://servers-ingress-live.fivem.net/ingress";
 
 static fx::GameServer* g_gameServer;
@@ -131,7 +133,7 @@ namespace fx
 		{
 			m_clientRegistry->ForAllClients([this, &reason](const fx::ClientSharedPtr& client)
 			{
-				DropClient(client, "Server shutting down: %s", reason);
+				DropClientWithReason(client, fx::serverDropResourceName, ClientDropReason::SERVER_SHUTDOWN, "Server shutting down: %s", reason);
 			});
 		});
 
@@ -934,12 +936,12 @@ namespace fx
 							commandListFormat << fmt::sprintf("%s (%d B, %d msec ago)\n", name, bigCmd.size, bigCmd.timeAgo);
 						}
 
-						DropClient(client, "Server->client connection timed out. Pending commands: %d.\nCommand list:\n%s", timeoutInfo.pendingCommands, commandListFormat.str());
+						DropClientWithReason(client, fx::serverDropResourceName, ClientDropReason::CLIENT_CONNECTION_TIMED_OUT_WITH_PENDING_COMMANDS, "Server->client connection timed out. Pending commands: %d.\nCommand list:\n%s", timeoutInfo.pendingCommands, commandListFormat.str());
 						continue;
 					}
 				}
 
-				DropClient(client, "Server->client connection timed out. Last seen %d msec ago.", lastSeen.count());
+				DropClientWithReason(client, fx::serverDropResourceName, ClientDropReason::CLIENT_CONNECTION_TIMED_OUT, "Server->client connection timed out. Last seen %d msec ago.", lastSeen.count());
 			}
 		}
 
@@ -1074,7 +1076,7 @@ namespace fx
 		OnTick();
 	}
 
-	void GameServer::DropClientv(const fx::ClientSharedPtr& client, const std::string& reason)
+	void GameServer::DropClientv(const fx::ClientSharedPtr& client, const std::string& resourceName, ClientDropReason clientDropReason, const std::string& reason)
 	{
 		std::string realReason = reason;
 		if (realReason.empty())
@@ -1089,13 +1091,13 @@ namespace fx
 
 		client->SetDropping();
 
-		gscomms_execute_callback_on_main_thread([this, client, realReason = std::move(realReason)]()
+		gscomms_execute_callback_on_main_thread([this, client, resourceName = std::move(resourceName), realReason = std::move(realReason), clientDropReason]()
 		{
-			DropClientInternal(client, realReason);
+			DropClientInternal(client, resourceName, clientDropReason, realReason);
 		});
 	}
 
-	void GameServer::DropClientInternal(const fx::ClientSharedPtr& client, const std::string& realReason)
+	void GameServer::DropClientInternal(const fx::ClientSharedPtr& client, const std::string& resourceName, ClientDropReason clientDropReason, const std::string& realReason)
 	{
 		// send an out-of-band error to the client
 		if (client->GetPeer())
@@ -1121,7 +1123,9 @@ namespace fx
 				->TriggerEvent2(
 					"playerDropped",
 					{ fmt::sprintf("internal-net:%d", client->GetNetId()) },
-					realReason
+					realReason,
+					resourceName,
+					static_cast<uint32_t>(clientDropReason)
 				);
 		}
 

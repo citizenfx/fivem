@@ -75,7 +75,7 @@ void ServerCommandPacketHandler::Handle(fx::ServerInstanceBase* instance, const 
 	{
 		if (!netFloodRateLimiter->Consume(netId))
 		{
-			instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable server command overflow.");
+			instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::COMMAND_RATE_LIMIT, "Reliable server command overflow.");
 		}
 
 		return;
@@ -101,7 +101,7 @@ void ServerCommandPacketHandler::Handle(fx::ServerInstanceBase* instance, const 
 		}
 		// if this happens, try increasing rateLimiter_netCommandSize_rate and rateLimiter_netCommandSize_burst
 		// preferably, fix client scripts to not have this large a set of server commands with high frequency
-		instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable server command size overflow: %s",
+		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::COMMAND_RATE_LIMIT, "Reliable server command size overflow: %s",
 		                                                     command);
 
 		return;
