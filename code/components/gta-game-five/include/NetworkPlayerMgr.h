@@ -40,8 +40,6 @@ namespace rage
 {
 	class netPlayer : XBR_VIRTUAL_BASE_2802(0)
 	{
-	private:
-		static inline int vtableOffsetGetGamerInfo = 0;
 	public:
 		//virtual ~netPlayer() = 0;
 		// TODO: real dtors
@@ -56,19 +54,15 @@ namespace rage
 		template<int Build>
 		inline auto GetGamerInfo()
 		{
-			uintptr_t vmethodAddress = *(uintptr_t*)(*(void**)this) + vtableOffsetGetGamerInfo;
+			uintptr_t vtable = *(uintptr_t*)this;
+			static uint8_t vtableOffsetGetGamerInfo = *hook::get_pattern<uint8_t>("FF 52 ? 48 8B C8 E8 ? ? ? ? 48 8D 55 ? 48 8D 0D", 2);
+			uintptr_t vmethodAddress = *(uintptr_t*)(vtable + vtableOffsetGetGamerInfo);
 
-			void* (*func)();
+			void* (*func)(void*);
 
 			func = (decltype(func))vmethodAddress;
 
-			return (rlGamerInfo<Build>*)func();
-		}
-
-		static void InitVTableOffsets()
-		{
-			vtableOffsetGetGamerInfo = *hook::get_pattern<uint8_t>("FF 52 ? 48 8B C8 E8 ? ? ? ? 48 8B CF", 2);
-			trace("vtableOffsetGetGamerInfo %d\n", vtableOffsetGetGamerInfo);
+			return (rlGamerInfo<Build>*)func(this);
 		}
 	};
 }
