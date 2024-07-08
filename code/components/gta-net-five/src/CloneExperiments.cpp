@@ -1378,43 +1378,6 @@ namespace sync
 }
 
 #ifdef GTA_FIVE
-static void(*g_origCPedGameStateDataNode__access)(void*, void*);
-
-static void CPedGameStateDataNode__access(char* dataNode, void* accessor)
-{
-	g_origCPedGameStateDataNode__access(dataNode, accessor);
-
-	// not needed right now
-	return;
-
-	// 1604 unused
-
-	// if on mount/mount ID is set
-	if (*(uint16_t*)(dataNode + 310) && icgi->OneSyncEnabled)
-	{
-		auto extraDumpPath = MakeRelativeCitPath(L"data\\cache\\extra_dump_info.bin");
-
-		auto f = _wfopen(extraDumpPath.c_str(), L"wb");
-
-		if (f)
-		{
-			fwrite(sync::g_cloneMsgPacket.GetData().data(), 1, sync::g_cloneMsgPacket.GetData().size(), f);
-			fclose(f);
-		}
-
-		extraDumpPath = MakeRelativeCitPath(L"data\\cache\\extra_dump_info2.bin");
-
-		f = _wfopen(extraDumpPath.c_str(), L"wb");
-
-		if (f)
-		{
-			fwrite(sync::g_cloneMsgData.data(), 1, sync::g_cloneMsgData.size(), f);
-			fclose(f);
-		}
-
-		FatalError("CPedGameStateDataNode: tried to read a mount ID, this is wrong, please click 'save information' below and post the file in https://forum.fivem.net/t/318260 to help us resolve this issue.");
-	}
-}
 
 static void (*g_origManageTextVoiceChatStub)(void*);
 
@@ -1465,7 +1428,9 @@ static void* NetworkObjectMgrCtorStub(void* mgr, void* bw)
 	auto alloc = rage::GetAllocator();
 	alloc->Free(mgr);
 
-	mgr = alloc->Allocate(32712 + 4096, 16, 0);
+	int initialSize = (xbr::IsGameBuildOrGreater<3258>()) ? 32712 + 8192 : 32712;
+
+	mgr = alloc->Allocate(initialSize + 4096, 16, 0);
 
 	g_origNetworkObjectMgrCtor(mgr, bw);
 
@@ -2087,7 +2052,11 @@ static HookFunction hookFunction([]()
 #ifdef GTA_FIVE
 	MH_CreateHook(hook::get_pattern("45 8D 65 20 C6 81 ? ? 00 00 01 48 8D 59 08", -0x2F), ObjectManager_End, (void**)&g_origObjectManager_End);
 	
-	if (xbr::IsGameBuildOrGreater<2545>())
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 83 C4 ? 5B", 3))), PlayerManager_End, (void**)&g_origPlayerManager_End);
+	}
+	else if (xbr::IsGameBuildOrGreater<2545>())
 	{
 		MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("84 C0 74 14 48 8B CB E8 ? ? ? ? 48 8D 8B", 7))), PlayerManager_End, (void**)&g_origPlayerManager_End);
 	}
@@ -2108,9 +2077,6 @@ static HookFunction hookFunction([]()
 #endif
 
 #ifdef GTA_FIVE
-	// crash logging for invalid mount indices
-	MH_CreateHook(hook::get_pattern("48 8B FA 48 8D 91 ? 01 00 00 48 8B F1", xbr::IsGameBuildOrGreater<2372>() ? -0x15 : -0x16), CPedGameStateDataNode__access, (void**)&g_origCPedGameStateDataNode__access);
-
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
 #endif
@@ -3615,15 +3581,15 @@ std::string GetType(void* d)
 
 extern rage::netObject* g_curNetObject;
 
-static char(*g_origReadDataNode)(void* node, uint32_t flags, void* mA0, rage::datBitBuffer* buffer, rage::netObject* object);
+static char(*g_origReadDataNode)(void* node, uint32_t serializationMode, uint32_t flags, rage::datBitBuffer* buffer, void* logger);
 
 std::map<int, std::map<void*, std::tuple<int, uint32_t>>> g_netObjectNodeMapping;
 
-static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::datBitBuffer* buffer, rage::netObject* object)
+static bool ReadDataNodeStub(void* node, uint32_t serializationMode, uint32_t flags, rage::datBitBuffer* buffer, void* logger)
 {
 	if (!icgi->OneSyncEnabled)
 	{
-		return g_origReadDataNode(node, flags, mA0, buffer, object);
+		return g_origReadDataNode(node, serializationMode, flags, buffer, logger);
 	}
 
 	// enable this for boundary checks
@@ -3634,7 +3600,7 @@ static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::datBit
 		assert(in == 0x5A);
 	}*/
 
-	bool didRead = g_origReadDataNode(node, flags, mA0, buffer, object);
+	bool didRead = g_origReadDataNode(node, serializationMode, flags, buffer, logger);
 
 	if (didRead && g_curNetObject)
 	{

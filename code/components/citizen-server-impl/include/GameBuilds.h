@@ -119,6 +119,11 @@ struct ConsoleArgumentType<fx::GameBuild>
 			*out = "3095";
 			return true;
 		}
+		else if (_stricmp(inputStr.c_str(), "mp2024_01") == 0)
+		{
+			*out = "3258";
+			return true;
+		}
 
 		// not an int or a known alias
 		return false;

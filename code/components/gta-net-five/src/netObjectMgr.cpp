@@ -2,6 +2,7 @@
 #include <Hooking.h>
 
 #include <netObjectMgr.h>
+#include <NetworkPlayerMgr.h>
 
 static rage::netObjectMgr** g_objectMgr;
 
@@ -28,4 +29,6 @@ static HookFunction hookFunction([]()
 	// 1737: arxan!!
 	// 2060: arxan!!!!
 	g_objectMgr = hook::get_address<rage::netObjectMgr**>(hook::get_pattern("2B C3 3D 88 13 00 00 0F 82 ? ? ? ? 48 8B 05", 16));
+
+	rage::netPlayer::InitVTableOffsets();
 });

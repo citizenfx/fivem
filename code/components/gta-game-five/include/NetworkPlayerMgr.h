@@ -10,6 +10,7 @@
 #include <CrossBuildRuntime.h>
 #include <XBRVirtual.h>
 #include <netPeerAddress.h>
+#include <Hooking.h>
 
 #define DECLARE_ACCESSOR(x) \
 	decltype(impl.m3095.x)& x() \
@@ -39,6 +40,8 @@ namespace rage
 {
 	class netPlayer : XBR_VIRTUAL_BASE_2802(0)
 	{
+	private:
+		static inline int vtableOffsetGetGamerInfo = 0;
 	public:
 		//virtual ~netPlayer() = 0;
 		// TODO: real dtors
@@ -50,16 +53,22 @@ namespace rage
 
 		XBR_VIRTUAL_METHOD(const char*, GetName, ())
 
-		XBR_VIRTUAL_METHOD(void, m_20, ())
-
-		XBR_VIRTUAL_METHOD(void, m_28, ())
-
-		XBR_VIRTUAL_METHOD(void*, GetGamerInfo_raw, ())
-
 		template<int Build>
 		inline auto GetGamerInfo()
 		{
-			return (rlGamerInfo<Build>*)GetGamerInfo_raw();
+			uintptr_t vmethodAddress = *(uintptr_t*)(*(void**)this) + vtableOffsetGetGamerInfo;
+
+			void* (*func)();
+
+			func = (decltype(func))vmethodAddress;
+
+			return (rlGamerInfo<Build>*)func();
+		}
+
+		static void InitVTableOffsets()
+		{
+			vtableOffsetGetGamerInfo = *hook::get_pattern<uint8_t>("FF 52 ? 48 8B C8 E8 ? ? ? ? 48 8B CF", 2);
+			trace("vtableOffsetGetGamerInfo %d\n", vtableOffsetGetGamerInfo);
 		}
 	};
 }
