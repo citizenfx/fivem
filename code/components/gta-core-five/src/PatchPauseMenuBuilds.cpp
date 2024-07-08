@@ -14,7 +14,7 @@ static void ActivatePauseMenuContexts()
 {
 	g_origActivateContexts();
 
-	activatePauseMenuContext(HashString(fmt::sprintf("b%d", xbr::GetGameBuild())));
+	activatePauseMenuContext(HashString(fmt::sprintf("b%d", xbr::GetRequestedGameBuild())));
 }
 
 static HookFunction hookFunction([]

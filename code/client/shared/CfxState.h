@@ -21,7 +21,7 @@ struct CfxState
 
 	wchar_t gameExePath[1024];
 
-	wchar_t initCommandLine[3072];
+	wchar_t initCommandLine[2048];
 
 	CfxState()
 	{

@@ -104,9 +104,5 @@ function getBuildSwitchBody(switchRequest: ConnectState.BuildSwitchRequest) {
     return '#BuildSwitch_PureBuildSwitchBody';
   }
 
-  if (buildChanged) {
-    return '#BuildSwitch_Body';
-  }
-
-  return '#DlcListSwitch_Body';
+  return '#BuildSwitch_Body';
 }

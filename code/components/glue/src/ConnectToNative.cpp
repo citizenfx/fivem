@@ -98,7 +98,7 @@ static void SaveBuildNumber(uint32_t build)
 	}
 }
 
-void RestartGameToOtherBuild(int build, int pureLevel, std::wstring dlcListCommand)
+void RestartGameToOtherBuild(int build, int pureLevel)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 	SECURITY_ATTRIBUTES securityAttributes = { 0 };
@@ -107,12 +107,11 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring dlcListComma
 	HANDLE switchEvent = CreateEventW(&securityAttributes, TRUE, FALSE, NULL);
 
 	static HostSharedData<CfxState> hostData("CfxInitState");
-	auto cli = fmt::sprintf(L"\"%s\" %s %s %s %s -switchcl:%d \"fivem://connect/%s\"",
+	auto cli = fmt::sprintf(L"\"%s\" %s %s %s -switchcl:%d \"fivem://connect/%s\"",
 	hostData->gameExePath,
 	build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
 	IsCL2() ? L"-cl2" : L"",
 	pureLevel == 0 ? L"" : fmt::sprintf(L"-pure_%d", pureLevel),
-	dlcListCommand,
 	(uintptr_t)switchEvent,
 	ToWide(g_lastConn));
 
@@ -132,7 +131,7 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring dlcListComma
 		SaveBuildNumber(defaultBuild);
 	}
 
-	trace("Switching from build %d to build %d...\n", xbr::GetGameBuild(), build);
+	trace("Switching from build %d to build %d...\n", xbr::GetRequestedGameBuild(), build);
 
 	SIZE_T size = 0;
 	InitializeProcThreadAttributeList(NULL, 1, 0, &size);
@@ -166,7 +165,7 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring dlcListComma
 #endif
 }
 
-extern void InitializeBuildSwitch(int build, int pureLevel, std::wstring dlcListCommand);
+extern void InitializeBuildSwitch(int build, int pureLevel);
 
 void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
@@ -618,9 +617,9 @@ static InitFunction initFunction([] ()
 			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
 		});
 
-		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring dlcListCommand)
+		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel)
 		{
-			InitializeBuildSwitch(build, pureLevel, std::move(dlcListCommand));
+			InitializeBuildSwitch(build, pureLevel);
 			g_connected = false;
 		});
 
@@ -1560,7 +1559,7 @@ static InitFunction connectInitFunction([]()
 	{
 		if (type == rage::INIT_BEFORE_MAP_LOADED)
 		{
-			SaveBuildNumber(xbr::GetGameBuild());
+			SaveBuildNumber(xbr::GetRequestedGameBuild());
 		}
 	});
 #endif
