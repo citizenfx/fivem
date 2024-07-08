@@ -252,10 +252,22 @@ struct CDoorScriptGameStateDataNodeData
 
 struct CHeliControlDataNodeData
 {
+	float yawControl;
+	float pitchControl;
+	float rollControl;
+	float throttleControl;
+
 	bool engineOff;
 
 	bool hasLandingGear;
 	uint32_t landingGearState;
+
+	bool isThrusterModel;
+	float thrusterSideRCSThrottle;
+	float thrusterThrottle;
+
+	bool hasVehicleTask;
+	bool lockedToXY;
 };
 
 struct CPlayerCameraNodeData
