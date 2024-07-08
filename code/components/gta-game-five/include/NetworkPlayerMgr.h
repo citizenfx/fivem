@@ -38,7 +38,7 @@ struct rlGamerInfo
 
 namespace rage
 {
-	class netPlayer : XBR_VIRTUAL_BASE_2802(0)
+	class GTA_GAME_EXPORT netPlayer : XBR_VIRTUAL_BASE_2802(0)
 	{
 	public:
 		//virtual ~netPlayer() = 0;
@@ -51,24 +51,18 @@ namespace rage
 
 		XBR_VIRTUAL_METHOD(const char*, GetName, ())
 
+		void* GetGamerInfoBase();
+
 		template<int Build>
 		inline auto GetGamerInfo()
 		{
-			uintptr_t vtable = *(uintptr_t*)this;
-			static uint8_t vtableOffsetGetGamerInfo = *hook::get_pattern<uint8_t>("FF 52 ? 48 8B C8 E8 ? ? ? ? 48 8D 55 ? 48 8D 0D", 2);
-			uintptr_t vmethodAddress = *(uintptr_t*)(vtable + vtableOffsetGetGamerInfo);
-
-			void* (*func)(void*);
-
-			func = (decltype(func))vmethodAddress;
-
-			return (rlGamerInfo<Build>*)func(this);
+			return (rlGamerInfo<Build>*)GetGamerInfoBase();
 		}
 	};
 }
 
 // using XBRVirt is safe here because it's right below so the counter increments right away
-class CNetGamePlayer : public rage::netPlayer
+class GTA_GAME_EXPORT CNetGamePlayer : public rage::netPlayer
 {
 public:
 	XBR_VIRTUAL_METHOD(void, m_38, ())
