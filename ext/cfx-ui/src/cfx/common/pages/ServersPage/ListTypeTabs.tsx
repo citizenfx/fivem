@@ -97,7 +97,7 @@ export const ListTypeTabs = observer(function ListTypeTabs() {
   );
 });
 
-export const ListTypeTabs2 = observer(function ListTypeTabs() {
+export const ListTypeTabs2 = observer(function ListTypeTabs2() {
   const {
     pathname,
   } = useLocation();

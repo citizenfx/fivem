@@ -129,6 +129,8 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 #define LAUNCHER_PERSONALITY_GAME
 #elif defined(LAUNCHER_PERSONALITY_GAME_3095)
 #define LAUNCHER_PERSONALITY_GAME
+#elif defined(LAUNCHER_PERSONALITY_GAME_3258)
+#define LAUNCHER_PERSONALITY_GAME
 #endif
 #elif defined(IS_RDR3)
 #ifdef LAUNCHER_PERSONALITY_GAME_1311

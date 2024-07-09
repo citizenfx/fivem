@@ -85,6 +85,7 @@ std::shared_ptr<ConVar<std::string>> g_oneSyncLogVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncWorkaround763185;
 std::shared_ptr<ConVar<bool>> g_oneSyncBigMode;
 std::shared_ptr<ConVar<bool>> g_oneSyncLengthHack;
+std::shared_ptr<ConVar<bool>> g_experimentalOneSyncPopulation;
 std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
 std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
@@ -94,6 +95,9 @@ static bool g_networkedSoundsEnabled;
 
 static std::shared_ptr<ConVar<bool>> g_networkedPhoneExplosionsEnabledVar;
 static bool g_networkedPhoneExplosionsEnabled;
+
+static std::shared_ptr<ConVar<bool>> g_networkedScriptEntityStatesEnabledVar;
+static bool g_networkedScriptEntityStatesEnabled;
 
 static std::shared_ptr<ConVar<int>> g_requestControlVar;
 static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
@@ -269,7 +273,7 @@ static auto CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 
 	if (auto existingData = client->GetSyncData())
 	{
-		return std::static_pointer_cast<GameStateClientData>(existingData);
+		return existingData;
 	}
 
 	fx::ClientWeakPtr weakClient(client);
@@ -286,7 +290,7 @@ static auto CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 
 		if (client && data)
 		{
-			if (client->GetNetId() < 0xFFFF)
+			if (client->HasConnected())
 			{
 				data->playerBag = state->GetStateBags()->RegisterStateBag(fmt::sprintf("player:%d", client->GetNetId()));
 
@@ -300,13 +304,13 @@ static auto CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 		}
 	};
 
-	if (client->GetNetId() < 0xFFFF)
+	if (client->HasConnected())
 	{
 		setupBag();
 	}
 	else
 	{
-		client->OnAssignNetId.Connect([setupBag]()
+		client->OnAssignNetId.Connect([setupBag](const uint32_t previousNetId)
 		{
 			setupBag();
 		},
@@ -335,20 +339,13 @@ static auto CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 
 inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameState* state, const fx::ClientSharedPtr& client)
 {
-	// NOTE: static_pointer_cast typically will lead to an unneeded refcount increment+decrement
-	// Doing this makes it so that there's only *one* increment for the fast case.
-#ifndef _MSC_VER
-	auto data = std::static_pointer_cast<GameStateClientData>(client->GetSyncData());
-#else
-	auto data = std::shared_ptr<GameStateClientData>{ reinterpret_cast<std::shared_ptr<GameStateClientData>&&>(client->GetSyncData()) };
-#endif
-
-	if (!data)
+	std::shared_ptr<GameStateClientData> data = client->GetSyncData();
+	if (data)
 	{
-		data = CreateSyncData(state, client);
+		return data;
 	}
 
-	return data;
+	return CreateSyncData(state, client);
 }
 
 inline std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> GetClientData(ServerGameState* state, const fx::ClientSharedPtr& client)
@@ -1409,15 +1406,16 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	{
 		// get our own pointer ownership
 		auto client = clientRef;
-		auto slotId = client->GetSlotId();
 
 		// no
 		// #TODO: imagine if this mutates state alongside but after OnDrop clears it. WHAT COULD GO WRONG?
 		// serialize OnDrop for gamestate onto the sync thread?
-		if (slotId == -1)
+		if (!client->HasSlotId())
 		{
 			return;
 		}
+
+		auto slotId = client->GetSlotId();
 
 		uint64_t time = curTime.count();
 
@@ -2613,11 +2611,12 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 	const auto& clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 	clientRegistry->ForAllClients([&, uniqPair](const fx::ClientSharedPtr& crClient)
 	{
-		const auto slotId = crClient->GetSlotId();
-		if (slotId == 0xFFFFFFFF)
+		if (!crClient->HasSlotId())
 		{
 			return;
 		}
+
+		const auto slotId = crClient->GetSlotId();
 		{
 			std::lock_guard _(entity->guidMutex);
 			if (!entity->relevantTo.test(slotId))
@@ -2833,6 +2832,8 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 		return;
 	}
 
+	const bool hasSlotId = slotId != 0xFFFFFFFF;
+
 	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 
 	GS_LOG("client drop - reassigning\n", 0);
@@ -2877,7 +2878,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 				entity->firstOwnerDropped = true;
 			}
 
-			if (slotId != -1)
+			if (hasSlotId)
 			{
 				{
 					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
@@ -2925,7 +2926,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 	}
 
 	// remove ACKs for this client
-	if (slotId != 0xFFFFFFFF)
+	if (hasSlotId)
 	{
 		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
 
@@ -7030,6 +7031,14 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 			return false;
 		};
 	}
+
+	if (eventType == SCRIPT_ENTITY_STATE_CHANGE_EVENT)
+	{
+		return []()
+		{
+			return g_networkedScriptEntityStatesEnabled;
+		};
+	}
 #endif
 
 #ifdef STATE_FIVE
@@ -7125,6 +7134,8 @@ static InitFunction initFunction([]()
 
 		g_networkedPhoneExplosionsEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedPhoneExplosions", ConVar_None, false, &g_networkedPhoneExplosionsEnabled);
 
+		g_networkedScriptEntityStatesEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedScriptEntityStates", ConVar_None, true, &g_networkedScriptEntityStatesEnabled);
+
 		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::NoFilter, (int*)&g_requestControlFilterState);
 		g_requestControlSettleVar = instance->AddVariable<int>("sv_filterRequestControlSettleTimer", ConVar_None, 30000, &g_requestControlSettleDelay);
 
@@ -7143,6 +7154,8 @@ static InitFunction initFunction([]()
 		// or maybe, beyond?
 		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_ReadOnly, false);
 
+		g_experimentalOneSyncPopulation = instance->AddVariable<bool>("sv_experimentalOneSyncPopulation", ConVar_None, false);
+
 		constexpr bool canLengthHack =
 #ifdef STATE_RDR3
 		false
@@ -7152,10 +7165,21 @@ static InitFunction initFunction([]()
 		;
 
 		fx::SetBigModeHack(g_oneSyncBigMode->GetValue(), canLengthHack && g_oneSyncLengthHack->GetValue());
+		if (g_experimentalOneSyncPopulation->GetValue())
+		{
+			fx::SetOneSyncPopulation(g_oneSyncPopulation->GetValue());
+		}
 
 		if (g_oneSyncVar->GetValue() == fx::OneSyncState::On)
 		{
-			fx::SetBigModeHack(true, canLengthHack && g_oneSyncPopulation->GetValue());
+			if (g_experimentalOneSyncPopulation->GetValue())
+			{
+				fx::SetBigModeHack(true, canLengthHack);
+			}
+			else
+			{
+				fx::SetBigModeHack(true, canLengthHack && g_oneSyncPopulation->GetValue());
+			}
 
 			g_oneSyncBigMode->GetHelper()->SetRawValue(true);
 			g_oneSyncLengthHack->GetHelper()->SetRawValue(fx::IsLengthHack());

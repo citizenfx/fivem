@@ -24,14 +24,14 @@ export async function getOrCreateRSAKeys(): Promise<IRSAKeys> {
 }
 
 export async function decryptBase64(payload: string): Promise<string> {
-  const keys = await getOrCreateRSAKeys();
-  const pkey = forge.pki.privateKeyFromPem(keys.private);
+  const rsaKeys = await getOrCreateRSAKeys();
+  const pkey = forge.pki.privateKeyFromPem(rsaKeys.private);
 
   return pkey.decrypt(forge.util.decode64(payload));
 }
 
 async function generateRSAKeys(): Promise<IRSAKeys> {
-  const keys = await new Promise<IRSAKeys>((resolve, reject) => {
+  const rsaKeys = await new Promise<IRSAKeys>((resolve, reject) => {
     forge.pki.rsa.generateKeyPair(
       {
         bits: 2048,
@@ -53,9 +53,9 @@ async function generateRSAKeys(): Promise<IRSAKeys> {
     );
   });
 
-  window.localStorage.setItem('rsaKeys', JSON.stringify(keys));
+  window.localStorage.setItem('rsaKeys', JSON.stringify(rsaKeys));
 
-  return keys;
+  return rsaKeys;
 }
 
 try {

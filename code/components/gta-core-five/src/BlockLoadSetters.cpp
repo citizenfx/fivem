@@ -325,6 +325,10 @@ int BlipAsIndex(int blip)
 
 static hook::cdecl_stub<void()> g_runWarning([]()
 {
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		return hook::get_pattern("48 89 5C 24 ? 48 89 7C 24 ? 55 48 8D 6C 24 ? 48 81 EC ? ? ? ? 33 FF 83 CB");
+	}
 	return hook::get_pattern("83 F9 FF 74 0E E8 ? ? ? ? 84 C0 0F 94", -0x22);
 });
 
@@ -582,7 +586,7 @@ static HookFunction hookFunction([] ()
 
 	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'), UNLESS it's digital distribution with standalone auth...
 	// Since game build 2699.16 executables now shared.
-	char* p = (Is2060() || xbr::IsGameBuildOrGreater<2802>()) ? hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14) : hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
+	char* p = (xbr::IsGameBuild<2060>() || xbr::IsGameBuildOrGreater<2802>()) ? hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14) : hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
 
 	char* varPtr = p + 2;
 	g_initState = (int*)(varPtr + *(int32_t*)varPtr + 4);

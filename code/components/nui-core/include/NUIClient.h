@@ -199,5 +199,8 @@ protected:
 
 	virtual void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status) override;
 
+	// CefRequestHandler
+	virtual bool OnOpenURLFromTab(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& target_url, CefRequestHandler::WindowOpenDisposition target_disposition, bool user_gesture) override;
+
 	IMPLEMENT_REFCOUNTING(NUIClient);
 };

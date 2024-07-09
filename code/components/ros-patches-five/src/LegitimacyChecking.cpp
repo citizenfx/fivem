@@ -957,7 +957,8 @@ namespace ros
 
 void LoadOwnershipEarly()
 {
-	tokenVar = new ConVar<std::string>("cl_ownershipTicket", ConVar_None, "");
+	// ConVar_ScriptRestricted because ownership ticket is sensitive information. Should never be exposed to 3rd party
+	tokenVar = new ConVar<std::string>("cl_ownershipTicket", ConVar_ScriptRestricted, "");
 
 	if (!tokenVar->GetValue().empty())
 	{

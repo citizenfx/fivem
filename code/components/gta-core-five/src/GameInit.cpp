@@ -34,7 +34,11 @@ void AddCustomText(const char* key, const char* value);
 
 static hook::cdecl_stub<void(int unk, uint32_t* titleHash, uint32_t* messageHash, uint32_t* subMessageHash, int flags, bool, int8_t, void*, void*, bool, bool)> setWarningMessage([] ()
 {
-	if (xbr::IsGameBuildOrGreater<2699>())
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		return hook::get_pattern("48 89 5C 24 ? 4C 89 44 24 ? 89 4C 24");
+	}
+	else if (xbr::IsGameBuildOrGreater<2699>())
 	{
 		return hook::get_pattern("44 38 ? ? ? ? ? 0F 85 C5 02 00 00 E8", -0x38);
 	}
@@ -150,7 +154,14 @@ static bool (*g_isScWaitingForInit)();
 void RunRlInitServicing()
 {
 	// E8 ? ? ? ? C6 05 ? ? ? ? ? EB 41
-	if (xbr::IsGameBuildOrGreater<3095>())
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		((void (*)())hook::get_adjusted(0x140006B2C))();
+		((void (*)())hook::get_adjusted(0x14080D4E4))();
+		((void (*)())hook::get_adjusted(0x140028D24))();
+		((void (*)(void*))hook::get_adjusted(0x14166CC54))((void*)hook::get_adjusted(0x142FE3410));
+	}
+	else if (xbr::IsGameBuildOrGreater<3095>())
 	{
 		((void (*)())hook::get_adjusted(0x140006D04))();
 		((void (*)())hook::get_adjusted(0x140809E54))();

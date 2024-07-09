@@ -7,17 +7,11 @@ static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR", [](fx::ScriptContext& context)
 	{
-		// get variable name and validate it
-		std::string varName = context.CheckArgument<const char*>(0);
+		// get variable name
+		const std::string varName = context.CheckArgument<const char*>(0);
 
-		// this should not be exposed to script
-		// #TODO: 'not exposed to script' convar flags
-		if (HashString(varName.c_str()) == HashString("cl_ownershipTicket") || // ownership ticket is *very* bad to expose as users can pretend to be other users using this
-			HashString(varName.c_str()) == HashString("ui_updateChannel"))     // update channel is often misused as a marker for other things
-		{
-			context.SetResult(context.CheckArgument<const char*>(1));
-			return;
-		}
+		// get default value
+		const char* defaultValue = context.CheckArgument<const char*>(1);
 
 		// get the console context
 		auto consoleContext = console::GetDefaultContext();
@@ -25,47 +19,60 @@ static InitFunction initFunction([]()
 		// get the variable manager
 		auto varMan = consoleContext->GetVariableManager();
 
+		// check can it be exposed to script
+		if (varMan->GetEntryFlags(varName) & ConVar_ScriptRestricted)
+		{
+			context.SetResult(defaultValue);
+			return;
+		}
+
 		// get the variable
 		auto var = varMan->FindEntryRaw(varName);
 
 		if (!var)
 		{
-			context.SetResult(context.CheckArgument<const char*>(1));
+			context.SetResult(defaultValue);
+			return;
 		}
-		else
-		{
-			static std::string varVal;
-			varVal = var->GetValue();
 
-			context.SetResult(varVal.c_str());
-		}
+		static std::string varVal;
+		varVal = var->GetValue();
+
+		context.SetResult(varVal.c_str());
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR_INT", [](fx::ScriptContext& context)
 	{
+		const std::string varName = context.CheckArgument<const char*>(0);
+		const int defaultValue = context.GetArgument<int>(1);
+
 		// get the server's console context
 		auto consoleContext = console::GetDefaultContext();
 
 		// get the variable manager
 		auto varMan = consoleContext->GetVariableManager();
 
-		// get the variable
-		auto var = varMan->FindEntryRaw(context.CheckArgument<const char*>(0));
+		// check can it be exposed to script
+		if (varMan->GetEntryFlags(varName) & ConVar_ScriptRestricted)
+		{
+			context.SetResult(defaultValue);
+			return;
+		}
 
+		// get the variable
+		auto var = varMan->FindEntryRaw(varName);
 		if (!var)
 		{
-			context.SetResult(context.GetArgument<int>(1));
+			context.SetResult(defaultValue);
+			return;
 		}
-		else
+
+		auto value = var->GetValue();
+		if (value == "true")
 		{
-			auto value = var->GetValue();
-
-			if (value == "true")
-			{
-				value = "1";
-			}
-
-			context.SetResult(atoi(value.c_str()));
+			value = "1";
 		}
+
+		context.SetResult(atoi(value.c_str()));
 	});
 });

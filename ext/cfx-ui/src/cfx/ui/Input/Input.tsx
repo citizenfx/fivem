@@ -84,18 +84,18 @@ export const Input = React.forwardRef(function Input(props: InputProps, ref: Rea
   const handleChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const {
-        value,
+        value: eventValue,
       } = event.target;
 
       if (pattern) {
-        if (pattern.test(value)) {
-          onChangeRef.current(value);
+        if (pattern.test(eventValue)) {
+          onChangeRef.current(eventValue);
         }
 
         return;
       }
 
-      return onChangeRef.current(value);
+      return onChangeRef.current(eventValue);
     },
     [pattern],
   );

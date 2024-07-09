@@ -982,7 +982,8 @@ static InitFunction initFunction([] ()
 
 	static ConVar<bool> uiPremium("ui_premium", ConVar_None, false);
 
-	static ConVar<std::string> uiUpdateChannel("ui_updateChannel", ConVar_None, curChannel,
+	// ConVar_ScriptRestricted because update channel is often misused as a marker for other things
+	static ConVar<std::string> uiUpdateChannel("ui_updateChannel", ConVar_ScriptRestricted, curChannel,
 	[](internal::ConsoleVariableEntry<std::string>* convar)
 	{
 		if (convar->GetValue() != curChannel)

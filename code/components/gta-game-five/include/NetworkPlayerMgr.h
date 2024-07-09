@@ -10,6 +10,7 @@
 #include <CrossBuildRuntime.h>
 #include <XBRVirtual.h>
 #include <netPeerAddress.h>
+#include <Hooking.h>
 
 #define DECLARE_ACCESSOR(x) \
 	decltype(impl.m3095.x)& x() \
@@ -37,7 +38,7 @@ struct rlGamerInfo
 
 namespace rage
 {
-	class netPlayer : XBR_VIRTUAL_BASE_2802(0)
+	class GTA_GAME_EXPORT netPlayer : XBR_VIRTUAL_BASE_2802(0)
 	{
 	public:
 		//virtual ~netPlayer() = 0;
@@ -50,22 +51,18 @@ namespace rage
 
 		XBR_VIRTUAL_METHOD(const char*, GetName, ())
 
-		XBR_VIRTUAL_METHOD(void, m_20, ())
-
-		XBR_VIRTUAL_METHOD(void, m_28, ())
-
-		XBR_VIRTUAL_METHOD(void*, GetGamerInfo_raw, ())
+		void* GetGamerInfoBase();
 
 		template<int Build>
 		inline auto GetGamerInfo()
 		{
-			return (rlGamerInfo<Build>*)GetGamerInfo_raw();
+			return (rlGamerInfo<Build>*)GetGamerInfoBase();
 		}
 	};
 }
 
 // using XBRVirt is safe here because it's right below so the counter increments right away
-class CNetGamePlayer : public rage::netPlayer
+class GTA_GAME_EXPORT CNetGamePlayer : public rage::netPlayer
 {
 public:
 	XBR_VIRTUAL_METHOD(void, m_38, ())

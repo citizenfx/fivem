@@ -122,7 +122,7 @@ static void CreatePlayerCommands()
 	fx::ScriptEngine::RegisterNativeHandler("DROP_PLAYER", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		// don't allow dropping of a player that hasn't finished connecting/configuring
-		if (client->GetNetId() > 0xFFFF)
+		if (!client->HasConnected())
 		{
 			return false;
 		}
@@ -169,7 +169,7 @@ static void CreatePlayerCommands()
 
 		registry->ForAllClients([&](const fx::ClientSharedPtr& client)
 		{
-			if (client->GetNetId() >= 0xFFFF)
+			if (!client->HasConnected())
 			{
 				return;
 			}

@@ -137,6 +137,16 @@ inline bool Is3095()
 
 	return value;
 }
+
+inline bool Is3258()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 3258;
+	})();
+
+	return value;
+}
 #elif defined(STATE_RDR3)
 inline bool Is1311()
 {
@@ -1194,7 +1204,7 @@ struct SyncedEntityData
 constexpr auto maxSavedClientFrames = 650; // enough for ~8-9 seconds, after 5 we'll start using worst-case frames
 constexpr auto maxSavedClientFramesWorstCase = (60000 / 15); // enough for ~60 seconds
 
-struct GameStateClientData : public sync::ClientSyncDataBase
+struct GameStateClientData
 {
 	rl::MessageBuffer ackBuffer{ 16384 };
 	std::unordered_set<int> objectIds;

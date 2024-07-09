@@ -9,9 +9,9 @@ export function timeout(time: number): Promise<void> {
   });
 }
 
-export function idleCallback(timeout?: number): Promise<void> {
+export function idleCallback(timeoutArg?: number): Promise<void> {
   return new Promise((resolve) => {
-    requestIdleCallback(resolve as any, { timeout });
+    requestIdleCallback(resolve as any, { timeout: timeoutArg });
   });
 }
 

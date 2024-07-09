@@ -3,7 +3,10 @@ export interface IAnalyticsEvent {
   properties: any;
 }
 
-export interface EventParamsBuilder<T extends string, P> extends IAnalyticsEvent {
+export interface EventParamsBuilder<
+  T extends string,
+  P,
+> extends IAnalyticsEvent {
   action: T;
   properties: P;
 }
@@ -46,64 +49,30 @@ export enum ElementPlacements {
 
 type ServerType = 'featured' | undefined;
 
-export interface PageViewsProperties {
+interface BaseProperties {
+  view_name?: string;
+}
+
+export interface PageViewsProperties extends BaseProperties {
   position: number | undefined;
 }
-export interface SiteNavClickProperties {
+export interface SiteNavClickProperties extends BaseProperties {
   element_placement: ElementPlacements;
   position: number;
   text: string;
   link_url: string;
 }
-export interface SiteLinkClickProperties {
+export interface SiteLinkClickProperties extends BaseProperties {
   element_placement: ElementPlacements;
   text: string;
   link_url: string;
 }
-export interface PlayCTAProperties {
+export interface PlayCTAProperties extends BaseProperties {
   element_placement: ElementPlacements;
   text: string;
   link_url: string;
 }
-export interface ServerConnectCTAProperties {
-  element_placement: ElementPlacements;
-  server_id: string;
-  server_name: string;
-  server_type: ServerType;
-  text: string;
-  link_url: string;
-}
-export interface ForumCTAProperties {
-  element_placement: ElementPlacements;
-  text: string;
-  link_url: string;
-}
-export interface StartCTAProperties {
-  element_placement: ElementPlacements;
-  text: string;
-  link_url: string;
-}
-export interface AccountInfoCTAProperties {
-  element_placement: ElementPlacements;
-  text: string;
-  link_url: string;
-}
-export interface FilterCTAProperties {
-  element_placement: ElementPlacements;
-  text: string;
-  link_url: string;
-}
-export interface HostCTAProperties {
-  element_placement: ElementPlacements;
-  text: string;
-  link_url: string;
-}
-export interface CTAOtherProperties {
-  element_placement: ElementPlacements;
-  text: string;
-  link_url: string;
-}
-export interface ServerJoinFailedProperties {
+export interface ServerConnectCTAProperties extends BaseProperties {
   element_placement: ElementPlacements;
   server_id: string;
   server_name: string;
@@ -111,7 +80,37 @@ export interface ServerJoinFailedProperties {
   text: string;
   link_url: string;
 }
-export interface ServerSelectProperties {
+export interface ForumCTAProperties extends BaseProperties {
+  element_placement: ElementPlacements;
+  text: string;
+  link_url: string;
+}
+export interface StartCTAProperties extends BaseProperties {
+  element_placement: ElementPlacements;
+  text: string;
+  link_url: string;
+}
+export interface AccountInfoCTAProperties extends BaseProperties {
+  element_placement: ElementPlacements;
+  text: string;
+  link_url: string;
+}
+export interface FilterCTAProperties extends BaseProperties {
+  element_placement: ElementPlacements;
+  text: string;
+  link_url: string;
+}
+export interface HostCTAProperties extends BaseProperties {
+  element_placement: ElementPlacements;
+  text: string;
+  link_url: string;
+}
+export interface CTAOtherProperties extends BaseProperties {
+  element_placement: ElementPlacements;
+  text: string;
+  link_url: string;
+}
+export interface ServerJoinFailedProperties extends BaseProperties {
   element_placement: ElementPlacements;
   server_id: string;
   server_name: string;
@@ -119,7 +118,15 @@ export interface ServerSelectProperties {
   text: string;
   link_url: string;
 }
-export interface BoostCTAProperties {
+export interface ServerSelectProperties extends BaseProperties {
+  element_placement: ElementPlacements;
+  server_id: string;
+  server_name: string;
+  server_type: ServerType;
+  text: string;
+  link_url: string;
+}
+export interface BoostCTAProperties extends BaseProperties {
   server_id: string;
   server_name: string;
   server_type: ServerType;

@@ -74,7 +74,11 @@ static void DoMapping()
 
 	int versionIdx = -1;
 
-	if (strncmp(buildString, "Dec  8 2023", 11) == 0)
+	if (strncmp(buildString, "Jun 20 2024", 11) == 0)
+	{
+		versionIdx = 3258;
+	}
+	else if (strncmp(buildString, "Dec  8 2023", 11) == 0)
 	{
 		versionIdx = 3095;
 	}
@@ -212,7 +216,7 @@ static void DoMapping()
 	{
 		assert(maxVersion == 26);
 	}
-	else if (Is2944() || Is3095())
+	else if (Is2944() || Is3095() || Is3258())
 	{
 		assert(maxVersion == 27);
 	}

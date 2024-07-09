@@ -818,4 +818,5 @@ inline T get_address(TAddr address, size_t offsetTo4ByteAddr, size_t numBytesInL
 
 #include "Hooking.Invoke.h"
 #include "Hooking.Patterns.h"
+#include "Hooking.FlexStruct.h"
 #endif

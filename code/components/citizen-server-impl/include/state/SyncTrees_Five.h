@@ -128,7 +128,29 @@ struct CAutomobileCreationDataNode
 	}
 };
 
-struct CGlobalFlagsDataNode { };
+struct CGlobalFlagsDataNode
+{
+	uint32_t globalFlags;
+	uint32_t token;
+
+	bool Parse(SyncParseState& state)
+	{
+		globalFlags = state.buffer.Read<uint32_t>(8);
+		token = state.buffer.Read<uint32_t>(5);
+
+		return true;
+	}
+
+	bool Unparse(SyncUnparseState& state)
+	{
+		rl::MessageBuffer& buffer = state.buffer;
+
+		buffer.Write<uint32_t>(8, globalFlags);
+		buffer.Write<uint32_t>(5, token);
+
+		return true;
+	}
+};
 
 struct CDynamicEntityGameStateDataNode : GenericSerializeDataNode<CDynamicEntityGameStateDataNode>
 {
@@ -1330,6 +1352,10 @@ struct CPedGameStateDataNode
 		if (hasWeapon)
 		{
 			weapon = state.buffer.Read<int>(32);
+			if (Is3258())
+			{
+				auto weaponUnk = state.buffer.Read<uint8_t>(3);
+			}
 		}
 
 		data.curWeapon = weapon;
@@ -1826,6 +1852,8 @@ struct CDoorCreationDataNode
 	float m_posX;
 	float m_posY;
 	float m_posZ;
+	float m_unkFloat;
+	uint32_t m_unkHash;
 
 	bool Parse(SyncParseState& state)
 	{
@@ -1840,6 +1868,22 @@ struct CDoorCreationDataNode
 		m_posZ = positionZ;
 
 		bool scriptDoor = state.buffer.ReadBit();
+
+		if (Is3258())
+		{
+			bool unkBool = state.buffer.ReadBit();
+			if (unkBool)
+			{
+				m_unkFloat = state.buffer.ReadFloat(8, 3.1415927f);
+				m_unkHash = state.buffer.Read<uint32_t>(32);
+			}
+			else
+			{
+				m_unkFloat = 0.f;
+				m_unkHash = 0;
+			}
+		}
+
 		if (!scriptDoor)
 		{
 			bool playerWantsControl = state.buffer.ReadBit();
@@ -4297,7 +4341,7 @@ using CDoorSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CDoorCreationDataNode, 12>
+			NodeWrapper<NodeIds<1, 0, 0>, CDoorCreationDataNode, 17>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
@@ -4441,7 +4485,7 @@ using CPedSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 111>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 114>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
