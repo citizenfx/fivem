@@ -17,7 +17,8 @@
 	(2372) \
 	(2189) \
 	(2060) \
-	(1604)
+	(1604) \
+	(1)  // Special build that is used to remove all DLCs from the game.
 #elif defined(IS_RDR3)
 #define GAME_BUILDS \
 	(1491) \

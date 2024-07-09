@@ -48,104 +48,56 @@ static constexpr const size_t kGamePlayerCap =
 #include <StateBagComponent.h>
 
 #ifdef STATE_FIVE
+// For GTA5, we always use the latest build.
+// The different sv_enforceGameBuild behaviors is achieved on the client side by loading different DLC sets with IsDlcIncludedInBuild.
 inline bool Is2060()
 {
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 2060;
-	})();
-
-	return value;
+	return true;
 }
 
 inline bool Is2189()
 {
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 2189;
-	})();
-
-	return value;
+	return true;
 }
 
 inline bool Is2372()
 {
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 2372;
-	})();
-
-	return value;
+	return true;
 }
 
 inline bool Is2545()
 {
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 2545;
-	})();
-
-	return value;
+	return true;
 }
 
 inline bool Is2612()
 {
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 2612;
-	})();
-
-	return value;
+	return true;
 }
 
 inline bool Is2699()
 {
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 2699;
-	})();
-
-	return value;
+	return true;
 }
 
 inline bool Is2802()
 {
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 2802;
-	})();
-
-	return value;
+	return true;
 }
 
 inline bool Is2944()
 {
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 2944;
-	})();
-
-	return value;
+	return true;
 }
 
 inline bool Is3095()
 {
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 3095;
-	})();
-
-	return value;
+	return true;
 }
 
 inline bool Is3258()
 {
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 3258;
-	})();
-
-	return value;
+	return true;
 }
 #elif defined(STATE_RDR3)
 inline bool Is1311()
