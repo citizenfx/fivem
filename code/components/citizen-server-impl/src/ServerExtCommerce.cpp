@@ -29,16 +29,16 @@ public:
 	void Tick();
 
 private:
-	void ProcessClientCommands(fx::Client* client);
+	void ProcessClientCommands(const fx::ClientSharedPtr& client);
 
 	void ExecuteOfflineCommands();
 
 	void ExecuteCommandList(const json& json, int netId = -1, const std::map<std::string, std::string>& additionalTemplateVars = {});
 
-	void AddClientEventToQueue(fx::Client* client, std::string_view eventType);
+	void AddClientEventToQueue(const fx::ClientSharedPtr& client, std::string_view eventType);
 
 public:
-	void OnClientConnected(fx::Client* client);
+	void OnClientConnected(const fx::ClientSharedPtr& client);
 
 	virtual void AttachToObject(fx::ServerInstanceBase* instance) override;
 
@@ -65,7 +65,7 @@ private:
 
 	tbb::concurrent_unordered_map<std::string, std::optional<std::tuple<int, std::string>>> m_playerQueue;
 
-	tbb::concurrent_unordered_map<uint32_t, tbb::concurrent_queue<std::function<bool(fx::Client*)>>> m_commandQueue;
+	tbb::concurrent_unordered_map<uint32_t, tbb::concurrent_queue<std::function<bool(const fx::ClientSharedPtr&)>>> m_commandQueue;
 };
 
 DECLARE_INSTANCE_TYPE(ExtCommerceComponent);
@@ -93,7 +93,7 @@ void ExtCommerceComponent::ExecuteCommandList(const json& json, int netId /* = -
 		auto delay = command["conditions"].value("delay", 0);
 		auto executeAfter = msec();
 
-		m_commandQueue[netId].push([this, json, command, delay, additionalTemplateVars, executeAfter](fx::Client* client) mutable
+		m_commandQueue[netId].push([this, json, command, delay, additionalTemplateVars, executeAfter](const fx::ClientSharedPtr& client) mutable
 		{
 			if (client && !client->HasRouted())
 			{
@@ -169,7 +169,7 @@ void ExtCommerceComponent::ExecuteCommandList(const json& json, int netId /* = -
 	}
 }
 
-void ExtCommerceComponent::ProcessClientCommands(fx::Client* client)
+void ExtCommerceComponent::ProcessClientCommands(const fx::ClientSharedPtr& client)
 {
 	for (const auto& id : client->GetIdentifiers())
 	{
@@ -339,12 +339,12 @@ void ExtCommerceComponent::Tick()
 
 	auto processQueue = [](auto& queue, const fx::ClientSharedPtr& client)
 	{
-		std::function<bool(fx::Client*)> fn;
-		std::list<std::function<bool(fx::Client*)>> toInsert;
+		std::function<bool(const fx::ClientSharedPtr&)> fn;
+		std::list<std::function<bool(const fx::ClientSharedPtr&)>> toInsert;
 
 		while (queue.try_pop(fn))
 		{
-			if (fn && !fn(client.get()))
+			if (fn && !fn(client))
 			{
 				toInsert.push_back(std::move(fn));
 			}
@@ -358,7 +358,7 @@ void ExtCommerceComponent::Tick()
 
 	clientRegistry->ForAllClients([this, processQueue](const fx::ClientSharedPtr& client)
 	{
-		ProcessClientCommands(client.get());
+		ProcessClientCommands(client);
 
 		auto& queue = m_commandQueue[client->GetNetId()];
 
@@ -428,7 +428,7 @@ void ExtCommerceComponent::ExecuteOfflineCommands()
 	});
 }
 
-void ExtCommerceComponent::OnClientConnected(fx::Client* client)
+void ExtCommerceComponent::OnClientConnected(const fx::ClientSharedPtr& client)
 {
 	if (m_tebexKeyConvar->GetValue().empty())
 	{
@@ -448,7 +448,7 @@ void ExtCommerceComponent::OnClientConnected(fx::Client* client)
 class ClientExtCommerceComponent : public fwRefCountable
 {
 public:
-	ClientExtCommerceComponent(ExtCommerceComponent* root, fx::Client* client)
+	ClientExtCommerceComponent(ExtCommerceComponent* root, fx::ClientWeakPtr client)
 		: m_commerceDataLoaded(false), m_client(client), m_root(root)
 	{
 
@@ -468,7 +468,7 @@ public:
 	std::optional<int> GetUserId();
 
 private:
-	fx::Client* m_client;
+	fx::ClientWeakPtr m_client;
 
 	bool m_commerceDataLoaded;
 
@@ -521,7 +521,7 @@ void ClientExtCommerceComponent::LoadCommerceData()
 	});
 }
 
-void ExtCommerceComponent::AddClientEventToQueue(fx::Client* client, std::string_view eventType)
+void ExtCommerceComponent::AddClientEventToQueue(const fx::ClientSharedPtr& client, std::string_view eventType)
 {
 	auto id = client->GetComponent<ClientExtCommerceComponent>()->GetUserId();
 
@@ -541,10 +541,15 @@ void ExtCommerceComponent::AddClientEventToQueue(fx::Client* client, std::string
 	}));
 }
 
-
 std::optional<int> ClientExtCommerceComponent::GetUserId()
 {
-	const auto& identifiers = m_client->GetIdentifiers();
+	auto client = m_client.lock();
+	if (!client)
+	{
+		return {};
+	}
+
+	const auto& identifiers = client->GetIdentifiers();
 
 	for (const auto& identifier : identifiers)
 	{
@@ -585,7 +590,7 @@ void ExtCommerceComponent::AttachToObject(fx::ServerInstanceBase* instance)
 
 	clientRegistry->OnClientCreated.Connect([this](const fx::ClientSharedPtr& client)
 	{
-		client->SetComponent(new ClientExtCommerceComponent(this, client.get()));
+		client->SetComponent(new ClientExtCommerceComponent(this, client));
 	});
 
 	instance->OnInitialConfiguration.Connect([this, instance]()
@@ -599,7 +604,7 @@ void ExtCommerceComponent::AttachToObject(fx::ServerInstanceBase* instance)
 
 		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-		clientRegistry->OnConnectedClient.Connect([this](fx::Client* client)
+		clientRegistry->OnConnectedClient.Connect([this](const fx::ClientSharedPtr& client)
 		{
 			this->OnClientConnected(client);
 		});
