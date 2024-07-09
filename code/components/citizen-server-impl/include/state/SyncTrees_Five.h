@@ -14,7 +14,7 @@
 
 namespace fx::sync
 {
-struct CVehicleCreationDataNode
+struct CVehicleCreationDataNode : GenericSerializeDataNode<CVehicleCreationDataNode>
 {
 	uint32_t m_model;
 	ePopType m_popType;
@@ -25,67 +25,27 @@ struct CVehicleCreationDataNode
 	uint32_t m_creationToken;
 	bool m_needsToBeHotwired;
 	bool m_tyresDontBurst;
-	bool m_unk5;
+	bool m_usesSpecialFlightMode;
 
-	bool Parse(SyncParseState& state)
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
 	{
-		uint32_t model = state.buffer.Read<uint32_t>(32);
-		m_model = model;
+		s.Serialize(32, m_model);
+		s.Serialize(4, (uint8_t&)m_popType);
 
-		uint8_t popType = state.buffer.Read<uint8_t>(4);
-		m_popType = (ePopType)popType;
-
-		m_randomSeed = state.buffer.Read<int>(16);
+		s.Serialize(16, m_randomSeed);
 
 		if (m_popType - 6 <= 1)
 		{
-			// false
-			m_carBudget = state.buffer.ReadBit();
+			s.Serialize(m_carBudget);
 		}
 
-		// 1000
-		m_maxHealth = state.buffer.Read<int>(19);
-
-		// 0
-		m_vehicleStatus = state.buffer.Read<int>(3);
-
-		// [timestamp]
-		m_creationToken = state.buffer.Read<uint32_t>(32);
-
-		// false, false, false
-		m_needsToBeHotwired = state.buffer.ReadBit();
-		m_tyresDontBurst = state.buffer.ReadBit();
-		m_unk5 = state.buffer.ReadBit();
-
-		return true;
-	}
-
-	bool Unparse(sync::SyncUnparseState& state)
-	{
-		auto& buffer = state.buffer;
-		buffer.Write<uint32_t>(32, m_model);
-		buffer.Write<uint8_t>(4, (uint8_t)m_popType);
-
-		buffer.Write<int>(16, m_randomSeed);
-
-		if (m_popType - 6 <= 1)
-		{
-			buffer.WriteBit(m_carBudget);
-		}
-
-		// 1000
-		buffer.Write<int>(19, m_maxHealth);
-
-		// 0
-		buffer.Write<int>(3, m_vehicleStatus);
-
-		// [timestamp]
-		buffer.Write<uint32_t>(32, m_creationToken);
-
-		// false, false, false
-		buffer.WriteBit(m_needsToBeHotwired);
-		buffer.WriteBit(m_tyresDontBurst);
-		buffer.WriteBit(m_unk5);
+		s.Serialize(19, m_maxHealth);
+		s.Serialize(3, m_vehicleStatus);
+		s.Serialize(32, m_creationToken);
+		s.Serialize(m_needsToBeHotwired);
+		s.Serialize(m_tyresDontBurst);
+		s.Serialize(m_usesSpecialFlightMode);
 
 		return true;
 	}
