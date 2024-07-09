@@ -1,4 +1,3 @@
-using CitizenFX.MsgPack;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,55 +9,55 @@ namespace CitizenFX.Core
 {
 	internal static class EventsManager
 	{
-		private static Dictionary<string, List<Tuple<MsgPackFunc, Binding>>> s_eventHandlers = new Dictionary<string, List<Tuple<MsgPackFunc, Binding>>>();
+		private static Dictionary<string, List<Tuple<DynFunc, Binding>>> s_eventHandlers = new Dictionary<string, List<Tuple<DynFunc, Binding>>>();
 
 
 		[SecuritySafeCritical]
-		internal static unsafe void IncomingEvent(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize)
+		internal static unsafe void IncomingEvent(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize, object[] args)
 		{
 			if (s_eventHandlers.TryGetValue(eventName, out var delegateList))
 			{
-				Remote remote = new Remote(origin, sourceString);
+				if (args is null)
+					args = MsgPackDeserializer.DeserializeArray(argsSerialized, serializedSize, origin == Binding.Remote ? sourceString : null);
 
-				CitizenFX.MsgPack.MsgPackDeserializer deserializer = new MsgPackDeserializer(argsSerialized, (ulong)serializedSize, origin == Binding.Remote ? sourceString : null);
-				var restorePoint = deserializer.CreateRestorePoint();
-
-				for (int i = 0; i < delegateList.Count; ++i)
+				if (args != null)
 				{
-					var ev = delegateList[i];
+					Remote remote = new Remote(origin, sourceString);
 
-					try
+					for (int i = 0; i < delegateList.Count; ++i)
 					{
-						if ((ev.Item2 & origin) != 0)
+						var ev = delegateList[i];
+
+						try
 						{
-							var result = ev.Item1(remote, ref deserializer);
-							if (result is bool b && !b)
-								return;
-
-							deserializer.Restore(restorePoint);
+							if ((ev.Item2 & origin) != 0)
+							{
+								var result = ev.Item1(remote, args);
+								if (result != null)
+									return;
+							}
 						}
-					}
-					catch (Exception ex)
-					{
-						//Debug.WriteException(ex, ev.Item1, args, "event handler");
-						Debug.WriteLine(ex);
+						catch (Exception ex)
+						{
+							Debug.WriteException(ex, ev.Item1, args, "event handler");
+						}
 					}
 				}
 			}
 		}
 
 		#region Registration
-		internal static void AddEventHandler(string eventName, MsgPackFunc del, Binding binding = Binding.Local)
+		internal static void AddEventHandler(string eventName, DynFunc del, Binding binding = Binding.Local)
 		{
 			if (!s_eventHandlers.TryGetValue(eventName, out var delegateList))
 			{
-				delegateList = new List<Tuple<MsgPackFunc, Binding>>();
+				delegateList = new List<Tuple<DynFunc, Binding>>();
 				s_eventHandlers.Add(eventName, delegateList);
 
 				CoreNatives.RegisterResourceAsEventHandler(eventName);
 			}
 
-			delegateList.Add(new Tuple<MsgPackFunc, Binding>(del, binding));
+			delegateList.Add(new Tuple<DynFunc, Binding>(del, binding));
 		}
 
 		internal static void RemoveEventHandler(string eventName, Delegate del)
@@ -94,7 +93,7 @@ namespace CitizenFX.Core
 			set { /* ignore, this will enable += syntax */ }
 		}
 
-		public void Add(string key, MsgPackFunc value) => this[key].Add(value);
+		public void Add(string key, DynFunc value) => this[key].Add(value);
 
 		/// <summary>
 		/// Should only be called by <see cref="BaseScript.Enable"/> or any other code that guarantees that it is only called once
@@ -119,7 +118,7 @@ namespace CitizenFX.Core
 	public class EventHandlerSet
 	{
 		private readonly string m_eventName;
-		private readonly List<MsgPackFunc> m_handlers = new List<MsgPackFunc>();
+		private readonly List<DynFunc> m_handlers = new List<DynFunc>();
 
 		public EventHandlerSet(string eventName)
 		{
@@ -136,7 +135,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="deleg">delegate to call once triggered</param>
 		/// <param name="binding">limit calls to certain sources, e.g.: server only, client only</param>
-		public EventHandlerSet Add(MsgPackFunc deleg, Binding binding = Binding.Local)
+		public EventHandlerSet Add(DynFunc deleg, Binding binding = Binding.Local)
 		{
 			m_handlers.Add(deleg);
 			EventsManager.AddEventHandler(m_eventName, deleg, binding);
@@ -161,11 +160,11 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Register an event handler
 		/// </summary>
-		/// <remarks>Will add it as <see cref="Binding.Local"/>, use <see cref="Add(MsgPackFunc, Binding)"/> to explicitly set the binding.</remarks>
+		/// <remarks>Will add it as <see cref="Binding.Local"/>, use <see cref="Add(DynFunc, Binding)"/> to explicitly set the binding.</remarks>
 		/// <param name="entry">this event handler set</param>
 		/// <param name="deleg">delegate to register</param>
 		/// <returns>itself</returns>
-		public static EventHandlerSet operator +(EventHandlerSet entry, MsgPackFunc deleg) => entry.Add(deleg);
+		public static EventHandlerSet operator +(EventHandlerSet entry, DynFunc deleg) => entry.Add(deleg);
 
 		/// <summary>
 		/// Unregister an event handler
@@ -173,16 +172,16 @@ namespace CitizenFX.Core
 		/// <param name="entry">this event handler set</param>
 		/// <param name="deleg">delegate to register</param>
 		/// <returns>itself</returns>
-		public static EventHandlerSet operator -(EventHandlerSet entry, MsgPackFunc deleg) => entry.Remove(deleg);
+		public static EventHandlerSet operator -(EventHandlerSet entry, DynFunc deleg) => entry.Remove(deleg);
 
 		/// <summary>
 		/// Register an event handler
 		/// </summary>
-		/// <remarks>Will add it as <see cref="Binding.Local"/>, use <see cref="Add(MsgPackFunc, Binding)"/> to explicitly set the binding.</remarks>
+		/// <remarks>Will add it as <see cref="Binding.Local"/>, use <see cref="Add(DynFunc, Binding)"/> to explicitly set the binding.</remarks>
 		/// <param name="entry">this event handler set</param>
 		/// <param name="deleg">delegate to register</param>
 		/// <returns>itself</returns>
-		public static EventHandlerSet operator +(EventHandlerSet entry, Delegate deleg) => entry.Add(MsgPackDeserializer.CreateDelegate(deleg));
+		public static EventHandlerSet operator +(EventHandlerSet entry, Delegate deleg) => entry.Add(Func.Create(deleg));
 
 		/// <summary>
 		/// Unregister an event handler

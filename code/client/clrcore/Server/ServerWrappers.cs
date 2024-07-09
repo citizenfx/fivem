@@ -7,7 +7,6 @@ using System.Linq;
 
 #if MONO_V2
 using CitizenFX.Core;
-using CitizenFX.MsgPack;
 using static CitizenFX.Server.Native.Natives;
 
 namespace CitizenFX.Server
@@ -30,12 +29,8 @@ namespace CitizenFX.Core
 
 		public string Handle => m_handle;
 #endif
-		public Player(int source)
-		{
-			m_handle = source.ToString();
-		}
 
-		public Player(string sourceString)
+		internal Player(string sourceString)
 		{
 			if (sourceString.StartsWith("net:"))
 			{
@@ -142,16 +137,6 @@ namespace CitizenFX.Core
 		public static bool operator ==(Player left, Player right) => Equals(left, right);
 
 		public static bool operator !=(Player left, Player right) => !Equals(left, right);
-
-#if MONO_V2
-		#region Serializers
-
-		public static void Serialize(MsgPackSerializer serializer, Player player) => serializer.Serialize(player.Handle);
-
-		public static Player Deserialize(ref MsgPackDeserializer serializer) => new Player(serializer.DeserializeAsInt32());
-
-		#endregion
-#endif
 	}
 
 	public class IdentifierCollection : IEnumerable<string>
