@@ -144,7 +144,7 @@ struct object_pool
 		{
 			// Pop entry from local free queue, if non null:.
 			//
-			if (object_entry* entry = free_queue.pop(&object_entry::free_queue_key))
+			if (object_entry* entry = free_queue.pop_until_empty(&object_entry::free_queue_key))
 			{
 				// Return the entry.
 				//
@@ -204,7 +204,12 @@ struct object_pool
 		void kill()
 		{
 			expired = true;
-			while (auto free_val = free_queue.pop(&object_entry::free_queue_key))
+
+			// Be defensive about the possibility of another thread deallocating
+			// an entry belonging to this pool while the thread-local proxy is
+			// being destroyed.
+			//
+			while (auto free_val = free_queue.pop_until_empty(&object_entry::free_queue_key))
 				detached_frees.push(free_val);
 		}
 
