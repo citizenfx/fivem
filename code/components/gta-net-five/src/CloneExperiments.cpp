@@ -3868,53 +3868,36 @@ static HookFunction hookFunction2([]()
 	}
 });
 
-template<typename TIndex>
 struct WorldGridEntry
 {
 	uint8_t sectorX;
 	uint8_t sectorY;
-	TIndex slotID;
+	uint16_t slotID;
 };
 
-template<typename TIndex, int TCount>
 struct WorldGridState
 {
-	WorldGridEntry<TIndex> entries[TCount];
+	WorldGridEntry entries[32];
 };
 
-static WorldGridState<uint8_t, 12> g_worldGrid[256];
-static WorldGridState<uint16_t, 32> g_worldGrid2[1];
+static WorldGridState g_worldGrid;
 
 static InitFunction initFunctionWorldGrid([]()
 {
 	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* lib)
 	{
-		lib->AddReliableHandler("msgWorldGrid", [](const char* data, size_t len)
-		{
-			net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
-			auto base = buf.Read<uint16_t>();
-			auto length = buf.Read<uint16_t>();
-
-			if ((base + length) > sizeof(g_worldGrid))
-			{
-				return;
-			}
-
-			buf.Read(reinterpret_cast<char*>(g_worldGrid) + base, length);
-		});
-
 		lib->AddReliableHandler("msgWorldGrid3", [](const char* data, size_t len)
 		{
 			net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
 			auto base = buf.Read<uint32_t>();
 			auto length = buf.Read<uint32_t>();
 
-			if ((size_t(base) + length) > sizeof(g_worldGrid2))
+			if ((size_t(base) + length) > sizeof(g_worldGrid))
 			{
 				return;
 			}
 
-			buf.Read(reinterpret_cast<char*>(g_worldGrid2) + base, length);
+			buf.Read(reinterpret_cast<char*>(&g_worldGrid) + base, length);
 		});
 	});
 });
@@ -3950,7 +3933,7 @@ bool DoesLocalPlayerOwnWorldGrid(float* pos)
 
 	bool does = false;
 
-	for (const auto& entry : g_worldGrid2[0].entries)
+	for (const auto& entry : g_worldGrid.entries)
 	{
 		if (entry.sectorX == sectorX && entry.sectorY == sectorY && entry.slotID == playerIdx)
 		{
