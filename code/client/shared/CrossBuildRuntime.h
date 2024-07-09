@@ -3,6 +3,8 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/wstringize.hpp>
 
+#include <unordered_map>
+
 #ifdef GTA_FIVE
 #define GAME_BUILDS \
 	(3095) \
@@ -85,22 +87,154 @@ inline std::pair<int, int> ParseGameBuildFromString(const std::string& buildStr)
 #ifndef XBR_BUILDS_ONLY
 namespace xbr
 {
-int GetGameBuildInit();
+int GetRequestedGameBuildInit();
+int GetLatestGameBuildInit();
 
+#ifdef IS_FXSERVER
 inline int GetGameBuild()
 {
-#ifndef IS_FXSERVER
+	return 0;
+}
+
+inline int GetRequestedGameBuild()
+{
+	return 0;
+}
+
+#else
+
+inline int GetRequestedGameBuild()
+{
 	static int buildNumber = -1;
 
 	if (buildNumber == -1)
 	{
-		buildNumber = GetGameBuildInit();
+		buildNumber = GetRequestedGameBuildInit();
+	}
+
+	return buildNumber;
+}
+
+inline int GetGameBuild()
+{
+	// For GTA5, ignore the CLI build request and use the latest build.
+	// The requested build behavior will be achieved by loading different DLC sets with IsDlcIncludedInBuild.
+#ifdef GTA_FIVE
+	static int buildNumber = -1;
+
+	if (buildNumber == -1)
+	{
+		buildNumber = GetLatestGameBuildInit();
 	}
 
 	return buildNumber;
 #else
-	return 0;
+	return GetRequestedGameBuild();
 #endif
+}
+#endif
+
+const std::unordered_map<std::string, int> BUILD_OF_DLC = {
+	{"mpBeach", 1604},
+	{"mpBusiness", 1604},
+	{"mpChristmas", 1604},
+	{"mpValentines", 1604},
+	{"mpBusiness2", 1604},
+	{"mpHipster", 1604},
+	{"mpIndependence", 1604},
+	{"mpPilot", 1604},
+	{"spUpgrade", 1604},
+	{"mpLTS", 1604},
+	{"mpheist", 1604},
+	{"mppatchesng", 1604},
+	{"patchday1ng", 1604},
+	{"patchday2ng", 1604},
+	{"mpchristmas2", 1604},
+	{"patchday2bng", 1604},
+	{"patchday3ng", 1604},
+	{"patchday4ng", 1604},
+	{"mpluxe", 1604},
+	{"patchday5ng", 1604},
+	{"mpluxe2", 1604},
+	{"patchday6ng", 1604},
+	{"mpreplay", 1604},
+	{"patchday7ng", 1604},
+	{"mplowrider", 1604},
+	{"mphalloween", 1604},
+	{"patchday8ng", 1604},
+	{"mpapartment", 1604},
+	{"mpxmas_604490", 1604},
+	{"mplowrider2", 1604},
+	{"mpjanuary2016", 1604},
+	{"mpvalentines2", 1604},
+	{"patchday9ng", 1604},
+	{"mpexecutive", 1604},
+	{"patchday10ng", 1604},
+	{"mpstunt", 1604},
+	{"patchday11ng", 1604},
+	{"mpimportexport", 1604},
+	{"mpbiker", 1604},
+	{"patchday12ng", 1604},
+	{"patchday13ng", 1604},
+	{"mpspecialraces", 1604},
+	{"mpgunrunning", 1604},
+	{"mpairraces", 1604},
+	{"mpsmuggler", 1604},
+	{"mpchristmas2017", 1604},
+	{"mpassault", 1604},
+	{"mpbattle", 1604},
+	{"patchday14ng", 1604},
+	{"patchday15ng", 1604},
+	{"patchday16ng", 1604},
+	{"patchday17ng", 1604},
+	{"patchday18ng", 1604},
+	{"patchday19ng", 1604},
+	{"patchday20ng", 1604},
+	{"mpchristmas2018", 1604},
+	{"patchday21ng", 2060},
+	{"mpvinewood", 2060},
+	{"patchday22ng", 2060},
+	{"mpheist3", 2060},
+	{"mpsum", 2060},
+	{"patchday23ng", 2060},
+	{"mpheist4", 2189},
+	{"patchday24ng", 2189},
+	{"mptuner", 2372},
+	{"patchday25ng", 2372},
+	{"mpsecurity", 2545},
+	{"patchday26ng", 2545},
+	{"mpg9ec", 2612},
+	{"patchdayg9ecng", 2612},
+	{"mpsum2", 2699},
+	{"patchday27ng", 2699},
+	{"mpsum2_g9ec", 2699},
+	{"patchday27g9ecng", 2699},
+	{"mpchristmas3", 2802},
+	{"mpchristmas3_g9ec", 2802},
+	{"patchday28ng", 2802},
+	{"patchday28g9ecng", 2802},
+	{"mp2023_01", 2944},
+	{"patch2023_01", 2944},
+	{"patch2023_01_g9ec", 2944},
+	{"mp2023_01_g9ec", 2944},
+	{"mp2023_02", 3095},
+	{"patch2023_02", 3095},
+	{"mp2023_02_g9ec", 3095},
+	{"mp2024_01", 3258},
+	{"patch2024_01", 3258},
+	{"patch2024_01_g9ec", 3258},
+	{"mp2024_01_g9ec", 3258}
+};
+
+inline bool IsDlcIncludedInBuild(const std::string& dlcName)
+{
+	auto dlc_build = BUILD_OF_DLC.find(dlcName);
+	if (dlc_build == BUILD_OF_DLC.end())
+	{
+		return false;
+	}
+
+	return dlc_build->second <= xbr::GetRequestedGameBuild();
 }
 
 #ifndef IS_FXSERVER

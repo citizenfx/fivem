@@ -125,7 +125,7 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 		"unknown"
 #endif
 	), V8_PROPERTY_ATTRIBUTE_READONLY);
-	window->SetValue("nuiTargetGameBuild", CefV8Value::CreateInt(xbr::GetGameBuild()), V8_PROPERTY_ATTRIBUTE_READONLY);
+	window->SetValue("nuiTargetGameBuild", CefV8Value::CreateInt(xbr::GetRequestedGameBuild()), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("nuiTargetGamePureLevel", CefV8Value::CreateInt(fx::client::GetPureLevel()), V8_PROPERTY_ATTRIBUTE_READONLY);
 
 

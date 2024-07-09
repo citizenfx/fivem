@@ -4,7 +4,7 @@
 #include <MinHook.h>
 #include <gameSkeleton.h>
 
-#include <DlcListState.h>
+#include <CrossBuildRuntime.h>
 
 #include <stack>
 
@@ -323,13 +323,13 @@ int64_t AddContent(void* extraContentManager, void* mountableContent)
 	atArray<char>* filePath = (atArray<char>*)((uintptr_t)mountableContent + g_mountableContentFileNameOffset);
 	std::string dlcName = GetDlcName(std::string(filePath->begin(), filePath->end()));
 
-	if (!dlcName.empty() && fx::client::DlcManager::IsDlcBlocked(dlcName))
+	if (dlcName.empty() || xbr::IsDlcIncludedInBuild(dlcName))
 	{
-		atArray<char>* contentList = (atArray<char>*)((uintptr_t)extraContentManager + g_extraContentManagerContentOffset);
-		return contentList->GetCount() - 1;
+		return g_origAddContent(extraContentManager, mountableContent);
 	}
 
-	return g_origAddContent(extraContentManager, mountableContent);
+	atArray<char>* contentList = (atArray<char>*)((uintptr_t)extraContentManager + g_extraContentManagerContentOffset);
+	return contentList->GetCount() - 1;
 }
 
 static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)

@@ -219,7 +219,6 @@
 	"#No": "No",
     "#BuildSwitch_Heading": "{{gameBrand}} needs to restart",
     "#BuildSwitch_Body": "The server you are joining requires a different game version ({{build}}). The game will close and restart shortly to change to this version and connect to the server.",
-    "#DlcListSwitch_Body": "The server you are joining requires a different set of DLCs. The game will close and restart shortly to enable/disable some DLCs and connect to the server.",
 	"#BuildSwitch_PureBuildBody": "The server you are joining requires a different game version ({{build}}) and has 'pure mode' enabled. The game will close and restart shortly to change to this version, enable pure mode, and connect to the server.",
 	"#BuildSwitch_PureBody": "The server you are joining does not allow modified game files. The game will close and restart shortly to enable 'pure mode' and connect to the server.",
 	"#BuildSwitch_PureBuildSwitchBody": "The server you are joining requires a different game version ({{build}}) and has 'pure mode' set to level {{pureLevel}}. The game will close and restart shortly to change to this version, switch pure mode level, and connect to the server.",

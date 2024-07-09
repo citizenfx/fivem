@@ -319,9 +319,6 @@ static InitFunction initFunction([]()
 		g_enforcedGameBuild = "1604";
 		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, "1604", &g_enforcedGameBuild);
 
-		auto dlcListStrategy = instance->AddVariable<std::string>("sv_dlcListStrategy", ConVar_ServerInfo, "block");
-		auto dlcList = instance->AddVariable<std::string>("sv_dlcList", ConVar_ServerInfo, "");
-
 		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance, enforceGameBuildVar]()
 		{
 			if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::RDR3)
@@ -566,8 +563,6 @@ static InitFunction initFunction([]()
 			}
 
 			data["pure"] = pureVar->GetValue();
-			data["dlcListStrategy"] = dlcListStrategy->GetValue();
-			data["dlcList"] = dlcList->GetValue();
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !fx::IsOneSync();
 			data["onesync"] = fx::IsOneSync();

@@ -6,9 +6,11 @@
 #include <HostSharedData.h>
 #include <CfxState.h>
 
+#include <algorithm>
+
 namespace xbr
 {
-int GetGameBuildInit()
+int GetRequestedGameBuildInit()
 {
 	constexpr const std::pair<std::wstring_view, int> buildNumbers[] = {
 #define EXPAND(_, __, x) \
@@ -33,6 +35,17 @@ int GetGameBuildInit()
 	}
 
 	return buildNumber;
+}
+
+int GetLatestGameBuildInit()
+{
+	constexpr const int builds[] = {
+#define EXPAND(_, __, x) x,
+		BOOST_PP_SEQ_FOR_EACH(EXPAND, , GAME_BUILDS)
+#undef EXPAND
+	};
+
+	return *std::max_element(builds, builds + std::size(builds));
 }
 }
 #endif

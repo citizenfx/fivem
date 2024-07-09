@@ -27,7 +27,6 @@
 
 #include <CrossBuildRuntime.h>
 #include <PureModeState.h>
-#include <DlcListState.h>
 #include <CoreConsole.h>
 
 #include <CfxLocale.h>
@@ -947,7 +946,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	std::string gameName = "unk";
 #endif
 
-	auto gameBuild = xbr::GetGameBuild();
+	auto gameBuild = xbr::GetRequestedGameBuild();
 	const auto identifier = xbr::GetGameBuildUniquifier(gameName, gameBuild);
 
 	// Revision "0" shouldn't be included for backward compatibility.
@@ -1834,10 +1833,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						buildRef = std::stoi(val);
 
-						auto isDlcAllowList = info["vars"].value("sv_dlcListStrategy", "") == "allowOnly";
-						auto dlcList = info["vars"].value("sv_dlcList", "");
-
-						if ((buildRef != 0 && buildRef != xbr::GetGameBuild()) || (pureLevel != fx::client::GetPureLevel()) || fx::client::DlcManager::DoesDlcListDiffer(dlcList, isDlcAllowList))
+						if ((buildRef != 0 && buildRef != xbr::GetRequestedGameBuild()) || (pureLevel != fx::client::GetPureLevel()))
 						{
 #if defined(GTA_FIVE)
 							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372 && buildRef != 2545 && buildRef != 2612 && buildRef != 2699 && buildRef != 2802 && buildRef != 2944 && buildRef != 3095)
@@ -1854,16 +1850,16 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 
-							OnRequestBuildSwitch(buildRef, pureLevel, fx::client::DlcManager::CreateDlcListCommand(dlcList, isDlcAllowList));
+							OnRequestBuildSwitch(buildRef, pureLevel);
 							m_connectionState = CS_IDLE;
 							return;
 						}
 					}
 
 #if defined(GTA_FIVE)
-					if (xbr::GetGameBuild() != 1604 && buildRef == 0)
+					if (xbr::GetRequestedGameBuild() != 1604 && buildRef == 0)
 					{
-						OnRequestBuildSwitch(1604, 0, L"");
+						OnRequestBuildSwitch(1604, 0);
 						m_connectionState = CS_IDLE;
 						return;
 					}

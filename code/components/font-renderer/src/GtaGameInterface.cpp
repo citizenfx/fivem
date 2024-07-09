@@ -435,7 +435,7 @@ static InitFunction initFunction([] ()
 					brandName += L"*";
 				}
 
-				brandName += fmt::sprintf(L" (b%d)", xbr::GetGameBuild());
+				brandName += fmt::sprintf(L" (b%d)", xbr::GetRequestedGameBuild());
 
 				if (launch::IsSDKGuest())
 				{
