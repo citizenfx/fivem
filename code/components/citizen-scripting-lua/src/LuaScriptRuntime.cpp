@@ -63,20 +63,16 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 
 // Utility for sanitizing error messages in an unprotected states. Avoid string coercion (cvt2str) to ensure errors 
 // do not compound.
-#define LUA_SCRIPT_TRACE(L, MSG, ...)                     \
-    try                                                   \
-    {                                                     \
-        const char* err = "error object is not a string"; \
-        if (lua_type((L), -1) == LUA_TSTRING)             \
-        {                                                 \
-            err = lua_tostring((L), -1);                  \
-        }                                                 \
-        ScriptTrace(MSG ": %s\n", ##__VA_ARGS__, err);    \
-    }                                                     \
-    catch (...)                                           \
-    {                                                     \
-    }                                                     \
-    lua_pop((L), 1)
+#define LUA_SCRIPT_TRACE(L, MSG, ...)                  \
+	try                                                \
+	{                                                  \
+		const char* err = Lua_GetErrorMessage(L, -1);  \
+		ScriptTrace(MSG ": %s\n", ##__VA_ARGS__, err); \
+	}                                                  \
+	catch (...)                                        \
+	{                                                  \
+	}                                                  \
+	lua_pop((L), 1)
 
 /// <summary>
 /// </summary>
@@ -215,6 +211,26 @@ static int Lua_Print(lua_State* L)
 	}
 	ScriptTrace("\n");
 	return 0;
+}
+
+static const char* Lua_GetErrorMessage(lua_State* L, int index)
+{
+	const char* msg = "error object is not a string";
+	if (lua_type(L, index) == LUA_TSTRING)
+	{
+		msg = lua_tostring(L, index);
+	}
+	else if (luaL_callmeta(L, index, "__tostring") && lua_type(L, -1) == LUA_TSTRING)
+	{
+		msg = lua_tostring(L, -1);
+		lua_pop(L, 1);
+	}
+	else
+	{
+		lua_pop(L, 1);
+	}
+
+	return msg;
 }
 
 #if LUA_VERSION_NUM >= 504
@@ -987,12 +1003,7 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 	{
 		if (resumeValue != LUA_OK)
 		{
-			std::string err = "error object is not a string";
-			if (lua_type(thread, -1) == LUA_TSTRING)
-			{
-				err = lua_tostring(thread, -1);
-			}                        
-
+			std::string err = Lua_GetErrorMessage(thread, -1);                    
 			static auto formatStackTrace = fx::ScriptEngine::GetNativeHandler(HashString("FORMAT_STACK_TRACE"));
 			std::string stackData = "(nil stack trace)";
 
@@ -1014,11 +1025,7 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 #if LUA_VERSION_NUM >= 504
 			int resetStatus = lua_resetthread(thread);
 
-			std::string resetErr = "error object is not a string";
-			if (lua_type(thread, -1) == LUA_TSTRING)
-			{
-				resetErr = lua_tostring(thread, -1);
-			}
+			std::string resetErr = Lua_GetErrorMessage(thread, -1);
 
 			// We can't just check whether the resetStatus is OK because
 			// if there was no error lua_resetthread returns the same status it received
