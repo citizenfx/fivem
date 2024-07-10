@@ -102,7 +102,11 @@ static const char* GetEventName(rage::fwEvent* ev)
 {
 	int eventId = ev->GetId();
 
-	if (xbr::IsGameBuildOrGreater<2612>())
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		return (eventId < _countof(g_eventNames3258)) ? g_eventNames3258[eventId] : nullptr;
+	}
+	else if (xbr::IsGameBuildOrGreater<2612>())
 	{
 		return (eventId < _countof(g_eventNames2612)) ? g_eventNames2612[eventId] : nullptr;
 	}
