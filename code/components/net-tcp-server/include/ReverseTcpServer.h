@@ -35,6 +35,8 @@ public:
 
 	virtual void ScheduleCallback(TScheduledCallback&& callback, bool performInline) override;
 
+	void StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout) override;
+
 protected:
 	void ConsumeData(const void* data, size_t length);
 

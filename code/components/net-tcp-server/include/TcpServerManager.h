@@ -30,6 +30,8 @@ private:
 
 	fwRefContainer<UvLoopHolder> m_uvLoop;
 
+	uint16_t m_tcpConnectionTimeoutSeconds { 5 };
+
 public:
 	TcpServerManager(const std::string& loopName = std::string("default"));
 
@@ -50,6 +52,11 @@ public:
 	inline uv_loop_t* GetLoop()
 	{
 		return m_uvLoop->GetLoop();
+	}
+
+	uint16_t* GetTcpConnectionTimeoutSeconds()
+	{
+		return &m_tcpConnectionTimeoutSeconds;
 	}
 
 public:

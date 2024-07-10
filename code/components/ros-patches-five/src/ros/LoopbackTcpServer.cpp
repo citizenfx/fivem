@@ -109,6 +109,11 @@ void LoopbackTcpServerStream::Close()
 	}
 }
 
+void LoopbackTcpServerStream::StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout)
+{
+	// a connection timeout is not required for the loopback tcp server stream, because its only on the client and not exposed to the network
+}
+
 LoopbackTcpServer::LoopbackTcpServer(LoopbackTcpServerManager* manager, const std::string& hostName)
 	: m_port(0), m_manager(manager), m_hostName(hostName)
 {

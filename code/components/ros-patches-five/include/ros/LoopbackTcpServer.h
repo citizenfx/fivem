@@ -57,6 +57,8 @@ public:
 	}
 
 	int HandleWrite(char* buffer, size_t length);
+
+	void StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout) override;
 };
 
 class LoopbackTcpServer : public net::TcpServer
