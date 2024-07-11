@@ -13,6 +13,12 @@
 
 DLL_IMPORT void SetPackfileValidationRoutine(bool (*routine)(const char*, const uint8_t*, size_t));
 
+constexpr size_t shaHashSize = sizeof(cfx::puremode::Sha256Result);
+constexpr size_t baseGameTableSize = sizeof(cfx::puremode::baseGameSafeHashesInit) / shaHashSize;
+constexpr size_t updateTableSize = sizeof(cfx::puremode::updateSafeHashesInit) / shaHashSize;
+constexpr size_t dlcTableSize = sizeof(cfx::puremode::dlcSafeHashesInit) / shaHashSize;
+constexpr size_t manualTableSize = sizeof(cfx::puremode::manualSafeHashesInit) / shaHashSize;
+
 static InitFunction initFunction([]
 {
 	if (fx::client::GetPureLevel() == 0)
@@ -20,31 +26,27 @@ static InitFunction initFunction([]
 		return;
 	}
 
-	static std::unordered_set<std::string> safeHashes = ([]
+	static std::unordered_set<cfx::puremode::Sha256Result> safeHashes;
+	safeHashes.reserve(baseGameTableSize + updateTableSize + dlcTableSize + manualTableSize);
+	for (int i = 0; i < baseGameTableSize; ++i)
 	{
-		std::unordered_set<std::string> list;
-		const auto addToHashList = [&list](const char* const arr[], size_t count)
-		{
-			for (int i = 0; i < count; ++i)
-			{
-				const char* hash = arr[i];
-				uint8_t hashBytes[256 / 8] = { 0 };
-				for (size_t i = 0; i < sizeof(hashBytes); i++)
-				{
-					char str[3] = { hash[i * 2], hash[i * 2 + 1], 0 };
-					hashBytes[i] = uint8_t(strtol(str, nullptr, 16));
-				}
+		safeHashes.insert(cfx::puremode::baseGameSafeHashesInit[i]);
+	}
 
-				list.emplace((const char*)hashBytes, sizeof(hashBytes));
-			}
-		};
+	for (int i = 0; i < updateTableSize; ++i)
+	{
+		safeHashes.insert(cfx::puremode::updateSafeHashesInit[i]);
+	}
 
-		addToHashList(baseGameSafeHashesInit, sizeof(baseGameSafeHashesInit) / 8);
-		addToHashList(updateSafeHashesInit, sizeof(updateSafeHashesInit) / 8);
-		addToHashList(dlcSafeHashesInit, sizeof(dlcSafeHashesInit) / 8);
-		addToHashList(manualSafeHashesInit, sizeof(manualSafeHashesInit) / 8);
-		return list;
-	})();
+	for (int i = 0; i < dlcTableSize; ++i)
+	{
+		safeHashes.insert(cfx::puremode::dlcSafeHashesInit[i]);
+	}
+
+	for (int i = 0; i < manualTableSize; ++i)
+	{
+		safeHashes.insert(cfx::puremode::manualSafeHashesInit[i]);
+	}
 
 	auto validationCallback = [](const char* path, const uint8_t* header, size_t headerLength)
 	{
@@ -73,20 +75,14 @@ static InitFunction initFunction([]
 			}
 		}
 
-		uint8_t out[256 / 8] = { 0 };
-
+		cfx::puremode::Sha256Result out;
 		{
 			Botan::SHA_256 hash;
 			hash.update(fixedHeader);
-			hash.final(out);
+			hash.final(reinterpret_cast<uint8_t*>(&out));
 		}
 
-		std::string str{
-			(const char*)out,
-			sizeof(out)
-		};
-
-		return (safeHashes.find(str) != safeHashes.end());
+		return (safeHashes.find(out) != safeHashes.end());
 	};
 
 	SetPackfileValidationRoutine(validationCallback);

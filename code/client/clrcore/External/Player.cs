@@ -2,8 +2,7 @@ using System;
 
 #if MONO_V2
 using CitizenFX.Core;
-using CitizenFX.MsgPack;
-
+using INativeValue = CitizenFX.Shared.Player;
 using API = CitizenFX.FiveM.Native.Natives;
 using TaskBool = CitizenFX.Core.Coroutine<bool>;
 
@@ -35,15 +34,14 @@ namespace CitizenFX.Core
 		Sunrise
 	}
 
-#if MONO_V2
-	public sealed class Player : Shared.Player, IEquatable<Player>
-	{
-#else
 	public sealed class Player : INativeValue, IEquatable<Player>
 	{
+		#region Fields
+#if !MONO_V2
 		private int _handle;
 #endif
 		Ped _ped;
+		#endregion
 
 		private static Player m_player = new Player(0);
 		public static Player Local
@@ -789,15 +787,5 @@ namespace CitizenFX.Core
 				return API.GetPlayerServerId(Handle);
 			}
 		}
-
-#if MONO_V2
-		#region Serializers
-
-		public static void Serialize(MsgPackSerializer serializer, Player player) => serializer.Serialize(player.Handle);
-
-		public static Player Deserialize(ref MsgPackDeserializer serializer) => new Player(serializer.DeserializeAsInt32());
-
-		#endregion
-#endif
 	}
 }

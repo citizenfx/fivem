@@ -345,9 +345,8 @@ void StateBagImpl::SendKeyValueToAllTargets(std::string_view key, std::string_vi
 	if (m_useParentTargets)
 	{
 		auto [lock, refTargets] = m_parent->GetTargets();
-		auto targets = refTargets.get();
 
-		for (int target : targets)
+		for (int target : refTargets.get())
 		{
 			SendKeyValue(target, key, value);
 		}

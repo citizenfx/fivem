@@ -100,45 +100,100 @@ struct detached_mpsc_queue
 	//
 	using key = detached_queue_key<T>;
 
-	key stub{};
-	std::atomic<key*> head = &stub;
-	std::atomic<key*> tail = &stub;
+private:
+	// alignas to avoid false sharing
+	alignas(128) std::atomic<key*> m_head = &m_stub;
+	alignas(128) key* m_tail = &m_stub;
+	key m_stub{};
 
+	T* pop_checked(member_reference_t<T, key> ref, bool &empty)
+	{
+		// pop happens from the end, so tail is checked first
+		auto* tail = m_tail;
+		auto* next = m_tail->next.load(std::memory_order_acquire);
+		if (tail == &m_stub)
+		{
+			if (next == nullptr)
+			{
+				// the tail is the stub and the next pointer is a nullptr
+				// this is the indicator to know that its empty
+				empty = true;
+				return nullptr;
+			}
+
+			m_tail = next;
+			tail = next;
+			next = tail->next.load(std::memory_order_acquire);
+		}
+
+		if (next != nullptr)
+		{
+			empty = false;
+			m_tail = next;
+			return tail->get(std::move(ref));
+		}
+		
+		auto* head = m_head.load(std::memory_order_acquire);
+		if (tail != head)
+		{
+			// pop can be retried, the queue is probably not empty
+			empty = false;
+			return nullptr;
+		}
+
+		push(&m_stub);
+		next = tail->next.load(std::memory_order_acquire);
+		if (next != nullptr)
+		{
+			empty = false;
+			m_tail = next;
+			return tail->get(std::move(ref));
+		}
+
+		empty = false;
+		return nullptr;
+	}
+
+public:
+	/// <summary>
+	/// Pushes a new element to the beginning queue. This operation is thread-safe.
+	/// </summary>
+	/// <param name="node">The element to push to the queue.</param>
 	void push(key* node)
 	{
+		// the new pushed element should not have a next, because it will become the head
 		node->next.store(nullptr, std::memory_order_relaxed);
-		auto* prev = head.exchange(node, std::memory_order_acq_rel);
+		// the new element becomes the head
+		auto* prev = m_head.exchange(node, std::memory_order_acq_rel);
+		// the previous head adds the new head as the next element in the chain
 		prev->next.store(node, std::memory_order_release);
 	}
 
+	/// <summary>
+	/// Pops a element from the end of the queue. This operation is NOT thread-safe.
+	/// </summary>
+	/// <param name="ref">The element ref to correctly fetch the pointer from the detached_queue_key.</param>
+	/// <returns>Returns a pointer to the popped element, the returned pointer might be a nullptr in the middle of a push.</returns>
 	T* pop(member_reference_t<T, key> ref)
 	{
-		auto* t = tail.load(std::memory_order_relaxed);
-		auto* next = t->next.load(std::memory_order_acquire);
-		if (t == &stub)
+		bool empty;
+		return pop_checked(ref, empty);
+	}
+
+	/// <summary>
+	/// Pops a element from the end of the queue. Retries until a element got popped or until the operation knows that the queue is really empty. This operation is NOT thread-safe.
+	/// </summary>
+	/// <param name="ref">The element ref to correctly fetch the pointer from the detached_queue_key.</param>
+	/// <returns>Returns a pointer to the popped element, the returned pointer is only a nullptr if the queue is empty.</returns>
+	T* pop_until_empty(member_reference_t<T, key> ref)
+	{
+		bool empty = false;
+		while (!empty)
 		{
-			if (next == nullptr)
-				return nullptr;
-			tail.store(next, std::memory_order_relaxed);
-			t = next;
-			next = next->next;
-		}
-		if (next != nullptr)
-		{
-			tail.store(next, std::memory_order_relaxed);
-			return t->get(std::move(ref));
-		}
-		auto* h = head.load(std::memory_order_relaxed);
-		if (t != h)
-		{
-			return nullptr;
-		}
-		push(&stub);
-		next = t->next;
-		if (next != nullptr)
-		{
-			tail.store(next, std::memory_order_relaxed);
-			return t->get(std::move(ref));
+			if (T* entry = pop_checked(ref, empty))
+			{
+				return entry;
+			}
 		}
 		return nullptr;
 	}

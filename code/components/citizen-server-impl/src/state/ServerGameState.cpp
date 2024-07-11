@@ -85,6 +85,7 @@ std::shared_ptr<ConVar<std::string>> g_oneSyncLogVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncWorkaround763185;
 std::shared_ptr<ConVar<bool>> g_oneSyncBigMode;
 std::shared_ptr<ConVar<bool>> g_oneSyncLengthHack;
+std::shared_ptr<ConVar<bool>> g_experimentalOneSyncPopulation;
 std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
 std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
@@ -4275,7 +4276,7 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 	m_globalBag->SetOwningPeer(-1);
 	m_sbac = sbac;
 
-	creg->OnConnectedClient.Connect([this](fx::Client* client)
+	creg->OnConnectedClient.Connect([this](const fx::ClientSharedPtr& client)
 	{
 		if (!fx::IsOneSync())
 		{
@@ -4286,8 +4287,15 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 
 		m_sbac->RegisterTarget(client->GetSlotId());
 
-		client->OnDrop.Connect([this, client]()
+		fx::ClientWeakPtr weakClient{ client };
+		client->OnDrop.Connect([this, weakClient]()
 		{
+			auto client = weakClient.lock();
+			if (!client)
+			{
+				return;
+			}
+
 			m_sbac->UnregisterTarget(client->GetSlotId());
 		}, INT32_MIN);
 	});
@@ -7153,6 +7161,8 @@ static InitFunction initFunction([]()
 		// or maybe, beyond?
 		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_ReadOnly, false);
 
+		g_experimentalOneSyncPopulation = instance->AddVariable<bool>("sv_experimentalOneSyncPopulation", ConVar_None, false);
+
 		constexpr bool canLengthHack =
 #ifdef STATE_RDR3
 		false
@@ -7162,10 +7172,21 @@ static InitFunction initFunction([]()
 		;
 
 		fx::SetBigModeHack(g_oneSyncBigMode->GetValue(), canLengthHack && g_oneSyncLengthHack->GetValue());
+		if (g_experimentalOneSyncPopulation->GetValue())
+		{
+			fx::SetOneSyncPopulation(g_oneSyncPopulation->GetValue());
+		}
 
 		if (g_oneSyncVar->GetValue() == fx::OneSyncState::On)
 		{
-			fx::SetBigModeHack(true, canLengthHack && g_oneSyncPopulation->GetValue());
+			if (g_experimentalOneSyncPopulation->GetValue())
+			{
+				fx::SetBigModeHack(true, canLengthHack);
+			}
+			else
+			{
+				fx::SetBigModeHack(true, canLengthHack && g_oneSyncPopulation->GetValue());
+			}
 
 			g_oneSyncBigMode->GetHelper()->SetRawValue(true);
 			g_oneSyncLengthHack->GetHelper()->SetRawValue(fx::IsLengthHack());

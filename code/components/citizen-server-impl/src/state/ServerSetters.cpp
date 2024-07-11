@@ -210,7 +210,7 @@ std::shared_ptr<sync::SyncTreeBase> MakeObject(uint32_t model, float posX, float
 		cdn.m_hasInitPhysics = dynamic;
 	});
 
-	SetupNode(tree, [resourceHash](sync::CObjectSectorPosNode& cdn)
+	SetupNode(tree, [](sync::CObjectSectorPosNode& cdn)
 	{
 		cdn.highRes = true;
 	});
@@ -223,6 +223,12 @@ std::shared_ptr<sync::SyncTreeBase> MakeObject(uint32_t model, float posX, float
 
 		glm::quat q = glm::quat(glm::vec3(0.0f, 0.0f, heading * 0.01745329252f));
 		node.data.quat.Load(q.x, q.y, q.z, q.w);
+	});
+
+	SetupNode(tree, [](sync::CGlobalFlagsDataNode& node)
+	{
+		node.globalFlags = 4;
+		node.token = 0;
 	});
 
 	SetupNode(tree, [resourceHash](sync::CEntityScriptInfoDataNode& cdn)

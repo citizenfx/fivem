@@ -46,6 +46,10 @@ namespace fx
 					{
 						lock.unlock();
 
+						// to prevent a long running handler from timeouting the connection
+						// this timeout is overwritten when the response is send
+						response->StartConnectionTimeout(std::chrono::seconds{ m_handlerConnectionTimeout });
+
 						handler(request, response);
 						return true;
 					}
@@ -190,6 +194,10 @@ static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
-		instance->SetComponent(new fx::HttpServerManager());
+		fx::HttpServerManager* httpServerManager = new fx::HttpServerManager();
+
+		static ConVar<uint16_t> svHttpHandlerConnectionTimeout(console::GetDefaultContext(), "sv_httpHandlerConnectionTimeoutSeconds", ConVar_None, 300, httpServerManager->GetHandlerConnectionTimeoutSeconds());
+
+		instance->SetComponent<fx::HttpServerManager>(httpServerManager);
 	}, -100);
 });

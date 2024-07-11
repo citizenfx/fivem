@@ -96,8 +96,22 @@ static HookFunction hookFunction([] ()
 	}
 #else
 	{
+		void* disableChatFunc = nullptr;
+		if (xbr::IsGameBuildOrGreater<3258>())
+		{
+			disableChatFunc = hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8D ? ? 48 8B ? 48 8B ? E8 ? ? ? ? 84 C0 75");
+		}
+		else if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			disableChatFunc = hook::get_pattern("84 C0 75 04 B0 01 EB 23", -0x19);
+		}
+		else
+		{
+			disableChatFunc = hook::get_pattern("32 DB 84 C0 74 2D 48 8B", -0x22);
+		}
+
 		MH_Initialize();
-		MH_CreateHook((xbr::IsGameBuildOrGreater<2372>()) ? hook::get_pattern("84 C0 75 04 B0 01 EB 23", -0x19) : hook::get_pattern("32 DB 84 C0 74 2D 48 8B", -0x22), TextChatShutdownWrap, (void**)&g_origTextChatShutdown);
+		MH_CreateHook(disableChatFunc, TextChatShutdownWrap, (void**)&g_origTextChatShutdown);
 		MH_EnableHook(MH_ALL_HOOKS);
 
 		if (xbr::IsGameBuildOrGreater<3095>())

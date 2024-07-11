@@ -89,8 +89,26 @@ static void* InitializeIPLBuffer()
 	return result;
 }
 
+static constexpr uint32_t NewBufferSize = 1024;
+static uint32_t NewIPLBuffer[NewBufferSize];
+
 static HookFunction hookFunction([]()
 {
+	// CPacketIPL seems to be deprecated and CPacketIPL2 was added instead
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		// Relocate CPacketIPL2 buffer references; stubs from 3258
+		RelocateRelative((void*)&NewIPLBuffer, {
+			{ "48 8D 15 ? ? ? ? 48 8D 4C 24 ? 48 89 5C 24 ? 89 5C 24 ? E8 ? ? ? ? 48 8D 54 24", 3 },
+			{ "48 8D 0D ? ? ? ? 49 C1 E0 ? E8 ? ? ? ? 89 1D", 3 }
+		});
+
+		// Update offsets and fields
+		hook::put<uint32_t>(hook::get_pattern("BB ? ? ? ? 41 8B D6 48 8B CE E8 ? ? ? ? 89 18 40 38 3D", 1), (36 + (NewBufferSize * 4 * 2)));
+		hook::put<uint32_t>(hook::get_pattern("B9 22 01 00 00 48 8B D7", 1), NewBufferSize);
+		return;
+	}
+
 	static const constexpr uint32_t BufferSize = sizeof(CPacketIPLBufferNew);
 
 	// Relocate CPacketIPL buffer references; stubs from 2372

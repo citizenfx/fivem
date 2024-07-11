@@ -27,6 +27,8 @@ export function getGameBuildDLCName(gameBuild: string): string {
       return 'San Andreas Mercenaries';
     case '3095':
       return 'The Chop Shop';
+    case '3258':
+      return 'Bottom Dollar Bounties';
   }
 
   return '';

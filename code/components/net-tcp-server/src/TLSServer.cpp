@@ -391,6 +391,14 @@ void TLSServerStream::ScheduleCallback(TScheduledCallback&& callback, bool perfo
 	}
 }
 
+void TLSServerStream::StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout)
+{
+	if (m_baseStream.GetRef())
+	{
+		m_baseStream->StartConnectionTimeout(timeout);
+	}
+}
+
 TLSServer::TLSServer(fwRefContainer<TcpServer> baseServer, const std::string& certificatePath, const std::string& keyPath, bool autoGenerate)
 {
 	// initialize credentials

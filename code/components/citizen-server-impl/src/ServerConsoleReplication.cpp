@@ -17,7 +17,7 @@ static InitFunction initFunction([]()
 		auto gameServer = instance->GetComponent<fx::GameServer>().GetRef();
 		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>().GetRef();
 
-		auto sendVariableList = [](fx::Client* client, const std::map<std::string, std::string>& list)
+		auto sendVariableList = [](const fx::ClientSharedPtr& client, const std::map<std::string, std::string>& list)
 		{
 			msgpack::sbuffer buf;
 			msgpack::packer<msgpack::sbuffer> packer(buf);
@@ -34,7 +34,7 @@ static InitFunction initFunction([]()
 			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 		};
 
-		clientRegistry->OnConnectedClient.Connect([console, sendVariableList](fx::Client* client)
+		clientRegistry->OnConnectedClient.Connect([console, sendVariableList](const fx::ClientSharedPtr& client)
 		{
 			std::map<std::string, std::string> variableList;
 			
@@ -64,7 +64,7 @@ static InitFunction initFunction([]()
 			{
 				clientRegistry->ForAllClients([&variableList, sendVariableList](const fx::ClientSharedPtr& client)
 				{
-					sendVariableList(client.get(), variableList);
+					sendVariableList(client, variableList);
 				});
 			}
 		});

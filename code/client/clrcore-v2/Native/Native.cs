@@ -1,5 +1,4 @@
 using CitizenFX.Core.Native.Input;
-using CitizenFX.MsgPack;
 using System;
 using System.Security;
 
@@ -131,7 +130,7 @@ namespace CitizenFX.Core.Native
 				ulong* __data = stackalloc ulong[] { (ulong)p_referenceIdentity, (ulong)p_argsSerialized, unchecked((ulong)argsSerialized.value?.LongLength), (ulong)&retLength };
 				ScriptContext.InvokeNative(ref s_0xe3551879, 0xe3551879, __data, 4); // INVOKE_FUNCTION_REFERENCE
 
-				return MsgPackDeserializer.DeserializeAsObjectArray(*(byte**)__data, (long)retLength);
+				return MsgPackDeserializer.DeserializeArray(*(byte**)__data, (long)retLength);
 			}
 		}
 

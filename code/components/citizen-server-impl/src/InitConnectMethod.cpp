@@ -405,6 +405,7 @@ static InitFunction initFunction([]()
 		});
 
 		auto experimentalStateBagsHandler = instance->AddVariable<bool>("sv_experimentalStateBagsHandler", ConVar_None, false);
+		auto experimentalOneSyncPopulation = instance->AddVariable<bool>("sv_experimentalOneSyncPopulation", ConVar_None, false);
 
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
@@ -553,7 +554,11 @@ static InitFunction initFunction([]()
 			json data = json::object();
 			data["protocol"] = 5;
 
-			if (experimentalStateBagsHandler->GetValue())
+			if (experimentalOneSyncPopulation->GetValue())
+			{
+				data["bitVersion"] = net::NetBitVersion::netVersion3;
+			}
+			else if (experimentalStateBagsHandler->GetValue())
 			{
 				data["bitVersion"] = net::NetBitVersion::netVersion2;
 			}
@@ -568,6 +573,11 @@ static InitFunction initFunction([]()
 			data["onesync"] = fx::IsOneSync();
 			data["onesync_big"] = fx::IsBigMode();
 			data["onesync_lh"] = fx::IsLengthHack();
+			if (experimentalOneSyncPopulation->GetValue())
+			{
+				data["onesync_population"] = fx::IsOneSyncPopulation();
+			}
+
 			data["token"] = token;
 			data["gamename"] = gameName;
 
