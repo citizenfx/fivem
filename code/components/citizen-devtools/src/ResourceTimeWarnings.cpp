@@ -974,41 +974,55 @@ static InitFunction initFunction([]()
 
 		if (ImGui::Begin("Loaded pgRawStreamer assets", &m_enabledPgRawStreamerStats))
 		{
-			static char search[100];
+			static char search[100] = "";
 			ImGui::InputText("Search", search, IM_ARRAYSIZE(search));
 			auto assets = rage::GetPgRawStreamerEntries();
 			ImGui::LabelText("Assets total", "%d/65535", assets.GetCount());
 
-			if (ImGui::BeginTable("Assets", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
+			ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable;
+			if (ImGui::BeginTable("Assets", 2, tableFlags))
 			{
 				ImGui::TableSetupColumn("Asset path", ImGuiTableColumnFlags_WidthStretch);
 				ImGui::TableSetupColumn("Add timestamp", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
 				ImGui::TableHeadersRow();
 
-				for (int i = 0; i < assets.GetCount(); ++i)
+				if (assets.GetCount() > 1)
 				{
-					if (!assets[i].name)
+					ImGuiListClipper clipper;
+					// -1 because 1st item in Entries always dummy in GTAV and RDR3
+					clipper.Begin(assets.GetCount() - 1);
+
+					while (clipper.Step())
 					{
-						continue;
+						for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
+						{
+							int assetsIndex = row + 1;
+							if (!assets[assetsIndex].name)
+							{
+								continue;
+							}
+
+							const std::string name = assets[assetsIndex].name;
+							if (!name._Starts_with(search))
+							{
+								continue;
+							}
+
+							const std::string datetime = PrettyFormatFileTime(assets[assetsIndex].timestamp);
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Text("%s", assets[assetsIndex].name);
+							ImGui::TableNextColumn();
+							ImGui::Text("%s", datetime.c_str());
+						}
 					}
-
-					const std::string name = assets[i].name;
-					if (!name._Starts_with(search))
-					{
-						continue;
-					}
-
-					const std::string datetime = PrettyFormatFileTime(assets[i].timestamp);
-
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					ImGui::Text("%s", assets[i].name);
-					ImGui::TableNextColumn();
-					ImGui::Text("%s", datetime.c_str());
 				}
+
 				ImGui::EndTable();
 			}
 		}
+
 		ImGui::End();
 	});
 #endif
