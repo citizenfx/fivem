@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include <SerializableStorageType.h>
+#include <Span.h>
 
 namespace net
 {
@@ -39,7 +40,19 @@ namespace net
 		{
 		};
 
+		template <typename C>
+		struct IsTypeSpan : std::false_type
+		{
+		};
+
+		template <typename T>
+		struct IsTypeSpan<net::Span<T>> : std::true_type
+		{
+		};
+
 		static constexpr bool IsVector = IsTypeVector<Type>::value;
+
+		static constexpr bool IsSpan = IsTypeSpan<Type>::value;
 
 		template <typename... TypesList>
 		static constexpr bool IsOneOf = std::disjunction_v<std::is_same<Type, TypesList>...>;
@@ -166,6 +179,31 @@ namespace net
 				{
 					m_value.resize(size);
 					if (!stream.Field(reinterpret_cast<Type&>(*m_value.data()), sizeof(typename Type::value_type) * size))
+					{
+						return false;
+					}
+				}
+
+				return true;
+			}
+			else if constexpr (IsSpan)
+			{
+				if constexpr (std::is_same<SizeOption, void>() || SizeOption::kType !=
+					storage_type::SerializableSizeOption::Type::Area)
+				{
+					static_assert(true, "serializable of a buffer requires a SerializableSizeOptionArea.");
+				}
+
+				bool validSize;
+				auto size = SizeOption::Process(stream, m_value.size(), validSize);
+				if (!validSize)
+				{
+					return false;
+				}
+
+				if (size > 0)
+				{
+					if (!stream.Field(m_value, size))
 					{
 						return false;
 					}

@@ -32,6 +32,7 @@ struct SomeComponent : net::SerializableComponent
 	net::SerializableVector<net::SerializableProperty<uint32_t>, net::storage_type::BytesArray> someNumberVector;
 	net::SerializableProperty<std::vector<uint8_t>, net::storage_type::BytesArray> someBuffer;
 	net::SerializableProperty<SomeEnum> someEnum;
+	net::SerializableProperty<net::Span<uint16_t>, net::storage_type::ConstrainedSmallBytesArray<0, 3>> someSpan;
 
 	template <typename T>
 	bool Process(T& stream)
@@ -45,7 +46,8 @@ struct SomeComponent : net::SerializableComponent
 			someString,
 			someNumberVector,
 			someBuffer,
-			someEnum
+			someEnum,
+			someSpan
 		);
 	}
 };
@@ -74,6 +76,11 @@ struct SectorComponent : net::SerializableComponent
 
 TEST_CASE("Components test")
 {
+	std::vector<uint16_t> spanBuffer;
+	spanBuffer.resize(3);
+	spanBuffer[0] = fx::TestUtils::u64Random(500);
+	spanBuffer[1] = fx::TestUtils::u64Random(500);
+	spanBuffer[2] = fx::TestUtils::u64Random(500);
 	std::string someString = fx::TestUtils::asciiRandom(1000);
 	SectorComponent sectorComponent;
 	sectorComponent.x = fx::TestUtils::u64Random(500);
@@ -91,6 +98,16 @@ TEST_CASE("Components test")
 	sectorComponent.someComponent.someBuffer.GetValue()[1] = 2;
 	sectorComponent.someComponent.someBuffer.GetValue()[2] = 3;
 	sectorComponent.someComponent.someEnum = SomeComponent::SomeEnum::Second;
+	sectorComponent.someComponent.someSpan = {spanBuffer.data(), sectorComponent.someComponent.someBuffer.GetValue().size()};
+
+	uint8_t spanIterations = 0;
+	for (const uint16_t value : sectorComponent.someComponent.someSpan.GetValue())
+	{
+		REQUIRE(value == spanBuffer[spanIterations]);
+		spanIterations++;
+	}
+	REQUIRE(spanIterations == spanBuffer.size());
+
 	uint8_t buffer[4 * 1024];
 	net::ByteWriter writeStream(buffer, sizeof(buffer));
 	if (!sectorComponent.Process(writeStream))
@@ -116,11 +133,12 @@ TEST_CASE("Components test")
 	REQUIRE(sectorComponent.someComponent.someNumberVector == readSectorComponent.someComponent.someNumberVector);
 	REQUIRE(sectorComponent.someComponent.someBuffer == readSectorComponent.someComponent.someBuffer);
 	REQUIRE(sectorComponent.someComponent.someEnum == readSectorComponent.someComponent.someEnum);
+	REQUIRE(sectorComponent.someComponent.someSpan == readSectorComponent.someComponent.someSpan);
 	net::ByteCounter byteCounter;
 	if (!sectorComponent.Process(byteCounter))
 	{
 		REQUIRE(false);
 	}
 	uint64_t size = byteCounter.GetCapacity();
-	REQUIRE(size == uint64_t(917535));
+	REQUIRE(size == uint64_t(917549));
 }

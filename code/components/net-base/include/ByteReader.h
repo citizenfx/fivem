@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "DataStream.h"
+#include "Span.h"
 
 namespace net
 {
@@ -76,6 +77,27 @@ namespace net
 
 			memcpy(static_cast<void*>(&value), m_data + m_offset, size);
 			m_offset += size;
+			return true;
+		}
+
+		/// <summary>
+		/// Reads a net::Span from the buffer. std::Span is read allocation free
+		/// </summary>
+		/// <param name="value">The Span to read the content into</param>
+		/// <param name="size">Amount of elements to read</param>
+		/// <returns>Returns true when the requested size can be read</returns>
+		template <typename T>
+		bool Field(Span<T>& value, const size_t size)
+		{
+			const size_t sizeBytes = size * sizeof(T);
+			if (!CanRead(sizeBytes))
+			{
+				return false;
+			}
+
+			value = net::Span(const_cast<T*>(reinterpret_cast<const T*>(m_data + m_offset)), size);
+			m_offset += sizeBytes;
+
 			return true;
 		}
 
