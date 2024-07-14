@@ -681,7 +681,7 @@ namespace fx
 
 					if (IsOneSync())
 					{
-						if (client->GetSlotId() == -1)
+						if (!client->HasSlotId())
 						{
 							SendOutOfBand(peer->GetAddress(), "error Not enough client slot IDs.");
 
@@ -729,7 +729,7 @@ namespace fx
 
 					if (wasNew)
 					{
-						gscomms_execute_callback_on_main_thread([=]()
+						gscomms_execute_callback_on_main_thread([this, client, oldNetID]()
 						{
 							m_clientRegistry->HandleConnectedClient(client, oldNetID);
 						});
