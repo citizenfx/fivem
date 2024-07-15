@@ -464,8 +464,6 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 
 	luaRuntime->SetCallRefRoutine([=](int32_t refId, const char* argsSerialized, size_t argsSize)
 	{
-		// static array for retval output (sadly)
-		static std::vector<char> retvalArray(32768);
 		LuaProfilerScope _profile(luaRuntime);
 
 		// set the error handler

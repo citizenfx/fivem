@@ -74,6 +74,11 @@ class MemoryScriptBuffer : public OMClass<MemoryScriptBuffer, IScriptBuffer>
 
 		char* GeResultBuffer(const size_t requiredSize)
 		{
+			if (requiredSize > 32768)
+			{
+				return nullptr;
+			}
+
 			for (auto& poolElement : m_pool)
 			{
 				if (poolElement.Use())
@@ -81,6 +86,11 @@ class MemoryScriptBuffer : public OMClass<MemoryScriptBuffer, IScriptBuffer>
 					poolElement.Require(requiredSize);
 					return poolElement.GetData();
 				}
+			}
+
+			if (m_pool.size() >= 1024)
+			{
+				return nullptr;
 			}
 
 			return m_pool.emplace_back(requiredSize).GetData();
@@ -105,10 +115,13 @@ public:
 	template<typename... T>
 	static auto Make(const uint32_t size)
 	{
-		char* buffer = pool.GeResultBuffer(size);
-		auto self = fx::MakeNew<MemoryScriptBuffer>(buffer, size);
 		fx::OMPtr<IScriptBuffer> sb;
-		self.As(&sb);
+		char* buffer = pool.GeResultBuffer(size);
+		if (buffer)
+		{
+			auto self = fx::MakeNew<MemoryScriptBuffer>(buffer, size);
+			self.As(&sb);
+		}
 
 		return sb;
 	}
@@ -116,11 +129,14 @@ public:
 	template<typename... T>
 	static auto Make(const char* data, const uint32_t size)
 	{
-		char* buffer = pool.GeResultBuffer(size);
-		memcpy(buffer, data, size);
-		auto self = fx::MakeNew<MemoryScriptBuffer>(buffer, size);
 		fx::OMPtr<IScriptBuffer> sb;
-		self.As(&sb);
+		char* buffer = pool.GeResultBuffer(size);
+		if (buffer)
+		{
+			memcpy(buffer, data, size);
+			auto self = fx::MakeNew<MemoryScriptBuffer>(buffer, size);
+			self.As(&sb);
+		}
 
 		return sb;
 	}
