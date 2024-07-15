@@ -13,7 +13,7 @@ static bool g_lengthHack{true};
 
 namespace rl
 {
-	bool MessageBuffer::GetLengthHackState()
+	bool MessageBufferLengthHack::GetState()
 	{
 		return g_lengthHack;
 	}
