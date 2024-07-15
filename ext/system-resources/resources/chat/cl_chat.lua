@@ -232,25 +232,25 @@ if RegisterKeyMapping then
 end
 
 RegisterCommand('toggleChat', function(source, args, rawCommand)
-	if not args[1] then
-		if chatHideState == CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE then
-			chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
-		elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_SHOW then
-			chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
-		elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_HIDE then
-			chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
-		end
-	else
-		if args[1] == "visible" then
-			chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
-		elseif args[1] == "hidden" then
-			chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
-		elseif args[1] == "whenactive" then
-			chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
-		end
-	end
-	SetResourceKvp('hideState', tostring(chatHideState))
-	isFirstHide = false
+  if not args[1] then
+    if chatHideState == CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE then
+      chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
+    elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_SHOW then
+      chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
+    elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_HIDE then
+      chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
+    end
+  else
+    if args[1] == "visible" then
+      chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
+    elseif args[1] == "hidden" then
+      chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
+    elseif args[1] == "whenactive" then
+      chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
+    end
+  end
+  isFirstHide = false
+  SetResourceKvp('hideState', tostring(chatHideState))
 end, false)
 
 Citizen.CreateThread(function()
