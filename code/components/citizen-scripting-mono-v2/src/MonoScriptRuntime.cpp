@@ -5,8 +5,6 @@
 #include "MonoDomainScope.h"
 #include "MonoFreeable.h"
 
-#include "fxScriptBuffer.h"
-
 #include <msgpack.hpp>
 #include <Profiler.h>
 
@@ -339,26 +337,17 @@ result_t MonoScriptRuntime::LoadFile(char* scriptFile)
 	return ReturnOrError(exc);
 }
 
-result_t MonoScriptRuntime::CallRef(int32_t refIndex, char* argsSerialized, uint32_t argsSize, IScriptBuffer** buffer)
+result_t MonoScriptRuntime::CallRef(int32_t refIndex, char* argsSerialized, uint32_t argsSize, char** retvalSerialized, uint32_t* retvalSize)
 {
+	*retvalSerialized = nullptr;
+	*retvalSize = 0;
+
 	fx::PushEnvironment env(this);
 	MonoComponentHost::EnsureThreadAttached();
 	MonoDomainScope scope(m_appDomain);
 
-	MonoArray* retval = nullptr;
 	MonoException* exc = nullptr;
-	m_callRef(refIndex, argsSerialized, argsSize, &retval, GetCurrentSchedulerTime(), IsProfiling(), &exc);
-
-	*buffer = nullptr;
-
-	if (retval)
-	{
-		char* retvalStart = mono_array_addr(retval, char, 0);
-		uintptr_t retvalLength = mono_array_length(retval);
-
-		auto rvb = fx::MemoryScriptBuffer::Make(retvalStart, retvalLength);
-		rvb.CopyTo(buffer);
-	}
+	m_callRef(refIndex, argsSerialized, argsSize, retvalSerialized, retvalSize, GetCurrentSchedulerTime(), IsProfiling(), &exc);
 
 	return ReturnOrError(exc);
 }
@@ -397,27 +386,6 @@ MonoArray* MonoScriptRuntime::CanonicalizeRef(int referenceId) const
 	memcpy(mono_array_addr_with_size(arr, 1, 0), str, size);
 
 	fwFree(str);
-
-	return arr;
-}
-
-MonoArray* MonoScriptRuntime::InvokeFunctionReference(MonoString* referenceId, MonoArray* argsSerialized) const
-{
-	std::string referenceString = UTF8CString(referenceId);
-
-	char* argsStart = mono_array_addr(argsSerialized, char, 0);
-	uintptr_t argsLength = mono_array_length(argsSerialized);
-
-	fx::OMPtr<IScriptBuffer> retval;
-	result_t hr = m_scriptHost->InvokeFunctionReference(const_cast<char*>(referenceString.c_str()), argsStart, argsLength, retval.GetAddressOf());
-	size_t size = (retval.GetRef()) ? retval->GetLength() : 0;
-
-	MonoArray* arr = mono_array_new(m_appDomain, mono_get_byte_class(), size);
-
-	if (size)
-	{
-		memcpy(mono_array_addr_with_size(arr, 1, 0), retval->GetBytes(), size);
-	}
 
 	return arr;
 }

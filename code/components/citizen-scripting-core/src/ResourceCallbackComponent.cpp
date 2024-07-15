@@ -1,7 +1,6 @@
 #include "StdInc.h"
 #include <ResourceCallbackComponent.h>
 #include <ResourceScriptingComponent.h>
-#include <fxScriptBuffer.h>
 
 class FakeResource : public fx::Resource
 {
@@ -90,20 +89,18 @@ int ResourceCallbackScriptRuntime::GetInstanceId()
 	return 'CBRT';
 }
 
-result_t ResourceCallbackScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, IScriptBuffer** retval)
+result_t ResourceCallbackScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, char** retvalSerialized, uint32_t* retvalLength)
 {
 	// preset retval to be null
 	{
-		static auto rv = ([]()
-		{
-			msgpack::sbuffer sb;
+		static msgpack::sbuffer sb;
+		sb.clear();
 
-			msgpack::packer<msgpack::sbuffer> packer(sb);
-			packer.pack_array(0);
-			return fx::MemoryScriptBuffer::Make(sb.data(), static_cast<uint32_t>(sb.size()));
-		})();
-		
-		rv.CopyTo(retval);
+		msgpack::packer<msgpack::sbuffer> packer(sb);
+		packer.pack_array(0);
+
+		*retvalSerialized = sb.data();
+		*retvalLength = sb.size();
 	}
 
 	// assume we have the ref still

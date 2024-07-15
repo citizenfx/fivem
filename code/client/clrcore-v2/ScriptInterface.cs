@@ -64,12 +64,6 @@ namespace CitizenFX.Core
 
 		[SecurityCritical]
 		internal static unsafe byte[] CanonicalizeRef(int refId) => CanonicalizeRef(s_runtime, refId);
-		
-		[SecurityCritical, MethodImpl(MethodImplOptions.InternalCall)]
-		private static extern unsafe byte[] InvokeFunctionReference(UIntPtr host, string refId, byte[] argsSerialized);
-
-		[SecurityCritical]
-		internal static unsafe byte[] InvokeFunctionReference(string refId, byte[] argsSerialized) => InvokeFunctionReference(s_runtime, refId, argsSerialized);
 
 		[SecurityCritical, MethodImpl(MethodImplOptions.InternalCall)]
 		private static extern unsafe bool ReadAssembly(UIntPtr host, string file, out byte[] assembly, out byte[] symbols);
@@ -173,14 +167,12 @@ namespace CitizenFX.Core
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
-		internal static unsafe ulong CallRef(int refIndex, byte* argsSerialized, uint argsSize, out byte[] retval, ulong hostTime, bool profiling)
+		internal static unsafe void CallRef(int refIndex, byte* argsSerialized, uint argsSize, out IntPtr retvalSerialized, out uint retvalSize, ulong hostTime, bool profiling)
 		{
 			Scheduler.CurrentTime = (TimePoint)hostTime;
 			Profiler.IsProfiling = profiling;
 
-			ReferenceFunctionManager.IncomingCall(refIndex, argsSerialized, argsSize, out retval);
-
-			return Scheduler.NextTaskTime();
+			ReferenceFunctionManager.IncomingCall(refIndex, argsSerialized, argsSize, out retvalSerialized, out retvalSize);
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]

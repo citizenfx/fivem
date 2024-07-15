@@ -82,7 +82,21 @@ namespace CitizenFX.Core
 
 			try
 			{
-				return GameInterface.InvokeFunctionReference(m_reference, argsSerialized);
+				IntPtr resBytes;
+				long retLength;
+
+				unsafe
+				{
+					fixed (byte* argsSerializedRef = &argsSerialized[0])
+					{
+						resBytes = Native.Function.Call<IntPtr>(Native.Hash.INVOKE_FUNCTION_REFERENCE, m_reference, argsSerializedRef, argsSerialized.Length, &retLength);
+					}
+				}
+
+				var retval = new byte[retLength];
+				Marshal.Copy(resBytes, retval, 0, retval.Length);
+
+				return retval;
 			}
 			finally
 			{

@@ -14,7 +14,7 @@
 
 #include <tbb/concurrent_queue.h>
 
-fx::OMPtr<IScriptRefRuntime> ValidateAndLookUpRef(const std::string& refString, int32_t* refIdx)
+static fx::OMPtr<IScriptRefRuntime> ValidateAndLookUpRef(const std::string& refString, int32_t* refIdx)
 {
 	// parse the ref string into its components
 	int colonIndex = refString.find_first_of(':');
@@ -83,15 +83,31 @@ static InitFunction initFunction([] ()
 
 		if (refRuntime.GetRef())
 		{
-			fx::OMPtr<IScriptBuffer> buffer;
+			char* retvalData;
+			uint32_t retvalSize;
 
-			if (FX_SUCCEEDED(refRuntime->CallRef(refId, const_cast<char*>(argumentData.c_str()), argumentData.size(), buffer.GetAddressOf())) && buffer.GetRef())
+			if (FX_SUCCEEDED(refRuntime->CallRef(refId, const_cast<char*>(argumentData.c_str()), argumentData.size(), &retvalData, &retvalSize)))
 			{
-				return std::string(buffer->GetBytes(), buffer->GetLength());
+				return std::string(retvalData, retvalSize);
 			}
 		}
 
 		return std::string();
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("INVOKE_FUNCTION_REFERENCE", [] (fx::ScriptContext& context)
+	{
+		int32_t refId;
+		fx::OMPtr<IScriptRefRuntime> refRuntime = ValidateAndLookUpRef(context.GetArgument<const char*>(0), &refId);
+
+		if (refRuntime.GetRef())
+		{
+			char* retvalData;
+
+			refRuntime->CallRef(refId, context.GetArgument<char*>(1), context.GetArgument<uint32_t>(2), &retvalData, context.GetArgument<uint32_t*>(3));
+
+			context.SetResult(retvalData);
+		}
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("DUPLICATE_FUNCTION_REFERENCE", [] (fx::ScriptContext& context)

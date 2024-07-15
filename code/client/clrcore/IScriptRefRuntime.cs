@@ -10,7 +10,8 @@ namespace CitizenFX.Core
 		void CallRef(int refIndex,
 					 [In] [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] byte[] argsSerialized,
 					 int argsSize,
-					 [Out] out IntPtr retval);
+					 [Out] out IntPtr retvalSerialized,
+					 [Out] out int retvalSize);
 
 		int DuplicateRef(int refIndex);
 

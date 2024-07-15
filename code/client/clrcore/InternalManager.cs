@@ -477,7 +477,7 @@ namespace CitizenFX.Core
 		private int m_retvalBufferSize;
 
 		[SecuritySafeCritical]
-		public void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retval)
+		public void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retvalSerialized, out int retvalSize)
 		{
 			// not using using statements here as old Mono on Linux build doesn't know of these
 #if IS_FXSERVER
@@ -496,16 +496,33 @@ namespace CitizenFX.Core
 
 					if (retvalData != null)
 					{
-						retval = GameInterface.MakeMemoryBuffer(retvalData);
+						if (m_retvalBuffer == IntPtr.Zero)
+						{
+							m_retvalBuffer = Marshal.AllocHGlobal(32768);
+							m_retvalBufferSize = 32768;
+						}
+
+						if (m_retvalBufferSize < retvalData.Length)
+						{
+							m_retvalBuffer = Marshal.ReAllocHGlobal(m_retvalBuffer, new IntPtr(retvalData.Length));
+							m_retvalBufferSize = retvalData.Length;
+						}
+
+						Marshal.Copy(retvalData, 0, m_retvalBuffer, retvalData.Length);
+
+						retvalSerialized = m_retvalBuffer;
+						retvalSize = retvalData.Length;
 					}
 					else
 					{
-						retval = IntPtr.Zero;
+						retvalSerialized = IntPtr.Zero;
+						retvalSize = 0;
 					}
 				}
 				catch (Exception e)
 				{
-					retval = IntPtr.Zero;
+					retvalSerialized = IntPtr.Zero;
+					retvalSize = 0;
 
 					PrintError($"reference call", e.InnerException ?? e);
 				}

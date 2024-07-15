@@ -12,8 +12,6 @@
 #include <fxScripting.h>
 #include <Error.h>
 
-#include "fxScriptBuffer.h"
-
 #ifndef IS_FXSERVER
 #include "DeferredInitializer.h"
 static std::shared_ptr<DeferredInitializer> g_monoInitializer;
@@ -88,40 +86,6 @@ static void GI_PrintLogCall(MonoString* channel, MonoString* str)
 static uint64_t GI_GetMemoryUsage()
 {
 	return fx::mono::MonoComponentHostShared::GetMemoryUsage();
-}
-
-static MonoArray* GI_InvokeFunctionReference(void* scriptHost, MonoString* referenceId, MonoArray* argsSerialized)
-{
-	auto referenceString = mono_string_to_utf8(referenceId);
-
-	char* argsStart = mono_array_addr(argsSerialized, char, 0);
-	uintptr_t argsLength = mono_array_length(argsSerialized);
-
-	fx::OMPtr<IScriptBuffer> retval;
-	result_t hr = reinterpret_cast<IScriptHost*>(scriptHost)->InvokeFunctionReference(const_cast<char*>(referenceString), argsStart, argsLength, retval.GetAddressOf());
-	size_t size = (retval.GetRef()) ? retval->GetLength() : 0;
-
-	MonoArray* arr = mono_array_new(mono_domain_get(), mono_get_byte_class(), size);
-
-	if (size)
-	{
-		memcpy(mono_array_addr_with_size(arr, 1, 0), retval->GetBytes(), size);
-	}
-
-	mono_free(referenceString);
-
-	return arr;
-}
-
-static void* GI_MakeMemoryBuffer(MonoArray* array)
-{
-	char* dataStart = mono_array_addr(array, char, 0);
-	uintptr_t dataLength = mono_array_length(array);
-
-	auto buffer = fx::MemoryScriptBuffer::Make(dataStart, dataLength);
-	buffer->AddRef(); // so OMPtr won't destroy this when we leave scope
-
-	return buffer.GetRef();
 }
 
 static bool GI_SnapshotStackBoundary(MonoArray** blob)
@@ -318,8 +282,6 @@ static void InitMono()
 	mono_add_internal_call("CitizenFX.Core.GameInterface::GetMemoryUsage", reinterpret_cast<void*>(GI_GetMemoryUsage));
 	mono_add_internal_call("CitizenFX.Core.GameInterface::WalkStackBoundary", reinterpret_cast<void*>(GI_WalkStackBoundary));
 	mono_add_internal_call("CitizenFX.Core.GameInterface::SnapshotStackBoundary", reinterpret_cast<void*>(GI_SnapshotStackBoundary));
-	mono_add_internal_call("CitizenFX.Core.GameInterface::InvokeFunctionReference", reinterpret_cast<void*>(GI_InvokeFunctionReference));
-	mono_add_internal_call("CitizenFX.Core.GameInterface::MakeMemoryBuffer", reinterpret_cast<void*>(GI_MakeMemoryBuffer));
 
 	std::string platformPath = MakeRelativeNarrowPath("citizen/clr2/lib/mono/4.5/CitizenFX.Core.dll");
 

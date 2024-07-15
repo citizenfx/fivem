@@ -9,6 +9,7 @@ namespace CitizenFX.Core.Native
 		private static UIntPtr s_0xd233a168;
 		private static UIntPtr s_0x5fa79b0f;
 		private static UIntPtr s_0xd7664fd1;
+		private static UIntPtr s_0xe3551879;
 		private static UIntPtr s_0x1e86f206;
 		private static UIntPtr s_0xf4e2079d;
 		private static UIntPtr s_0x637f4c75;
@@ -117,6 +118,19 @@ namespace CitizenFX.Core.Native
 				ulong* __data = stackalloc ulong[] { (ulong)p_referenceIdentity };
 				ScriptContext.InvokeNative(ref s_0xf4e2079d, 0xf4e2079d, __data, 1); // DUPLICATE_FUNCTION_REFERENCE
 				return (byte[])*(OutString*)__data;
+			}
+		}
+
+		[SecuritySafeCritical]
+		internal static unsafe object[] InvokeFunctionReference(CString referenceIdentity, InPacket argsSerialized)
+		{
+			fixed (void* p_referenceIdentity = referenceIdentity?.value, p_argsSerialized = argsSerialized.value)
+			{
+				ulong retLength;
+				ulong* __data = stackalloc ulong[] { (ulong)p_referenceIdentity, (ulong)p_argsSerialized, unchecked((ulong)argsSerialized.value?.LongLength), (ulong)&retLength };
+				ScriptContext.InvokeNative(ref s_0xe3551879, 0xe3551879, __data, 4); // INVOKE_FUNCTION_REFERENCE
+
+				return MsgPackDeserializer.DeserializeArray(*(byte**)__data, (long)retLength);
 			}
 		}
 

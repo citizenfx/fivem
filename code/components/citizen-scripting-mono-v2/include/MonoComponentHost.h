@@ -118,8 +118,6 @@ private:
 private:
 	static MonoArray* CanonicalizeRef(const MonoScriptRuntime* runTime, int referenceId);
 
-	static MonoArray* InvokeFunctionReference(const MonoScriptRuntime* runTime, MonoString* referenceId, MonoArray* argsSerialized);
-
 private:
 	static void InitializeMethods(MonoImage* image);
 };
@@ -176,10 +174,5 @@ inline void MonoComponentHost::AddAssemblyOverride(std::string_view assemblyName
 inline MonoArray* MonoComponentHost::CanonicalizeRef(const MonoScriptRuntime* runTime, int referenceId)
 {
 	return runTime->CanonicalizeRef(referenceId);
-}
-
-inline MonoArray* MonoComponentHost::InvokeFunctionReference(const MonoScriptRuntime* runTime, MonoString* referenceId, MonoArray* argsSerialized)
-{
-	return runTime->InvokeFunctionReference(referenceId, argsSerialized);
 }
 }
