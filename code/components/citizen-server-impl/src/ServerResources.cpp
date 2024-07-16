@@ -360,32 +360,20 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::ClientRegistry>()->OnClientCreated.Connect([rac](const fx::ClientSharedPtr& client)
 		{
-			fx::ClientWeakPtr weakClient{ client };
-			client->OnAssignNetId.Connect([rac, weakClient](const uint32_t previousNetId)
+			//TODO: improve client to use smart pointer and not unsafe ptr
+			fx::Client* unsafeClient = client.get();
+			unsafeClient->OnAssignNetId.Connect([rac, unsafeClient](const uint32_t previousNetId)
 			{
-				auto client = weakClient.lock();
-				if (!client)
+				if (!unsafeClient->HasConnected())
 				{
 					return;
 				}
 
-				if (!client->HasConnected())
+				rac->RegisterTarget(unsafeClient->GetNetId());
+	
+				unsafeClient->OnDrop.Connect([rac, unsafeClient]()
 				{
-					return;
-				}
-
-				rac->RegisterTarget(client->GetNetId());
-
-				fx::ClientWeakPtr weakClientForOnDrop{ client };
-				client->OnDrop.Connect([rac, weakClientForOnDrop]()
-				{
-					auto client = weakClientForOnDrop.lock();
-					if (!client)
-					{
-						return;
-					}
-
-					rac->UnregisterTarget(client->GetNetId());
+					rac->UnregisterTarget(unsafeClient->GetNetId());
 				});
 			});
 		});
