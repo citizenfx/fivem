@@ -5,7 +5,7 @@
 namespace fx
 {
 	Client::Client(const std::string& guid)
-	: m_guid(guid), m_netId(0xFFFF), m_previousNetId(0xFFFF), m_netBase(-1), m_lastSeen(0), m_hasRouted(false), m_slotId(-1), m_dropping(false), 
+	: m_guid(guid), m_netId(0xFFFF), m_netBase(-1), m_lastSeen(0), m_hasRouted(false), m_slotId(-1), m_dropping(false), 
 	  m_firstSeen(msec()), m_clientNetworkMetricsSendCallback(nullptr), m_clientNetworkMetricsRecvCallback(nullptr)
 	{
 
@@ -21,10 +21,10 @@ namespace fx
 
 	void Client::SetNetId(uint32_t netId)
 	{
-		m_previousNetId = m_netId;
+		const uint32_t previousNetId = m_netId;
 		m_netId = netId;
 
-		OnAssignNetId(m_previousNetId);
+		OnAssignNetId(previousNetId);
 
 		UpdateCachedPrincipalValues();
 	}

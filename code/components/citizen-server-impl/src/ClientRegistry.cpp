@@ -80,17 +80,11 @@ namespace fx
 		
 		client->OnAssignNetId.Connect([this, weakClient](const uint32_t previousNetId)
 		{
-			fx::ClientSharedPtr client = weakClient.lock();
-			if (client)
+			m_clientsByNetId[weakClient.lock()->GetNetId()] = weakClient;
+			if (previousNetId != 0xFFFF)
 			{
-				m_clientsByNetId[client->GetNetId()] = weakClient;
+				m_clientsByNetId[previousNetId].reset();
 			}
-
-			// todo: cleanup the old net id directly after playerJoining returns the correct id
-			//if (previousNetId != 0xFFFF)
-			//{
-			//	m_clientsByNetId[previousNetId].reset();
-			//}
 		});
 
 		client->OnAssignPeer.Connect([this, weakClient]()
@@ -199,11 +193,10 @@ namespace fx
 		 *
 		 * @param source - The player's NetID (a number in Lua/JS), **not a real argument, use [FromSource] or source**.
 		 * @param oldID - The original TempID for the connecting player, as specified during playerConnecting.
-		 * @param newID - The new net id for the connecting player.
 		 #/
 		declare function playerJoining(source: string, oldID: string): void;
 		*/
-		eventManager->TriggerEvent2("playerJoining", { fmt::sprintf("internal-net:%d", client->GetNetId()) }, fmt::sprintf("%d", oldNetID), fmt::sprintf("%d",  client->GetNetId()));
+		eventManager->TriggerEvent2("playerJoining", { fmt::sprintf("internal-net:%d", client->GetNetId()) }, fmt::sprintf("%d", oldNetID));
 
 		// user code may lead to a drop event being sent here
 		if (client->IsDropping())

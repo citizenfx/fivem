@@ -173,6 +173,7 @@ namespace CitizenFX.Core
 		Comet4 = 1561920505u,
 		Comet5 = 661493923u,
 		Comet6 = 2568944644u,
+		Comet7 = 1141395928u,
 		Conada = 3817135397u,
 		Conada2 = 2635962482u,
 		Contender = 683047626u,
