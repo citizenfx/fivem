@@ -1588,6 +1588,14 @@
                   <PoolName>CEvent</PoolName>
                   <PoolSize value="1000"/>
                 </Item>
+				<Item>
+					<PoolName>netGameEvent</PoolName>
+					<PoolSize value="511"/>
+				</Item>
+				<Item>
+					<PoolName>atDNetEventNode</PoolName>
+					<PoolSize value="511"/>
+				</Item>
                 <Item>
                   <PoolName>CMoveObject</PoolName>
                   <PoolSize value="450"/>
