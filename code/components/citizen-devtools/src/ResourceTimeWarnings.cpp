@@ -9,13 +9,7 @@
 
 #ifndef IS_FXSERVER
 #include <Pool.h>
-#include <Streaming.h>
 #endif
-
-#include <iomanip>
-#include <sstream>
-#include <ctime>
-#include <chrono>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -48,34 +42,6 @@ void BytesToHumanReadable(std::string& humanSize, int totalBytes)
 		humanSize = fmt::sprintf("%.2f KiB", totalBytes / 1024.0);
 	}
 }
-
-#ifndef IS_FXSERVER
-std::string PrettyFormatFileTime(uint64_t filetime)
-{
-	// Convert uint64_t to FILETIME
-	FILETIME ft;
-	ft.dwLowDateTime = static_cast<DWORD>(filetime & 0xFFFFFFFF);
-	ft.dwHighDateTime = static_cast<DWORD>(filetime >> 32);
-
-	// Convert FILETIME to SYSTEMTIME
-	SYSTEMTIME st;
-	if (!FileTimeToSystemTime(&ft, &st))
-	{
-		return "Invalid FILETIME";
-	}
-
-	// Create a string stream to format the date and time
-	std::stringstream ss;
-	ss << std::setfill('0') << std::setw(2) << st.wDay << "."
-	   << std::setfill('0') << std::setw(2) << st.wMonth << "."
-	   << std::setw(4) << st.wYear << " "
-	   << std::setfill('0') << std::setw(2) << st.wHour << ":"
-	   << std::setfill('0') << std::setw(2) << st.wMinute << ":"
-	   << std::setfill('0') << std::setw(2) << st.wSecond;
-
-	return ss.str();
-}
-#endif
 
 inline std::chrono::microseconds usec()
 {
@@ -428,7 +394,6 @@ static InitFunction initFunction([]()
 
 	static bool taskMgrEnabled;
 	static bool m_enabledPools;
-	static bool m_enabledPgRawStreamerStats;
 
 	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive | ConVar_UserPref, false, &taskMgrEnabled);
 
@@ -954,75 +919,6 @@ static InitFunction initFunction([]()
 				trace("--- Pools memory usage report end ---\n");
 			}
 		}
-		ImGui::End();
-	});
-
-
-	static ConVar<bool> pgStatsVar("net_pgStats", ConVar_Archive | ConVar_UserPref, false, &m_enabledPgRawStreamerStats);
-
-	ConHost::OnShouldDrawGui.Connect([this](bool* should)
-	{
-		*should = *should || m_enabledPgRawStreamerStats;
-	});
-
-	ConHost::OnDrawGui.Connect([this]()
-	{
-		if (!m_enabledPgRawStreamerStats)
-		{
-			return;
-		}
-
-		if (ImGui::Begin("Loaded pgRawStreamer assets", &m_enabledPgRawStreamerStats))
-		{
-			static char search[100] = "";
-			ImGui::InputText("Search", search, IM_ARRAYSIZE(search));
-			auto assets = rage::GetPgRawStreamerEntries();
-			ImGui::LabelText("Assets total", "%d/65535", assets.GetCount());
-
-			ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable;
-			if (ImGui::BeginTable("Assets", 2, tableFlags))
-			{
-				ImGui::TableSetupColumn("Asset path", ImGuiTableColumnFlags_WidthStretch);
-				ImGui::TableSetupColumn("Add timestamp", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
-				ImGui::TableHeadersRow();
-
-				if (assets.GetCount() > 1)
-				{
-					ImGuiListClipper clipper;
-					// -1 because 1st item in Entries always dummy in GTAV and RDR3
-					clipper.Begin(assets.GetCount() - 1);
-
-					while (clipper.Step())
-					{
-						for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
-						{
-							int assetsIndex = row + 1;
-							if (!assets[assetsIndex].name)
-							{
-								continue;
-							}
-
-							const std::string name = assets[assetsIndex].name;
-							if (!name._Starts_with(search))
-							{
-								continue;
-							}
-
-							const std::string datetime = PrettyFormatFileTime(assets[assetsIndex].timestamp);
-
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGui::Text("%s", assets[assetsIndex].name);
-							ImGui::TableNextColumn();
-							ImGui::Text("%s", datetime.c_str());
-						}
-					}
-				}
-
-				ImGui::EndTable();
-			}
-		}
-
 		ImGui::End();
 	});
 #endif

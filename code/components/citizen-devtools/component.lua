@@ -1,7 +1,3 @@
-includedirs {
-	'../gta-streaming-five/include/',
-}
-
 return function()
 	filter {}
 
@@ -14,7 +10,7 @@ return function()
 	end
 
 	if _OPTIONS['game'] == 'rdr3' then
-		add_dependencies { 'net', 'gta:core:rdr3', 'gta:streaming:rdr3' }
+		add_dependencies { 'net', 'gta:core:rdr3' }
 	end
 
 	if _OPTIONS['game'] == 'ny' then
