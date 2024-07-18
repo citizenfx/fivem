@@ -238,7 +238,7 @@ namespace fx
 		}
 
 		// trigger connection handlers
-		OnConnectedClient(client);
+		OnConnectedClient(client.get());
 	}
 
 	fx::ClientSharedPtr ClientRegistry::GetHost()

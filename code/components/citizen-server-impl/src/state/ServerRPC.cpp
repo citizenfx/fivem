@@ -72,14 +72,9 @@ static InitFunction initFunction([]()
 
 		clientRegistry->OnClientCreated.Connect([](const fx::ClientSharedPtr& client)
 		{
-			fx::ClientWeakPtr weakClient{ client };
-			client->OnCreatePed.Connect([weakClient]()
+			fx::Client* unsafeClient = client.get();
+			unsafeClient->OnCreatePed.Connect([unsafeClient]()
 			{
-				auto unsafeClient = weakClient.lock();
-				if (!unsafeClient)
-				{
-					return;
-				}
 				for (auto& entry : g_replayList)
 				{
 					if (!entry.second.empty())
@@ -93,7 +88,7 @@ static InitFunction initFunction([]()
 			});
 		});
 
-		gameState->OnEntityCreate.Connect([](const fx::sync::SyncEntityPtr& entity)
+		gameState->OnEntityCreate.Connect([](fx::sync::SyncEntityPtr entity)
 		{
 			auto creationToken = entity->creationToken;
 			auto objectId = entity->handle;

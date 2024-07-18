@@ -89,7 +89,7 @@ namespace fx
 
 		inline void RemoveClient(const fx::ClientSharedPtr& client)
 		{
-			if (client->SetDropping())
+			if (!client->IsDropping())
 			{
 				// some code expects OnDrop to follow any OnClientCreated
 				client->OnDrop();
@@ -275,7 +275,7 @@ namespace fx
 
 		fwEvent<const fx::ClientSharedPtr&> OnClientCreated;
 
-		fwEvent<const fx::ClientSharedPtr&> OnConnectedClient;
+		fwEvent<Client*> OnConnectedClient;
 
 		uint32_t GetAmountOfConnectedClients() { return m_amountConnectedClients; }
 
