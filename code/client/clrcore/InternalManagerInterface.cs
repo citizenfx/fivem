@@ -22,7 +22,7 @@ namespace CitizenFX.Core
 
 		void TriggerEvent(string eventName, byte[] argsSerialized, string sourceString);
 
-		void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retvalSerialized, out int retvalSize);
+		void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retval);
 
 		int DuplicateRef(int refIndex);
 
