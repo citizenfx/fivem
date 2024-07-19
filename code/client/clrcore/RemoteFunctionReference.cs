@@ -82,7 +82,10 @@ namespace CitizenFX.Core
 
 			try
 			{
-				return GameInterface.InvokeFunctionReference(m_reference, argsSerialized);
+				IntPtr scriptBuffer = GameInterface.MakeScriptBuffer();
+				IntPtr scriptBufferReturnAddress = GameInterface.GetScriptBufferAddress(scriptBuffer);
+				InternalManager.ScriptHost.InvokeFunctionReference(m_reference, argsSerialized, argsSerialized.Length, scriptBufferReturnAddress);
+				return GameInterface.ReadScriptBuffer(scriptBuffer);
 			}
 			finally
 			{
