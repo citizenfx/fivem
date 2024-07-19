@@ -1,9 +1,10 @@
 #pragma once
 
 #include <NetworkPlayerMgr.h>
+#include <net/NetObjEntityType.h>
 #include <CrossBuildRuntime.h>
 
-enum class NetObjEntityType;
+using NetObjEntityType = fx::sync::NetObjEntityType;
 
 inline int MapNetObjectMethod(int offset)
 {

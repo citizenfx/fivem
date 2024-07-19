@@ -1,8 +1,9 @@
 #pragma once
 
 #include <NetworkPlayerMgr.h>
+#include <net/NetObjEntityType.h>
 
-enum class NetObjEntityType;
+using NetObjEntityType = fx::sync::NetObjEntityType;
 
 template<int Offset>
 inline int MapNetObjectMethod()

@@ -30,6 +30,8 @@
 
 #include <CrossBuildRuntime.h>
 
+#include <CustomRtti.h>
+
 #if __has_include(<StatusText.h>)
 #include <StatusText.h>
 #include <nutsnbolts.h>
@@ -1568,11 +1570,7 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 
 	if (mounter)
 	{
-#ifdef GTA_FIVE
-		std::string className = (xbr::IsGameBuildOrGreater<2802>()) ? fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)mounter)) : typeid(*mounter).name();
-#else
-		std::string className = fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)mounter));
-#endif
+		std::string className = SearchTypeName(mounter);
 
 		CDataFileMgr::DataFile entry;
 		memset(&entry, 0, sizeof(entry));
