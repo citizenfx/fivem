@@ -637,6 +637,7 @@ namespace CitizenFX.Core
 			private FastMethod<Action<IntPtr, IntPtr, int>> submitBoundaryStartMethod;
 			private FastMethod<Action<IntPtr, IntPtr, int>> submitBoundaryEndMethod;
 			private FastMethod<Func<IntPtr, IntPtr, int>> getLastErrorTextMethod;
+			private FastMethod<Func<IntPtr, IntPtr, IntPtr, int, IntPtr, int>> invokeFunctionReference;
 
 			[SecuritySafeCritical]
 			public DirectScriptHost(IntPtr hostPtr)
@@ -651,6 +652,7 @@ namespace CitizenFX.Core
 				submitBoundaryStartMethod = new FastMethod<Action<IntPtr, IntPtr, int>>(nameof(submitBoundaryStartMethod), hostPtr, 5);
 				submitBoundaryEndMethod = new FastMethod<Action<IntPtr, IntPtr, int>>(nameof(submitBoundaryEndMethod), hostPtr, 6);
 				getLastErrorTextMethod = new FastMethod<Func<IntPtr, IntPtr, int>>(nameof(getLastErrorTextMethod), hostPtr, 7);
+				invokeFunctionReference = new FastMethod<Func<IntPtr, IntPtr, IntPtr, int, IntPtr, int>>(nameof(invokeFunctionReference), hostPtr, 8);
 			}
 
 			[SecuritySafeCritical]
@@ -806,6 +808,19 @@ namespace CitizenFX.Core
 				}
 
 				return retVal;
+			}
+
+			public unsafe int InvokeFunctionReference(string refId, byte[] argsSerialized, int argsSize, IntPtr ret)
+			{
+				var refIdBytes = Encoding.UTF8.GetBytes(refId);
+
+				fixed (byte* refIdBytesFixed = refIdBytes)
+				{
+					fixed (byte* argsSerializedStart = argsSerialized)
+					{
+						return invokeFunctionReference.method(hostPtr, new IntPtr(refIdBytesFixed), new IntPtr(argsSerializedStart), argsSize, ret);
+					}
+				}
 			}
 		}
 

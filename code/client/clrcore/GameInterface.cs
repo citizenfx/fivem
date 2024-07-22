@@ -26,10 +26,18 @@ namespace CitizenFX.Core
 		[SecurityCritical]
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		public static extern bool WalkStackBoundary(string resourceName, byte[] start, byte[] end, out byte[] blob);
-
+		
 		[SecurityCritical]
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		public static extern byte[] InvokeFunctionReference(string refId, byte[] argsSerialized);
+		public static extern IntPtr MakeScriptBuffer();
+		
+		[SecurityCritical]
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		public static extern IntPtr GetScriptBufferAddress(IntPtr scriptBuffer);
+		
+		[SecurityCritical]
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		public static extern byte[] ReadScriptBuffer(IntPtr scriptBuffer);
 
 		[SecurityCritical]
 		[MethodImpl(MethodImplOptions.InternalCall)]

@@ -410,6 +410,11 @@ namespace CitizenFX.Core
 				return m_realHost.GetLastErrorText();
 			}
 
+			public int InvokeFunctionReference(string refId, byte[] args, int argsSize, IntPtr ret)
+			{
+				return m_realHost.InvokeFunctionReference(refId, args, argsSize, ret);
+			}
+
 			[SecurityCritical]
 			public override object InitializeLifetimeService()
 			{
