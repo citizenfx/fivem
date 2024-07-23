@@ -1,25 +1,9 @@
 #pragma once
 
 #include <CrossBuildRuntime.h>
+#include <net/NetObjEntityType.h>
 
-enum class NetObjEntityType
-{
-	Automobile = 0,
-	Bike = 1,
-	Boat = 2,
-	Door = 3,
-	Heli = 4,
-	Object = 5,
-	Ped = 6,
-	Pickup = 7,
-	PickupPlacement = 8,
-	Plane = 9,
-	Submarine = 10,
-	Player = 11,
-	Trailer = 12,
-	Train = 13,
-	Max = 14
-};
+using NetObjEntityType = fx::sync::NetObjEntityType;
 
 inline int MapNetSyncTreeMethod(int offset)
 {
