@@ -1,12 +1,8 @@
 #pragma once
 
+#include "ComponentExport.h"
+
 #include <string>
 
 
-#ifdef COMPILING_GTA_CORE_FIVE
-#define GTA_CORE_EXPORT DLL_EXPORT
-#else
-#define GTA_CORE_EXPORT DLL_IMPORT
-#endif
-
-std::string GTA_CORE_EXPORT SearchTypeName(void* ptr, bool debugFormat = false);
+std::string COMPONENT_EXPORT(GTA_CORE_FIVE) SearchTypeName(void* ptr, bool debugFormat = false);
