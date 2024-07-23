@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include <atArray.h>
 #include <atPool.h>
 
@@ -452,7 +454,7 @@ public:
 			boost::typeindex::ctti_type_index::type_id<T>().raw_name()
 		};
 
-		constexpr auto typeHash = HashString(typeName.substr(0, typeName.length() - boost::typeindex::detail::ctti_skip_size_at_end).substr(6));
+		constexpr auto typeHash = HashString(typeName.substr(0, typeName.length() - boost::typeindex::detail::skip().size_at_end).substr(6));
 		return this->IsOfType(typeHash);
 	}
 

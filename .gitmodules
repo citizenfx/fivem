@@ -445,3 +445,15 @@
 [submodule "vendor/boost-submodules/boost-tokenizer"]
 	path = vendor/boost-submodules/boost-tokenizer
 	url = https://github.com/boostorg/tokenizer
+[submodule "vendor/boost-submodules/boost-scope"]
+	path = vendor/boost-submodules/boost-scope
+	url = https://github.com/boostorg/scope.git
+[submodule "vendor/boost-submodules/boost-describe"]
+	path = vendor/boost-submodules/boost-describe
+	url = https://github.com/boostorg/describe.git
+[submodule "vendor/boost-submodules/boost-align"]
+	path = vendor/boost-submodules/boost-align
+	url = https://github.com/boostorg/align.git
+[submodule "vendor/boost-submodules/boost-static-string"]
+	path = vendor/boost-submodules/boost-static-string
+	url = https://github.com/boostorg/static_string.git
