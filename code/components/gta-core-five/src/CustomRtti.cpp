@@ -14,6 +14,15 @@
 
 namespace {
 
+static std::unordered_map<void*, std::string> g_vtableToTypeNameMapping;
+static uint8_t g_syncTreeDataNodesOffset;
+
+static hook::cdecl_stub<void*(void*, uint16_t)> getSyncTreeForType([]()
+{
+	return hook::get_pattern("0F B7 CA 83 F9 ? 7F");
+});
+
+
 uint32_t ReadHashUnsafe(void* vtableEntryPtr)
 {
 	void* functionPtr = *(void**)vtableEntryPtr;
@@ -69,61 +78,6 @@ std::string GetNameFromHash(void* ptr, bool debugFormat)
 	return "";
 }
 
-std::unordered_map<void*, std::string> CreateVtableToTypeNameMapping()
-{
-	return {
-		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8B CF 48 89 07 8B 43"), 3, 7),
-			"CGameScriptId"
-		},
-		{
-			hook::get_address<void*>((intptr_t)hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 9F ? ? ? ? 48 8B CB E8 ? ? ? ? 48 8B 74 2")) + 0x8B, 3, 7),
-			"CGameScriptObjInfo"
-		},
-		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 89 51 ? 48 89 51 ? 48 89 01 48 89 51 ? 48 89 51"), 3, 7),
-			"netSyncParentNode"
-		},
-		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 4B ? 44 8D 42"), 3, 7),
-			"netSyncDataNode"
-		},
-		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 89 03 48 8D 9F ? ? ? ? 48 8B CB E8 ? ? ? ? 33 ED"), 3, 7),
-			"CProjectBaseSyncParentNode"
-		},
-		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8B D9 48 89 01 4C 89 59"), 3, 7),
-			"netSyncTree"
-		},
-		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 89 9F ? ? ? ? 48 89 07 48 89 AF"), 3, 7),
-			"CProjectSyncTree"
-		},
-		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 89 07 48 8B CB E8 ? ? ? ? 33 ED"), 3, 7),
-			"CPhysicalSyncTreeBase"
-		},
-		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 89 07 48 8B CB E8 ? ? ? ? 33 C9"), 3, 7),
-			"CDynamicEntitySyncTreeBase"
-		},
-		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 89 07 48 8B CB E8 ? ? ? ? 48 8D 35"), 3, 7),
-			"CEntitySyncTreeBase"
-		},
-		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 8B CB 48 89 07"), 3, 7),
-			"CProximityMigrateableSyncTreeBase"
-		},
-	};
-}
-
-static hook::cdecl_stub<void*(void*, uint16_t)> getSyncTreeForType([]()
-{
-	return hook::get_pattern("0F B7 CA 83 F9 ? 7F");
-});
-
 bool AddSyncTreeNodeInfo(std::unordered_map<void*, std::string>& mapping)
 {
 	if (getSyncTreeForType(nullptr, 0) == nullptr)
@@ -132,12 +86,10 @@ bool AddSyncTreeNodeInfo(std::unordered_map<void*, std::string>& mapping)
 		return false;
 	}
 
-	uint8_t syncTreeDataNodesOffset = *(uint8_t*)hook::get_pattern("48 8D 4B ? 33 D2 41 B8 ? ? ? ? E8 ? ? ? ? 48 8D 8B ? ? ? ? 33 D2 41 B8 ? ? ? ? E8 ? ? ? ? 48 8B C3", 3);
-
 	for (int i = 0; i < (int)fx::sync::NetObjEntityType::Max; i++)
 	{
 		uintptr_t synTree = (uintptr_t)getSyncTreeForType(nullptr, (uint16_t)i);
-		uintptr_t dataNodes = synTree + syncTreeDataNodesOffset;
+		uintptr_t dataNodes = synTree + g_syncTreeDataNodesOffset;
 
 		fx::sync::NetObjEntityType objType = (fx::sync::NetObjEntityType)i;
 		// See result of dumpSyncTree for earlier game builds or SyncTrees_Five.h file to confirm this mapping.
@@ -305,18 +257,17 @@ bool AddSyncTreeNodeInfo(std::unordered_map<void*, std::string>& mapping)
 
 std::string GetNameFromVtableMapping(void* ptr, bool debugFormat)
 {
-	static std::unordered_map<void*, std::string> vtableToTypeName = CreateVtableToTypeNameMapping();
 	static bool syncTreeNodeInfoInitialized = false;
 
 	if (!syncTreeNodeInfoInitialized)
 	{
-		syncTreeNodeInfoInitialized = AddSyncTreeNodeInfo(vtableToTypeName);
+		syncTreeNodeInfoInitialized = AddSyncTreeNodeInfo(g_vtableToTypeNameMapping);
 	}
 	
 	void* vtablePtr = *(void**)ptr;
-	if (vtableToTypeName.find(vtablePtr) != vtableToTypeName.end())
+	if (g_vtableToTypeNameMapping.find(vtablePtr) != g_vtableToTypeNameMapping.end())
 	{
-		std::string typeName = vtableToTypeName[vtablePtr];
+		std::string typeName = g_vtableToTypeNameMapping[vtablePtr];
 		if (debugFormat)
 		{
 			typeName = "class " + typeName;
@@ -383,3 +334,55 @@ std::string SearchTypeName(void* ptr, bool debugFormat)
 	return GetVtableAddress(ptr, debugFormat);
 #endif
 }
+
+static HookFunction hookFunction([] ()
+{
+	g_syncTreeDataNodesOffset = *(uint8_t*)hook::get_pattern("48 8D 4B ? 33 D2 41 B8 ? ? ? ? E8 ? ? ? ? 48 8D 8B ? ? ? ? 33 D2 41 B8 ? ? ? ? E8 ? ? ? ? 48 8B C3", 3);
+
+	g_vtableToTypeNameMapping = {
+		{
+			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8B CF 48 89 07 8B 43"), 3, 7),
+			"CGameScriptId"
+		},
+		{
+			hook::get_address<void*>((intptr_t)hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 9F ? ? ? ? 48 8B CB E8 ? ? ? ? 48 8B 74 2")) + 0x8B, 3, 7),
+			"CGameScriptObjInfo"
+		},
+		{
+			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 89 51 ? 48 89 51 ? 48 89 01 48 89 51 ? 48 89 51"), 3, 7),
+			"netSyncParentNode"
+		},
+		{
+			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 4B ? 44 8D 42"), 3, 7),
+			"netSyncDataNode"
+		},
+		{
+			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 89 03 48 8D 9F ? ? ? ? 48 8B CB E8 ? ? ? ? 33 ED"), 3, 7),
+			"CProjectBaseSyncParentNode"
+		},
+		{
+			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8B D9 48 89 01 4C 89 59"), 3, 7),
+			"netSyncTree"
+		},
+		{
+			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 89 9F ? ? ? ? 48 89 07 48 89 AF"), 3, 7),
+			"CProjectSyncTree"
+		},
+		{
+			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 89 07 48 8B CB E8 ? ? ? ? 33 ED"), 3, 7),
+			"CPhysicalSyncTreeBase"
+		},
+		{
+			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 89 07 48 8B CB E8 ? ? ? ? 33 C9"), 3, 7),
+			"CDynamicEntitySyncTreeBase"
+		},
+		{
+			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 89 07 48 8B CB E8 ? ? ? ? 48 8D 35"), 3, 7),
+			"CEntitySyncTreeBase"
+		},
+		{
+			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 8B CB 48 89 07"), 3, 7),
+			"CProximityMigrateableSyncTreeBase"
+		},
+	};
+});
