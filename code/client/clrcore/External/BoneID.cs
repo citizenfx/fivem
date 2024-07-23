@@ -47,7 +47,7 @@ namespace CitizenFX.Core
 		SKEL_L_Finger32 = 64065,
 		SKEL_L_Finger40 = 26614,
 		SKEL_L_Finger41 = 4153,
-		SKEL_L_Finger42 = 64081,
+		SKEL_L_Finger42 = 4154,
 		PH_L_Hand = 60309,
 		IK_L_Hand = 36029,
 		RB_L_ForeArmRoll = 61007,
