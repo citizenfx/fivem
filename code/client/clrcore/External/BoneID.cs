@@ -41,7 +41,7 @@ namespace CitizenFX.Core
 		SKEL_L_Finger12 = 4170,
 		SKEL_L_Finger20 = 26612,
 		SKEL_L_Finger21 = 4185,
-		SKEL_L_Finger22 = 64113,
+		SKEL_L_Finger22 = 4186,
 		SKEL_L_Finger30 = 26613,
 		SKEL_L_Finger31 = 4137,
 		SKEL_L_Finger32 = 4138,
