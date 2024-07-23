@@ -1,3 +1,4 @@
+import { ButtonBar, Title, returnTrue } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
@@ -7,9 +8,6 @@ import { AnalyticsLinkButton } from 'cfx/common/parts/AnalyticsLinkButton/Analyt
 import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
 import { EventActionNames, ElementPlacements } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { ButtonBar } from 'cfx/ui/Button/ButtonBar';
-import { Title } from 'cfx/ui/Title/Title';
-import { returnTrue } from 'cfx/utils/functional';
 
 const enum IHomePageNavBarLinkIDs {
   FiveM,

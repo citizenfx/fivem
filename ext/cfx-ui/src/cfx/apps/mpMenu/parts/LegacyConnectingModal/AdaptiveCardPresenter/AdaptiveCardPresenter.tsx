@@ -1,3 +1,10 @@
+import {
+  InfoPanel,
+  Pad,
+  Scrollable,
+  Text,
+  noop,
+} from '@cfx-dev/ui-components';
 import * as AC from 'adaptivecards';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
@@ -5,11 +12,6 @@ import React from 'react';
 import { mpMenu } from 'cfx/apps/mpMenu/mpMenu';
 import { CurrentGameBrand } from 'cfx/base/gameRuntime';
 import { IUiService, useUiService } from 'cfx/common/services/ui/ui.service';
-import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Scrollable } from 'cfx/ui/Layout/Scrollable/Scrollable';
-import { Text } from 'cfx/ui/Text/Text';
-import { noop } from 'cfx/utils/functional';
 import { renderMarkdown } from 'cfx/utils/markdown';
 
 import s from './AdaptiveCardPresenter.module.scss';

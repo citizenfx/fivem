@@ -1,10 +1,10 @@
+import { Symbols } from '@cfx-dev/ui-components';
 import { injectable } from 'inversify';
 import { makeAutoObservable, observable } from 'mobx';
 
 import { GameName } from 'cfx/base/game';
 import { CurrentGameName, currentGameNameIs } from 'cfx/base/gameRuntime';
 import { defineService, ServicesContainer, useService } from 'cfx/base/servicesContainer';
-import { Symbols } from 'cfx/ui/Symbols';
 import { fetcher } from 'cfx/utils/fetcher';
 import { html2react } from 'cfx/utils/html2react';
 

@@ -1,3 +1,21 @@
+import {
+  CountryFlag,
+  Icon,
+  Icons,
+  InfoPanel,
+  Island,
+  Box,
+  Flex,
+  Pad,
+  Page,
+  Scrollable,
+  PremiumBadge,
+  Separator,
+  Text,
+  Linkify,
+  clsx,
+  identity,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { BsExclamationTriangleFill, BsLayersFill, BsLockFill, BsTagsFill } from 'react-icons/bs';
@@ -16,23 +34,7 @@ import { $L, useL10n } from 'cfx/common/services/intl/l10n';
 import { isServerOffline } from 'cfx/common/services/servers/helpers';
 import { IServersService } from 'cfx/common/services/servers/servers.service';
 import { IServerView, IServerViewPlayer, ServerViewDetailsLevel } from 'cfx/common/services/servers/types';
-import { CountryFlag } from 'cfx/ui/CountryFlag/CountryFlag';
-import { Icon } from 'cfx/ui/Icon/Icon';
-import { Icons } from 'cfx/ui/Icons';
-import { InfoPanel, InfoPanelType } from 'cfx/ui/InfoPanel/InfoPanel';
-import { Island } from 'cfx/ui/Island/Island';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Page } from 'cfx/ui/Layout/Page/Page';
-import { Scrollable } from 'cfx/ui/Layout/Scrollable/Scrollable';
-import { PremiumBadge } from 'cfx/ui/PremiumBadge/PremiumBadge';
-import { Separator } from 'cfx/ui/Separator/Separator';
-import { Text } from 'cfx/ui/Text/Text';
-import { clsx } from 'cfx/utils/clsx';
-import { identity } from 'cfx/utils/functional';
-import { useTimeoutFlag } from 'cfx/utils/hooks';
-import { Linkify } from 'cfx/utils/links';
+import { useServerCountryTitle, useTimeoutFlag } from 'cfx/utils/hooks';
 
 import { LongListSideSection } from './LongListSideSection/LongListSideSection';
 import { ServerActivityFeed } from '../../parts/Server/ServerActivityFeed/ServerActivityFeed';
@@ -87,6 +89,8 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
     ? { '--banner': `url(${server.bannerDetail})` }
     : {};
 
+  const countryTitle = useServerCountryTitle(server.locale, server.localeCountry);
+
   return (
     <Page showLoader={isCompleteServerLoading}>
       <Island grow className={rootClassName}>
@@ -109,7 +113,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                         )}
 
                         {!!server.localeCountry && (
-                          <CountryFlag country={server.localeCountry} locale={server.locale} />
+                          <CountryFlag country={server.localeCountry} title={countryTitle} />
                         )}
                       </Flex>
 
@@ -334,7 +338,7 @@ const Warning = observer(function Warning({
         </Text>
         );
 
-    const type: InfoPanelType = currentUserIsOwner
+    const type: React.ComponentProps<typeof InfoPanel>['type'] = currentUserIsOwner
       ? 'warning'
       : 'default';
 

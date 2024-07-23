@@ -1,3 +1,4 @@
+import { useInstance, noop, replaceRange } from '@cfx-dev/ui-components';
 import { inject, injectable } from 'inversify';
 import { makeAutoObservable, observable } from 'mobx';
 import React from 'react';
@@ -6,10 +7,7 @@ import { ICategorySearchTerm, ISearchTerm, searchTermToString } from 'cfx/base/s
 import { useServiceResolver } from 'cfx/base/servicesContainer';
 import { scopedLogger, ScopedLogger } from 'cfx/common/services/log/scopedLogger';
 import { IServersService } from 'cfx/common/services/servers/servers.service';
-import { noop } from 'cfx/utils/functional';
-import { useInstance } from 'cfx/utils/hooks';
 import { clone } from 'cfx/utils/object';
-import { replaceRange } from 'cfx/utils/string';
 
 export enum SuggestionState {
   NOT_AVAILABLE,
@@ -233,7 +231,12 @@ export class SearchInputController {
         ? `${searchTermToString(term)} `
         : searchTermToString(term);
 
-      this.onChange(replaceRange(this.value, replacement, term.offset, term.offset + term.source.length));
+      this.onChange(replaceRange(
+        this.value,
+        replacement,
+        term.offset,
+        term.offset + term.source.length,
+      ));
 
       return;
     }

@@ -1,22 +1,17 @@
+import { Interactive, ui, useOutlet, clsx } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
-
-import { Interactive } from 'cfx/ui/Interactive/Interactive';
-import { ui } from 'cfx/ui/ui';
-import { clsx } from 'cfx/utils/clsx';
-import { createOutlet } from 'cfx/utils/outlet';
 
 import { AcitivityItemMediaViewerState, IRect } from './AcitivityItemMediaViewer.state';
 
 import s from './AcitivityItemMediaViewer.module.scss';
-
-const Outlet = createOutlet();
 
 export const AcitivityItemMediaViewer = observer(function AcitivityItemMediaViewer() {
   const state = AcitivityItemMediaViewerState;
 
   const ref = React.useRef<HTMLImageElement | HTMLVideoElement | HTMLIFrameElement | null>(null);
   const [toRect, setToRect] = React.useState<IRect | null>(null);
+  const Outlet = useOutlet('acitivityItemMedia');
 
   React.useEffect(() => {
     if (!state.active) {

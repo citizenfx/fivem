@@ -1,3 +1,19 @@
+import {
+  ControlBox,
+  CountryFlag,
+  Icon,
+  Icons,
+  Indicator,
+  Interactive,
+  Box,
+  Flex,
+  FlexRestricter,
+  Loaf,
+  Text,
+  Title,
+  ui,
+  clsx,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -12,21 +28,8 @@ import {
   showServerPowers,
 } from 'cfx/common/services/servers/helpers';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { ControlBox } from 'cfx/ui/ControlBox/ControlBox';
-import { CountryFlag } from 'cfx/ui/CountryFlag/CountryFlag';
-import { Icon } from 'cfx/ui/Icon/Icon';
-import { Icons } from 'cfx/ui/Icons';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { Interactive } from 'cfx/ui/Interactive/Interactive';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { FlexRestricter } from 'cfx/ui/Layout/Flex/FlexRestricter';
-import { Loaf } from 'cfx/ui/Loaf/Loaf';
-import { Text } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
-import { ui } from 'cfx/ui/ui';
-import { clsx } from 'cfx/utils/clsx';
 import { preventDefault, stopPropagation } from 'cfx/utils/domEvents';
+import { useServerCountryTitle } from 'cfx/utils/hooks';
 
 import { ServerBoostButton } from '../ServerBoostButton/ServerBoostButton';
 import { ServerConnectButton } from '../ServerConnectButton/ServerConnectButton';
@@ -128,6 +131,8 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
     [server.bannerDetail],
   );
 
+  const countryTitle = useServerCountryTitle(server.locale, server.localeCountry);
+
   return (
     <Interactive style={rootStyle} className={rootClassName} onClick={preventDefault(stopPropagation(handleClick))}>
       <div className={s.banner} />
@@ -166,7 +171,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                     )}
 
                     {showCountryFlag && (
-                      <CountryFlag locale={server.locale} country={server.localeCountry} />
+                      <CountryFlag title={countryTitle} country={server.localeCountry} />
                     )}
                   </Flex>
                 )}
@@ -199,7 +204,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
             <Flex repell centered="axis">
               <Flex centered="axis">
                 {showCountryFlag && (
-                  <CountryFlag locale={server.locale} country={server.localeCountry} />
+                  <CountryFlag title={countryTitle} country={server.localeCountry} />
                 )}
 
                 <ControlBox size="small">

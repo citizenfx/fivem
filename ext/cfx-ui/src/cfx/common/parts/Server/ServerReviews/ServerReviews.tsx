@@ -1,4 +1,14 @@
 /* eslint-disable react/no-unescaped-entities */
+import {
+  Button,
+  Icons,
+  Indicator,
+  InfoPanel,
+  Flex,
+  Pad,
+  Text,
+  TextBlock,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import { MdOutlineReviews, MdReviews } from 'react-icons/md';
 
@@ -6,13 +16,6 @@ import { useService } from 'cfx/base/servicesContainer';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { IServersReviewsService } from 'cfx/common/services/servers/reviews/serversReviews.service';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { Button } from 'cfx/ui/Button/Button';
-import { Icons } from 'cfx/ui/Icons';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Text, TextBlock } from 'cfx/ui/Text/Text';
 
 import { ServerReview } from './ServerReview/ServerReview';
 

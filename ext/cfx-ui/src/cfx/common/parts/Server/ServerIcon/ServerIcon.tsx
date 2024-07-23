@@ -1,7 +1,7 @@
+import { Indicator, clsx } from '@cfx-dev/ui-components';
+
 import { getServerIconPlaceholder, getServerIconURL } from 'cfx/common/services/servers/icon';
 import { IServerView, ServerViewDetailsLevel } from 'cfx/common/services/servers/types';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { clsx } from 'cfx/utils/clsx';
 
 import s from './ServerIcon.module.scss';
 
@@ -25,10 +25,16 @@ export function ServerIcon(props: ServerIconProps) {
 
   const iconURL = useServerIconURL(server);
 
-  // eslint-disable-next-line react/destructuring-assignment
-  const rootClassName = clsx(s.root, className, s[`type-${type}`], isDetails && s[`size-${props.size || 'normal'}`], {
-    [s.glow]: glow,
-  });
+  const rootClassName = clsx(
+    s.root,
+    className,
+    s[`type-${type}`],
+    // eslint-disable-next-line react/destructuring-assignment
+    isDetails && s[`size-${props.size || 'normal'}`],
+    {
+      [s.glow]: glow,
+    },
+  );
 
   return (
     <div className={rootClassName}>

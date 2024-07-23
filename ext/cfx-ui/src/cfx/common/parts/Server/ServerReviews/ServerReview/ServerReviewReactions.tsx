@@ -1,15 +1,18 @@
+import {
+  Button,
+  ButtonBar,
+  Flex,
+  Text,
+  Title,
+  getValue,
+  ValueOrGetter,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import { BsEmojiLaughing, BsHandThumbsDown, BsHandThumbsUp } from 'react-icons/bs';
 
 import { $L, useL10nPlural } from 'cfx/common/services/intl/l10n';
 import { PluralKeys, PluralRule } from 'cfx/common/services/intl/types';
 import { IServerReviewItemReactions, ServerReviewReaction } from 'cfx/common/services/servers/reviews/types';
-import { Button } from 'cfx/ui/Button/Button';
-import { ButtonBar } from 'cfx/ui/Button/ButtonBar';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Text } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
-import { getValue, ValueOrGetter } from 'cfx/utils/getValue';
 
 const REACTIONS_SEQUENCE = [ServerReviewReaction.Helpful, ServerReviewReaction.Unhelpful, ServerReviewReaction.Funny];
 

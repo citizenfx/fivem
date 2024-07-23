@@ -1,3 +1,8 @@
+import {
+  BrandIcon,
+  Flex,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { FaDiscord, FaRoad, FaSteam, FaXbox } from 'react-icons/fa';
@@ -5,9 +10,6 @@ import { FaDiscord, FaRoad, FaSteam, FaXbox } from 'react-icons/fa';
 import { useService } from 'cfx/base/servicesContainer';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { ILinkedIdentitiesService } from 'cfx/common/services/linkedIdentities/linkedIdentities.service';
-import { BrandIcon } from 'cfx/ui/Icons';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Title } from 'cfx/ui/Title/Title';
 
 import { IConvarService, KnownConvars } from '../../services/convars/convars.service';
 import { ILinkedIdentity, LinkedIdentityProvider } from '../../services/linkedIdentities/types';

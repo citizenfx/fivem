@@ -1,6 +1,6 @@
+import { clsx } from '@cfx-dev/ui-components';
 import React from 'react';
 
-import { clsx } from 'cfx/utils/clsx';
 import { colorize } from 'cfx/utils/colorize';
 
 import s from './ServerTitle.module.scss';

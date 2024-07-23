@@ -1,12 +1,14 @@
+import {
+  Indicator,
+  Box,
+  Flex,
+  Pad,
+  Modal,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Modal } from 'cfx/ui/Modal/Modal';
 
 import { AdaptiveCardPresenter } from './AdaptiveCardPresenter/AdaptiveCardPresenter';
 import { BuildSwitchInfo } from './BuildSwitchInfo';

@@ -1,3 +1,15 @@
+import {
+  Icons,
+  Island,
+  Box,
+  Flex,
+  FlexRestricter,
+  Pad,
+  Page,
+  Scrollable,
+  VirtualScrollable,
+  Text,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
@@ -8,16 +20,6 @@ import { $L } from 'cfx/common/services/intl/l10n';
 import { IServersList, ServersListType } from 'cfx/common/services/servers/lists/types';
 import { useServersService } from 'cfx/common/services/servers/servers.service';
 import { useUiService } from 'cfx/common/services/ui/ui.service';
-import { Icons } from 'cfx/ui/Icons';
-import { Island } from 'cfx/ui/Island/Island';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { FlexRestricter } from 'cfx/ui/Layout/Flex/FlexRestricter';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Page } from 'cfx/ui/Layout/Page/Page';
-import { Scrollable } from 'cfx/ui/Layout/Scrollable/Scrollable';
-import { VirtualScrollable } from 'cfx/ui/Layout/Scrollable/VirtualScrollable';
-import { Text } from 'cfx/ui/Text/Text';
 import { useSavedScrollPositionForBackNav } from 'cfx/utils/hooks';
 
 import { EmptyListPlaceholder } from './EmptyListPlaceholder/EmptyListPlaceholder';

@@ -1,3 +1,20 @@
+import {
+  ControlBox,
+  CountryFlag,
+  Icon,
+  Icons,
+  Interactive,
+  Box,
+  Flex,
+  FlexRestricter,
+  Loaf,
+  PremiumBadge,
+  Text,
+  TextBlock,
+  Title,
+  ui,
+  clsx,
+} from '@cfx-dev/ui-components';
 import { makeAutoObservable } from 'mobx';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
@@ -23,20 +40,7 @@ import { $L } from 'cfx/common/services/intl/l10n';
 import { getServerDetailsLink } from 'cfx/common/services/servers/helpers';
 import { useServersService } from 'cfx/common/services/servers/servers.service';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { ControlBox } from 'cfx/ui/ControlBox/ControlBox';
-import { CountryFlag } from 'cfx/ui/CountryFlag/CountryFlag';
-import { Icon } from 'cfx/ui/Icon/Icon';
-import { Icons } from 'cfx/ui/Icons';
-import { Interactive } from 'cfx/ui/Interactive/Interactive';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { FlexRestricter } from 'cfx/ui/Layout/Flex/FlexRestricter';
-import { Loaf } from 'cfx/ui/Loaf/Loaf';
-import { PremiumBadge } from 'cfx/ui/PremiumBadge/PremiumBadge';
-import { Text, TextBlock } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
-import { ui } from 'cfx/ui/ui';
-import { clsx } from 'cfx/utils/clsx';
+import { useServerCountryTitle } from 'cfx/utils/hooks';
 import { clamp } from 'cfx/utils/math';
 
 import s from './TopServers.module.scss';
@@ -45,6 +49,8 @@ export const TopServersBlock = observer(function TopServersBlock() {
   const IntlService = useIntlService();
 
   const HomeScreenServerList = useService(HomeScreenServerListService);
+
+  const countryTitle = useServerCountryTitle(IntlService.systemLocale, IntlService.systemLocaleCountry);
 
   if (HomeScreenServerList.topRegionServers.length === 0) {
     return null;
@@ -59,7 +65,7 @@ export const TopServersBlock = observer(function TopServersBlock() {
               {$L('#Home_RegionTopServers')}
             </Text>
 
-            <CountryFlag country={IntlService.systemLocaleCountry} locale={IntlService.systemLocale} />
+            <CountryFlag country={IntlService.systemLocaleCountry} title={countryTitle} />
           </Flex>
 
           <Title fixedOn="left" title={$L('#Home_RegionTopServers_Explainer')}>

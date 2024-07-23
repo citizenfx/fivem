@@ -1,3 +1,4 @@
+import { Indicator, InfoPanel } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { ServerTileItem } from 'cfx/common/parts/Server/ServerTileItem/ServerTileItem';
@@ -6,8 +7,6 @@ import { ElementPlacements } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { useServersService } from 'cfx/common/services/servers/servers.service';
 import { useServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
 
 export function isCurrentBoostVisible() {
   // const ServersService = useServersService();

@@ -1,13 +1,15 @@
+import {
+  Avatar,
+  Button,
+  Flex,
+  Text,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { useAuthService } from 'cfx/apps/mpMenu/services/auth/auth.service';
 import { useConvarService, useStreamerMode } from 'cfx/apps/mpMenu/services/convars/convars.service';
 import { useAccountService } from 'cfx/common/services/account/account.service';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Avatar } from 'cfx/ui/Avatar/Avatar';
-import { Button } from 'cfx/ui/Button/Button';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Text } from 'cfx/ui/Text/Text';
 
 export const AccountHeader = observer(function AccountHeader() {
   const AuthService = useAuthService();

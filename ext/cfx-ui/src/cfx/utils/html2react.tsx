@@ -1,8 +1,7 @@
+import { identity } from '@cfx-dev/ui-components';
 import * as DomHandler from 'domhandler';
 import HRP, { Element, HTMLReactParserOptions } from 'html-react-parser';
 import React from 'react';
-
-import { identity } from './functional';
 
 const VERY_FAKE_DOMAIN = 'xn--80abujr4d.xn--90agu3en';
 

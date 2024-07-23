@@ -1,14 +1,16 @@
+import {
+  Icons,
+  Flex,
+  Text,
+  Title,
+  ui,
+  Linkify,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
 import { ElementPlacements } from 'cfx/common/services/analytics/types';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { Icons } from 'cfx/ui/Icons';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Text } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
-import { ui } from 'cfx/ui/ui';
-import { defaultLinkReplacerx, linkifyx } from 'cfx/utils/links';
 
 import { ServerCoreLoafs } from '../ServerCoreLoafs/ServerCoreLoafs';
 
@@ -25,7 +27,7 @@ export const ServerExtraDetails = observer(function ServerExtraDetails({
             {name}:
           </Text>
           <span>
-            <Linkify text={value} />
+            <Linkify text={value} replacer={linkReplacer} />
           </span>
         </Flex>,
       );
@@ -45,7 +47,7 @@ export const ServerExtraDetails = observer(function ServerExtraDetails({
   );
 });
 
-const linkReplacer: typeof defaultLinkReplacerx = (key, text, url) => (
+const linkReplacer: React.ComponentProps<typeof Linkify>['replacer'] = (key, text, url) => (
   <Title
     key={key}
     title={(
@@ -57,11 +59,3 @@ const linkReplacer: typeof defaultLinkReplacerx = (key, text, url) => (
     <a href={url}>{text.replace('http://', '').replace('https://', '')}</a>
   </Title>
 );
-
-function Linkify({
-  text,
-}: { text: string }) {
-  const linkified = React.useMemo(() => linkifyx(text, linkReplacer), [text]);
-
-  return linkified as any;
-}

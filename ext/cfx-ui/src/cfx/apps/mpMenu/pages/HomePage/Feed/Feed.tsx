@@ -1,15 +1,17 @@
+import {
+  Icons,
+  Island,
+  Flex,
+  Pad,
+  Scrollable,
+  Text,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
 import { IActivityItem } from 'cfx/common/services/activity/types';
 import { ActivityItem } from 'cfx/ui/ActivityItem/ActivityItem';
-import { Icons } from 'cfx/ui/Icons';
-import { Island } from 'cfx/ui/Island/Island';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Scrollable } from 'cfx/ui/Layout/Scrollable/Scrollable';
-import { Text } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
 
 export interface FeedProps {
   items: IActivityItem[];

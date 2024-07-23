@@ -1,19 +1,21 @@
+import {
+  Button,
+  Icons,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { playSfx, Sfx } from 'cfx/apps/mpMenu/utils/sfx';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { useServersService } from 'cfx/common/services/servers/servers.service';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { Button, ButtonProps } from 'cfx/ui/Button/Button';
-import { Icons } from 'cfx/ui/Icons';
-import { Title } from 'cfx/ui/Title/Title';
 import { stopPropagation } from 'cfx/utils/domEvents';
 
 export interface ServerFavoriteButtonProps {
   server: IServerView;
 
-  size?: ButtonProps['size'];
-  theme?: ButtonProps['theme'];
+  size?: React.ComponentProps<typeof Button>['size'];
+  theme?: React.ComponentProps<typeof Button>['theme'];
 }
 
 export const ServerFavoriteButton = observer(function ServerFavoriteButton(props: ServerFavoriteButtonProps) {

@@ -1,17 +1,19 @@
+import {
+  Button,
+  Icons,
+  Box,
+  Center,
+  Flex,
+  Pad,
+  Separator,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { useAuthService } from 'cfx/apps/mpMenu/services/auth/auth.service';
 import { AuthForm } from 'cfx/common/parts/AuthForm/AuthForm';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Button } from 'cfx/ui/Button/Button';
 import { Flyout } from 'cfx/ui/Flyout/Flyout';
-import { Icons } from 'cfx/ui/Icons';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Center } from 'cfx/ui/Layout/Center/Center';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Separator } from 'cfx/ui/Separator/Separator';
-import { Title } from 'cfx/ui/Title/Title';
 import { renderedIf } from 'cfx/utils/convenience';
 
 import s from './AuthFlyout.module.scss';

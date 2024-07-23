@@ -1,3 +1,16 @@
+import {
+  Button,
+  ControlBox,
+  Icon,
+  Indicator,
+  Island,
+  Box,
+  Flex,
+  Page,
+  Text,
+  Title,
+  ui,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { BsArrowLeft } from 'react-icons/bs';
@@ -14,18 +27,7 @@ import { ElementPlacements } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { IServersService, useServersService } from 'cfx/common/services/servers/servers.service';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { Button } from 'cfx/ui/Button/Button';
 import { LinkButton } from 'cfx/ui/Button/LinkButton';
-import { ControlBox } from 'cfx/ui/ControlBox/ControlBox';
-import { Icon } from 'cfx/ui/Icon/Icon';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { Island } from 'cfx/ui/Island/Island';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Page } from 'cfx/ui/Layout/Page/Page';
-import { Text } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
-import { ui } from 'cfx/ui/ui';
 import { useTimeoutFlag } from 'cfx/utils/hooks';
 
 import { usePageScrollSync } from './usePageScrollSync';

@@ -1,3 +1,14 @@
+import {
+  Button,
+  CountryFlag,
+  Icons,
+  Indicator,
+  Interactive,
+  Loaf,
+  PremiumBadge,
+  Title,
+  clsx,
+} from '@cfx-dev/ui-components';
 import formatDistance from 'date-fns/formatDistance';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
@@ -11,16 +22,8 @@ import { $L } from 'cfx/common/services/intl/l10n';
 import { getServerDetailsLink, isServerLiveLoading, showServerPremiumBadge } from 'cfx/common/services/servers/helpers';
 import { IServersService } from 'cfx/common/services/servers/servers.service';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { Button } from 'cfx/ui/Button/Button';
-import { CountryFlag } from 'cfx/ui/CountryFlag/CountryFlag';
-import { Icons } from 'cfx/ui/Icons';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { Interactive } from 'cfx/ui/Interactive/Interactive';
-import { Loaf } from 'cfx/ui/Loaf/Loaf';
-import { PremiumBadge } from 'cfx/ui/PremiumBadge/PremiumBadge';
-import { Title } from 'cfx/ui/Title/Title';
-import { clsx } from 'cfx/utils/clsx';
 import { stopPropagation } from 'cfx/utils/domEvents';
+import { useServerCountryTitle } from 'cfx/utils/hooks';
 
 import { ServerBoostButton } from '../ServerBoostButton/ServerBoostButton';
 import { ServerIcon } from '../ServerIcon/ServerIcon';
@@ -84,6 +87,8 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
 
     navigate(serverLink);
   }, [navigate, server, eventHandler, elementPlacement]);
+
+  const countryTitle = useServerCountryTitle(server?.locale, server?.localeCountry);
 
   if (!server) {
     return (
@@ -164,7 +169,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
             <PremiumBadge level={server.premium as any} />
           )}
 
-          <CountryFlag forceShow locale={server.locale} country={server.localeCountry} />
+          <CountryFlag forceShow title={countryTitle} country={server.localeCountry} />
         </div>
       )}
 

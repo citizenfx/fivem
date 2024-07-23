@@ -1,3 +1,4 @@
+import { BrandIcon, Title, clsx } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { useLocation } from 'react-router-dom';
@@ -7,9 +8,6 @@ import { useEventHandler } from 'cfx/common/services/analytics/analytics.service
 import { EventActionNames, ElementPlacements } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { LinkButton } from 'cfx/ui/Button/LinkButton';
-import { BrandIcon } from 'cfx/ui/Icons';
-import { Title } from 'cfx/ui/Title/Title';
-import { clsx } from 'cfx/utils/clsx';
 
 import s from './HomeButton.module.scss';
 
