@@ -587,7 +587,7 @@ namespace CitizenFX.Core
 		Rhino = 782665360u,
 		Riata = 2762269779u,
 		Riot = 3089277354u,
-		Riot = 22601952180u,
+		Riot2 = 2601952180u,
 		Ripley = 3448987385u,
 		Rogue = 3319621991u,
 		RRocket = 916547552u,
