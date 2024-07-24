@@ -11,12 +11,7 @@ namespace CitizenFX.Shared
 		internal Player()
 		{
 		}
-
-		public Player(ulong handle)
-		{
-			m_handle = handle.ToString();
-		}
-
+		
 		/// <summary>
 		/// Gets the handle of this player
 		/// </summary>
@@ -24,7 +19,7 @@ namespace CitizenFX.Shared
 #else
 	public abstract class Player : Core.Native.Input.Primitive
 	{
-		public Player(ulong handle) : base(handle)
+		internal Player(ulong handle) : base(handle)
 		{
 		}
 
@@ -33,8 +28,6 @@ namespace CitizenFX.Shared
 		/// </summary>
 		public int Handle => (int)m_nativeValue;
 #endif
-		public override string ToString() => $"{nameof(Player)}({Handle})";
-
 		/// <summary>
 		/// Gets the name of this player
 		/// </summary>

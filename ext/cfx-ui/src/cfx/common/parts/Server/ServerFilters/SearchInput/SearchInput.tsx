@@ -1,26 +1,30 @@
+import {
+  Indicator,
+  RichInput,
+  ui,
+  noop,
+  clsx,
+  useOutlet,
+  mergeRefs,
+  splitByIndices,
+  TITLE_OUTLET_ID,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
 import { ISearchTerm } from 'cfx/base/searchTermsParser';
 import { useL10n } from 'cfx/common/services/intl/l10n';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { InputSize } from 'cfx/ui/Input/Input';
-import { RichInput, RichInputProps } from 'cfx/ui/Input/RichInput';
-import { TitleOutlet } from 'cfx/ui/outlets';
-import { ui } from 'cfx/ui/ui';
-import { clsx } from 'cfx/utils/clsx';
-import { noop } from 'cfx/utils/functional';
 import { useWindowResize } from 'cfx/utils/hooks';
-import mergeRefs from 'cfx/utils/mergeRefs';
-import { splitByIndices } from 'cfx/utils/string';
 
 import { Cheatsheet } from './Cheatsheet/Cheatsheet';
 import { SearchInputController, SuggestionState, useSearchInputController } from './SearchInputController';
 
 import s from './SearchInput.module.scss';
 
+type RichInputProps = React.ComponentProps<typeof RichInput>;
+
 export interface SearchInputProps {
-  size?: InputSize;
+  size?: React.ComponentProps<typeof RichInput>['size'];
 
   value: string;
   parsed: ISearchTerm[];
@@ -114,8 +118,11 @@ type WizardProps = {
 };
 const Wizard = observer(function Wizard(props: WizardProps) {
   const {
-    controller, position,
+    controller,
+    position,
   } = props;
+
+  const TitleOutlet = useOutlet(TITLE_OUTLET_ID);
 
   if (!controller.shouldRenderWizard || !position) {
     return null;
@@ -129,7 +136,10 @@ const Wizard = observer(function Wizard(props: WizardProps) {
       )
     : (
         (controller.suggestions as string[]).map((suggestion, index) => (
-          <div key={suggestion} className={clsx(s.item, { [s.active]: index === controller.selectedSuggestionIndex })}>
+          <div
+            key={suggestion}
+            className={clsx(s.item, { [s.active]: index === controller.selectedSuggestionIndex })}
+          >
             {suggestion}
           </div>
         ))

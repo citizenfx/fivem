@@ -1,11 +1,10 @@
+import { linkify, noop } from '@cfx-dev/ui-components';
 import React from 'react';
 
 import { CurrentGameBrand } from 'cfx/base/gameRuntime';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { noop } from 'cfx/utils/functional';
 import { html2react } from 'cfx/utils/html2react';
 import { invariant } from 'cfx/utils/invariant';
-import { linkify } from 'cfx/utils/links';
 import { renderMarkdown } from 'cfx/utils/markdown';
 import { nl2br } from 'cfx/utils/nl2br';
 import { fastRandomId } from 'cfx/utils/random';

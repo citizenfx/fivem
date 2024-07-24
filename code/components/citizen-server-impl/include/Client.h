@@ -149,6 +149,16 @@ namespace fx
 			return m_netId;
 		}
 
+		inline bool HasPreviousNetId() const
+		{
+			return m_previousNetId != 0xFFFF;
+		}
+
+		inline uint32_t GetPreviousNetId()
+		{
+			return m_previousNetId;
+		}
+
 		inline bool HasSlotId() const
 		{
 			return m_slotId != 0xFFFFFFFF;
@@ -387,6 +397,10 @@ namespace fx
 
 		// the client's netid
 		uint32_t m_netId;
+
+		// the client's previous netid
+		// needs to be stored, because scripts can still have access to it after playerConnecting and playerJoining event
+		uint32_t m_previousNetId;
 
 		// the client's slot ID
 		uint32_t m_slotId;

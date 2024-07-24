@@ -1,7 +1,7 @@
+import { Symbols } from '@cfx-dev/ui-components';
 import React from 'react';
 
 import { IServerView } from 'cfx/common/services/servers/types';
-import { Symbols } from 'cfx/ui/Symbols';
 
 export interface ServerPlayersCountProps {
   server: IServerView;

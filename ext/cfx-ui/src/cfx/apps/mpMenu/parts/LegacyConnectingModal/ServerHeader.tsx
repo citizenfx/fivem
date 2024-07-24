@@ -1,12 +1,14 @@
+import {
+  Box,
+  Flex,
+  Pad,
+  ui,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { ServerIcon } from 'cfx/common/parts/Server/ServerIcon/ServerIcon';
 import { ServerTitle } from 'cfx/common/parts/Server/ServerTitle/ServerTitle';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { ui } from 'cfx/ui/ui';
 
 export interface ServerHeaderProps {
   server: IServerView;

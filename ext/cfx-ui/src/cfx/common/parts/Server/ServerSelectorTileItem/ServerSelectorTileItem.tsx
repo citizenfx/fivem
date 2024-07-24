@@ -1,19 +1,21 @@
+import {
+  Icon,
+  Icons,
+  Interactive,
+  Box,
+  Flex,
+  FlexRestricter,
+  Pad,
+  Modal,
+  PremiumBadge,
+  Text,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { ElementPlacements } from 'cfx/common/services/analytics/types';
 import { useServersService } from 'cfx/common/services/servers/servers.service';
 import { IPinnedServersCollection, IServerView } from 'cfx/common/services/servers/types';
-import { Icon } from 'cfx/ui/Icon/Icon';
-import { Icons } from 'cfx/ui/Icons';
-import { Interactive } from 'cfx/ui/Interactive/Interactive';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { FlexRestricter } from 'cfx/ui/Layout/Flex/FlexRestricter';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Modal } from 'cfx/ui/Modal/Modal';
-import { PremiumBadge } from 'cfx/ui/PremiumBadge/PremiumBadge';
-import { Text } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
 import { useOpenFlag } from 'cfx/utils/hooks';
 
 import { ServerIcon } from '../ServerIcon/ServerIcon';

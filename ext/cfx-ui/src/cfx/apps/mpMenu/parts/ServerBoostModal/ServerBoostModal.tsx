@@ -1,13 +1,15 @@
+import {
+  Button,
+  Indicator,
+  Flex,
+  Pad,
+  Modal,
+  TextBlock,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
 import { useService } from 'cfx/base/servicesContainer';
-import { Button } from 'cfx/ui/Button/Button';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Modal } from 'cfx/ui/Modal/Modal';
-import { TextBlock } from 'cfx/ui/Text/Text';
 
 import { BoostUIState, MpMenuServersBoostService } from '../../services/servers/serversBoost.mpMenu';
 

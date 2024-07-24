@@ -1,15 +1,8 @@
+import { isExternalUrl } from '@cfx-dev/ui-components';
 import 'reflect-metadata';
 
 // Styles setup
-import '@fontsource/montserrat/variable.css';
-import '@fontsource/montserrat/variable-italic.css';
-import '@fontsource/rubik/variable.css';
-import '@fontsource/rubik/variable-italic.css';
-
 import './styles/index.scss';
-import 'cfx/styles/global.scss';
-
-import { isExternalUrl } from 'cfx/utils/links';
 
 import { mpMenu } from './mpMenu';
 

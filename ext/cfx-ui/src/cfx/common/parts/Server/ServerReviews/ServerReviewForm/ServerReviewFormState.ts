@@ -1,7 +1,7 @@
+import { useInstance } from '@cfx-dev/ui-components';
 import { makeAutoObservable } from 'mobx';
 
 import { IServerReviews } from 'cfx/common/services/servers/reviews/types';
-import { useInstance } from 'cfx/utils/hooks';
 
 export function useServerReviewFormState() {
   return useInstance(() => new ServerReviewFormState());

@@ -173,7 +173,7 @@ class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScrip
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
 
-	typedef std::function<void(int32_t, const char*, size_t, char**, size_t*)> TCallRefRoutine;
+	typedef std::function<fx::OMPtr<IScriptBuffer>(int32_t, const char*, size_t)> TCallRefRoutine;
 
 	typedef std::function<int32_t(int32_t)> TDuplicateRefRoutine;
 

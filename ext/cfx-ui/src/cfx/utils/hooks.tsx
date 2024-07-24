@@ -1,19 +1,12 @@
+import { useDynamicRef } from '@cfx-dev/ui-components';
 import React from 'react';
 import { useNavigationType } from 'react-router-dom';
+
+import { useIntlService } from 'cfx/common/services/intl/intl.service';
 
 import { dispose, IDisposableObject } from './disposable';
 
 const Uninitialized = Symbol('Uninitialized');
-
-export function useInstance<T, Args extends any[]>(init: (...args: Args) => T, ...args: Args): T {
-  const ref = React.useRef<typeof Uninitialized | T>(Uninitialized);
-
-  if (ref.current === Uninitialized) {
-    ref.current = init(...args);
-  }
-
-  return ref.current;
-}
 
 export function useDisposableInstance<T extends IDisposableObject, Args extends any[]>(
   init: (...args: Args) => T,
@@ -39,13 +32,6 @@ export function useDisposableInstance<T extends IDisposableObject, Args extends 
   }, []);
 
   return ref.current;
-}
-
-export function useDynamicRef<T>(value: T): React.MutableRefObject<T> {
-  const ref = React.useRef(value);
-  ref.current = value;
-
-  return ref;
 }
 
 export function useAnimationFrameFired(): boolean {
@@ -190,62 +176,6 @@ export const useDebouncedCallback = <T extends any[], U, R = (...args: T) => any
   return React.useCallback<any>(realCb, []);
 };
 
-export function useGlobalKeyboardEvent<T extends (
-  event: KeyboardEvent) => void>(
-  callbackRef: React.MutableRefObject<T>,
-  // eslint-disable-next-line default-param-last
-  eventName: 'keydown' | 'keyup' | 'keypress' = 'keydown',
-  capturing?: boolean,
-) {
-  React.useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if (!useGlobalKeyboardEvent.shouldProcessEvent(event)) {
-        return;
-      }
-
-      callbackRef.current(event);
-    };
-
-    window.addEventListener(eventName, handler, capturing);
-
-    return () => {
-      window.removeEventListener(eventName, handler, capturing);
-    };
-  }, [eventName, capturing]);
-}
-useGlobalKeyboardEvent.shouldProcessEvent = (event: KeyboardEvent) => {
-  if (event.target instanceof Element) {
-    if (event.target.hasAttribute('contenteditable')) {
-      return false;
-    }
-
-    switch (event.target.tagName) {
-      case 'INPUT':
-      case 'SELECT':
-      case 'TEXTAREA': {
-        return false;
-      }
-      default:
-        return true;
-    }
-  }
-
-  return true;
-};
-
-export function useKeyboardClose<T extends () => void>(callback: T) {
-  const callbackRef = useDynamicRef((event: KeyboardEvent) => {
-    if (!useKeyboardClose.isCloseEvent(event)) {
-      return;
-    }
-
-    callback();
-  });
-
-  useGlobalKeyboardEvent(callbackRef);
-}
-useKeyboardClose.isCloseEvent = (event: KeyboardEvent) => event.key === 'Escape';
-
 const scrollPositionMemo = new Map<any, number>();
 export function useSavedScrollPositionForBackNav<T>(id: T): [number, (offset: number) => void] {
   const setScrollOffset = React.useCallback((scrollOffset: number) => {
@@ -278,4 +208,15 @@ export function useBoundingClientRect<T extends HTMLElement>(ref: React.RefObjec
   }, [recalculate]);
 
   return rect;
+}
+
+export function useServerCountryTitle(locale?: string, localeCountry?: string): string {
+  const IntlService = useIntlService();
+
+  const countryTitle
+    = localeCountry === '001' || localeCountry === 'AQ' || localeCountry === 'aq'
+      ? ''
+      : IntlService.defaultDisplayNames.of((locale ?? localeCountry) || '');
+
+  return countryTitle || '';
 }

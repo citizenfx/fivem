@@ -3545,40 +3545,6 @@ static HookFunction hookFunctionEv([]()
 #include <nutsnbolts.h>
 #include <GameInit.h>
 
-struct VirtualBase
-{
-	virtual ~VirtualBase() {}
-};
-
-struct VirtualDerivative : public VirtualBase
-{
-	virtual ~VirtualDerivative() override {}
-};
-
-std::string GetType(void* d)
-{
-	VirtualBase* self = (VirtualBase*)d;
-
-#ifdef GTA_FIVE
-	std::string typeName = fmt::sprintf("unknown (vtable %p)", (void*)hook::get_unadjusted(*(void**)self));
-
-	if (!xbr::IsGameBuildOrGreater<2802>())
-	{
-		try
-		{
-			typeName = typeid(*self).name();
-		}
-		catch (std::__non_rtti_object&)
-		{
-		}
-	}
-#elif IS_RDR3
-	std::string typeName = fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)self));
-#endif
-
-	return typeName;
-}
-
 extern rage::netObject* g_curNetObject;
 
 static char(*g_origReadDataNode)(void* node, uint32_t serializationMode, uint32_t flags, rage::datBitBuffer* buffer, void* logger);
@@ -3649,8 +3615,6 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netOb
 			{
 				g_netObjectNodeMapping[g_curNetObject->GetObjectId()][node] = { 1, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() };
 			}
-
-			//trace("actually wrote %s\n", GetType(node));
 		}
 		else
 		{
@@ -3699,8 +3663,6 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, uint32_t objectFlags, 
 			{
 				g_netObjectNodeMapping[g_curNetObject->GetObjectId()][node] = { 1, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() };
 			}
-
-			//trace("actually wrote %s\n", GetType(node));
 		}
 		else
 		{
@@ -3868,53 +3830,36 @@ static HookFunction hookFunction2([]()
 	}
 });
 
-template<typename TIndex>
 struct WorldGridEntry
 {
 	uint8_t sectorX;
 	uint8_t sectorY;
-	TIndex slotID;
+	uint16_t slotID;
 };
 
-template<typename TIndex, int TCount>
 struct WorldGridState
 {
-	WorldGridEntry<TIndex> entries[TCount];
+	WorldGridEntry entries[32];
 };
 
-static WorldGridState<uint8_t, 12> g_worldGrid[256];
-static WorldGridState<uint16_t, 32> g_worldGrid2[1];
+static WorldGridState g_worldGrid;
 
 static InitFunction initFunctionWorldGrid([]()
 {
 	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* lib)
 	{
-		lib->AddReliableHandler("msgWorldGrid", [](const char* data, size_t len)
-		{
-			net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
-			auto base = buf.Read<uint16_t>();
-			auto length = buf.Read<uint16_t>();
-
-			if ((base + length) > sizeof(g_worldGrid))
-			{
-				return;
-			}
-
-			buf.Read(reinterpret_cast<char*>(g_worldGrid) + base, length);
-		});
-
 		lib->AddReliableHandler("msgWorldGrid3", [](const char* data, size_t len)
 		{
 			net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
 			auto base = buf.Read<uint32_t>();
 			auto length = buf.Read<uint32_t>();
 
-			if ((size_t(base) + length) > sizeof(g_worldGrid2))
+			if ((size_t(base) + length) > sizeof(g_worldGrid))
 			{
 				return;
 			}
 
-			buf.Read(reinterpret_cast<char*>(g_worldGrid2) + base, length);
+			buf.Read(reinterpret_cast<char*>(&g_worldGrid) + base, length);
 		});
 	});
 });
@@ -3950,7 +3895,7 @@ bool DoesLocalPlayerOwnWorldGrid(float* pos)
 
 	bool does = false;
 
-	for (const auto& entry : g_worldGrid2[0].entries)
+	for (const auto& entry : g_worldGrid.entries)
 	{
 		if (entry.sectorX == sectorX && entry.sectorY == sectorY && entry.slotID == playerIdx)
 		{

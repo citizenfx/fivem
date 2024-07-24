@@ -1,4 +1,3 @@
-using CitizenFX.MsgPack;
 using System;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -40,7 +39,7 @@ namespace CitizenFX.Core.Native
 		[SecurityCritical] internal static unsafe ulong To_ulong(ulong* v) => *v;
 
 		[SecurityCritical] internal static unsafe string ToString(ulong* v) => Marshal.PtrToStringAnsi((IntPtr)(byte*)v[0]);
-		[SecurityCritical] internal static unsafe object ToObject(ulong* v) => MsgPackDeserializer.DeserializeAsObject((byte*)v[0], unchecked((long)v[1]));
+		[SecurityCritical] internal static unsafe object ToObject(ulong* v) => MsgPackDeserializer.Deserialize((byte*)v[0], unchecked((long)v[1]));
 		[SecurityCritical] internal static unsafe Vector3 To_Vector3(ulong* v) => (Vector3)(*(NativeVector3*)v);
 	}
 
@@ -67,17 +66,17 @@ namespace CitizenFX.Core.Native
 		internal readonly byte[] value;
 		
 		internal InFunc(byte[] funcRef) => value = funcRef;
-		public InFunc(MsgPackFunc del) => value = ReferenceFunctionManager.Create(del).Value;
-		public InFunc(Delegate del) : this(MsgPackDeserializer.CreateDelegate(del)) { }
+		public InFunc(DynFunc del) => value = ReferenceFunctionManager.Create(del).Value;
+		public InFunc(Delegate del) : this(Func.Create(del)) { }
 
 		public static implicit operator InFunc(Delegate func) => new InFunc(func);
-		public static implicit operator InFunc(MsgPackFunc func) => new InFunc(func);
+		public static implicit operator InFunc(DynFunc func) => new InFunc(func);
 	}
 
 	public readonly ref struct InPacket
 	{
 		internal readonly byte[] value;
-		public InPacket(object obj) => value = MsgPackSerializer.SerializeToByteArray(obj);
+		public InPacket(object obj) => value = MsgPackSerializer.Serialize(obj);
 		public static InPacket Serialize(object obj) => new InPacket(obj);
 		public static implicit operator InPacket(object[] obj) => Serialize(obj);
 	}
@@ -90,7 +89,7 @@ namespace CitizenFX.Core.Native
 		private unsafe readonly ulong size;
 #pragma warning restore 0649
 
-		public unsafe object Deserialize() => MsgPackDeserializer.DeserializeAsObject(data, (long)size);
-		internal unsafe object[] DeserializeArray() => MsgPackDeserializer.DeserializeAsObjectArray(data, (long)size);
+		public unsafe object Deserialize() => MsgPackDeserializer.Deserialize(data, (long)size);
+		internal unsafe object[] DeserializeArray() => MsgPackDeserializer.DeserializeArray(data, (long)size);
 	}
 }

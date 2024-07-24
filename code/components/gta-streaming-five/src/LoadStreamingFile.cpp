@@ -8,6 +8,7 @@
 #include <StdInc.h>
 #include <jitasm.h>
 #include <Hooking.h>
+#include <Hooking.Stubs.h>
 
 #include <Pool.h>
 
@@ -29,6 +30,8 @@
 #include <MinHook.h>
 
 #include <CrossBuildRuntime.h>
+
+#include <CustomRtti.h>
 
 #if __has_include(<StatusText.h>)
 #include <StatusText.h>
@@ -1568,11 +1571,7 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 
 	if (mounter)
 	{
-#ifdef GTA_FIVE
-		std::string className = (xbr::IsGameBuildOrGreater<2802>()) ? fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)mounter)) : typeid(*mounter).name();
-#else
-		std::string className = fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)mounter));
-#endif
+		std::string className = SearchTypeName(mounter);
 
 		CDataFileMgr::DataFile entry;
 		memset(&entry, 0, sizeof(entry));
@@ -3309,9 +3308,64 @@ static void FreeArchetypesHook(uint32_t idx)
 DLL_IMPORT extern fwEvent<> PreSetupLoadingScreens;
 #endif
 
+#if defined(GTA_FIVE) || IS_RDR3
+pgRawStreamer* (*g_GetRawStreamer)(void);
+static int32_t chunkyArrayCountOffset = 0;
+static int32_t chunkyArrayOffset = 0;
+void* (*g_chunkyArrayAppend)(hook::FlexStruct* self);
+void* chunkyArrayAppend(hook::FlexStruct* self)
+{
+	const int32_t loadedEntriesCount = self->Get<int32_t>(chunkyArrayCountOffset);
+	if (loadedEntriesCount >= 0xFFFF)
+	{
+		FatalError("ERR_STR_FAILURE: trying to add more assets to pgRawStreamer when it's already full (65535)."); 
+	}
+
+	return g_chunkyArrayAppend(self);
+}
+
+static ConsoleCommand pgRawStreamer_AssetsCountCmd("assetscount", []()
+{
+	hook::FlexStruct* rawStreamerFlex = (hook::FlexStruct*)g_GetRawStreamer();
+	const int32_t loadedEntriesCount = rawStreamerFlex->Get<int32_t>(chunkyArrayOffset + chunkyArrayCountOffset);
+	trace("Total loaded assets in pgRawStreamer - %d/65535\n", loadedEntriesCount);
+});
+
+const rage::chunkyArray<rage::pgRawEntry, 1024, 64>& rage::GetPgRawStreamerEntries()
+{
+	static rage::chunkyArray<rage::pgRawEntry, 1024, 64> empty;
+	hook::FlexStruct* rawStreamerFlex = (hook::FlexStruct*)g_GetRawStreamer();
+
+	if (rawStreamerFlex)
+	{
+		return rawStreamerFlex->Get<rage::chunkyArray<rage::pgRawEntry, 1024, 64>>(chunkyArrayOffset);
+	}
+	else
+	{
+		return empty;
+	}
+}
+
+#endif
+
 static HookFunction hookFunction([]()
 {
 #ifdef GTA_FIVE
+	g_GetRawStreamer = (decltype(g_GetRawStreamer))hook::get_pattern<uint8_t>("48 83 EC ? 48 8B 05 ? ? ? ? 48 85 C0 75 ? 8D 50");
+	auto chunkyArrayAppendLoc = hook::get_pattern<uint8_t>("40 53 48 83 EC ? F7 81 ? ? ? ? ? ? ? ? 48 8B D9 75");
+	chunkyArrayCountOffset = *(int32_t*)(chunkyArrayAppendLoc + 8);
+	chunkyArrayOffset = *hook::get_pattern<int32_t>("48 8D 8F ? ? ? ? E8 ? ? ? ? 48 8D 4C 24", 3);
+	g_chunkyArrayAppend = hook::trampoline(chunkyArrayAppendLoc, &chunkyArrayAppend);
+#elif IS_RDR3
+	g_GetRawStreamer = (decltype(g_GetRawStreamer))hook::get_pattern<uint8_t>("48 83 EC ? 48 8B 05 ? ? ? ? 48 85 C0 75 ? 8D 50 ? B9");
+	auto chunkyArrayAppendLoc = hook::get_pattern<uint8_t>("40 53 48 83 EC ? 8B 91 ? ? ? ? 48 8B D9 F7 C2");
+	chunkyArrayCountOffset = *(int32_t*)(chunkyArrayAppendLoc + 8);
+	chunkyArrayOffset = *hook::get_pattern<int32_t>("48 8D 9F ? ? ? ? 48 89 07 83 A3", 3);
+	g_chunkyArrayAppend = hook::trampoline(chunkyArrayAppendLoc, &chunkyArrayAppend);
+#endif
+
+#ifdef GTA_FIVE
+
 	loadChangeSet = hook::get_pattern<char>("48 81 EC 50 03 00 00 49 8B F0 4C", -0x18);
 
 	PreSetupLoadingScreens.Connect([]()

@@ -97,6 +97,11 @@ namespace fx
 
 			m_clientsByPeer[client->GetPeer()].reset();
 			m_clientsByNetId[client->GetNetId()].reset();
+			if (client->HasPreviousNetId())
+			{
+				m_clientsByNetId[client->GetPreviousNetId()].reset();
+			}
+
 			m_clientsByConnectionToken[client->GetConnectionToken()].reset();
 			m_clientsByConnectionTokenHash[HashString(client->GetConnectionToken().c_str())].reset();
 

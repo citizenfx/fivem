@@ -1,3 +1,4 @@
+import { Interactive, Text } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { useStreamerMode } from 'cfx/apps/mpMenu/services/convars/convars.service';
@@ -5,8 +6,6 @@ import { useHomeScreenServerList } from 'cfx/apps/mpMenu/services/servers/list/H
 import { ServerTileItem } from 'cfx/common/parts/Server/ServerTileItem/ServerTileItem';
 import { ElementPlacements } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Interactive } from 'cfx/ui/Interactive/Interactive';
-import { Text } from 'cfx/ui/Text/Text';
 import { useOpenFlag } from 'cfx/utils/hooks';
 
 import s from './LastConnectedTile.module.scss';

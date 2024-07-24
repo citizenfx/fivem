@@ -1,12 +1,15 @@
+import {
+  Button,
+  Flex,
+  Pad,
+  Modal,
+  Text,
+  TextBlock,
+  noop,
+} from '@cfx-dev/ui-components';
 import React from 'react';
 
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Button } from 'cfx/ui/Button/Button';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Modal } from 'cfx/ui/Modal/Modal';
-import { Text, TextBlock } from 'cfx/ui/Text/Text';
-import { noop } from 'cfx/utils/functional';
 
 import { mpMenu } from '../../mpMenu';
 import { ConnectState } from '../../services/servers/connect/state';

@@ -1,3 +1,4 @@
+import { Flex, Text } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { FiServer } from 'react-icons/fi';
@@ -6,8 +7,6 @@ import { GameName } from 'cfx/base/game';
 import { currentGameNameIs } from 'cfx/base/gameRuntime';
 import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
 import { EventActionNames, ElementPlacements } from 'cfx/common/services/analytics/types';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Text } from 'cfx/ui/Text/Text';
 
 import s from './ExtraLinkyTiles.module.scss';
 

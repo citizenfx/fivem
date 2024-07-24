@@ -1,10 +1,9 @@
+import { noop, isExternalUrl } from '@cfx-dev/ui-components';
 import React from 'react';
 
 import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
 import { EventActionNames, ElementPlacements } from 'cfx/common/services/analytics/types';
 import { LinkButtonProps, LinkButton } from 'cfx/ui/Button/LinkButton';
-import { noop } from 'cfx/utils/functional';
-import { isExternalUrl } from 'cfx/utils/links';
 
 type Props = LinkButtonProps & {
   elementPlacement?: ElementPlacements;

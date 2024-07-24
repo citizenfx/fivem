@@ -1,4 +1,4 @@
-import { splitByIndices } from 'cfx/utils/string';
+import { splitByIndices } from '@cfx-dev/ui-components';
 
 import { IActivityItemData, IActivityItemMedia, IRawTweet, IRawTweetTypes } from './types';
 
@@ -101,7 +101,11 @@ export function rawTweetToActivityDataItem(rawTweet: IRawTweet): IActivityItemDa
 
     const urlIndicesFull = (actualTweet.entities.urls || []).map((url) => url.indices);
 
-    content = splitByIndices(actualTweet.text, mediaIndicesFull.flat().concat(urlIndicesFull.flat()), true);
+    content = splitByIndices(
+      actualTweet.text,
+      mediaIndicesFull.flat().concat(urlIndicesFull.flat()),
+      true,
+    );
 
     for (const index of mediaIndices) {
       content.delete(index);

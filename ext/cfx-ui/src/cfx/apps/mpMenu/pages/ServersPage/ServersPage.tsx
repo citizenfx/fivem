@@ -1,3 +1,4 @@
+import { Flex, clsx } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import { Navigate } from 'react-router-dom';
 
@@ -8,8 +9,6 @@ import { ListTypeTabs } from 'cfx/common/pages/ServersPage/ListTypeTabs';
 import { ServersPage } from 'cfx/common/pages/ServersPage/ServersPage';
 import { ServersListType } from 'cfx/common/services/servers/lists/types';
 import { IServersService } from 'cfx/common/services/servers/servers.service';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { clsx } from 'cfx/utils/clsx';
 
 import { ServerFiltersWithDirectConnect } from './ServerFiltersWithDirectConnect/ServerFiltersWithDirectConnect';
 import { InsideNavBar } from '../../parts/NavBar/InsideNavBar';

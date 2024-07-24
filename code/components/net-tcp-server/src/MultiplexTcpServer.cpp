@@ -302,6 +302,16 @@ void MultiplexTcpChildServerStream::ScheduleCallback(TScheduledCallback&& callba
 	}
 }
 
+void MultiplexTcpChildServerStream::StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout)
+{
+	auto bs = GetBaseStream();
+
+	if (bs.GetRef())
+	{
+		bs->StartConnectionTimeout(timeout);
+	}
+}
+
 fwRefContainer<TcpServer> MultiplexTcpServer::CreateServer(const MultiplexPatternMatchFn& patternMatchFunction)
 {
 	fwRefContainer<MultiplexTcpChildServer> child = new MultiplexTcpChildServer();

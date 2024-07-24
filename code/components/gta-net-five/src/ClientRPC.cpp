@@ -239,16 +239,6 @@ static InitFunction initFunction([]()
 				//g_rpcConfiguration = RpcConfiguration::Load("citizen:/scripting/rpc_natives_rdr3.json");
 //#endif
 
-				g_netLibrary->AddReliableHandler("msgRpcEntityCreation", [](const char* data, size_t len)
-				{
-					net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
-
-					uint16_t creationToken = buffer.Read<uint16_t>();
-					uint16_t objectId = buffer.Read<uint16_t>();
-
-					g_creationTokenToObjectId[creationToken] = (1 << 16) | objectId;
-				});
-
 				g_netLibrary->AddReliableHandler("msgRpcNative", [](const char* data, size_t len)
 				{
 					static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));

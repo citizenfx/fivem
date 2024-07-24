@@ -324,6 +324,8 @@ public:
 	{
 		return m_ended;
 	}
+
+	virtual void StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout) = 0;
 };
 
 class HttpHandler : public fwRefCountable

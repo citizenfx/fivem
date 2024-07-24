@@ -1,3 +1,9 @@
+import {
+  Icons,
+  Flex,
+  TextBlock,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { usePlatformStatusService } from 'cfx/apps/mpMenu/services/platformStatus/platformStatus.service';
@@ -7,10 +13,6 @@ import { CurrentGameName } from 'cfx/base/gameRuntime';
 import { AnalyticsLinkButton } from 'cfx/common/parts/AnalyticsLinkButton/AnalyticsLinkButton';
 import { ElementPlacements } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Icons } from 'cfx/ui/Icons';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { TextBlock } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
 
 const statusIconColors = {
   [StatusLevel.AllSystemsOperational]: 'success',

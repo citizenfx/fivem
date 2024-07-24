@@ -1,6 +1,6 @@
+import { BackdropPortal, clsx } from '@cfx-dev/ui-components';
+
 import { IServerView } from 'cfx/common/services/servers/types';
-import { BackdropPortal } from 'cfx/ui/BackdropPortal/BackdropPortal';
-import { clsx } from 'cfx/utils/clsx';
 
 import s from './ServerBackdropBanner.module.scss';
 

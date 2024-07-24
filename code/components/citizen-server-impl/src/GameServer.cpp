@@ -335,7 +335,7 @@ namespace fx
 
 			auto processSendList = [this]()
 			{
-				while (auto *packet = m_netSendList.pop(&fx::GameServerPacket::queueKey))
+				while (auto *packet = m_netSendList.pop_until_empty(&fx::GameServerPacket::queueKey))
 				{
 					m_net->SendPacket(packet->peer, packet->channel, packet->buffer, packet->type);
 					m_packetPool.destruct(packet);
@@ -681,7 +681,7 @@ namespace fx
 
 					if (IsOneSync())
 					{
-						if (client->GetSlotId() == -1)
+						if (!client->HasSlotId())
 						{
 							SendOutOfBand(peer->GetAddress(), "error Not enough client slot IDs.");
 
@@ -729,7 +729,7 @@ namespace fx
 
 					if (wasNew)
 					{
-						gscomms_execute_callback_on_main_thread([=]()
+						gscomms_execute_callback_on_main_thread([this, client, oldNetID]()
 						{
 							m_clientRegistry->HandleConnectedClient(client, oldNetID);
 						});
