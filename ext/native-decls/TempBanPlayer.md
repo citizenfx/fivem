@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: server
+visibility: hide
 ---
 ## TEMP_BAN_PLAYER
 
