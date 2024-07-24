@@ -1192,7 +1192,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					m_connectionState = CS_IDLE;
 					return true;
 				}
-				
+
 				auto rawEndpoints = (node.find("endpoints") != node.end()) ? node["endpoints"] : json{};
 
 				auto continueAfterEndpoints = [=, capNode = node](const json& capEndpointsJson)
@@ -1205,6 +1205,14 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						// gather endpoints
 						std::vector<std::string> endpoints;
+
+						if (!node["handover"].is_null())
+						{
+							if (!node["handover"]["endpoints"].is_null())
+							{
+								endpointsJson = node["handover"]["endpoints"];
+							}
+						}
 
 						if (!endpointsJson.is_null() && !endpointsJson.is_boolean())
 						{
