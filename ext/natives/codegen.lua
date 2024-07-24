@@ -546,9 +546,15 @@ local gApiSet = 'server'
 local ourGame = 'gta5'
 
 function matchApiSet(native)
+	local visibility = native.visibility
+
+	if visibility and visibility == 'hide' then
+		return false
+	end
+
 	local game = native.game
 
-	if ourGame and native.game and native.game ~= ourGame then
+	if ourGame and game and game ~= ourGame then
 		return false
 	end
 
