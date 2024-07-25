@@ -127,8 +127,12 @@ namespace fx
 
 		m_mainThreadCallbacks = std::make_unique<CallbackListNng>("inproc://main_client", 0);
 
-		instance->OnRequestQuit.Connect([this](const std::string& reason)
+		instance->OnRequestQuit.Connect([this, instance](const std::string& reason)
 		{
+			instance
+					->GetComponent<fx::ResourceManager>()
+					->GetComponent<fx::ResourceEventManagerComponent>()
+					->TriggerEvent2("onServerStop", {});
 			m_clientRegistry->ForAllClients([this, &reason](const fx::ClientSharedPtr& client)
 			{
 				DropClient(client, "Server shutting down: %s", reason);
