@@ -1,3 +1,4 @@
+import { Box, Flex, FlexRestricter, Page } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import { FaRetweet } from 'react-icons/fa';
 import { FiTwitter } from 'react-icons/fi';
@@ -5,10 +6,6 @@ import { FiTwitter } from 'react-icons/fi';
 import { InsideNavBar } from 'cfx/apps/mpMenu/parts/NavBar/InsideNavBar';
 import { useActivityService } from 'cfx/common/services/activity/activity.service';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { FlexRestricter } from 'cfx/ui/Layout/Flex/FlexRestricter';
-import { Page } from 'cfx/ui/Layout/Page/Page';
 
 import { Continuity } from './Continuity/Continuity';
 import { Feed } from './Feed/Feed';

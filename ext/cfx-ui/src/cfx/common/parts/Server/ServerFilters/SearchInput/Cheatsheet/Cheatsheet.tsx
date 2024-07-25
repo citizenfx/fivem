@@ -1,20 +1,23 @@
 /* eslint-disable react/no-unescaped-entities */
+import {
+  Icons,
+  InfoPanel,
+  Interactive,
+  Flex,
+  Pad,
+  Scrollable,
+  Modal,
+  Symbols,
+  Text,
+  TextBlock,
+  Title,
+  ui,
+  clsx,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { BsExclamationTriangleFill } from 'react-icons/bs';
 
-import { Icons } from 'cfx/ui/Icons';
-import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
-import { Interactive } from 'cfx/ui/Interactive/Interactive';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Scrollable } from 'cfx/ui/Layout/Scrollable/Scrollable';
-import { Modal } from 'cfx/ui/Modal/Modal';
-import { Symbols } from 'cfx/ui/Symbols';
-import { Text, TextBlock } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
-import { ui } from 'cfx/ui/ui';
-import { clsx } from 'cfx/utils/clsx';
 import { useBoundingClientRect, useOpenFlag } from 'cfx/utils/hooks';
 
 import { SearchInputController } from '../SearchInputController';

@@ -3545,40 +3545,6 @@ static HookFunction hookFunctionEv([]()
 #include <nutsnbolts.h>
 #include <GameInit.h>
 
-struct VirtualBase
-{
-	virtual ~VirtualBase() {}
-};
-
-struct VirtualDerivative : public VirtualBase
-{
-	virtual ~VirtualDerivative() override {}
-};
-
-std::string GetType(void* d)
-{
-	VirtualBase* self = (VirtualBase*)d;
-
-#ifdef GTA_FIVE
-	std::string typeName = fmt::sprintf("unknown (vtable %p)", (void*)hook::get_unadjusted(*(void**)self));
-
-	if (!xbr::IsGameBuildOrGreater<2802>())
-	{
-		try
-		{
-			typeName = typeid(*self).name();
-		}
-		catch (std::__non_rtti_object&)
-		{
-		}
-	}
-#elif IS_RDR3
-	std::string typeName = fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)self));
-#endif
-
-	return typeName;
-}
-
 extern rage::netObject* g_curNetObject;
 
 static char(*g_origReadDataNode)(void* node, uint32_t serializationMode, uint32_t flags, rage::datBitBuffer* buffer, void* logger);
@@ -3649,8 +3615,6 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netOb
 			{
 				g_netObjectNodeMapping[g_curNetObject->GetObjectId()][node] = { 1, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() };
 			}
-
-			//trace("actually wrote %s\n", GetType(node));
 		}
 		else
 		{
@@ -3699,8 +3663,6 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, uint32_t objectFlags, 
 			{
 				g_netObjectNodeMapping[g_curNetObject->GetObjectId()][node] = { 1, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() };
 			}
-
-			//trace("actually wrote %s\n", GetType(node));
 		}
 		else
 		{

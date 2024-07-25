@@ -194,7 +194,7 @@ local function printNative(native)
 
         str = str .. ');\n```\n\n'
 
-        local d = parseDocString(native)
+        local d = parseDocString(native, true)
 
         if d and d.summary then
             d.summary = d.summary:gsub('&gt;', '>'):gsub('&lt;', '<'):gsub('&amp;', '&')

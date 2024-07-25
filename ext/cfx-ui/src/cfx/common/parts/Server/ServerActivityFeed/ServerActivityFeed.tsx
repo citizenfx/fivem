@@ -1,3 +1,11 @@
+import {
+  Button,
+  Indicator,
+  InfoPanel,
+  Flex,
+  Scrollable,
+  Text,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { BsEmojiFrownFill } from 'react-icons/bs';
@@ -7,13 +15,7 @@ import { ActiveActivityPubFeed } from 'cfx/common/services/activity/ActiveActivi
 import { useActivityService } from 'cfx/common/services/activity/activity.service';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { ActivityItem } from 'cfx/ui/ActivityItem/ActivityItem';
-import { Button } from 'cfx/ui/Button/Button';
 import { Flyout } from 'cfx/ui/Flyout/Flyout';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Scrollable } from 'cfx/ui/Layout/Scrollable/Scrollable';
-import { Text } from 'cfx/ui/Text/Text';
 
 import s from './ServerActivityFeed.module.scss';
 

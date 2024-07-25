@@ -1,3 +1,19 @@
+import {
+  Avatar,
+  Button,
+  ButtonBar,
+  ControlBox,
+  Icon,
+  BrandIcon,
+  Flex,
+  Pad,
+  Modal,
+  Separator,
+  Text,
+  TextBlock,
+  noop,
+  linkify,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { BsCheckCircle, BsFillQuestionCircleFill, BsXCircleFill } from 'react-icons/bs';
@@ -11,27 +27,15 @@ import { ServerIcon } from 'cfx/common/parts/Server/ServerIcon/ServerIcon';
 import { useAccountService } from 'cfx/common/services/account/account.service';
 import { $L, useL10n } from 'cfx/common/services/intl/l10n';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { Avatar } from 'cfx/ui/Avatar/Avatar';
-import { Button } from 'cfx/ui/Button/Button';
-import { ButtonBar } from 'cfx/ui/Button/ButtonBar';
-import { ControlBox } from 'cfx/ui/ControlBox/ControlBox';
-import { Icon } from 'cfx/ui/Icon/Icon';
-import { BrandIcon } from 'cfx/ui/Icons';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Modal } from 'cfx/ui/Modal/Modal';
-import { Separator } from 'cfx/ui/Separator/Separator';
-import { Text, TextBlock } from 'cfx/ui/Text/Text';
-import { TextColor } from 'cfx/ui/Text/Text.types';
-import { noop } from 'cfx/utils/functional';
 import { html2react } from 'cfx/utils/html2react';
-import { linkify } from 'cfx/utils/links';
 import { nl2br } from 'cfx/utils/nl2br';
 
 import { useStreamerMode } from '../../services/convars/convars.service';
 import { usePlatformStatusService } from '../../services/platformStatus/platformStatus.service';
 import { StatusLevel } from '../../services/platformStatus/types';
 import { replaceCfxRePlaceholders, useRenderedFormattedMessage } from '../../utils/messageFormatting';
+
+type IconColor = React.ComponentProps<typeof Icon>['color'];
 
 type ConnectFailedProps = {
   state: ConnectState.Failed;
@@ -242,7 +246,7 @@ const FailureScheme = observer(function FailureScheme(props: {
   );
 });
 
-const iconsMap: Record<string, { icon: React.ReactNode; color: TextColor }> = {
+const iconsMap: Record<string, { icon: React.ReactNode; color: IconColor }> = {
   ok: {
     icon: <BsCheckCircle />,
     color: 'success',

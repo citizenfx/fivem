@@ -199,11 +199,10 @@ namespace fx
 		 *
 		 * @param source - The player's NetID (a number in Lua/JS), **not a real argument, use [FromSource] or source**.
 		 * @param oldID - The original TempID for the connecting player, as specified during playerConnecting.
-		 * @param newID - The new net id for the connecting player.
 		 #/
 		declare function playerJoining(source: string, oldID: string): void;
 		*/
-		eventManager->TriggerEvent2("playerJoining", { fmt::sprintf("internal-net:%d", client->GetNetId()) }, fmt::sprintf("%d", oldNetID), fmt::sprintf("%d",  client->GetNetId()));
+		eventManager->TriggerEvent2("playerJoining", { fmt::sprintf("internal-net:%d", client->GetNetId()) }, fmt::sprintf("%d", oldNetID));
 
 		// user code may lead to a drop event being sent here
 		if (client->IsDropping())
@@ -238,7 +237,7 @@ namespace fx
 		}
 
 		// trigger connection handlers
-		OnConnectedClient(client);
+		OnConnectedClient(client.get());
 	}
 
 	fx::ClientSharedPtr ClientRegistry::GetHost()

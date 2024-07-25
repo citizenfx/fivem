@@ -10,8 +10,14 @@ function Invoke-CfxSetupBuildToolkit {
     }
 
     Invoke-LogSection "Setting up the build toolkit" {
+        $toolkitBranch = $Context.GitBranchName
         $toolkitUri = $Context.ToolkitUri
-        $toolkitBranch = "master"
+
+        # Check if we have matching branch, fallback to master otherwise
+        git ls-remote --exit-code --heads $toolkitUri refs/heads/$toolkitBranch | Out-Null
+        if ($LASTEXITCODE -eq 2) {
+            $toolkitBranch = "master"
+        }
 
         # Get/Update the toolkit
         if (Test-Path "$($Context.ToolkitRoot)\.git") {

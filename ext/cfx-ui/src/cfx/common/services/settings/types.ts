@@ -1,6 +1,5 @@
+import { ValueOrGetter } from '@cfx-dev/ui-components';
 import React from 'react';
-
-import { ValueOrGetter } from 'cfx/utils/getValue';
 
 type ValueGetSet<T> = {
   accessors(): {

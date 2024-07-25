@@ -1,9 +1,9 @@
+import { noop } from '@cfx-dev/ui-components';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { ServicesContainer, ServicesContainerContext } from 'cfx/base/servicesContainer';
 import { getAppService, registerAppService } from 'cfx/common/services/app/app.service';
-import { noop } from 'cfx/utils/functional';
 
 export interface AppDefinition {
   defineServices(container: ServicesContainer): void;

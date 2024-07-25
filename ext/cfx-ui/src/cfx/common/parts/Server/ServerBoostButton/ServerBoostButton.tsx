@@ -1,3 +1,8 @@
+import {
+  Button,
+  Icons,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
@@ -8,15 +13,12 @@ import { $L } from 'cfx/common/services/intl/l10n';
 import { isServerBoostable } from 'cfx/common/services/servers/helpers';
 import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { Button, ButtonSize, ButtonTheme } from 'cfx/ui/Button/Button';
-import { Icons } from 'cfx/ui/Icons';
-import { Title } from 'cfx/ui/Title/Title';
 import { stopPropagation } from 'cfx/utils/domEvents';
 
 export interface ServerBoostButtonProps {
   server: IServerView;
-  size?: ButtonSize;
-  theme?: ButtonTheme;
+  size?: React.ComponentProps<typeof Button>['size'];
+  theme?: React.ComponentProps<typeof Button>['theme'];
   className?: string;
   elementPlacement?: ElementPlacements;
 }

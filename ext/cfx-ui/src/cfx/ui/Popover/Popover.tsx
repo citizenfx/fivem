@@ -1,23 +1,17 @@
+import { Popover as UiPopover } from '@cfx-dev/ui-components';
 import { makeAutoObservable } from 'mobx';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
-import { clsx } from 'cfx/utils/clsx';
 import { dispose, Disposer, IDisposableObject } from 'cfx/utils/disposable';
 import { useDisposableInstance } from 'cfx/utils/hooks';
 import { fastRandomId } from 'cfx/utils/random';
-
-import { Interactive } from '../Interactive/Interactive';
-
-import s from './Popover.module.scss';
 
 const TIMEOUT_ACTIVE = 80;
 const TIMEOUT_INACTIVE = 350;
 
 class PopoverController implements IDisposableObject {
-  // eslint-disable-next-line no-use-before-define
   static CURRENT_ACTIVE_CONTROLLER: PopoverController | null = null;
-
   static setActive(ctrl: PopoverController | null) {
     const currentCtrl = PopoverController.CURRENT_ACTIVE_CONTROLLER;
 
@@ -35,7 +29,6 @@ class PopoverController implements IDisposableObject {
   public get active(): boolean {
     return this._active;
   }
-
   private set active(active: boolean) {
     this._active = active;
 
@@ -48,17 +41,14 @@ class PopoverController implements IDisposableObject {
   public get mouseWithin(): boolean {
     return this._mouseWithin;
   }
-
   private set mouseWithin(mouseWithin: boolean) {
     this._mouseWithin = mouseWithin;
   }
 
   private activationTimer: SetTimeoutReturn | null = null;
-
   private preventDeactivation = false;
 
   private toDispose = new Disposer();
-
   private id: string;
 
   constructor() {
@@ -143,17 +133,18 @@ class PopoverController implements IDisposableObject {
   };
 }
 
-type PopoverPosition = 'top-right';
+type PopoverPosition =
+  | 'top-right';
 
-export interface PopoverProps<T extends HTMLElement> {
+export interface PopoverProps {
   at: PopoverPosition;
   popover: React.ReactNode;
-  children: (ref: React.Ref<T>, active: boolean) => React.ReactNode;
+  children: (active: boolean) => React.ReactNode;
 
   active?: boolean;
 }
 
-export const Popover = observer(function Popover<T extends HTMLElement>(props: PopoverProps<T>) {
+export const Popover = observer(function Popover(props: PopoverProps) {
   const {
     at,
     popover,
@@ -164,29 +155,19 @@ export const Popover = observer(function Popover<T extends HTMLElement>(props: P
   const controller = useDisposableInstance(() => new PopoverController());
   controller.wrapperRef = React.useRef<HTMLDivElement>(null);
 
-  const ref = React.useRef<T>(null);
-
   const isActive = forceActive || controller.active;
 
-  const rootClassName = clsx(s.root, {
-    [s.active]: isActive,
-  });
-
-  const popoverClassName = clsx(s.popover, s[`pos-${at}`]);
-
   return (
-    <Interactive
+    <UiPopover
+      at={at}
       ref={controller.wrapperRef}
-      className={rootClassName}
       onMouseEnter={controller.handleMouseEnter}
       onMouseLeave={controller.handleMouseLeave}
       onMouseDown={controller.handleMouseDown}
-    >
-      {children(ref, isActive)}
-
-      {isActive && (
-        <div className={popoverClassName}>{popover}</div>
-      )}
-    </Interactive>
+      // eslint-disable-next-line react/no-children-prop
+      children={children}
+      popover={popover}
+      active={isActive}
+    />
   );
 });

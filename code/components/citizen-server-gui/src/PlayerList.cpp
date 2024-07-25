@@ -85,7 +85,7 @@ static const auto& CollectPlayers(fx::ServerInstanceBase* instance)
 	auto sgs = instance->GetComponent<fx::ServerGameStatePublic>();
 
 	// Skips Dropping clients.
-	clientRegistry->ForAllClients([](const fx::ClientSharedPtr& client)
+	clientRegistry->ForAllClients([](fx::ClientSharedPtr client)
 	{
 		std::unique_lock lock(g_playerListDataMutex);
 		auto& entry = g_playerListData[client->GetGuid()];
@@ -205,7 +205,7 @@ static InitFunction initFunction([]()
 				g_playerListData.erase(guid);
 			});
 		});
-		clientRegistry->OnConnectedClient.Connect([](const fx::ClientSharedPtr& client)
+		clientRegistry->OnConnectedClient.Connect([](fx::Client* client)
 		{
 			std::unique_lock lock(g_playerListDataMutex);
 			g_playerListData[client->GetGuid()].connectionState = "LOADING";

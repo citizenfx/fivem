@@ -216,16 +216,15 @@ namespace CitizenFX.Core
 			}
 		}
 
-		public void CallRef(int refIndex, byte[] argsSerialized, int argsSize, out IntPtr retvalSerialized, out int retvalSize)
+		public void CallRef(int refIndex, byte[] argsSerialized, int argsSize, out IntPtr retval)
 		{
-			retvalSerialized = IntPtr.Zero;
-			retvalSize = 0;
+			retval = IntPtr.Zero;
 
 			try
 			{
 				using (GetPushRuntime())
 				{
-					m_intManager?.CallRef(refIndex, argsSerialized, out retvalSerialized, out retvalSize);
+					m_intManager?.CallRef(refIndex, argsSerialized, out retval);
 				}
 			}
 			catch (Exception e)
@@ -409,6 +408,11 @@ namespace CitizenFX.Core
 			public IntPtr GetLastErrorText()
 			{
 				return m_realHost.GetLastErrorText();
+			}
+
+			public int InvokeFunctionReference(string refId, byte[] args, int argsSize, IntPtr ret)
+			{
+				return m_realHost.InvokeFunctionReference(refId, args, argsSize, ret);
 			}
 
 			[SecurityCritical]

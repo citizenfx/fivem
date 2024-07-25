@@ -88,8 +88,6 @@ extern CNetGamePlayer* g_players[256];
 extern std::unordered_map<uint16_t, CNetGamePlayer*> g_playersByNetId;
 extern std::unordered_map<CNetGamePlayer*, uint16_t> g_netIdsByPlayer;
 
-std::string GetType(void* d);
-
 CNetGamePlayer* GetLocalPlayer();
 
 CNetGamePlayer* GetPlayerByNetId(uint16_t);
@@ -423,7 +421,7 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 		rage::netObject* obj = it->second;
 		auto& extData = m_extendedData[obj->GetObjectId()];
 
-		console::Printf("CloneManager", "-- NETWORK OBJECT %d (%s) --\n", obj->GetObjectId(), GetType(obj));
+		console::Printf("CloneManager", "-- NETWORK OBJECT %d (class %s) --\n", obj->GetObjectId(), fx::sync::GetNetObjEntityName(obj->GetObjectType()));
 		console::Printf("CloneManager", "Owner: %s (%d)\n", g_playersByNetId[extData.clientId] ? g_playersByNetId[extData.clientId]->GetName() : "null?", extData.clientId);
 		console::Printf("CloneManager", "Is remote: %s\n", obj->syncData.isRemote ? "yes" : "no");
 		console::Printf("CloneManager", "Game client ID: %d\n", obj->syncData.ownerId);
@@ -1336,7 +1334,7 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 			return;
 		}
 
-		Log("%s: Remote-migrating object %s (of type %s) from %s to %s.\n", __func__, obj->ToString(), GetType(obj),
+		Log("%s: Remote-migrating object %s (of type %s) from %s to %s.\n", __func__, obj->ToString(), fx::sync::GetNetObjEntityName(obj->GetObjectType()),
 		(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
 		(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
 
@@ -1771,7 +1769,7 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 
 	AttemptFlushCloneBuffer();
 
-	Log("%s: Migrating object %s (of type %s) from %s to %s (%s).\n", __func__, object->ToString(), GetType(object),
+	Log("%s: Migrating object %s (of type %s) from %s to %s (%s).\n", __func__, object->ToString(), fx::sync::GetNetObjEntityName(object->GetObjectType()),
 	wasLocal ? "us" : "a remote player",
 	(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)",
 	(clientId == m_netLibrary->GetServerNetID()) ? "us!" : "remote player");

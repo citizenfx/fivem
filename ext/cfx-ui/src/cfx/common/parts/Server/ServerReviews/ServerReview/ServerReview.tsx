@@ -1,18 +1,21 @@
+import {
+  Avatar,
+  Indicator,
+  Box,
+  Flex,
+  Pad,
+  OnScreenSensor,
+  Separator,
+  Text,
+  TextBlock,
+  Title,
+} from '@cfx-dev/ui-components';
 import format from 'date-fns/format';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
 import { $L } from 'cfx/common/services/intl/l10n';
 import { IServerReviewItem, IServerReviews } from 'cfx/common/services/servers/reviews/types';
-import { Avatar } from 'cfx/ui/Avatar/Avatar';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { OnScreenSensor } from 'cfx/ui/OnScreenSensor';
-import { Separator } from 'cfx/ui/Separator/Separator';
-import { Text, TextBlock } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
 
 import { ServerReviewReactions } from './ServerReviewReactions';
 import { ServerReviewReport } from './ServerReviewReport';

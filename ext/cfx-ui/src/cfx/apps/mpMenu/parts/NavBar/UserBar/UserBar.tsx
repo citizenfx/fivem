@@ -1,3 +1,15 @@
+import {
+  Avatar,
+  Badge,
+  Button,
+  Decorate,
+  Icons,
+  Indicator,
+  Interactive,
+  Flex,
+  Symbols,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { BsExclamationCircleFill, BsFillStarFill } from 'react-icons/bs';
@@ -11,18 +23,10 @@ import { useEventHandler } from 'cfx/common/services/analytics/analytics.service
 import { EventActionNames, ElementPlacements } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { ISettingsUIService } from 'cfx/common/services/settings/settings.service';
-import { Avatar } from 'cfx/ui/Avatar/Avatar';
-import { Badge } from 'cfx/ui/Badge/Badge';
-import { Button, ButtonTheme } from 'cfx/ui/Button/Button';
-import { Decorate } from 'cfx/ui/Decorate/Decorate';
-import { Icons } from 'cfx/ui/Icons';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { Interactive } from 'cfx/ui/Interactive/Interactive';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Symbols } from 'cfx/ui/Symbols';
-import { Title } from 'cfx/ui/Title/Title';
 
 import { NavBarState } from '../NavBarState';
+
+type ButtonTheme = React.ComponentProps<typeof Button>['theme'];
 
 export const UserBar = observer(function UserBar() {
   const AuthService = useAuthService();

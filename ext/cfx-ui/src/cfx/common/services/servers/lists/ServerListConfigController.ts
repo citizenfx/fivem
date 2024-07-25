@@ -1,7 +1,7 @@
+import { noop } from '@cfx-dev/ui-components';
 import { makeAutoObservable } from 'mobx';
 
 import { ISearchTerm, parseSearchTerms2 } from 'cfx/base/searchTermsParser';
-import { noop } from 'cfx/utils/functional';
 import { clone, isObject } from 'cfx/utils/object';
 
 import {

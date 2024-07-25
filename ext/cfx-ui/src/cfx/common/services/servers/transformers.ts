@@ -1,3 +1,5 @@
+import { isFalseString } from '@cfx-dev/ui-components';
+
 import {
   DEFAULT_SERVER_LOCALE,
   DEFAULT_SERVER_LOCALE_COUNTRY,
@@ -8,7 +10,6 @@ import {
   normalizeSearchString,
 } from 'cfx/base/serverUtils';
 import { arrayAt } from 'cfx/utils/array';
-import { isFalseString } from 'cfx/utils/string';
 
 import { master } from './source/api/master';
 import { IArrayCategoryMatcher, IListableServerView, IStringCategoryMatcher } from './source/types';

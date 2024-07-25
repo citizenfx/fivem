@@ -1,8 +1,8 @@
+import { Flex } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { GameName } from 'cfx/base/game';
 import { currentGameNameIs } from 'cfx/base/gameRuntime';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
 
 import { ReplayEditor } from './ReplayEditor/ReplayEditor';
 import { StoryMode } from './StoryMode/StoryMode';

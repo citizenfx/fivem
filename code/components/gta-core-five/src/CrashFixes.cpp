@@ -17,6 +17,7 @@
 
 #include <CoreConsole.h>
 #include <CrossBuildRuntime.h>
+#include <CustomRtti.h>
 
 static volatile void* g_dummyState;
 
@@ -90,36 +91,6 @@ intptr_t VerifyNetObj2(char* a1, int a2)
 	}
 
 	return origVerifyNetObj2(a1, a2);
-}
-
-struct VirtualBase
-{
-	virtual ~VirtualBase() {}
-};
-
-struct VirtualDerivative : public VirtualBase
-{
-	virtual ~VirtualDerivative() override {}
-};
-
-std::string GetType(void* d)
-{
-	VirtualBase* self = (VirtualBase*)d;
-
-	std::string typeName = fmt::sprintf("unknown (vtable %p)", (void*)hook::get_unadjusted(*(void**)self));
-
-	if (!xbr::IsGameBuildOrGreater<2802>())
-	{
-		try
-		{
-			typeName = typeid(*self).name();
-		}
-		catch (std::__non_rtti_object&)
-		{
-		}
-	}
-
-	return typeName;
 }
 
 static void(*g_origUnsetGameObj)(void*, void*, bool, bool);
@@ -804,8 +775,8 @@ static HookFunction hookFunction{[] ()
 			// check if this is a composite bound
 			if (*(uint8_t*)(bound + 16) != 10) // actually 10, but to verify this works
 			{
-				auto boundType = GetType(bound);
-				auto instType = GetType(inst);
+				auto boundType = SearchTypeName(bound, true);
+				auto instType = SearchTypeName(inst, true);
 
 				std::string frag = "<unknown>";
 
