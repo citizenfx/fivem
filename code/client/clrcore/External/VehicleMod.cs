@@ -140,7 +140,7 @@ namespace CitizenFX.Core
 						cur = Game.GetGXTEntry("CMOD_MOD_HRN");
 						break;
 					case VehicleModType.FrontWheel:
-						if (!_owner.Model.IsBike && _owner.Model.IsBicycle)
+						if (!_owner.Model.IsBike && !_owner.Model.IsBicycle)
 						{
 							cur = Game.GetGXTEntry("CMOD_MOD_WHEM");
 							if (cur == "")
