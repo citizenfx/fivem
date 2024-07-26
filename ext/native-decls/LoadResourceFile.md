@@ -14,7 +14,7 @@ Example: `local data = LoadResourceFile("devtools", "client/data.json")`
 
 ## Parameters
 * **resourceName**: The resource name.
-* **directory**: The path of the file in the resource.
+* **filePath**: The path to the file, relative to the specified resource
 
 ## Return value
 The file contents
