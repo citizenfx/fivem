@@ -3,15 +3,80 @@
 #include <CoreConsole.h>
 
 #include <shared_mutex>
-#include <unordered_map>
 #include <TokenBucket.h>
 
 #include <NetAddress.h>
 
 #include <tbb/concurrent_unordered_map.h>
 
+#include "EASTL/bonus/lru_cache.h"
+
+namespace eastl
+{
+template <>
+struct hash<net::PeerAddress>
+{
+	size_t operator()(const net::PeerAddress& address) const
+	{
+		auto sockaddr = address.GetSocketAddress();
+
+		if (sockaddr->sa_family == AF_INET)
+		{
+			auto in = (sockaddr_in*)sockaddr;
+			return std::hash<uint32_t>()(in->sin_addr.s_addr);
+		}
+		else if (sockaddr->sa_family == AF_INET6)
+		{
+			auto in6 = (sockaddr_in6*)sockaddr;
+			return std::hash<std::string_view>()(std::string_view{ reinterpret_cast<char*>(&in6->sin6_addr), sizeof(in6->sin6_addr) });
+		}
+
+		return std::hash<std::string>()(address.GetHost());
+	}
+};
+
+template <>
+struct hash<std::string>
+{
+	size_t operator()(const std::string& str) const
+	{
+		return std::hash<std::string>()(str);
+	}
+};
+}
+
 namespace fx
 {
+// lru cache requires a default ctor for the value to compile
+struct Bucket
+{
+	folly::TokenBucket bucket;
+
+	Bucket(double genRate, double burstSize)
+		: bucket(genRate, burstSize)
+	{
+	}
+
+	Bucket(): bucket {1, 1}
+	{
+	}
+
+	void Reset(double genRate, double burstSize)
+	{
+		bucket.reset(genRate, burstSize);
+	}
+
+	bool Consume(double toConsume)
+	{
+		return bucket.consume(toConsume);
+	}
+
+	void ReturnTokens(double tokensToReturn)
+	{
+		bucket.returnTokens(tokensToReturn);
+	}
+};
+
 template<typename TKey>
 struct KeyMangler
 {
@@ -47,7 +112,9 @@ template<typename TKey, bool Cooldown = false>
 class KeyedRateLimiter
 {
 private:
-	using TBucket = folly::TokenBucket;
+	static constexpr size_t MAX_KEYS = 4000;
+
+	using TBucket = Bucket;
 	using TMangledKey = std::result_of_t<KeyMangler<TKey>(TKey)>;
 
 public:
@@ -73,7 +140,7 @@ public:
 
 			for (auto& bucket : m_buckets)
 			{
-				bucket.second.reset(genRate, burstSize);
+				bucket.second.first.Reset(genRate, burstSize);
 			}
 		}
 	}
@@ -84,14 +151,8 @@ public:
 
 		auto mangled = KeyMangler<TKey>()(key);
 
-		auto it = m_buckets.find(mangled);
-
-		if (it == m_buckets.end())
-		{
-			it = m_buckets.emplace(mangled, TBucket{ m_genRate, m_burstSize }).first;
-		}
-
-		it->second.returnTokens(n);
+		TBucket& bucket = m_buckets.get(mangled);
+		bucket.ReturnTokens(n);
 	}
 
 	bool Consume(const TKey& key, double n = 1.0, bool* isCooldown = nullptr)
@@ -102,11 +163,11 @@ public:
 
 		if (Cooldown)
 		{
-			auto cit = m_cooldowns.find(mangled);
+			eastl::optional<std::chrono::milliseconds> cooldown = m_cooldowns.at(mangled);
 
-			if (cit != m_cooldowns.end())
+			if (cooldown != eastl::nullopt)
 			{
-				if (std::chrono::high_resolution_clock::now().time_since_epoch() <= cit->second)
+				if (std::chrono::high_resolution_clock::now().time_since_epoch() <= *cooldown)
 				{
 					if (isCooldown)
 					{
@@ -116,33 +177,21 @@ public:
 					return false;
 				}
 
-				m_cooldowns.erase(cit);
+				m_cooldowns.erase(mangled);
 			}
 		}
 
-		auto it = m_buckets.find(mangled);
-
-		if (it == m_buckets.end())
-		{
-			it = m_buckets.emplace(mangled, TBucket{m_genRate, m_burstSize}).first;
-		}
-
-		bool valid = it->second.consume(n);
+		TBucket& bucket = m_buckets.get(mangled);
+		bool valid = bucket.Consume(n);
 
 		if (Cooldown && !valid)
 		{
-			it = m_cooldownBuckets.find(mangled);
-
-			if (it == m_cooldownBuckets.end())
-			{
-				it = m_cooldownBuckets.emplace(mangled, TBucket{ m_genRate * 1.5, m_burstSize * 1.5 }).first;
-			}
-
-			bool cooldownValid = it->second.consume(n);
+			bucket = m_cooldownBuckets.get(mangled);
+			bool cooldownValid = bucket.Consume(n);
 
 			if (!cooldownValid)
 			{
-				m_cooldowns[mangled] = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() + std::chrono::seconds(15));
+				m_cooldowns.insert_or_assign(mangled, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() + std::chrono::seconds(15)));
 			}
 		}
 
@@ -154,22 +203,24 @@ public:
 		std::unique_lock<std::mutex> lock(m_mutex);
 
 		auto mangled = KeyMangler<TKey>()(key);
-		auto it = m_buckets.find(mangled);
 
-		if (it != m_buckets.end())
+		if (m_buckets.contains(mangled))
 		{
-			it->second.reset(m_genRate, m_burstSize);
+			m_buckets.get(mangled).Reset(m_genRate, m_burstSize);
 		}
 	}
-
 private:
-	std::unordered_map<TMangledKey, TBucket> m_buckets;
-	std::unordered_map<TMangledKey, TBucket> m_cooldownBuckets;
-	std::unordered_map<TMangledKey, std::chrono::milliseconds> m_cooldowns;
 	std::mutex m_mutex;
 
 	double m_genRate;
 	double m_burstSize;
+
+	eastl::function<TBucket(TMangledKey)> m_createTBucket = [this](TMangledKey) { return TBucket{ m_genRate, m_burstSize }; };
+	eastl::function<TBucket(TMangledKey)> m_createTCooldownBucket = [this](TMangledKey) { return TBucket{ m_genRate * 1.5, m_burstSize * 1.5 }; };
+
+	eastl::lru_cache<TMangledKey, TBucket> m_buckets {MAX_KEYS, eastl::allocator(EASTL_LRUCACHE_DEFAULT_NAME), m_createTBucket};
+	eastl::lru_cache<TMangledKey, TBucket> m_cooldownBuckets {MAX_KEYS, eastl::allocator(EASTL_LRUCACHE_DEFAULT_NAME), m_createTCooldownBucket};
+	eastl::lru_cache<TMangledKey, std::chrono::milliseconds> m_cooldowns {MAX_KEYS};
 };
 
 struct RateLimiterDefaults
