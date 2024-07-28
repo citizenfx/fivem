@@ -125,11 +125,11 @@ namespace CitizenFX.Core
 
 		public static bool operator ==(WeaponAsset left, WeaponAsset right)
 		{
-			return left.Equals(right);
+			return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.Equals(right);
 		}
 		public static bool operator !=(WeaponAsset left, WeaponAsset right)
 		{
-			return !left.Equals(right);
+			return !(left==right);
 		}
 	}
 }

@@ -1025,7 +1025,7 @@ namespace CitizenFX.Core
 
 			public static bool operator ==(WeaponHudStats left, WeaponHudStats right)
 			{
-				return left.Equals(right);
+				return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.Equals(right);
 			}
 
 			public static bool operator !=(WeaponHudStats left, WeaponHudStats right)
@@ -1101,7 +1101,7 @@ namespace CitizenFX.Core
 
 			public static bool operator ==(WeaponComponentHudStats left, WeaponComponentHudStats right)
 			{
-				return left.Equals(right);
+				return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.Equals(right);
 			}
 
 			public static bool operator !=(WeaponComponentHudStats left, WeaponComponentHudStats right)

@@ -109,7 +109,7 @@ namespace CitizenFX.Core
 
 		public static bool operator ==(RelationshipGroup left, RelationshipGroup right)
 		{
-			return left.Equals(right);
+			return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.Equals(right);
 		}
 		public static bool operator !=(RelationshipGroup left, RelationshipGroup right)
 		{
