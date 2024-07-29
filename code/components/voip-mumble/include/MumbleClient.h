@@ -121,6 +121,8 @@ public:
 
 	virtual void RemoveListenChannel(const std::string& channelName) = 0;
 
+	virtual bool DoesChannelExist(const std::string& channelName) = 0;
+
 	virtual std::shared_ptr<lab::AudioContext> GetAudioContext(const std::string& name) = 0;
 
 	// settings
