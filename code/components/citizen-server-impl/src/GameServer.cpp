@@ -1261,6 +1261,7 @@ namespace fx
 #include <packethandlers/ServerCommandPacketHandler.h>
 #include <packethandlers/TimeSyncReqPacketHandler.h>
 #include <packethandlers/StateBagPacketHandler.h>
+#include <packethandlers/NetGameEventPacketHandler.h>
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
@@ -1297,6 +1298,10 @@ void gscomms_execute_callback_on_sync_thread(const std::function<void()>& fn)
 
 void gscomms_reset_peer(int peer)
 {
+	if (!g_gameServer)
+	{
+		return;
+	}
 	gscomms_execute_callback_on_net_thread([=]()
 	{
 		g_gameServer->InternalResetPeer(peer);
@@ -1305,6 +1310,10 @@ void gscomms_reset_peer(int peer)
 
 void gscomms_send_packet(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType flags)
 {
+	if (!g_gameServer)
+	{
+		return;
+	}
 	g_gameServer->InternalSendPacket(client, peer, channel, buffer, flags);
 }
 
@@ -1322,7 +1331,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(new fx::UdpInterceptor());
 
 		instance->SetComponent(
-			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2>(
+			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2>(
 				WithProcessTick<ThreadWait, GameServerTick>(
 					WithOutOfBand<GetInfoOutOfBand, GetStatusOutOfBand, RconOutOfBand>(
 						WithEndPoints(

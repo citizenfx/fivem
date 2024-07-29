@@ -21,7 +21,7 @@ void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, cons
 
 namespace rl
 {
-	bool MessageBuffer::GetLengthHackState()
+	bool MessageBufferLengthHack::GetState()
 	{
 		return false;
 	}

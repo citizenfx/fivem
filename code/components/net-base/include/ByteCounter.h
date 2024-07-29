@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "DataStream.h"
+#include "Span.h"
 
 namespace net
 {
@@ -51,6 +52,20 @@ namespace net
 		bool Field(T& value, const size_t size)
 		{
 			m_counter += size;
+			return true;
+		}
+
+		/// <summary>
+		/// Counts the size of Span
+		/// </summary>
+		/// <param name="value">The Span to count the size from</param>
+		/// <param name="size">Amount of elements to count</param>
+		/// <returns>Returns a bool to match the DataStream, but its always true for the ByteCounter</returns>
+		template <typename T>
+		bool Field(Span<T>& value, const size_t size)
+		{
+			m_counter += size * sizeof(T);
+		
 			return true;
 		}
 	};

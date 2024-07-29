@@ -52,9 +52,14 @@ fx::ClientSharedPtr fx::ClientRegistry::MakeClient(const std::string& guid)
 {
 	fx::ClientSharedPtr client = fx::ClientSharedPtr::Construct(guid);
 	client->SetNetId(m_amountConnectedClients + 1);
+
+	const auto local = net::PeerAddress::FromString("127.0.0.1").get();
+	client->SetPeer(1, local);
+
 	fx::ClientWeakPtr weakClient(client);
 
-	m_clientsBySlotId[1] = weakClient;
+	m_clientsBySlotId[client->GetNetId()] = weakClient;
+	m_clientsByNetId[client->GetNetId()] = weakClient;
 	
 	{
 		std::unique_lock writeHolder(m_clientMutex);
