@@ -192,31 +192,31 @@ static void DoMapping()
 		}
 	}
 
-	if (xbr::IsGameBuild<1604>())
+	if (Is1604())
 	{
 		assert(maxVersion == 19);
 	}
-	else if (xbr::IsGameBuild<2060>())
+	else if (Is2060())
 	{
 		assert(maxVersion == 22);
 	}
-	else if (xbr::IsGameBuild<2189>())
+	else if (Is2189())
 	{
 		assert(maxVersion == 23);
 	}
-	else if (xbr::IsGameBuild<2372>())
+	else if (Is2372())
 	{
 		assert(maxVersion == 24);
 	}
-	else if (xbr::IsGameBuild<2545>() || xbr::IsGameBuild<2612>() || xbr::IsGameBuild<2699>())
+	else if (Is2545() || Is2612() || Is2699())
 	{
 		assert(maxVersion == 25);
 	}
-	else if (xbr::IsGameBuild<2802>())
+	else if (Is2802())
 	{
 		assert(maxVersion == 26);
 	}
-	else if (xbr::IsGameBuildOrGreater<2944>())
+	else if (Is2944() || Is3095() || Is3258())
 	{
 		assert(maxVersion == 27);
 	}

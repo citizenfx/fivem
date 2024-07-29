@@ -5,8 +5,6 @@ if not gameDumpsRoot or not os.isdir(gameDumpsRoot) then
 	gameDumpsRoot = "C:\\f"
 end
 
-local gameBuilds = require("../../premake5_builds")
-
 local delayDLLs = {
 }
 
@@ -53,48 +51,33 @@ local function isLauncherPersonality(name)
 end
 
 -- is game host?
-local function isGamePersonality(name, strict)
-	if strict == nil then
-		strict = false
-	end
-
-	if _OPTIONS['game'] ~= 'five' and _OPTIONS['game'] ~= 'rdr3' and _OPTIONS['game'] ~= 'ny' and strict == false then
+local function isGamePersonality(name)
+	if _OPTIONS['game'] ~= 'five' and _OPTIONS['game'] ~= 'rdr3' and _OPTIONS['game'] ~= 'ny' then
 		return isLauncherPersonality(name)
 	end
 
 	if name == 'game_mtl' then
 		return true
 	end
+
+	if name == 'game_1604' or name == 'game_2060' or name == 'game_2189' or name == 'game_2372' or name == 'game_2545' or name == 'game_2612' or name == 'game_2699' or name == 'game_2802' or name == 'game_2944' or name == 'game_3095' or name == 'game_3258' then
+		return true
+	end
 	
-	if isLauncherPersonality(name) and strict == false then
+	if name == 'game_1311' or name == 'game_1355' or name == 'game_1436' or name == 'game_1491' then
+		return true
+	end
+	
+	if name == 'game_43' then
+		return true
+	end
+	
+	if isLauncherPersonality(name) then
 		filter { "configurations:Debug" }
 		return true
 	end
 	
-	return gameBuilds[_OPTIONS['game']][name] ~= nil
-end
-
-local function getGameBuild(name)
-	if name == 'game_mtl' then
-        return 'mtl'
-    end
-	return gameBuilds[_OPTIONS['game']][name]
-end
-
-local function getGameDump(name, gameBuild)
-    local gameDump
-
-    if _OPTIONS['game'] == 'five' then
-        gameDump = ("%s\\GTA5_%s_dump.exe"):format(gameDumpsRoot, gameBuild)
-    elseif _OPTIONS['game'] == 'rdr3' then
-        gameDump = ("%s\\RDR2_%s_dump.exe"):format(gameDumpsRoot, gameBuild)
-    end
-
-    if name == 'game_mtl' then
-        gameDump = ("%s\\Launcher.exe"):format(gameDumpsRoot)
-    end
-
-    return gameDump
+	return false
 end
 
 local function launcherpersonality_inner(name)
@@ -163,8 +146,38 @@ local function launcherpersonality_inner(name)
 		end
 		
 		if isGamePersonality(name) then
-			local gameBuild = getGameBuild(name)
-			local gameDump = getGameDump(name, gameBuild)
+			local gameBuild
+			local gameDump
+
+			if _OPTIONS['game'] == 'five' then
+				gameBuild = '1604'
+
+				if name == 'game_3258' then gameBuild = '3258_0' end
+				if name == 'game_3095' then gameBuild = '3095_0' end
+				if name == 'game_2944' then gameBuild = '2944_0' end
+				if name == 'game_2802' then gameBuild = '2802_0' end
+				if name == 'game_2699' then gameBuild = '2699_0' end
+				if name == 'game_2612' then gameBuild = '2612_1' end
+				if name == 'game_2545' then gameBuild = '2545_0' end
+				if name == 'game_2372' then gameBuild = '2372_0' end
+				if name == 'game_2189' then gameBuild = '2189_0' end
+				if name == 'game_2060' then gameBuild = '2060_2' end
+
+				gameDump = ("%s\\GTA5_%s_dump.exe"):format(gameDumpsRoot, gameBuild)
+			elseif _OPTIONS['game'] == 'rdr3' then
+				gameBuild = '1311'
+
+				if name == 'game_1355' then gameBuild = '1355_18' end
+				if name == 'game_1436' then gameBuild = '1436_31' end
+				if name == 'game_1491' then gameBuild = '1491_50' end
+
+				gameDump = ("%s\\RDR2_%s.exe"):format(gameDumpsRoot, gameBuild)
+			end
+
+			if name == 'game_mtl' then
+				gameDump = ("%s\\Launcher.exe"):format(gameDumpsRoot)
+				gameBuild = 'mtl'
+			end
 
 			if gameDump then
 				postbuildcommands {
@@ -229,10 +242,6 @@ local function launcherpersonality_inner(name)
 		
 		linkoptions "/IGNORE:4254 /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
 		
-		if isGamePersonality(name, true) then
-			defines("LAUNCHER_PERSONALITY_GAME")
-		end
-
 		if isGamePersonality(name) then
 			-- VS14 linker behavior change causes the usual workaround to no longer work, use an undocumented linker switch instead
 			-- note that pragma linker directives ignore these (among other juicy arguments like /WBRDDLL, /WBRDTESTENCRYPT and other
@@ -273,17 +282,27 @@ end
 launcherpersonality 'main'
 launcherpersonality 'chrome'
 
-local builds = gameBuilds[_OPTIONS["game"]]
-if builds ~= nil then
-	for key, _ in pairs(builds) do
-		launcherpersonality(key)
-	end
-end
-
 if _OPTIONS['game'] == 'five' then
+	launcherpersonality 'game_1604'
+	launcherpersonality 'game_2060'
+	launcherpersonality 'game_2189'
+	launcherpersonality 'game_2372'
+	launcherpersonality 'game_2545'
+	launcherpersonality 'game_2612'
+	launcherpersonality 'game_2699'
+	launcherpersonality 'game_2802'
+	launcherpersonality 'game_2944'
+	launcherpersonality 'game_3095'
+	launcherpersonality 'game_3258'
 	launcherpersonality 'game_mtl'
 elseif _OPTIONS['game'] == 'rdr3' then
+	launcherpersonality 'game_1311'
+	launcherpersonality 'game_1355'
+	launcherpersonality 'game_1436'
+	launcherpersonality 'game_1491'
 	launcherpersonality 'game_mtl'
+elseif _OPTIONS['game'] == 'ny' then
+	launcherpersonality 'game_43'
 end
 
 group 'subprocess'
