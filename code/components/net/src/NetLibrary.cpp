@@ -549,6 +549,14 @@ void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_
 	}
 }
 
+void NetLibrary::SendReliablePacket(uint32_t type, const char* buffer, size_t length)
+{
+	if (auto impl = GetImpl())
+	{
+		impl->SendReliablePacket(type, buffer, length);
+	}
+}
+
 void NetLibrary::SendUnreliableCommand(const char* type, const char* buffer, size_t length)
 {
 	if (auto impl = GetImpl())

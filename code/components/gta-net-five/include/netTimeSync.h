@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ByteReader.h"
+
 struct TrustAddressData
 {
 	uint32_t m_addr;
@@ -43,7 +45,7 @@ public:
 	virtual ~netTimeSync() = 0;
 
 	void Update();
-	void HandleTimeSync(net::Buffer& buffer);
+	void HandleTimeSync(net::ByteReader& reader);
 	bool IsInitialized();
 	void SetConnectionManager(netConnectionManager* mgr);
 

@@ -37,6 +37,8 @@ public:
 
 	virtual void SendReliableCommand(uint32_t type, const char* buffer, size_t length) = 0;
 
+	virtual void SendReliablePacket(uint32_t type, const char* buffer, size_t length) = 0;
+
 	virtual void SendUnreliableCommand(uint32_t type, const char* buffer, size_t length)
 	{
 		return SendReliableCommand(type, buffer, length);

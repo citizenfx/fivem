@@ -231,6 +231,8 @@ public:
 
 	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length) override;
 
+	void SendReliablePacket(uint32_t type, const char* buffer, size_t length);
+
 	void SendUnreliableCommand(const char* type, const char* buffer, size_t length);
 
 	void RunMainFrame();
