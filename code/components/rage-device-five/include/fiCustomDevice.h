@@ -27,6 +27,7 @@ class DEVICE_EXPORT __declspec(novtable) fiCustomDevice : public fiDevice
 private:
 	uint8_t m_parentDeviceData[16];
 
+protected:
 	rage::fiDevice* m_parentDeviceRef;
 
 public:
