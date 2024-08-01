@@ -234,6 +234,7 @@ const EXT_LOCALFUNCREF = 11;
 	// Convenience aliases for Lua similarity
 	global.AddEventHandler = global.addEventListener;
 	global.RegisterNetEvent = (name) => void netSafeEventNames.add(name);
+	global.DoesEventExist = (name) => void netSafeEventNames.has(name);
 	global.RegisterServerEvent = global.RegisterNetEvent;
 	global.RemoveEventHandler = global.removeEventListener;
 

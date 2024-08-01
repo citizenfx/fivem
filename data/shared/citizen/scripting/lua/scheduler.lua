@@ -334,6 +334,10 @@ function RegisterNetEvent(eventName, cb)
 	end
 end
 
+function DoesEventExist(eventName)
+	return eventHandlers[eventName] or false
+end
+
 function TriggerEvent(eventName, ...)
 	local payload = msgpack_pack_args(...)
 
