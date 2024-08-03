@@ -87,14 +87,11 @@ namespace CitizenFX.Core
 			ulong prevTime = (ulong)Interlocked.Read(ref s_sharedData->m_scheduledTimeAsLong);
 			while (time < prevTime)
 		    {
-		        // Attempt to update the scheduled time
 		        ulong updatedTime = (ulong)Interlocked.CompareExchange(ref s_sharedData->m_scheduledTimeAsLong, (long)time, (long)prevTime);
-
-		        // If the exchange was successful, exit the loop
+		  
 		        if (updatedTime == prevTime)
 		            return;
 
-		        // Update prevTime for the next iteration
 		        prevTime = updatedTime;
 		    }
 		}
