@@ -22,7 +22,7 @@ namespace net
 		struct HasIsComponent
 		{
 			template <typename U>
-			static auto TestIsComponent(int) -> decltype(U::IsComponent, std::true_type());
+			static auto TestIsComponent(int) -> decltype(U::kIsComponent, std::true_type());
 
 			template <typename>
 			static auto TestIsComponent(...) -> std::false_type;
