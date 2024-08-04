@@ -153,7 +153,7 @@ namespace CitizenFX.Core
 	}
 
 	[AsyncMethodBuilder(typeof(CoroutineBuilder))]
-	public partial class Coroutine
+	public partial class Coroutine : IComparable<Coroutine>
 	{
 		public enum State : uint
 		{
@@ -262,6 +262,11 @@ namespace CitizenFX.Core
 		}
 
 		public CoroutineAwaiter GetAwaiter() => new CoroutineAwaiter(this);
+
+		public int CompareTo(Coroutine other)
+		{
+		    return Time.CompareTo(other.Time);
+		}
 	}
 
 	public interface ICoroutineAwaiter {}
