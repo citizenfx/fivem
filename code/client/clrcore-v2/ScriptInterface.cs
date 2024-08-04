@@ -83,15 +83,16 @@ namespace CitizenFX.Core
 		/// <param name="time">Next time to request a call in</param>
 		[SecuritySafeCritical]
 		internal static unsafe void RequestTick(ulong time)
-		{			
-			ulong prevTime = (ulong)Interlocked.Read(ref s_sharedData->m_scheduledTimeAsLong);
-			while (time < prevTime)
-			{
-		        ulong updatedTime = (ulong)Interlocked.CompareExchange(ref s_sharedData->m_scheduledTimeAsLong, (long)time, (long)prevTime);
-		        if (updatedTime == prevTime)
+		{		
+			var spinner = new SpinWait();
+		    ulong prevTime;
+		    do {
+		        prevTime = (ulong)Interlocked.Read(ref s_sharedData->m_scheduledTimeAsLong);
+		        if (time <= prevTime)
+		            spinner.SpinOnce();
+		        else if (Interlocked.CompareExchange(ref s_sharedData->m_scheduledTimeAsLong, (long)time, (long)prevTime) == (long)prevTime)
 		            return;
-		        prevTime = updatedTime;
-		    }
+		    } while (true);
 		}
 
 		/// <summary>
