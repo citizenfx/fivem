@@ -142,3 +142,56 @@ TEST_CASE("Components test")
 	uint64_t size = byteCounter.GetCapacity();
 	REQUIRE(size == uint64_t(917549));
 }
+
+namespace SerializableComponentPropertyTest {
+class Component: public net::SerializableComponent
+{
+public:
+	net::SerializableProperty<uint32_t> value {};
+
+	template <typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPropertiesInOrder<T>(
+			stream,
+			value
+		);
+	}
+};
+
+class ComponentHoldingClass : public net::SerializableComponent
+{
+public:
+	net::SerializableProperty<Component> component {};
+		
+	template <typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPropertiesInOrder<T>(
+			stream,
+			component
+		);
+	}
+};
+}
+
+TEST_CASE("Serializable component property")
+{
+	uint32_t random = fx::TestUtils::u64Random(UINT32_MAX);
+
+	SerializableComponentPropertyTest::ComponentHoldingClass instance;
+	instance.component.GetValue().value.SetValue(random);
+
+	uint8_t buffer[4];
+	net::ByteWriter writer(buffer, sizeof(buffer));
+	REQUIRE(instance.Process(writer));
+
+	REQUIRE(*reinterpret_cast<uint32_t*>(buffer) == random);
+
+	SerializableComponentPropertyTest::ComponentHoldingClass instanceRead;
+
+	net::ByteReader reader(buffer, sizeof(buffer));
+	REQUIRE(instanceRead.Process(reader));
+
+	REQUIRE(instanceRead.component.GetValue().value.GetValue() == random);
+}
