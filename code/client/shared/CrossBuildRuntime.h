@@ -3,33 +3,6 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/wstringize.hpp>
 
-#ifdef GTA_FIVE
-#define GAME_BUILDS \
-	(3258) \
-	(3095) \
-	(2944) \
-	(2802) \
-	(2699) \
-	(2612) \
-	(2545) \
-	(2372) \
-	(2189) \
-	(2060) \
-	(1604)
-#elif defined(IS_RDR3)
-#define GAME_BUILDS \
-	(1491) \
-	(1436) \
-	(1355) \
-	(1311)
-#elif defined(GTA_NY)
-#define GAME_BUILDS \
-	(43)
-#else
-#define GAME_BUILDS \
-	(0)
-#endif
-
 namespace xbr
 {
 //
@@ -135,25 +108,6 @@ inline std::string_view GetCurrentGameBuildString()
 }
 #endif
 }
-
-#define EXPAND2(_, __, x) \
-	inline bool BOOST_PP_CAT(Is, x)() \
-	{ \
-		static bool retval; \
-		static bool inited = false; \
-		\
-		if (!inited) \
-		{ \
-			retval = xbr::GetGameBuild() == x; \
-			inited = true; \
-		} \
-		\
-		return retval; \
-	}
-
-BOOST_PP_SEQ_FOR_EACH(EXPAND2, , GAME_BUILDS)
-
-#undef EXPAND2
 
 namespace xbr
 {
