@@ -764,6 +764,13 @@ static void Init()
 		return 1;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_HORN_TYPE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vn = entity->syncTree->GetVehicleAppearance();
+
+		return vn ? vn->hornTypeHash : 0;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_EXTRA_COLOURS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		if (context.GetArgumentCount() > 2)
