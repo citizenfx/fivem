@@ -40,6 +40,9 @@
 #include <citizen_util/object_pool.h>
 #include <citizen_util/shared_reference.h>
 
+#include "ByteReader.h"
+#include "NetGameEventV2.h"
+
 #ifdef STATE_FIVE
 static constexpr int kNetObjectTypeBitLength = 4;
 #elif defined(STATE_RDR3)
@@ -51,7 +54,7 @@ static constexpr int kPacketWarnLength = 1300;
 
 namespace rl
 {
-	bool MessageBuffer::GetLengthHackState()
+	bool MessageBufferLengthHack::GetState()
 	{
 		return fx::IsLengthHack();
 	}
@@ -86,6 +89,7 @@ std::shared_ptr<ConVar<bool>> g_oneSyncWorkaround763185;
 std::shared_ptr<ConVar<bool>> g_oneSyncBigMode;
 std::shared_ptr<ConVar<bool>> g_oneSyncLengthHack;
 std::shared_ptr<ConVar<bool>> g_experimentalOneSyncPopulation;
+std::shared_ptr<ConVar<bool>> g_experimentalNetGameEventHandler;
 std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
 std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
@@ -2705,6 +2709,12 @@ bool ServerGameState::SetEntityStateBag(uint8_t playerId, uint16_t objectId, std
 	return false;
 }
 
+uint32_t ServerGameState::GetClientRoutingBucket(const fx::ClientSharedPtr& client)
+{
+	auto data = GetClientDataUnlocked(this, client);
+	return data->routingBucket;
+}
+
 bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client)
 {
 	// pickup placements at 0,0,0 are transient and shouldn't migrate
@@ -4354,7 +4364,7 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 #ifdef STATE_FIVE
 struct CFireEvent
 {
-	void Parse(rl::MessageBuffer& buffer);
+	void Parse(rl::MessageBufferView& buffer);
 
 	inline std::string GetName()
 	{
@@ -4393,7 +4403,7 @@ struct CFireEvent
 	MSGPACK_DEFINE(fires);
 };
 
-void CFireEvent::Parse(rl::MessageBuffer& buffer)
+void CFireEvent::Parse(rl::MessageBufferView& buffer)
 {
 	int count = buffer.Read<int>(3);
 	if (count > 5)
@@ -4451,7 +4461,7 @@ void CFireEvent::Parse(rl::MessageBuffer& buffer)
 
 struct CExplosionEvent
 {
-	void Parse(rl::MessageBuffer& buffer);
+	void Parse(rl::MessageBufferView& buffer);
 
 	inline std::string GetName()
 	{
@@ -4502,7 +4512,7 @@ struct CExplosionEvent
 	MSGPACK_DEFINE_MAP(f186,f208,ownerNetId,f214,explosionType,damageScale,posX,posY,posZ,f242,f104,cameraShake,isAudible,f189,isInvisible,f126,f241,f243,f210,unkX,unkY,unkZ,f190,f191,f164,posX224,posY224,posZ224,f240,f218,f216);
 };
 
-void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
+void CExplosionEvent::Parse(rl::MessageBufferView& buffer)
 {
 	f186 = buffer.Read<uint16_t>(16);
 	f208 = buffer.Read<uint16_t>(13);
@@ -4675,7 +4685,7 @@ declare function weaponDamageEvent(sender: number, data: {
 */
 struct CWeaponDamageEvent
 {
-	void Parse(rl::MessageBuffer& buffer);
+	void Parse(rl::MessageBufferView& buffer);
 
 	void SetTargetPlayers(fx::ServerGameState* sgs, const std::vector<uint16_t>& targetPlayers);
 
@@ -4734,7 +4744,7 @@ struct CWeaponDamageEvent
 	MSGPACK_DEFINE_MAP(damageType, weaponType, overrideDefaultDamage, hitEntityWeapon, hitWeaponAmmoAttachment, silenced, damageFlags, hasActionResult, actionResultName, actionResultId, f104, weaponDamage, isNetTargetPos, localPosX, localPosY, localPosZ, f112, damageTime, willKill, f120, hasVehicleData, f112_1, parentGlobalId, hitGlobalId, tyreIndex, suspensionIndex, hitComponent, f133, hasImpactDir, impactDirX, impactDirY, impactDirZ, hitGlobalIds);
 };
 
-void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
+void CWeaponDamageEvent::Parse(rl::MessageBufferView& buffer)
 {
 	if (Is2060() && !Is2372())
 	{
@@ -4905,7 +4915,7 @@ struct CWeaponDamageEventReply
 		return "weaponDamageReply";
 	}
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		health = buffer.Read<uint32_t>(14);
 		time = buffer.Read<uint32_t>(32);
@@ -4917,7 +4927,7 @@ struct CWeaponDamageEventReply
 
 struct CVehicleComponentControlEvent
 {
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		vehicleGlobalId = buffer.Read<uint16_t>(13);
 		pedGlobalId = buffer.Read<uint16_t>(13);
@@ -4962,7 +4972,7 @@ struct CVehicleComponentControlReply
 		return "vehicleComponentControlReply";
 	}
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		isGranted = buffer.ReadBit();
 		if (isGranted)
@@ -4982,7 +4992,7 @@ struct CVehicleComponentControlReply
 
 struct CClearPedTasksEvent
 {
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		pedId = buffer.Read<uint16_t>(13);
 		immediately = buffer.Read<uint8_t>(1);
@@ -5001,7 +5011,7 @@ struct CClearPedTasksEvent
 
 struct CRespawnPlayerPedEvent
 {
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		posX = buffer.ReadSignedFloat(19, 27648.0f);
 		posY = buffer.ReadSignedFloat(19, 27648.0f);
@@ -5066,7 +5076,7 @@ struct CRespawnPlayerPedReply
 		return "respawnPlayerPedReply";
 	}
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		respawnFailedResult = buffer.ReadBit();
 	}
@@ -5077,7 +5087,7 @@ struct CRespawnPlayerPedReply
 
 struct CGiveWeaponEvent
 {
-    void Parse(rl::MessageBuffer& buffer)
+    void Parse(rl::MessageBufferView& buffer)
     {
         pedId = buffer.Read<uint16_t>(13);
         weaponType = buffer.Read<uint32_t>(32);
@@ -5102,7 +5112,7 @@ struct CGiveWeaponEvent
 
 struct CRemoveWeaponEvent
 {
-    void Parse(rl::MessageBuffer& buffer)
+    void Parse(rl::MessageBufferView& buffer)
     {
         pedId = buffer.Read<uint16_t>(13);
         weaponType = buffer.Read<uint32_t>(32);
@@ -5132,7 +5142,7 @@ declare function removeAllWeaponsEvent(sender: number, data: {
 */
 struct CRemoveAllWeaponsEvent
 {
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		pedId = buffer.Read<uint16_t>(13);
 	}
@@ -5188,7 +5198,7 @@ declare function startProjectileEvent(sender: number, data: {
 */
 struct CStartProjectileEvent
 {
-    void Parse(rl::MessageBuffer& buffer)
+    void Parse(rl::MessageBufferView& buffer)
     {
         ownerId = buffer.Read<uint16_t>(13);
         projectileHash = buffer.Read<uint32_t>(32);
@@ -5341,7 +5351,7 @@ declare function ptFxEvent(sender: number, data: {
 */
 struct CNetworkPtFXEvent
 {
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		effectHash = buffer.Read<uint32_t>(32);
 		assetHash = buffer.Read<uint32_t>(32);
@@ -5473,7 +5483,7 @@ struct CRequestNetworkSyncedSceneEvent
 {
 	uint16_t sceneId;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
 		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
@@ -5501,7 +5511,7 @@ private:
 		int ragdollBlockingFlags;
 		int ikFlags;
 
-		void Parse(rl::MessageBuffer& buffer)
+		void Parse(rl::MessageBufferView& buffer)
 		{
 			objectId = buffer.Read<uint16_t>(13);
 			animPartialHash = buffer.Read<uint32_t>(32);
@@ -5524,7 +5534,7 @@ private:
 		float blendOut;
 		int flags;
 
-		void Parse(rl::MessageBuffer& buffer)
+		void Parse(rl::MessageBufferView& buffer)
 		{
 			objectId = buffer.Read<uint16_t>(13);
 			animHash = buffer.Read<uint32_t>(32);
@@ -5547,7 +5557,7 @@ private:
 		int flags;
 		uint32_t animHash;
 
-		void Parse(rl::MessageBuffer& buffer)
+		void Parse(rl::MessageBufferView& buffer)
 		{
 			nameHash = buffer.Read<uint32_t>(32);
 			posX = buffer.ReadSignedFloat(19, 27648.0f);
@@ -5595,7 +5605,7 @@ public:
 	std::vector<NonPedEntityData> nonPedEntities;
 	std::vector<MapEntityData> mapEntities;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		// FIXME: Synced scene IDs are 13 bits in length, but since it's not an object ID, it's conflicting
 		// with our length-hack logic... We're working around this issue by reading these 13 bits in two parts.
@@ -5685,7 +5695,7 @@ struct CUpdateNetworkSyncedSceneEvent
 	uint16_t sceneId;
 	float rate;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
 		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
@@ -5705,7 +5715,7 @@ struct CStopNetworkSyncedSceneEvent
 {
 	uint16_t sceneId;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
 		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
@@ -5723,7 +5733,7 @@ struct CStopNetworkSyncedSceneEvent
 #ifdef STATE_RDR3
 struct CExplosionEvent
 {
-	void Parse(rl::MessageBuffer& buffer);
+	void Parse(rl::MessageBufferView& buffer);
 
 	inline std::string GetName()
 	{
@@ -5779,7 +5789,7 @@ struct CExplosionEvent
 	MSGPACK_DEFINE_MAP(f218, f240, ownerNetId, f246, explosionType, damageScale, posX, posY, posZ, f274, f120, cameraShake, isAudible, f221, isInvisible, f142, f273, unkHash1436, attachEntityId, f244, unkX, unkY, unkZ, f223, f225, f226, f276, f180, f184, posX256, posY256, posZ256, f272, f250, f248);
 };
 
-void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
+void CExplosionEvent::Parse(rl::MessageBufferView& buffer)
 {
 	f218 = buffer.Read<uint16_t>(16);
 	f240 = buffer.Read<uint16_t>(13);
@@ -5847,7 +5857,7 @@ void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
 
 struct CWeaponDamageEvent
 {
-	void Parse(rl::MessageBuffer& buffer);
+	void Parse(rl::MessageBufferView& buffer);
 
 	void SetTargetPlayers(fx::ServerGameState* sgs, const std::vector<uint16_t>& targetPlayers);
 
@@ -5919,7 +5929,7 @@ struct CWeaponDamageEvent
 	MSGPACK_DEFINE_MAP(damageType, weaponType, f92, overrideDefaultDamage, hitEntityWeapon, hitWeaponAmmoAttachment, silenced, f201, damageFlags, hasActionResult, actionResultName, actionResultId, f124, f120, f136, f132, weaponDamage, f100, isNetTargetPos, localPosX, localPosY, localPosZ, damageTime, f184, f156, hasVehicleData, parentGlobalId, hitGlobalId, f140, f144, f148, hitGlobalIds, tyreIndex, suspensionIndex, f152, f202, f203, f204, f197, f205, f206, f176, f177, f170, f162);
 };
 
-void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
+void CWeaponDamageEvent::Parse(rl::MessageBufferView& buffer)
 {
 	damageType = buffer.Read<uint8_t>(2);
 	weaponType = buffer.ReadBit() ? buffer.Read<uint32_t>(32) : 0;
@@ -6089,7 +6099,7 @@ struct CWeaponDamageEventReply
 	bool f203;
 	uint8_t f188;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		health = buffer.Read<uint32_t>(14);
 		time = buffer.Read<uint32_t>(32);
@@ -6122,7 +6132,7 @@ struct CRespawnPlayerPedEvent
 	bool f100;
 	bool f101;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		posX = buffer.ReadSignedFloat(19, 27648.0f);
 		posY = buffer.ReadSignedFloat(19, 27648.0f);
@@ -6151,7 +6161,7 @@ struct CRespawnPlayerPedReply
 {
 	bool respawnFailedResult;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		respawnFailedResult = buffer.ReadBit();
 	}
@@ -6169,7 +6179,7 @@ struct CLightningEvent
 	uint8_t f84;
 	float f88;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		f84 = buffer.Read<uint8_t>(3);
 		f88 = buffer.ReadFloat(10, 1.0f);
@@ -6188,7 +6198,7 @@ struct CClearPedTasksEvent
 	uint16_t pedId;
 	bool immediately;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		pedId = buffer.Read<uint16_t>(13);
 		immediately = buffer.Read<uint8_t>(1);
@@ -6209,7 +6219,7 @@ struct CEndLootEvent
 	bool f59;
 	uint8_t f60;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		targetId = buffer.Read<uint16_t>(13);
 		f58 = buffer.ReadBit();
@@ -6231,7 +6241,7 @@ struct CSendCarriableUpdateCarryStateEvent
 	uint16_t parentId;
 	uint16_t carrierId;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		carriableId = buffer.Read<uint16_t>(13);
 		parentId = buffer.Read<uint16_t>(13);
@@ -6252,7 +6262,7 @@ struct CCarriableVehicleStowStartEvent
 	uint16_t carriableId;
 	uint16_t vehicleId;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		carrierId = buffer.Read<uint16_t>(13);
 		carriableId = buffer.Read<uint16_t>(13);
@@ -6284,7 +6294,7 @@ struct CCarriableVehicleStowCompleteEvent
 	float f96;
 	bool f100;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		carrierId = buffer.Read<uint16_t>(13);
 		vehicleId = buffer.Read<uint16_t>(13);
@@ -6317,7 +6327,7 @@ struct CPickupCarriableEvent
 	bool f60;
 	uint16_t parentId;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		carrierId = buffer.Read<uint16_t>(13);
 		carriableId = buffer.Read<uint16_t>(13);
@@ -6344,7 +6354,7 @@ struct CPlaceCarriableOntoParentEvent
 	bool f63;
 	uint32_t f64;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		carrierId = buffer.Read<uint16_t>(13);
 		carriableId = buffer.Read<uint16_t>(13);
@@ -6395,7 +6405,7 @@ struct CStartProjectileEvent
 	int throwTaskSequence;
 	bool f151;
 
-	void Parse(rl::MessageBuffer& buffer)
+	void Parse(rl::MessageBufferView& buffer)
 	{
 		ownerId = buffer.Read<uint16_t>(13);
 		projectileHash = buffer.Read<uint32_t>(32);
@@ -6446,7 +6456,7 @@ struct CStartProjectileEvent
 
 #endif
 
-inline bool ParseEvent(net::Buffer&& buffer, rl::MessageBuffer* outBuffer)
+inline bool ParseEvent(net::Buffer& buffer, rl::MessageBufferView* outBuffer)
 {
 	uint16_t length = buffer.Read<uint16_t>();
 
@@ -6455,10 +6465,7 @@ inline bool ParseEvent(net::Buffer&& buffer, rl::MessageBuffer* outBuffer)
 		return false;
 	}
 
-	std::vector<uint8_t> data(length);
-	buffer.Read(data.data(), data.size());
-
-	*outBuffer = rl::MessageBuffer{ std::move(data) };
+	*outBuffer = rl::MessageBufferView{ net::Span{const_cast<uint8_t*>(buffer.GetRemainingBytesPtr()), std::min(length, static_cast<uint16_t>(buffer.GetRemainingBytes()))} };
 	return true;
 }
 
@@ -6474,18 +6481,39 @@ static constexpr auto HasTargetPlayerSetter(int) -> decltype(std::is_same_v<decl
 	return true;
 }
 
+// todo: remove when msgNetGameEventV2 is the default handler for game events
 template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer, const std::vector<uint16_t>& targetPlayers = {}) -> std::function<bool()>
 {
-	rl::MessageBuffer msgBuf;
+	rl::MessageBufferView msgBuf;
 
-	if (!ParseEvent(std::move(buffer), &msgBuf))
+	if (!ParseEvent(buffer, &msgBuf))
 	{
 		return []()
 		{
 			return false;
 		};
 	}
+
+	auto ev = std::make_shared<TEvent>();
+	ev->Parse(msgBuf);
+
+	if constexpr (HasTargetPlayerSetter<TEvent>(0))
+	{
+		ev->SetTargetPlayers(instance->GetComponent<fx::ServerGameState>().GetRef(), targetPlayers);
+	}
+
+	return [instance, client, ev = std::move(ev)]()
+	{
+		auto evComponent = instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+		return evComponent->TriggerEvent2(ev->GetName(), { }, fmt::sprintf("%d", client->GetNetId()), *ev);
+	};
+}
+
+template<typename TEvent>
+inline auto GetHandlerWithEvent(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientNetGameEventV2& netGameEvent, const std::vector<uint16_t>& targetPlayers = {}) -> std::function<bool()>
+{
+	rl::MessageBufferView msgBuf { netGameEvent.data.GetValue() };
 
 	auto ev = std::make_shared<TEvent>();
 	ev->Parse(msgBuf);
@@ -6913,6 +6941,7 @@ inline bool RequestControlHandler(fx::ServerGameState* sgs, const fx::ClientShar
 }
 #endif
 
+// todo: remove when msgNetGameEventV2 is the default handler for game events
 std::function<bool()> fx::ServerGameState::GetRequestControlEventHandler(const fx::ClientSharedPtr& client, net::Buffer&& buffer)
 {
 #ifndef STATE_FIVE
@@ -6924,9 +6953,9 @@ std::function<bool()> fx::ServerGameState::GetRequestControlEventHandler(const f
 	}
 
 	uint32_t objectId = 0;
-	rl::MessageBuffer msg;
+	rl::MessageBufferView msg;
 
-	if (ParseEvent(std::move(buffer), &msg))
+	if (ParseEvent(buffer, &msg))
 	{
 		objectId = msg.Read<uint32_t>(13);
 	}
@@ -6980,6 +7009,69 @@ std::function<bool()> fx::ServerGameState::GetRequestControlEventHandler(const f
 #endif
 }
 
+std::function<bool()> fx::ServerGameState::GetRequestControlEventHandlerWithEvent(const fx::ClientSharedPtr& client, net::packet::ClientNetGameEventV2& netGameEvent)
+{
+#ifndef STATE_FIVE
+	return {};
+#else
+	if (g_requestControlFilterState == RequestControlFilterMode::NoFilter)
+	{
+		return {};
+	}
+	
+	rl::MessageBufferView msg {netGameEvent.data.GetValue()};
+	const uint32_t objectId = msg.Read<uint32_t>(13);
+
+	return [this, client, objectId]()
+	{
+		auto handler = []
+		{
+			switch (g_requestControlFilterState)
+			{
+				case RequestControlFilterMode::FilterPlayerPlusNonPlayerSettled:
+					return &fx::RequestControlHandler<RequestControlFilterMode::FilterPlayerPlusNonPlayerSettled>;
+				case RequestControlFilterMode::Default:
+				case RequestControlFilterMode::FilterPlayer:
+				default:
+					return &fx::RequestControlHandler<RequestControlFilterMode::FilterPlayer>;
+				case RequestControlFilterMode::FilterPlayerSettled:
+					return &fx::RequestControlHandler<RequestControlFilterMode::FilterPlayerSettled>;
+				case RequestControlFilterMode::FilterAll:
+					return &fx::RequestControlHandler<RequestControlFilterMode::FilterAll>;
+			}
+		}();
+
+		const char* reason = nullptr;
+		bool result = handler(this, client, objectId, &reason);
+
+		if (!result)
+		{
+			static std::chrono::milliseconds lastWarn{ -120 * 1000 };
+
+			if (g_requestControlFilterState == RequestControlFilterMode::Default)
+			{
+				auto now = msec();
+
+				if ((now - lastWarn) > std::chrono::seconds{ 120 })
+				{
+					console::PrintWarning("sync", "A client (slotID %d) tried to use NetworkRequestControlOfEntity (entity network ID %d), but it was rejected (%s).\n"
+												  "NetworkRequestControlOfEntity is deprecated, and should not be used because of potential abuse by cheaters. To disable this check, set \"sv_filterRequestControl\" \"0\".\n"
+												  "See https://aka.cfx.re/rcmitigation for more information.\n",
+					client->GetSlotId(),
+					objectId,
+					reason);
+
+					lastWarn = now;
+				}
+			}
+		}
+
+		return result;
+	};
+#endif
+}
+
+// todo: remove when msgNetGameEventV2 is the default handler for game events
 std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::Buffer&& buffer)
 {
 	auto instance = m_instance;
@@ -7120,6 +7212,147 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 	return {};
 }
 
+std::function<bool()> fx::ServerGameState::GetGameEventHandlerWithEvent(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::packet::ClientNetGameEventV2& netGameEvent)
+{
+	auto instance = m_instance;
+	
+	const bool isReply = netGameEvent.isReply;
+	const uint32_t eventNameHash = netGameEvent.eventNameHash;
+
+#if defined(STATE_FIVE) || defined(STATE_RDR3)
+#ifdef STATE_FIVE
+	if (eventNameHash == net::force_consteval<uint32_t, HashRageString("NETWORK_PLAY_SOUND_EVENT")>)
+#else
+	if (eventNameHash == net::force_consteval<uint32_t, HashRageString("NETWORK_PLAY_SCRIPT_SOUND_EVENT")>)
+#endif
+	{
+		return []()
+		{
+			return g_networkedSoundsEnabled;
+		};
+	}
+
+	if (eventNameHash == net::force_consteval<uint32_t, HashRageString("REQUEST_PHONE_EXPLOSION_EVENT")>)
+	{
+		return []()
+		{
+			return g_networkedPhoneExplosionsEnabled;
+		};
+	}
+
+	// This event should *only* be triggered while a vehicle has a pending owner
+	// change, i.e., old owner informing new owner that the vehicle should be
+	// blown up. This does not apply to OneSync.
+	if (eventNameHash == net::force_consteval<uint32_t, HashRageString("BLOW_UP_VEHICLE_EVENT")>)
+	{
+		return []()
+		{
+			return false;
+		};
+	}
+
+	if (eventNameHash == net::force_consteval<uint32_t, HashRageString("SCRIPT_ENTITY_STATE_CHANGE_EVENT")>)
+	{
+		return []()
+		{
+			return g_networkedScriptEntityStatesEnabled;
+		};
+	}
+#endif
+
+#ifdef STATE_FIVE
+	if (eventNameHash == net::force_consteval<uint32_t, HashRageString("REQUEST_CONTROL_EVENT")>)
+	{
+		return GetRequestControlEventHandlerWithEvent(client, netGameEvent);
+	}
+
+	if (isReply)
+	{
+		switch(eventNameHash)
+		{
+			case net::force_consteval<uint32_t, HashRageString("WEAPON_DAMAGE_EVENT")>: return GetHandlerWithEvent<CWeaponDamageEventReply>(instance, client, netGameEvent);
+			case net::force_consteval<uint32_t, HashRageString("RESPAWN_PLAYER_PED_EVENT")>: return GetHandlerWithEvent<CRespawnPlayerPedReply>(instance, client, netGameEvent);
+			case net::force_consteval<uint32_t, HashRageString("VEHICLE_COMPONENT_CONTROL_EVENT")>: return GetHandlerWithEvent<CVehicleComponentControlReply>(instance, client, netGameEvent);
+			// All other events have no PrepareReply/HandleReply handlers.
+			default:
+				break;
+		};
+
+		return {};
+	}
+
+	switch(eventNameHash)
+	{
+		case net::force_consteval<uint32_t, HashRageString("WEAPON_DAMAGE_EVENT")>: return GetHandlerWithEvent<CWeaponDamageEvent>(instance, client, netGameEvent, targetPlayers);
+		case net::force_consteval<uint32_t, HashRageString("RESPAWN_PLAYER_PED_EVENT")>: return GetHandlerWithEvent<CRespawnPlayerPedEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("GIVE_WEAPON_EVENT")>: return GetHandlerWithEvent<CGiveWeaponEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("REMOVE_WEAPON_EVENT")>: return GetHandlerWithEvent<CRemoveWeaponEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("REMOVE_ALL_WEAPONS_EVENT")>: return GetHandlerWithEvent<CRemoveAllWeaponsEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("VEHICLE_COMPONENT_CONTROL_EVENT")>: return GetHandlerWithEvent<CVehicleComponentControlEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("FIRE_EVENT")>: return GetHandlerWithEvent<CFireEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("EXPLOSION_EVENT")>: return GetHandlerWithEvent<CExplosionEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("START_PROJECTILE_EVENT")>: return GetHandlerWithEvent<CStartProjectileEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_CLEAR_PED_TASKS_EVENT")>: return GetHandlerWithEvent<CClearPedTasksEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_PTFX_EVENT")>: return GetHandlerWithEvent<CNetworkPtFXEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_REQUEST_SYNCED_SCENE_EVENT")>: return GetHandlerWithEvent<CRequestNetworkSyncedSceneEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_START_SYNCED_SCENE_EVENT")>: return GetHandlerWithEvent<CStartNetworkSyncedSceneEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_UPDATE_SYNCED_SCENE_EVENT")>: return GetHandlerWithEvent<CUpdateNetworkSyncedSceneEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_STOP_SYNCED_SCENE_EVENT")>: return GetHandlerWithEvent<CStopNetworkSyncedSceneEvent>(instance, client, netGameEvent);
+		default:
+			break;
+	};
+#endif
+
+#ifdef STATE_RDR3
+	if (isReply)
+	{
+		switch(eventNameHash)
+		{
+			case net::force_consteval<uint32_t, HashRageString("WEAPON_DAMAGE_EVENT")>: return GetHandlerWithEvent<CWeaponDamageEventReply>(instance, client, netGameEvent);
+			case net::force_consteval<uint32_t, HashRageString("RESPAWN_PLAYER_PED_EVENT")>: return GetHandlerWithEvent<CRespawnPlayerPedReply>(instance, client, netGameEvent);
+			default:
+				break;
+		};
+
+		return {};
+	}
+
+	switch(eventNameHash)
+	{
+		case net::force_consteval<uint32_t, HashRageString("WEAPON_DAMAGE_EVENT")>: return GetHandlerWithEvent<CWeaponDamageEvent>(instance, client, netGameEvent, targetPlayers);
+		case net::force_consteval<uint32_t, HashRageString("RESPAWN_PLAYER_PED_EVENT")>: return GetHandlerWithEvent<CRespawnPlayerPedEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("EXPLOSION_EVENT")>: return GetHandlerWithEvent<CExplosionEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("LIGHTNING_EVENT")>: return GetHandlerWithEvent<CLightningEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("START_PROJECTILE_EVENT")>: return GetHandlerWithEvent<CStartProjectileEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_CLEAR_PED_TASKS_EVENT")>: return GetHandlerWithEvent<CClearPedTasksEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_END_LOOT_EVENT")>: return GetHandlerWithEvent<CEndLootEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_SEND_CARRIABLE_UPDATE_CARRY_STATE_EVENT")>: return GetHandlerWithEvent<CSendCarriableUpdateCarryStateEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_CARRIABLE_VEHICLE_STOW_START_EVENT")>: return GetHandlerWithEvent<CCarriableVehicleStowStartEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_CARRIABLE_VEHICLE_STOW_COMPLETE_EVENT")>: return GetHandlerWithEvent<CCarriableVehicleStowCompleteEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_PICKUP_CARRIABLE_EVENT")>: return GetHandlerWithEvent<CPickupCarriableEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("NETWORK_PLACE_CARRIABLE_ONTO_PARENT_EVENT")>: return GetHandlerWithEvent<CPlaceCarriableOntoParentEvent>(instance, client, netGameEvent);
+		default:
+			break;
+	};
+#endif
+
+	return {};
+}
+
+bool fx::ServerGameState::IsClientRelevantEntity(const fx::ClientSharedPtr& client, uint32_t objectId)
+{
+	if (auto val = GetClientDataUnlocked(this, client))
+	{
+		if (fx::sync::SyncEntityPtr syncEntity = val->playerEntity.lock())
+		{
+			std::shared_lock lock(syncEntity->guidMutex);
+			return syncEntity->relevantTo.test(objectId);
+		}
+	}
+
+	return false;
+}
+
 static InitFunction initFunction([]()
 {
 	g_scriptHandlePool = new CPool<fx::ScriptGuid>(1500, "fx::ScriptGuid");
@@ -7155,6 +7388,7 @@ static InitFunction initFunction([]()
 		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_ReadOnly, false);
 
 		g_experimentalOneSyncPopulation = instance->AddVariable<bool>("sv_experimentalOneSyncPopulation", ConVar_None, false);
+		g_experimentalNetGameEventHandler = instance->AddVariable<bool>("sv_experimentalNetGameEventHandler", ConVar_None, false);
 
 		constexpr bool canLengthHack =
 #ifdef STATE_RDR3
@@ -7165,14 +7399,14 @@ static InitFunction initFunction([]()
 		;
 
 		fx::SetBigModeHack(g_oneSyncBigMode->GetValue(), canLengthHack && g_oneSyncLengthHack->GetValue());
-		if (g_experimentalOneSyncPopulation->GetValue())
+		if (g_experimentalOneSyncPopulation->GetValue() || g_experimentalNetGameEventHandler->GetValue())
 		{
 			fx::SetOneSyncPopulation(g_oneSyncPopulation->GetValue());
 		}
 
 		if (g_oneSyncVar->GetValue() == fx::OneSyncState::On)
 		{
-			if (g_experimentalOneSyncPopulation->GetValue())
+			if (g_experimentalOneSyncPopulation->GetValue() || g_experimentalNetGameEventHandler->GetValue())
 			{
 				fx::SetBigModeHack(true, canLengthHack);
 			}

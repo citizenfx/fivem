@@ -19,6 +19,8 @@
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <NetGameEventV2.h>
+
 namespace fx
 {
 enum class SyncStyle
@@ -64,6 +66,12 @@ public:
 	virtual void ForAllEntities(const std::function<void(sync::Entity*)>& cb) = 0;
 
 	virtual bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<StateBag>()> createStateBag) = 0;
+
+	virtual uint32_t GetClientRoutingBucket(const fx::ClientSharedPtr& client) = 0;
+
+	virtual std::function<bool()> GetGameEventHandlerWithEvent(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::packet::ClientNetGameEventV2& netGameEvent) = 0;
+
+	virtual bool IsClientRelevantEntity(const fx::ClientSharedPtr& client, uint32_t objectId) = 0;
 };
 }
 

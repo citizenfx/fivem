@@ -750,7 +750,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
     </FileManifest>
     <IsPreload>false</IsPreload>
   </Result>
-</Response>)", info->second.build, info->second.version, gameExe, info->second.size, info->second.sha256, info->second.sha256, info->second.size);
+</Response>)", info->second.build, info->second.version, info->second.size, gameExe, info->second.sha256, info->second.sha256, info->second.size);
 		}
 
 		return std::string{ R"(<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="RetrieveFileChunkNoAuth" ms="0">

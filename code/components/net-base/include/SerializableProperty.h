@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include <SerializableStorageType.h>
+#include <Span.h>
 
 namespace net
 {
@@ -21,7 +22,7 @@ namespace net
 		struct HasIsComponent
 		{
 			template <typename U>
-			static auto TestIsComponent(int) -> decltype(U::IsComponent, std::true_type());
+			static auto TestIsComponent(int) -> decltype(U::kIsComponent, std::true_type());
 
 			template <typename>
 			static auto TestIsComponent(...) -> std::false_type;
@@ -39,7 +40,19 @@ namespace net
 		{
 		};
 
+		template <typename C>
+		struct IsTypeSpan : std::false_type
+		{
+		};
+
+		template <typename T>
+		struct IsTypeSpan<net::Span<T>> : std::true_type
+		{
+		};
+
 		static constexpr bool IsVector = IsTypeVector<Type>::value;
+
+		static constexpr bool IsSpan = IsTypeSpan<Type>::value;
 
 		template <typename... TypesList>
 		static constexpr bool IsOneOf = std::disjunction_v<std::is_same<Type, TypesList>...>;
@@ -162,10 +175,38 @@ namespace net
 					return false;
 				}
 
-				m_value.resize(size);
-				if (!stream.Field(reinterpret_cast<Type&>(*m_value.data()), sizeof(typename Type::value_type) * size))
+				if (size > 0)
+				{
+					m_value.resize(size);
+					if (!stream.Field(reinterpret_cast<Type&>(*m_value.data()), sizeof(typename Type::value_type) * size))
+					{
+						return false;
+					}
+				}
+
+				return true;
+			}
+			else if constexpr (IsSpan)
+			{
+				if constexpr (std::is_same<SizeOption, void>() || SizeOption::kType !=
+					storage_type::SerializableSizeOption::Type::Area)
+				{
+					static_assert(true, "serializable of a buffer requires a SerializableSizeOptionArea.");
+				}
+
+				bool validSize;
+				auto size = SizeOption::Process(stream, m_value.size(), validSize);
+				if (!validSize)
 				{
 					return false;
+				}
+
+				if (size > 0)
+				{
+					if (!stream.Field(m_value, size))
+					{
+						return false;
+					}
 				}
 
 				return true;

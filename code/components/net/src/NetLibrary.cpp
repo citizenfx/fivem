@@ -1206,6 +1206,14 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						// gather endpoints
 						std::vector<std::string> endpoints;
 
+						if (!node["handover"].is_null())
+						{
+							if (!node["handover"]["endpoints"].is_null())
+							{
+								endpointsJson = node["handover"]["endpoints"];
+							}
+						}
+
 						if (!endpointsJson.is_null() && !endpointsJson.is_boolean())
 						{
 							for (const auto& endpoint : endpointsJson)

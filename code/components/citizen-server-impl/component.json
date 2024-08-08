@@ -9,6 +9,7 @@
 		"citizen:server:net",
 		"citizen:scripting:mono",
 		"vfs:impl:server",
+		"net:packet",
 		"vendor:cpr",
 		"vendor:citizen_util",
 		"vendor:citizen_enet",
