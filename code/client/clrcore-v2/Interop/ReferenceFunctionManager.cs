@@ -128,9 +128,8 @@ namespace CitizenFX.Core
 			{
 
 				Debug.PrintError(e.InnerException ?? e, "reference call");
+				retval = null;
 			}
-
-			retval = null;
 		}
 
 		[SecurityCritical]
