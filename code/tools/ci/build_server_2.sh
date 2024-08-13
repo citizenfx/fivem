@@ -105,7 +105,7 @@ rm premake.zip
 cd premake-*
 
 cd build/gmake*.unix/
-make -j${JOB_SLOTS}
+make CFLAGS="-include unistd.h" -j${JOB_SLOTS}
 cd ../../
 
 mv bin/release/premake5 /usr/local/bin
