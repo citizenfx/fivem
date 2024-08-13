@@ -13,6 +13,7 @@
 #include <netBlender.h>
 #include <netInterface.h>
 #include <netObjectMgr.h>
+#include <netPlayerManager.h>
 #include <netSyncTree.h>
 #include <netTimeSync.h>
 
@@ -83,12 +84,6 @@ static hook::cdecl_stub<uint32_t()> _getNetAckTimestamp([]()
 	return hook::get_pattern("8B C3 2B 05 ? ? ? ? 39 ? ? ? ? 02 76 ? FF C8", -0x30);
 #endif
 });
-
-extern CNetGamePlayer* g_players[256];
-extern std::unordered_map<uint16_t, CNetGamePlayer*> g_playersByNetId;
-extern std::unordered_map<CNetGamePlayer*, uint16_t> g_netIdsByPlayer;
-
-CNetGamePlayer* GetLocalPlayer();
 
 CNetGamePlayer* GetPlayerByNetId(uint16_t);
 
@@ -1144,7 +1139,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 		// and ChangeOwner does some fixups (e.g. ped tasks) for sync data
 		if (obj->syncData.isRemote)
 		{
-			auto player = GetLocalPlayer();
+			auto player = rage::GetLocalPlayer();
 
 			// add the object
 			rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
@@ -1346,7 +1341,7 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 
 		if (clientId == m_netLibrary->GetServerNetID())
 		{
-			auto player = GetLocalPlayer();
+			auto player = rage::GetLocalPlayer();
 
 			// add the object
 			rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
@@ -2165,7 +2160,7 @@ void CloneManagerLocal::WriteUpdates()
 		{
 			uint32_t reason = 0;
 
-			if (!object->CanClone(GetLocalPlayer(), &reason))
+			if (!object->CanClone(rage::GetLocalPlayer(), &reason))
 			{
 				return;
 			}
