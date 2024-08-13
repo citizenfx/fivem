@@ -5,7 +5,6 @@
 #include <ServerInstanceBase.h>
 
 #include <Client.h>
-#include <iostream>
 
 #include "GameServer.h"
 
@@ -26,13 +25,13 @@ namespace fx
 				const size_t remainingBytes = packet.GetRemainingBytes();
 				if (remainingBytes < 1)
 				{
-					instance->GetComponent<fx::GameServer>()->DropClientv(client, "");
+					instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, "");
 					return;
 				}
 
 				const std::string reason = std::string(
 					packet.Read<std::string_view>(std::min(remainingBytes - 1, static_cast<size_t>(1024))));
-				instance->GetComponent<fx::GameServer>()->DropClientv(client, reason);
+				instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, reason);
 			}
 
 			static constexpr const char* GetPacketId()

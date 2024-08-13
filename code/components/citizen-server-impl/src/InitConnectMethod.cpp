@@ -597,7 +597,7 @@ static InitFunction initFunction([]()
 
 				if (oldClient)
 				{
-					gameServer->DropClient(oldClient, "Reconnecting");
+					gameServer->DropClientWithReason(oldClient, fx::serverDropResourceName, fx::ClientDropReason::CLIENT_REPLACED, "Reconnecting");
 				}
 			}
 

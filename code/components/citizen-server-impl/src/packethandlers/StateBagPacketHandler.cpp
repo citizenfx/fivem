@@ -86,7 +86,7 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 				                  kStateBagRateFloodLimit, kStateBagRateFloodLimitBurst);
 			}
 
-			instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable state bag packet overflow.");
+			instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::STATE_BAG_RATE_LIMIT, "Reliable state bag packet overflow.");
 			return;
 		}
 
@@ -122,7 +122,7 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 				logChannel);
 		}
 
-		instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable state bag packet overflow.");
+		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::STATE_BAG_RATE_LIMIT, "Reliable state bag packet overflow.");
 		return;
 	}
 
@@ -236,7 +236,7 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 				                  kStateBagRateFloodLimit, kStateBagRateFloodLimitBurst);
 			}
 
-			instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable state bag packet overflow.");
+			instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::STATE_BAG_RATE_LIMIT, "Reliable state bag packet overflow.");
 			return;
 		}
 
@@ -272,7 +272,7 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 				logChannel);
 		}
 
-		instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable state bag packet overflow.");
+		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::STATE_BAG_RATE_LIMIT, "Reliable state bag packet overflow.");
 		return;
 	}
 
