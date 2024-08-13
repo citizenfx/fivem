@@ -230,9 +230,14 @@ workspace "CitizenMP"
 
 	local buildsDef = "GAME_BUILDS="
 	local builds = gameBuilds[_OPTIONS["game"]]
+	local buildsOrdered = {}
+
+	for n in pairs(builds) do table.insert(buildsOrdered, n) end
+	table.sort(buildsOrdered)
+
 	if builds ~= nil then
-		for key, _ in pairs(builds) do
-			buildsDef = buildsDef .. "(" .. string.sub(key, string.len("game_") + 1) .. ")"
+		for _, build in ipairs(buildsOrdered) do
+			buildsDef = buildsDef .. "(" .. string.sub(build, string.len("game_") + 1) .. ")"
 		end
 
 		filter 'language:C or language:C++'
