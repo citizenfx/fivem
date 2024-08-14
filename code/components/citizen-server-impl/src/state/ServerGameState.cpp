@@ -7742,7 +7742,7 @@ static InitFunction initFunction([]()
 						}
 						else
 						{
-							instance->GetComponent<fx::GameServer>()->DropClient(client, "Timed out after 60 seconds (1, %d)", lastMissingFrame - firstMissingFrame);
+							instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverOneSyncDropResourceName, fx::ClientDropReason::ONE_SYNC_TOO_MANY_MISSED_FRAMES, "Timed out after 60 seconds (1, %d)", lastMissingFrame - firstMissingFrame);
 							return;
 						}
 					}
@@ -7831,7 +7831,7 @@ static InitFunction initFunction([]()
 				}
 				else
 				{
-					instance->GetComponent<fx::GameServer>()->DropClient(client, "Timed out after 60 seconds (2)");
+					instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverOneSyncDropResourceName, fx::ClientDropReason::ONE_SYNC_TOO_MANY_MISSED_FRAMES, "Timed out after 60 seconds (2)");
 					return;
 				}
 			}

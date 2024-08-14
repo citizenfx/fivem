@@ -209,15 +209,10 @@ public:
 		{
 			if (!netFloodRateLimiter->Consume(source))
 			{
-				gscomms_execute_callback_on_main_thread([this, source]()
+				if (const auto client = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(source))
 				{
-					auto client = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(source);
-
-					if (client)
-					{
-						instance->GetComponent<fx::GameServer>()->DropClient(client, "Unreliable network event overflow.");
-					}
-				}, true);
+					instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::LATENT_NET_EVENT_RATE_LIMIT, "Unreliable network event overflow.");
+				}
 			}
 
 			return true;
