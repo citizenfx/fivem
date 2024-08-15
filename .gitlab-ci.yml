@@ -167,7 +167,7 @@ build_proot_linux:
   stage: build
   tags:
     - linux
-  image: mcr.microsoft.com/dotnet/sdk:6.0-alpine3.15
+  image: registry-internal.fivem.net/cfx/fivem/fivem-builder-linux-alpine:latest
   variables:
     GIT_SUBMODULE_STRATEGY: normal
     GIT_SUBMODULE_DEPTH: 3
@@ -175,7 +175,7 @@ build_proot_linux:
     GIT_SSL_CAPATH: /etc/ssl/certs/
     DOCKER_TLS_CERTDIR: ""
   script: 
-    - sh code/tools/ci/build_server_proot.sh
+    - sh code/tools/ci/build_server_docker_alpine.sh
   artifacts:
     paths:
       - fx.tar.xz
@@ -371,3 +371,32 @@ redm_upload_review:
   needs:
     - job: build_client_rdr3
       artifacts: true
+
+prebuild_linux_docker_container:
+  image: docker:24.0
+  stage: build
+  tags:
+    - linux
+  services:
+    - docker:24.0-dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    GIT_SUBMODULE_STRATEGY: none
+    DOCKER_IMAGE_NAME: "$CI_REGISTRY_IMAGE/fivem-builder-linux-alpine:latest"
+    DOCKER_COMMIT_TAG: "$CI_REGISTRY_IMAGE/fivem-builder-linux-alpine:$CI_COMMIT_SHORT_SHA"
+  before_script:
+    - docker info
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $DOCKER_IMAGE_NAME -t $DOCKER_COMMIT_TAG -f code/tools/ci/docker-builder/Dockerfile .
+    - echo "Logging into GitLab Container Registry..."
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "Pushing Docker image to registry with latest tag..."
+    - docker push $DOCKER_IMAGE_NAME
+    - echo "Pushing Docker image to registry with commit tag..."
+    - docker push $DOCKER_COMMIT_TAG
+  rules:
+    - when: manual
+  allow_failure: true
+
