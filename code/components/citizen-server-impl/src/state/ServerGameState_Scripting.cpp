@@ -1580,27 +1580,6 @@ static void Init()
 		return true;
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_LANDING_GEAR_STATE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
-	{
-		int gearState = 0;
-
-		if (entity->type == fx::sync::NetObjEntityType::Heli)
-		{
-			auto state = entity->syncTree->GetHeliControl();
-			if (state->hasLandingGear)
-			{
-				gearState = state->landingGearState;
-			}
-		}
-		else if (entity->type == fx::sync::NetObjEntityType::Plane)
-		{
-			auto state = entity->syncTree->GetPlaneGameState();
-			gearState = state ? state->landingGearState : 0;
-		}
-
-		return gearState;
-	}));
-
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_LOCK_ON_TARGET", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		int lockOnHandle = 0;
@@ -1719,6 +1698,76 @@ static void Init()
 		auto heliHealth = entity->syncTree->GetHeliHealth();
 
 		return heliHealth ? float(heliHealth->tailRotorHealth) : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_LANDING_GEAR_STATE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		int gearState = 0;
+
+		if (entity->type == fx::sync::NetObjEntityType::Heli)
+		{
+			auto state = entity->syncTree->GetHeliControl();
+			if (state->hasLandingGear)
+			{
+				gearState = state->landingGearState;
+			}
+		}
+		else if (entity->type == fx::sync::NetObjEntityType::Plane)
+		{
+			auto state = entity->syncTree->GetPlaneGameState();
+			gearState = state ? state->landingGearState : 0;
+		}
+
+		return gearState;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_YAW_CONTROL", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->yawControl : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_PITCH_CONTROL", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->pitchControl : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_ROLL_CONTROL", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->rollControl : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_THROTTLE_CONTROL", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->throttleControl : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_THRUSTER_SIDE_RCS_THROTTLE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->thrusterSideRCSThrottle : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_THRUSTER_THROTTLE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->thrusterThrottle : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_IS_HELI_ENGINE_RUNNING", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? !heliControl->engineOff : false;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_STEERING_ANGLE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
