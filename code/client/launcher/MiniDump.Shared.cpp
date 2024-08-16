@@ -332,6 +332,8 @@ extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 #else
 			*(uint32_t*)unhandledFilter = 0x900004C2;
 #endif
+
+			VirtualProtect(unhandledFilter, 4, oldProtect, &oldProtect);
 		}
 	}
 
