@@ -3254,6 +3254,7 @@ static ConVar<bool> cl_crosshairdot("cl_crosshairdot", ConVar_Archive, true);
 static ConVar<float> cl_crosshair_dynamic_splitalpha_innermod("cl_crosshair_dynamic_splitalpha_innermod", ConVar_Archive, 1.f);
 static ConVar<float> cl_crosshair_dynamic_splitalpha_outermod("cl_crosshair_dynamic_splitalpha_outermod", ConVar_Archive, 0.5f);
 static ConVar<float> cl_crosshair_dynamic_maxdist_splitratio("cl_crosshair_dynamic_maxdist_splitratio", ConVar_Archive, 0.35f);
+static ConVar<bool> cl_crosshair_t("cl_crosshair_t", ConVar_Archive, false);
 
 static void DoCrosshairDraw()
 {
@@ -3476,15 +3477,20 @@ static void DoCrosshairDraw()
 	DrawCrosshairRect(r, g, b, flLineAlphaInner, iOuterLeft, y0, iInnerLeft, y1, bAdditive);
 	DrawCrosshairRect(r, g, b, flLineAlphaInner, iInnerRight, y0, iOuterRight, y1, bAdditive);
 
-	// draw vertical crosshair lines
-	int iInnerTop = iCenterY - iInnerCrossDist - iBarThickness / 2;
-	int iInnerBottom = iInnerTop + 2 * iInnerCrossDist + iBarThickness;
-	int iOuterTop = iInnerTop - iBarSizeInner;
+	// draw bottom vertical crosshair line
+	int iInnerBottom = iCenterY + iInnerCrossDist - iBarThickness / 2;
 	int iOuterBottom = iInnerBottom + iBarSizeInner;
 	int x0 = iCenterX - iBarThickness / 2;
 	int x1 = x0 + iBarThickness;
-	DrawCrosshairRect(r, g, b, flLineAlphaInner, x0, iOuterTop, x1, iInnerTop, bAdditive);
-	DrawCrosshairRect(r, g, b, flLineAlphaInner, x0, iInnerBottom, x1, iOuterBottom, bAdditive);
+	DrawCrosshairRect(r, g, b, flLineAlphaInner, x0, iCenterY, x1, iOuterBottom, bAdditive);
+
+	// draw top vertical crosshair line if cl_crosshair_t is disabled
+	if (!cl_crosshair_t.GetValue())
+	{
+		int iInnerTop = iCenterY - iInnerCrossDist - iBarThickness / 2;
+		int iOuterTop = iInnerTop - iBarSizeInner;
+		DrawCrosshairRect(r, g, b, flLineAlphaInner, x0, iOuterTop, x1, iInnerTop, bAdditive);
+	}
 
 	// draw dot
 	if (cl_crosshairdot.GetValue())
