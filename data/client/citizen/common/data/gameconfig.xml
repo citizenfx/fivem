@@ -686,6 +686,10 @@
 							<PoolName>scrGlobals</PoolName>
 							<PoolSize value="15080000"/>
 						</Item>
+						<Item>
+							<PoolName>ropeData</PoolName>
+							<PoolSize value="24"/>
+						</Item>
 					</Entries>
 				</PoolSizes>
 
@@ -3281,7 +3285,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>ROPE</ResourceTypeName>
-							<ExpectedMaximum value="12"/>
+							<ExpectedMaximum value="32"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>CAMERA</ResourceTypeName>

@@ -10,33 +10,8 @@
 
 #include "CrossBuildRuntime.h"
 
-class RageHashList
-{
-public:
-	template<int Size>
-	RageHashList(const char*(&list)[Size])
-	{
-		for (int i = 0; i < Size; i++)
-		{
-			m_lookupList.insert({ HashString(list[i]), list[i] });
-		}
-	}
+#include "RageHashList.h"
 
-	inline std::string LookupHash(uint32_t hash)
-	{
-		auto it = m_lookupList.find(hash);
-
-		if (it != m_lookupList.end())
-		{
-			return std::string(it->second);
-		}
-
-		return fmt::sprintf("0x%08x", hash);
-	}
-
-private:
-	std::unordered_map<uint32_t, std::string_view> m_lookupList;
-};
 
 static std::unordered_map<uint32_t, atPoolBase*> g_pools;
 static std::unordered_map<atPoolBase*, uint32_t> g_inversePools;

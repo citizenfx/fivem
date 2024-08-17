@@ -31,7 +31,7 @@ void ServerEventPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx
 	{
 		if (!netFloodRateLimiter->Consume(netId))
 		{
-			instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable network event overflow.");
+			instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::NET_EVENT_RATE_LIMIT, "Reliable network event overflow.");
 		}
 
 		return;
@@ -57,7 +57,7 @@ void ServerEventPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx
 		const std::string eventName(eventNameView);
 		// if this happens, try increasing rateLimiter_netEventSize_rate and rateLimiter_netEventSize_burst
 		// preferably, fix client scripts to not have this large a set of events with high frequency
-		instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable network event size overflow: %s",
+		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::NET_EVENT_RATE_LIMIT, "Reliable network event size overflow: %s",
 		                                                     eventName);
 		return;
 	}

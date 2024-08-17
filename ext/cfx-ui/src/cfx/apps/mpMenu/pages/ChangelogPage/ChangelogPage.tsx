@@ -1,20 +1,24 @@
+import {
+  Indicator,
+  Island,
+  Flex,
+  Pad,
+  Page,
+  Scrollable,
+  Prose,
+  Select,
+  Text,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
 import { InsideNavBar } from 'cfx/apps/mpMenu/parts/NavBar/InsideNavBar';
 import { useService } from 'cfx/base/servicesContainer';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { Island } from 'cfx/ui/Island/Island';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Page } from 'cfx/ui/Layout/Page/Page';
-import { Scrollable } from 'cfx/ui/Layout/Scrollable/Scrollable';
-import { Prose } from 'cfx/ui/Prose/Prose';
-import { Select, SelectOption } from 'cfx/ui/Select/Select';
-import { Text } from 'cfx/ui/Text/Text';
 
 import { IChangelogService } from '../../services/changelog/changelog.service';
+
+type SelectOptions = React.ComponentProps<typeof Select>['options'];
 
 export const ChangelogPage = observer(function ChangelogPage() {
   const ChangelogService = useService(IChangelogService);
@@ -27,7 +31,7 @@ export const ChangelogPage = observer(function ChangelogPage() {
   const {
     versions,
   } = ChangelogService;
-  const versionItemsSelect: SelectOption<string>[] = React.useMemo(
+  const versionItemsSelect: SelectOptions = React.useMemo(
     () => versions.map((version) => ({
       value: version,
       label: version,

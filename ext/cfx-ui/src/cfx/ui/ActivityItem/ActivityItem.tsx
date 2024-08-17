@@ -1,18 +1,20 @@
+import {
+  Flex,
+  Avatar,
+  Box,
+  Pad,
+  Text,
+  Title,
+} from '@cfx-dev/ui-components';
 import format from 'date-fns/format';
 import formatDistanceToNow from 'date-fns/formatDistanceToNow';
 import React from 'react';
 
 import { IActivityItem, IActivityItemMedia } from 'cfx/common/services/activity/types';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
 import { useBlurhash } from 'cfx/utils/useBlurhash';
 
 import { useActivityItemContext } from './ActivityItem.context';
-import { Avatar } from '../Avatar/Avatar';
-import { Box } from '../Layout/Box/Box';
-import { Pad } from '../Layout/Pad/Pad';
-import { Text } from '../Text/Text';
-import { Title } from '../Title/Title';
 
 import s from './ActivityItem.module.scss';
 

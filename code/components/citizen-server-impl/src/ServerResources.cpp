@@ -42,7 +42,8 @@
 #endif
 
 #include <utf8.h>
-#include "ScriptWarnings.h"
+
+#include "ScriptDeprecations.h"
 
 // a set of resources that are system-managed and should not be stopped from script
 static std::set<std::string> g_managedResources = {
@@ -208,15 +209,10 @@ public:
 		{
 			if (!netFloodRateLimiter->Consume(source))
 			{
-				gscomms_execute_callback_on_main_thread([this, source]()
+				if (const auto client = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(source))
 				{
-					auto client = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(source);
-
-					if (client)
-					{
-						instance->GetComponent<fx::GameServer>()->DropClient(client, "Unreliable network event overflow.");
-					}
-				}, true);
+					instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::LATENT_NET_EVENT_RATE_LIMIT, "Unreliable network event overflow.");
+				}
 			}
 
 			return true;
@@ -785,6 +781,10 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 
 		if (client)
 		{
+			if (client->GetNetId() != static_cast<uint32_t>(targetNetId))
+			{
+				fx::WarningDeprecationf<ScriptDeprecations::CLIENT_EVENT_OLD_NET_ID>("natives", "TRIGGER_CLIENT_EVENT_INTERNAL: client %d is not the same as the target %d. This happens when the oldId from the playerJoining event is used. Use source instead.\n", client->GetNetId(), targetNetId);
+			}
 			// TODO(fxserver): >MTU size?
 			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 		}

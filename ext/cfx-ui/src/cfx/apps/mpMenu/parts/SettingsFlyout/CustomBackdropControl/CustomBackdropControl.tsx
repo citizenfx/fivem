@@ -1,12 +1,14 @@
+import {
+  Button,
+  Icons,
+  Flex,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { getCustomInGameBackdropPath } from 'cfx/apps/mpMenu/parts/ThemeManager/backdrop';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { useUiService } from 'cfx/common/services/ui/ui.service';
-import { Button } from 'cfx/ui/Button/Button';
-import { Icons } from 'cfx/ui/Icons';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Title } from 'cfx/ui/Title/Title';
 
 import { mpMenu } from '../../../mpMenu';
 import { KnownConvars, useConvarService } from '../../../services/convars/convars.service';

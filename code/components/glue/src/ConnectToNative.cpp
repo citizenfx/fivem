@@ -1355,9 +1355,8 @@ static InitFunction initFunction([] ()
 #include <nng/protocol/pipeline0/pull.h>
 #include <nng/protocol/pipeline0/push.h>
 
-static void ProtocolRegister()
+static void ProtocolRegister(const wchar_t* name, const wchar_t* cls)
 {
-#ifdef GTA_FIVE
 	LSTATUS result;
 
 #define CHECK_STATUS(x) \
@@ -1369,47 +1368,55 @@ static void ProtocolRegister()
 
 	static HostSharedData<CfxState> hostData("CfxInitState");
 
-	HKEY key;
-	wchar_t command[1024];
-	swprintf_s(command, L"\"%s\" \"%%1\"", hostData->gameExePath);
+	HKEY key = NULL;
+	std::wstring command = fmt::sprintf(L"\"%s\" \"%%1\"", hostData->gameExePath);
 
-	CHECK_STATUS(RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\fivem", &key));
-	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
-	CHECK_STATUS(RegSetValueExW(key, L"URL Protocol", 0, REG_SZ, (BYTE*)L"", 1 * 2));
+	const auto create_key = [&key](std::wstring name)
+	{
+		return RegCreateKeyW(HKEY_CURRENT_USER, name.c_str(), &key);
+	};
+
+	const auto set_string = [&key](const wchar_t* name, std::wstring value)
+	{
+		return RegSetValueExW(key, name, 0, REG_SZ, (const BYTE*)value.c_str(), (value.size() + 1) * sizeof(wchar_t));
+	};
+
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\Classes\\%s", cls)));
+	CHECK_STATUS(set_string(NULL, name));
+	CHECK_STATUS(set_string(L"URL Protocol", L""));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\FiveM.ProtocolHandler", &key));
-	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\Classes\\%s.ProtocolHandler", name)));
+	CHECK_STATUS(set_string(NULL, name));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\FiveM", &key));
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\%s", name)));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\FiveM\\Capabilities", &key));
-	CHECK_STATUS(RegSetValueExW(key, L"ApplicationName", 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
-	CHECK_STATUS(RegSetValueExW(key, L"ApplicationDescription", 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\%s\\Capabilities", name)));
+	CHECK_STATUS(set_string(L"ApplicationName", name));
+	CHECK_STATUS(set_string(L"ApplicationDescription", name));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\FiveM\\Capabilities\\URLAssociations", &key));
-	CHECK_STATUS(RegSetValueExW(key, L"fivem", 0, REG_SZ, (BYTE*)L"FiveM.ProtocolHandler", 22 * 2));
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\%s\\Capabilities\\URLAssociations", name)));
+	CHECK_STATUS(set_string(cls, fmt::sprintf(L"%s.ProtocolHandler", name)));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\RegisteredApplications", &key));
-	CHECK_STATUS(RegSetValueExW(key, L"FiveM", 0, REG_SZ, (BYTE*)L"Software\\FiveM\\Capabilities", 28 * 2));
+	CHECK_STATUS(create_key(L"SOFTWARE\\RegisteredApplications"));
+	CHECK_STATUS(set_string(name, fmt::sprintf(L"Software\\%s\\Capabilities", name)));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\FiveM.ProtocolHandler\\shell\\open\\command", &key));
-	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\Classes\\%s.ProtocolHandler\\shell\\open\\command", name)));
+	CHECK_STATUS(set_string(NULL, command));
 	CHECK_STATUS(RegCloseKey(key));
 
 	if (!IsWindows8Point1OrGreater())
 	{
 		// these are for compatibility on downlevel Windows systems
-		CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\fivem\\shell\\open\\command", &key));
-		CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
+		CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\Classes\\%s\\shell\\open\\command", cls)));
+		CHECK_STATUS(set_string(NULL, command));
 		CHECK_STATUS(RegCloseKey(key));
 	}
-#endif
 }
 
 void Component_RunPreInit()
@@ -1422,7 +1429,11 @@ void Component_RunPreInit()
 	if (hostData->IsMasterProcess())
 #endif
 	{
-		ProtocolRegister();
+#if defined(GTA_FIVE)
+		ProtocolRegister(L"FiveM", L"fivem");
+#elif defined(IS_RDR3)
+		ProtocolRegister(L"RedM", L"redm");
+#endif
 	}
 
 	int argc;
@@ -1436,7 +1447,12 @@ void Component_RunPreInit()
 	{
 		std::string arg = ToNarrow(argv[i]);
 
-		if (arg.find("fivem:") == 0)
+		// Always handle fivem urls so code which already knows the exe path doesn't need to bother doing any extra logic
+		if (arg.find("fivem:") == 0
+#if defined(IS_RDR3)			
+			|| arg.find("redm:") == 0
+#endif
+			)
 		{
 			auto parsed = skyr::make_url(arg);
 

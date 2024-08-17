@@ -64,6 +64,12 @@ namespace CitizenFX.Core
 
 		[SecurityCritical]
 		internal static unsafe byte[] CanonicalizeRef(int refId) => CanonicalizeRef(s_runtime, refId);
+		
+		[SecurityCritical, MethodImpl(MethodImplOptions.InternalCall)]
+		private static extern unsafe byte[] InvokeFunctionReference(UIntPtr host, string refId, byte[] argsSerialized);
+
+		[SecurityCritical]
+		internal static unsafe byte[] InvokeFunctionReference(string refId, byte[] argsSerialized) => InvokeFunctionReference(s_runtime, refId, argsSerialized);
 
 		[SecurityCritical, MethodImpl(MethodImplOptions.InternalCall)]
 		private static extern unsafe bool ReadAssembly(UIntPtr host, string file, out byte[] assembly, out byte[] symbols);
@@ -144,14 +150,15 @@ namespace CitizenFX.Core
 			sourceString = origin == Binding.Remote ? sourceString : null;
 #endif
 
+			object[] args = null; // will make sure we only deserialize it once
 #if REMOTE_FUNCTION_ENABLED
-			if (!ExternalsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize))
+			if (!ExternalsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize, ref args))
 #endif
 			{
-				if (!ExportsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize))
+				if (!ExportsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize, ref args))
 				{
 					// if a remote function or export has consumed this event then it surely wasn't meant for event handlers
-					EventsManager.IncomingEvent(eventName, sourceString, origin, argsSerialized, serializedSize);
+					EventsManager.IncomingEvent(eventName, sourceString, origin, argsSerialized, serializedSize, args);
 				}
 			}
 		}
@@ -166,12 +173,14 @@ namespace CitizenFX.Core
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
-		internal static unsafe void CallRef(int refIndex, byte* argsSerialized, uint argsSize, out IntPtr retvalSerialized, out uint retvalSize, ulong hostTime, bool profiling)
+		internal static unsafe ulong CallRef(int refIndex, byte* argsSerialized, uint argsSize, out byte[] retval, ulong hostTime, bool profiling)
 		{
 			Scheduler.CurrentTime = (TimePoint)hostTime;
 			Profiler.IsProfiling = profiling;
 
-			ReferenceFunctionManager.IncomingCall(refIndex, argsSerialized, argsSize, out retvalSerialized, out retvalSize);
+			ReferenceFunctionManager.IncomingCall(refIndex, argsSerialized, argsSize, out retval);
+
+			return Scheduler.NextTaskTime();
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]

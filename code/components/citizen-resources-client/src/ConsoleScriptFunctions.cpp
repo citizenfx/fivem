@@ -10,9 +10,6 @@ static InitFunction initFunction([]()
 		// get variable name
 		const std::string varName = context.CheckArgument<const char*>(0);
 
-		// get default value
-		const char* defaultValue = context.CheckArgument<const char*>(1);
-
 		// get the console context
 		auto consoleContext = console::GetDefaultContext();
 
@@ -22,7 +19,8 @@ static InitFunction initFunction([]()
 		// check can it be exposed to script
 		if (varMan->GetEntryFlags(varName) & ConVar_ScriptRestricted)
 		{
-			context.SetResult(defaultValue);
+			// gets and returns default value
+			context.SetResult(context.GetArgument<const char*>(1));
 			return;
 		}
 
@@ -31,7 +29,8 @@ static InitFunction initFunction([]()
 
 		if (!var)
 		{
-			context.SetResult(defaultValue);
+			// gets and returns default value
+			context.SetResult(context.GetArgument<const char*>(1));
 			return;
 		}
 

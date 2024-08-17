@@ -1,12 +1,9 @@
+import { Box, Flex, Title, ui } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import { IoSparklesOutline } from 'react-icons/io5';
 
 import { AnalyticsLinkButton } from 'cfx/common/parts/AnalyticsLinkButton/AnalyticsLinkButton';
 import { ElementPlacements } from 'cfx/common/services/analytics/types';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Title } from 'cfx/ui/Title/Title';
-import { ui } from 'cfx/ui/ui';
 
 import { AuxiliaryGameModes } from './AuxiliaryGameModes/AuxiliaryGameModes';
 import { ExtraLinkyTiles } from './ExtraLinkyTiles/ExtraLinkyTiles';

@@ -47,6 +47,8 @@ static constexpr const size_t kGamePlayerCap =
 
 #include <StateBagComponent.h>
 
+#include <net/NetObjEntityType.h>
+
 #ifdef STATE_FIVE
 inline bool Is2060()
 {
@@ -760,57 +762,6 @@ public:
 	virtual bool IsEntityVisible(bool* visible) = 0;
 };
 
-enum class NetObjEntityType
-{
-#ifdef STATE_FIVE
-	Automobile = 0,
-	Bike = 1,
-	Boat = 2,
-	Door = 3,
-	Heli = 4,
-	Object = 5,
-	Ped = 6,
-	Pickup = 7,
-	PickupPlacement = 8,
-	Plane = 9,
-	Submarine = 10,
-	Player = 11,
-	Trailer = 12,
-	Train = 13,
-#elif defined(STATE_RDR3)
-	Animal = 0,
-	Automobile = 1,
-	Bike = 2,
-	Boat = 3,
-	Door = 4,
-	Heli = 5,
-	Object = 6,
-	Ped = 7,
-	Pickup = 8,
-	PickupPlacement = 9,
-	Plane = 10,
-	Submarine = 11,
-	Player = 12,
-	Trailer = 13,
-	Train = 14,
-	DraftVeh = 15,
-	StatsTracker = 16,
-	PropSet = 17,
-	AnimScene = 18,
-	GroupScenario = 19,
-	Herd = 20,
-	Horse = 21,
-	WorldState = 22,
-	WorldProjectile = 23,
-	Incident = 24,
-	Guardzone = 25,
-	PedGroup = 26,
-	CombatDirector = 27,
-	PedSharedTargeting = 28,
-	Persistent = 29,
-#endif
-};
-
 struct SyncEntityState
 {
 	using TData = std::variant<int, float, bool, std::string>;
@@ -1301,6 +1252,12 @@ public:
 
 	bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<StateBag>()> createStateBag) override;
 
+	uint32_t GetClientRoutingBucket(const fx::ClientSharedPtr& client) override;
+
+	std::function<bool()> GetGameEventHandlerWithEvent(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::packet::ClientNetGameEventV2& netGameEvent) override;
+
+	bool IsClientRelevantEntity(const fx::ClientSharedPtr& client, uint32_t objectId) override;
+
 private:
 	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
 
@@ -1370,6 +1327,7 @@ public:
 
 private:
 	std::function<bool()> GetRequestControlEventHandler(const fx::ClientSharedPtr& client, net::Buffer&& buffer);
+	std::function<bool()> GetRequestControlEventHandlerWithEvent(const fx::ClientSharedPtr& client, net::packet::ClientNetGameEventV2& netGameEvent);
 
 public:
 	fx::sync::SyncEntityPtr GetEntity(uint8_t playerId, uint16_t objectId);

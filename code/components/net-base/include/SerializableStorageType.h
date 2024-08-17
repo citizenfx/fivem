@@ -2,6 +2,8 @@
 
 #include "DataStream.h"
 
+#include <ForceConsteval.h>
+
 namespace net::storage_type
 {
 	class SerializableSizeOption
@@ -143,7 +145,7 @@ namespace net::storage_type
 				}
 				else
 				{
-					size = AdjustSize(ElementType(suggestion));
+					size = net::force_consteval<ElementType, std::numeric_limits<ElementType>::max()>;
 				}
 
 				if constexpr (!Remaining)

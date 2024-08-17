@@ -3,56 +3,12 @@
 #include <catch_amalgamated.hpp>
 
 #include "GameServer.h"
+#include <state/ServerGameStatePublic.h>
+#include "ServerGameStatePublicInstance.h"
 #include "ServerInstance.h"
 #include "packethandlers/RoutingPacketHandler.h"
 
 #include "TestUtils.h"
-
-struct ParseGameStatePacketData
-{
-	const fx::ClientSharedPtr client;
-	const std::vector<uint8_t> packetData;
-
-	ParseGameStatePacketData(const fx::ClientSharedPtr& _client, const std::vector<uint8_t>& _packetData)
-		: client(_client),
-		  packetData(_packetData)
-	{
-	}
-};
-
-class GameState : public fx::ServerGameStatePublic
-{
-public:
-	static inline std::optional<ParseGameStatePacketData> parseGameStatePacketDataLastCall{};
-
-	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds) override
-	{
-	}
-
-	fx::SyncStyle GetSyncStyle() override
-	{
-		return fx::SyncStyle::NAK;
-	}
-
-	fx::EntityLockdownMode GetEntityLockdownMode(const fx::ClientSharedPtr& client) override
-	{
-		return fx::EntityLockdownMode::Strict;
-	}
-
-	void ParseGameStatePacket(const fx::ClientSharedPtr& client, const std::vector<uint8_t>& packetData) override
-	{
-		parseGameStatePacketDataLastCall.emplace(client, packetData);
-	}
-
-	void ForAllEntities(const std::function<void(fx::sync::Entity*)>& cb) override
-	{
-	}
-	
-	bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<fx::StateBag>()> createStateBag)
-	{
-		return false;
-	}
-};
 
 TEST_CASE("Routing handler test")
 {
@@ -65,7 +21,7 @@ TEST_CASE("Routing handler test")
 
 	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
-	serverInstance->SetComponent<fx::ServerGameStatePublic>(new GameState());
+	serverInstance->SetComponent<fx::ServerGameStatePublic>(fx::ServerGameStatePublicInstance::Create());
 
 	net::Buffer buffer;
 	buffer.Write<uint16_t>(1); // target net id
@@ -75,14 +31,14 @@ TEST_CASE("Routing handler test")
 	buffer.Write(data.data(), data.size());
 	buffer.Reset();
 
-	GameState::parseGameStatePacketDataLastCall.reset();
+	fx::ServerGameStatePublicInstance::GetParseGameStatePacketDataLastCall().reset();
 	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
 	RoutingPacketHandler handler(serverInstance);
 	handler.Handle(serverInstance, client, buffer);
 
-	REQUIRE(GameState::parseGameStatePacketDataLastCall.has_value() == true);
-	REQUIRE(GameState::parseGameStatePacketDataLastCall.value().client == client);
-	REQUIRE(GameState::parseGameStatePacketDataLastCall.value().packetData == data);
+	REQUIRE(fx::ServerGameStatePublicInstance::GetParseGameStatePacketDataLastCall().has_value() == true);
+	REQUIRE(fx::ServerGameStatePublicInstance::GetParseGameStatePacketDataLastCall().value().client == client);
+	REQUIRE(fx::ServerGameStatePublicInstance::GetParseGameStatePacketDataLastCall().value().packetData == data);
 
 	delete serverInstance;
 }

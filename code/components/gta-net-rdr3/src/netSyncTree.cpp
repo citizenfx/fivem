@@ -3,45 +3,6 @@
 
 #include <netSyncTree.h>
 
-const char* GetNetObjEntityName(uint16_t type)
-{
-	switch ((NetObjEntityType)type)
-	{
-	case NetObjEntityType::Animal: return "CNetObjAnimal";
-	case NetObjEntityType::Automobile: return "CNetObjAutomobile";
-	case NetObjEntityType::Bike: return "CNetObjBike";
-	case NetObjEntityType::Boat: return "CNetObjBoat";
-	case NetObjEntityType::Door: return "CNetObjDoor";
-	case NetObjEntityType::Heli: return "CNetObjHeli";
-	case NetObjEntityType::Object: return "CNetObjObject";
-	case NetObjEntityType::Ped: return "CNetObjPed";
-	case NetObjEntityType::Pickup: return "CNetObjPickup";
-	case NetObjEntityType::PickupPlacement: return "CNetObjPickupPlacement";
-	case NetObjEntityType::Plane: return "CNetObjPlane";
-	case NetObjEntityType::Submarine: return "CNetObjSubmarine";
-	case NetObjEntityType::Player: return "CNetObjPlayer";
-	case NetObjEntityType::Trailer: return "CNetObjTrailer";
-	case NetObjEntityType::Train: return "CNetObjTrain";
-	case NetObjEntityType::DraftVeh: return "CNetObjDraftVeh";
-	case NetObjEntityType::StatsTracker: return "CNetObjStatsTracker";
-	case NetObjEntityType::PropSet: return "CNetObjPropSet";
-	case NetObjEntityType::AnimScene: return "CNetObjAnimScene";
-	case NetObjEntityType::GroupScenario: return "CNetObjGroupScenario";
-	case NetObjEntityType::Herd: return "CNetObjHerd";
-	case NetObjEntityType::Horse: return "CNetObjHorse";
-	case NetObjEntityType::WorldState: return "CNetObjWorldState";
-	case NetObjEntityType::WorldProjectile: return "CNetObjWorldProjectile";
-	case NetObjEntityType::Incident: return "CNetObjIncident";
-	case NetObjEntityType::Guardzone: return "CNetObjGuardzone";
-	case NetObjEntityType::PedGroup: return "CNetObjPedGroup";
-	case NetObjEntityType::CombatDirector: return "CNetObjCombatDirector";
-	case NetObjEntityType::PedSharedTargeting: return "CNetObjPedSharedTargeting";
-	case NetObjEntityType::Persistent: return "CNetObjPersistent";
-	}
-
-	return "Unknown";
-}
-
 static hook::cdecl_stub<rage::netSyncTree* (void*, int)> getSyncTreeForType([]()
 {
 	return hook::get_pattern("0F B7 CA 83 F9 0F 0F 87");

@@ -65,7 +65,7 @@ namespace net
 		void Reset()
 		{
 			m_set = false;
-			m_property.value = {};
+			m_property.GetValue() = {};
 		}
 
 		Property& GetProperty()
@@ -75,7 +75,7 @@ namespace net
 
 		typename UseValueType<Property>::Value& GetValue()
 		{
-			return m_property.value;
+			return m_property.GetValue();
 		}
 
 		template <typename T>

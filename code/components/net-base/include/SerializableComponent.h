@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ByteCounter.h>
+
 namespace net
 {
 	/// <summary>
@@ -10,6 +12,15 @@ namespace net
 	struct SerializableComponent
 	{
 		static constexpr bool kIsComponent = true;
+
+		template<typename T>
+		static size_t GetSize()
+		{
+			ByteCounter counter;
+			T value;
+			value.Process(counter);
+			return counter.GetOffset();
+		}
 
 		template <typename T, typename... Property>
 		bool ProcessPropertiesInOrder(T& stream, Property&... property)

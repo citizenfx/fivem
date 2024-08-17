@@ -80,11 +80,17 @@ namespace fx
 		
 		client->OnAssignNetId.Connect([this, weakClient](const uint32_t previousNetId)
 		{
-			m_clientsByNetId[weakClient.lock()->GetNetId()] = weakClient;
-			if (previousNetId != 0xFFFF)
+			fx::ClientSharedPtr client = weakClient.lock();
+			if (client)
 			{
-				m_clientsByNetId[previousNetId].reset();
+				m_clientsByNetId[client->GetNetId()] = weakClient;
 			}
+
+			// todo: cleanup the old net id directly after playerJoining returns the correct id
+			//if (previousNetId != 0xFFFF)
+			//{
+			//	m_clientsByNetId[previousNetId].reset();
+			//}
 		});
 
 		client->OnAssignPeer.Connect([this, weakClient]()

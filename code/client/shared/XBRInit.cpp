@@ -21,7 +21,7 @@ int GetGameBuildInit()
 
 	auto sharedData = CfxState::Get();
 	std::wstring_view cli = (sharedData->initCommandLine[0]) ? sharedData->initCommandLine : GetCommandLineW();
-	auto buildNumber = std::get<1>(buildNumbers[std::size(buildNumbers) - 1]);
+	auto buildNumber = std::get<1>(buildNumbers[0]);
 
 	for (auto [build, number] : buildNumbers)
 	{

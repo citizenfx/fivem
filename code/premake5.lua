@@ -1,3 +1,5 @@
+local gameBuilds = require("premake5_builds")
+
 -- to work around slow init times due to packagesrv.com being down
 premake.downloadModule = function()
 	return false
@@ -225,6 +227,24 @@ workspace "CitizenMP"
 		defines "NDEBUG"
 		optimize "Speed"
 
+
+	local buildsDef = "GAME_BUILDS="
+	local builds = gameBuilds[_OPTIONS["game"]]
+
+	if builds ~= nil then
+		local buildsOrdered = {}
+
+		for n in pairs(builds) do table.insert(buildsOrdered, n) end
+		table.sort(buildsOrdered)
+
+		for _, build in ipairs(buildsOrdered) do
+			buildsDef = buildsDef .. "(" .. string.sub(build, string.len("game_") + 1) .. ")"
+		end
+
+		filter 'language:C or language:C++'
+			defines(buildsDef)
+	end
+
 	filter {}
 
 	if _OPTIONS["game"] == "ny" then
@@ -247,9 +267,13 @@ workspace "CitizenMP"
 			architecture 'x64'
 	elseif _OPTIONS["game"] == "launcher" then
 		defines "IS_LAUNCHER"
-
+		
 		filter 'language:C or language:C++ or language:C#'
 			architecture 'x64'
+			defines(buildsDef .. "(0)")
+	else
+		filter 'language:C or language:C++'
+			defines(buildsDef .. "(0)")
 	end
 
 	filter { "system:windows", 'language:C or language:C++' }
@@ -632,14 +656,6 @@ if _OPTIONS['game'] ~= 'launcher' then
 			'client/clrcore-v2/Math/Vector2.cs',
 			'client/clrcore-v2/Math/Vector3.cs',
 			'client/clrcore-v2/Math/Vector4.cs',
-		}
-		
-		-- Add MsgPack source files directly, otherwise we'd get a cyclic dependency
-		files { '../vendor/msgpack-cs/MsgPack/**.cs' }
-		removefiles {
-			'../vendor/msgpack-cs/MsgPack/AssemblyInfo.cs',
-			'../vendor/msgpack-cs/MsgPack/PlatformTypes/**',
-			'../vendor/msgpack-cs/MsgPack/obj/**', -- allows working in the submodule
 		}
 		
 		defines { 'MONO_V2' }

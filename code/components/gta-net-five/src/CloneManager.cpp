@@ -13,6 +13,7 @@
 #include <netBlender.h>
 #include <netInterface.h>
 #include <netObjectMgr.h>
+#include <netPlayerManager.h>
 #include <netSyncTree.h>
 #include <netTimeSync.h>
 
@@ -83,14 +84,6 @@ static hook::cdecl_stub<uint32_t()> _getNetAckTimestamp([]()
 	return hook::get_pattern("8B C3 2B 05 ? ? ? ? 39 ? ? ? ? 02 76 ? FF C8", -0x30);
 #endif
 });
-
-extern CNetGamePlayer* g_players[256];
-extern std::unordered_map<uint16_t, CNetGamePlayer*> g_playersByNetId;
-extern std::unordered_map<CNetGamePlayer*, uint16_t> g_netIdsByPlayer;
-
-std::string GetType(void* d);
-
-CNetGamePlayer* GetLocalPlayer();
 
 CNetGamePlayer* GetPlayerByNetId(uint16_t);
 
@@ -181,11 +174,7 @@ private:
 private:
 	void HandleCloneAcks(const char* data, size_t len);
 
-	void HandleCloneAcksNew(const char* data, size_t len);
-
 	void HandleCloneSync(const char* data, size_t len);
-
-	void HandleCloneRemove(const char* data, size_t len);
 
 	bool HandleCloneCreate(const msgClone& msg);
 
@@ -358,13 +347,6 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 
 	// add message handlers
 	m_netLibrary->AddReliableHandler(
-	"msgCloneAcks", [this](const char* data, size_t len)
-	{
-		HandleCloneAcks(data, len);
-	},
-	true);
-
-	m_netLibrary->AddReliableHandler(
 	"msgPackedClones", [this](const char* data, size_t len)
 	{
 		HandleCloneSync(data, len);
@@ -374,14 +356,7 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	m_netLibrary->AddReliableHandler(
 	"msgPackedAcks", [this](const char* data, size_t len)
 	{
-		HandleCloneAcksNew(data, len);
-	},
-	true);
-
-	m_netLibrary->AddReliableHandler(
-	"msgCloneRemove", [this](const char* data, size_t len)
-	{
-		HandleCloneRemove(data, len);
+		HandleCloneAcks(data, len);
 	},
 	true);
 
@@ -441,7 +416,7 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 		rage::netObject* obj = it->second;
 		auto& extData = m_extendedData[obj->GetObjectId()];
 
-		console::Printf("CloneManager", "-- NETWORK OBJECT %d (%s) --\n", obj->GetObjectId(), GetType(obj));
+		console::Printf("CloneManager", "-- NETWORK OBJECT %d (class %s) --\n", obj->GetObjectId(), fx::sync::GetNetObjEntityName(obj->GetObjectType()));
 		console::Printf("CloneManager", "Owner: %s (%d)\n", g_playersByNetId[extData.clientId] ? g_playersByNetId[extData.clientId]->GetName() : "null?", extData.clientId);
 		console::Printf("CloneManager", "Is remote: %s\n", obj->syncData.isRemote ? "yes" : "no");
 		console::Printf("CloneManager", "Game client ID: %d\n", obj->syncData.ownerId);
@@ -646,56 +621,6 @@ void CloneManagerLocal::ProcessTimestampAck(uint32_t timestamp)
 }
 
 void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
-{
-	net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
-
-	while (!buf.IsAtEnd())
-	{
-		auto type = buf.Read<uint8_t>();
-
-		Log("%s: read ack type %d\n", __func__, type);
-
-		switch (type)
-		{
-			// create ack?
-			case 1:
-			{
-				auto objId = buf.Read<uint16_t>();
-				ProcessCreateAck(objId);
-
-				break;
-			}
-			// sync ack?
-			case 2:
-			{
-				auto objId = buf.Read<uint16_t>();
-				ProcessSyncAck(objId);
-
-				break;
-			}
-			// timestamp ack?
-			case 5:
-			{
-				auto timestamp = buf.Read<uint32_t>();
-				ProcessTimestampAck(timestamp);
-
-				break;
-			}
-			// remove ack?
-			case 3:
-			{
-				auto objId = buf.Read<uint16_t>();
-				ProcessRemoveAck(objId);
-
-				break;
-			}
-			default:
-				return;
-		}
-	}
-}
-
-void CloneManagerLocal::HandleCloneAcksNew(const char* data, size_t len)
 {
 	net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
 
@@ -1214,7 +1139,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 		// and ChangeOwner does some fixups (e.g. ped tasks) for sync data
 		if (obj->syncData.isRemote)
 		{
-			auto player = GetLocalPlayer();
+			auto player = rage::GetLocalPlayer();
 
 			// add the object
 			rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
@@ -1404,7 +1329,7 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 			return;
 		}
 
-		Log("%s: Remote-migrating object %s (of type %s) from %s to %s.\n", __func__, obj->ToString(), GetType(obj),
+		Log("%s: Remote-migrating object %s (of type %s) from %s to %s.\n", __func__, obj->ToString(), fx::sync::GetNetObjEntityName(obj->GetObjectType()),
 		(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
 		(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
 
@@ -1416,7 +1341,7 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 
 		if (clientId == m_netLibrary->GetServerNetID())
 		{
-			auto player = GetLocalPlayer();
+			auto player = rage::GetLocalPlayer();
 
 			// add the object
 			rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
@@ -1768,16 +1693,6 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 	}
 }
 
-void CloneManagerLocal::HandleCloneRemove(const char* data, size_t len)
-{
-	net::Buffer netBuffer(reinterpret_cast<const uint8_t*>(data), len);
-	auto objectId = netBuffer.Read<uint16_t>();
-
-	Log("%s: deleting [obj:%d]\n", __func__, objectId);
-
-	DeleteObjectId(objectId, 0, false);
-}
-
 void CloneManagerLocal::DeleteObjectId(uint16_t objectId, uint16_t uniqifier, bool force)
 {
 	// find object and remove
@@ -1849,7 +1764,7 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 
 	AttemptFlushCloneBuffer();
 
-	Log("%s: Migrating object %s (of type %s) from %s to %s (%s).\n", __func__, object->ToString(), GetType(object),
+	Log("%s: Migrating object %s (of type %s) from %s to %s (%s).\n", __func__, object->ToString(), fx::sync::GetNetObjEntityName(object->GetObjectType()),
 	wasLocal ? "us" : "a remote player",
 	(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)",
 	(clientId == m_netLibrary->GetServerNetID()) ? "us!" : "remote player");
@@ -2245,7 +2160,7 @@ void CloneManagerLocal::WriteUpdates()
 		{
 			uint32_t reason = 0;
 
-			if (!object->CanClone(GetLocalPlayer(), &reason))
+			if (!object->CanClone(rage::GetLocalPlayer(), &reason))
 			{
 				return;
 			}

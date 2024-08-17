@@ -43,6 +43,8 @@
 
 #include <InfoHttpHandler.h>
 
+#include "ClientDropReasons.h"
+
 constexpr const char kDefaultServerList[] = "https://servers-ingress-live.fivem.net/ingress";
 
 static fx::GameServer* g_gameServer;
@@ -131,7 +133,7 @@ namespace fx
 		{
 			m_clientRegistry->ForAllClients([this, &reason](const fx::ClientSharedPtr& client)
 			{
-				DropClient(client, "Server shutting down: %s", reason);
+				DropClientWithReason(client, fx::serverDropResourceName, ClientDropReason::SERVER_SHUTDOWN, "Server shutting down: %s", reason);
 			});
 		});
 
@@ -335,7 +337,7 @@ namespace fx
 
 			auto processSendList = [this]()
 			{
-				while (auto *packet = m_netSendList.pop(&fx::GameServerPacket::queueKey))
+				while (auto *packet = m_netSendList.pop_until_empty(&fx::GameServerPacket::queueKey))
 				{
 					m_net->SendPacket(packet->peer, packet->channel, packet->buffer, packet->type);
 					m_packetPool.destruct(packet);
@@ -681,7 +683,7 @@ namespace fx
 
 					if (IsOneSync())
 					{
-						if (client->GetSlotId() == -1)
+						if (!client->HasSlotId())
 						{
 							SendOutOfBand(peer->GetAddress(), "error Not enough client slot IDs.");
 
@@ -729,7 +731,7 @@ namespace fx
 
 					if (wasNew)
 					{
-						gscomms_execute_callback_on_main_thread([=]()
+						gscomms_execute_callback_on_main_thread([this, client, oldNetID]()
 						{
 							m_clientRegistry->HandleConnectedClient(client, oldNetID);
 						});
@@ -934,12 +936,12 @@ namespace fx
 							commandListFormat << fmt::sprintf("%s (%d B, %d msec ago)\n", name, bigCmd.size, bigCmd.timeAgo);
 						}
 
-						DropClient(client, "Server->client connection timed out. Pending commands: %d.\nCommand list:\n%s", timeoutInfo.pendingCommands, commandListFormat.str());
+						DropClientWithReason(client, fx::serverDropResourceName, ClientDropReason::CLIENT_CONNECTION_TIMED_OUT_WITH_PENDING_COMMANDS, "Server->client connection timed out. Pending commands: %d.\nCommand list:\n%s", timeoutInfo.pendingCommands, commandListFormat.str());
 						continue;
 					}
 				}
 
-				DropClient(client, "Server->client connection timed out. Last seen %d msec ago.", lastSeen.count());
+				DropClientWithReason(client, fx::serverDropResourceName, ClientDropReason::CLIENT_CONNECTION_TIMED_OUT, "Server->client connection timed out. Last seen %d msec ago.", lastSeen.count());
 			}
 		}
 
@@ -1074,7 +1076,7 @@ namespace fx
 		OnTick();
 	}
 
-	void GameServer::DropClientv(const fx::ClientSharedPtr& client, const std::string& reason)
+	void GameServer::DropClientv(const fx::ClientSharedPtr& client, const std::string& resourceName, ClientDropReason clientDropReason, const std::string& reason)
 	{
 		std::string realReason = reason;
 		if (realReason.empty())
@@ -1089,13 +1091,13 @@ namespace fx
 
 		client->SetDropping();
 
-		gscomms_execute_callback_on_main_thread([this, client, realReason = std::move(realReason)]()
+		gscomms_execute_callback_on_main_thread([this, client, resourceName = std::move(resourceName), realReason = std::move(realReason), clientDropReason]()
 		{
-			DropClientInternal(client, realReason);
+			DropClientInternal(client, resourceName, clientDropReason, realReason);
 		});
 	}
 
-	void GameServer::DropClientInternal(const fx::ClientSharedPtr& client, const std::string& realReason)
+	void GameServer::DropClientInternal(const fx::ClientSharedPtr& client, const std::string& resourceName, ClientDropReason clientDropReason, const std::string& realReason)
 	{
 		// send an out-of-band error to the client
 		if (client->GetPeer())
@@ -1121,7 +1123,9 @@ namespace fx
 				->TriggerEvent2(
 					"playerDropped",
 					{ fmt::sprintf("internal-net:%d", client->GetNetId()) },
-					realReason
+					realReason,
+					resourceName,
+					static_cast<uint32_t>(clientDropReason)
 				);
 		}
 
@@ -1261,6 +1265,7 @@ namespace fx
 #include <packethandlers/ServerCommandPacketHandler.h>
 #include <packethandlers/TimeSyncReqPacketHandler.h>
 #include <packethandlers/StateBagPacketHandler.h>
+#include <packethandlers/NetGameEventPacketHandler.h>
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
@@ -1297,6 +1302,10 @@ void gscomms_execute_callback_on_sync_thread(const std::function<void()>& fn)
 
 void gscomms_reset_peer(int peer)
 {
+	if (!g_gameServer)
+	{
+		return;
+	}
 	gscomms_execute_callback_on_net_thread([=]()
 	{
 		g_gameServer->InternalResetPeer(peer);
@@ -1305,6 +1314,10 @@ void gscomms_reset_peer(int peer)
 
 void gscomms_send_packet(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType flags)
 {
+	if (!g_gameServer)
+	{
+		return;
+	}
 	g_gameServer->InternalSendPacket(client, peer, channel, buffer, flags);
 }
 
@@ -1322,7 +1335,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(new fx::UdpInterceptor());
 
 		instance->SetComponent(
-			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2>(
+			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2>(
 				WithProcessTick<ThreadWait, GameServerTick>(
 					WithOutOfBand<GetInfoOutOfBand, GetStatusOutOfBand, RconOutOfBand>(
 						WithEndPoints(

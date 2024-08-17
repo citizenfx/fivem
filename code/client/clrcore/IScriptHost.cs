@@ -35,6 +35,9 @@ namespace CitizenFX.Core
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		IntPtr GetLastErrorText();
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		int InvokeFunctionReference([MarshalAs(UnmanagedType.LPStr)] string refId, [In] [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] byte[] args, int argsSize, IntPtr ret);
 	}
 
 	[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

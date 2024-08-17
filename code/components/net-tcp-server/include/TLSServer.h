@@ -172,6 +172,8 @@ public:
 
 	virtual void ScheduleCallback(TScheduledCallback&& callback, bool performInline) override;
 
+	void StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout) override;
+
 private:
 	void WriteToClient(const uint8_t buf[], size_t length);
 

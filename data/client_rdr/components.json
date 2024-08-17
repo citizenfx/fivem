@@ -3,6 +3,7 @@
 	"net:http-server",
 	"net:tcp-server",
 	"net:base",
+	"net:packet",
 	"rage:allocator:rdr3",
 	"rage:scripting:rdr3",
 	"rage:graphics:rdr3",

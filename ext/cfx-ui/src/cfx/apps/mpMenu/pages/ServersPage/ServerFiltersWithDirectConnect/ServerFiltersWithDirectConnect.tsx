@@ -1,3 +1,13 @@
+import {
+  Button,
+  Indicator,
+  Flex,
+  Shroud,
+  TextBlock,
+  ui,
+  useOutlet,
+  TITLE_OUTLET_ID,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
@@ -7,13 +17,6 @@ import { ServerTitle } from 'cfx/common/parts/Server/ServerTitle/ServerTitle';
 import { ElementPlacements } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { ServerListConfigController } from 'cfx/common/services/servers/lists/ServerListConfigController';
-import { Button } from 'cfx/ui/Button/Button';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { TitleOutlet } from 'cfx/ui/outlets';
-import { Shroud } from 'cfx/ui/Shroud/Shroud';
-import { TextBlock } from 'cfx/ui/Text/Text';
-import { ui } from 'cfx/ui/ui';
 import { useWindowResize } from 'cfx/utils/hooks';
 
 import {
@@ -92,6 +95,8 @@ const DirectConnect = observer(function DirectConnect(props: DirectConnectProps)
     '--y': ui.px(pos[1] + pos[3]),
     '--w': ui.px(pos[2]),
   };
+
+  const TitleOutlet = useOutlet(TITLE_OUTLET_ID);
 
   return (
     <TitleOutlet>

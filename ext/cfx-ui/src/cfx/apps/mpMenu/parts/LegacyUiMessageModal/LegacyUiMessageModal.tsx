@@ -1,13 +1,15 @@
+import {
+  Button,
+  ButtonBar,
+  Flex,
+  Pad,
+  Modal,
+  TextBlock,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { useService } from 'cfx/base/servicesContainer';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { Button } from 'cfx/ui/Button/Button';
-import { ButtonBar } from 'cfx/ui/Button/ButtonBar';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Modal } from 'cfx/ui/Modal/Modal';
-import { TextBlock } from 'cfx/ui/Text/Text';
 
 import { IUiMessage } from '../../services/uiMessage/types';
 import { IUiMessageService } from '../../services/uiMessage/uiMessage.service';

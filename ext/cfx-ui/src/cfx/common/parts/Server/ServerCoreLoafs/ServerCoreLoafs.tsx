@@ -1,3 +1,16 @@
+import {
+  Avatar,
+  Badge,
+  Button,
+  Flex,
+  Loaf,
+  Symbols,
+  Text,
+  Title,
+  ValueOrGetter,
+  getValue,
+  useDynamicRef,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { AiFillCrown } from 'react-icons/ai';
@@ -10,16 +23,7 @@ import { AnalyticsLinkButton } from 'cfx/common/parts/AnalyticsLinkButton/Analyt
 import { ElementPlacements } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { IServerView, ServerPureLevel } from 'cfx/common/services/servers/types';
-import { Avatar } from 'cfx/ui/Avatar/Avatar';
-import { Badge } from 'cfx/ui/Badge/Badge';
-import { Button } from 'cfx/ui/Button/Button';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Loaf } from 'cfx/ui/Loaf/Loaf';
-import { Symbols } from 'cfx/ui/Symbols';
-import { Text } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
-import { getValue, ValueOrGetter } from 'cfx/utils/getValue';
-import { useDynamicRef, useOpenFlag } from 'cfx/utils/hooks';
+import { useOpenFlag } from 'cfx/utils/hooks';
 
 import { ServerBoostButton } from '../ServerBoostButton/ServerBoostButton';
 

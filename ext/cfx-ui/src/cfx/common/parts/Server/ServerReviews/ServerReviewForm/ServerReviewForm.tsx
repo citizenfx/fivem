@@ -1,3 +1,17 @@
+import {
+  Avatar,
+  Button,
+  Indicator,
+  Input,
+  Box,
+  Flex,
+  Pad,
+  Radio,
+  Text,
+  TextBlock,
+  Textarea,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
@@ -5,17 +19,6 @@ import { useAccountService } from 'cfx/common/services/account/account.service';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { IServerReviews } from 'cfx/common/services/servers/reviews/types';
 import { IServerView } from 'cfx/common/services/servers/types';
-import { Avatar } from 'cfx/ui/Avatar/Avatar';
-import { Button } from 'cfx/ui/Button/Button';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { Input } from 'cfx/ui/Input/Input';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Radio } from 'cfx/ui/Radio/Radio';
-import { Text, TextBlock } from 'cfx/ui/Text/Text';
-import { Textarea } from 'cfx/ui/Textarea/Textarea';
-import { Title } from 'cfx/ui/Title/Title';
 import { proxyInvariant } from 'cfx/utils/invariant';
 
 import { useServerReviewFormState } from './ServerReviewFormState';

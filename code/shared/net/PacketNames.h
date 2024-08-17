@@ -7,10 +7,6 @@ namespace net
 		// comment above each element is the hash of the packet
 		// 0976e783
 		{ HashRageString("msgArrayUpdate"), "msgArrayUpdate" },
-		// 30f965f6
-		{ HashRageString("msgCloneAcks"), "msgCloneAcks" },
-		// 4a9e9dbf
-		{ HashRageString("msgCloneRemove"), "msgCloneRemove" },
 		// 6acbd583
 		{ HashRageString("msgConVars"), "msgConVars" },
 		// ba96192a
@@ -47,8 +43,6 @@ namespace net
 		{ HashRageString("msgResStop"), "msgResStop" },
 		// e938445b
 		{ HashRageString("msgRoute"), "msgRoute" },
-		// 0ab0f1c9
-		{ HashRageString("msgRpcEntityCreation"), "msgRpcEntityCreation" },
 		// 211cab17
 		{ HashRageString("msgRpcNative"), "msgRpcNative" },
 		// b18d4fc4
@@ -61,8 +55,6 @@ namespace net
 		{ HashRageString("msgTimeSync"), "msgTimeSync" },
 		// 1c1303f8
 		{ HashRageString("msgTimeSyncReq"), "msgTimeSyncReq" },
-		// e04838b6
-		{ HashRageString("msgWorldGrid"), "msgWorldGrid" },
 		// 852c1561
 		{ HashRageString("msgWorldGrid3"), "msgWorldGrid3" },
 		// a5d4e2bc

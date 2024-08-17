@@ -105,7 +105,7 @@ rm premake.zip
 cd premake-*
 
 cd build/gmake*.unix/
-make -j${JOB_SLOTS}
+make CFLAGS="-include unistd.h" -j${JOB_SLOTS}
 cd ../../
 
 mv bin/release/premake5 /usr/local/bin
@@ -126,9 +126,17 @@ export CXXFLAGS="-D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR -Wno-deprecated-declara
 export LDFLAGS="-Wl,--build-id -fuse-ld=lld"
 
 if [ ! -z "$CI_BRANCH" ] && [ ! -z "$CI_BUILD_NUMBER" ]; then
-	echo '#pragma once' > /src/code/shared/cfx_version.h
-	echo '#define GIT_DESCRIPTION "'$CI_BRANCH' '$CI_BUILD_NUMBER' linux"' >> /src/code/shared/cfx_version.h
-	echo '#define GIT_TAG "'$CI_BUILD_NUMBER'"' >> /src/code/shared/cfx_version.h
+    echo '#pragma once' > /src/code/shared/cfx_version.h
+
+    if [[ "$CI_BRANCH" == feature/* ]]; then
+        dateVersion=$(date +%Y%m%d)
+        gitDescription="$CI_BRANCH SERVER v1.0.0.$dateVersion linux"
+    else
+        gitDescription="$CI_BRANCH $CI_BUILD_NUMBER linux"
+    fi
+
+    echo '#define GIT_DESCRIPTION "'$gitDescription'"' >> /src/code/shared/cfx_version.h
+    echo '#define GIT_TAG "'$CI_BUILD_NUMBER'"' >> /src/code/shared/cfx_version.h
 fi
 
 make clean

@@ -113,7 +113,7 @@ module.exports = (env, argv) => {
                     path.join(srcPath, 'cfx/styles'),
                   ],
                 },
-                additionalData: '@use "ui" as ui;\n',
+                additionalData: '@use "~@cfx-dev/ui-components/dist/styles-scss/ui" as ui;\n',
               },
             },
           ],

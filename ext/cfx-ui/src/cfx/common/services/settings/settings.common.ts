@@ -1,12 +1,13 @@
+import { NavList } from '@cfx-dev/ui-components';
 import { inject, injectable } from 'inversify';
 import { makeAutoObservable, observable } from 'mobx';
-
-import { NavListItem } from 'cfx/ui/NavList/NavList';
 
 import { ISettingsService, ISettingsUIService } from './settings.service';
 import { ISettingsServiceInit } from './settingsInit';
 import { ICategory, ISettings } from './types';
 import { ServicesContainer } from '../../../base/servicesContainer';
+
+type NavListItems = React.ComponentProps<typeof NavList>['items'];
 
 export type TSettingsService = SettingsService;
 export type TSettingsUIService = SettingsUIService;
@@ -66,7 +67,7 @@ class SettingsUIService {
     return this.settingsService.settings.get(this.categoryID);
   }
 
-  public get navListItems(): NavListItem[] {
+  public get navListItems(): NavListItems {
     return [...this.settingsService.settings.entries()].map(([id, category]) => ({
       id,
       icon: category.icon,

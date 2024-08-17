@@ -1,19 +1,21 @@
+import {
+  Button,
+  Indicator,
+  InfoPanel,
+  Flex,
+  Pad,
+  Modal,
+  Radio,
+  Text,
+  Textarea,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import { BsFlag } from 'react-icons/bs';
 
 import { $L } from 'cfx/common/services/intl/l10n';
 import { IServerReviewReport } from 'cfx/common/services/servers/reviews/types';
-import { Button } from 'cfx/ui/Button/Button';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Modal } from 'cfx/ui/Modal/Modal';
-import { Radio } from 'cfx/ui/Radio/Radio';
-import { Text } from 'cfx/ui/Text/Text';
-import { Textarea } from 'cfx/ui/Textarea/Textarea';
-import { Title } from 'cfx/ui/Title/Title';
 import { useOpenFlag } from 'cfx/utils/hooks';
 
 export interface ServerReviewReportProps {

@@ -35,6 +35,7 @@
 	"citizen:resources:metadata:lua",
 	"citizen:resources:gta",
 	"net:base",
+	"net:packet",
 	"net:http-server",
 	"net:tcp-server",
 	"citizen:playernames:five",

@@ -34,7 +34,7 @@ namespace net
 
 		bool CanWrite(size_t length) const
 		{
-			return m_offset + length < m_capacity;
+			return m_offset + length <= m_capacity;
 		}
 
 		/// <summary>
@@ -71,6 +71,27 @@ namespace net
 
 			memcpy(m_data + m_offset, static_cast<void*>(&value), size);
 			m_offset += size;
+			return true;
+		}
+
+		/// <summary>
+		/// Writes a net::Span to the buffer.
+		/// </summary>
+		/// <param name="value">The Span to read the content from</param>
+		/// <param name="size">amount of entities to write</param>
+		/// <returns>Returns true when the size can be written/returns>
+		template <typename T>
+		bool Field(net::Span<T>& value, const size_t size)
+		{
+			const size_t sizeBytes = size * sizeof(T);
+			if (!CanWrite(sizeBytes))
+			{
+				return false;
+			}
+
+			memcpy(m_data + m_offset, value.data(), sizeBytes);
+			m_offset += sizeBytes;
+
 			return true;
 		}
 	};

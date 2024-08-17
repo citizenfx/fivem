@@ -13,6 +13,8 @@
 
 #include <MakeClientFunction.h>
 
+#include "fxScripting.h"
+
 static void CreatePlayerCommands();
 
 static InitFunction initFunction([]()
@@ -136,7 +138,20 @@ static void CreatePlayerCommands()
 		// get the game server
 		auto server = instance->GetComponent<fx::GameServer>();
 
-		server->DropClient(client, context.CheckArgument<const char*>(1));
+		std::string resourceName;
+		
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			if (resource)
+			{
+				resourceName = resource->GetName();
+			}
+		}
+
+		server->DropClientWithReason(client, resourceName, fx::ClientDropReason::RESOURCE, context.CheckArgument<const char*>(1));
 
 		return true;
 	}));

@@ -1,13 +1,15 @@
+import {
+  Button,
+  Flex,
+  Pad,
+  Modal,
+  Text,
+  noop,
+} from '@cfx-dev/ui-components';
 import React from 'react';
 
 import { CurrentGameBrand } from 'cfx/base/gameRuntime';
 import { $L, useL10n } from 'cfx/common/services/intl/l10n';
-import { Button } from 'cfx/ui/Button/Button';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Modal } from 'cfx/ui/Modal/Modal';
-import { Text } from 'cfx/ui/Text/Text';
-import { noop } from 'cfx/utils/functional';
 import { nl2brx } from 'cfx/utils/nl2br';
 
 import { mpMenu } from '../../mpMenu';

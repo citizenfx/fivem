@@ -6,7 +6,8 @@
 		"http-client",
 		"profiles",
 		"vendor:cpp-url",
-		"net:base"
+		"net:base",
+		"net:packet"
 	],
 	"provides": []
 }

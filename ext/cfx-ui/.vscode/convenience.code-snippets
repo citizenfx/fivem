@@ -24,13 +24,6 @@
       "}"
     ]
   },
-  "cnimport": {
-    "scope": "typescript,typescriptreact",
-    "prefix": "cnimport",
-    "body": [
-      "import { clsx } from 'cfxui/utils/clsx';",
-    ]
-  },
   "pvalue": {
     "scope": "typescript,typescriptreact",
     "prefix": "pvalue",

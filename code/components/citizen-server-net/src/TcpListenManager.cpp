@@ -166,6 +166,8 @@ namespace fx
 		m_tcpLimitVar = instance->AddVariable<int>("net_tcpConnLimit", ConVar_None, m_tcpLimit, &m_tcpLimit);
 
 		m_dnsRegisterVar = instance->AddVariable<bool>("sv_registerMulticastDns", ConVar_None, true);
+
+		m_tcpConnectionTimeoutSecondsVar = instance->AddVariable<uint16_t>("sv_tcpConnectionTimeoutSeconds", ConVar_None, 5, m_tcpStack->GetTcpConnectionTimeoutSeconds());
 	}
 
 #ifndef _WIN32

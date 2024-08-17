@@ -406,6 +406,8 @@ static InitFunction initFunction([]()
 
 		auto experimentalStateBagsHandler = instance->AddVariable<bool>("sv_experimentalStateBagsHandler", ConVar_None, false);
 		auto experimentalOneSyncPopulation = instance->AddVariable<bool>("sv_experimentalOneSyncPopulation", ConVar_None, false);
+		// todo: remove fx::ServerGameState::GetGameEventHandler, fx::ServerGameState::GetHandler and fx::ServerGameState::GetRequestControlEventHandler when experimentalNetEvents is enabled by default and no longer a experiment
+		auto experimentalNetEvents = instance->AddVariable<bool>("sv_experimentalNetGameEventHandler", ConVar_None, false);
 
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
@@ -553,8 +555,12 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-
-			if (experimentalOneSyncPopulation->GetValue())
+			
+			if (experimentalNetEvents->GetValue())
+			{
+				data["bitVersion"] = net::NetBitVersion::netVersion4;
+			}
+			else if (experimentalOneSyncPopulation->GetValue())
 			{
 				data["bitVersion"] = net::NetBitVersion::netVersion3;
 			}
@@ -591,7 +597,7 @@ static InitFunction initFunction([]()
 
 				if (oldClient)
 				{
-					gameServer->DropClient(oldClient, "Reconnecting");
+					gameServer->DropClientWithReason(oldClient, fx::serverDropResourceName, fx::ClientDropReason::CLIENT_REPLACED, "Reconnecting");
 				}
 			}
 

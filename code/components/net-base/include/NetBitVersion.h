@@ -43,6 +43,11 @@ namespace net
 		/// <summary>
 		/// Improve onesync_population variable
 		/// </summary>
-		netVersion3 = BuildNetVersion(2024, 07, 01, 00, 00)
+		netVersion3 = BuildNetVersion(2024, 07, 01, 00, 00),
+
+		/// <summary>
+		/// Added new netGameEventV2.
+		/// </summary>
+		netVersion4 = BuildNetVersion(2024, 8, 01, 00, 00)
 	};
 }

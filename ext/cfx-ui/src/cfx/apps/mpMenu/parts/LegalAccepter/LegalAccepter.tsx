@@ -1,17 +1,20 @@
+import {
+  Button,
+  Icon,
+  Icons,
+  Indicator,
+  Flex,
+  FlexRestricter,
+  Pad,
+  Text,
+  TextBlock,
+  Title,
+} from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 
 import { useLegalService } from 'cfx/apps/mpMenu/services/legal/legal.service';
 import { CurrentGameBrand } from 'cfx/base/gameRuntime';
-import { Button } from 'cfx/ui/Button/Button';
-import { Icon } from 'cfx/ui/Icon/Icon';
-import { Icons } from 'cfx/ui/Icons';
-import { Indicator } from 'cfx/ui/Indicator/Indicator';
-import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { FlexRestricter } from 'cfx/ui/Layout/Flex/FlexRestricter';
-import { Pad } from 'cfx/ui/Layout/Pad/Pad';
-import { Text, TextBlock } from 'cfx/ui/Text/Text';
-import { Title } from 'cfx/ui/Title/Title';
 
 import { mpMenu } from '../../mpMenu';
 
