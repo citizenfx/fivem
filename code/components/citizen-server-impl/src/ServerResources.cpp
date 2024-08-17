@@ -52,7 +52,6 @@ static std::set<std::string> g_managedResources = {
 	"baseevents",
 	"chat",
 	"sessionmanager",
-	"webadmin",
 	"monitor"
 };
 
