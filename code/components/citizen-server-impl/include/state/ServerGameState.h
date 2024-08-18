@@ -252,14 +252,6 @@ struct CDoorScriptGameStateDataNodeData
 	bool holdOpen;
 };
 
-struct CHeliControlDataNodeData
-{
-	bool engineOff;
-
-	bool hasLandingGear;
-	uint32_t landingGearState;
-};
-
 struct CPlayerCameraNodeData
 {
 	int camMode;
@@ -609,7 +601,41 @@ struct CPlayerGameStateNodeData
 struct CHeliHealthNodeData
 {
 	int mainRotorHealth;
-	int tailRotorHealth;
+	int rearRotorHealth;
+
+	bool boomBroken;
+	bool canBoomBreak;
+	bool hasCustomHealth;
+
+	int bodyHealth;
+	int gasTankHealth;
+	int engineHealth;
+
+	float mainRotorDamage;
+	float rearRotorDamage;
+	float tailRotorDamage;
+
+	bool disableExplosionFromBodyDamage;
+};
+
+struct CHeliControlDataNodeData
+{
+	float yawControl;
+	float pitchControl;
+	float rollControl;
+	float throttleControl;
+
+	bool engineOff;
+
+	bool hasLandingGear;
+	uint32_t landingGearState;
+
+	bool isThrusterModel;
+	float thrusterSideRCSThrottle;
+	float thrusterThrottle;
+
+	bool hasVehicleTask;
+	bool lockedToXY;
 };
 
 struct CVehicleSteeringNodeData
@@ -683,8 +709,6 @@ public:
 
 	virtual CDoorScriptGameStateDataNodeData* GetDoorScriptGameState() = 0;
 
-	virtual CHeliControlDataNodeData* GetHeliControl() = 0;
-
 	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
 
 	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() = 0;
@@ -728,6 +752,8 @@ public:
 	virtual CDummyObjectCreationNodeData* GetDummyObjectState() = 0;
 
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
+
+	virtual CHeliControlDataNodeData* GetHeliControl() = 0;
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
 

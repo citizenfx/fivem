@@ -1985,52 +1985,69 @@ struct CDoorScriptGameStateDataNode
 	}
 };
 
-struct CHeliHealthDataNode
+struct CHeliHealthDataNode : GenericSerializeDataNode<CHeliHealthDataNode>
 {
 	CHeliHealthNodeData data;
 
-	bool Parse(SyncParseState& state)
+	template<typename Serializer>
+    bool Serialize(Serializer& s)
 	{
-		data.mainRotorHealth = state.buffer.Read<int>(17);
-		data.tailRotorHealth = state.buffer.Read<int>(17);
+		s.Serialize(17, data.mainRotorHealth);
+		s.Serialize(17, data.rearRotorHealth);
 
-		bool boomBroken = state.buffer.ReadBit();
+		s.Serialize(data.boomBroken);
+		s.Serialize(data.canBoomBreak);
+		s.Serialize(data.hasCustomHealth);
+
+		if (data.hasCustomHealth)
+		{
+			s.Serialize(17, data.bodyHealth);
+			s.Serialize(17, data.gasTankHealth);
+			s.Serialize(17, data.engineHealth);
+		}
+
+		s.SerializeSigned(11, 100.0f, data.mainRotorDamage);
+		s.SerializeSigned(11, 100.0f, data.rearRotorDamage);
+		s.SerializeSigned(11, 100.0f, data.tailRotorDamage);
+
+		s.Serialize(data.disableExplosionFromBodyDamage);
 
 		return true;
 	}
 };
 
-struct CHeliControlDataNode
+struct CHeliControlDataNode : GenericSerializeDataNode<CHeliControlDataNode>
 {
-	CHeliControlDataNodeData data;
+    CHeliControlDataNodeData data;
 
-	bool Parse(SyncParseState& state)
-	{
-		float yawControl = state.buffer.ReadSignedFloat(8, 1.0f);
-		float pitchControl = state.buffer.ReadSignedFloat(8, 1.0f);
-		float rollControl = state.buffer.ReadSignedFloat(8, 1.0f);
-		float throttleControl = state.buffer.ReadFloat(8, 2.0f);
+    template<typename Serializer>
+    bool Serialize(Serializer& s)
+    {
+        s.SerializeSigned(8, 1.0f, data.yawControl);
+        s.SerializeSigned(8, 1.0f, data.pitchControl);
+        s.SerializeSigned(8, 1.0f, data.rollControl);
+        s.Serialize(8, 2.0f, data.throttleControl);
 
-		data.engineOff = state.buffer.ReadBit();
+        s.Serialize(data.engineOff);
 
-		data.hasLandingGear = state.buffer.ReadBit();
-		if (data.hasLandingGear)
-		{
-			data.landingGearState = state.buffer.Read<uint32_t>(3);
-		}
+        s.Serialize(data.hasLandingGear);
+        if (data.hasLandingGear)
+        {
+            s.Serialize(3, data.landingGearState);
+        }
 
-		bool isThrusterModel = state.buffer.ReadBit();
-		if (isThrusterModel)
-		{
-			float thrusterSideRCSThrottle = state.buffer.ReadSignedFloat(9, 1.0f);
-			float thrusterThrottle = state.buffer.ReadSignedFloat(9, 1.0f);
-		}
+        s.Serialize(data.isThrusterModel);
+        if (data.isThrusterModel)
+        {
+            s.SerializeSigned(9, 1.0f, data.thrusterSideRCSThrottle);
+            s.SerializeSigned(9, 1.0f, data.thrusterThrottle);
+        }
 
-		bool hasVehicleTask = state.buffer.ReadBit();
-		bool unk8 = state.buffer.ReadBit();
+        s.Serialize(data.hasVehicleTask);
+        s.Serialize(data.lockedToXY);
 
-		return true;
-	}
+        return true;
+    }
 };
 
 struct CObjectCreationDataNode
