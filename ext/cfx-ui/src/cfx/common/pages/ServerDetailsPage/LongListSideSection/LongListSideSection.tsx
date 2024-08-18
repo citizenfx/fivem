@@ -1,31 +1,35 @@
-import React from "react";
-import { observer } from "mobx-react-lite";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Text } from "cfx/ui/Text/Text";
-import { Loaf } from "cfx/ui/Loaf/Loaf";
-import { Button } from "cfx/ui/Button/Button";
-import { Box } from "cfx/ui/Layout/Box/Box";
-import { Flyout } from "cfx/ui/Flyout/Flyout";
-import { Icons } from "cfx/ui/Icons";
-import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
-import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
-import { Input } from "cfx/ui/Input/Input";
-import { Separator } from "cfx/ui/Separator/Separator";
+import {
+  Button,
+  Icons,
+  Input,
+  Box,
+  Flex,
+  FlexRestricter,
+  Scrollable,
+  Loaf,
+  Separator,
+  Text,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+
+import { Flyout } from 'cfx/ui/Flyout/Flyout';
+
 import s from './LongListSideSection.module.scss';
 
 export interface LongListSideSectionProps<T> {
-  items: T[],
-  renderPreviewItem: (item: T) => React.ReactNode,
-  renderFullItem?: (item: T) => React.ReactNode,
-  itemMatchesFilter?: (filter: string, item: T) => boolean,
+  items: T[];
+  renderPreviewItem: (item: T) => React.ReactNode;
+  renderFullItem?: (item: T) => React.ReactNode;
+  itemMatchesFilter?: (filter: string, item: T) => boolean;
 
-  maxPreviewItems?: number,
+  maxPreviewItems?: number;
 
-  icon?: React.ReactNode,
-  title: React.ReactNode,
-  subtitle?: React.ReactNode,
+  icon?: React.ReactNode;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
 
-  seeAllTitle?: React.ReactNode,
+  seeAllTitle?: React.ReactNode;
 }
 
 export const LongListSideSection = observer(function LongListSideSection<T>(props: LongListSideSectionProps<T>) {
@@ -52,11 +56,15 @@ export const LongListSideSection = observer(function LongListSideSection<T>(prop
 
   const previewFits = usePreviewFits(containerRef, previewRef);
 
-  const previewNodes = React.useMemo(() => items.slice(0, maxPreviewItems).map((item, i) => (
-    <Loaf key={i} size="small">
-      {renderPreviewItem(item)}
-    </Loaf>
-  )), [items, maxPreviewItems]);
+  const previewNodes = React.useMemo(
+    () => items.slice(0, maxPreviewItems).map((item, i) => (
+      // eslint-disable-next-line react/no-array-index-key
+      <Loaf key={i} size="small">
+        {renderPreviewItem(item)}
+      </Loaf>
+    )),
+    [items, maxPreviewItems],
+  );
 
   return (
     <>
@@ -75,7 +83,7 @@ export const LongListSideSection = observer(function LongListSideSection<T>(prop
       <Flex vertical>
         <Flex repell centered>
           <Flex centered gap="small">
-            <Text size="small" opacity="75" >
+            <Text size="small" opacity="75">
               {icon}
             </Text>
 
@@ -86,9 +94,7 @@ export const LongListSideSection = observer(function LongListSideSection<T>(prop
 
           <Separator thin />
 
-          <Box noShrink>
-            {subtitle}
-          </Box>
+          <Box noShrink>{subtitle}</Box>
         </Flex>
 
         {!!previewNodes.length && (
@@ -99,11 +105,7 @@ export const LongListSideSection = observer(function LongListSideSection<T>(prop
 
             {!previewFits && (
               <Box noShrink>
-                <Button
-                  size="small"
-                  text={seeAllTitle}
-                  onClick={handleOpenFullList}
-                />
+                <Button size="small" text={seeAllTitle} onClick={handleOpenFullList} />
               </Box>
             )}
           </Flex>
@@ -113,7 +115,10 @@ export const LongListSideSection = observer(function LongListSideSection<T>(prop
   );
 });
 
-function usePreviewFits(containerRef: React.RefObject<HTMLDivElement>, previewRef: React.RefObject<HTMLDivElement>): boolean {
+function usePreviewFits(
+  containerRef: React.RefObject<HTMLDivElement>,
+  previewRef: React.RefObject<HTMLDivElement>,
+): boolean {
   const [fits, setFits] = React.useState(false);
 
   React.useLayoutEffect(() => {
@@ -131,16 +136,16 @@ function usePreviewFits(containerRef: React.RefObject<HTMLDivElement>, previewRe
 }
 
 interface FullListFlyoutProps<T> {
-  onClose(): void,
+  onClose(): void;
 
-  icon?: React.ReactNode,
-  title: React.ReactNode,
-  subtitle: React.ReactNode,
-  items: T[],
-  renderFullItem(item: T): React.ReactNode,
+  icon?: React.ReactNode;
+  title: React.ReactNode;
+  subtitle: React.ReactNode;
+  items: T[];
+  renderFullItem(item: T): React.ReactNode;
 
-  itemMatchesFilter: LongListSideSectionProps<T>['itemMatchesFilter'],
-};
+  itemMatchesFilter: LongListSideSectionProps<T>['itemMatchesFilter'];
+}
 
 function FullListFlyout<T>(props: FullListFlyoutProps<T>) {
   const {
@@ -157,7 +162,7 @@ function FullListFlyout<T>(props: FullListFlyoutProps<T>) {
 
   const [filter, setFilter] = React.useState('');
 
-  const itemsToRender = (filter && itemMatchesFilter)
+  const itemsToRender = filter && itemMatchesFilter
     ? items.filter((item) => itemMatchesFilter(filter, item))
     : items;
 
@@ -167,7 +172,7 @@ function FullListFlyout<T>(props: FullListFlyoutProps<T>) {
         <Flex centered repell gap="large">
           <Flex centered gap="large">
             <Flex centered>
-              <Text size="large" opacity="75" >
+              <Text size="large" opacity="75">
                 {icon}
               </Text>
 
@@ -180,33 +185,20 @@ function FullListFlyout<T>(props: FullListFlyoutProps<T>) {
           </Flex>
 
           <Box noShrink>
-            <Button
-              size="large"
-              icon={Icons.exit}
-              onClick={onClose}
-            />
+            <Button size="large" icon={Icons.exit} onClick={onClose} />
           </Box>
         </Flex>
 
         {Boolean(itemMatchesFilter) && (
-          <Input
-            autofocus
-            type="search"
-            value={filter}
-            onChange={setFilter}
-            placeholder="Filter"
-          />
+          <Input autofocus type="search" value={filter} onChange={setFilter} placeholder="Filter" />
         )}
 
         <FlexRestricter vertical>
           <Scrollable>
             <Flex fullWidth wrap>
               {itemsToRender.map((item, i) => (
-                <Loaf
-                  key={i}
-                  bright
-                  className={s.item}
-                >
+                // eslint-disable-next-line react/no-array-index-key
+                <Loaf key={i} bright className={s.item}>
                   {renderFullItem(item)}
                 </Loaf>
               ))}

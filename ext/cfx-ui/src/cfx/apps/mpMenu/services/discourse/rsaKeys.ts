@@ -1,4 +1,5 @@
 import * as forge from 'node-forge';
+
 import { IRSAKeys } from './types';
 
 let keys: IRSAKeys | null = null;
@@ -23,36 +24,42 @@ export async function getOrCreateRSAKeys(): Promise<IRSAKeys> {
 }
 
 export async function decryptBase64(payload: string): Promise<string> {
-  const keys = await getOrCreateRSAKeys();
-  const pkey = forge.pki.privateKeyFromPem(keys.private);
+  const rsaKeys = await getOrCreateRSAKeys();
+  const pkey = forge.pki.privateKeyFromPem(rsaKeys.private);
 
   return pkey.decrypt(forge.util.decode64(payload));
 }
 
 async function generateRSAKeys(): Promise<IRSAKeys> {
-  const keys = await new Promise<IRSAKeys>((resolve, reject) => {
-    forge.pki.rsa.generateKeyPair({
-      bits: 2048,
-      workers: -1,
-      workerScript,
-    }, (err, keypair) => {
-      if (err) {
-        reject(err);
-        return;
-      }
+  const rsaKeys = await new Promise<IRSAKeys>((resolve, reject) => {
+    forge.pki.rsa.generateKeyPair(
+      {
+        bits: 2048,
+        workers: -1,
+        workerScript,
+      },
+      (err, keypair) => {
+        if (err) {
+          reject(err);
 
-      resolve({
-        public: forge.pki.publicKeyToPem(keypair.publicKey),
-        private: forge.pki.privateKeyToPem(keypair.privateKey),
-      });
-    });
+          return;
+        }
+
+        resolve({
+          public: forge.pki.publicKeyToPem(keypair.publicKey),
+          private: forge.pki.privateKeyToPem(keypair.privateKey),
+        });
+      },
+    );
   });
 
-  window.localStorage.setItem('rsaKeys', JSON.stringify(keys));
+  window.localStorage.setItem('rsaKeys', JSON.stringify(rsaKeys));
 
-  return keys;
+  return rsaKeys;
 }
 
 try {
   (window as any).__generateRSAKeys = generateRSAKeys;
-} catch (e) {}
+} catch {
+  // Do nothing
+}

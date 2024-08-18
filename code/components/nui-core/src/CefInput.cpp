@@ -10,6 +10,7 @@
 #include "CrossLibraryInterfaces.h"
 
 #include "CefImeHandler.h"
+#include "CefOleHandler.h"
 #include "NUIRenderHandler.h"
 
 #include <HostSharedData.h>
@@ -23,13 +24,11 @@ using nui::HasFocus;
 extern nui::GameInterface* g_nuiGi;
 
 static bool g_hasFocus = false;
-bool g_hasCursor = false;
+static bool g_hasCursor = false;
 bool g_keepInput = false;
 static bool g_hasOverriddenFocus = false;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
-
-static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
 
 bool isKeyDown(WPARAM wparam)
 {
@@ -130,6 +129,11 @@ namespace nui
 		return (g_hasFocus || g_hasOverriddenFocus);
 	}
 
+	bool HasCursor()
+	{
+		return HasMainUI() || g_hasCursor;
+	}
+
 	bool HasFocusKeepInput()
 	{
 		return g_keepInput;
@@ -162,6 +166,8 @@ namespace nui
 		}
 
 		g_hasOverriddenFocus = hasFocus;
+
+		static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
 
 		if (uiLoadingCursor.GetValue())
 		{
@@ -271,6 +277,7 @@ int GetCefKeyboardModifiers(WPARAM wparam, LPARAM lparam)
 }
 
 OsrImeHandlerWin* g_imeHandler;
+OsrDragHandlerWin g_dragHandler;
 
 int GetCefMouseModifiers(WPARAM wparam) {
 	int modifiers = 0;
@@ -457,7 +464,7 @@ static HookFunction initFunction([] ()
 					((button == 0) ? MBT_LEFT : ((button == 1) ? MBT_RIGHT : MBT_MIDDLE));
 				if (!cancelPreviousClick && (btnType == lastClickButton))
 				{
-					++lastClickCount;
+					lastClickCount = std::min(3, lastClickCount + 1);
 				}
 				else
 				{
@@ -494,7 +501,7 @@ static HookFunction initFunction([] ()
 					mouse_event.x = x;
 					mouse_event.y = y;
 					mouse_event.modifiers = GetCefMouseModifiers();
-					browser->GetHost()->SendMouseClickEvent(mouse_event, btnType, true, lastClickCount);
+					browser->GetHost()->SendMouseClickEvent(mouse_event, btnType, true, std::max(1, lastClickCount));
 				}
 			}
 		}
@@ -586,6 +593,12 @@ static HookFunction initFunction([] ()
 			return;
 		}
 
+		// Forward the relevant subset of messages to satisfy ole32 drag/drop
+		if (g_dragHandler.OnWndProc(hWnd, msg, wParam, lParam))
+		{
+			return;
+		}
+
 		if (nui::HasMainUI())
 		{
 			if (msg == WM_CLOSE)
@@ -618,6 +631,15 @@ static HookFunction initFunction([] ()
 			}
 
 			static bool mouseTracking;
+
+			auto suppressInput = [&lresult, &pass](LRESULT result = FALSE)
+			{
+				if (!g_keepInput)
+				{
+					lresult = result;
+					pass = false;
+				}
+			};
 
 			switch (msg)
 			{
@@ -652,11 +674,7 @@ static HookFunction initFunction([] ()
 				
 				inputTarget.MouseEvent(btnType, x, y, true);
 
-				if (!g_keepInput)
-				{
-					pass = false;
-					lresult = FALSE;
-				}
+				suppressInput();
 			} break;
 
 			case WM_LBUTTONUP:
@@ -670,11 +688,7 @@ static HookFunction initFunction([] ()
 
 				inputTarget.MouseEvent(btnType, x, y, false);
 
-				if (!g_keepInput)
-				{
-					pass = false;
-					lresult = FALSE;
-				}
+				suppressInput();
 
 				break;
 			}
@@ -694,11 +708,7 @@ static HookFunction initFunction([] ()
 
 				inputTarget.MouseEvent(-1, x, y, true);
 
-				if (!g_keepInput)
-				{
-					pass = false;
-					lresult = FALSE;
-				}
+				suppressInput();
 				break;
 			}
 
@@ -730,21 +740,22 @@ static HookFunction initFunction([] ()
 					browser->GetHost()->SendMouseMoveEvent(mouse_event, true);
 				}
 
-				if (!g_keepInput)
-				{
-					pass = false;
-					lresult = FALSE;
-				}
+				suppressInput();
 			} break;
 
 			case WM_MOUSEWHEEL: {
 				int x = GET_X_LPARAM(lParam);
 				int y = GET_Y_LPARAM(lParam);
 
-				if (TranslateMouseEvent(GetFocusWindow(), &x, &y))
+				POINT p = { x, y };
+				ScreenToClient(hWnd, &p);
+
+				if (TranslateMouseEvent(GetFocusWindow(), &p.x, &p.y))
 				{
+					ClientToScreen(hWnd, &p);
+
 					lParam &= ~((DWORD_PTR)0xFFFFFFFF);
-					lParam |= (DWORD)((x) | ((DWORD)y << 16));
+					lParam |= (DWORD)((p.x) | ((DWORD)p.y << 16));
 				}
 
 				MSG m = { hWnd,
@@ -761,26 +772,21 @@ static HookFunction initFunction([] ()
 					browser->GetHost()->SendMouseWheelEventNative(&m);
 				}
 
-				if (!g_keepInput)
-				{
-					pass = false;
-					lresult = FALSE;
-				}
+				suppressInput();
 				break;
 			}
-			}
-
-			if (msg == WM_KEYUP || msg == WM_KEYDOWN)
+			case WM_KEYUP:
+			case WM_KEYDOWN:
+			case WM_SYSKEYUP: // needed for processing bare Alt presses
+			case WM_SYSKEYDOWN:
 			{
-				inputTarget.KeyEvent(wParam, lParam, (msg == WM_KEYDOWN));
+				inputTarget.KeyEvent(wParam, lParam, (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN));
 
-				if (!g_keepInput)
-				{
-					pass = false;
-					lresult = FALSE;
-				}
+				suppressInput();
+
+				break;
 			}
-			else if (msg == WM_CHAR)
+			case WM_CHAR:
 			{
 				CefKeyEvent keyEvent;
 
@@ -805,17 +811,20 @@ static HookFunction initFunction([] ()
 					browser->GetHost()->SendKeyEvent(keyEvent);
 				}
 
+				// #TODO: no g_keepInput check?
 				pass = false;
 				lresult = FALSE;
-				return;
+
+				break;
 			}
-			else if (msg == WM_INPUT && g_hasCursor && !g_keepInput)
-			{
-				pass = false;
-				lresult = TRUE;
-				return;
-			}
-			else if (msg == WM_IME_STARTCOMPOSITION)
+			case WM_INPUT:
+				if (g_hasCursor)
+				{
+					suppressInput(TRUE);
+				}
+
+				break;
+			case WM_IME_STARTCOMPOSITION:
 			{
 				if (g_imeHandler)
 				{
@@ -824,14 +833,11 @@ static HookFunction initFunction([] ()
 					g_imeHandler->ResetComposition();
 				}
 
-				if (!g_keepInput)
-				{
-					pass = false;
-					lresult = FALSE;
-				}
-				return;
+				suppressInput();
+
+				break;
 			}
-			else if (msg == WM_IME_SETCONTEXT)
+			case WM_IME_SETCONTEXT:
 			{
 				// We handle the IME Composition Window ourselves (but let the IME Candidates
 				// Window be handled by IME through DefWindowProc()), so clear the
@@ -840,30 +846,30 @@ static HookFunction initFunction([] ()
 				::DefWindowProc(hWnd, msg, wParam, lParam);
 
 				// Create Caret Window if required
-				if (g_imeHandler) {
+				if (g_imeHandler)
+				{
 					g_imeHandler->CreateImeWindow();
 					g_imeHandler->MoveImeWindow();
 				}
 
-				if (!g_keepInput)
-				{
-					pass = false;
-					lresult = FALSE;
-				}
-				return;
+				suppressInput();
+
+				break;
 			}
-			else if (msg == WM_IME_COMPOSITION)
+			case WM_IME_COMPOSITION:
 			{
 				auto browser = GetFocusBrowser();
 
-				if (browser && g_imeHandler) {
+				if (browser && g_imeHandler)
+				{
 					CefString cTextStr;
-					if (g_imeHandler->GetResult(lParam, cTextStr)) {
+					if (g_imeHandler->GetResult(lParam, cTextStr))
+					{
 						// Send the text to the browser. The |replacement_range| and
 						// |relative_cursor_pos| params are not used on Windows, so provide
 						// default invalid values.
 						browser->GetHost()->ImeCommitText(cTextStr,
-							CefRange(UINT32_MAX, UINT32_MAX), 0);
+						CefRange(UINT32_MAX, UINT32_MAX), 0);
 						g_imeHandler->ResetComposition();
 						// Continue reading the composition string - Japanese IMEs send both
 						// GCS_RESULTSTR and GCS_COMPSTR.
@@ -873,13 +879,14 @@ static HookFunction initFunction([] ()
 					int composition_start = 0;
 
 					if (g_imeHandler->GetComposition(lParam, cTextStr, underlines,
-						composition_start)) {
+						composition_start))
+					{
 						// Send the composition string to the browser. The |replacement_range|
 						// param is not used on Windows, so provide a default invalid value.
 						browser->GetHost()->ImeSetComposition(
-							cTextStr, underlines, CefRange(UINT32_MAX, UINT32_MAX),
-							CefRange(composition_start,
-								static_cast<int>(composition_start + cTextStr.length())));
+						cTextStr, underlines, CefRange(UINT32_MAX, UINT32_MAX),
+						CefRange(composition_start,
+						static_cast<int>(composition_start + cTextStr.length())));
 
 						// Update the Candidate Window position. The cursor is at the end so
 						// subtract 1. This is safe because IMM32 does not support non-zero-width
@@ -887,41 +894,33 @@ static HookFunction initFunction([] ()
 						// MoveImeWindow
 						g_imeHandler->UpdateCaretPosition(composition_start - 1);
 					}
-					else {
+					else
+					{
 						browser->GetHost()->ImeCancelComposition();
 						g_imeHandler->ResetComposition();
 						g_imeHandler->DestroyImeWindow();
 					}
 				}
 
-				if (!g_keepInput)
-				{
-					pass = false;
-					lresult = FALSE;
-				}
+				suppressInput();
 
-				return;
+				break;
 			}
-			else if (msg == WM_IME_ENDCOMPOSITION)
+			case WM_IME_ENDCOMPOSITION:
 			{
 				browser->GetHost()->ImeCancelComposition();
 				g_imeHandler->ResetComposition();
 				g_imeHandler->DestroyImeWindow();
 
-				if (!g_keepInput)
-				{
-					pass = false;
-					lresult = FALSE;
-				}
+				suppressInput();
 
-				return;
+				break;
 			}
-			else if ((msg == WM_IME_KEYLAST || msg == WM_IME_KEYDOWN || msg == WM_IME_KEYUP) && !g_keepInput)
-			{
-				pass = false;
-				lresult = false;
+			case WM_IME_KEYDOWN:
+			case WM_IME_KEYUP:
+				suppressInput();
 
-				return;
+				break;
 			}
 		}
 	});

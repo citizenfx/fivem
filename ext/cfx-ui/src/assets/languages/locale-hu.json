@@ -286,5 +286,7 @@
     "#ServerList_EmptyPlaceholder_ResetFilters": "Szűrők visszaállítása",
     "#Home_LastConnectedServer_PrivacyCover_Header": "Az utolsó szervercsatlakozás elrejtve",
     "#Home_LastConnectedServer_PrivacyCover_Reason": "a streamer mód engedélyezve van",
-    "#Home_LastConnectedServer_PrivacyCover_ClickToShow": "Kattints a megjelenítéshez"
+    "#Home_LastConnectedServer_PrivacyCover_ClickToShow": "Kattints a megjelenítéshez",
+    "#Settings_MuteOnFocusLoss": "Némítás amikor nincs előtérben",
+    "#Settings_MuteOnFocusLossDesc": "Letiltja a NUI és a Mumble hangot, ha a játékablak nincs előtérben. A játék hangjára nincs hatással."
 }

@@ -8,15 +8,28 @@
 
 #include <Error.h>
 
-static hook::cdecl_stub<void()> originalMount([] ()
+#include <CrossBuildRuntime.h>
+
+static hook::cdecl_stub<void()> originalMount([]()
 {
 	return hook::pattern("48 81 EC E0 03 00 00 48 B8 63 6F 6D 6D").count(1).get(0).get<void>(-0x1A);
 });
 
+static void (*g_origInitialMount)();
+
 static void CallInitialMount()
 {
 	// do pre-initial mount
-	originalMount();
+	// the direct obfuscated call seems to be important, starting from 2699.16
+
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		g_origInitialMount();
+	}
+	else
+	{
+		originalMount();
+	}
 
 	rage::fiDevice::OnInitialMount();
 }
@@ -40,6 +53,14 @@ static decltype(&CreateFileW) createFileW;
 
 static HANDLE WINAPI CreateFileWDummy(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes, _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes, _In_opt_ HANDLE hTemplateFile)
 {
+	WIN32_FILE_ATTRIBUTE_DATA outData = { 0 };
+	if (GetFileAttributesEx(lpFileName, GetFileExInfoStandard, &outData))
+	{
+		if (outData.dwFileAttributes & FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS)
+		{
+			return INVALID_HANDLE_VALUE;
+		}
+	}
 	return createFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
@@ -48,8 +69,6 @@ static void ResetPackfile(const char* archive)
 	// if this is update.rpf, maybe we should do something about that?
 	if (strcmp(archive, "update/update.rpf") == 0)
 	{
-		createFileW = hook::iat("kernel32.dll", CreateFileWDummy, "CreateFileW");
-
 		HANDLE hFile = createFileW(L"update/update.rpf", GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, 0, NULL);
 
 		if (hFile != INVALID_HANDLE_VALUE)
@@ -119,7 +138,10 @@ static bool OpenArchiveWrap(rage::fiPackfile* packfile, const char* archive, boo
 
 	if (!retval)
 	{
-		FatalError("Could not open %s\nPlease try to verify your GTA V files, see http://rsg.ms/verify for more information.\n\nCurrently, the installation directory %s is being used.", archive, ToNarrow(MakeRelativeGamePath(L"")));
+		FatalError("Could not open %s\nPlease try to verify your GTA V files, see http://rsg.ms/verify for more information.\n\n"
+			"You should also make sure your game files are not on cloud storage or OneDrive, but on a physical hard drive.\n\n"
+			"Currently, the installation directory %s is being used.",
+			archive, ToNarrow(MakeRelativeGamePath(L"")));
 	}
 
 	return retval;
@@ -196,8 +218,11 @@ static HookFunction hookFunction([] ()
 	}
 
 	// patch 2 changed register alloc (2015-04-17)
-	//hook::call(hook::pattern("0F B7 05 ? ? ? ? 48 03 C3 44 88 3C 38 66").count(1).get(0).get<void>(0x15), CallInitialMount);
-	hook::call(hook::pattern("0F B7 05 ? ? ? ? 48 03 C3 44 88 34 38 66").count(1).get(0).get<void>(0x15), CallInitialMount);
+	{
+		auto location = hook::pattern("0F B7 05 ? ? ? ? 48 03 C3 44 88 34 38 66").count(1).get(0).get<void>(0x15);
+		hook::set_call(&g_origInitialMount, location);
+		hook::call(location, CallInitialMount);
+	}
 
 	// don't sort update:/ relative devices before ours
 	hook::nop(hook::pattern("C6 80 F0 00 00 00 01 E8 ? ? ? ? E8").count(1).get(0).get<void>(12), 5);
@@ -225,4 +250,6 @@ static HookFunction hookFunction([] ()
 		auto location = hook::get_pattern("41 8B D6 E9 7C 02 00 00", 4);
 		*(int*)location -= 0x12;
 	}
+
+	createFileW = hook::iat("kernel32.dll", CreateFileWDummy, "CreateFileW");
 });

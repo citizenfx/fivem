@@ -40,28 +40,6 @@ static std::set<uint64_t> g_visitedTimings;
 
 static bool ShouldSkipLoading();
 
-static int GetNumDlcCalls()
-{
-	if (xbr::IsGameBuildOrGreater<2372>())
-	{
-		return 37;
-	}
-	else if (xbr::IsGameBuildOrGreater<2189>())
-	{
-		return 36;
-	}
-	else if (xbr::IsGameBuildOrGreater<2060>())
-	{
-		return 35;
-	}
-	else if (xbr::IsGameBuildOrGreater<1604>())
-	{
-		return 33;
-	}
-
-	return 0;
-}
-
 using fx::Resource;
 
 bool g_doDrawBelowLoadingScreens;
@@ -458,9 +436,41 @@ void LoadsThread::DoRun()
 	}
 }
 
+extern void (*g_updateContentArray)(void*);
+
+extern void** g_extraContentManagerLocation;
+extern char g_extraContentManagerContentOffset;
+extern uint32_t g_mountableContentSize;
+extern uint32_t g_mountableContentFlagsOffset;
+
 extern int dlcIdx;
+extern int extraContentWrapperIdx;
 extern std::map<uint32_t, std::string> g_dlcNameMap;
 DLL_IMPORT fwEvent<const std::string&> OnScriptInitStatus;
+
+static uint32_t g_upcomingDlcCallsCount = 0;
+
+static uint32_t EstimateUpcomingDlcCalls()
+{
+	uint32_t count = 0;
+
+	// This is an atArray<CMountableContent>. But since we don't know structure of CMountableContent
+	// in compile time - use char just to be able to use atArray properties.
+	atArray<char>* m_content = (atArray<char>*)((uintptr_t)*g_extraContentManagerLocation + g_extraContentManagerContentOffset);
+
+	// We can not use atArray iterator because it relies on size of the stored type.
+	for (uint16_t i = 0; i < m_content->GetCount(); ++i)
+	{
+		void* content = (void*)((uintptr_t)m_content->m_offset + i * g_mountableContentSize);
+
+		bool datFileLoaded = (*(uint32_t*)((uintptr_t)content + g_mountableContentFlagsOffset)) & 1;
+		if (!datFileLoaded)
+		{
+			++count;
+		}
+	}
+	return count;
+}
 
 static const char* GetName(const rage::InitFunctionData& data)
 {
@@ -642,13 +652,22 @@ static InitFunction initFunction([] ()
 		}
 	});
 
+	static auto totalInitFunctionsCount = 0;
+
 	rage::OnInitFunctionStartOrder.Connect([] (rage::InitFunctionType type, int order, int count)
 	{
 		if (type == rage::INIT_SESSION && order == 3)
 		{
-			count += GetNumDlcCalls();
+			// After disconnect most of the extra content is removed and will be added to the list again only on CExtraContentWrapper::Init call.
+			// Update content array explicitly to be able to correctly estimate amount of additional content that will be loaded.
+			// This is a noop if the content array is already updated.
+			g_updateContentArray(*g_extraContentManagerLocation);
+			g_upcomingDlcCallsCount = EstimateUpcomingDlcCalls();
+			count += g_upcomingDlcCallsCount;
+			// Account for FinalizeLoad log in OnInitFunctionEnd.
+			count += 1;
 
-			dlcIdx = 0;
+			dlcIdx = 1;
 		}
 
 		rapidjson::Document doc;
@@ -658,22 +677,22 @@ static InitFunction initFunction([] ()
 		doc.AddMember("count", count, doc.GetAllocator());
 
 		InvokeNUIScript("startInitFunctionOrder", doc);
+
+		totalInitFunctionsCount = count;
 	});
 
 	static auto lastIdx = 0;
 
 	rage::OnInitFunctionInvoking.Connect([] (rage::InitFunctionType type, int idx, rage::InitFunctionData& data)
 	{
-		static auto extraContentWrapperIdx = 256;
-
 		if (type == rage::INIT_SESSION && data.initOrder == 3 && data.funcHash == HashString("CExtraContentWrapper"))
 		{
 			extraContentWrapperIdx = idx;
 		}
 
-		if (type == rage::INIT_SESSION && data.initOrder == 3 && idx >= extraContentWrapperIdx && data.shutdownOrder != 42)
+		if (type == rage::INIT_SESSION && data.initOrder == 3 && idx > extraContentWrapperIdx && data.shutdownOrder != 42)
 		{
-			idx += GetNumDlcCalls();
+			idx += g_upcomingDlcCallsCount;
 		}
 
 		uint64_t loadTimingIdentity = data.funcHash | ((int64_t)type << 48);
@@ -684,7 +703,9 @@ static InitFunction initFunction([] ()
 		doc.SetObject();
 		doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
 		doc.AddMember("name", rapidjson::Value(GetName(data), doc.GetAllocator()), doc.GetAllocator());
-		doc.AddMember("idx", idx, doc.GetAllocator());
+		doc.AddMember("idx", idx + 1, doc.GetAllocator());
+		doc.AddMember("count", totalInitFunctionsCount, doc.GetAllocator());
+
 
 		InvokeNUIScript("initFunctionInvoking", doc);
 
@@ -713,7 +734,8 @@ static InitFunction initFunction([] ()
 			doc.SetObject();
 			doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
 			doc.AddMember("name", rapidjson::Value("FinalizeLoad", doc.GetAllocator()), doc.GetAllocator());
-			doc.AddMember("idx", lastIdx + 1, doc.GetAllocator());
+			doc.AddMember("idx", lastIdx + 2, doc.GetAllocator());
+			doc.AddMember("count", totalInitFunctionsCount, doc.GetAllocator());
 
 			InvokeNUIScript("initFunctionInvoking", doc);
 

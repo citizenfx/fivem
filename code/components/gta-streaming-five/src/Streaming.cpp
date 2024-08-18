@@ -89,6 +89,8 @@ namespace rage
 		void RegisterObject(uint32_t* fileIdx, const char* registerName, uint32_t handle, uint32_t collectionId, void* unk, bool unk2, void* unk3, bool unk4);
 	};
 
+	static strStreamingInfoManager* g_strStreamingInfoMgr = nullptr;
+
 	class strStreamingEngine
 	{
 	public:
@@ -107,8 +109,7 @@ namespace rage
 
 	strStreamingInfoManager* strStreamingEngine::GetInfo()
 	{
-		static auto mgr = hook::get_address<strStreamingInfoManager*>(hook::get_pattern<char>("B2 01 48 8B CD 45 8A E0 4D 0F 45 F9 E8", -0x25) + 0xBA);
-		return mgr;
+		return g_strStreamingInfoMgr;
 	}
 }
 
@@ -246,6 +247,8 @@ static HookFunction hookFunction([] ()
 	}
 
 	_rage_pgStreamer_ctor = (decltype(_rage_pgStreamer_ctor))hook::get_pattern("48 8B CB 33 D2 41 B8 00 02 00 00 E8", -0x29);
+
+	rage::g_strStreamingInfoMgr = hook::get_address<rage::strStreamingInfoManager*>(hook::get_pattern<char>("B2 01 48 8B CD 45 8A E0 4D 0F 45 F9 E8", -0x25) + 0xBA);
 
 	// start off fiCollection packfiles at 2, not 1
 	hook::put<uint32_t>(hook::get_pattern("41 0F B7 D2 4C 8D"), 0x01528D41); // lea    edx,[r10+0x1]

@@ -46,29 +46,15 @@ namespace rage
 	}
 }
 
-fwArchetypeDef::~fwArchetypeDef()
-{
-
-}
-
 int64_t* g_baseArchetypeDefId;
-
+/* #TODO2802: check?
 int64_t fwArchetypeDef::GetTypeIdentifier()
 {
 	return *g_baseArchetypeDefId;
 }
+*/
 
 //static_assert(sizeof(fwArchetypeDef) == 144, "fwArchetypeDef isn't of CBaseArchetypeDef's size...");
-
-fwEntityDef::~fwEntityDef()
-{
-
-}
-
-rage::parStructure* fwEntityDef::GetTypeIdentifier()
-{
-	return nullptr;
-}
 
 static hook::cdecl_stub<void(CMapData*)> _mapData_ctor([]()
 {
@@ -80,14 +66,9 @@ CMapData::CMapData()
 	_mapData_ctor(this);
 }
 
-static hook::cdecl_stub<void*(fwEntityDef*, int fileIdx, fwArchetype* archetype, uint64_t* archetypeUnk)> fwEntityDef__instantiate([] ()
+static hook::cdecl_stub<void*(fwEntityDef*, int fileIdx, fwArchetype* archetype, rage::fwModelId* archetypeUnk)> fwEntityDef__instantiate([] ()
 {
 	return hook::get_call(hook::pattern("4C 8D 4C 24 40 4D 8B C6 41 8B D7 48 8B CF").count(1).get(0).get<void>(14));
-});
-
-static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, uint64_t* archetypeUnk)> getArchetype([] ()
-{
-	return hook::get_call(hook::pattern("89 44 24 40 8B 4F 08 80 E3 01 E8").count(1).get(0).get<void>(10));
 });
 
 atArray<fwFactoryBase<fwArchetype>*>* g_archetypeFactories;
@@ -137,18 +118,6 @@ static hook::cdecl_stub<void(fwArchetype*)> registerArchetype([]()
 {
 	return hook::get_pattern("48 8B D9 8A 49 60 80 F9", -11);
 });
-
-fwArchetype* GetArchetypeSafe(uint32_t archetypeHash, uint64_t* archetypeUnk)
-{
-	__try
-	{
-		return getArchetype(archetypeHash, archetypeUnk);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		return nullptr;
-	}
-}
 
 static std::vector<CMapDataContents*> g_sceneContentsList;
 static uintptr_t sceneNodeThing;
@@ -431,8 +400,8 @@ void ParseArchetypeFile(char* text, size_t length)
 						archetypeHash = _atoi64(&(archetypeName.c_str())[5]);
 					}
 
-					uint64_t archetypeUnk = 0xFFFFFFF;
-					fwArchetype* archetype = GetArchetypeSafe(archetypeHash, &archetypeUnk);
+					rage::fwModelId modelId;
+					fwArchetype* archetype = rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(archetypeHash, modelId);
 
 					if (archetype)
 					{
@@ -454,7 +423,7 @@ void ParseArchetypeFile(char* text, size_t length)
 
 						getUInt("flags", &entityDef->flags);
 
-						void* entity = fwEntityDef__instantiate(entityDef, 0, archetype, &archetypeUnk);
+						void* entity = fwEntityDef__instantiate(entityDef, 0, archetype, &modelId);
 
 						contents->entities[i] = entity;
 

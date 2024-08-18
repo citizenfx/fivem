@@ -4,20 +4,13 @@
 #include "CfxRect.h"
 
 #include <CrossBuildRuntime.h>
+#include <jitasm.h>
 
 #define PURECALL() __asm { jmp _purecall }
 
-namespace rage
+static hook::thiscall_stub<void(rage::dlDrawCommandBuffer*, uint32_t)> alignDrawCommandBuffer([]()
 {
-	struct dlDrawCommandBuffer
-	{
-		void AddDrawCommand(int type);
-	};
-}
-
-static hook::thiscall_stub<void(rage::dlDrawCommandBuffer*, int)> addDrawCommand([] ()
-{
-	return hook::pattern("48 8B D9 44 23 91 38 18 00 00 41 81").count(1).get(0).get<void>(-0xC);
+	return hook::get_call(hook::pattern("E8 ? ? ? ? 8D 4E 21").count(1).get(0).get<void>(0));
 });
 
 static hook::cdecl_stub<void*(uintptr_t)> allocDrawCommand([] ()
@@ -82,18 +75,28 @@ T* AllocateDrawCommand()
 	return dc;
 }
 
-void rage::dlDrawCommandBuffer::AddDrawCommand(int type)
+static rage::dlDrawCommandBuffer** g_drawCommandBuffer;
+
+void rage::dlDrawCommandBuffer::AlignBuffer(uint32_t alignment)
 {
-	return addDrawCommand(this, type);
+	return alignDrawCommandBuffer(this, alignment);
 }
 
-static rage::dlDrawCommandBuffer** g_drawCommandBuffer;
+void* rage::dlDrawCommandBuffer::AllocateDrawCommand(size_t size)
+{
+	return allocDrawCommand(size);
+}
+
+rage::dlDrawCommandBuffer* rage::dlDrawCommandBuffer::GetInstance()
+{
+	return *g_drawCommandBuffer;
+}
 
 void EnqueueGenericDrawCommand(void(*cb)(uintptr_t, uintptr_t), uintptr_t* arg1, uintptr_t* arg2)
 {
 	if (!IsOnRenderThread())
 	{
-		(*g_drawCommandBuffer)->AddDrawCommand(8);
+		(*g_drawCommandBuffer)->AlignBuffer(8);
 
 		GenericTwoArgDrawCommand* dc = AllocateDrawCommand<GenericTwoArgDrawCommand>();
 		dc->Initialize(cb, arg1, arg2);
@@ -232,12 +235,6 @@ static hook::thiscall_stub<void(intptr_t)> popSubShaderUnk([] ()
 
 static hook::cdecl_stub<void()> popImShaderAndResetParams([] ()
 {
-	// 393-
-	if (Is372())
-	{
-		return hook::get_call(hook::pattern("0F 28 D8 E8 ? ? ? ? 48 8D 4C 24 68 E8 ? ? ? ? 48 8B").count(1).get(0).get<void>(13));
-	}
-
 	// 463/505+
 	return hook::get_call(hook::pattern("F3 0F 11 64 24 20 E8 ? ? ? ? 48 8D 8C 24 98").count(1).get(0).get<void>(19));
 });
@@ -480,6 +477,9 @@ ID3D11DeviceContext* GetD3D11DeviceContext()
 
 namespace rage
 {
+	static void** g_grmTechniquePointer = nullptr;
+	static grmShaderFactory** g_grmShaderFactory = nullptr;
+
 	static hook::cdecl_stub<bool(grmShaderFx*, const char*, void*, bool)> _grmShaderFx_LoadTechnique([]()
 	{
 		return hook::get_pattern("48 8B D9 BA 2E 00 00 00 48 8B CF 45 8A F1", -0x1C);
@@ -492,8 +492,7 @@ namespace rage
 
 	grmShaderFactory* grmShaderFactory::GetInstance()
 	{
-		static auto ptr = hook::get_address<grmShaderFactory**>(hook::get_pattern("84 C0 74 29 48 8B 0D ? ? ? ? 48 8B 01", 7));
-		return *ptr;
+		return *g_grmShaderFactory;
 	}
 
 	static hook::cdecl_stub<void(grmShaderDef*, int, grmShaderFx*)> _grmShaderDef_PushPass([]()
@@ -578,8 +577,7 @@ namespace rage
 
 	void grmShaderFx::PopTechnique()
 	{
-		static void** ptr = hook::get_address<void**>(hook::get_pattern("FF C9 48 C1 E1 05 49 03 09 48 89 0D", 12));
-		*ptr = nullptr;
+		*g_grmTechniquePointer = nullptr;
 	}
 }
 
@@ -593,13 +591,63 @@ void SetWorldMatrix(const float* matrix)
 	_setWorldMatrix(matrix);
 }
 
+class ResolutionMgr
+{
+public:
+	inline static int* g_uiWidth;
+	inline static int* g_uiHeight;
+
+public:
+	static inline float UiAspectRatio()
+	{
+		return static_cast<float>(*g_uiWidth) / static_cast<float>(*g_uiHeight);
+	}
+};
+
+static void GenerateLineStrip(float x1, float y1, float x2, float y2, float width, float* outVert, float* outUvs)
+{
+	float dx = x2 - x1;
+	float dy = y2 - y1;
+
+	float len = std::sqrtf((dx * dx) + (dy * dy));
+	float perpX = width * (dy / len);
+	float perpY = width * -(dx / len) * ResolutionMgr::UiAspectRatio();
+
+	outVert[0] = x1 + perpX;
+	outVert[1] = y1 + perpY;
+	outVert[2] = x1 - perpX;
+	outVert[3] = y1 - perpY;
+	outVert[4] = x2 + perpX;
+	outVert[5] = y2 + perpY;
+	outVert[6] = x2 - perpX;
+	outVert[7] = y2 - perpY;
+
+	outUvs[0] = 0.0f;
+	outUvs[1] = 1.0f;
+	outUvs[2] = 0.0f;
+	outUvs[3] = 0.0f;
+	outUvs[4] = 1.0f;
+	outUvs[5] = 1.0f;
+	outUvs[6] = 1.0f;
+	outUvs[7] = 0.0f;
+}
+
 static HookFunction hookFunction([] ()
 {
-	char* location = hook::pattern("44 8B CE 33 D2 48 89 0D").count(1).get(0).get<char>(8);
+	char* location;
 
-	g_d3d11Device = (ID3D11Device**)(location + *(int32_t*)location + 4);
-
-	g_d3d11DeviceContextOffset = *(int*)(location - 59);
+	if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		location = hook::get_pattern<char>("48 89 0D ? ? ? ? 44 88 2D ? ? ? ? FF 90");
+		g_d3d11Device = hook::get_address<ID3D11Device**>(location, 3, 7);
+		g_d3d11DeviceContextOffset = *(int*)(location - (0x47 - 1)); // generally 0x1B0
+	}
+	else
+	{
+		location = hook::pattern("48 8B 05 ? ? ? ? ? 8B ? 33 D2 48 89 0D").count(1).get(0).get<char>(15);
+		g_d3d11Device = (ID3D11Device**)(location + *(int32_t*)location + 4);
+		g_d3d11DeviceContextOffset = *(int*)(location - (xbr::IsGameBuildOrGreater<2802>() ? 60 : 59));
+	}
 
 	// things
 	location = hook::pattern("74 0D 80 0D ? ? ? ? 02 89 0D ? ? ? ? C3").count(1).get(0).get<char>(-4);
@@ -673,7 +721,7 @@ static HookFunction hookFunction([] ()
 
 	// set immediate mode vertex limit to 8x what it was (so, 32 MB)
 	{
-		auto location = hook::get_pattern<char>("44 89 74 24 74 89 05 ? ? ? ? 89 44", 5);
+		auto location = hook::get_pattern<char>("89 05 ? ? ? ? 89 44 24 60 48 8B 01 4C");
 
 		auto refloc = hook::get_address<char*>(location + 2);
 		hook::put<uint32_t>(refloc, 0x4000000);
@@ -684,5 +732,75 @@ static HookFunction hookFunction([] ()
 		hook::nop(location, 6); // setter
 		hook::put<uint8_t>(location, 0xB8); // write to eax for later
 		hook::put<uint32_t>(location + 1, 0x4000000);
+	}
+
+	rage::g_grmShaderFactory = hook::get_address<rage::grmShaderFactory**>(hook::get_pattern("84 C0 74 29 48 8B 0D ? ? ? ? 48 8B 01", 7));
+	rage::g_grmTechniquePointer = hook::get_address<void**>(hook::get_pattern("FF C9 48 C1 E1 05 49 03 09 48 89 0D", 12));
+
+	{
+		auto location = hook::get_pattern<char>("89 2D ? ? ? ? 89 35 ? ? ? ? 89 05 ? ? ? ? 48 8B 6C 24");
+		ResolutionMgr::g_uiWidth = hook::get_address<int*>(location + 0x0 + 0x2);
+		ResolutionMgr::g_uiHeight = hook::get_address<int*>(location + 0x6 + 0x2);
+	}
+
+	{
+
+		// GH-2124: Triangle strip is drawn using:
+		//		(x1 - w, y1 - w)
+		//		(x1 + w, y1 - w)
+		//		(x2 - w, y2 + w)
+		//		(x2 + w, y2 + w)
+		//
+		// Replace that logic with our own for generating variable width lines.
+		static struct : jitasm::Frontend
+		{
+			uintptr_t m_returnAddr = 0;
+			void Init(uintptr_t location)
+			{
+				this->m_returnAddr = location;
+			}
+
+			virtual void InternalMain() override
+			{
+				push(rcx);
+				sub(rsp, 72);
+
+				// Stack locations of data
+				mov(edx, dword_ptr[rdi + 28]);
+				lea(rcx, qword_ptr[rbp - 128]);
+				lea(rax, qword_ptr[rbp - 88]);
+
+				mov(qword_ptr[rsp + 48], rax); // outUvs
+				mov(qword_ptr[rsp + 40], rcx); // outVert
+				mov(dword_ptr[rsp + 32], edx); // width
+				movss(xmm3, xmm7); // rcx0->max.y
+				movss(xmm2, xmm6); // rcx0->max.x
+				movss(xmm1, xbr::IsGameBuildOrGreater<1868>() ? xmm9 : xmm8); // rcx0->min.y
+				movss(xmm0, xbr::IsGameBuildOrGreater<1868>() ? xmm10 : xmm9); // rcx0->min.x
+				mov(rax, (uintptr_t)GenerateLineStrip);
+				call(rax);
+
+				add(rsp, 72);
+				pop(rcx);
+
+				mov(esi, 4); // Second argument to rage::grcBegin is mov'd quite early.
+				if (!xbr::IsGameBuildOrGreater<1868>())
+				{
+					test(byte_ptr[rdi + 52], 0x80); // test happens at location + 0x11.
+				}
+
+				mov(rax, m_returnAddr);
+				jmp(rax);
+			}
+		} stub;
+
+		// Function changed after b1604.
+		int offset = xbr::IsGameBuildOrGreater<1868>() ? 0x83 : 0x87;
+
+		auto location = hook::get_pattern<char>("F3 0F 10 57 ? 21 5D A8 21 5D B0 21 5D B4 21 5D C4");
+		stub.Init(reinterpret_cast<uintptr_t>(location + offset));
+
+		hook::nop(location, offset);
+		hook::jump(location, stub.GetCode());
 	}
 });

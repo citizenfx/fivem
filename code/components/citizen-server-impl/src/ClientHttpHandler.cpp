@@ -12,6 +12,7 @@
 using json = nlohmann::json;
 
 static std::shared_ptr<ConVar<bool>> g_threadedHttpVar;
+static std::shared_ptr<ConVar<int>> g_maxClientEndpointRequestSize;
 
 namespace fx
 {
@@ -27,44 +28,9 @@ namespace fx
 		return {};
 	}
 
-	std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString)
-	{
-		std::map<std::string, std::string> postMap;
-
-		// split the string by the usual post map characters
-		int curPos = 0;
-
-		while (true)
-		{
-			int endPos = postDataString.find_first_of('&', curPos);
-
-			int equalsPos = postDataString.find_first_of('=', curPos);
-
-			std::string key;
-			std::string value;
-
-			UrlDecode(std::string(postDataString.substr(curPos, equalsPos - curPos)), key);
-			UrlDecode(std::string(postDataString.substr(equalsPos + 1, endPos - equalsPos - 1)), value);
-
-			postMap[key] = value;
-
-			// save and continue
-			curPos = endPos;
-
-			if (curPos == std::string::npos)
-			{
-				break;
-			}
-
-			curPos++;
-		}
-
-		return postMap;
-	}
-
 	static auto GetClientEndpointHandler(fx::ServerInstanceBase* instance)
 	{
-		return [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		return [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 		{
 			if (request->GetRequestMethod() != "POST")
 			{
@@ -79,6 +45,12 @@ namespace fx
 				{
 					response->End(json::object({ {"error", error} }).dump(-1, ' ', false, json::error_handler_t::replace));
 				};
+
+				if (postData.size() > g_maxClientEndpointRequestSize->GetValue())
+				{
+					endError("POST data too big");
+					return;
+				}
 
 				auto postMap = ParsePOSTString(std::string(postData.begin(), postData.end()));
 
@@ -165,6 +137,7 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		g_threadedHttpVar = instance->AddVariable<bool>("sv_threadedClientHttp", ConVar_None, true);
+		g_maxClientEndpointRequestSize = instance->AddVariable<int>("sv_maxClientEndpointRequestSize", ConVar_None, 1024 * 100);
 
 		instance->SetComponent(new fx::ClientMethodRegistry());
 

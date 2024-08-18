@@ -24,8 +24,9 @@ struct RequestWrap
 	std::string method;
 	std::string body;
 	std::string path;
+	std::optional<std::string> resource;
 
-	MSGPACK_DEFINE_MAP(headers, rawHeaders, method, path, body);
+	MSGPACK_DEFINE_MAP(headers, rawHeaders, method, path, body, resource);
 };
 
 static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& type, const std::string& ref)
@@ -35,6 +36,26 @@ static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& t
 		RequestWrap req;
 		req.method = (postData.empty()) ? "GET" : "POST";
 		req.body = postData;
+
+		// origin lookup
+		auto originIts = headers.equal_range("Origin");
+		if (originIts.first != originIts.second)
+		{
+			// there should only be one, so take the first
+			const std::string& originPath = originIts.first->second;
+
+			constexpr char prefixNui[] = "nui://";
+			constexpr char prefixHttp[] = "https://cfx-nui-";
+
+			if (originPath.rfind(prefixNui, 0) == 0)
+			{
+				req.resource = originPath.substr(std::size(prefixNui) - 1);
+			}
+			else if (originPath.rfind(prefixHttp, 0) == 0)
+			{
+				req.resource = originPath.substr(std::size(prefixHttp) - 1);
+			}
+		}
 
 		std::map<std::string, msgpack::object> headerMap;
 		for (auto& header : headers)

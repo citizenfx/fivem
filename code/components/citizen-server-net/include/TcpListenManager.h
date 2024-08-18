@@ -51,6 +51,8 @@ namespace fx
 
 		std::shared_ptr<ConVar<bool>> m_dnsRegisterVar;
 
+		std::shared_ptr<ConVar<uint16_t>> m_tcpConnectionTimeoutSecondsVar;
+
 		struct HostHash
 		{
 			inline size_t operator()(const std::array<uint8_t, 16>& a) const

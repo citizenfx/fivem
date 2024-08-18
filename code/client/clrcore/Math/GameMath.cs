@@ -11,7 +11,7 @@ namespace CitizenFX.Core
         public static Vector3 DirectionToRotation(Vector3 direction, float roll)
         {
             direction = Vector3.Normalize(direction);
-            Vector3 rotpos = Vector3.Normalize(new Vector3(direction.Z, (float)Math.Sqrt(direction.X * direction.Y), 0.0f));
+            Vector3 rotpos = Vector3.Normalize(new Vector3(direction.Z, (float)Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y), 0.0f));
 			return new Vector3(
 				MathUtil.RadiansToDegrees((float)Math.Atan2(rotpos.X, rotpos.Y)),
 				roll,

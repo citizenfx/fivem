@@ -222,14 +222,7 @@ void NetLibraryImplV2::RunFrame()
 		}
 		case ENET_EVENT_TYPE_DISCONNECT:
 		{
-			if (Instance<ICoreGameInit>::Get()->NetProtoVersion >= 0x201902101056)
-			{
-				m_serverPeer = nullptr;
-			}
-			else
-			{
-				m_timedOut = true;
-			}
+			m_serverPeer = nullptr;
 
 			//m_timedOut = true;
 			break;

@@ -189,6 +189,14 @@
 			</MenuDisplayOptions>
 		</Item>
     
+		<Item>
+			<MenuOption>MENU_OPTION_CONTROLS_HOLD_SPRINT</MenuOption>
+			<MenuDisplayOptions>
+				<Item> <cTextId>MO_TAP_SPRINT</cTextId> </Item>
+				<Item> <cTextId>MO_HOLD_SPRINT</cTextId> </Item>
+			</MenuDisplayOptions>
+		</Item>
+
     <Item>
 			<MenuOption>MENU_OPTION_DISPLAY_MEASUREMENT</MenuOption>
 			
@@ -2296,6 +2304,7 @@
 				<Item> <cTextId>MO_CTRL_CONTEXT</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_CONTROLS_CONTEXT</MenuPref> 		<MenuOption>MENU_OPTION_CONTROLS_CONTEXT</MenuOption>	 <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>MO_TAR</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_TARGET_CONFIG</MenuPref> 		<MenuOption>MENU_OPTION_DISPLAY_TARGET_CONFIG</MenuOption>	 <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Flags>InitiallyDisabled</Flags> <Contexts>*ALL*,InMP</Contexts></Item>
 				<Item> <cTextId>MO_TAR</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_TARGET_CONFIG</MenuPref> 		<MenuOption>MENU_OPTION_DISPLAY_TARGET_CONFIG</MenuOption>	 <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*NONE*,InMP</Contexts></Item>
+				<Item> <cTextId>MO_SPRINT</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_HOLD_SPRINT</MenuPref> 		<MenuOption>MENU_OPTION_CONTROLS_HOLD_SPRINT</MenuOption>	 <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*NONE*,InSP,*ALL*,b2944</Contexts></Item>
 				<Item> <cTextId>MO_VIB</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VIBRATION</MenuPref> 			<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>MO_INV</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_INVERT_LOOK</MenuPref> 			<MenuOption>MENU_OPTION_DISPLAY_INVERT_LOOK</MenuOption>   <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>MO_CTY</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_CONTROL_CONFIG</MenuPref>		<MenuOption>MENU_OPTION_DISPLAY_CONTROL_CONFIG</MenuOption>	<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*NONE*,RemotePlay</Contexts></Item>

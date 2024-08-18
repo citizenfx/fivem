@@ -47,6 +47,9 @@ static constexpr const size_t kGamePlayerCap =
 
 #include <StateBagComponent.h>
 
+#include <net/NetObjEntityType.h>
+
+#ifdef STATE_FIVE
 inline bool Is2060()
 {
 	static bool value = ([]()
@@ -106,6 +109,87 @@ inline bool Is2699()
 
 	return value;
 }
+
+inline bool Is2802()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 2802;
+	})();
+
+	return value;
+}
+
+inline bool Is2944()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 2944;
+	})();
+
+	return value;
+}
+
+inline bool Is3095()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 3095;
+	})();
+
+	return value;
+}
+
+inline bool Is3258()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 3258;
+	})();
+
+	return value;
+}
+#elif defined(STATE_RDR3)
+inline bool Is1311()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 1311;
+	})();
+
+	return value;
+}
+
+inline bool Is1355()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 1355;
+	})();
+
+	return value;
+}
+
+inline bool Is1436()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 1436;
+	})();
+
+	return value;
+}
+
+inline bool Is1491()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 1491;
+	})();
+
+	return value;
+}
+#endif
 
 template<typename T>
 inline constexpr T roundToWord(T val)
@@ -223,6 +307,10 @@ struct CPedGameStateNodeData
 
 	int curWeapon;
 
+	bool isHandcuffed;
+	bool actionModeEnabled;
+	bool isFlashlightOn;
+
 	inline CPedGameStateNodeData()
 		: lastVehicle(-1), lastVehicleSeat(-1), lastVehiclePedWasIn(-1)
 	{
@@ -318,6 +406,7 @@ struct CVehicleHealthNodeData
 	bool tyresFine;
 	int tyreStatus[1 << 4];
 	int bodyHealth;
+	int health;
 };
 
 struct CVehicleGameStateNodeData
@@ -335,7 +424,7 @@ struct CVehicleGameStateNodeData
 	int lockStatus;
 	int doorsOpen;
 	int doorPositions[1 << 7];
-	bool noLongerNeeded;
+	bool isStationary;
 	bool lightsOn;
 	bool highbeamsOn;
 	bool hasBeenOwnedByPlayer;
@@ -454,8 +543,37 @@ struct CDynamicEntityGameStateNodeData
 struct CTrainGameStateDataNodeData
 {
 	int engineCarriage;
+	int linkedToBackwardId;
+	int linkedToForwardId;
 
+	float distanceFromEngine;
+
+	int trainConfigIndex;
 	int carriageIndex;
+
+	int trackId;
+	float cruiseSpeed;
+
+	int trainState;
+
+	bool isEngine;
+	bool isCaboose;
+
+	bool unk12;
+
+	bool direction;
+
+	bool unk14;
+
+	bool renderDerailed;
+
+	// 2372 {
+	bool unk198;
+	bool unk224;
+	bool unk199;
+	// }
+
+	bool forceDoorsOpen;
 };
 
 struct CPlayerGameStateNodeData
@@ -497,6 +615,34 @@ struct CHeliHealthNodeData
 struct CVehicleSteeringNodeData
 {
 	float steeringAngle;
+};
+
+struct CEntityScriptGameStateNodeData
+{
+	bool usesCollision;
+	bool isFixed;
+};
+
+struct CVehicleDamageStatusNodeData
+{
+	bool damagedByBullets;
+	bool anyWindowBroken;
+	bool windowsState[8];
+};
+
+struct CBoatGameStateNodeData
+{
+	bool lockedToXY;
+	float sinkEndTime;
+	int wreckedAction;
+	bool isWrecked;
+};
+
+struct CPedMovementGroupNodeData
+{
+	bool isStealthy;
+	bool isStrafing;
+	bool isRagdolling;
 };
 
 enum ePopType
@@ -585,6 +731,14 @@ public:
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
 
+	virtual CEntityScriptGameStateNodeData* GetEntityScriptGameState() = 0;
+
+	virtual CVehicleDamageStatusNodeData* GetVehicleDamageStatus() = 0;
+
+	virtual CBoatGameStateNodeData* GetBoatGameState() = 0;
+
+	virtual CPedMovementGroupNodeData* GetPedMovementGroup() = 0;
+
 	virtual void CalculatePosition() = 0;
 
 	virtual bool GetPopulationType(ePopType* popType) = 0;
@@ -594,57 +748,6 @@ public:
 	virtual bool GetScriptHash(uint32_t* scriptHash) = 0;
 
 	virtual bool IsEntityVisible(bool* visible) = 0;
-};
-
-enum class NetObjEntityType
-{
-#ifdef STATE_FIVE
-	Automobile = 0,
-	Bike = 1,
-	Boat = 2,
-	Door = 3,
-	Heli = 4,
-	Object = 5,
-	Ped = 6,
-	Pickup = 7,
-	PickupPlacement = 8,
-	Plane = 9,
-	Submarine = 10,
-	Player = 11,
-	Trailer = 12,
-	Train = 13,
-#elif defined(STATE_RDR3)
-	Animal = 0,
-	Automobile = 1,
-	Bike = 2,
-	Boat = 3,
-	Door = 4,
-	Heli = 5,
-	Object = 6,
-	Ped = 7,
-	Pickup = 8,
-	PickupPlacement = 9,
-	Plane = 10,
-	Submarine = 11,
-	Player = 12,
-	Trailer = 13,
-	Train = 14,
-	DraftVeh = 15,
-	StatsTracker = 16,
-	PropSet = 17,
-	AnimScene = 18,
-	GroupScenario = 19,
-	Herd = 20,
-	Horse = 21,
-	WorldState = 22,
-	WorldProjectile = 23,
-	Incident = 24,
-	Guardzone = 25,
-	PedGroup = 26,
-	CombatDirector = 27,
-	PedSharedTargeting = 28,
-	Persistent = 29,
-#endif
 };
 
 struct SyncEntityState
@@ -661,6 +764,7 @@ struct SyncEntityState
 	uint32_t creationToken;
 	uint32_t routingBucket = 0;
 	float overrideCullingRadius = 0.0f;
+	bool ignoreRequestControlFilter = false;
 
 	std::shared_mutex guidMutex;
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
@@ -1051,7 +1155,7 @@ struct SyncedEntityData
 constexpr auto maxSavedClientFrames = 650; // enough for ~8-9 seconds, after 5 we'll start using worst-case frames
 constexpr auto maxSavedClientFramesWorstCase = (60000 / 15); // enough for ~60 seconds
 
-struct GameStateClientData : public sync::ClientSyncDataBase
+struct GameStateClientData
 {
 	rl::MessageBuffer ackBuffer{ 16384 };
 	std::unordered_set<int> objectIds;
@@ -1132,8 +1236,20 @@ public:
 
 	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds);
 
-	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
+	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
 
+	bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<StateBag>()> createStateBag) override;
+
+	uint32_t GetClientRoutingBucket(const fx::ClientSharedPtr& client) override;
+
+	std::function<bool()> GetGameEventHandlerWithEvent(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::packet::ClientNetGameEventV2& netGameEvent) override;
+
+	bool IsClientRelevantEntity(const fx::ClientSharedPtr& client, uint32_t objectId) override;
+
+private:
+	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
+
+public:
 	void DeleteEntity(const fx::sync::SyncEntityPtr& entity);
 
 	void ClearClientFromWorldGrid(const fx::ClientSharedPtr& targetClient);
@@ -1199,6 +1315,7 @@ public:
 
 private:
 	std::function<bool()> GetRequestControlEventHandler(const fx::ClientSharedPtr& client, net::Buffer&& buffer);
+	std::function<bool()> GetRequestControlEventHandlerWithEvent(const fx::ClientSharedPtr& client, net::packet::ClientNetGameEventV2& netGameEvent);
 
 public:
 	fx::sync::SyncEntityPtr GetEntity(uint8_t playerId, uint16_t objectId);

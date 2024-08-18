@@ -23,8 +23,7 @@ local function processDoc(native)
 end
 
 local hadSet = {}
-
-print('\tpublic enum Hash : ulong\n\t{')
+io.stdout:write('#if !MONO_V2 || NATIVE_HASHES_INCLUDE\n\tpublic enum Hash : ulong\n\t{\n')
 
 for _, v in pairs(_natives) do
 	if matchApiSet(v) then
@@ -32,12 +31,11 @@ for _, v in pairs(_natives) do
 
 		if name:sub(1, 2) ~= '0x' then
 			if v.doc ~= nil then
-				print(processDoc(v))
+				io.stdout:write(processDoc(v), '\n')
 			end
 
 			if not hadSet[name] then
-				print(string.format(t .. "%s = %s,", name, v.hash))
-
+				io.stdout:write(t, name, ' = ', v.hash, ',\n')
 				hadSet[name] = true
 			end
 
@@ -50,15 +48,13 @@ for _, v in pairs(_natives) do
 	end
 end
 
-for _, v in pairs(aliases) do
+for _, v in ipairs(aliases) do
 	if not hadSet[v.alias] then
-		print(string.format(t .. "/// <summary>"))
-		print(string.format(t .. "/// Deprecated name, use %s instead", v.name))
-		print(string.format(t .. "/// </summary>"))
-		print(string.format(t .. "%s = %s, // %s", v.alias, v.hash, v.name))
+		io.stdout:write(t, '[System.Obsolete("Deprecated name, use ', v.name, ' instead")]\n')
+		io.stdout:write(t, v.alias, ' = ', v.hash, ', // ', v.name, '\n')
 
 		hadSet[v.alias] = true
 	end
 end
 
-print('\t}')
+io.stdout:write('\t}\n#endif\n')

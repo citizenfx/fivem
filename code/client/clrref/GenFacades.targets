@@ -5,13 +5,7 @@
     AssemblyFile="$(ProjectDir)\packages\Microsoft.DotNet.GenFacades.6.0.0-beta.21063.5\tools\net472\Microsoft.DotNet.GenFacades.dll"
   />
 
-  <PropertyGroup>
-    <TargetsTriggeredByCompilation Condition="'$(DesignTimeBuild)' != 'true'">
-      $(TargetsTriggeredByCompilation);GenFacades
-    </TargetsTriggeredByCompilation>
-  </PropertyGroup>
-
-  <Target Name="GenFacades">
+  <Target Name="GenFacades" AfterTargets="Build">
     <Copy
       SourceFiles="$(TargetDir)\..\CitizenFX.Core.xml"
       DestinationFiles="$(TargetDir)\$(TargetName).xml"

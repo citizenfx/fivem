@@ -1,31 +1,38 @@
-import React from "react";
-import mergeRefs from "cfx/utils/mergeRefs";
-import { ISearchTerm } from "cfx/base/searchTermsParser";
-import { InputSize } from "cfx/ui/Input/Input";
-import { RichInput, RichInputProps } from "cfx/ui/Input/RichInput";
-import { ui } from "cfx/ui/ui";
-import { splitByIndices } from "cfx/utils/string";
-import { clsx } from "cfx/utils/clsx";
-import { SearchInputController, SuggestionState, useSearchInputController } from "./SearchInputController";
-import { observer } from "mobx-react-lite";
-import { useWindowResize } from "cfx/utils/hooks";
-import { Indicator } from "cfx/ui/Indicator/Indicator";
-import { noop } from "cfx/utils/functional";
-import { TitleOutlet } from "cfx/ui/outlets";
-import { useL10n } from "cfx/common/services/intl/l10n";
-import { Cheatsheet } from "./Cheatsheet/Cheatsheet";
+import {
+  Indicator,
+  RichInput,
+  ui,
+  noop,
+  clsx,
+  useOutlet,
+  mergeRefs,
+  splitByIndices,
+  TITLE_OUTLET_ID,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+
+import { ISearchTerm } from 'cfx/base/searchTermsParser';
+import { useL10n } from 'cfx/common/services/intl/l10n';
+import { useWindowResize } from 'cfx/utils/hooks';
+
+import { Cheatsheet } from './Cheatsheet/Cheatsheet';
+import { SearchInputController, SuggestionState, useSearchInputController } from './SearchInputController';
+
 import s from './SearchInput.module.scss';
 
+type RichInputProps = React.ComponentProps<typeof RichInput>;
+
 export interface SearchInputProps {
-  size?: InputSize,
+  size?: React.ComponentProps<typeof RichInput>['size'];
 
-  value: string,
-  parsed: ISearchTerm[],
-  onChange(value: string): void,
+  value: string;
+  parsed: ISearchTerm[];
+  onChange(value: string): void;
 
-  inputRef?: React.RefObject<HTMLElement>,
-  onActive?(active: boolean): void,
-  onKeyDown?(event: React.KeyboardEvent<HTMLInputElement>): void,
+  inputRef?: React.RefObject<HTMLElement>;
+  onActive?(active: boolean): void;
+  onKeyDown?(event: React.KeyboardEvent<HTMLInputElement>): void;
 }
 
 export const SearchInput = observer(function SearchInput(props: SearchInputProps) {
@@ -40,12 +47,12 @@ export const SearchInput = observer(function SearchInput(props: SearchInputProps
   } = props;
 
   const controller = useSearchInputController();
-  {
-    controller.value = value;
-    controller.onChange = onChange;
-    controller.onActive = onActive;
-    controller.onKeyDown = onKeyDown;
-  }
+  // ---
+  controller.value = value;
+  controller.onChange = onChange;
+  controller.onActive = onActive;
+  controller.onKeyDown = onKeyDown;
+  // ---
 
   const richInputRef = React.useRef<HTMLDivElement>(null);
   const cursorAtElementRef = React.useRef<HTMLSpanElement>(null);
@@ -54,11 +61,9 @@ export const SearchInput = observer(function SearchInput(props: SearchInputProps
   const placeholder = useL10n('#ServerList_SearchHint2');
 
   const handleSelect: RichInputProps['onSelect'] = React.useCallback((start, end) => {
-    setCursorAt(
-      start === end
-        ? start
-        : -1,
-    );
+    setCursorAt(start === end
+      ? start
+      : -1);
   }, []);
 
   const wizardPosition = useWizardPosition(cursorAt, cursorAtElementRef, richInputRef);
@@ -100,28 +105,24 @@ export const SearchInput = observer(function SearchInput(props: SearchInputProps
         placeholder={placeholder}
       />
 
-      <Cheatsheet
-        controller={controller}
-        inputRef={richInputRef}
-      />
+      <Cheatsheet controller={controller} inputRef={richInputRef} />
 
-      <Wizard
-        controller={controller}
-        position={wizardPosition}
-      />
+      <Wizard controller={controller} position={wizardPosition} />
     </>
   );
 });
 
 type WizardProps = {
-  controller: SearchInputController,
-  position: ReturnType<typeof useWizardPosition>,
-}
+  controller: SearchInputController;
+  position: ReturnType<typeof useWizardPosition>;
+};
 const Wizard = observer(function Wizard(props: WizardProps) {
   const {
     controller,
     position,
   } = props;
+
+  const TitleOutlet = useOutlet(TITLE_OUTLET_ID);
 
   if (!controller.shouldRenderWizard || !position) {
     return null;
@@ -132,41 +133,50 @@ const Wizard = observer(function Wizard(props: WizardProps) {
       <div className={s.loader}>
         <Indicator />
       </div>
-    )
-    : (controller.suggestions as string[]).map((suggestion, index) => (
-      <div
-        key={suggestion}
-        className={clsx(s.item, { [s.active]: index === controller.selectedSuggestionIndex })}
-      >
-        {suggestion}
-      </div>
-    ));
+      )
+    : (
+        (controller.suggestions as string[]).map((suggestion, index) => (
+          <div
+            key={suggestion}
+            className={clsx(s.item, { [s.active]: index === controller.selectedSuggestionIndex })}
+          >
+            {suggestion}
+          </div>
+        ))
+      );
 
   return (
     <TitleOutlet>
-      <div className={s.wizard} style={{
-        '--x': `${position.cursorX}px`,
-        '--y': `${position.cursorY}px`,
-      } as any}>
-        <div className={s.content}>
-          {nodes}
-        </div>
+      <div
+        className={s.wizard}
+        style={
+          {
+            '--x': `${position.cursorX}px`,
+            '--y': `${position.cursorY}px`,
+          } as any
+        }
+      >
+        <div className={s.content}>{nodes}</div>
       </div>
     </TitleOutlet>
   );
 });
 
 interface WizardPos {
-  cursorX: number,
-  cursorY: number,
+  cursorX: number;
+  cursorY: number;
 
-  inputX: number,
-  inputY: number,
-  inputW: number,
-  inputH: number,
+  inputX: number;
+  inputY: number;
+  inputW: number;
+  inputH: number;
 }
 
-function useWizardPosition(cursorAt: number, cursorAtElementRef: React.RefObject<HTMLSpanElement>, inputRef: React.RefObject<HTMLDivElement>): null | WizardPos {
+function useWizardPosition(
+  cursorAt: number,
+  cursorAtElementRef: React.RefObject<HTMLSpanElement>,
+  inputRef: React.RefObject<HTMLDivElement>,
+): null | WizardPos {
   const [at, setAt] = React.useState<null | WizardPos>(null);
 
   const lastCursorAtElementRef = React.useRef<HTMLSpanElement | null>(null);
@@ -174,6 +184,7 @@ function useWizardPosition(cursorAt: number, cursorAtElementRef: React.RefObject
   const recalculatePosition = React.useCallback(() => {
     if (!cursorAtElementRef.current) {
       setAt(null);
+
       return;
     }
 
@@ -208,9 +219,14 @@ function useWizardPosition(cursorAt: number, cursorAtElementRef: React.RefObject
   return at;
 }
 
-type Part = { term: ISearchTerm, index: number };
+type Part = { term: ISearchTerm; index: number };
 
-function renderSearchInput(value: string, parsed: ISearchTerm[], cursorAt: number, cursorAtElementRef: React.RefObject<HTMLSpanElement>): [React.ReactNode[], number] {
+function renderSearchInput(
+  value: string,
+  parsed: ISearchTerm[],
+  cursorAt: number,
+  cursorAtElementRef: React.RefObject<HTMLSpanElement>,
+): [React.ReactNode[], number] {
   let idx = 0;
   const indices = Array<number>(parsed.length * 2);
   const parts: Record<number, Part> = Object.create(null);
@@ -221,7 +237,10 @@ function renderSearchInput(value: string, parsed: ISearchTerm[], cursorAt: numbe
     indices[idx++] = term.offset;
     indices[idx++] = term.offset + term.source.length;
 
-    parts[term.offset] = { term, index };
+    parts[term.offset] = {
+      term,
+      index,
+    };
   }
 
   idx = 0;
@@ -234,7 +253,8 @@ function renderSearchInput(value: string, parsed: ISearchTerm[], cursorAt: numbe
     const key = `${index}${str}`;
     const part: undefined | Part = parts[index] as any; // as otherwise typescript will omit the `undefined` variant
 
-    const cursorWithin = (activeTermIndex === -1) && (cursorAt >= index) && (cursorAt <= (index + str.length));
+    const cursorWithin = activeTermIndex === -1 && cursorAt >= index && cursorAt <= index + str.length;
+
     if (cursorWithin && part) {
       activeTermIndex = part.index;
     }
@@ -249,9 +269,13 @@ function renderSearchInput(value: string, parsed: ISearchTerm[], cursorAt: numbe
     nodes[idx++] = (
       <span
         key={key}
-        ref={(part && cursorWithin) ? cursorAtElementRef : undefined}
+        ref={part && cursorWithin
+          ? cursorAtElementRef
+          : undefined}
         className={cls}
-      >{str}</span>
+      >
+        {str}
+      </span>
     );
   }
 

@@ -8,9 +8,12 @@ apiset: server
 int GET_ENTITY_HEALTH(Entity entity);
 ```
 
-Currently it only works with peds.
+Only works for vehicle and peds
 
 ## Parameters
-* **entity**: 
+* **entity**: The entity to check the health of
 
 ## Return value
+If the entity is a vehicle it will return 0-1000
+If the entity is a ped it will return 0-200
+If the entity is an object it will return 0

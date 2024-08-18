@@ -74,15 +74,15 @@
                 </Item>
                 <Item>
                     <PoolName>CAmbientMaskVolume</PoolName>
-                    <PoolSize value="5150"/>
+                    <PoolSize value="6686"/>
                 </Item>
 				<Item>
                     <PoolName>CAmbientMaskVolumeEntity</PoolName>
-                    <PoolSize value="75"/>
+                    <PoolSize value="150"/>
                 </Item>
 				<Item>
 				<PoolName>CAmbientMaskVolumeDoor</PoolName>
-                    <PoolSize value="925"/>
+                    <PoolSize value="1850"/>
                 </Item>
                 <Item>
                     <PoolName>CArmSolver</PoolName>
@@ -686,7 +686,7 @@
 				</Item>
 				<Item>
 					<PoolName>CPedAvoidanceComponent</PoolName>
-					<PoolSize value="150"/>
+					<PoolSize value="256"/>
 				</Item>
 				<Item>
 					<PoolName>CPedBreatheComponent</PoolName>
@@ -1087,7 +1087,7 @@
                 </Item>
                 <Item>
                   <PoolName>tcBox</PoolName>
-                  <PoolSize value="400"/>
+                  <PoolSize value="800"/>
                 </Item>
                 <Item>
                   <PoolName>tcVolume</PoolName>
@@ -1107,7 +1107,7 @@
                 </Item>
                 <Item>
                   <PoolName>FragmentStore</PoolName>
-                  <PoolSize value="8756"/>
+                  <PoolSize value="17512"/>
                 </Item>
                 <Item>
                   <PoolName>fwScriptGuid</PoolName>
@@ -1299,7 +1299,7 @@
                 </Item>
                 <Item>
                   <PoolName>MapDataStore</PoolName>
-                  <PoolSize value="15000"/>
+                  <PoolSize value="16000"/>
                 </Item>
                 <Item>
                   <PoolName>MapTypesStore</PoolName>
@@ -1307,7 +1307,7 @@
                 </Item>
                 <Item>
                   <PoolName>MetaDataStore</PoolName>
-                  <PoolSize value="44620"/>
+                  <PoolSize value="51400"/>
                 </Item>
                 <Item>
                   <PoolName>NavMeshes</PoolName>
@@ -1457,7 +1457,7 @@
 
                 <Item>
                   <PoolName>fragInstGta</PoolName>
-                  <PoolSize value="3033"/>
+                  <PoolSize value="3500"/>
                 </Item>
                 <Item>
                   <PoolName>PhysicsBounds</PoolName>
@@ -1588,6 +1588,14 @@
                   <PoolName>CEvent</PoolName>
                   <PoolSize value="1000"/>
                 </Item>
+				<Item>
+					<PoolName>netGameEvent</PoolName>
+					<PoolSize value="511"/>
+				</Item>
+				<Item>
+					<PoolName>atDNetEventNode</PoolName>
+					<PoolSize value="511"/>
+				</Item>
                 <Item>
                   <PoolName>CMoveObject</PoolName>
                   <PoolSize value="450"/>
@@ -1746,11 +1754,11 @@
 				</Item>
                 <Item>
                   <PoolName>LadderEntities</PoolName>
-                  <PoolSize value="64"/>
+                  <PoolSize value="96"/>
                 </Item>
                 <Item>
                   <PoolName>StairsEntities</PoolName>
-                  <PoolSize value="200"/>
+                  <PoolSize value="300"/>
                 </Item>
                 <Item>
                   <PoolName>CQueriableTaskInfo</PoolName>
@@ -2158,7 +2166,7 @@
               <MaxAvoidancePoints value="350"/>
               <MaxBaseModelInfos value="21"/>
               <MaxCompEntityModelInfos value="100"/>
-              <MaxMloModelInfos value="220"/>
+              <MaxMloModelInfos value="440"/>
               <MaxPedModelInfos value="2350"/>
               <MaxTimeModelInfos value="10"/>
               <MaxVehicleModelInfos value="200"/>

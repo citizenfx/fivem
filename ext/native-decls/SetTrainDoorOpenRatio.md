@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## SET_TRAIN_DOOR_OPEN_RATIO
 

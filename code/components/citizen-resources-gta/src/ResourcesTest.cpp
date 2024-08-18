@@ -57,6 +57,11 @@ namespace streaming
 	void RemoveDataFileFromLoadList(const std::string& type, const std::string& path);
 
 	void SetNextLevelPath(const std::string& path);
+
+#if defined(IS_RDR3)
+	// RDR3 only: Set the path for a train track XML file to load instead of the default one.
+	void SetTrainTrackOverridePath(const std::string& path);
+#endif
 }
 #endif
 
@@ -154,11 +159,6 @@ static InitFunction initFunction([] ()
 #if __has_include(<streaming.h>)
 		resource->OnStart.Connect([=] ()
 		{
-			if (resource->GetName() == "_cfx_internal")
-			{
-				return;
-			}
-
 			fwRefContainer<fx::ResourceMetaDataComponent> metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 			std::string resourceRoot = resource->GetPath();
 
@@ -192,6 +192,14 @@ static InitFunction initFunction([] ()
 			{
 				streaming::SetNextLevelPath(resourceRoot + meta.second);
 			}
+
+#if defined(IS_RDR3)
+			// RDR3 only: allow a creator to replace the default train tracks with custom ones.
+			for (auto& meta : metaData->GetEntries("replace_traintrack_file"))
+			{
+				streaming::SetTrainTrackOverridePath(resourceRoot + meta.second);
+			}
+#endif
 
 			if (!RangeLengthMatches(metaData->GetEntries("data_file"), metaData->GetEntries("data_file_extra")))
 			{

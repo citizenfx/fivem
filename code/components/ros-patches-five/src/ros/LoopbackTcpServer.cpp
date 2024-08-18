@@ -109,8 +109,13 @@ void LoopbackTcpServerStream::Close()
 	}
 }
 
-LoopbackTcpServer::LoopbackTcpServer(LoopbackTcpServerManager* manager)
-	: m_port(0), m_manager(manager)
+void LoopbackTcpServerStream::StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout)
+{
+	// a connection timeout is not required for the loopback tcp server stream, because its only on the client and not exposed to the network
+}
+
+LoopbackTcpServer::LoopbackTcpServer(LoopbackTcpServerManager* manager, const std::string& hostName)
+	: m_port(0), m_manager(manager), m_hostName(hostName)
 {
 
 }
@@ -605,7 +610,7 @@ fwRefContainer<LoopbackTcpServer> LoopbackTcpServerManager::RegisterTcpServer(co
 {
 	scoped_write_lock lock(m_loopbackLock);
 
-	fwRefContainer<LoopbackTcpServer> server = new LoopbackTcpServer(this);
+	fwRefContainer<LoopbackTcpServer> server = new LoopbackTcpServer(this, hostName);
 	m_tcpServers.insert({ HashString(hostName.c_str()) & 0xFFFFFF, server });
 
 	return server;
@@ -1184,10 +1189,61 @@ std::vector<int> g_subProcessHandles;
 
 extern void SubprocessPipe(const std::wstring& s);
 
+static std::set<HANDLE> g_foregroundProcesses;
+static std::mutex g_foregroundProcessesMutex;
+
+extern "C" BOOL WINAPI __SetAdditionalForegroundBoostProcesses(
+HWND topLevelWindow,
+DWORD processHandleCount,
+HANDLE* processHandleArray);
+
+static void SetForegroundProcesses()
+{
+	static auto _SetAdditionalForegroundBoostProcesses = (decltype(&__SetAdditionalForegroundBoostProcesses))GetProcAddress(GetModuleHandleW(L"user32.dll"), "SetAdditionalForegroundBoostProcesses");
+
+	if (!_SetAdditionalForegroundBoostProcesses)
+	{
+		return;
+	}
+
+	auto window = CoreGetGameWindow();
+
+	if (!window)
+	{
+		return;
+	}
+
+	HANDLE processes[32] = { 0 };
+	DWORD numProcesses = 0;
+
+	{
+		std::unique_lock _(g_foregroundProcessesMutex);
+		for (auto process : g_foregroundProcesses)
+		{
+			processes[numProcesses++] = process;
+		}
+	}
+
+	// TEMP: needed as long as this is a LAF: set AppModelFeatureState flag 1 so we pass win32kfull!EditionCanSetAdditionalForegroundBoostProcesses
+	uint8_t* peb = (uint8_t*)__readgsqword(0x60);
+	peb[0x340] |= 1;
+
+	_SetAdditionalForegroundBoostProcesses(window, numProcesses, processes);
+}
+
 static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t* commandLine, SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
 										BOOL inheritHandles, DWORD creationFlags, void* environment, const wchar_t* currentDirectory, STARTUPINFOW* startupInfo,
 										PROCESS_INFORMATION* information)
 {
+	// Technically unrelated to this file but it already has a CreateProcessW hook: CEF GPU bits
+	bool gpuProcess = false;
+
+	if (wcsstr(commandLine, L"type=gpu"))
+	{
+		gpuProcess = true;
+	}
+	// END GPU bits
+
 	// compare the first part of the command line with the Social Club subprocess name
 	HMODULE socialClubLib = GetModuleHandle(L"socialclub.dll");
 
@@ -1325,7 +1381,22 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 		}
 	}
 
-	return g_oldCreateProcessW(applicationName, commandLine, processAttributes, threadAttributes, inheritHandles, creationFlags, environment, currentDirectory, startupInfo, information);
+	auto rv = g_oldCreateProcessW(applicationName, commandLine, processAttributes, threadAttributes, inheritHandles, creationFlags, environment, currentDirectory, startupInfo, information);
+
+	if (gpuProcess)
+	{
+		{
+			HANDLE newHandle = 0;
+			DuplicateHandle(GetCurrentProcess(), information->hProcess, GetCurrentProcess(), &newHandle, 0, FALSE, DUPLICATE_SAME_ACCESS);
+
+			std::unique_lock _(g_foregroundProcessesMutex);
+			g_foregroundProcesses.insert(newHandle);
+		}
+
+		SetForegroundProcesses();
+	}
+
+	return rv;
 }
 
 // TODO: factor out
@@ -1413,6 +1484,7 @@ void BackOffMtl()
 }
 
 void RunLauncher(const wchar_t* toolName, bool instantWait);
+extern bool InLegitimacyUI();
 
 static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcessIn, BOOL doBreak, DWORD timeout = INFINITE)
 {
@@ -1439,6 +1511,12 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcessIn, BOOL doBreak, DW
 		{
 			HANDLE waitHandles[] = { hEvent, hProcess };
 			DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, 5000);
+
+			// if we've currently got the LegitimacyNui bits opened, bump the timeout
+			if (InLegitimacyUI())
+			{
+				endTime = GetTickCount64() + timeout;
+			}
 
 			if (waitResult == WAIT_OBJECT_0 + 1)
 			{
@@ -1715,12 +1793,6 @@ static HANDLE(__stdcall* g_oldCreateFileA)(LPCSTR, DWORD, DWORD, LPSECURITY_ATTR
 static hook::cdecl_stub<void(int, int)> setupLoadingScreens([]()
 {
 #if defined(GTA_FIVE)
-	// trailing byte differs between 323 and 505
-	if (Is372())
-	{
-		return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? 40", 5));
-	}
-
 	return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? C6", 5));
 #else
 	return (void*)0;
@@ -1754,7 +1826,10 @@ static HANDLE __stdcall CreateFileAStub(
 	{
 		lpFileName = va("\\\\.\\pipe\\MTLService_Pipe_CFX%s", IsCL2() ? "_CL2" : "");
 	}
-
+	else if (strcmp(lpFileName, "\\\\.\\pipe\\MTLLauncher_Pipe") == 0)
+	{
+		lpFileName = va("\\\\.\\pipe\\MTLLauncher_Pipe_CFX%s", IsCL2() ? "_CL2" : "");
+	}
 	
 	return g_oldCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
@@ -1764,6 +1839,10 @@ HANDLE _stdcall CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode,
 	if (strcmp(lpName, PIPE_NAME_NARROW) == 0)
 	{
 		lpName = va("%s%s", lpName, IsCL2() ? "_CL2" : "");
+	}
+	else if (strstr(lpName, "MTLLauncher"))
+	{
+		lpName = va("\\\\.\\pipe\\MTLLauncher_Pipe_CFX%s", IsCL2() ? "_CL2" : "");
 	}
 
 	return CreateNamedPipeA(lpName, dwOpenMode, dwPipeMode, nMaxInstances, nOutBufferSize, nInBufferSize, nDefaultTimeOut, lpSecurityAttributes);

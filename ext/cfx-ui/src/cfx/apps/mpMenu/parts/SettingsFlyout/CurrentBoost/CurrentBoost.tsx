@@ -1,14 +1,16 @@
-import { ServerTileItem } from "cfx/common/parts/Server/ServerTileItem/ServerTileItem";
-import { useAccountService } from "cfx/common/services/account/account.service";
-import { $L } from "cfx/common/services/intl/l10n";
-import { useServersService } from "cfx/common/services/servers/servers.service";
-import { useServersBoostService } from "cfx/common/services/servers/serversBoost.service";
-import { Indicator } from "cfx/ui/Indicator/Indicator";
-import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
-import { observer } from "mobx-react-lite";
+import { Indicator, InfoPanel } from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+
+import { ServerTileItem } from 'cfx/common/parts/Server/ServerTileItem/ServerTileItem';
+import { useAccountService } from 'cfx/common/services/account/account.service';
+import { ElementPlacements } from 'cfx/common/services/analytics/types';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { useServersService } from 'cfx/common/services/servers/servers.service';
+import { useServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
 
 export function isCurrentBoostVisible() {
   // const ServersService = useServersService();
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const AccountService = useAccountService();
   // const ServersBoostService = useServersBoostService();
 
@@ -37,9 +39,7 @@ export const CurrentBoost = observer(function CurrentBoost() {
 
   if (boostLoadingError) {
     return (
-      <InfoPanel type="error">
-        {boostLoadingError}
-      </InfoPanel>
+      <InfoPanel type="error">{boostLoadingError}</InfoPanel>
     );
   }
 
@@ -48,6 +48,7 @@ export const CurrentBoost = observer(function CurrentBoost() {
   }
 
   const server = ServersService.getServer(ServersBoostService.currentBoost.address);
+
   if (!server) {
     return (
       <InfoPanel type="warning">
@@ -57,8 +58,6 @@ export const CurrentBoost = observer(function CurrentBoost() {
   }
 
   return (
-    <ServerTileItem
-      server={server}
-    />
+    <ServerTileItem server={server} elementPlacement={ElementPlacements.Settings} />
   );
 });

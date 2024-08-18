@@ -30,10 +30,25 @@ inline uintptr_t GetTriggerEP()
 	{
 		return ep;
 	}
-
-	if (Is372())
+	
+	if (xbr::IsGameBuild<3258>())
 	{
-		return 0x141623FC8;
+		return 0x14183A44C;
+	}
+
+	if (xbr::IsGameBuild<3095>())
+	{
+		return 0x141821200;
+	}
+
+	if (xbr::IsGameBuild<2944>())
+	{
+		return 0x14180CCF4;
+	}
+
+	if (xbr::IsGameBuild<2802>())
+	{
+		return 0x1417E6648;
 	}
 
 	if (xbr::IsGameBuild<2699>())
@@ -61,17 +76,14 @@ inline uintptr_t GetTriggerEP()
 		return 0x1417ACE74;
 	}
 
-	if (Is2060())
+	if (xbr::IsGameBuild<2060>())
 	{
 		return 0x141796A34;
 	}
 
-	return 0x14175DE00;
+	return 0x14175DE00; // 1604
 }
 
-// 1604
-// 1868 now...!
-// 2060 realities
 #define TRIGGER_EP (GetTriggerEP())
 #elif defined(IS_RDR3)
 inline uintptr_t GetTriggerEP()
@@ -93,7 +105,7 @@ inline uintptr_t GetTriggerEP()
 
 	if (xbr::IsGameBuild<1491>())
 	{
-		return 0x142E32334; // 1491.16
+		return 0x142E4FAD0; // 1491.50
 	}
 
 	return 0x142E0F92C; // 1311.20
@@ -417,80 +429,75 @@ void DoCreateDump(void* ep, const wchar_t* fileName)
 	}, nullptr);
 }
 
-void ExecutableLoader::LoadSnapshot(IMAGE_NT_HEADERS* ntHeader)
+struct FileDeleter
+{
+	inline void operator()(FILE* f)
+	{
+		if (f)
+		{
+			fclose(f);
+		}
+	}
+};
+
+bool ExecutableLoader::LoadSnapshot(IMAGE_NT_HEADERS* ntHeader)
 {
 	std::wstring snapBaseName = MakeRelativeCitPath(fmt::sprintf(L"data\\cache\\executable_snapshot_%x.bin", ntHeader->OptionalHeader.AddressOfEntryPoint));
 
 	if (GetFileAttributesW(snapBaseName.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 		DoCreateSnapshot();
-		return;
+		return false;
 	}
 
 	IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(ntHeader);
 
-	FILE* f = _wfopen(snapBaseName.c_str(), L"rb");
-
-	if (!f)
-	{
-		DoCreateSnapshot();
-		return;
-	}
-
-	size_t sectionSize = 0;
-
-	for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
-	{
-		sectionSize += section[i].SizeOfRawData;
-	}
-
-	std::vector<uint8_t> fileData(sectionSize);
-	if (fread(fileData.data(), 1, sectionSize, f) != sectionSize)
-	{
-		fclose(f);
-
-		DoCreateSnapshot();
-		return;
-	}
-
-	uint8_t md[256 / 8];
-	if (fread(md, 1, sizeof(md), f) != sizeof(md))
-	{
-		fclose(f);
-
-		DoCreateSnapshot();
-		return;
-	}
-
-	uint8_t rmd[256 / 8];
-
 	SHA256_CTX sha;
 	SHA256_Init(&sha);
-	SHA256_Update(&sha, fileData.data(), sectionSize);
-	SHA256_Final(rmd, &sha);
+	uint8_t compareHash[256 / 8];
 
-	if (memcmp(rmd, md, sizeof(md)) != 0)
 	{
-		fclose(f);
+		auto f = std::unique_ptr<FILE, FileDeleter>(_wfopen(snapBaseName.c_str(), L"rb"));
 
+		if (!f)
+		{
+			DoCreateSnapshot();
+			return false;
+		}
+
+		for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
+		{
+			auto targetPtr = GetTargetRVA<void>(section->VirtualAddress);
+			auto targetSize = section->SizeOfRawData;
+
+			DWORD oldProtect;
+			VirtualProtect(targetPtr, targetSize, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+			if (fread(targetPtr, 1, targetSize, f.get()) != targetSize)
+			{
+				DoCreateSnapshot();
+				return false;
+			}
+
+			SHA256_Update(&sha, targetPtr, targetSize);
+			++section;
+		}
+
+		if (fread(compareHash, 1, sizeof(compareHash), f.get()) != sizeof(compareHash))
+		{
+			DoCreateSnapshot();
+			return false;
+		}
+	}
+
+	uint8_t readHash[256 / 8];
+	SHA256_Final(readHash, &sha);
+
+	if (memcmp(readHash, compareHash, sizeof(compareHash)) != 0)
+	{
 		DoCreateSnapshot();
-		return;
+		return false;
 	}
-
-	size_t off = 0;
-
-	for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
-	{
-		DWORD oldProtect;
-		VirtualProtect(GetTargetRVA<void>(section->VirtualAddress), section->SizeOfRawData, PAGE_EXECUTE_READWRITE, &oldProtect);
-
-		memcpy(GetTargetRVA<void>(section->VirtualAddress), &fileData[off], section->SizeOfRawData);
-
-		off += section->SizeOfRawData;
-		++section;
-	}
-
-	fclose(f);
 
 	DWORD oldProtect;
 	VirtualProtect(ntHeader, 0x1000, PAGE_READWRITE, &oldProtect);
@@ -503,4 +510,6 @@ void ExecutableLoader::LoadSnapshot(IMAGE_NT_HEADERS* ntHeader)
 		0x400000
 #endif
 		;
+
+	return true;
 }

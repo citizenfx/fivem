@@ -11,6 +11,11 @@ LONG WINAPI ProcessLSPRegOpenKeyExA(HKEY key, const char* subKey, DWORD options,
 
     if (subKey)
     {
+		if (strstr(subKey, "Rockstar Games\\InstallGUID"))
+		{
+			return ERROR_ACCESS_DENIED;
+		}
+
         if (!_stricmp(subKey, "AppId_Catalog"))
         {
             auto setValue = [&](const wchar_t* name, const wchar_t* keyString)

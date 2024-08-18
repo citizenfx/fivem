@@ -11,8 +11,10 @@
 #include <fxScripting.h>
 
 #include <nutsnbolts.h>
+#include <CustomText.h>
 
 #include <RageParser.h>
+#include <MinHook.h>
 
 static hook::cdecl_stub<void* (const uint32_t& hash, void* typeAssert)> _getCameraMetadata([]()
 {
@@ -35,12 +37,12 @@ static void* g_currentCamMetadata;
 static camFollowVehicleCameraMetadataHandBrakeSwingSettings g_lastSettings;
 static bool g_lastMetadataState;
 
-static ptrdiff_t GetCamMetadataOffset()
+static ptrdiff_t GetMetadataOffset(const char* structName, const char* memberName)
 {
-	auto tcurts = rage::GetStructureDefinition("camFollowVehicleCameraMetadata");
+	auto tcurts = rage::GetStructureDefinition(structName);
 	for (auto& member : tcurts->m_members)
 	{
-		if (member->m_definition->hash == HashRageString("HandBrakeSwingSettings"))
+		if (member->m_definition->hash == HashRageString(memberName))
 		{
 			return member->m_definition->offset;
 		}
@@ -49,18 +51,25 @@ static ptrdiff_t GetCamMetadataOffset()
 	return 0;
 }
 
-static auto GetRelativeMetadata(void* base)
+static auto GetRelativeHandbrakeMetadata(void* base)
 {
-	static ptrdiff_t offsetRef = GetCamMetadataOffset();
+	static ptrdiff_t offsetRef = GetMetadataOffset("camFollowVehicleCameraMetadata", "HandBrakeSwingSettings");
 
 	return (camFollowVehicleCameraMetadataHandBrakeSwingSettings*)((char*)base + offsetRef);
 }
 
-static void OverrideMetadata(void* metadata, bool overridden)
+static auto GetRelativeFirstPersonCamMetadata(void* base)
+{
+	static ptrdiff_t offsetRef = GetMetadataOffset("camCinematicMountedCameraMetadata", "FirstPersonCamera");
+
+	return (bool*)((char*)base + offsetRef);
+}
+
+static void OverrideHandbrakeMetadata(void* metadata, bool overridden)
 {
 	if (g_lastMetadataState != overridden)
 	{
-		auto camhb = GetRelativeMetadata(metadata);
+		auto camhb = GetRelativeHandbrakeMetadata(metadata);
 
 		if (overridden)
 		{
@@ -86,14 +95,14 @@ static void* GetCameraMetadataWrap(const uint32_t& hash, void* typeAssert)
 
 	if (g_currentCamMetadata)
 	{
-		OverrideMetadata(g_currentCamMetadata, false);
+		OverrideHandbrakeMetadata(g_currentCamMetadata, false);
 	}
 
 	g_currentCamMetadata = metadata;
 
 	if (!g_handbrakeCamConvar->GetValue())
 	{
-		OverrideMetadata(g_currentCamMetadata, true);
+		OverrideHandbrakeMetadata(g_currentCamMetadata, true);
 	}
 
 	return metadata;
@@ -107,7 +116,7 @@ static void UpdateCameraMetadataRef()
 
 		if (curValue != g_lastMetadataState)
 		{
-			OverrideMetadata(g_currentCamMetadata, curValue);
+			OverrideHandbrakeMetadata(g_currentCamMetadata, curValue);
 		}
 	}
 }
@@ -134,7 +143,7 @@ struct scrVector
 	int _pad3;
 };
 
-struct camBaseObject
+struct camBaseCinematicContext
 {
 	virtual void DESTROY() = 0;
 	virtual bool IsHashTypeOf(int hash) = 0;
@@ -149,12 +158,15 @@ struct camBaseObject
 	virtual bool ReturnMetadataBool() = 0;
 };
 
-typedef bool (*camCanUpdateFn)(camBaseObject* thisptr);
+typedef bool (*camCanUpdateFn)(camBaseCinematicContext* thisptr);
 static camCanUpdateFn origCamCinematicOnFootIdleContext_CanUpdate;
+static camCanUpdateFn origCamCinematicInVehicleContext_CanUpdate;
+static camCanUpdateFn origCamCinematicInTrainContext_CanUpdate;
 
 static std::atomic_bool g_DISABLE_IDLE_CAM = false;
+static std::atomic_bool g_DISABLE_IDLE_VEHICLE_PASSENGER_CAM = false;
 
-static bool CamCinematicOnFootIdleContext_CanUpdate(camBaseObject* thisptr)
+static bool CamCinematicOnFootIdleContext_CanUpdate(camBaseCinematicContext* thisptr)
 {
 	if (!g_DISABLE_IDLE_CAM)
 	{
@@ -163,25 +175,101 @@ static bool CamCinematicOnFootIdleContext_CanUpdate(camBaseObject* thisptr)
 	return false;
 }
 
+static bool CamCinematicInVehicleContext_CanUpdate(camBaseCinematicContext* thisptr)
+{
+	if (!g_DISABLE_IDLE_VEHICLE_PASSENGER_CAM)
+	{
+		return origCamCinematicInVehicleContext_CanUpdate(thisptr);
+	}
+	return false;
+}
+
+static bool CamCinematicInTrainContext_CanUpdate(camBaseCinematicContext* thisptr)
+{
+	if (!g_DISABLE_IDLE_VEHICLE_PASSENGER_CAM)
+	{
+		return origCamCinematicInTrainContext_CanUpdate(thisptr);
+	}
+	return false;
+}
+
+struct camCinematicMountedCamera
+{
+	char pad[144];
+	float fov;
+	char pad2[412];
+	void* metadata;
+};
+
+static ConVar<float>* g_customVehicleFPSFov;
+
+static void (*g_origPostMountedCinematicCam)(camCinematicMountedCamera* camera, float a2);
+static int* g_fovScaleProfileSetting;
+
+static void PostMountedCinematicCam(camCinematicMountedCamera* camera, float a2)
+{
+	// if this is a first-person camera, scale the FOV by the profile setting
+	if (*GetRelativeFirstPersonCamMetadata(camera->metadata))
+	{
+		auto oldFOV = camera->fov;
+		auto overrideValue = g_customVehicleFPSFov->GetValue();
+		
+		// >= 1: raw FOV
+		// -1: 'old' default FOV only
+		if (overrideValue >= 1.0f)
+		{
+			camera->fov = overrideValue;
+		}
+		else if (overrideValue > -1.0f)
+		{
+			auto minFOV = oldFOV * 0.7f;
+			auto fovScale = std::max(*g_fovScaleProfileSetting / 10.f, 0.0f);
+
+			camera->fov = ((oldFOV - minFOV) * fovScale) + minFOV;
+		}
+	}
+
+	return g_origPostMountedCinematicCam(camera, a2);
+}
+
 static HookFunction hookFunction([]()
 {
 	hook::call(hook::get_pattern("48 8D 4D 20 44 89 75 20 E8 ? ? ? ? 48 85 C0", 8), GetCameraMetadataWrap);
 
+	// for FOV for first-person (POV) vehicle cameras
+	{
+		auto location = hook::get_pattern("48 8B CB F3 0F 11 83 90 00 00 00 48 83 C4 20 5B", 16);
+		hook::set_call(&g_origPostMountedCinematicCam, location);
+		hook::jump(location, PostMountedCinematicCam);
+	}
+
+	g_fovScaleProfileSetting = hook::get_address<int*>(hook::get_pattern("44 8B 05 ? ? ? ? BA E7 00 00 00 48 8B"), 3, 7);
+
+	// to support DISABLE_IDLE_CAMERA
 	uintptr_t* camCinematicOnFootIdleContext_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 8D 05 ? ? ? ? 48 89 07 48 8B C7 F3 0F 10 ? ? ? ? 02 F3 0F 11 47 60", 3));
 
-	int index = 3;
+	void* camCinematicInVehicleContext_CanUpdateFunc = hook::get_pattern<void>("41 8B 9F ? ? ? ? 44 8A E2 E8", -0x31);
+	void* camCinematicInTrainContext_CanUpdateFunc = hook::get_pattern<void>("E8 ? ? ? ? 48 85 C0 0F 84 ? ? 00 00 4C 8B 80 ? ? 00 00 49 8B 80 ? ? 00 00 48 85 C0 74", -0xD);
+
 	// 2189 Added another vfunc between
-	if (xbr::IsGameBuildOrGreater<2189>())
-	{
-		index++;
-	}
+	// 2802 Repalced RTTI methods in the very beginning
+	int index = xbr::IsGameBuildOrGreater<2802>() ? 8 : xbr::IsGameBuildOrGreater<2189>() ? 4 : 3;
 
 	origCamCinematicOnFootIdleContext_CanUpdate = (camCanUpdateFn)camCinematicOnFootIdleContext_vtable[index];
 	hook::put(&camCinematicOnFootIdleContext_vtable[index], (uintptr_t)CamCinematicOnFootIdleContext_CanUpdate);
+
+	MH_Initialize();
+	MH_CreateHook(camCinematicInVehicleContext_CanUpdateFunc, CamCinematicInVehicleContext_CanUpdate, (void**)&origCamCinematicInVehicleContext_CanUpdate);
+	MH_CreateHook(camCinematicInTrainContext_CanUpdateFunc, CamCinematicInTrainContext_CanUpdate, (void**)&origCamCinematicInTrainContext_CanUpdate);
+	MH_EnableHook(camCinematicInVehicleContext_CanUpdateFunc);
+	MH_EnableHook(camCinematicInTrainContext_CanUpdateFunc);
 });
 
 static InitFunction initFunction([]()
 {
+	// original string for american: First Person On Foot Field of View
+	game::AddCustomText("MO_FPS_FOV", "First Person Field of View");
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_CAM_MATRIX", [](fx::ScriptContext& scriptContext)
 	{
 		auto camIndex = scriptContext.GetArgument<int>(0);
@@ -240,7 +328,26 @@ static InitFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("DISABLE_VEHICLE_PASSENGER_IDLE_CAMERA", [](fx::ScriptContext& context)
+	{
+		bool value = context.GetArgument<bool>(0);
+		g_DISABLE_IDLE_VEHICLE_PASSENGER_CAM = value;
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			resource->OnStop.Connect([]()
+			{
+				g_DISABLE_IDLE_VEHICLE_PASSENGER_CAM = false;
+			});
+		}
+	});
+
 	g_handbrakeCamConvar = std::make_shared<ConVar<bool>>("cam_enableHandbrakeCamera", ConVar_Archive, true);
+	g_customVehicleFPSFov = new ConVar<float>("cam_vehicleFirstPersonFOV", ConVar_Archive, 0.0f);
+	g_customVehicleFPSFov->GetHelper()->SetConstraints(-1.0f, 130.0f);
 
 	OnMainGameFrame.Connect([]()
 	{

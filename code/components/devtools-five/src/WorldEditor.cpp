@@ -22,15 +22,10 @@
 
 #include <nutsnbolts.h>
 
-static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, uint64_t* archetypeUnk)> getArchetype([]()
-{
-	return hook::get_call(hook::pattern("89 44 24 40 8B 4F 08 80 E3 01 E8").count(1).get(0).get<void>(10));
-});
-
 /*static ConsoleCommand consoleCmd("make_entity", [](const std::string& name)
 {
-	uint64_t index;
-	fwArchetype* archetype = getArchetype(HashString(name.c_str()), &index);
+	rage::fwModelId index;
+	fwArchetype* archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(HashString(name.c_str()), index);
 
 	fwEntityDef entityDef;
 	entityDef.archetypeName = HashString(name.c_str());
@@ -228,8 +223,8 @@ void RecreateModel()
 	entityDef.flags = 0;
 	entityDef.lodLevel = 1;
 
-	uint64_t index;
-	getArchetype(archetypeDef->name, &index);
+	rage::fwModelId index;
+	rage::fwArchetypeManager::GetArchetypeFromHashKey(archetypeDef->name, index);
 
 	fwEntity* entity = mi->CreateEntity();
 	entity->SetModelIndex((uint32_t*)&index);

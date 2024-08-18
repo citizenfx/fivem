@@ -8,12 +8,11 @@
 #include <nutsnbolts.h>
 #include "NativeWrappers.h"
 
-#include <GameInit.h>
+#include "atArray.h"
 
-static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, uint64_t* archetypeUnk)> getArchetype([]()
-{
-	return hook::get_call(hook::pattern("89 44 24 40 8B 4F 08 80 E3 01 E8").count(1).get(0).get<void>(10));
-});
+#include <GameInit.h>
+#include <fxScripting.h>
+#include <Resource.h>
 
 class CPedHeadBlendData
 {
@@ -58,6 +57,14 @@ public:
 
 static uint64_t* _id_CPedHeadBlendData;
 static uintptr_t _baseClipsetLocation;
+static uint32_t _pedSweatOffset;
+static float* _motionAimingTurnTransitionThresholdMin = nullptr;
+static float* _motionAimingTurnTransitionThresholdMax = nullptr;
+
+// There really isn't a deg2rad function anywhere (TODO: move this to a sensible spot?)
+#define MATH_PI 3.14159265358979323846f
+#define MATH_DEG2RAD (MATH_PI / 180.0f)
+#define DEG2RAD(angle) ((angle) * MATH_DEG2RAD)
 
 static hook::cdecl_stub<uint64_t(void* entity, uint64_t list)> g_extensionList_get([]()
 {
@@ -68,6 +75,19 @@ static hook::cdecl_stub<uint16_t(uint32_t)> _getPedPersonalityIndex([]()
 {
 	return hook::get_call(hook::get_pattern("8B 86 B0 00 00 00 BB D5 46 DF E4 85 C0", 0x12));
 });
+
+static hook::cdecl_stub<bool(void*, int, int)> _doesPedComponentDrawableExist([]()
+{
+	return xbr::IsGameBuildOrGreater<2699>() ? hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 48 8B 57 48")) : nullptr;
+});
+
+struct PedPersonality
+{
+	uint32_t hash;
+	char pad[180];
+};
+
+static atArray<PedPersonality>* g_pedPersonalities;
 
 static CPedHeadBlendData* GetPedHeadBlendData(fwEntity* entity)
 {
@@ -85,6 +105,13 @@ static HookFunction initFunction([]()
 {
 	_id_CPedHeadBlendData = hook::get_address<uint64_t*>(hook::get_pattern("48 39 5E 38 74 1B 8B 15 ? ? ? ? 48 8D 4F 10 E8", 8));
 	_baseClipsetLocation = (uintptr_t)hook::get_pattern("48 8B 42 ? 48 85 C0 75 05 E8");
+	_pedSweatOffset = *hook::get_pattern<uint32_t>("72 04 41 0F 28 D0 F3 0F 10 8B", 10);
+
+	g_pedPersonalities = hook::get_address<decltype(g_pedPersonalities)>(hook::get_call(hook::get_pattern<char>("8B 86 B0 00 00 00 BB D5 46 DF E4 85 C0", 0x12)) + 15, 3, 7);
+
+	uint8_t* ptr = (uint8_t*)hook::get_pattern("0F 2F 35 ? ? ? ? 72 ? 0F 2F 35 ? ? ? ? 76 ? B0");
+	_motionAimingTurnTransitionThresholdMin = hook::get_address<float*>(ptr, 3, 7);
+	_motionAimingTurnTransitionThresholdMax = hook::get_address<float*>(ptr + 9, 3, 7);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_EYE_COLOR", [=](fx::ScriptContext& context)
 	{
@@ -228,14 +255,15 @@ static HookFunction initFunction([]()
 		context.SetResult<int>(*(int32_t*)(ptrCTaskMotionPed + 0xE0));
 	});
 
+	static std::map<uint32_t, uint16_t> initialPersonalities;
 	static std::list<std::tuple<uint32_t, uint16_t>> undoPersonalities;
 
 	OnKillNetworkDone.Connect([]()
 	{
 		for (auto& [pedModel, personality] : undoPersonalities)
 		{
-			uint64_t index;
-			auto archetype = getArchetype(pedModel, &index);
+			rage::fwModelId index;
+			auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
 
 			// if is ped
 			if (archetype && archetype->miType == 6)
@@ -252,8 +280,8 @@ static HookFunction initFunction([]()
 		auto pedModel = context.GetArgument<uint32_t>(0);
 		auto personality = context.GetArgument<uint32_t>(1);
 
-		uint64_t index;
-		auto archetype = getArchetype(pedModel, &index);
+		rage::fwModelId index;
+		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
 
 		// if is ped
 		if (archetype && archetype->miType == 6)
@@ -266,7 +294,130 @@ static HookFunction initFunction([]()
 				*(uint16_t*)((char*)archetype + 0x14A) = index;
 
 				undoPersonalities.push_front({ pedModel, oldIndex });
+
+				if (initialPersonalities.find(pedModel) == initialPersonalities.end())
+				{
+					initialPersonalities.emplace(pedModel, oldIndex);
+				}
 			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("RESET_PED_MODEL_PERSONALITY", [](fx::ScriptContext& context)
+	{
+		auto pedModel = context.GetArgument<uint32_t>(0);
+
+		rage::fwModelId index;
+		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
+
+		// if is ped
+		if (archetype && archetype->miType == 6)
+		{
+			if (auto it = initialPersonalities.find(pedModel); it != initialPersonalities.end())
+			{
+				*(uint16_t*)((char*)archetype + 0x14A) = it->second;
+			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_MODEL_PERSONALITY", [](fx::ScriptContext& context)
+	{
+		auto pedModel = context.GetArgument<uint32_t>(0);
+
+		rage::fwModelId index;
+		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
+
+		uint32_t result = 0;
+
+		// if is ped
+		if (archetype && archetype->miType == 6)
+		{
+			auto index = *(uint16_t*)((char*)archetype + 0x14A);
+			if (index < g_pedPersonalities->GetCount())
+			{
+				result = g_pedPersonalities->Get(index).hash;
+			}
+		}
+
+		context.SetResult<uint32_t>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_SWEAT", [](fx::ScriptContext& context)
+	{
+		float sweat = 0.0f;
+
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
+		if (entity && entity->IsOfType<CPed>())
+		{
+			sweat = *(float*)((char*)entity + _pedSweatOffset);
+		}
+
+		context.SetResult<float>(sweat);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PED_COMPONENT_VARIATION_GEN9_EXCLUSIVE", [](fx::ScriptContext& context)
+	{
+		bool result = false;
+
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
+			if (entity && entity->IsOfType<CPed>())
+			{
+				auto componentIndex = context.GetArgument<int>(1);
+
+				if (componentIndex >= 0 && componentIndex < 12)
+				{
+					auto drawableIndex = context.GetArgument<int>(2);
+
+					result = !_doesPedComponentDrawableExist(entity, componentIndex, drawableIndex);	
+				}
+			}
+		}
+
+		context.SetResult<bool>(result);
+	});
+
+
+	// Purpose: The game's default values for these make shooting while traveling Left quite a bit slower than shooting while traveling right
+	fx::ScriptEngine::RegisterNativeHandler("SET_PED_TURNING_THRESHOLDS", [](fx::ScriptContext& context) 
+	{
+		// Default Min: -45 Degrees
+		// Default Max: 135 Degrees
+		// 
+		//        \ ,- ~ ||~ - ,
+		//     , ' \    x   x    ' ,
+		//   ,      \    x    x   x  ,
+		//  ,         \  x     x      ,
+		// ,            \     x    x  ,
+		// ,              \      x    ,
+		// ,                \   x     ,
+		//  ,                 \   x x ,
+		//   ,                  \  x ,
+		//     ,                 \, '
+		//       ' - , _ _ _ ,  '  \
+		// If the transition angle is within the shaded portion (x), there will be no transition(Quicker)
+		// The angle corresponds to where you are looking(North on the circle) vs. the heading of your character.
+		// Note: For some reason, the transition spin is only clockwise.
+
+		float min = context.GetArgument<float>(0);
+		float max = context.GetArgument<float>(1);
+
+		*_motionAimingTurnTransitionThresholdMin = DEG2RAD(min);
+		*_motionAimingTurnTransitionThresholdMax = DEG2RAD(max);
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			resource->OnStop.Connect([]()
+			{
+				*_motionAimingTurnTransitionThresholdMin = DEG2RAD(-45.0f);
+				*_motionAimingTurnTransitionThresholdMax = DEG2RAD(135.0f);
+			});
 		}
 	});
 });

@@ -1,14 +1,13 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## IS_BIGMAP_FULL
 
 ```c
 BOOL IS_BIGMAP_FULL();
 ```
-
-<!-- Native implemented by Disquse. 0x66EE14B2 -->
 
 ## Return value
 Returns true if the full map is currently revealed on the minimap. 

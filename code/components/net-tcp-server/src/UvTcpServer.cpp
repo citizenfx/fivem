@@ -260,6 +260,7 @@ void UvTcpChildServer::OnConnection(int status)
 
 	// create a stream instance and associate
 	fwRefContainer<UvTcpServerStream> stream(new UvTcpServerStream(this));
+	stream->SetConnectionTimeout(std::chrono::seconds{*GetManager()->GetTcpConnectionTimeoutSeconds()});
 
 	// attempt accepting the connection
 	if (stream->Accept(std::move(clientHandle)))
@@ -340,6 +341,24 @@ void UvTcpServerStream::CloseClient()
 			writeTimeout->close();
 		}
 
+		decltype(m_connectionTimeoutTimer) connectionTimeout;
+
+		{
+			connectionTimeout = std::move(m_connectionTimeoutTimer);
+		}
+
+		if (connectionTimeout)
+		{
+			connectionTimeout->clear();
+
+			connectionTimeout->once<uvw::CloseEvent>([connectionTimeout](const uvw::CloseEvent&, uvw::TimerHandle& h)
+			{
+				(void)connectionTimeout;
+			});
+
+			connectionTimeout->close();
+		}
+
 		auto clientPtr = std::make_shared<decltype(client)>(client);
 
 		auto onShutdown = [clientPtr]()
@@ -376,6 +395,11 @@ void UvTcpServerStream::ResetWriteTimeout()
 	m_writeTimeout->start(std::chrono::seconds{ 30 }, std::chrono::milliseconds{ 0 });
 }
 
+void UvTcpServerStream::ResetConnectionTimeout()
+{
+	m_connectionTimeoutTimer->start(m_connectionTimeout, std::chrono::milliseconds{ 0 });
+}
+
 bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 {
 	// accept early
@@ -400,9 +424,17 @@ bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 	// continue connection
 	m_writeTimeout = client->loop().resource<uvw::TimerHandle>();
 
+	// closes the connection if no data is received or send within the connection timeout
+	m_connectionTimeoutTimer = client->loop().resource<uvw::TimerHandle>();
+
 	fwRefContainer<UvTcpServerStream> thisRef(this);
 
 	m_writeTimeout->once<uvw::TimerEvent>([thisRef](const uvw::TimerEvent& event, uvw::TimerHandle& handle)
+	{
+		thisRef->Close();
+	});
+
+	m_connectionTimeoutTimer->once<uvw::TimerEvent>([thisRef](const uvw::TimerEvent& event, uvw::TimerHandle& handle)
 	{
 		thisRef->Close();
 	});
@@ -436,6 +468,7 @@ bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 		else
 		{
 			thisRef->ResetWriteTimeout();
+			thisRef->ResetConnectionTimeout();
 		}
 	});
 
@@ -478,6 +511,8 @@ bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 	// read
 	m_client->read();
 
+	ResetConnectionTimeout();
+
 	return true;
 }
 
@@ -487,6 +522,9 @@ void UvTcpServerStream::HandleRead(ssize_t nread, const std::unique_ptr<char[]>&
 	{
 		std::vector<uint8_t> targetBuf(nread);
 		memcpy(&targetBuf[0], buf.get(), targetBuf.size());
+
+		// timeout can be overwritten inside the read callback
+		ResetConnectionTimeout();
 
 		if (GetReadCallback())
 		{
@@ -610,6 +648,7 @@ void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size,
 
 		m_pendingWrites++;
 		ResetWriteTimeout();
+		ResetConnectionTimeout();
 
 		client->write(std::move(data), size);
 	};
@@ -668,6 +707,16 @@ void UvTcpServerStream::ScheduleCallback(TScheduledCallback&& callback, bool per
 
 		writeCallback->send();
 	}
+}
+
+void UvTcpServerStream::StartConnectionTimeout(const std::chrono::duration<uint64_t, std::milli> timeout)
+{
+	m_connectionTimeoutTimer->start(timeout, std::chrono::milliseconds{ 0 });
+}
+
+void UvTcpServerStream::SetConnectionTimeout(const std::chrono::duration<uint64_t, std::milli> timeout)
+{
+	m_connectionTimeout = timeout;
 }
 
 void UvTcpServerStream::HandlePendingWrites()

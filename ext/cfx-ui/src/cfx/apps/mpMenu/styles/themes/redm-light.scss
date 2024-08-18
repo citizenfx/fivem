@@ -1,4 +1,4 @@
-@use "ui";
+@use "~@cfx-dev/ui-components/dist/styles-scss/ui" as ui;
 
 $fg: hsl(45, 7%, 11%);
 $bg: hsl(0, 0%, 100%);

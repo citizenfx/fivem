@@ -1,5 +1,7 @@
 #pragma once
 
+#include "XBRVirtual.h"
+
 #ifdef COMPILING_RAGE_ALLOCATOR_FIVE
 #define GAMESPEC_EXPORT __declspec(dllexport)
 #else
@@ -8,43 +10,43 @@
 
 namespace rage
 {
-	class sysMemAllocator
+	class sysMemAllocator : XBR_VIRTUAL_BASE_2802(2)
 	{
 	public:
-		virtual ~sysMemAllocator() = 0;
+		XBR_VIRTUAL_DTOR(sysMemAllocator)
 
-		virtual void SetQuitOnFail(bool) = 0;
-		virtual void* Allocate(size_t size, size_t align, int subAllocator) = 0;
+		XBR_VIRTUAL_METHOD(void, SetQuitOnFail, (bool arg))
+		XBR_VIRTUAL_METHOD(void*, Allocate, (size_t size, size_t align, int subAllocator))
 
 		inline void* allocate(size_t size, size_t align, int subAllocator)
 		{
 			return Allocate(size, align, subAllocator);
 		}
 
-		virtual void* TryAllocate(size_t size, size_t align, int subAllocator) = 0;
+		XBR_VIRTUAL_METHOD(void*, TryAllocate, (size_t size, size_t align, int subAllocator))
 
-		virtual void Free(void* pointer) = 0;
+		XBR_VIRTUAL_METHOD(void, Free, (void* pointer))
 
-		virtual void free(void* pointer)
+		inline void free(void* pointer)
 		{
 			return Free(pointer);
 		}
 
-		virtual void TryFree(void* pointer) = 0;
+		XBR_VIRTUAL_METHOD(void, TryFree, (void* pointer))
 
-		virtual void Resize(void* pointer, size_t size) = 0;
+		XBR_VIRTUAL_METHOD(void, Resize, (void* pointer, size_t size))
 
-		virtual sysMemAllocator* GetAllocator(int allocator) const = 0;
+		XBR_VIRTUAL_METHOD(sysMemAllocator*, GetAllocator_Const, (int allocator))
+		XBR_VIRTUAL_METHOD(sysMemAllocator*, GetAllocator, (int allocator))
 
-		virtual sysMemAllocator* GetAllocator(int allocator) = 0;
+		XBR_VIRTUAL_METHOD(sysMemAllocator*, GetPointerOwner, (void* pointer))
 
-		virtual sysMemAllocator* GetPointerOwner(void* pointer) = 0;
 
-		virtual size_t GetSize(void* pointer) const = 0;
+		XBR_VIRTUAL_METHOD(size_t, GetSize, (void* pointer))
 
-		virtual size_t GetMemoryUsed(int memoryBucket) = 0;
+		XBR_VIRTUAL_METHOD(size_t, GetMemoryUsed, (int memoryBucket))
 
-		virtual size_t GetMemoryAvailable() = 0;
+		XBR_VIRTUAL_METHOD(size_t, GetMemoryAvailable, ())
 
 		// and a lot of other functions below that aren't needed right now
 

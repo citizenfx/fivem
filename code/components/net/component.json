@@ -5,9 +5,9 @@
 		"fx[2]",
 		"http-client",
 		"profiles",
-		"vendor:yaml-cpp",
 		"vendor:cpp-url",
-		"net:base"
+		"net:base",
+		"net:packet"
 	],
 	"provides": []
 }

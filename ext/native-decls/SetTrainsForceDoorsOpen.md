@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## SET_TRAINS_FORCE_DOORS_OPEN
 

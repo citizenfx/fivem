@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## SET_WEATHER_OWNED_BY_NETWORK
 

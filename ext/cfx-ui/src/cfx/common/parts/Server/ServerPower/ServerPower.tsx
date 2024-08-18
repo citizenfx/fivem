@@ -1,14 +1,13 @@
-import { $L } from "cfx/common/services/intl/l10n";
-import { IServerView } from "cfx/common/services/servers/types";
-import { Icons } from "cfx/ui/Icons";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Title } from "cfx/ui/Title/Title";
-import { observer } from "mobx-react-lite";
+import { Icons, Flex, Title } from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+
+import { $L } from 'cfx/common/services/intl/l10n';
+import { IServerView } from 'cfx/common/services/servers/types';
 
 export interface ServerPowerProps {
-  server: IServerView,
+  server: IServerView;
 
-  className?: string,
+  className?: string;
 }
 
 export const ServerPower = observer(function ServerPower(props: ServerPowerProps) {
@@ -30,9 +29,7 @@ export const ServerPower = observer(function ServerPower(props: ServerPowerProps
         <Title fixedOn="bottom" title={$L('#Server_BoostPower_Title')}>
           <Flex gap="thin">
             {Icons.serverBoost}
-            <span>
-              {server.upvotePower}
-            </span>
+            <span>{server.upvotePower}</span>
           </Flex>
         </Title>
       )}
@@ -41,9 +38,7 @@ export const ServerPower = observer(function ServerPower(props: ServerPowerProps
         <Title fixedOn="bottom" title={$L('#Server_BurstPower_Title')}>
           <Flex gap="thin">
             {Icons.serverBurst}
-            <span>
-              {server.burstPower}
-            </span>
+            <span>{server.burstPower}</span>
           </Flex>
         </Title>
       )}

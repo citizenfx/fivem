@@ -15,10 +15,10 @@ namespace fx
 	HttpServerManager::HttpServerManager()
 	{
 		m_httpHandler = new Handler();
-		m_httpHandler->handler = [=] (fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response)
+		m_httpHandler->handler = [this] (fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response)
 		{
 			{
-				std::unique_lock<std::mutex> lock(m_handlersMutex);
+				std::shared_lock lock(m_handlersMutex);
 
 				for (auto& [ prefix, handler ] : m_handlers)
 				{
@@ -32,7 +32,7 @@ namespace fx
 						{
 							if (boost::algorithm::ends_with(prefix, "/"))
 							{
-								eastl::string_view prefixView{ prefix.c_str(), prefix.size() };
+								net::HeaderStringView prefixView{ prefix.c_str(), prefix.size() };
 								matches = request->GetPath() == prefixView.substr(0, prefixView.length() - 1);
 							}
 						}
@@ -45,6 +45,10 @@ namespace fx
 					if (matches)
 					{
 						lock.unlock();
+
+						// to prevent a long running handler from timeouting the connection
+						// this timeout is overwritten when the response is send
+						response->StartConnectionTimeout(std::chrono::seconds{ m_handlerConnectionTimeout });
 
 						handler(request, response);
 						return true;
@@ -72,14 +76,14 @@ namespace fx
 
 	void HttpServerManager::AddEndpoint(const std::string& prefix, const TEndpointHandler& handler)
 	{
-		std::unique_lock<std::mutex> lock(m_handlersMutex);
+		std::unique_lock lock(m_handlersMutex);
 
 		m_handlers.insert({ prefix, handler });
 	}
 
 	void HttpServerManager::RemoveEndpoint(const std::string& prefix)
 	{
-		std::unique_lock<std::mutex> lock(m_handlersMutex);
+		std::unique_lock lock(m_handlersMutex);
 
 		m_handlers.erase(prefix);
 	}
@@ -190,6 +194,10 @@ static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
-		instance->SetComponent(new fx::HttpServerManager());
+		fx::HttpServerManager* httpServerManager = new fx::HttpServerManager();
+
+		static ConVar<uint16_t> svHttpHandlerConnectionTimeout(console::GetDefaultContext(), "sv_httpHandlerConnectionTimeoutSeconds", ConVar_None, 300, httpServerManager->GetHandlerConnectionTimeoutSeconds());
+
+		instance->SetComponent<fx::HttpServerManager>(httpServerManager);
 	}, -100);
 });

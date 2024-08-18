@@ -395,7 +395,8 @@ bool RadioDSPEffect::Init(uint32_t a, uint32_t b)
 
 void RadioDSPEffect::Shutdown()
 {
-	
+	// Fixes memory leak
+	delete this;
 }
 
 void RadioDSPEffect::do_process(float* samples, int frame_count, float& volFollow)

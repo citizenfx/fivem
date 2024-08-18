@@ -1,0 +1,77 @@
+name: Documentation Improvement
+description: Improve request for FiveM, RedM, or FXServer's documentation
+labels: ["documentation", "triage"]
+assignees:
+  - 
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill out this documentation improvement request.
+        Only documentation related requests are accepted, so please refrain from submitting any other requests (including support requests).
+        
+        Any requests on documentation found on https://docs.fivem.net/docs/ need to go to https://github.com/citizenfx/fivem-docs.
+        
+        \* Requests that fail to deliver the proper information may be closed without any feedback.
+  
+  - type: input
+    id: segment 
+    attributes:
+      label: Segment
+      description: |
+        Which segment is this targeting? e.g.: type, method, field, or property
+      placeholder: 
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: importancy
+    attributes:
+      label: Importancy
+      description: |
+        To your knowledge how would you describe the importancy of this feature?
+      options:
+        - Unknown
+        - Nice extra
+        - Missing details
+        - Unclear or unintuitive
+        - Incorrect
+    validations:
+      required: true
+  
+  - type: textarea
+    id: improvement
+    attributes:
+      label: Improvement request
+      description: |
+        Tell us what needs to be changed to make this better, also add suggestions if you have any
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: areas
+    attributes:
+      label: Area(s)
+      multiple: true
+      description: |
+        Which of the following areas does this request apply to? Please mark all that apply.
+      options:
+        - FiveM
+        - RedM
+        - FXServer
+        - FxDK
+        - 'OneSync'
+        - 'Natives'
+        - 'ScRT: Lua'
+        - 'ScRT: C#'
+        - 'ScRT: JS'
+    validations:
+      required: true
+  
+  - type: textarea
+    id: misc
+    attributes:
+      label: Additional information
+      description: |
+        Anything else you'd like to add?

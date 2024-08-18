@@ -7,6 +7,8 @@
 
 #include "StdInc.h"
 
+#include "NetBitVersion.h"
+
 #ifndef GTA_NY
 #include <scrEngine.h>
 
@@ -69,14 +71,28 @@ public:
 #ifdef GTA_FIVE
 		if (!m_attached)
 		{
-			CGameScriptHandlerMgr::GetInstance()->AttachScript(this);
+			auto instance = CGameScriptHandlerMgr::GetInstance();
+
+			if (!instance)
+			{
+				return;
+			}
+
+			instance->AttachScript(this);
 			m_attached = true;
 		}
 
 		// TEMP: force-disable population for 1s big using script
 		// should be done natively someday
 		static auto icgi = Instance<ICoreGameInit>::Get();
-		bool currentOff = (icgi->HasVariable("onesync_big") && !icgi->OneSyncBigIdEnabled) || icgi->HasVariable("strict_entity_lockdown");
+		bool currentOff = []()
+		{
+			if (icgi->IsNetVersionOrHigher(net::NetBitVersion::netVersion3))
+			{
+				return !icgi->HasVariable("onesync_population") || icgi->HasVariable("strict_entity_lockdown");
+			}
+			return (icgi->HasVariable("onesync_big") && !icgi->OneSyncBigIdEnabled) || icgi->HasVariable("strict_entity_lockdown");
+		}();
 
 		auto setDispatch = [](bool enable)
 		{

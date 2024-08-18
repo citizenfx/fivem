@@ -1,20 +1,23 @@
-import { ISetting } from "cfx/common/services/settings/types";
-import { Button } from "cfx/ui/Button/Button";
-import { Checkbox } from "cfx/ui/Checkbox/Checkbox";
-import { Input } from "cfx/ui/Input/Input";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Select } from "cfx/ui/Select/Select";
-import { Switch } from "cfx/ui/Switch/Switch";
-import { Text } from "cfx/ui/Text/Text";
-import { getValue } from "cfx/utils/getValue";
-import { observer } from "mobx-react-lite";
+import {
+  Button,
+  Checkbox,
+  Input,
+  Flex,
+  Select,
+  Switch,
+  Text,
+  getValue,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+
+import { ISetting } from 'cfx/common/services/settings/types';
 
 interface ControlProps {
-  setting: ISetting.AnySetting,
+  setting: ISetting.AnySetting;
 }
 export const SettingItem = observer(function SettingItem(props: ControlProps) {
   const {
-    setting
+    setting,
   } = props;
 
   return (
@@ -23,9 +26,7 @@ export const SettingItem = observer(function SettingItem(props: ControlProps) {
         {getValue(setting.label)}
       </Text>
 
-      <div>
-        {getControl(setting)}
-      </div>
+      <div>{getControl(setting)}</div>
     </Flex>
   );
 });
@@ -41,20 +42,13 @@ function getControl(setting: ISetting.AnySetting): React.ReactNode {
       const accessors = setting.accessors();
 
       return (
-        <Input
-          type={setting.inputType || 'text'}
-          value={accessors.getValue()}
-          onChange={accessors.setValue}
-        />
+        <Input type={setting.inputType || 'text'} value={accessors.getValue()} onChange={accessors.setValue} />
       );
     }
 
     case 'button': {
       return (
-        <Button
-          text={getValue(setting.description || '')}
-          onClick={setting.onClick}
-        />
+        <Button text={getValue(setting.description || '')} onClick={setting.onClick} />
       );
     }
 

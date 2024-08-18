@@ -18,7 +18,8 @@ fxd gen -game server
 #>
 [CmdletBinding(PositionalBinding=$false)]
 param(
-	[string]$Game = 'five'
+	[string]$Game = 'five',
+	[string]$Args = ''
 )
 
 $VSVersion = [System.Version]::Parse((& "$PSScriptRoot\..\ci\vswhere.exe" -prerelease -latest -property catalog_buildVersion -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64))
@@ -31,5 +32,5 @@ if ($VSVersion -ge [System.Version]::Parse("17.0")) {
 }
 
 Push-Location "$PSScriptRoot\..\..\"
-& "$PSScriptRoot\..\ci\premake5.exe" $VSLine "--game=$Game"
+& "$PSScriptRoot\..\ci\premake5.exe" $VSLine "--game=$Game" $Args
 Pop-Location

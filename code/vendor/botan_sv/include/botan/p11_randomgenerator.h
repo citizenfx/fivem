@@ -10,7 +10,7 @@
 #define BOTAN_P11_RNG_H_
 
 #include <botan/rng.h>
-#include <botan/p11_session.h>
+#include <botan/p11_types.h>
 #include <botan/entropy_src.h>
 
 #include <string>

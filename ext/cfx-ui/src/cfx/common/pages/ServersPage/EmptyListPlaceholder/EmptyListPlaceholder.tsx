@@ -1,20 +1,25 @@
-import React from "react";
-import { ServerListConfigController } from "cfx/common/services/servers/lists/ServerListConfigController";
-import { ServersListType } from "cfx/common/services/servers/lists/types";
-import { Button } from "cfx/ui/Button/Button";
-import { LinkButton } from "cfx/ui/Button/LinkButton";
-import { Island } from "cfx/ui/Island/Island";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Page } from "cfx/ui/Layout/Page/Page";
-import { Text } from "cfx/ui/Text/Text";
-import { observer } from "mobx-react-lite";
-import { WiWindy } from "react-icons/wi";
-import { SERVER_LIST_DESCRIPTORS } from "../ListTypeTabs";
-import { $L } from "cfx/common/services/intl/l10n";
+import {
+  Button,
+  Island,
+  Flex,
+  Page,
+  Text,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+import { WiWindy } from 'react-icons/wi';
+
+import { $L } from 'cfx/common/services/intl/l10n';
+import { ServerListConfigController } from 'cfx/common/services/servers/lists/ServerListConfigController';
+import { ServersListType } from 'cfx/common/services/servers/lists/types';
+import { LinkButton } from 'cfx/ui/Button/LinkButton';
+
+import { SERVER_LIST_DESCRIPTORS } from '../ListTypeTabs';
+
 import s from './EmptyListPlaceholder.module.scss';
 
 export interface EmptyListPlaceholderProps {
-  configController?: ServerListConfigController | undefined,
+  configController?: ServerListConfigController | undefined;
 }
 
 export const EmptyListPlaceholder = observer(function EmptyListPlaceholder(props: EmptyListPlaceholderProps) {
@@ -42,9 +47,11 @@ export const EmptyListPlaceholder = observer(function EmptyListPlaceholder(props
           <Flex>
             <LinkButton
               to={SERVER_LIST_DESCRIPTORS[ServersListType.All].to}
-              text={SERVER_LIST_DESCRIPTORS[ServersListType.All].title}
+              text={$L(SERVER_LIST_DESCRIPTORS[ServersListType.All].titleKey)}
               size="large"
-              theme={possiblyEmptyDueToFilters ? 'default' : 'primary'}
+              theme={possiblyEmptyDueToFilters
+                ? 'default'
+                : 'primary'}
             />
 
             {possiblyEmptyDueToFilters && (

@@ -34,7 +34,7 @@ static std::unordered_map<std::string, int> g_failures;
 
 hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 {
-	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
+	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00 8B D8 E8", -5));
 });
 
 struct SemaAwaiter
@@ -511,6 +511,10 @@ static bool CEntity_SetModelIdWrap(rage::fwEntity* entity, rage::fwModelId* id)
 
 static hook::thiscall_stub<void(void*, const rage::fwModelId&)> _fwEntity_SetModelId([]()
 {
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		return hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8B D9 48 8B 49 ? 48 8B FA 48 85 C9 74 ? 8B 41");
+	}
 	return hook::get_pattern("E8 ? ? ? ? 45 33 D2 3B 05", -12);
 });
 
@@ -528,8 +532,7 @@ static void fwEntity_DtorWrap(rage::fwEntity* entity)
 		// to do this, we use a little hack to not have to manually read the archetype list:
 		// the base rage::fwEntity::SetModelId doesn't do anything other than setting (rcx + 32)
 		// to the resolved archetype, or nullptr if none
-		rage::fwModelId modelId;
-		modelId.id = midx;
+		rage::fwModelId modelId(midx);
 
 		void* fakeEntity[40 / 8] = { 0 };
 		_fwEntity_SetModelId(fakeEntity, modelId);
@@ -605,7 +608,7 @@ static HookFunction hookFunction([] ()
 
 	// redirect pgStreamer::Read for custom streaming reads
 	{
-		auto location = hook::get_pattern("45 8B ? 48 89 7C 24 28 48 89 44 24 20 E8", 13);
+		auto location = hook::get_pattern("48 8D 05 ? ? ? ? 45 8B ? 48 89 7C 24 28 48 89 44 24 20 E8", 20);
 		hook::set_call(&g_origPgStreamerRead, location);
 		hook::call(location, pgStreamerRead);
 	}

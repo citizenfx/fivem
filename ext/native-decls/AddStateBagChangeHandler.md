@@ -25,10 +25,48 @@ function StateBagChangeHandler(bagName: string, key: string, value: any, reserve
 
 At this time, the change handler can't opt to reject changes.
 
+If bagName refers to an entity, use [GET_ENTITY_FROM_STATE_BAG_NAME](?_0x4BDF1868) to get the entity handle
+If bagName refers to a player, use [GET_PLAYER_FROM_STATE_BAG_NAME](?_0xA56135E0) to get the player handle
+
 ## Parameters
-* **keyFilter**: The key to check for, or null.
-* **bagFilter**: The bag ID to check for, or null.
+* **keyFilter**: The key to check for, or null for no filter.
+* **bagFilter**: The bag ID to check for such as `entity:65535`, or null for no filter.
 * **handler**: The handler function.
 
 ## Return value
 A cookie to remove the change handler.
+
+## Examples
+```js
+AddStateBagChangeHandler("blockTasks", null, async (bagName, key, value /* boolean */) => {
+    let entity = GetEntityFromStateBagName(bagName);
+    // Whoops, we were don't have a valid entity!
+    if (entity === 0) return;
+    // We don't want to freeze the entity position if the entity collision hasn't loaded yet
+    while (!HasCollisionLoadedAroundEntity(entity)) {
+        // The entity went out of our scope before the collision loaded
+        if (!DoesEntityExist(entity)) return;
+        await Delay(250);
+    }
+    SetEntityInvincible(entity, value)
+    FreezeEntityPosition(entity, value)
+    TaskSetBlockingOfNonTemporaryEvents(entity, value)
+})
+```
+
+```lua
+AddStateBagChangeHandler("blockTasks", nil, function(bagName, key, value) 
+    local entity = GetEntityFromStateBagName(bagName)
+    -- Whoops, we don't have a valid entity!
+    if entity === 0 then return end
+    -- We don't want to freeze the entity position if the entity collision hasn't loaded yet
+    while not HasCollisionLoadedAroundEntity(entity) do
+        -- The entity went out of our scope before the collision loaded
+        if not DoesEntityExist(entity) then return end
+        Wait(250)
+    end
+    SetEntityInvincible(entity, value)
+    FreezeEntityPosition(entity, value)
+    TaskSetBlockingOfNonTemporaryEvents(entity, value)
+end)
+```

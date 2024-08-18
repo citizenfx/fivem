@@ -9,18 +9,20 @@
 
 #include <shared_mutex>
 #include <unordered_set>
+#include <CrossBuildRuntime.h>
+#include <Streaming.h>
+#include "Hooking.h"
+#include <Error.h>
+#include <MinHook.h>
+#include <jitasm.h>
+
+#include <GameInit.h>
+#include <CoreConsole.h>
+#include <CL2LaunchMode.h>
 
 #ifdef GTA_FIVE
-#include <jitasm.h>
-#include "Hooking.h"
 #include <atPool.h>
-
-#include <Streaming.h>
-
-#include <Error.h>
-
-#include <CoreConsole.h>
-#include <MinHook.h>
+#include "XBRVirtual.h"
 
 struct ResBmInfoInt
 {
@@ -50,33 +52,41 @@ void GetBlockMapWrap(ResBmInfo* info, void* bm)
 		trace("tried to get a blockmap from a streaming entry without blockmap\n");
 	}
 }
+#endif
 
 namespace rage
 {
-	class datBase
+class datBase
+{
+public:
+	virtual ~datBase()
 	{
-	public:
-		virtual ~datBase() {}
-	};
+	}
+};
 
-	class strStreamingModule : public datBase
+class strStreamingModule : public datBase
+{
+public:
+	virtual ~strStreamingModule()
 	{
-	public:
-		virtual ~strStreamingModule() {}
+	}
 
-	public:
-		uint32_t baseIdx;
-	};
+public:
+	uint32_t baseIdx;
+};
 
-	class fwAssetStoreBase : public strStreamingModule
+class fwAssetStoreBase : public strStreamingModule
+{
+public:
+	virtual ~fwAssetStoreBase()
 	{
-	public:
-		virtual ~fwAssetStoreBase() {}
+	}
 
-		bool IsResourceValid(uint32_t idx);
-	};
+	bool IsResourceValid(uint32_t idx);
+};
 }
 
+#if GTA_FIVE
 static rage::strStreamingModule**(*g_getStreamingModule)(void*, uint32_t);
 
 static hook::cdecl_stub<bool(rage::fwAssetStoreBase*, uint32_t)> fwAssetStoreBase__isResourceValid([] ()
@@ -102,10 +112,8 @@ static std::unordered_map<uint32_t, std::string> g_streamingIndexesToNames;
 static std::unordered_map<uint32_t, std::string> g_streamingHashesToNames;
 #endif
 
-#ifdef GTA_FIVE
 // TODO: unordered_map with a custom hash
 static std::map<std::tuple<streaming::strStreamingModule*, uint32_t>, uint32_t> g_streamingHashStoresToIndices;
-#endif
 
 extern std::unordered_set<std::string> g_streamingSuffixSet;
 
@@ -114,25 +122,44 @@ template<bool IsRequest>
 rage::strStreamingModule** GetStreamingModuleWithValidate(void* streamingModuleMgr, uint32_t index)
 {
 	rage::strStreamingModule** streamingModulePtr = g_getStreamingModule(streamingModuleMgr, index);
-	rage::strStreamingModule* streamingModule = *streamingModulePtr;
 
-	std::string typeName = typeid(*streamingModule).name();
-	rage::fwAssetStoreBase* assetStore = dynamic_cast<rage::fwAssetStoreBase*>(streamingModule);
-	
-	if (assetStore)
+	if (!xbr::IsGameBuildOrGreater<2802>())
 	{
-		if (!assetStore->IsResourceValid(index - assetStore->baseIdx))
-		{
-			trace("Tried to %s non-existent streaming asset %s (%d) in module %s\n", (IsRequest) ? "request" : "release", streaming::GetStreamingNameForIndex(index), index, typeName.c_str());
+		rage::strStreamingModule* streamingModule = *streamingModulePtr;
 
-			AddCrashometry("streaming_free_validation", "true");
+		std::string typeName = typeid(*streamingModule).name();
+		rage::fwAssetStoreBase* assetStore = dynamic_cast<rage::fwAssetStoreBase*>(streamingModule);
+
+		if (assetStore)
+		{
+			if (!assetStore->IsResourceValid(index - assetStore->baseIdx))
+			{
+				trace("Tried to %s non-existent streaming asset %s (%d) in module %s\n", (IsRequest) ? "request" : "release", streaming::GetStreamingNameForIndex(index), index, typeName.c_str());
+
+				AddCrashometry("streaming_free_validation", "true");
+			}
 		}
 	}
 
 	return streamingModulePtr;
 }
+#endif
 
+#if GTA_FIVE
 extern std::string g_lastStreamingName;
+#elif IS_RDR3
+std::string g_lastStreamingName;
+
+static int (*g_origGetFileTypeIdFromExtension)(const char*, const char*);
+static int GetFileTypeIdFromExtension(const char* extension, const char* fileName)
+{
+	// set the name for the later hook to use
+	g_lastStreamingName = extension;
+
+	return g_origGetFileTypeIdFromExtension(extension, fileName);
+}
+#endif
+
 
 uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 {
@@ -173,7 +200,6 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 
 	return indexRet;
 }
-#endif
 
 namespace streaming
 {
@@ -219,7 +245,6 @@ namespace streaming
 		return "";
 	}
 
-#ifdef GTA_FIVE
 	uint32_t GetStreamingIndexForLocalHashKey(streaming::strStreamingModule* module, uint32_t hash)
 	{
 		auto entry = g_streamingHashStoresToIndices.find({ module, hash });
@@ -231,8 +256,18 @@ namespace streaming
 
 		return -1;
 	}
-#endif
 }
+
+struct strStreamingInterface
+{
+		virtual ~strStreamingInterface() = 0;
+
+		virtual void LoadAllRequestedObjects(bool) = 0;
+
+		virtual void RequestFlush() = 0;
+};
+
+static strStreamingInterface** g_strStreamingInterface;
 
 #ifdef GTA_FIVE
 void(*g_origAssetRelease)(void*, uint32_t);
@@ -321,17 +356,6 @@ static void MakeDefragmentableHook(rage::pgBase* self, const rage::datResourceMa
 	g_origMakeDefragmentable(self, map, a3);
 }
 
-struct strStreamingInterface
-{
-	virtual ~strStreamingInterface() = 0;
-
-	virtual void LoadAllRequestedObjects(bool) = 0;
-
-	virtual void RequestFlush() = 0;
-};
-
-static strStreamingInterface** g_strStreamingInterface;
-
 #include <EntitySystem.h>
 #include <stack>
 #include <atHashMap.h>
@@ -398,23 +422,45 @@ static void ArchetypeInitHook(void* at, void* a3, fwArchetypeDef* def, void* a4)
 		g_archetypeDeletionStack[def->name].push_front(*atIdx);
 	}
 }
+#endif
 
 static HookFunction hookFunction([] ()
 {
+	static ConVar<bool> enableFlush("str_enableFlush", ConVar_Replicated, false);
 	static ConsoleCommand flushCommand("str_requestFlush", []()
 	{
+#ifndef _DEBUG
+		if (!launch::IsSDK() && !launch::IsSDKGuest() && !enableFlush.GetValue())
+		{
+			trace("str_requestFlush requires the 'str_enableFlush' replicated convar to be enabled");
+			return;
+		}
+#endif
 		if (*g_strStreamingInterface)
 		{
 			(*g_strStreamingInterface)->RequestFlush();
 		}
 	});
 
+#if GTA_FIVE
 	g_strStreamingInterface = hook::get_address<decltype(g_strStreamingInterface)>(hook::get_pattern("48 8B 0D ? ? ? ? 48 8B 01 FF 90 90 00 00 00 B9", 3));
+#elif IS_RDR3
+	g_strStreamingInterface = hook::get_address<decltype(g_strStreamingInterface)>(hook::get_pattern("F6 04 01 01 74 0D 48 8B 0D", 9));
+#endif
 
-	void* getBlockMapCall = hook::pattern("CC FF 50 48 48 85 C0 74 0D").count(1).get(0).get<void>(17);
-
-	hook::set_call(&g_getBlockMap, getBlockMapCall);
-	hook::call(getBlockMapCall, GetBlockMapWrap);
+#if GTA_FIVE
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		void* getBlockMapCall = hook::pattern("4D 85 E4 74 0D 48 8D 54 24 20 49 8B CC E8").count(1).get(0).get<void>(13);
+		hook::set_call(&g_getBlockMap, getBlockMapCall);
+		hook::call(getBlockMapCall, GetBlockMapWrap);
+	}
+	else
+	{
+		void* getBlockMapCall = hook::pattern("CC FF 50 48 48 85 C0 74 0D").count(1).get(0).get<void>(17);
+		hook::set_call(&g_getBlockMap, getBlockMapCall);
+		hook::call(getBlockMapCall, GetBlockMapWrap);
+	}
 
 	// debugging for non-existent streaming requests
 	{
@@ -425,11 +471,13 @@ static HookFunction hookFunction([] ()
 
 	// debugging for non-existent streaming releases
 	{
-		void* location = hook::pattern("83 FD 01 0F 85 4D 01 00 00").count(1).get(0).get<void>(16);
+		void* location = hook::pattern("83 FD 01 0F 85 ? 01 00 00").count(1).get(0).get<void>(16);
 		hook::call(location, GetStreamingModuleWithValidate<false>);
 	}
+#endif
 
 	{
+#ifdef GTA_FIVE
 		void* location = hook::pattern("83 CE FF 89 37 48 8B C7 48 8B 9C 24").count(1).get(0).get<void>(29);
 
 		static struct : public jitasm::Frontend
@@ -450,10 +498,68 @@ static HookFunction hookFunction([] ()
 		} doStub;
 
 		doStub.addFunc = AddStreamingFileWrap;
-
 		hook::jump_rcx(location, doStub.GetCode());
+#elif IS_RDR3
+		if (xbr::IsGameBuildOrGreater<1436>()) // starting from 1436.31
+		{
+			void* location = hook::pattern("83 0F FF 48 8D 4D C8 E8 3C 93 FE FF").count(1).get(0).get<void>(27);
+
+			static struct : public jitasm::Frontend
+			{
+				void* addFunc;
+
+				void InternalMain() override
+				{
+					pop(rdi);
+					pop(rsi);
+					pop(rbx);
+					pop(rbp);
+
+					mov(rcx, rax);
+					mov(rax, (uint64_t)addFunc);
+					jmp(rax);
+				}
+			} doStub;
+
+			doStub.addFunc = AddStreamingFileWrap;
+			hook::jump_rcx(location, doStub.GetCode());
+		}
+		else
+		{
+			void* location = hook::pattern("83 CF FF 89 3E 48 8D 4D 58 E8").count(1).get(0).get<void>(35);
+
+			static struct : public jitasm::Frontend
+			{
+				void* addFunc;
+
+				void InternalMain() override
+				{
+					pop(r12);
+					pop(rdi);
+					pop(rsi);
+					pop(rbp);
+
+					mov(rcx, rax);
+					mov(rax, (uint64_t)addFunc);
+					jmp(rax);
+				}
+			} doStub;
+
+			doStub.addFunc = AddStreamingFileWrap;
+			hook::jump_rcx(location, doStub.GetCode());
+		}
+#endif
 	}
 
+#if IS_RDR3
+	{
+		void* location = hook::get_pattern("33 D2 48 8D 4C 24 60 8B D8 E8", -5);
+		hook::set_call(&g_origGetFileTypeIdFromExtension, location);
+		hook::call(location, GetFileTypeIdFromExtension);
+	}
+#endif
+
+#if GTA_FIVE
 	// avoid releasing released clipdictionaries
 	{
 		void* loc = hook::get_pattern("48 8B D9 E8 ? ? ? ? 48 8B 8B 98 00 00 00 48", 3);
@@ -521,5 +627,5 @@ static HookFunction hookFunction([] ()
 		g_archetypeStart = (char**)hook::get_address<void*>(getArchetypeFn + 0x84);
 		g_archetypeLength = (size_t*)hook::get_address<void*>(getArchetypeFn + 0x7D);
 	}
-});
 #endif
+});

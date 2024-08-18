@@ -83,10 +83,12 @@ type CitizenImmediate = Omit<CitizenTimer, 'refresh'>;
 declare var Citizen: CitizenInterface;
 
 declare function addRawEventListener(eventName: string, callback: Function): void
+declare function setMaxRawEventListeners(max: number): void
 
 declare function addEventListener(eventName: string, callback: Function, netSafe?: boolean): void
 declare function on(eventName: string, callback: Function): void
 declare function AddEventHandler(eventName: string, callback: Function): void
+declare function setMaxEventListeners(max: number): void
 
 declare function addNetEventListener(eventName: string, callback: Function): void
 declare function onNet(eventName: string, callback: Function): void
@@ -128,7 +130,14 @@ declare var GlobalState : StateBagInterface
 declare function Player(entity: number|string): EntityInterface
 declare var LocalPlayer : EntityInterface
 
-declare var exports: any;
+interface CitizenExports {
+    (exportKey: string | number, exportFunction: Function): void;
+    [resourceName: string] : {
+        [exportKey: string | number]: Function
+    };
+}
+
+declare var exports: CitizenExports;
 
 declare var source: number;
 

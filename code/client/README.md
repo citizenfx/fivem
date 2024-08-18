@@ -9,6 +9,5 @@ Shared CitizenFX framework code.
 * [**common/**](./common): Shared source files included in all projects.
 * [**console/**](./console): `FiveM.com` console launcher.
 * [**diag/**](./diag): `CfxDiag` utility.
-* [**ipfsdl/**](./ipfsdl): IPFS download API wrapper.
 * [**launcher/**](./launcher): Main client entry point/bootstrapper.
 * [**shared/**](./shared): Shared includes and source files.

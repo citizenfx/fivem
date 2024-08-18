@@ -10,18 +10,18 @@ YARN=yarn
 [ "$OS" == "Windows_NT" ] && LUA53=./lua53
 [ "$OS" == "Windows_NT" ] && NODE=$ROOT/node
 [ "$OS" != "Windows_NT" ] && NODE=/tmp/node/node/bin/node
-YARN="$NODE $ROOT/yarn_cli.js"
+YARN="$NODE $ROOT/yarn_cli.js --mutex network"
 
-[ "$OS" == "Windows_NT" ] && curl -z node.exe -Lo node.exe https://nodejs.org/dist/v12.22.12/win-x64/node.exe
+[ "$OS" == "Windows_NT" ] && curl -z node.exe -Lo node.exe https://content.cfx.re/mirrors/vendor/node/v12.22.12/node.exe --http1.1
 [ "$OS" != "Windows_NT" ] && mkdir /tmp/node && \
-	curl -Lo /tmp/node/node.tar.gz https://unofficial-builds.nodejs.org/download/release/v12.22.12/node-v12.22.12-linux-x64-musl.tar.gz && \
+	curl -Lo /tmp/node/node.tar.gz https://content.cfx.re/mirrors/vendor/node/v12.22.12/node-v12.22.12-linux-x64-musl.tar.gz && \
 	tar -C /tmp/node -xf /tmp/node/node.tar.gz && \
 	mv /tmp/node/node-* /tmp/node/node
 
 # install yarn deps
 cd $ROOT/../native-doc-tooling/
 
-$YARN global add node-gyp
+$YARN global add node-gyp@9.3.1
 $YARN
 
 cd $ROOT/../natives/

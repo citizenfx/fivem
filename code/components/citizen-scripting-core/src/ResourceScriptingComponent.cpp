@@ -92,13 +92,13 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			auto sharedScripts = metaData->GlobEntriesVector("shared_script");
 			auto clientScripts = metaData->GlobEntriesVector(
 #ifdef IS_FXSERVER
-				"server_script"
+			"server_script"
 #else
-				"client_script"
+			"client_script"
 #endif
 			);
 
-			for (auto it = environments.begin(); it != environments.end(); )
+			for (auto it = environments.begin(); it != environments.end();)
 			{
 				auto metaComponent = MakeNew<ScriptMetaDataComponent>(resource);
 
@@ -142,7 +142,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 		OnCreatedRuntimes();
 
-		if (!m_scriptRuntimes.empty() || m_resource->GetName() == "_cfx_internal")
+		if (!m_scriptRuntimes.empty())
 		{
 			m_scriptHost = GetScriptHostForResource(m_resource);
 
@@ -196,11 +196,6 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 	resource->OnStop.Connect([=] ()
 	{
-		if (m_resource->GetName() == "_cfx_internal")
-		{
-			return;
-		}
-
 		for (auto& environmentPair : m_scriptRuntimes)
 		{
 			environmentPair.second->Destroy();

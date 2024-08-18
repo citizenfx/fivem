@@ -6,6 +6,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CFX UI</title>
 
+  <script type="text/javascript">
+    <%= (isProd || isWithGtm) ? require('assets/scripts/gtm.raw.js') : '' %>
+  </script>
+
+  <script type="text/javascript">
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'appStart',
+      game: nuiTargetGame === 'gta5'
+        ? 'FiveM - prod'
+        : 'RedM - prod',
+    });
+  </script>
+
   <style>
     @keyframes shineLoader {
       from {
@@ -103,7 +117,7 @@
 </head>
 
 <body>
-  <div id="backdrop"></div>
+  <div id="backdrop-outlet"></div>
   <div id="cfxui-root"></div>
 
   <div id="overlay-outlet"></div>
@@ -208,9 +222,5 @@
     </g>
   </symbol>
 </svg>
-
-<script type="text/javascript">
-<%= isProd ? require('assets/scripts/matomo.raw.js') : '' %>
-</script>
 
 </html>

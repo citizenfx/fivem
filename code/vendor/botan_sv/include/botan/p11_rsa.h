@@ -9,7 +9,7 @@
 #ifndef BOTAN_P11_RSA_H_
 #define BOTAN_P11_RSA_H_
 
-#include <botan/p11_session.h>
+#include <botan/p11_types.h>
 #include <botan/p11_object.h>
 #include <botan/pk_keys.h>
 #include <botan/bigint.h>

@@ -1,33 +1,38 @@
-import React from "react";
-import { useAccountService } from "cfx/common/services/account/account.service";
-import { IServerReviews } from "cfx/common/services/servers/reviews/types";
-import { Box } from "cfx/ui/Layout/Box/Box";
-import { observer } from "mobx-react-lite";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { $L } from "cfx/common/services/intl/l10n";
-import { Text, TextBlock } from "cfx/ui/Text/Text";
-import { IServerView } from "cfx/common/services/servers/types";
-import { ServerTitle } from "../../ServerTitle/ServerTitle";
-import { proxyInvariant } from "cfx/utils/invariant";
-import { Avatar } from "cfx/ui/Avatar/Avatar";
-import { Title } from "cfx/ui/Title/Title";
-import { Input } from "cfx/ui/Input/Input";
-import { Textarea } from "cfx/ui/Textarea/Textarea";
-import { Radio } from "cfx/ui/Radio/Radio";
-import { Button } from "cfx/ui/Button/Button";
-import { Indicator } from "cfx/ui/Indicator/Indicator";
-import { useServerReviewFormState } from "./ServerReviewFormState";
-import s from './ServerReviewForm.module.scss';
+import {
+  Avatar,
+  Button,
+  Indicator,
+  Input,
+  Box,
+  Flex,
+  Pad,
+  Radio,
+  Text,
+  TextBlock,
+  Textarea,
+  Title,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
 
+import { useAccountService } from 'cfx/common/services/account/account.service';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { IServerReviews } from 'cfx/common/services/servers/reviews/types';
+import { IServerView } from 'cfx/common/services/servers/types';
+import { proxyInvariant } from 'cfx/utils/invariant';
+
+import { useServerReviewFormState } from './ServerReviewFormState';
+import { ServerTitle } from '../../ServerTitle/ServerTitle';
+
+import s from './ServerReviewForm.module.scss';
 
 export const ServerReviewFormContext = React.createContext({
   censorUser: false,
 });
 
 export interface ServerReviewFormProps {
-  server: IServerView,
-  serverReviews: IServerReviews,
+  server: IServerView;
+  serverReviews: IServerReviews;
 }
 export const ServerReviewForm = observer(function ServerReviewForm(props: ServerReviewFormProps) {
   const {
@@ -36,14 +41,18 @@ export const ServerReviewForm = observer(function ServerReviewForm(props: Server
   } = props;
 
   const account = proxyInvariant(useAccountService().account, 'No account!');
-  const { censorUser } = React.useContext(ServerReviewFormContext);
+  const {
+    censorUser,
+  } = React.useContext(ServerReviewFormContext);
 
   const state = useServerReviewFormState();
-  {
-    state.serverReviews = serverReviews;
-  }
+  // ---
+  state.serverReviews = serverReviews;
+  // ---
 
-  const username = censorUser ? '<HIDDEN>' : account.username;
+  const username = censorUser
+    ? '<HIDDEN>'
+    : account.username;
   const playtime = serverReviews.ownPlaytime?.formattedSeconds || $L('#Reviews_NeverPlayed');
 
   return (
@@ -53,23 +62,24 @@ export const ServerReviewForm = observer(function ServerReviewForm(props: Server
           <Text size="xlarge">
             {$L('#Review_WriteAbout_Prefix')}
             &nbsp;
-            <ServerTitle
-              size="xlarge"
-              title={server.projectName || server.hostname}
-            />
+            <ServerTitle size="xlarge" title={server.projectName || server.hostname} />
           </Text>
 
           <TextBlock typographic opacity="50">
             Please describe what you liked or disliked about this server and whether you recommend it to others.
             <br />
-            To report misconduct regarding this server, please <a href="https://support.cfx.re/">open an abuse ticket</a> instead.
+            To report misconduct regarding this server, please{' '}
+            <a href="https://support.cfx.re/">open an abuse ticket</a> instead.
           </TextBlock>
 
           <Flex>
             <Box width={30} noShrink noOverflow>
               <Flex vertical repell fullHeight>
                 <Flex>
-                  <Avatar url={censorUser ? null : account.getAvatarUrl()} />
+                  <Avatar url={censorUser
+                    ? null
+                    : account.getAvatarUrl()}
+                  />
 
                   <Box grow>
                     <Flex vertical gap="small">
@@ -93,7 +103,9 @@ export const ServerReviewForm = observer(function ServerReviewForm(props: Server
             <Box grow>
               <Flex vertical gap="large">
                 <Flex vertical gap="small">
-                  <Box width="50%"> {/* Force input to be of auto width instead of growing full width of the container */}
+                  <Box width="50%">
+                    {' '}
+                    {/* Force input to be of auto width instead of growing full width of the container */}
                     <Input
                       fullWidth
                       size="large"
@@ -124,8 +136,10 @@ export const ServerReviewForm = observer(function ServerReviewForm(props: Server
                 </Flex>
 
                 <Flex vertical>
-                  <Text opacity={state.submitting ? '50' : '100'}>
-                    Do you recommend this server?
+                  <Text opacity={state.submitting
+                    ? '50'
+                    : '100'}
+                  >Do you recommend this server?
                   </Text>
 
                   <Flex repell centered="axis">
@@ -148,12 +162,7 @@ export const ServerReviewForm = observer(function ServerReviewForm(props: Server
                       <Indicator />
                     )}
 
-                    <Button
-                      text="Submit review"
-                      theme="primary"
-                      disabled={!state.canSubmit}
-                      onClick={state.submit}
-                    />
+                    <Button text="Submit review" theme="primary" disabled={!state.canSubmit} onClick={state.submit} />
                   </Flex>
                 </Flex>
               </Flex>

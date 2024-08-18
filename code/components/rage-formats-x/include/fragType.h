@@ -277,6 +277,11 @@ public:
 		return *((*m_drawables)[i]);
 	}
 
+	inline const char *GetName()
+	{
+		return *m_name;
+	}
+
 	inline fragPhysicsLODGroup* GetLodGroup()
 	{
 		return *m_lodGroup;

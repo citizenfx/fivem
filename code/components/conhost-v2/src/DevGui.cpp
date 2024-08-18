@@ -272,6 +272,7 @@ devgui_cmd "Quit/Quit" "quit"
 
 devgui_cmd "Tools/Performance/Profiler/Start Recording - 5 frames" "profiler record 5"
 devgui_cmd "Tools/Performance/Profiler/View Last Recording" "profiler view"
+devgui_convar "Tools/Windowed Console" con_winConsole
 
 set "game_mute" "profile_sfxVolume 0; profile_musicVolumeInMp 0; profile_musicVolume 0"
 set "game_unmute" "profile_sfxVolume 25; profile_musicVolumeInMp 10; profile_musicVolume 10"
@@ -291,6 +292,8 @@ devgui_convar "Tools/Performance/Resource Monitor" resmon
 devgui_convar "Tools/Performance/Streaming Memory Viewer" strmem
 devgui_convar "Tools/Streaming/Streaming Stats" strdbg
 devgui_convar "Tools/Streaming/Streaming List" strlist
+devgui_convar "Tools/Streaming/Pool Monitor" net_showPools
+devgui_convar "Tools/Streaming/pgRawStreamer assets" net_pgStats
 devgui_convar "Tools/Network/OneSync/Network Object Viewer" netobjviewer
 devgui_convar "Tools/Network/OneSync/Network SyncLog" netobjviewer_syncLog
 devgui_convar "Tools/Network/OneSync/Network Time" net_showTime

@@ -1,8 +1,8 @@
-export type SingleEventListener<DataType extends any> = (data: DataType) => void;
+export type SingleEventListener<DataType> = (data: DataType) => void;
 export type SingleEventListenerDisposer = () => void;
 
-export class SingleEventEmitter<DataType extends any> {
-  protected listeners: Set<SingleEventListener<DataType>> = new Set();
+export class SingleEventEmitter<DataType> {
+  protected listeners = new Set<SingleEventListener<DataType>>();
 
   readonly addListener = (listener: SingleEventListener<DataType>): SingleEventListenerDisposer => {
     this.listeners.add(listener);
@@ -19,10 +19,10 @@ export class SingleEventEmitter<DataType extends any> {
   };
 }
 
-export type AsyncSingleEventListener<DataType extends any> = (data: DataType) => Promise<void> | void;
+export type AsyncSingleEventListener<DataType> = (data: DataType) => Promise<void> | void;
 
-export class AsyncSingleEventEmitter<DataType extends any> {
-  protected listeners: Set<SingleEventListener<DataType>> = new Set();
+export class AsyncSingleEventEmitter<DataType> {
+  protected listeners = new Set<SingleEventListener<DataType>>();
 
   readonly addListener = (listener: SingleEventListener<DataType>): SingleEventListenerDisposer => {
     this.listeners.add(listener);

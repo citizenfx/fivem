@@ -8,7 +8,7 @@ if errorlevel 1 (
     exit /B 1
 )
 
-set CacheRoot=C:\f\save
+@REM set CacheRoot=C:\f\save
 
 :: build UI
 set UIRoot=%~dp0\data
@@ -16,14 +16,8 @@ set UIRoot=%~dp0\data
 :: push directory
 pushd ..\cfx-ui\
 
-:: copy cfx-ui node_modules from cache
-if exist %CacheRoot%\cfx-ui-modules (
-	rmdir /s /q node_modules
-	move %CacheRoot%\cfx-ui-modules node_modules
-)
-
 :: install packages (using Yarn now)
-call yarn
+call yarn --ignore-engines
 :: propagate error
 if %ERRORLEVEL% neq 0 exit /b 1
 
@@ -43,14 +37,8 @@ if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 :: delete old app
 rmdir /s /q %UIRoot%\app\
 
-:: copy new app
-mkdir %UIRoot%\app\
-xcopy /y /e build\mpMenu\*.* %UIRoot%\app\
-
-if exist %CacheRoot% (
-	rmdir /s /q %CacheRoot%\cfx-ui-modules
-	move node_modules %CacheRoot%\cfx-ui-modules
-)
+:: move new app
+move /y build\mpMenu %UIRoot%\app
 
 :: pop directory
 popd
@@ -68,11 +56,7 @@ popd
 
 rmdir /s /q %~dp0\data_big\app\
 mkdir %~dp0\data_big\app\static\media\
-move /y %UIRoot%\app\static\media\*bg*.jpg %~dp0\data_big\app\static\media\
-move /y %UIRoot%\app\static\media\*bgeditor.png %~dp0\data_big\app\static\media\
-move /y %UIRoot%\app\static\media\*.svg %~dp0\data_big\app\static\media\
-move /y %UIRoot%\app\static\media\*.woff2 %~dp0\data_big\app\static\media\
-move /y %UIRoot%\app\static\media\*.mp3 %~dp0\data_big\app\static\media\
+move /y %UIRoot%\app\static\media\*.* %~dp0\data_big\app\static\media\
 move /y %UIRoot%\loadscreen\*.jpg %~dp0\data_big\loadscreen\
 
 powershell -ExecutionPolicy Unrestricted .\make_dates.ps1 %~dp0\data

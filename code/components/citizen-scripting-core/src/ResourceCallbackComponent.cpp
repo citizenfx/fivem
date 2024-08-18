@@ -1,11 +1,65 @@
 #include "StdInc.h"
 #include <ResourceCallbackComponent.h>
 #include <ResourceScriptingComponent.h>
+#include <fxScriptBuffer.h>
+
+class FakeResource : public fx::Resource
+{
+public:
+	virtual const std::string& GetName() override
+	{
+		return m_name;
+	}
+
+	virtual const std::string& GetIdentifier() override
+	{
+		return m_empty;
+	}
+
+	virtual const std::string& GetPath() override
+	{
+		return m_path;
+	}
+
+	virtual fx::ResourceState GetState() override
+	{
+		return fx::ResourceState::Started;
+	}
+
+	virtual bool LoadFrom(const std::string& rootPath, std::string* errorResult) override
+	{
+		return false;
+	}
+
+	virtual bool Start() override
+	{
+		return false;
+	}
+
+	virtual bool Stop() override
+	{
+		return false;
+	}
+
+	virtual void Run(std::function<void()>&& func) override
+	{
+	}
+
+	virtual fx::ResourceManager* GetManager() override
+	{
+		return nullptr;
+	}
+
+private:
+	std::string m_name{ "_cfx_internal" };
+	std::string m_empty;
+	std::string m_path{ "memory:" };
+};
 
 namespace fx
 {
-ResourceCallbackScriptRuntime::ResourceCallbackScriptRuntime(fx::Resource* resource, IScriptHost* scriptHost)
-	: m_resource(resource), m_scriptHost(scriptHost), m_refIdx(1)
+ResourceCallbackScriptRuntime::ResourceCallbackScriptRuntime()
+	: m_refIdx(1)
 {
 
 }
@@ -22,7 +76,8 @@ result_t ResourceCallbackScriptRuntime::Destroy()
 
 void* ResourceCallbackScriptRuntime::GetParentObject()
 {
-	return m_resource;
+	static FakeResource resource;
+	return &resource;
 }
 
 void ResourceCallbackScriptRuntime::SetParentObject(void*)
@@ -35,18 +90,20 @@ int ResourceCallbackScriptRuntime::GetInstanceId()
 	return 'CBRT';
 }
 
-result_t ResourceCallbackScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, char** retvalSerialized, uint32_t* retvalLength)
+result_t ResourceCallbackScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, IScriptBuffer** retval)
 {
 	// preset retval to be null
 	{
-		static msgpack::sbuffer sb;
-		sb.clear();
+		static auto rv = ([]()
+		{
+			msgpack::sbuffer sb;
 
-		msgpack::packer<msgpack::sbuffer> packer(sb);
-		packer.pack_array(0);
-
-		*retvalSerialized = sb.data();
-		*retvalLength = sb.size();
+			msgpack::packer<msgpack::sbuffer> packer(sb);
+			packer.pack_array(0);
+			return fx::MemoryScriptBuffer::Make(sb.data(), static_cast<uint32_t>(sb.size()));
+		})();
+		
+		rv.CopyTo(retval);
 	}
 
 	// assume we have the ref still
@@ -130,35 +187,21 @@ std::string ResourceCallbackScriptRuntime::AddCallbackRef(const std::function<vo
 
 	m_refIdx++;
 
-	// canonicalize the ref
-	char* refString;
-	m_scriptHost->CanonicalizeRef(idx, GetInstanceId(), &refString);
-
-	// turn into a std::string and free
-	std::string retval = refString;
-	fwFree(refString);
-
-	// return the value
-	return retval;
+	// matches TestScriptHost::CanonicalizeRef
+	return fmt::sprintf("%s:%d:%d", "_cfx_internal", 0, idx);
 }
 
 ResourceCallbackComponent::ResourceCallbackComponent(fx::ResourceManager* manager)
 	: m_manager(manager)
 {
-	m_resource = manager->CreateResource("_cfx_internal", nullptr);
-	assert(m_resource->Start());
-
-	fwRefContainer<fx::ResourceScriptingComponent> scriptingComponent = m_resource->GetComponent<fx::ResourceScriptingComponent>();
-	fx::OMPtr<ResourceCallbackScriptRuntime> runtime = fx::MakeNew<ResourceCallbackScriptRuntime>(m_resource.GetRef(), scriptingComponent->GetScriptHost().GetRef());
+	fx::OMPtr<ResourceCallbackScriptRuntime> runtime = fx::MakeNew<ResourceCallbackScriptRuntime>();
 
 	// convert to IScriptRuntime
 	fx::OMPtr<IScriptRuntime> baseRuntime;
 	runtime.As(&baseRuntime);
 
-	scriptingComponent->AddRuntime(baseRuntime);
-
 	// and set the local runtime
-	m_scriptRuntime = runtime.GetRef();
+	m_scriptRuntime = runtime;
 }
 
 auto ResourceCallbackComponent::CreateCallback(const std::function<void(const msgpack::unpacked &)>& cb) -> CallbackRef

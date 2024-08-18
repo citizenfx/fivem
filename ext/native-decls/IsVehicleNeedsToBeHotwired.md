@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## IS_VEHICLE_NEEDS_TO_BE_HOTWIRED
 

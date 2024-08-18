@@ -46,8 +46,13 @@
   }
 
   // Video element does not naturally grow - stretch it
-  video.media {
+  video.media, iframe.media {
     height: 90%;
     aspect-ratio: ui.use('ar');
+  }
+
+  // iframes have a border
+  iframe.media {
+    border: none;
   }
 }

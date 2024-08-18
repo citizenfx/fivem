@@ -1,5 +1,6 @@
 using System;
 using CitizenFX.Core.Native;
+using System.Security;
 
 #if MONO_V2
 using CitizenFX.Core;
@@ -231,6 +232,10 @@ namespace CitizenFX.Core
 		/// </summary>
 		public Vector3 Position
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 0, Vector3.Zero);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, 0, value);
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -249,12 +254,17 @@ namespace CitizenFX.Core
 				}
 				MemoryAccess.WriteVector3(memoryAddress, value);
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets or sets the position where this <see cref="Checkpoint"/> points to.
 		/// </summary>
 		public Vector3 TargetPosition
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 16, Vector3.Zero);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, 16, value);
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -273,6 +283,7 @@ namespace CitizenFX.Core
 				}
 				MemoryAccess.WriteVector3(memoryAddress + 16, value);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -280,6 +291,10 @@ namespace CitizenFX.Core
 		/// </summary>
 		public CheckpointIcon Icon
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => (CheckpointIcon)MemoryAccess.ReadIfNotNull(MemoryAddress, 56, 0);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, 56, (int)value);
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -298,10 +313,24 @@ namespace CitizenFX.Core
 				}
 				MemoryAccess.WriteInt(memoryAddress + 56, (int)value);
 			}
+#endif
 		}
 
 		public CheckpointCustomIcon CustomIcon
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => (CheckpointCustomIcon)MemoryAccess.ReadIfNotNull(MemoryAddress, 52, (byte)0);
+			[SecuritySafeCritical]
+			set
+			{
+				IntPtr address = MemoryAddress;
+				if (address != IntPtr.Zero)
+				{
+					MemoryAccess.Write(MemoryAddress, 52, (byte)value);
+					MemoryAccess.Write(MemoryAddress, 56, (int)42); //sets the icon to a custom icon
+				}
+			}
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -321,6 +350,7 @@ namespace CitizenFX.Core
 				MemoryAccess.WriteByte(memoryAddress + 52, value);
 				MemoryAccess.WriteInt(memoryAddress + 56, 42);//sets the icon to a custom icon
 			}
+#endif
 		}
 
 		/// <summary>
@@ -328,6 +358,10 @@ namespace CitizenFX.Core
 		/// </summary>
 		public float Radius
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 60, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, 60, value);
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -346,6 +380,7 @@ namespace CitizenFX.Core
 				}
 				MemoryAccess.WriteFloat(memoryAddress + 60, value);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -353,6 +388,10 @@ namespace CitizenFX.Core
 		/// </summary>
 		public Color Color
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 80, Color.Transparent);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, 80, (uint)value);
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -371,12 +410,17 @@ namespace CitizenFX.Core
 				}
 				MemoryAccess.WriteInt(memoryAddress + 80, Color.ToArgb());
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets or sets the color of the icon in this <see cref="Checkpoint"/>.
 		/// </summary>
 		public Color IconColor
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 84, Color.Transparent);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, 84, (uint)value);
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -395,6 +439,7 @@ namespace CitizenFX.Core
 				}
 				MemoryAccess.WriteInt(memoryAddress + 84, Color.ToArgb());
 			}
+#endif
 		}
 
 		/// <summary>
@@ -402,6 +447,10 @@ namespace CitizenFX.Core
 		/// </summary>
 		public float CylinderNearHeight
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 68, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, 68, value);
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -420,12 +469,17 @@ namespace CitizenFX.Core
 				}
 				MemoryAccess.WriteFloat(memoryAddress + 68, value);
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets or sets the far height of the cylinder of this <see cref="Checkpoint"/>.
 		/// </summary>
 		public float CylinderFarHeight
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 72, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, 72, value);
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -444,12 +498,17 @@ namespace CitizenFX.Core
 				}
 				MemoryAccess.WriteFloat(memoryAddress + 72, value);
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets or sets the radius of the cylinder in this <see cref="Checkpoint"/>.
 		/// </summary>
 		public float CylinderRadius
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 76, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, 76, value);
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -468,6 +527,7 @@ namespace CitizenFX.Core
 				}
 				MemoryAccess.WriteFloat(memoryAddress + 76, value);
 			}
+#endif
 		}
 
 

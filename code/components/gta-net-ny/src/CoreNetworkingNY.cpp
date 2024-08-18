@@ -428,7 +428,7 @@ static HookFunction hookFunction([]()
 
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
 	{
-		g_quitMsg = message;
+		g_quitMsg = "Quit: " + message;
 		ExitProcess(-1);
 	});
 

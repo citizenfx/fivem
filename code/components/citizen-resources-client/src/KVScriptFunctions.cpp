@@ -123,7 +123,7 @@ static void SetResourceKvp(fx::ScriptContext& context)
 
 static void SetResourceKvpRaw(fx::ScriptContext& context)
 {
-	PutResourceKvp(context, context.GetArgument<const char*>(1), context.GetArgument<size_t>(2));
+	PutResourceKvp(context, context.CheckArgument<const char*>(1), context.GetArgument<size_t>(2));
 }
 
 struct AnyType {};
@@ -569,12 +569,12 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_KVP_INT", GetResourceKvp<int>);
 	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_KVP_STRING", GetResourceKvp<const char*>);
 	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_KVP_FLOAT", GetResourceKvp<float>);
-	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_RAW_KVP", GetResourceKvp<RawType>);
+	//fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_RAW_KVP", GetResourceKvp<RawType>);
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_KVP", SetResourceKvp<const char*>);
 	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_KVP_INT", SetResourceKvp<int>);
 	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_KVP_FLOAT", SetResourceKvp<float>);
-	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_RAW_KVP", SetResourceKvpRaw);
+	//fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_RAW_KVP", SetResourceKvpRaw);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_EXTERNAL_KVP_INT", GetExternalKvp<int>);
 	fx::ScriptEngine::RegisterNativeHandler("GET_EXTERNAL_KVP_STRING", GetExternalKvp<const char*>);

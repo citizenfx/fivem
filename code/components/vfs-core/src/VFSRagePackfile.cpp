@@ -55,7 +55,9 @@ namespace vfs
 		// early out if invalid, again
 		if (m_parentHandle == InvalidHandle)
 		{
-			auto error = vfs::GetLastError(m_parentDevice);
+			auto error = vfs::GetLastError(parentDevice);
+
+			trace("%s(%s): Opening file failed: %s\n", __func__, archivePath, error);
 
 			if (errorState)
 			{
@@ -70,9 +72,9 @@ namespace vfs
 
 		if (m_parentDevice->ReadBulk(m_parentHandle, m_parentPtr, &m_header, sizeof(m_header)) != sizeof(m_header))
 		{
-			auto error = vfs::GetLastError(m_parentDevice);
+			auto error = vfs::GetLastError(parentDevice);
 
-			trace("%s: ReadBulk of header failed: %s\n", __func__, error);
+			trace("%s(%s): ReadBulk of header failed: %s\n", __func__, archivePath, error);
 
 			if (errorState)
 			{
@@ -85,7 +87,7 @@ namespace vfs
 		// verify if the header magic is, in fact, RPF2 and it's non-encrypted
 		if (m_header.magic != 0x32465052)
 		{
-			trace("%s: invalid magic (not RPF2)\n", __func__);
+			trace("%s(%s): invalid magic (not RPF2)\n", __func__, archivePath);
 
 			if (errorState)
 			{
@@ -97,7 +99,7 @@ namespace vfs
 		
 		if (m_header.cryptoFlag != 0)
 		{
-			trace("%s: only non-encrypted RPF2 is supported\n", __func__);
+			trace("%s(%s): only non-encrypted RPF2 is supported\n", __func__, archivePath);
 
 			if (errorState)
 			{

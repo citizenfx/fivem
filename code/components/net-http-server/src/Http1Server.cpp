@@ -39,6 +39,11 @@ public:
 		
 	}
 
+	void StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout) override
+	{
+		m_clientStream->StartConnectionTimeout(timeout);
+	}
+
 	virtual void WriteHead(int statusCode, const std::string& statusMessage, const HeaderMap& headers) override
 	{
 		if (m_sentHeaders)
@@ -193,6 +198,8 @@ public:
 
 	virtual void End() override
 	{
+		HttpResponse::End();
+
 		bool skipClose = false;
 		fwRefContainer thisRef = this;
 

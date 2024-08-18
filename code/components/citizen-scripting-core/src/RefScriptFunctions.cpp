@@ -10,10 +10,11 @@
 
 #include <ResourceManager.h>
 #include <ResourceScriptingComponent.h>
+#include "ResourceCallbackComponent.h"
 
 #include <tbb/concurrent_queue.h>
 
-static fx::OMPtr<IScriptRefRuntime> ValidateAndLookUpRef(const std::string& refString, int32_t* refIdx)
+fx::OMPtr<IScriptRefRuntime> ValidateAndLookUpRef(const std::string& refString, int32_t* refIdx)
 {
 	// parse the ref string into its components
 	int colonIndex = refString.find_first_of(':');
@@ -26,24 +27,34 @@ static fx::OMPtr<IScriptRefRuntime> ValidateAndLookUpRef(const std::string& refS
 	// get the resource manager and find stuff in it
 	fx::ResourceManager* manager = fx::ResourceManager::GetCurrent(false);
 
-	// if there's a resource by that name...
-	fwRefContainer<fx::Resource> resource = manager->GetResource(resourceName);
+	fx::OMPtr<IScriptRuntime> runtime;
 
-	if (!resource.GetRef())
+	// special code path if this is '_cfx_internal' (ResourceCallbackComponent)
+	if (resourceName == "_cfx_internal")
 	{
-		return nullptr;
+		runtime = manager->GetComponent<fx::ResourceCallbackComponent>()->GetScriptRuntime();
 	}
-
-	// ... and it has a scripting component...
-	fwRefContainer<fx::ResourceScriptingComponent> scriptingComponent = resource->GetComponent<fx::ResourceScriptingComponent>();
-
-	if (!scriptingComponent.GetRef())
+	else
 	{
-		return nullptr;
-	}
+		// if there's a resource by that name...
+		fwRefContainer<fx::Resource> resource = manager->GetResource(resourceName);
 
-	// ... and there's an instance by this instance ID...
-	fx::OMPtr<IScriptRuntime> runtime = scriptingComponent->GetRuntimeById(instanceId);
+		if (!resource.GetRef())
+		{
+			return nullptr;
+		}
+
+		// ... and it has a scripting component...
+		fwRefContainer<fx::ResourceScriptingComponent> scriptingComponent = resource->GetComponent<fx::ResourceScriptingComponent>();
+
+		if (!scriptingComponent.GetRef())
+		{
+			return nullptr;
+		}
+
+		// ... and there's an instance by this instance ID...
+		runtime = scriptingComponent->GetRuntimeById(instanceId);
+	}
 
 	if (!runtime.GetRef())
 	{
@@ -72,31 +83,15 @@ static InitFunction initFunction([] ()
 
 		if (refRuntime.GetRef())
 		{
-			char* retvalData;
-			uint32_t retvalSize;
+			fx::OMPtr<IScriptBuffer> buffer;
 
-			if (FX_SUCCEEDED(refRuntime->CallRef(refId, const_cast<char*>(argumentData.c_str()), argumentData.size(), &retvalData, &retvalSize)))
+			if (FX_SUCCEEDED(refRuntime->CallRef(refId, const_cast<char*>(argumentData.c_str()), argumentData.size(), buffer.GetAddressOf())) && buffer.GetRef())
 			{
-				return std::string(retvalData, retvalSize);
+				return std::string(buffer->GetBytes(), buffer->GetLength());
 			}
 		}
 
 		return std::string();
-	});
-
-	fx::ScriptEngine::RegisterNativeHandler("INVOKE_FUNCTION_REFERENCE", [] (fx::ScriptContext& context)
-	{
-		int32_t refId;
-		fx::OMPtr<IScriptRefRuntime> refRuntime = ValidateAndLookUpRef(context.GetArgument<const char*>(0), &refId);
-
-		if (refRuntime.GetRef())
-		{
-			char* retvalData;
-
-			refRuntime->CallRef(refId, context.GetArgument<char*>(1), context.GetArgument<uint32_t>(2), &retvalData, context.GetArgument<uint32_t*>(3));
-
-			context.SetResult(retvalData);
-		}
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("DUPLICATE_FUNCTION_REFERENCE", [] (fx::ScriptContext& context)

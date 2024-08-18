@@ -203,7 +203,7 @@ public:
 			D3D11_TEXTURE2D_DESC d;
 			sharedTexture->GetDesc(&d);
 
-			std::vector<uint32_t> mem(d.Width * d.Height);
+			std::vector<uint32_t> mem(static_cast<std::vector<uint32_t>::size_type>(d.Width) * d.Height);
 
 			for (size_t i = 0; i < mem.size(); i++)
 			{

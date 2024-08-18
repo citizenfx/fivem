@@ -213,7 +213,7 @@ void randombytes_buf(void* buf, size_t size);
 
 BOTAN_PUBLIC_API(2,11)
 void randombytes_buf_deterministic(void* buf, size_t size,
-                                   const uint8_t seed[32]);
+                                   const uint8_t seed[randombytes_SEEDBYTES]);
 
 BOTAN_PUBLIC_API(2,11)
 uint32_t randombytes_uniform(uint32_t upper_bound);
@@ -1117,10 +1117,10 @@ inline size_t crypto_scalarmult_curve25519_scalarbytes()
    }
 
 BOTAN_PUBLIC_API(2,11)
-int crypto_scalarmult_curve25519(uint8_t out[], const uint8_t scalar[], const uint8_t basepoint[]);
+int crypto_scalarmult_curve25519(uint8_t out[32], const uint8_t scalar[32], const uint8_t basepoint[32]);
 
 BOTAN_PUBLIC_API(2,11)
-int crypto_scalarmult_curve25519_base(uint8_t out[], const uint8_t scalar[]);
+int crypto_scalarmult_curve25519_base(uint8_t out[32], const uint8_t scalar[32]);
 
 // sodium/crypto_scalarmult.h
 
@@ -1385,7 +1385,7 @@ BOTAN_PUBLIC_API(2,11)
 int crypto_sign_ed25519_keypair(uint8_t pk[32], uint8_t sk[64]);
 
 BOTAN_PUBLIC_API(2,11)
-int crypto_sign_ed25519_seed_keypair(uint8_t pk[32], uint8_t sk[64],
+int crypto_sign_ed25519_seed_keypair(uint8_t pk[], uint8_t sk[],
                                      const uint8_t seed[]);
 
 // sodium/crypto_sign.h

@@ -46,6 +46,11 @@ using json = nlohmann::json;
 static NetLibrary* g_netLibrary;
 
 #ifdef GTA_FIVE
+static uint32_t g_gamerInfoGamerIdOffset;
+static uint32_t g_playerInfoPedOffset;
+#endif
+
+#ifdef GTA_FIVE
 static hook::cdecl_stub<void()> _initVoiceChatConfig([]()
 {
 	return hook::get_pattern("89 44 24 58 0F 29 44 24 40 E8", -0x12E);
@@ -82,6 +87,7 @@ static uint32_t* g_preferenceArray;
 // #TODO1365
 // #TODO1493
 // #TODO1604
+// Outdated as of b2944, we're mapping indexes now.
 enum PrefEnum
 {
 	PREF_VOICE_ENABLE = 0x60,
@@ -97,6 +103,16 @@ enum PrefEnum
 	PREF_VOICE_MIC_SENSITIVITY = 0x6A
 };
 
+static int MapPrefsEnum(int index)
+{
+	if (index >= 2 && xbr::IsGameBuildOrGreater<2944>())
+	{
+		index++;
+	}
+
+	return index;
+}
+
 void VoiceChatPrefs::InitConfig()
 {
 	_initVoiceChatConfig();
@@ -104,37 +120,37 @@ void VoiceChatPrefs::InitConfig()
 
 bool VoiceChatPrefs::IsEnabled()
 {
-	return g_preferenceArray[PREF_VOICE_ENABLE];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_ENABLE)];
 }
 
 bool VoiceChatPrefs::IsMicEnabled()
 {
-	return g_preferenceArray[PREF_VOICE_TALK_ENABLED];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_TALK_ENABLED)];
 }
 
 int VoiceChatPrefs::GetOutputDevice()
 {
-	return g_preferenceArray[PREF_VOICE_OUTPUT_DEVICE];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_OUTPUT_DEVICE)];
 }
 
 int VoiceChatPrefs::GetInputDevice()
 {
-	return g_preferenceArray[PREF_VOICE_INPUT_DEVICE];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_INPUT_DEVICE)];
 }
 
 int VoiceChatPrefs::GetOutputVolume()
 {
-	return g_preferenceArray[PREF_VOICE_OUTPUT_VOLUME];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_OUTPUT_VOLUME)];
 }
 
 int VoiceChatPrefs::GetMicSensitivity()
 {
-	return g_preferenceArray[PREF_VOICE_MIC_SENSITIVITY];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_MIC_SENSITIVITY)];
 }
 
 int VoiceChatPrefs::GetChatMode()
 {
-	return g_preferenceArray[PREF_VOICE_CHAT_MODE];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_CHAT_MODE)];
 }
 #elif IS_RDR3
 struct VoiceChatMgrPrefs
@@ -690,6 +706,8 @@ static bool(*g_origIsPlayerTalking)(void*, void*);
 
 extern CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object);
 
+extern rage::netObject* GetNetObjectFromEntity(void* entity);
+
 static bool _isPlayerTalking(void* mgr, char* playerData)
 {
 	if (g_origIsPlayerTalking(mgr, playerData))
@@ -698,11 +716,9 @@ static bool _isPlayerTalking(void* mgr, char* playerData)
 	}
 
 #ifdef GTA_FIVE
-	// 1290
-	// #TODO1365
-	// #TODO1493
-	// #TODO1604
-	auto playerInfo = playerData - 32 - 48 - 16 - (xbr::IsGameBuildOrGreater<2060>() ? 8 : 0);
+	// rlGamerInfo = rlGamerId - (1604: 64, 2060: 72, 2372: 104, 2944: 192, ...)
+	// CPlayerInfo = rlGamerInfo - 32 (fwExtensibleBase offset, unlikely to change)
+	auto playerInfo = playerData - g_gamerInfoGamerIdOffset - 32;
 
 	// preemptive check for invalid players (FIVEM-CLIENT-1604-TQKV) with uncertain server changes
 	if ((uintptr_t)playerInfo < 0xFFFF)
@@ -711,19 +727,16 @@ static bool _isPlayerTalking(void* mgr, char* playerData)
 	}
 
 	// get the ped
-	auto ped = *(char**)(playerInfo + 456);
+	auto ped = *(char**)(playerInfo + g_playerInfoPedOffset);
 #elif IS_RDR3
-	// rlGamerInfo = playerData - 200, rlGamerInfo + 896 = CPed
+	// rlGamerInfo = playerData - 200
+	// CPed = rlGamerInfo + 896
 	auto ped = *(char**)(playerData + 696);
 #endif
 
 	if (ped)
 	{
-#ifdef GTA_FIVE
-		auto netObj = *(rage::netObject**)(ped + 208);
-#elif IS_RDR3
-		auto netObj = *(rage::netObject**)(ped + 224);
-#endif
+		auto netObj = GetNetObjectFromEntity(ped);
 
 		if (netObj)
 		{
@@ -826,6 +839,13 @@ static HookFunction hookFunction([]()
 	g_preferenceArray = hook::get_address<uint32_t*>(hook::get_pattern("48 8D 15 ? ? ? ? 8D 43 01 83 F8 02 77 2D", 3));
 	g_viewportGame = hook::get_address<CViewportGame**>(hook::get_pattern("33 C0 48 39 05 ? ? ? ? 74 2E 48 8B 0D ? ? ? ? 48 85 C9 74 22", 5));
 	g_actorPos = hook::get_address<float*>(hook::get_pattern("BB 00 00 40 00 48 89 7D F8 89 1D", -4)) + 12;
+
+	{
+		auto location = hook::get_pattern<char>("BA 11 00 00 00 0F 10");
+		g_gamerInfoGamerIdOffset = xbr::IsGameBuildOrGreater<2944>() ? *(uint32_t*)(location + 8) : *(uint8_t*)(location - 1);
+	}
+
+	g_playerInfoPedOffset = *hook::get_pattern<uint32_t>("4C 8B 81 ? ? ? ? 41 8B 80", 3);
 #elif IS_RDR3
 	g_viewportGame = hook::get_address<CViewportGame**>(hook::get_pattern("0F 2F F0 76 ? 4C 8B 35", 8));
 
@@ -1374,7 +1394,7 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_call(hook::get_pattern("48 8B D0 E8 ? ? ? ? 40 8A F0 8B 8F", 3)), _isPlayerTalking, (void**)&g_origIsPlayerTalking);
 	MH_CreateHook(hook::get_call(hook::get_pattern("89 44 24 58 0F 29 44 24 40 E8", 9)), _filterVoiceChatConfig, (void**)&g_origInitVoiceEngine);
 	MH_CreateHook(hook::get_pattern("48 8B F8 48 85 C0 74 33 48 83 C3 30", -0x19), _getLocalAudioLevel, (void**)&g_origGetLocalAudioLevel);
-	MH_CreateHook(hook::get_pattern("80 78 05 00 B9", -0x1B), _getPlayerHasHeadset, (void**)&g_origGetPlayerHasHeadset);
+	MH_CreateHook(hook::get_pattern("80 78 05 00 B9", xbr::IsGameBuildOrGreater<3095>() ? -0x29 : -0x1B), _getPlayerHasHeadset, (void**)&g_origGetPlayerHasHeadset);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 13 F3 0F 10 35")), _isAnyoneTalking, (void**)&g_origIsAnyoneTalking);
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 8A D8 45 84 ED 75 08")), _isPlayerTalking, (void**)&g_origIsPlayerTalking);

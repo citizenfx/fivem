@@ -179,6 +179,7 @@ return {
 	run = function()
 		language 'C++'
 		kind 'SharedLib'
+		dependson 'CfxPrebuild' -- for py dependencies
 		
 		links { 'ws2_32', 'userenv', 'delayimp' }
 		

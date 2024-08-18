@@ -1,16 +1,20 @@
-import React from "react";
-import * as AC from "adaptivecards";
-import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
-import { CurrentGameBrand } from "cfx/base/gameRuntime";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { Text } from "cfx/ui/Text/Text";
-import { noop } from "cfx/utils/functional";
-import { renderMarkdown } from "cfx/utils/markdown";
-import { observer } from "mobx-react-lite";
-import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
-import { IUiService, useUiService } from "cfx/common/services/ui/ui.service";
+import {
+  InfoPanel,
+  Pad,
+  Scrollable,
+  Text,
+  noop,
+} from '@cfx-dev/ui-components';
+import * as AC from 'adaptivecards';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+
+import { mpMenu } from 'cfx/apps/mpMenu/mpMenu';
+import { CurrentGameBrand } from 'cfx/base/gameRuntime';
+import { IUiService, useUiService } from 'cfx/common/services/ui/ui.service';
+import { renderMarkdown } from 'cfx/utils/markdown';
+
 import s from './AdaptiveCardPresenter.module.scss';
-import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
 
 AC.AdaptiveCard.onProcessMarkdown = (text, result) => {
   result.outputHtml = renderMarkdown(text);
@@ -18,9 +22,9 @@ AC.AdaptiveCard.onProcessMarkdown = (text, result) => {
 };
 
 export interface AdaptiveCardPresenterProps {
-  card: string | AC.AdaptiveCard,
+  card: string | AC.AdaptiveCard;
 
-  onCancel?(): void,
+  onCancel?(): void;
 }
 
 export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(props: AdaptiveCardPresenterProps) {
@@ -109,7 +113,9 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
               </summary>
 
               <Pad>
-                <textarea style={{ resize: 'none' }} rows={10}>{card.toString()}</textarea>
+                <textarea style={{ resize: 'none' }} rows={10}>
+                  {card.toString()}
+                </textarea>
               </Pad>
             </details>
           </InfoPanel>
@@ -126,7 +132,8 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
 
       <Pad size="small">
         <Text asDiv size="xsmall" opacity="50" centered>
-          Disclaimer: UI above has been provided by the server and is <strong>not part of the {CurrentGameBrand} UI</strong>
+          Disclaimer: UI above has been provided by the server and is{' '}
+          <strong>not part of the {CurrentGameBrand} UI</strong>
         </Text>
       </Pad>
     </>
@@ -135,7 +142,7 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
 
 function getHostConfig(uiService: IUiService): AC.HostConfig {
   function fontSize(size: number) {
-    return (uiService.quant * 2.5) * size;
+    return uiService.quant * 2.5 * size;
   }
 
   function q(m: number): number {
@@ -143,7 +150,7 @@ function getHostConfig(uiService: IUiService): AC.HostConfig {
   }
 
   const fontSizes = {
-    small: fontSize(.8),
+    small: fontSize(0.8),
     default: fontSize(1),
     medium: fontSize(1.25),
     large: fontSize(1.5),
@@ -191,7 +198,7 @@ function getHostConfig(uiService: IUiService): AC.HostConfig {
       monospace: {
         fontSizes,
         fontWeights,
-      }
+      },
     },
     // imageSizes: {
     //   small: 40,
@@ -213,59 +220,59 @@ function getHostConfig(uiService: IUiService): AC.HostConfig {
             subtle: '#88FFFFFF',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           dark: {
             default: '#000000',
             subtle: '#66000000',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           light: {
             default: '#FFFFFF',
             subtle: '#33000000',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           accent: {
             default: 'rgba(var(--color-teal), 1.0)',
             subtle: 'rgba(var(--color-teal), .75)',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           good: {
             default: '#00FF00',
             subtle: '#DD00FF00',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           warning: {
             default: '#FFD800',
             subtle: '#DDFFD800',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           attention: {
             default: '#FF0000',
             subtle: '#DDFF0000',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
-          }
+              subtle: '#11000000',
+            },
+          },
         },
-        backgroundColor: 'var(--color-backdrop)'
+        backgroundColor: 'var(--color-backdrop)',
       },
       emphasis: {
         foregroundColors: {
@@ -274,60 +281,60 @@ function getHostConfig(uiService: IUiService): AC.HostConfig {
             subtle: '#88FFFFFF',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           dark: {
             default: '#000000',
             subtle: '#66000000',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           light: {
             default: '#FFFFFF',
             subtle: '#33000000',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           accent: {
             default: '#2E89FC',
             subtle: '#882E89FC',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           good: {
             default: '#00FF00',
             subtle: '#DD00FF00',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           warning: {
             default: '#FF0000',
             subtle: '#DDFF0000',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
+              subtle: '#11000000',
+            },
           },
           attention: {
             default: '#FFD800',
             subtle: '#DDFFD800',
             highlightColors: {
               default: '#22000000',
-              subtle: '#11000000'
-            }
-          }
+              subtle: '#11000000',
+            },
+          },
         },
-        backgroundColor: 'rgba(var(--color-main-100), 1)'
-      }
-    }
+        backgroundColor: 'rgba(var(--color-main-100), 1)',
+      },
+    },
   });
 }

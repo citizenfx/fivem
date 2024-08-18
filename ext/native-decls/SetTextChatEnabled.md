@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+#game: gta5 // commented out for compatibility reasons
 ---
 ## SET_TEXT_CHAT_ENABLED
 

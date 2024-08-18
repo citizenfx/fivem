@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # fail on error
-set -e
+set -xe
 
 # set the number of job slots
 JOB_SLOTS=${JOB_SLOTS:-24}
@@ -15,7 +15,11 @@ echo http://dl-cdn.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
 
-# update apk cache
+# some dance to upgrade alpine-keys
+apk --no-cache upgrade alpine-keys
+apk --no-cache add -X https://dl-cdn.alpinelinux.org/alpine/v3.16/main -u alpine-keys
+
+# update apk packages
 apk --no-cache update
 apk --no-cache upgrade
 
@@ -41,10 +45,13 @@ apk del curl
 apk add --no-cache curl=7.72.0-r99 libssl1.1 libcrypto1.1 libunwind libstdc++ zlib c-ares v8~=9.3 musl-dbg libatomic
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps lld~=13 curl-dev=7.72.0-r99 clang-dev~=13 clang~=13 build-base linux-headers openssl1.1-compat-dev python3 py3-pip lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9991 mono-dev=5.16.1.0-r9991 libmono=5.16.1.0-r9991 mono-corlib=5.16.1.0-r9991 mono=5.16.1.0-r9991 mono-reference-assemblies-4.x=5.16.1.0-r9991 mono-reference-assemblies-facades=5.16.1.0-r9991 mono-csc=5.16.1.0-r9991 mono-runtime=5.16.1.0-r9991 c-ares-dev v8-dev~=9.3 clang-libs~=13 git dotnet6-sdk
+apk add --no-cache --virtual .dev-deps lld~=13 curl-dev=7.72.0-r99 clang-dev~=13 clang~=13 build-base linux-headers openssl1.1-compat-dev openssl-dev~=1.1 python3 py3-pip py3-virtualenv lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9991 mono-dev=5.16.1.0-r9991 libmono=5.16.1.0-r9991 mono-corlib=5.16.1.0-r9991 mono=5.16.1.0-r9991 mono-reference-assemblies-4.x=5.16.1.0-r9991 mono-reference-assemblies-facades=5.16.1.0-r9991 mono-csc=5.16.1.0-r9991 mono-runtime=5.16.1.0-r9991 c-ares-dev v8-dev~=9.3 clang-libs~=13 git dotnet6-sdk
 
 # install python deps
-python3 -m pip install ply six Jinja2 MarkupSafe
+python3 -m venv /tmp/py-venv
+. /tmp/py-venv/bin/activate
+
+pip install ply six Jinja2 MarkupSafe
 
 # build natives
 if [ "$SKIP_NATIVES" == "" ]; then
@@ -83,24 +90,11 @@ EOF
 }
 #endif
 EOF
+	
+	lua5.3 codegen.lua inp/natives_global.lua cs_v2 server > /src/code/client/clrcore-v2/Native/NativesServer.cs
 
 	lua5.3 codegen.lua inp/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
 fi
-
-# download and extract boost
-cd /tmp
-
-# keeping this here as a note that boost is really dumb for using "jfrog artifactory bintray" which gives constant persistent 'Forbidden!'
-# whenever some arbitrary quota runs out, and deletes their version history on sourceforge, and has no single canonical git repo
-#curl --http1.1 -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.bz2
-curl --http1.1 -sLo /tmp/boost.tar.bz2 https://runtime.fivem.net/client/deps/boost_1_71_0.tar.bz2
-
-tar xf boost.tar.bz2
-rm boost.tar.bz2
-
-mv boost_* boost || true
-
-export BOOST_ROOT=/tmp/boost/
 
 # download and build premake
 curl --http1.1 -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-beta1/premake-5.0.0-beta1-src.zip
@@ -111,7 +105,7 @@ rm premake.zip
 cd premake-*
 
 cd build/gmake*.unix/
-make -j${JOB_SLOTS}
+make CFLAGS="-include unistd.h" -j${JOB_SLOTS}
 cd ../../
 
 mv bin/release/premake5 /usr/local/bin
@@ -132,9 +126,17 @@ export CXXFLAGS="-D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR -Wno-deprecated-declara
 export LDFLAGS="-Wl,--build-id -fuse-ld=lld"
 
 if [ ! -z "$CI_BRANCH" ] && [ ! -z "$CI_BUILD_NUMBER" ]; then
-	echo '#pragma once' > /src/code/shared/cfx_version.h
-	echo '#define GIT_DESCRIPTION "'$CI_BRANCH' '$CI_BUILD_NUMBER' linux"' >> /src/code/shared/cfx_version.h
-	echo '#define GIT_TAG "'$CI_BUILD_NUMBER'"' >> /src/code/shared/cfx_version.h
+    echo '#pragma once' > /src/code/shared/cfx_version.h
+
+    if [[ "$CI_BRANCH" == feature/* ]]; then
+        dateVersion=$(date +%Y%m%d)
+        gitDescription="$CI_BRANCH SERVER v1.0.0.$dateVersion linux"
+    else
+        gitDescription="$CI_BRANCH $CI_BUILD_NUMBER linux"
+    fi
+
+    echo '#define GIT_DESCRIPTION "'$gitDescription'"' >> /src/code/shared/cfx_version.h
+    echo '#define GIT_TAG "'$CI_BUILD_NUMBER'"' >> /src/code/shared/cfx_version.h
 fi
 
 make clean

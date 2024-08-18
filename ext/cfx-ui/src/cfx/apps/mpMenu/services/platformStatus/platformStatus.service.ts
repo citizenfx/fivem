@@ -1,12 +1,14 @@
-import { defineService, ServicesContainer, useService } from "cfx/base/servicesContainer";
-import { CurrentGameName, currentGameNameIs } from "cfx/base/gameRuntime";
-import { Symbols } from "cfx/ui/Symbols";
-import { fetcher } from "cfx/utils/fetcher";
-import { html2react } from "cfx/utils/html2react";
-import { injectable } from "inversify";
-import { makeAutoObservable, observable } from "mobx";
-import { StatusLevel } from "./types";
-import { GameName } from "cfx/base/game";
+import { Symbols } from '@cfx-dev/ui-components';
+import { injectable } from 'inversify';
+import { makeAutoObservable, observable } from 'mobx';
+
+import { GameName } from 'cfx/base/game';
+import { CurrentGameName, currentGameNameIs } from 'cfx/base/gameRuntime';
+import { defineService, ServicesContainer, useService } from 'cfx/base/servicesContainer';
+import { fetcher } from 'cfx/utils/fetcher';
+import { html2react } from 'cfx/utils/html2react';
+
+import { StatusLevel } from './types';
 
 const AUTO_REFRESH_INTERVAL = 20 * 1000;
 
@@ -27,23 +29,39 @@ export function usePlatformStatusService() {
 @injectable()
 export class PlatformStatusService {
   private _level: StatusLevel = StatusLevel.Unavailable;
-  public get level(): StatusLevel { return this._level }
-  private set level(level: StatusLevel) { this._level = level }
+  public get level(): StatusLevel {
+    return this._level;
+  }
+  private set level(level: StatusLevel) {
+    this._level = level;
+  }
 
   private _levelLoaded: boolean = false;
-  public get levelLoaded(): boolean { return this._levelLoaded }
-  private set levelLoaded(levelLoaded: boolean) { this._levelLoaded = levelLoaded }
+  public get levelLoaded(): boolean {
+    return this._levelLoaded;
+  }
+  private set levelLoaded(levelLoaded: boolean) {
+    this._levelLoaded = levelLoaded;
+  }
 
   private _message: string = '';
-  public get message(): string { return this._message }
-  private set message(message: string) { this._message = message }
+  public get message(): string {
+    return this._message;
+  }
+  private set message(message: string) {
+    this._message = message;
+  }
 
   private _serviceNotice: React.ReactNode = null;
-  public get serviceNotice(): React.ReactNode { return this._serviceNotice }
+  public get serviceNotice(): React.ReactNode {
+    return this._serviceNotice;
+  }
 
   private _statsCurrentPlayers = '';
+
   private _statsLast24hPeak = '';
-  get stats(): { current: string, last24h: string } {
+
+  get stats(): { current: string; last24h: string } {
     return {
       current: this._statsCurrentPlayers,
       last24h: this._statsLast24hPeak,
@@ -63,10 +81,7 @@ export class PlatformStatusService {
     // Initial status fetch
     this.fetchStatus();
 
-    setInterval(
-      this.fetchStatus,
-      AUTO_REFRESH_INTERVAL,
-    );
+    setInterval(this.fetchStatus, AUTO_REFRESH_INTERVAL);
 
     this.fetchServiceNotice();
     this.fetchStats();
@@ -106,7 +121,7 @@ export class PlatformStatusService {
     try {
       this.setServiceNotice(await fetcher.text(`https://runtime.fivem.net/notice_${CurrentGameName}.html`));
     } catch (e) {
-      this.setServiceNotice(`<div class="warning">Could not connect to backend services. Some issues may occur.</div>`);
+      this.setServiceNotice('<div class="warning">Could not connect to backend services. Some issues may occur.</div>');
     }
   }
 
@@ -117,6 +132,7 @@ export class PlatformStatusService {
           ? PLAYER_STATS_REDM
           : PLAYER_STATS_FIVEM,
       );
+
       if (!Array.isArray(response)) {
         return;
       }

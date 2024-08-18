@@ -1,19 +1,23 @@
-import React from "react";
-import { CurrentGameBrand } from "cfx/base/gameRuntime";
-import { $L, useL10n } from "cfx/common/services/intl/l10n";
-import { Button } from "cfx/ui/Button/Button";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { Text } from "cfx/ui/Text/Text";
-import { nl2brx } from "cfx/utils/nl2br";
-import { mpMenu } from "../../mpMenu";
-import { ConnectState } from "../../services/servers/connect/state";
-import { noop } from "cfx/utils/functional";
-import { Modal } from "cfx/ui/Modal/Modal";
+import {
+  Button,
+  Flex,
+  Pad,
+  Modal,
+  Text,
+  noop,
+} from '@cfx-dev/ui-components';
+import React from 'react';
+
+import { CurrentGameBrand } from 'cfx/base/gameRuntime';
+import { $L, useL10n } from 'cfx/common/services/intl/l10n';
+import { nl2brx } from 'cfx/utils/nl2br';
+
+import { mpMenu } from '../../mpMenu';
+import { ConnectState } from '../../services/servers/connect/state';
 
 export interface BuildSwitchRequestProps {
-  state: ConnectState.BuildSwitchRequest,
-  onCancel?(): void,
+  state: ConnectState.BuildSwitchRequest;
+  onCancel?(): void;
 }
 export function BuildSwitchRequest(props: BuildSwitchRequestProps) {
   const {
@@ -51,10 +55,13 @@ export function BuildSwitchRequest(props: BuildSwitchRequestProps) {
     return () => clearInterval(timer);
   }, []);
 
-  const textData = React.useMemo(() => ({
-    ...state,
-    gameBrand: CurrentGameBrand,
-  }), [state]);
+  const textData = React.useMemo(
+    () => ({
+      ...state,
+      gameBrand: CurrentGameBrand,
+    }),
+    [state],
+  );
 
   const buildSwitchBodyLocalized = useL10n(getBuildSwitchBody(state), textData);
 
@@ -62,28 +69,17 @@ export function BuildSwitchRequest(props: BuildSwitchRequestProps) {
     <>
       <Pad>
         <Flex vertical>
-          <Text size="xlarge">
-            {$L('#BuildSwitch_Heading', textData)}
-          </Text>
+          <Text size="xlarge">{$L('#BuildSwitch_Heading', textData)}</Text>
 
-          <Text size="large">
-            {nl2brx(buildSwitchBodyLocalized)}
-          </Text>
+          <Text size="large">{nl2brx(buildSwitchBodyLocalized)}</Text>
         </Flex>
       </Pad>
 
       <Modal.Footer>
         <Flex>
-          <Button
-            text={$L('#BuildSwitch_OK', { seconds: secondsLeft })}
-            theme="primary"
-            onClick={performBuildSwitch}
-          />
+          <Button text={$L('#BuildSwitch_OK', { seconds: secondsLeft })} theme="primary" onClick={performBuildSwitch} />
 
-          <Button
-            text={$L('#BuildSwitch_Cancel', { seconds: secondsLeft })}
-            onClick={cancelBuildSwitch}
-          />
+          <Button text={$L('#BuildSwitch_Cancel', { seconds: secondsLeft })} onClick={cancelBuildSwitch} />
         </Flex>
       </Modal.Footer>
     </>
@@ -98,16 +94,16 @@ function getBuildSwitchBody(switchRequest: ConnectState.BuildSwitchRequest) {
     if (switchRequest.currentPureLevel === 0) {
       if (!buildChanged) {
         return '#BuildSwitch_PureBody';
-      } else {
-        return '#BuildSwitch_PureBuildBody';
       }
-    } else {
-      if (!buildChanged) {
-        return '#BuildSwitch_PureSwitchBody';
-      } else {
-        return '#BuildSwitch_PureBuildSwitchBody';
-      }
+
+      return '#BuildSwitch_PureBuildBody';
     }
+
+    if (!buildChanged) {
+      return '#BuildSwitch_PureSwitchBody';
+    }
+
+    return '#BuildSwitch_PureBuildSwitchBody';
   }
 
   return '#BuildSwitch_Body';

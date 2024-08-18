@@ -1,38 +1,44 @@
 #pragma once
 
+#include <Span.h>
+
 namespace rl
 {
-class MessageBuffer
+class MessageBufferLengthHack
 {
-private:
-	static bool GetLengthHackState();
-
 public:
-	inline MessageBuffer()
+	static bool GetState();
+};
+
+template<typename BufferType>
+class MessageBufferBase
+{
+public:
+	inline MessageBufferBase()
 		: m_curBit(0), m_maxBit(0)
 	{
 
 	}
 
-	inline MessageBuffer(const std::vector<uint8_t>& data)
+	inline MessageBufferBase(const BufferType& data)
 		: m_data(data), m_curBit(0), m_maxBit(data.size() * 8)
 	{
 		
 	}
 
-	inline MessageBuffer(std::vector<uint8_t>&& data)
+	inline MessageBufferBase(BufferType&& data)
 		: m_data(std::move(data)), m_curBit(0), m_maxBit(m_data.size() * 8)
 	{
 
 	}
 
-	inline explicit MessageBuffer(size_t size)
+	inline explicit MessageBufferBase(size_t size)
 		: m_data(size), m_curBit(0), m_maxBit(size * 8)
 	{
 
 	}
 
-	inline MessageBuffer(const void* data, size_t size)
+	inline MessageBufferBase(const void* data, size_t size)
 		: m_data(reinterpret_cast<const uint8_t*>(data), reinterpret_cast<const uint8_t*>(data) + size), m_curBit(0), m_maxBit(size * 8)
 	{
 
@@ -41,12 +47,15 @@ public:
 	/// <summary>
 	/// rage::datBitBuffer::ReadUnsigned = 0x14128DCF8 (1604)
 	/// </summary>
-	inline bool ReadBitsSingle(void* out, int length)
+	template<typename T>
+	inline bool ReadBitsSingle(T* out, int length)
 	{
-		if (length == 13 && GetLengthHackState())
+		if (length == 13 && MessageBufferLengthHack::GetState())
 		{
 			length = 16;
 		}
+
+		static_assert(std::is_integral_v<T>, "ReadBitsSingle wants an int value");
 
 		if ((m_curBit + length) > m_maxBit)
 		{
@@ -85,7 +94,8 @@ public:
 
 		m_curBit += length;
 
-		*(uint32_t*)out = retval;
+		// hack to prevent an out-of-bounds write of `out`
+		*out = *(T*)&retval;
 
 		return true;
 	}
@@ -344,15 +354,22 @@ public:
 	}
 
 	// copied IDA code, eh
-	inline bool WriteBitsSingle(const void* data, int length)
+	template<typename T>
+	inline bool WriteBitsSingle(const T* data, int length)
 	{
-		if (length == 13 && GetLengthHackState())
+		if (length == 13 && MessageBufferLengthHack::GetState())
 		{
 			length = 16;
 		}
 
+		static_assert(std::is_integral_v<T>, "WriteBitsSingle wants an int value");
+
 		auto a1 = m_data.data();
-		auto a2 = *(uint32_t*)data;
+
+		// hack to prevent an out-of-bounds read of `data` tripping analyzers
+		uint32_t a2 = 0;
+		*(T*)&a2 = *data;
+
 		auto a3 = length;
 		int a4 = m_curBit;
 
@@ -529,14 +546,14 @@ public:
 		}
 	}
 
-	inline MessageBuffer Clone()
+	inline MessageBufferBase Clone()
 	{
 		auto s = m_maxBit - std::min(m_curBit, m_maxBit);
 		auto c = (s / 8) + (s % 8 != 0) ? 1 : 0;
 
 		std::vector<uint8_t> newData(c);
 		ReadBits(newData.data(), s);
-		return MessageBuffer{newData};
+		return MessageBufferBase{newData};
 	}
 
 	inline void Align()
@@ -564,7 +581,7 @@ public:
 		return m_curBit >= m_maxBit;
 	}
 
-	inline std::vector<uint8_t>& GetBuffer()
+	inline BufferType& GetBuffer()
 	{
 		return m_data;
 	}
@@ -582,8 +599,11 @@ public:
 	}
 
 private:
-	std::vector<uint8_t> m_data;
+	BufferType m_data;
 	int m_curBit;
 	int m_maxBit;
 };
+
+typedef MessageBufferBase<std::vector<uint8_t>> MessageBuffer;
+typedef MessageBufferBase<net::Span<uint8_t>> MessageBufferView;
 }

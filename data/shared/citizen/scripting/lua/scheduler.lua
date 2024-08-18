@@ -115,7 +115,7 @@ function Citizen.Await(promise)
 		coroutine_yield()
 	end
 
-	if promise.state == 2 then
+	if promise.state == 2 or promise.state == 4 then
 		error(promise.value, 2)
 	end
 
@@ -491,7 +491,7 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 	local ref = refPtr.func
 
 	local err
-	local retvals
+	local retvals = false
 	local cb = {}
 	
 	local di = debug_getinfo(ref)
@@ -506,16 +506,14 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 		end
 
 		if cb.cb then
-			cb.cb(retvals or false, err)
+			cb.cb(retvals, err)
+		elseif err then
+			Citizen.Trace(err)
 		end
 	end, ('ref call [%s[%d..%d]]'):format(di.short_src, di.linedefined, di.lastlinedefined))
 
 	if not waited then
 		if err then
-			if err ~= '' then
-				Citizen.Trace(err)
-			end
-			
 			return msgpack_pack(nil)
 		end
 
@@ -832,24 +830,21 @@ end
 local function prefixNewlines(str, prefix)
 	str = tostring(str)
 
-	local out = ''
-
-	for bit in str:gmatch('[^\r\n]*\r?\n') do
-		out = out .. prefix .. bit
+	if #str == 0 then
+		return str
 	end
 
-	if #out == 0 or out:sub(#out) ~= '\n' then
-		out = out .. '\n'
-	end
-
-	return out
+	return prefix .. str:gsub("\n(.)", "\n" .. prefix .. "%1")
 end
 
 -- Handle an export with multiple return values.
 local function exportProcessResult(resource, exportName, status, ...)
 	if not status then
 		local result = tostring(select(1, ...))
-		error(('\n^5 An error occurred while calling export `%s` in resource `%s`:\n%s^5 ---'):format(exportName, resource, prefixNewlines(result, '  ')), 2)
+		if result:len() > 2048 then
+			result = result:sub(1, 1024) .. '\n... [large output partially truncated] ...\n' .. result:sub(-1024)
+		end
+		error(('\n^5 An error occurred while calling export `%s` in resource `%s`:\n%s\n^5 ---'):format(exportName, resource, prefixNewlines(result, '  ')), 2)
 	end
 	return ...
 end
@@ -903,31 +898,63 @@ setmetatable(exports, {
 
 -- NUI callbacks
 if not isDuplicityVersion then
+	local origRegisterNuiCallback = RegisterNuiCallback
+
+	local cbHandler
+
+--[==[
+	local cbHandler = load([[
+		-- Lua 5.4: Create a to-be-closed variable to monitor the NUI callback handle.
+		local callback, body, resultCallback = ...
+
+		local hasCallback = false
+		local _ <close> = defer(function()
+			if not hasCallback then
+				local di = debug.getinfo(callback, 'S')
+				local name = ('function %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
+				warn(("No NUI callback captured: %s"):format(name))
+			end
+		end)
+
+		local status, err = pcall(function()
+			callback(body, function(...)
+				hasCallback = true
+				resultCallback(...)
+			end)
+		end)
+
+		return status, err
+	]], '@citizen:/scripting/lua/scheduler.lua#nui')]==]
+
+	if not cbHandler then
+		cbHandler = load([[
+			local callback, body, resultCallback = ...
+
+			local status, err = pcall(function()
+				callback(body, resultCallback)
+			end)
+
+			return status, err
+		]], '@citizen:/scripting/lua/scheduler.lua#nui')
+	end
+
+	-- wrap RegisterNuiCallback to handle errors (and 'missed' callbacks)
+	function RegisterNuiCallback(type, callback)
+		origRegisterNuiCallback(type, function(body, resultCallback)
+			local status, err = cbHandler(callback, body, resultCallback)
+
+			if err then
+				Citizen.Trace("error during NUI callback " .. type .. ": " .. tostring(err) .. "\n")
+			end
+		end)
+	end
+
+	-- 'old' function (uses events for compatibility, as people may have relied on this implementation detail)
 	function RegisterNUICallback(type, callback)
 		RegisterNuiCallbackType(type)
 
 		AddEventHandler('__cfx_nui:' .. type, function(body, resultCallback)
---[[
-			-- Lua 5.4: Create a to-be-closed variable to monitor the NUI callback handle.
-			local hasCallback = false
-			local _ <close> = defer(function()
-				if not hasCallback then
-					local di = debug_getinfo(callback, 'S')
-					local name = ('function %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
-					Citizen.Trace(("No NUI callback captured: %s\n"):format(name))
-				end
-			end)
-
-			local status, err = pcall(function()
-				callback(body, function(...)
-					hasCallback = true
-					resultCallback(...)
-				end)
-			end)
---]]			
-			local status, err = pcall(function()
-				callback(body, resultCallback)
-			end)
+			local status, err = cbHandler(callback, body, resultCallback)
 
 			if err then
 				Citizen.Trace("error during NUI callback " .. type .. ": " .. tostring(err) .. "\n")

@@ -754,6 +754,11 @@ namespace fxdk
 
 		m_timer->on<uvw::TimerEvent>([this, ipc](const uvw::TimerEvent& evt, uvw::TimerHandle&)
 		{
+			if (!fx::ResourceManager::GetCurrent())
+			{
+				return;
+			}
+
 			if (!m_resourceMonitor)
 			{
 				m_resourceMonitor = std::make_unique<fx::ResourceMonitor>();
@@ -764,6 +769,11 @@ namespace fxdk
 			std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> resourceDatasClean;
 			for (const auto& data : resourceDatas)
 			{
+				if (std::get<0>(data) == "_cfx_internal")
+				{
+					continue;
+				}
+
 				resourceDatasClean.push_back(tuple_slice<0, std::tuple_size_v<decltype(resourceDatasClean)::value_type>>(data));
 			}
 

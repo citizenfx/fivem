@@ -23,6 +23,7 @@
 #include <Error.h>
 
 #include <CrossBuildRuntime.h>
+#include <CL2LaunchMode.h>
 
 FiveGameInit g_gameInit;
 
@@ -33,12 +34,11 @@ void AddCustomText(const char* key, const char* value);
 
 static hook::cdecl_stub<void(int unk, uint32_t* titleHash, uint32_t* messageHash, uint32_t* subMessageHash, int flags, bool, int8_t, void*, void*, bool, bool)> setWarningMessage([] ()
 {
-	if (Is372())
+	if (xbr::IsGameBuildOrGreater<3258>())
 	{
-		return hook::get_call<void*>(hook::get_call(hook::pattern("57 41 56 41 57 48 83 EC 50 4C 63 F2").count(1).get(0).get<char>(0xAC)) + 0x6D);
+		return hook::get_pattern("48 89 5C 24 ? 4C 89 44 24 ? 89 4C 24");
 	}
-
-	if (xbr::IsGameBuildOrGreater<2699>())
+	else if (xbr::IsGameBuildOrGreater<2699>())
 	{
 		return hook::get_pattern("44 38 ? ? ? ? ? 0F 85 C5 02 00 00 E8", -0x38);
 	}
@@ -51,8 +51,6 @@ static hook::cdecl_stub<int(bool, int)> getWarningResult([] ()
 	return hook::get_call(hook::pattern("33 D2 33 C9 E8 ? ? ? ? 48 83 F8 04 0F 84").count(1).get(0).get<void>(4));
 });
 
-static bool g_showWarningMessage;
-static std::string g_warningMessage;
 extern volatile bool g_isNetworkKilled;
 
 void FiveGameInit::KillNetwork(const wchar_t* errorString)
@@ -68,18 +66,11 @@ void FiveGameInit::KillNetwork(const wchar_t* errorString)
 	}
 	else
 	{
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-		std::string smallReason = converter.to_bytes(errorString);
+		auto narrowReason = ToNarrow(errorString);
+		SetData("warningMessage", narrowReason);
 
-		if (!g_showWarningMessage)
-		{
-			g_warningMessage = smallReason;
-			g_showWarningMessage = true;
-
-			SetData("warningMessage", g_warningMessage);
-
-			OnKillNetwork(smallReason.c_str());
-		}
+		OnKillNetwork(narrowReason.c_str());
+		OnMsgConfirm();
 	}
 }
 
@@ -110,7 +101,7 @@ bool FiveGameInit::TriggerError(const char* message)
 
 static hook::cdecl_stub<void(rage::InitFunctionType)> gamerInfoMenu_init([]()
 {
-	return hook::get_pattern("83 F9 08 75 3F 53 48 83 EC 20 48 83 3D", 0);
+	return (xbr::IsGameBuildOrGreater<2802>()) ? hook::get_pattern("E9 ? ? ? ? 53 48 83  EC 20 48 83 3D") : hook::get_pattern("83 F9 08 75 3F 53 48 83 EC 20 48 83 3D");
 });
 
 static hook::cdecl_stub<void(rage::InitFunctionType)> gamerInfoMenu__shutdown([]()
@@ -132,23 +123,14 @@ void Void()
 static HookFunction hookFunction([]()
 {
 	MH_Initialize();
-
-	if (!Is372())
-	{
-		MH_CreateHook(hook::get_pattern("74 07 B0 01 E9 ? ? ? ? 83 65", (xbr::IsGameBuildOrGreater<2372>() ? -0x23 : -0x26)), Void, (void**)&g_origLoadMultiplayerTextChat);
-
-		g_textChat = hook::get_address<void**>(hook::get_pattern("74 04 C6 40 01 01 48 8B 0D", 9));
-	}
-
+	MH_CreateHook(hook::get_pattern("74 07 B0 01 E9 ? ? ? ? 83 65", (xbr::IsGameBuildOrGreater<2372>() ? -0x23 : -0x26)), Void, (void**)&g_origLoadMultiplayerTextChat);
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	if (!Is372())
-	{
-		g_textInputBox = hook::get_address<void**>(hook::get_pattern("C7 45 D4 07 00 00 00 48 8B 0D", 10));
+	g_textChat = hook::get_address<void**>(hook::get_pattern("74 04 C6 40 01 01 48 8B 0D", 9));
+	g_textInputBox = hook::get_address<void**>(hook::get_pattern("C7 45 D4 07 00 00 00 48", xbr::IsGameBuildOrGreater<2802>() ? 36 : 10));
 
-		// disable text input box gfx unload
-		hook::nop(hook::get_pattern("E8 ? ? ? ? 83 8B A0 04 00 00 FF"), 5);
-	}
+	// disable text input box gfx unload
+	hook::nop(hook::get_pattern("E8 ? ? ? ? 83 8B A0 04 00 00 FF"), 5);
 
 	// disable gamer info menu shutdown (testing/temp dbg for blocking loads on host/join)
 	//hook::return_function(hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0));
@@ -171,7 +153,36 @@ static bool (*g_isScWaitingForInit)();
 
 void RunRlInitServicing()
 {
-	if (xbr::IsGameBuildOrGreater<2699>())
+	// E8 ? ? ? ? C6 05 ? ? ? ? ? EB 41
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		((void (*)())hook::get_adjusted(0x140006B2C))();
+		((void (*)())hook::get_adjusted(0x14080D4E4))();
+		((void (*)())hook::get_adjusted(0x140028D24))();
+		((void (*)(void*))hook::get_adjusted(0x14166CC54))((void*)hook::get_adjusted(0x142FE3410));
+	}
+	else if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		((void (*)())hook::get_adjusted(0x140006D04))();
+		((void (*)())hook::get_adjusted(0x140809E54))();
+		((void (*)())hook::get_adjusted(0x140028578))();
+		((void (*)(void*))hook::get_adjusted(0x141657DF0))((void*)hook::get_adjusted(0x142FB57D0));
+	}
+	else if (xbr::IsGameBuildOrGreater<2944>())
+	{
+		((void (*)())hook::get_adjusted(0x140006B28))();
+		((void (*)())hook::get_adjusted(0x140804254))();
+		((void (*)())hook::get_adjusted(0x140028200))();
+		((void (*)(void*))hook::get_adjusted(0x141643218))((void*)hook::get_adjusted(0x142F60330));
+	}
+	else if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		((void (*)())hook::get_adjusted(0x1400069DC))();
+		((void (*)())hook::get_adjusted(0x140802754))();
+		((void (*)())hook::get_adjusted(0x14002802C))();
+		((void (*)(void*))hook::get_adjusted(0x14161D450))((void*)hook::get_adjusted(0x142ED8B20));
+	}
+	else if (xbr::IsGameBuildOrGreater<2699>())
 	{
 		((void (*)())hook::get_adjusted(0x1400069F4))();
 		((void (*)())hook::get_adjusted(0x1407FE28C))();
@@ -199,13 +210,6 @@ void RunRlInitServicing()
 		((void (*)())hook::get_adjusted(0x1400263CC))();
 		((void (*)(void*))hook::get_adjusted(0x14160104C))((void*)hook::get_adjusted(0x142E34900));
 	}
-	else if (!xbr::IsGameBuildOrGreater<2060>())
-	{
-		((void (*)())hook::get_adjusted(0x1400067E8))();
-		((void (*)())hook::get_adjusted(0x1407D1960))();
-		((void (*)())hook::get_adjusted(0x140025F7C))();
-		((void (*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
-	}
 	else if (xbr::IsGameBuildOrGreater<2189>())
 	{
 		((void (*)())hook::get_adjusted(0x140006748))();
@@ -213,12 +217,19 @@ void RunRlInitServicing()
 		((void (*)())hook::get_adjusted(0x140026120))();
 		((void (*)(void*))hook::get_adjusted(0x1415E4AC8))((void*)hook::get_adjusted(0x142E5C2D0));
 	}
-	else
+	else if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		((void (*)())hook::get_adjusted(0x140006A80))();
 		((void (*)())hook::get_adjusted(0x1407EB39C))();
 		((void (*)())hook::get_adjusted(0x1400263A4))();
 		((void (*)(void*))hook::get_adjusted(0x1415CF268))((void*)hook::get_adjusted(0x142D3DCC0));
+	}
+	else
+	{
+		((void (*)())hook::get_adjusted(0x1400067E8))();
+		((void (*)())hook::get_adjusted(0x1407D1960))();
+		((void (*)())hook::get_adjusted(0x140025F7C))();
+		((void (*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
 	}
 }
 
@@ -256,16 +267,6 @@ void SetScInitWaitCallback(bool (*cb)())
 
 static InitFunction initFunction([] ()
 {
-	OnGameFrame.Connect([] ()
-	{
-		if (g_showWarningMessage)
-		{
-			g_showWarningMessage = false;
-
-			OnMsgConfirm();
-		}
-	});
-
 	OnKillNetworkDone.Connect([]()
 	{
 		gamerInfoMenu__shutdown(rage::INIT_SESSION);
@@ -285,9 +286,8 @@ static InitFunction initFunction([] ()
 				g_origLoadMultiplayerTextChat(*g_textChat);
 			}
 
-			if (!Is372())
+			// temp hook bits to prevent *opening* the gfx
 			{
-				// temp hook bits to prevent *opening* the gfx
 				auto func = hook::get_call(hook::get_pattern<char>("38 59 59 75 05 E8", 5));
 
 				uint8_t oldCode[128];
@@ -332,7 +332,7 @@ static InitFunction initFunction([] ()
 
 		if (game)
 		{
-			auto gameCrashPattern = hook::pattern("45 33 C9 49 8B D2 48 8B 01 48 FF 60 10").count_hint(2).get(1).get<void>();
+			auto gameCrashPattern = hook::pattern("45 33 C9 49 8B D2 48 8B 01 48 FF 60").count_hint(2).get(1).get<void>();
 			hook::put<uint8_t>(gameCrashPattern, 0xCC);
 		}
 		else

@@ -19,13 +19,14 @@
 #include <sstream>
 #include <thread>
 
+#include <utf8.h>
+
 struct CfxPresenceState
 {
 	char gameName[512];
-	volatile bool needRefresh;
+	int childPid = 0;
 
 	CfxPresenceState()
-		: needRefresh(0)
 	{
 		memset(gameName, 0, sizeof(gameName));
 	}
@@ -389,20 +390,30 @@ void SteamComponent::InitializePresence()
 
 		if (GetFileAttributes(namePath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
-			std::wifstream nameFile(namePath);
-			std::wstringstream nameStream;
+			std::ifstream nameFile(namePath);
+			std::stringstream nameStream;
 			nameStream << nameFile.rdbuf();
 			nameFile.close();
 
-			productName = ToNarrow(nameStream.str());
+			productName = nameStream.str();
 		}
 
 		static HostSharedData<CfxPresenceState> gameData("PresenceState");
-		gameData->needRefresh = false;
 
 		if (gameData->gameName[0])
 		{
 			productName += fmt::sprintf(": %s", gameData->gameName);
+		}
+
+		// Steam requires the name to fit in a 64-byte buffer, so we try to make sure there's no unfinished UTF-8 sequences in that case
+		if (productName.length() >= 64)
+		{
+			productName = productName.substr(0, 63);
+
+			if (auto invalidPos = utf8::find_invalid(productName); invalidPos != std::string::npos)
+			{
+				productName = productName.substr(0, invalidPos);
+			}
 		}
 
 		// set our pipe appid
@@ -492,6 +503,11 @@ bool SteamComponent::RunPresenceDummy()
 
 		trace("game parent PID: %d\n", parentPid);
 
+		HostSharedData<CfxPresenceState> gameData("PresenceState");
+
+		auto currentPid = GetCurrentProcessId();
+		gameData->childPid = currentPid;
+
 		// open a handle to the parent process with SYNCHRONIZE rights
 		HANDLE processHandle = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, FALSE, parentPid);
 
@@ -512,9 +528,7 @@ bool SteamComponent::RunPresenceDummy()
 					break;
 				}
 
-				static HostSharedData<CfxPresenceState> gameData("PresenceState");
-
-				if (gameData->needRefresh)
+				if (gameData->childPid != currentPid)
 				{
 					return true;
 				}
@@ -651,8 +665,10 @@ void SteamComponent::SetRichPresenceValue(int idx, const std::string& value)
 	if (updateGameName)
 	{
 		static HostSharedData<CfxPresenceState> gameData("PresenceState");
-		gameData->needRefresh = true;
 		strcpy_s(gameData->gameName, value.c_str());
+
+		// reset the child PID to make the current process exit early if it can
+		gameData->childPid = 0;
 
 		RunChildLauncher();
 	}

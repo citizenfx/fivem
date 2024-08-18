@@ -1,12 +1,16 @@
-import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
-import { $L } from "cfx/common/services/intl/l10n";
-import { Button } from "cfx/ui/Button/Button";
-import { Icons } from "cfx/ui/Icons";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { Modal } from "cfx/ui/Modal/Modal";
-import { TextBlock } from "cfx/ui/Text/Text";
-import { useOpenFlag } from "cfx/utils/hooks";
+import {
+  Button,
+  Icons,
+  Flex,
+  Pad,
+  Modal,
+  TextBlock,
+} from '@cfx-dev/ui-components';
+
+import { mpMenu } from 'cfx/apps/mpMenu/mpMenu';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { useOpenFlag } from 'cfx/utils/hooks';
+
 import s from './StoryMode.module.scss';
 
 export function StoryMode() {
@@ -24,15 +28,14 @@ export function StoryMode() {
 
       {modalOpen && (
         <Modal onClose={closeModal} backdropClassName={s.backdrop}>
-          <Modal.Header>
-            Enter Story Mode
-          </Modal.Header>
+          <Modal.Header>Enter Story Mode</Modal.Header>
 
           <Pad size="xlarge">
             <Flex centered vertical gap="xlarge">
               <TextBlock typographic centered size="large">
                 Play GTA V story mode in FiveM, with addons loaded,
                 <br />
+                {/* eslint-disable-next-line react/no-unescaped-entities */}
                 FiveM's engine improvements and seamless integration.
               </TextBlock>
 

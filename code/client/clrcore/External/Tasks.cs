@@ -210,7 +210,7 @@ namespace CitizenFX.Core
 			}
 			else
 			{
-				API.TaskFollowNavMeshToCoord(_ped.Handle, position.X, position.Y, position.Z, 1f, timeout, 0f, false, 0f);
+				API.TaskFollowNavMeshToCoord(_ped.Handle, position.X, position.Y, position.Z, 1f, timeout, 0f, default, 0f);
 			}
 		}
 
@@ -348,7 +348,7 @@ namespace CitizenFX.Core
 			}
 			else
 			{
-				API.TaskFollowNavMeshToCoord(_ped.Handle, position.X, position.Y, position.Z, 4f, timeout, 0f, false, 0f);
+				API.TaskFollowNavMeshToCoord(_ped.Handle, position.X, position.Y, position.Z, 4f, timeout, 0f, default, 0f);
 			}
 		}
 

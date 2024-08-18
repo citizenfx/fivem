@@ -21,10 +21,10 @@ namespace Botan {
 * @param q will be set to x / y
 * @param r will be set to x % y
 */
-void BOTAN_PUBLIC_API(2,0) divide(const BigInt& x,
-                                  const BigInt& y,
-                                  BigInt& q,
-                                  BigInt& r);
+void BOTAN_UNSTABLE_API vartime_divide(const BigInt& x,
+                                       const BigInt& y,
+                                       BigInt& q,
+                                       BigInt& r);
 
 /**
 * BigInt division, const time variant
@@ -41,6 +41,14 @@ void BOTAN_PUBLIC_API(2,9) ct_divide(const BigInt& x,
                                      const BigInt& y,
                                      BigInt& q,
                                      BigInt& r);
+
+inline void divide(const BigInt& x,
+                   const BigInt& y,
+                   BigInt& q,
+                   BigInt& r)
+   {
+   ct_divide(x, y, q, r);
+   }
 
 /**
 * BigInt division, const time variant
