@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: server
+visibility: hide
 ---
 ## FLAG_SERVER_AS_PRIVATE
 

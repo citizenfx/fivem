@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+visibility: hide
 ---
 ## SET_SNAKEOIL_FOR_ENTRY
 
