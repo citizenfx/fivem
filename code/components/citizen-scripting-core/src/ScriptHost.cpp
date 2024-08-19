@@ -340,7 +340,7 @@ result_t SAFE_BUFFERS TestScriptHost::InvokeNative(fxNativeContext & context)
 	}
 	else
 	{
-		trace("WARNING: The native identifier %016llx is not supported. Please update your code.\n", context.nativeIdentifier);
+		trace("WARNING: The native identifier %016llx doesn't exist. Please update your code.\n", context.nativeIdentifier);
 	}
 #endif
 
