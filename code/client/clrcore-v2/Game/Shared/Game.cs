@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+#if GTA_FIVE || IS_RDR3
+
 #if MONO_V2
 #if IS_RDR3
 using CitizenFX.RedM.Native;
@@ -93,3 +95,6 @@ namespace CitizenFX.Core
 		}
 	}
 }
+
+#endif
+// END GTA_FIVE || IS_RDR3
