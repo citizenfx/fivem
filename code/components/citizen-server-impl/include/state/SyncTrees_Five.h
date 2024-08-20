@@ -849,7 +849,9 @@ struct CVehicleAppearanceDataNode {
 		int numberPlateTextIndex = state.buffer.Read<int>(32);
 		data.numberPlateTextIndex = numberPlateTextIndex;
 
-		int unk20 = state.buffer.Read<int>(32);
+		int hornTypeHash = state.buffer.Read<int>(32);
+		data.hornTypeHash = hornTypeHash;
+
 		bool hasEmblems = state.buffer.ReadBit();
 
 		if (hasEmblems)

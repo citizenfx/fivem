@@ -393,6 +393,8 @@ struct CVehicleAppearanceNodeData
 
 	int numberPlateTextIndex;
 
+	int hornTypeHash;
+
 	inline CVehicleAppearanceNodeData()
 	{
 		memset(plate, 0, sizeof(plate));
