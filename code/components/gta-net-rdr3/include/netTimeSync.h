@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ByteReader.h"
+
 struct TimeSyncPadding1311
 {
 	char m_pad[4];
@@ -29,7 +31,7 @@ public:
 	virtual ~netTimeSync() = 0;
 
 	void Update();
-	void HandleTimeSync(net::Buffer& buffer);
+	void HandleTimeSync(net::ByteReader& buffer);
 	bool IsInitialized();
 	void SetConnectionManager(netConnectionManager* mgr);
 
