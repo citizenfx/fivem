@@ -555,6 +555,7 @@ if _OPTIONS['game'] ~= 'launcher' then
 		else
 			if _OPTIONS['game'] == 'five' then
 				files { 'client/clrcore/External/*.cs' }
+				files { 'client/clrcore-v2/Game/Shared/*.cs' }
 			end
 			
 			defines { 'USE_HYPERDRIVE' }
