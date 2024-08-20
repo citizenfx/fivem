@@ -8,7 +8,6 @@ using CitizenFX.Core;
 using CitizenFX.FiveM.Native;
 using API = CitizenFX.FiveM.Native.Natives;
 using Function = CitizenFX.FiveM.Native.Natives;
-using Prop = CitizenFX.FiveM.Object;
 
 namespace CitizenFX.FiveM
 #else

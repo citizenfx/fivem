@@ -1,9 +1,16 @@
-#if !MONO_V2
+#if MONO_V2
+using API = CitizenFX.FiveM.Native.Natives;
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
-
 namespace CitizenFX.Core
+#endif
 {
 	public sealed class Prop : Entity
+#if MONO_V2
+	, Shared.IObject
+#endif
+
 	{
 		public Prop(int handle) : base(handle)
 		{
@@ -28,4 +35,3 @@ namespace CitizenFX.Core
 		}
 	}
 }
-#endif
