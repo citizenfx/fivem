@@ -26,6 +26,7 @@
 	"citizen:scripting:lua",
 	"citizen:scripting:lua54",
 	"citizen:scripting:mono",
+	"citizen:scripting:mono-v2",
 	"citizen:scripting:v8client",
 	"citizen:scripting:v8node",
 	"gta:core:rdr3",
