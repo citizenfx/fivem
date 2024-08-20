@@ -2288,39 +2288,44 @@ struct CPedScriptGameStateDataNode
 	}
 };
 
-struct CPedAttachDataNode
+struct CPedAttachDataNode : GenericSerializeDataNode<CPedAttachDataNode>
 {
 	struct CPedAttachNodeData : public CBaseAttachNodeData
 	{
-		bool unk_0x241;
+		bool attachedToGround;       // unk_0x241
 		bool hasHeading;
-		float heading_1; // 0xe8
-		float heading_2; // 0xec
+		float heading;               // heading_1
+		float headingLimit;          // heading_2
 	} data;
 
-	bool Parse(SyncParseState& state)
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
 	{
-		data.attached = state.buffer.ReadBit();
+		s.Serialize(data.attached);
 		if (data.attached)
 		{
-			data.attachedTo = state.buffer.Read<uint16_t>(13);
-			data.unk_0x241 = state.buffer.ReadBit();
+			s.Serialize(13, data.attachedTo);
+			s.Serialize(data.attachedToGround);
 
-			data.hasOffset = state.buffer.ReadBit();
+			s.Serialize(data.hasOffset);
 			if (data.hasOffset) // Divisor 0x42340000
 			{
-				data.x = state.buffer.ReadSignedFloat(15, 45.f);
-				data.y = state.buffer.ReadSignedFloat(15, 45.f);
-				data.z = state.buffer.ReadSignedFloat(15, 45.f);
+				s.SerializeSigned(15, 45.f, data.x);
+				s.SerializeSigned(15, 45.f, data.y);
+				s.SerializeSigned(15, 45.f, data.z);
+			}
+			else
+			{
+				data.x = data.y = data.z = 0;
 			}
 
-			data.hasOrientation = state.buffer.ReadBit();
+			s.Serialize(data.hasOrientation);
 			if (data.hasOrientation) // Divisor 0x3F8147AE
 			{
-				data.qx = state.buffer.ReadSignedFloat(16, 1.01f);
-				data.qy = state.buffer.ReadSignedFloat(16, 1.01f);
-				data.qz = state.buffer.ReadSignedFloat(16, 1.01f);
-				data.qw = state.buffer.ReadSignedFloat(16, 1.01f);
+				s.SerializeSigned(16, 1.01f, data.qx);
+				s.SerializeSigned(16, 1.01f, data.qy);
+				s.SerializeSigned(16, 1.01f, data.qz);
+				s.SerializeSigned(16, 1.01f, data.qw);
 			}
 			else
 			{
@@ -2328,13 +2333,13 @@ struct CPedAttachDataNode
 				data.qx = data.qy = data.qz = 0.f;
 			}
 
-			data.attachBone = state.buffer.Read<uint16_t>(8);
-			data.attachmentFlags = state.buffer.Read<uint32_t>(17);
-			data.hasHeading = state.buffer.ReadBit();
+			s.Serialize(8, data.attachBone);
+			s.Serialize(17, data.attachmentFlags);
+			s.Serialize(data.hasHeading);
 			if (data.hasHeading) // Divisor 0x40C90FDB
 			{
-				data.heading_1 = state.buffer.ReadSignedFloat(8, 6.28319f);
-				data.heading_2 = state.buffer.ReadSignedFloat(8, 6.28319f);
+				s.SerializeSigned(8, 6.28319f, data.heading);
+				s.SerializeSigned(8, 6.28319f, data.headingLimit);
 			}
 		}
 		return true;
