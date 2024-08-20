@@ -233,6 +233,11 @@ namespace fx
 			return m_lastSeen;
 		}
 
+		inline unsigned int GetSecondsOnline()
+		{
+			return std::chrono::duration_cast<std::chrono::seconds>(m_lastSeen - m_firstSeen).count();
+		}
+
 		inline const std::vector<std::string>& GetIdentifiers()
 		{
 			return m_identifiers;
