@@ -267,12 +267,17 @@ void StateBagImpl::SetKey(int source, std::string_view key, std::string_view dat
 	continuation(key, data);
 }
 
+// https://github.com/msgpack/msgpack/blob/master/spec.md#formats
+constexpr char MsgPackNil = static_cast<char>(0xc0);
 void StateBagImpl::SetKeyInternal(int source, std::string_view key, std::string_view data, bool replicated)
 {
 	{
 		std::unique_lock _(m_dataMutex);
-
-		if (auto it = m_data.find(key); it != m_data.end())
+		if (data[0] == MsgPackNil)
+		{
+			m_data.erase(std::string { key });
+		}
+		else if (auto it = m_data.find(key); it != m_data.end())
 		{
 			if (data != it->second)
 			{
