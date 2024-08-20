@@ -6,6 +6,7 @@
 
 #include <ResourceManager.h>
 #include <ScriptEngine.h>
+#include <ScriptDeprecations.h>
 
 #include <ScriptSerialization.h>
 #include <MakeClientFunction.h>
@@ -1587,27 +1588,6 @@ static void Init()
 		return true;
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_LANDING_GEAR_STATE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
-	{
-		int gearState = 0;
-
-		if (entity->type == fx::sync::NetObjEntityType::Heli)
-		{
-			auto state = entity->syncTree->GetHeliControl();
-			if (state->hasLandingGear)
-			{
-				gearState = state->landingGearState;
-			}
-		}
-		else if (entity->type == fx::sync::NetObjEntityType::Plane)
-		{
-			auto state = entity->syncTree->GetPlaneGameState();
-			gearState = state ? state->landingGearState : 0;
-		}
-
-		return gearState;
-	}));
-
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_LOCK_ON_TARGET", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		int lockOnHandle = 0;
@@ -1723,9 +1703,150 @@ static void Init()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_TAIL_ROTOR_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
+		fx::WarningDeprecationf<fx::ScriptDeprecations::GET_HELI_TAIL_ROTOR_HEALTH>("natives", "GET_HELI_TAIL_ROTOR_HEALTH is deprecated because there is no tail motor. Use GET_HELI_REAR_ROTOR_HEALTH instead.\n");
 		auto heliHealth = entity->syncTree->GetHeliHealth();
 
-		return heliHealth ? float(heliHealth->tailRotorHealth) : 0.0f;
+		return heliHealth ? float(heliHealth->rearRotorHealth) : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_REAR_ROTOR_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? float(heliHealth->rearRotorHealth) : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_HELI_TAIL_BOOM_BROKEN", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? heliHealth->boomBroken : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_HELI_TAIL_BOOM_BREAKABLE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? heliHealth->canBoomBreak : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_BODY_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? heliHealth->bodyHealth : 1000; // Since the custom health bit wasn't trigger, we are returning the default value. 
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_GAS_TANK_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? heliHealth->gasTankHealth : 1000; // TODO: Read the gas tank health from the vehicle health datanode. 
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_ENGINE_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? heliHealth->engineHealth : 1000; // Since the custom health bit wasn't trigger, we are returning the default value.
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_MAIN_ROTOR_DAMAGE_SCALE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? heliHealth->mainRotorDamage : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_REAR_ROTOR_DAMAGE_SCALE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? heliHealth->rearRotorDamage : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_TAIL_ROTOR_DAMAGE_SCALE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? heliHealth->tailRotorDamage : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_DISABLE_EXPLODE_FROM_BODY_DAMAGE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? heliHealth->disableExplosionFromBodyDamage : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_LANDING_GEAR_STATE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		int gearState = 0;
+
+		if (entity->type == fx::sync::NetObjEntityType::Heli)
+		{
+			auto state = entity->syncTree->GetHeliControl();
+			if (state->hasLandingGear)
+			{
+				gearState = state->landingGearState;
+			}
+		}
+		else if (entity->type == fx::sync::NetObjEntityType::Plane)
+		{
+			auto state = entity->syncTree->GetPlaneGameState();
+			gearState = state ? state->landingGearState : 0;
+		}
+
+		return gearState;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_YAW_CONTROL", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->yawControl : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_PITCH_CONTROL", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->pitchControl : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_ROLL_CONTROL", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->rollControl : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_THROTTLE_CONTROL", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->throttleControl : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_THRUSTER_SIDE_RCS_THROTTLE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->thrusterSideRCSThrottle : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_THRUSTER_THROTTLE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? heliControl->thrusterThrottle : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_IS_HELI_ENGINE_RUNNING", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliControl = entity->syncTree->GetHeliControl();
+
+		return heliControl ? !heliControl->engineOff : false;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_STEERING_ANGLE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
