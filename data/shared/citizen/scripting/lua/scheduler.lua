@@ -638,9 +638,7 @@ msgpack.extend_clear(EXT_FUNCREF, EXT_LOCALFUNCREF)
 
 -- RPC INVOCATION
 InvokeRpcEvent = function(source, ref, args)
-	if not coroutine_running() then
-		error('RPC delegates can only be invoked from a thread.', 2)
-	end
+	assert(coroutine_running(), 'RPC delegates can only be invoked from a thread.')
 
 	local src = source
 
