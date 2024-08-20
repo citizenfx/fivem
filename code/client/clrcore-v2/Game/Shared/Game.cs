@@ -53,11 +53,7 @@ namespace CitizenFX.Core
 		private static readonly Dictionary<Type, string> s_entityTypeMap = new Dictionary<Type, string>
 		{
 			{ typeof(Ped), "CPed" },
-#if !MONO_V2 || IS_RDR3
 			{ typeof(Prop), "CObject" },
-#else
-			{ typeof(Object), "CObject" },
-#endif
 			{ typeof(Pickup), "CPickup" },
 			{ typeof(Vehicle), "CVehicle" }
 		};
