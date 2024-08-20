@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-#if GTA_FIVE || IS_RDR3
 
 #if MONO_V2
 #if IS_RDR3
 using CitizenFX.RedM.Native;
 namespace CitizenFX.RedM
+#elif IS_FXSERVER
+using CitizenFX.Server.Native;
+namespace CitizenFX.Server
 #else // IS_GTA
 using CitizenFX.FiveM.Native;
 namespace CitizenFX.FiveM
@@ -54,7 +56,9 @@ namespace CitizenFX.Core
 		{
 			{ typeof(Ped), "CPed" },
 			{ typeof(Prop), "CObject" },
+#if !IS_FXSERVER
 			{ typeof(Pickup), "CPickup" },
+#endif
 			{ typeof(Vehicle), "CVehicle" }
 		};
 
@@ -91,6 +95,3 @@ namespace CitizenFX.Core
 		}
 	}
 }
-
-#endif
-// END GTA_FIVE || IS_RDR3
