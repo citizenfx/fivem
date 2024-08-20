@@ -115,6 +115,7 @@ public:
 	}
 
 	const uint8_t* GetBuffer() const { return &(*m_bytes)[0]; }
+	uint8_t* GetBuffer() { return &(*m_bytes)[0]; }
 	size_t GetLength() const { return m_bytes->size(); }
 	size_t GetCurOffset() const { return m_curOff; }
 	size_t GetRemainingBytes() const { return GetLength() - GetCurOffset(); }
