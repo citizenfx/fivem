@@ -5,7 +5,7 @@ return {
 			"../vendor/eabase/include/Common/",
 		}
 		
-		defines { "EASTL_OPENSOURCE=1" }
+		defines { "EASTL_OPENSOURCE=1","EA_DEPRECATIONS_FOR_2024_APRIL=EA_DISABLED", "EA_DEPRECATIONS_FOR_2024_SEPT=EA_DISABLED", "EA_DEPRECATIONS_FOR_2025_APRIL=EA_DISABLED", "EASTL_USER_DEFINED_ALLOCATOR=1" }
 	end,
 	
 	run = function()
