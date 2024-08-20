@@ -1151,6 +1151,20 @@ static HookFunction hookFunction([]()
 			}
 		});
 
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_DOES_CHANNEL_EXIST", [](fx::ScriptContext& context) {
+			auto channel = context.GetArgument<int>(0);
+
+			if (g_mumble.connected)
+			{
+				auto channelName = fmt::sprintf("Game Channel %d", channel);
+				context.SetResult<bool>(g_mumbleClient->DoesChannelExist(channelName));
+			}
+			else
+			{
+				context.SetResult<bool>(false);
+			}
+		});
+
 		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_ADD_VOICE_TARGET_PLAYER", [](fx::ScriptContext& context)
 		{
 			auto id = context.GetArgument<int>(0);

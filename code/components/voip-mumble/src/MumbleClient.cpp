@@ -349,9 +349,10 @@ void MumbleClient::Initialize()
 
 							if (!t.channel.empty())
 							{
+								std::wstring wname = ToWide(t.channel);
 								for (auto& channelPair : m_state.GetChannels())
 								{
-									if (channelPair.second.GetName() == ToWide(t.channel))
+									if (channelPair.second.GetName() == wname)
 									{
 										vt->set_channel_id(channelPair.first);
 									}
@@ -688,6 +689,21 @@ std::string MumbleClient::GetVoiceChannelFromServerId(uint32_t serverId)
 	});
 
 	return retString;
+}
+
+bool MumbleClient::DoesChannelExist(const std::string& channelName)
+{
+	std::wstring wname = ToWide(channelName);
+
+	for (const auto& channel : m_state.GetChannels())
+	{
+		if (channel.second.GetName() == wname)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
