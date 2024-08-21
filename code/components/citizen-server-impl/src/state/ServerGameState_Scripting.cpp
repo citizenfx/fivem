@@ -140,6 +140,41 @@ static void Init()
 		context.SetResult(true);
 	});
 
+#if _DEBUG 
+	fx::ScriptEngine::RegisterNativeHandler("IS_ENTITY_RELEVANT", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		// parse the client ID
+		auto id = context.GetArgument<uint32_t>(0);
+
+		if (!id)
+		{
+			context.SetResult(false);
+			return;
+		}
+
+		auto entity = gameState->GetEntity(id);
+
+		if (!entity || entity->finalizing || entity->deleting)
+		{
+			context.SetResult(false);
+			return;
+		}
+
+		std::lock_guard l(entity->guidMutex);
+
+		context.SetResult(entity->relevantTo.any());
+	});
+#endif
+
 	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_FROM_NETWORK_ID", [](fx::ScriptContext& context)
 	{
 		// get the current resource manager
@@ -196,6 +231,53 @@ static void Init()
 
         return retval;
     }));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_ORPHAN_MODE", [](fx::ScriptContext& context)
+    {
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		// parse the client ID
+		auto id = context.GetArgument<uint32_t>(0);
+
+		if (!id)
+		{
+			return;
+		}
+
+		auto entity = gameState->GetEntity(id);
+
+		if (!entity)
+		{
+			throw std::runtime_error(va("Tried to access invalid entity: %d", id));
+		}
+
+		auto orphanMode = context.GetArgument<int>(1);
+
+		if (orphanMode < 0 || orphanMode > fx::sync::KeepEntity)
+		{
+			throw std::runtime_error(va("Tried to set entities (%d) orphan mode to an invalid orphan mode: %d", id, orphanMode));
+		}
+
+		entity->orphanMode = static_cast<fx::sync::EntityOrphanMode>(orphanMode);
+
+		// if they set the orphan mode to `DeleteOnOwnerDisconnect` and the entity already doesn't have an owner then treat this as a `DELETE_ENTITY` call
+		if (entity->orphanMode == fx::sync::DeleteOnOwnerDisconnect && entity->firstOwnerDropped)
+		{
+			gameState->DeleteEntity(entity);
+		}
+    });
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ORPHAN_MODE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		return entity->orphanMode;
+	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_COORDS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{

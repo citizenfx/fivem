@@ -946,7 +946,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						continue;
 					}
 					// it's a client-owned entity, let's check for a few things
-					else if (entity->IsOwnedByClientScript())
+					else if (entity->IsOwnedByClientScript() && entity->orphanMode != sync::KeepEntity)
 					{
 						// is the original owner offline?
 						if (entity->firstOwnerDropped)
@@ -957,7 +957,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						}
 					}
 					// it's a script-less entity, we can collect it.
-					else if (!entity->IsOwnedByScript() && (entity->type != sync::NetObjEntityType::Player || !entity->GetClient()))
+					else if (!entity->IsOwnedByScript() && (entity->type != sync::NetObjEntityType::Player || !entity->GetClient()) && entity->orphanMode != sync::KeepEntity)
 					{
 						FinalizeClone({}, entity, entity->handle, 0, "Regular entity GC");
 						continue;
@@ -2883,10 +2883,18 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 				continue;
 			}
 
+			bool markedForDeletion = false;
+
 			auto firstOwner = entity->GetFirstOwner();
 			if (firstOwner && firstOwner->GetNetId() == client->GetNetId())
 			{
 				entity->firstOwnerDropped = true;
+
+				if (entity->orphanMode == sync::DeleteOnOwnerDisconnect)
+				{
+					toErase.insert(entity->handle);
+					markedForDeletion = true;
+				}
 			}
 
 			if (hasSlotId)
@@ -2904,13 +2912,20 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 				}
 			}
 
+			// we don't want to re-assign the entity at all, this entity should be deleted on the next tick
+			if (markedForDeletion)
+			{
+				continue;
+			}
+
 			if (!MoveEntityToCandidate(entity, client))
 			{
 				if (entity->IsOwnedByClientScript() && !entity->firstOwnerDropped)
 				{
 					ReassignEntity(entity->handle, firstOwner);
 				}
-				else
+				// we don't want to add these to the list to remove if they're set to be kept when orphaned
+				else if (entity->orphanMode != sync::KeepEntity)
 				{
 					toErase.insert(entity->handle);
 				}
