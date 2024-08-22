@@ -69,7 +69,7 @@ static HookFunction hookFunction([]()
 		hook::set_call(&getWeatherByName, location + 23);
 		hook::call(location + 23, getWeatherByNameHook);
 
-		g_currentWeather = hook::get_address<int*>(location + 30);
+		g_currentWeather = hook::get_address<int*>(location + (xbr::IsGameBuildOrGreater<3095>() ? 51 : 30));
 	}
 
 	{
