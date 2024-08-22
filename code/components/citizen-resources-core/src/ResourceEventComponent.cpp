@@ -206,23 +206,29 @@ bool ResourceEventManagerComponent::TriggerEvent(const std::string& eventName, c
 			eventComponent->HandleTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
 		};
 
+		// No known resource origin
 		if (!filter)
 		{
-			for (const auto& eventKey : { std::string{ "*" }, eventName })
+			// Don't process manually emitted __cfx_nui: events
+			if (eventName.find("__cfx_nui:") != 0)
 			{
-				for (const auto& resourcePair : fx::GetIteratorView(m_eventResources.equal_range(eventKey)))
+				for (const auto& eventKey : { std::string{ "*" }, eventName })
 				{
-					auto resource = m_manager->GetResource(resourcePair.second, false);
-
-					if (resource.GetRef())
+					for (const auto& resourcePair : fx::GetIteratorView(m_eventResources.equal_range(eventKey)))
 					{
-						forResource(resource);
+						auto resource = m_manager->GetResource(resourcePair.second, false);
+
+						if (resource.GetRef())
+						{
+							forResource(resource);
+						}
 					}
 				}
 			}
 		}
 		else
 		{
+			// By the time we arrive here the Strict Mode check from ResourceUI.cpp had taken place, no need for extra filtering
 			filter->HandleTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
 		}
 	}

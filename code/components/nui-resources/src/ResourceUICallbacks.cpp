@@ -22,7 +22,7 @@
 
 static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& type, const std::string& ref = {})
 {
-	return [resource, type, ref](const std::string& path, const std::string&, const std::multimap<std::string, std::string>& headers, const std::string& postData, ResUIResultCallback cb)
+	return [resource, type, ref](const std::string& path, const std::string&, const std::multimap<std::string, std::string>& headers, const std::string& postData, const std::optional<std::string>& originResource, ResUIResultCallback cb)
 	{
 		// get the event component
 		fwRefContainer<ResourceUI> ui = resource->GetComponent<ResourceUI>();

@@ -20,7 +20,7 @@
 #include <mutex>
 
 ResourceUI::ResourceUI(Resource* resource)
-	: m_resource(resource), m_hasFrame(false), m_hasCallbacks(false)
+	: m_resource(resource), m_hasFrame(false), m_hasCallbacks(false), m_strictModeOptedIn(false)
 {
 
 }
@@ -91,6 +91,13 @@ bool ResourceUI::Create()
 		nui::PrepareFrame(m_resource->GetName(), path);
 	}
 
+	// check if the resource opts into strict mode
+	auto strictModeData = metaData->GetEntries("nui_callback_strict_mode");
+	if (std::distance(uiPageData.begin(), uiPageData.end()) == 1 && strictModeData.begin()->second == "true")
+	{
+		m_strictModeOptedIn = true;
+	}
+
 	// add a cross-origin entry to allow fetching the callback handler
 	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "http", m_resource->GetName(), true);
 	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "https", m_resource->GetName(), true);
@@ -147,6 +154,37 @@ bool ResourceUI::InvokeCallback(const std::string& type, const std::string& quer
 		}
 	}
 
+	// origin lookup
+	auto originIts = headers.equal_range("Origin");
+	std::optional<std::string> originResource;
+	if (originIts.first != originIts.second)
+	{
+		// there should only be one, so take the first
+		const std::string& originPath = originIts.first->second;
+
+		constexpr char prefixNui[] = "nui://";
+		constexpr char prefixHttp[] = "https://cfx-nui-";
+
+		if (originPath.rfind(prefixNui, 0) == 0)
+		{
+			originResource = originPath.substr(std::size(prefixNui) - 1);
+		}
+		else if (originPath.rfind(prefixHttp, 0) == 0)
+		{
+			originResource = originPath.substr(std::size(prefixHttp) - 1);
+		}
+	}
+
+	if (m_strictModeOptedIn && (!originResource.has_value() || m_resource->GetName() != originResource.value()))
+	{
+		trace(__FUNCTION__ ": call to '%s/%s' from '%s' has been blocked by NUI Callback Strict Mode\n",
+		m_resource->GetName(),
+		type,
+		originResource.has_value() ? originResource.value() : "(null)");
+		return false;
+	}
+
+
 	std::vector<ResUICallback> cbSet;
 
 	for (auto& cb : set)
@@ -156,7 +194,7 @@ bool ResourceUI::InvokeCallback(const std::string& type, const std::string& quer
 
 	fwRefContainer selfRef = this;
 
-	std::function<void()> cb = [selfRef, cbSet = std::move(cbSet), type, query, headers, data, resultCB = std::move(resultCB)]()
+	std::function<void()> cb = [selfRef, cbSet = std::move(cbSet), type, query, headers, data, originResource, resultCB = std::move(resultCB)]()
 	{
 		if (selfRef->IsDead())
 		{
@@ -165,7 +203,7 @@ bool ResourceUI::InvokeCallback(const std::string& type, const std::string& quer
 
 		for (const auto& cb : cbSet)
 		{
-			cb(type, query, headers, data, resultCB);
+			cb(type, query, headers, data, originResource, resultCB);
 		}
 	};
 
