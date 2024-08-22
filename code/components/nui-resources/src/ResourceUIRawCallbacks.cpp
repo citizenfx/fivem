@@ -31,30 +31,15 @@ struct RequestWrap
 
 static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& type, const std::string& ref)
 {
-	return [resource, type, ref](const std::string& path, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& postData, ResUIResultCallback cb)
+	return [resource, type, ref](const std::string& path, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& postData, const std::optional<std::string>& originResource, ResUIResultCallback cb)
 	{
 		RequestWrap req;
 		req.method = (postData.empty()) ? "GET" : "POST";
 		req.body = postData;
 
-		// origin lookup
-		auto originIts = headers.equal_range("Origin");
-		if (originIts.first != originIts.second)
+		if (originResource.has_value())
 		{
-			// there should only be one, so take the first
-			const std::string& originPath = originIts.first->second;
-
-			constexpr char prefixNui[] = "nui://";
-			constexpr char prefixHttp[] = "https://cfx-nui-";
-
-			if (originPath.rfind(prefixNui, 0) == 0)
-			{
-				req.resource = originPath.substr(std::size(prefixNui) - 1);
-			}
-			else if (originPath.rfind(prefixHttp, 0) == 0)
-			{
-				req.resource = originPath.substr(std::size(prefixHttp) - 1);
-			}
+			req.resource = originResource.value();
 		}
 
 		std::map<std::string, msgpack::object> headerMap;
