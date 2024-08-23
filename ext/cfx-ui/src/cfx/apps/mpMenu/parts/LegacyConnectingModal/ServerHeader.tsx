@@ -8,7 +8,10 @@ import { observer } from 'mobx-react-lite';
 
 import { ServerIcon } from 'cfx/common/parts/Server/ServerIcon/ServerIcon';
 import { ServerTitle } from 'cfx/common/parts/Server/ServerTitle/ServerTitle';
+import { getServerLegalRatingImageURL } from 'cfx/common/services/servers/helpers';
 import { IServerView } from 'cfx/common/services/servers/types';
+
+import s from './ServerHeader.module.scss';
 
 export interface ServerHeaderProps {
   server: IServerView;
@@ -18,22 +21,34 @@ export const ServerHeader = observer(function ServerHeader(props: ServerHeaderPr
     server,
   } = props;
 
+  const ratingImageURL = getServerLegalRatingImageURL(server);
+
   return (
-    <Box style={getStyle(server)}>
-      <Pad top size="xlarge" />
+    <Flex vertical>
+      <Box style={getStyle(server)}>
+        <Pad top size="xlarge" />
 
-      <Pad size="large">
-        <Flex vertical gap="large">
-          <Flex centered="axis">
-            <ServerIcon type="details" size="small" server={server} />
+        <Pad size="large">
+          <Flex vertical gap="large">
+            <Flex centered="axis">
+              <ServerIcon type="details" size="small" server={server} />
 
-            <Flex vertical>
-              <ServerTitle size="xxlarge" title={server.projectName || server.hostname} />
+              <Flex vertical>
+                <ServerTitle size="xxlarge" title={server.projectName || server.hostname} />
+              </Flex>
             </Flex>
           </Flex>
-        </Flex>
-      </Pad>
-    </Box>
+        </Pad>
+      </Box>
+
+      {ratingImageURL && (
+        <div className={s.rating}>
+          <div className={s.left} />
+          <img className={s.image} src={ratingImageURL} alt="Server Legal Rating" />
+          <div className={s.right} />
+        </div>
+      )}
+    </Flex>
   );
 });
 
