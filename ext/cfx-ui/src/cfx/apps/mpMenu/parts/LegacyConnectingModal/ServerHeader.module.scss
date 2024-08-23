@@ -1,0 +1,27 @@
+.rating {
+    display: flex;
+    align-items: center;
+
+    width: 100%;
+
+    padding-bottom: ui.offset('large');
+
+    .left {
+        width: ui.offset('large');
+        height: ui.control-height('normal');
+
+        background-color: ui.color('primary', 200);
+    }
+
+    .image {
+        width: 40%;
+    }
+
+    .right {
+        flex-grow: 1;
+
+        height: ui.control-height('normal');
+
+        background-color: ui.color('primary', 200);
+    }
+}
