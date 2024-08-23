@@ -96,6 +96,8 @@ void MumbleAudioInput::ThreadFunc()
 {
 	SetThreadName(-1, "[Mumble] Audio Input Thread");
 
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+
 	// initialize COM for the current thread
 	CoInitialize(nullptr);
 
