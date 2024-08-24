@@ -279,6 +279,7 @@ static int VisualHeightSetOffset = 0x07C;
 static int LightMultiplierGetOffset;
 static int VehiclePitchBiasOffset;
 static int VehicleRollBiasOffset;
+static int VehicleFlagsOffset;
 
 static int VehicleDamageParentOffset;
 static int VehicleHandlingOffset;
@@ -751,6 +752,11 @@ static HookFunction initFunction([]()
 	{
 		VehiclePitchBiasOffset = *hook::get_pattern<uint32_t>("0F 2F F7 44 0F 28 C0 F3 44 0F 58 83", 12);
 		VehicleRollBiasOffset = VehiclePitchBiasOffset - 4;
+	}
+
+	{
+		auto location = hook::get_pattern<char>("48 85 C0 74 3C 8B 80 ? ? ? ? C1 E8 0F");
+		VehicleFlagsOffset = *(uint32_t*)(location + 7);
 	}
 
 	{
@@ -1370,6 +1376,56 @@ static HookFunction initFunction([]()
 				auto value = context.GetArgument<float>(1);
 				writeValue<float>(vehicle, VehicleRollBiasOffset, value);
 			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_HAS_FLAG", [](fx::ScriptContext& context)
+	{
+		int flagIndex = context.GetArgument<int>(1);
+
+		if (flagIndex < 0 || flagIndex >= (32 * 7))
+		{
+			return;
+		}
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_HAS_FLAG"))
+		{
+			// 0x020: VehicleModelInfoOffset
+			auto addr = *reinterpret_cast<uint64_t *>((unsigned char *)vehicle + 0x020);
+			auto target_block = *(uint32_t*)(addr + VehicleFlagsOffset + sizeof(uint32_t) * (flagIndex / 32));
+			context.SetResult<bool>((target_block & (1 << (flagIndex & 31))) != 0);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_FLAG", [](fx::ScriptContext& context)
+	{
+		int flagIndex = context.GetArgument<int>(1);
+		bool value = context.GetArgument<bool>(2);
+		
+		if (flagIndex < 0 || flagIndex >= (32 * 7))
+		{
+			return;
+			//TODO: Check if the flag is valid with CVehicleModelInfo::GetVehicleFlag()
+		}
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "SET_VEHICLE_FLAG"))
+		{
+			// 0x020: VehicleModelInfoOffset
+			auto addr = *reinterpret_cast<uint64_t *>((unsigned char *)vehicle + 0x020);
+			auto flag_block_addr = addr + VehicleFlagsOffset + sizeof(uint32_t) * (flagIndex / 32);
+
+			uint32_t target_block = *(uint32_t*)flag_block_addr;
+
+			if (value)
+			{
+				target_block |= (1 << (flagIndex & 31));
+			}
+			else
+			{
+				target_block &= ~(1 << (flagIndex & 31));
+			}
+
+			*(uint32_t*)flag_block_addr = target_block;
 		}
 	});
 
