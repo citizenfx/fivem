@@ -5,9 +5,10 @@
 To build FiveM, RedM or FXServer on Windows you need the following dependencies:
 
 * A Windows machine with Visual Studio 2019 (Build Tools/Community is fine) installed with the following workloads:
-  - .NET desktop environment
+  - .NET desktop environment (4.5 or 4.6 should be fine)
   - Desktop development with C++
   - Universal Windows Platform development
+  - Windows 10 SDK (you can install all of them)
   
   You can install these workloads by going to "Tools" -> "Get Tools and Features..." -> Check the checkboxes -> Click "Modify" in the bottom right corner.
   
@@ -33,6 +34,15 @@ fxd get-chrome
 fxd gen -game five
 fxd vs -game five
 ```
+
+### Building `FXServer`
+
+After cloning the repository and setting up the build environment, you need to run the `prebuild.cmd` file (at the root of the project).  
+Then open a CMD (at the root of the project) and run these commands:
+  - `fxd gen -game server`
+  - `fxd vs -game server`
+
+After running the `fxd vs` command, Visual Studio should open. Set it to `Release` instead of `Debug`, then right-click on the solution and select "Build Solution" or "Rebuild Solution".
 
 ### Set up data files for `five`
 
@@ -65,3 +75,11 @@ If you don't know how to do that, here's how:
 - Windows error code 127.
 
   Add an antivirus exclusion for the repository, try rebuilding, and see if it works this time.
+
+- Could not find component cache storage file (components.json).
+
+  You didn't generate/regenerate the solution in Visual Studio.
+
+- Could not load CitizenFX.Core.dll
+
+  You didn't install the Windows 10 SDK or the .NET Framework from the Visual Studio Installer.
