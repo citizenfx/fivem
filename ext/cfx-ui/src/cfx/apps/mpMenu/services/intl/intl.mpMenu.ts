@@ -21,7 +21,7 @@ export function registerMpMenuIntlService(container: ServicesContainer) {
 class MpMenuIntlService implements IIntlService {
   readonly systemLocale = (() => {
     const systemLocale = mpMenu.systemLanguages[0] || 'en-US';
-    const [language, country] = systemLocale.split('-');
+    let [language, country] = systemLocale.split('-');
 
     if (!country) {
       // Windows has some locales such as `pl` which shou ld expand to `pl-PL`
