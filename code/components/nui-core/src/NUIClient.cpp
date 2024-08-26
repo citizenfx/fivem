@@ -251,12 +251,18 @@ extern HCURSOR g_defaultCursor;
 
 bool NUIClient::OnCursorChange(CefRefPtr<CefBrowser> browser, CefCursorHandle cursor, cef_cursor_type_t type, const CefCursorInfo& custom_cursor_info)
 {
-	if (!cursor || type == CT_POINTER)
+	if (type == CT_NONE)
 	{
+		nui::SetCursorHidden(true);
+	}
+	else if (!cursor || type == CT_POINTER)
+	{
+		nui::SetCursorHidden(false);
 		g_nuiGi->SetHostCursor(g_defaultCursor);
 	}
 	else
 	{
+		nui::SetCursorHidden(false);
 		g_nuiGi->SetHostCursor(cursor);
 	}
 
