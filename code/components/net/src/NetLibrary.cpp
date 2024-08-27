@@ -744,13 +744,15 @@ struct GetAuthSessionTicketResponse_t
 
 static concurrency::task<std::optional<std::string>> ResolveUrl(const std::string& rootUrl)
 {
+	static HostSharedData<CfxState> hostData("CfxInitState");
+
 	try
 	{
 		auto uri = skyr::make_url(rootUrl);
 
 		if (uri && !uri->protocol().empty())
 		{
-			if (uri->protocol() == "fivem:")
+			if (uri->protocol() == ToNarrow(hostData->GetLinkProtocol(L":")))
 			{
 				// this whatwg url spec is very 'special' and doesn't allow you to ever make a new url and set protocol to any 'special' scheme
 				// such as 'http' or 'https' or 'file'

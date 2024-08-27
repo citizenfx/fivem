@@ -11,6 +11,8 @@
 
 #include <CoreConsole.h>
 
+#include <CfxState.h>
+
 #ifdef GTA_FIVE
 #define DEFAULT_APP_ID "382624125287399424"
 #define DEFAULT_APP_ASSET "fivem_large"
@@ -295,6 +297,9 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_DISCORD_RICH_PRESENCE_ACTION", [](fx::ScriptContext& context)
 	{
+		static HostSharedData<CfxState> hostData("CfxInitState");
+		static auto linkProtocolConnect = ToNarrow(hostData->GetLinkProtocol(L"://connect/"));
+
 		int idx = context.GetArgument<int>(0);
 		std::string label = context.CheckArgument<const char*>(1);
 		std::string url = context.CheckArgument<const char*>(2);
@@ -304,7 +309,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		if (url.find("https://") != 0 && url.find("fivem://connect/") != 0)
+		if (url.find("https://") != 0 && url.find(linkProtocolConnect) != 0)
 		{
 			return;
 		}

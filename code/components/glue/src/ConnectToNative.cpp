@@ -107,12 +107,14 @@ void RestartGameToOtherBuild(int build, int pureLevel)
 	HANDLE switchEvent = CreateEventW(&securityAttributes, TRUE, FALSE, NULL);
 
 	static HostSharedData<CfxState> hostData("CfxInitState");
-	auto cli = fmt::sprintf(L"\"%s\" %s %s %s -switchcl:%d \"fivem://connect/%s\"",
+
+	auto cli = fmt::sprintf(L"\"%s\" %s %s %s -switchcl:%d \"%s://connect/%s\"",
 	hostData->gameExePath,
 	build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
 	IsCL2() ? L"-cl2" : L"",
 	pureLevel == 0 ? L"" : fmt::sprintf(L"-pure_%d", pureLevel),
 	(uintptr_t)switchEvent,
+	hostData->GetLinkProtocol(),
 	ToWide(g_lastConn));
 
 	uint32_t defaultBuild =
@@ -372,7 +374,7 @@ static WRL::ComPtr<IShellLink> MakeShellLink(const ServerLink& link)
 		GetModuleFileNameEx(hProcess, NULL, imageFileName, std::size(imageFileName));
 
 		psl->SetPath(imageFileName);
-		psl->SetArguments(fmt::sprintf(L"%sfivem://connect/%s", buildArgument, ToWide(link.url)).c_str());
+		psl->SetArguments(fmt::sprintf(L"%s%s://connect/%s", buildArgument, hostData->GetLinkProtocol(), ToWide(link.url)).c_str());
 
 		WRL::ComPtr<IPropertyStore> pps;
 		psl.As(&pps);
@@ -1429,11 +1431,7 @@ void Component_RunPreInit()
 	if (hostData->IsMasterProcess())
 #endif
 	{
-#if defined(GTA_FIVE)
-		ProtocolRegister(L"FiveM", L"fivem");
-#elif defined(IS_RDR3)
-		ProtocolRegister(L"RedM", L"redm");
-#endif
+		ProtocolRegister(PRODUCT_NAME, hostData->GetLinkProtocol());
 	}
 
 	int argc;
@@ -1443,16 +1441,13 @@ void Component_RunPreInit()
 	static std::string connectParams;
 	static std::string authPayload;
 
+	static auto protocolLinkStart = ToNarrow(hostData->GetLinkProtocol(L":"));
+
 	for (int i = 1; i < argc; i++)
 	{
 		std::string arg = ToNarrow(argv[i]);
 
-		// Always handle fivem urls so code which already knows the exe path doesn't need to bother doing any extra logic
-		if (arg.find("fivem:") == 0
-#if defined(IS_RDR3)			
-			|| arg.find("redm:") == 0
-#endif
-			)
+		if (arg.find(protocolLinkStart) == 0)
 		{
 			auto parsed = skyr::make_url(arg);
 
@@ -1514,7 +1509,7 @@ void Component_RunPreInit()
 			std::string connectMsg = j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::strict);
 
 			nng_push0_open(&socket);
-			nng_dial(socket, "ipc:///tmp/fivem_connect", &dialer, 0);
+			nng_dial(socket, CONNECT_NNG_SOCKET_NAME, &dialer, 0);
 			nng_send(socket, const_cast<char*>(connectMsg.c_str()), connectMsg.size(), 0);
 
 			if (!hostData->gamePid)
@@ -1552,7 +1547,7 @@ void Component_RunPreInit()
 			nng_dialer dialer;
 
 			nng_push0_open(&socket);
-			nng_dial(socket, "ipc:///tmp/fivem_auth", &dialer, 0);
+			nng_dial(socket, AUTH_NNG_SOCKET_NAME, &dialer, 0);
 			nng_send(socket, const_cast<char*>(authPayload.c_str()), authPayload.size(), 0);
 
 			if (!hostData->gamePid)
@@ -1585,13 +1580,13 @@ static InitFunction connectInitFunction([]()
 	static nng_listener listener;
 
 	nng_pull0_open(&netSocket);
-	nng_listen(netSocket, "ipc:///tmp/fivem_connect", &listener, 0);
+	nng_listen(netSocket, CONNECT_NNG_SOCKET_NAME, &listener, 0);
 
 	static nng_socket netAuthSocket;
 	static nng_listener authListener;
 
 	nng_pull0_open(&netAuthSocket);
-	nng_listen(netAuthSocket, "ipc:///tmp/fivem_auth", &authListener, 0);
+	nng_listen(netAuthSocket, AUTH_NNG_SOCKET_NAME, &authListener, 0);
 
 	GetEarlyGameFrame().Connect([]()
 	{
