@@ -31,7 +31,7 @@ public:
 
 	virtual void SetSink(EventReassemblySink* sink) = 0;
 
-	virtual void RegisterTarget(int id) = 0;
+	virtual void RegisterTarget(int id, uint8_t maxPendingEvents) = 0;
 
 	virtual void UnregisterTarget(int id) = 0;
 
