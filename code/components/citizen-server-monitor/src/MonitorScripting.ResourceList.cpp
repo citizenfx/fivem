@@ -13,6 +13,9 @@
 
 #include <filesystem>
 
+#include "ServerInstanceBaseRef.h"
+#include "console/Console.h"
+
 DLL_IMPORT fwRefContainer<fx::ResourceMounter> MakeServerResourceMounter(const fwRefContainer<fx::ResourceManager>& resman);
 
 class ResourceScanMessage
@@ -96,6 +99,8 @@ static InitFunction initFunction([]
 			fwRefContainer localManager = fx::CreateResourceManager();
 			localManager->AddMounter(MakeServerResourceMounter(localManager));
 			localManager->SetComponent(fx::resources::ServerResourceList::Create());
+			localManager->SetComponent(rm->GetComponent<fx::ServerInstanceBaseRef>());
+			localManager->SetComponent(rm->GetComponent<console::Context>());
 
 			fx::resources::ScanResult result;
 			auto list = localManager->GetComponent<fx::resources::ServerResourceList>();
