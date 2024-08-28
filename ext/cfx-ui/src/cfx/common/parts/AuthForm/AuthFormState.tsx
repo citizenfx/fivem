@@ -10,8 +10,6 @@ import { inject, injectable } from 'inversify';
 import { makeAutoObservable, reaction } from 'mobx';
 import React from 'react';
 
-import { GameName } from 'cfx/base/game';
-import { currentGameNameIs } from 'cfx/base/gameRuntime';
 import { useServiceResolver } from 'cfx/base/servicesContainer';
 import { IAccountService } from 'cfx/common/services/account/account.service';
 import { SSOAuthCompleteEvent } from 'cfx/common/services/account/events';
@@ -118,10 +116,6 @@ class AuthFormState {
   }
 
   get showExternalAuthButton(): boolean {
-    if (!currentGameNameIs(GameName.FiveM)) {
-      return false;
-    }
-
     return this.isLogIn;
   }
 
