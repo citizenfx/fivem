@@ -268,6 +268,9 @@ int RealMain()
 	// this needs to be before *any* MakeRelativeCitPath use in main process
 	HostSharedData<CfxState> initState("CfxInitState");
 
+	// set link protocol, e.g. fivem or redm
+	initState->SetLinkProtocol(LINK_PROTOCOL);
+
 	// path environment appending of our primary directories
 	static wchar_t pathBuf[32768];
 	GetEnvironmentVariable(L"PATH", pathBuf, std::size(pathBuf));
@@ -573,8 +576,8 @@ int RealMain()
 
 			if (wcsstr(fxApplicationName, L"subprocess") == nullptr)
 			{
-				// and not a fivem:// protocol handler
-				if (wcsstr(GetCommandLineW(), L"fivem://") == nullptr)
+				// and not a protocol handler
+				if (wcsstr(GetCommandLineW(), initState->GetLinkProtocol(L"://")) == nullptr)
 				{
 					return 0;
 				}
