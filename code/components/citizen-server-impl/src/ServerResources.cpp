@@ -114,13 +114,8 @@ namespace
 		fx::scripting::Warningf("natives", "TRIGGER_LATENT_CLIENT_EVENT_INTERNAL requires setr sv_enableNetEventReassembly true\n");
 	}
 
-	void EnableEventReassemblyChanged(internal::ConsoleVariableEntry<bool>* variableEntry)
+	void EnableEventReassemblyChangedWithInstance(internal::ConsoleVariableEntry<bool>* variableEntry, fx::ServerInstanceBase* instance, const fwRefContainer<fx::EventReassemblyComponent>& rac)
 	{
-		const auto resourceManager = fx::ResourceManager::GetCurrent();
-		const auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
-
-		const auto rac = resourceManager->GetComponent<fx::EventReassemblyComponent>();
-
 		instance->GetComponent<fx::GameServer>()->OnNetworkTick.Disconnect(g_eventReassemblyNetworkCookie);
 
 		g_eventReassemblyNetworkCookie = -1;
@@ -138,6 +133,15 @@ namespace
 		{
 			fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_CLIENT_EVENT_INTERNAL", TriggerDisabledLatentClientEventInternal);
 		}
+	}
+
+	void EnableEventReassemblyChanged(internal::ConsoleVariableEntry<bool>* variableEntry)
+	{
+		const auto resourceManager = fx::ResourceManager::GetCurrent();
+		const auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+		const auto rac = resourceManager->GetComponent<fx::EventReassemblyComponent>();
+
+		EnableEventReassemblyChangedWithInstance(variableEntry, instance, rac);
 	}
 }
 
@@ -408,7 +412,10 @@ static InitFunction initFunction([]()
 		{
 			fx::scripting::Warningf("sv_netEventReassemblyMaxPendingEvents", "sv_netEventReassemblyMaxPendingEvents needs to be between [0, 254]. To allow unlimited pending events set sv_netEventReassemblyUnlimitedPendingEvents to true.\n");
 		}
-		
+
+		// Used to enable the EventReassemblyComponent when the setr sv_enableNetEventReassembly is not inside the server config
+		EnableEventReassemblyChangedWithInstance(g_enableNetEventReassemblyConVar->GetHelper().get(), instance, rac);
+
 		instance
 			->GetComponent<fx::GameServer>()
 			->GetComponent<fx::HandlerMapComponent>()
