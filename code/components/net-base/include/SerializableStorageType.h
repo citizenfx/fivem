@@ -28,24 +28,6 @@ namespace net::storage_type
 	template <typename ElementType, ElementType Min = 0, ElementType Max = 0, bool Remaining = false>
 	class SerializableSizeOptionArea
 	{
-		static ElementType AdjustSize(ElementType size)
-		{
-			if constexpr (Min > 0 && Max > 0)
-			{
-				return std::max(Min, std::min(Max, size));
-			}
-			else if constexpr (Min > 0)
-			{
-				return std::max(Min, size);
-			}
-			else if constexpr (Max > 0)
-			{
-				return std::min(Max, size);
-			}
-
-			return size;
-		}
-
 		template<typename SizeType>
 		static bool ValidateSize(SizeType size)
 		{
@@ -126,7 +108,15 @@ namespace net::storage_type
 			}
 			else if constexpr (T::kType == DataStream::Type::Writer)
 			{
-				ElementType size = AdjustSize(ElementType(suggestion));
+				if (!ValidateSize(suggestion))
+				{
+					valid = false;
+
+					return ElementType(0);
+				}
+
+				ElementType size = suggestion;
+
 				if constexpr (!Remaining)
 				{
 					stream.Field(size);
