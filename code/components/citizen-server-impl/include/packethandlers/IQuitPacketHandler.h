@@ -7,6 +7,7 @@
 #include <Client.h>
 
 #include "GameServer.h"
+#include "IQuit.h"
 
 namespace fx
 {
@@ -22,16 +23,24 @@ namespace fx
 
 			void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 			{
-				const size_t remainingBytes = packet.GetRemainingBytes();
-				if (remainingBytes < 1)
+				static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientIQuit>();
+
+				if (packet.GetRemainingBytes() > kClientMaxPacketSize)
 				{
 					instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, "");
 					return;
 				}
 
-				const std::string reason = std::string(
-					packet.Read<std::string_view>(std::min(remainingBytes - 1, static_cast<size_t>(1024))));
-				instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, reason);
+				net::packet::ClientIQuit clientIQuit;
+
+				net::ByteReader reader{ packet.GetRemainingBytesPtr(), packet.GetRemainingBytes() };
+				if (!clientIQuit.Process(reader))
+				{
+					instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, "");
+					return;
+				}
+
+				instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, std::string(clientIQuit.reason.GetValue()));
 			}
 
 			static constexpr const char* GetPacketId()
