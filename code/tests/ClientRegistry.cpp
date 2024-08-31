@@ -2,6 +2,8 @@
 
 #include "ClientRegistry.h"
 
+#include "GameServer.h"
+
 struct FarLockImpl : fx::FarLock::ImplBase
 {
 	// actual implementation uses folly's shared mutex
@@ -56,6 +58,8 @@ fx::ClientSharedPtr fx::ClientRegistry::MakeClient(const std::string& guid)
 	const auto local = net::PeerAddress::FromString("127.0.0.1").get();
 	client->SetPeer(1, local);
 
+	client->SetName(guid);
+
 	fx::ClientWeakPtr weakClient(client);
 
 	m_clientsBySlotId[client->GetNetId()] = weakClient;
@@ -81,11 +85,24 @@ void fx::ClientRegistry::HandleConnectedClient(const fx::ClientSharedPtr& client
 
 fx::ClientSharedPtr fx::ClientRegistry::GetHost()
 {
-	return fx::ClientSharedPtr{};
+	if (m_hostNetId == 0xFFFF)
+	{
+		return fx::ClientSharedPtr{};
+	}
+
+	return GetClientByNetID(m_hostNetId);
 }
 
 void fx::ClientRegistry::SetHost(const fx::ClientSharedPtr& client)
 {
+	if (!client)
+	{
+		m_hostNetId = -1;
+	}
+	else if (!fx::IsOneSync())
+	{
+		m_hostNetId = client->GetNetId();
+	}
 }
 
 void fx::ClientRegistry::AttachToObject(ServerInstanceBase* instance)
