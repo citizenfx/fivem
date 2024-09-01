@@ -81,3 +81,7 @@ If you don't know how to do that, here's how:
 - error CS0246: The type or namespace name 'Hash' could not be found (are you missing a using directive or an assembly reference?)
 
   `fxd gen` ran before `prebuild`. Close the solution, re-run `fxd gen` and then reopen & build the solution again.
+
+- error C2039: 'basic_string' is not a member of 'std'
+
+  Try to add an `#include <string>` at the beginning of the vendor\range-v3\include\range\v3\range\primitives.hpp - This could be explained by how your compiler's standard libraries
