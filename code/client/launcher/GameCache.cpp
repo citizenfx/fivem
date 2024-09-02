@@ -30,6 +30,8 @@
 #include <curl/easy.h>
 #endif
 
+#include <PoolSizesState.h>
+
 #include <Error.h>
 
 #if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
@@ -1344,6 +1346,17 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 	return true;
 }
+
+void DownloadPoolSizeLimits()
+{
+	CL_InitDownloadQueue();
+#ifdef GTA_FIVE
+	CL_QueueDownload("https://content.cfx.re/mirrors/client/pool-size-limits/fivem.json", ToNarrow(MakeRelativeCitPath(fx::client::PoolSizeManager::LIMITS_FILE_PATH)).c_str(), 0, compressionAlgo_e::None);
+#elif IS_RDR3
+	CL_QueueDownload("https://content.cfx.re/mirrors/client/pool-size-limits/redm.json", ToNarrow(MakeRelativeCitPath(fx::client::PoolSizeManager::LIMITS_FILE_PATH)).c_str(), 0, compressionAlgo_e::None);
+#endif
+	DL_RunLoop();
+}
 #endif
 
 #include <CrossBuildRuntime.h>
@@ -1911,6 +1924,8 @@ std::map<std::string, std::string> UpdateGameCache()
 			}
 		}
 	}
+
+	DownloadPoolSizeLimits();
 
 	// perform a game update
 	auto differences = CompareCacheDifferences();

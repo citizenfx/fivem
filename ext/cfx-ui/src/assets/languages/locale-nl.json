@@ -117,7 +117,6 @@
     "#NoOutage": "Er is momenteel geen storing bekend volgens de <a href=\"https://status.cfx.re/\">Cfx.re-statuspagina</a>.",
     "#Settings_LocalhostPort2": "Localhost-poort",
     "#BuildSwitch_Heading": "{{gameBrand}} moet opnieuw opgestart worden",
-    "#BuildSwitch_Body": "De server waarmee je probeert te verbinden vraagt om een andere spelversie ({{build}}), en daarom zal het spel opnieuw opgestart worden om deze versie te gebruiken en met de server te kunnen verbinden.",
     "#BuildSwitch_Cancel": "Annuleren",
     "#BuildSwitch_OK": "OK ({{seconds}})",
     "#Settings_UseAudioFrameLimiter": "Audio-framebegrenzer",
