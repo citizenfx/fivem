@@ -312,22 +312,22 @@ static HookFunction hookFunction([]()
 	// Natives to set component/prop variation using collections.
 	fx::ScriptEngine::RegisterNativeHandler("SET_PED_COLLECTION_COMPONENT_VARIATION", [](fx::ScriptContext& context)
 	{
-		// Call SET_PED_COMPONENT_VARIATION using the globalPropIndex
+		// Call SET_PED_COMPONENT_VARIATION using the global index obtained from the collection name and local index.
 		RedirectNativeCallWithGlobalIndex<void, int, int>(context, VariationType::DRAWABLE, 0x262B14F48D29DE80);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("SET_PED_COLLECTION_PROP_INDEX", [](fx::ScriptContext& context)
 	{
-		// Call SET_PED_PROP_INDEX using the globalPropIndex
+		// Call SET_PED_PROP_INDEX using the global index obtained from the collection name and local index.
 		RedirectNativeCallWithGlobalIndex<void, int, bool>(context, VariationType::PROP, 0x93376B65A266EB5F);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("SET_PED_COLLECTION_PRELOAD_VARIATION_DATA", [](fx::ScriptContext& context)
 	{
-		// Call SET_PED_PRELOAD_VARIATION_DATA using the globalPropIndex
+		// Call SET_PED_PRELOAD_VARIATION_DATA using the global index obtained from the collection name and local index.
 		RedirectNativeCallWithGlobalIndex<void, int>(context, VariationType::DRAWABLE, 0x39D55A620FCB6A3A);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("SET_PED_COLLECTION_PRELOAD_PROP_DATA", [](fx::ScriptContext& context)
 	{
-		// Call SET_PED_PROP_INDEX using the globalPropIndex
+		// Call SET_PED_PROP_INDEX using the global index obtained from the collection name and local index.
 		RedirectNativeCallWithGlobalIndex<void, int>(context, VariationType::PROP, 0x2B16A3BFF1FBCE49);
 	});
 
@@ -362,22 +362,22 @@ static HookFunction hookFunction([]()
 	});
 	fx::ScriptEngine::RegisterNativeHandler("GET_NUMBER_OF_PED_COLLECTION_TEXTURE_VARIATIONS", [](fx::ScriptContext& context)
 	{
-		// Call GET_NUMBER_OF_PED_TEXTURE_VARIATIONS using the globalPropIndex
+		// Call GET_NUMBER_OF_PED_TEXTURE_VARIATIONS using the global index obtained from the collection name and local index.
 		RedirectNativeCallWithGlobalIndex<int>(context, VariationType::DRAWABLE, 0x8F7156A3142A6BAD);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("GET_NUMBER_OF_PED_COLLECTION_PROP_TEXTURE_VARIATIONS", [](fx::ScriptContext& context)
 	{
-		// Call GET_NUMBER_OF_PED_PROP_TEXTURE_VARIATIONS using the globalPropIndex
+		// Call GET_NUMBER_OF_PED_PROP_TEXTURE_VARIATIONS using the global index obtained from the collection name and local index.
 		RedirectNativeCallWithGlobalIndex<int>(context, VariationType::PROP, 0xA6E7F1CEB523E171);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("IS_PED_COLLECTION_COMPONENT_VARIATION_VALID", [](fx::ScriptContext& context)
 	{
-		// Call IS_PED_COMPONENT_VARIATION_VALID using the globalPropIndex
+		// Call IS_PED_COMPONENT_VARIATION_VALID using the global index obtained from the collection name and local index.
 		RedirectNativeCallWithGlobalIndex<bool, int>(context, VariationType::DRAWABLE, 0xE825F6B6CEA7671D);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("IS_PED_COLLECTION_COMPONENT_VARIATION_GEN9_EXCLUSIVE", [](fx::ScriptContext& context)
 	{
-		// Call IS_PED_COMPONENT_VARIATION_GEN9_EXCLUSIVE using the globalPropIndex
+		// Call IS_PED_COMPONENT_VARIATION_GEN9_EXCLUSIVE using the global index obtained from the collection name and local index.
 		RedirectNativeCallWithGlobalIndex<bool>(context, VariationType::DRAWABLE, 0xC767B581);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_DRAWABLE_VARIATION_COLLECTION_LOCAL_INDEX", [](fx::ScriptContext& context)
