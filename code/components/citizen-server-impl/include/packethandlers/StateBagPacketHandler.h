@@ -34,7 +34,7 @@ public:
 
 	void COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet);
 
-	static void COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) HandleStateBagMessage(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, const net::Buffer& packet);
+	static void COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) HandleStateBagMessage(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, const net::Buffer& buffer);
 
 	static constexpr const char* GetPacketId()
 	{

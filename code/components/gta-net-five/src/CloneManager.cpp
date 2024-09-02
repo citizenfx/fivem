@@ -448,9 +448,9 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	"msgStateBagV2", [this](const char* data, size_t len)
 	{
 		net::ByteReader reader (reinterpret_cast<const uint8_t*>(data), len);
-		fx::StateBagMessage stateBagMessage;
-		stateBagMessage.Process(reader);
-		m_sbac->HandlePacketV2(0, stateBagMessage);
+		net::packet::StateBagV2 stateBag;
+		stateBag.Process(reader);
+		m_sbac->HandlePacketV2(0, stateBag);
 	},
 	true);
 
