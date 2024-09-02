@@ -413,22 +413,11 @@ static InitFunction initFunction([]()
 			fx::scripting::Warningf("sv_netEventReassemblyMaxPendingEvents", "sv_netEventReassemblyMaxPendingEvents needs to be between [0, 254]. To allow unlimited pending events set sv_netEventReassemblyUnlimitedPendingEvents to true.\n");
 		}
 
-		// Used to enable the EventReassemblyComponent when the setr sv_enableNetEventReassembly is not inside the server config
-		EnableEventReassemblyChangedWithInstance(g_enableNetEventReassemblyConVar->GetHelper().get(), instance, rac);
-
-		instance
-			->GetComponent<fx::GameServer>()
-			->GetComponent<fx::HandlerMapComponent>()
-			->Add(HashRageString("msgReassembledEvent"), [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
-			{
-				if (g_enableNetEventReassemblyConVar->GetValue())
-				{
-					rac->HandlePacket(client->GetNetId(), std::string_view{ (char*)(buffer.GetBuffer() + buffer.GetCurOffset()), buffer.GetRemainingBytes() });
-				}
-			});
-
 		g_reassemblySink.instance = instance;
 		rac->SetSink(&g_reassemblySink);
+
+		// Used to enable the EventReassemblyComponent when the setr sv_enableNetEventReassembly is not inside the server config
+		EnableEventReassemblyChangedWithInstance(g_enableNetEventReassemblyConVar->GetHelper().get(), instance, rac);
 
 		instance->GetComponent<fx::ClientRegistry>()->OnClientCreated.Connect([rac](const fx::ClientSharedPtr& client)
 		{
