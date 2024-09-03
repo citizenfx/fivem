@@ -4019,25 +4019,22 @@ public:
 		return Count;
 	}
 
-	virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer) override
+	virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) override
 	{
 		std::unique_lock lock(m_mutex);
 
-		auto elem = buffer.Read<uint16_t>();
-		auto byteSize = buffer.Read<uint16_t>();
-
-		if (elem >= Count)
+		if (buffer.index >= Count)
 		{
 			return false;
 		}
 
-		if (byteSize > MaxElemSize)
+		if (buffer.data.GetValue().size() > MaxElemSize)
 		{
 			return false;
 		}
 
 		{
-			auto curClient = m_owners[elem].lock();
+			auto curClient = m_owners[buffer.index].lock();
 
 			if (curClient && !(curClient == client))
 			{
@@ -4045,20 +4042,20 @@ public:
 			}
 		}
 
-		if (byteSize)
+		if (!buffer.data.GetValue().empty())
 		{
-			m_owners[elem] = client;
+			m_owners[buffer.index] = client;
+			memcpy(&m_array[buffer.index * MaxElemSize], buffer.data.GetValue().data(), buffer.data.GetValue().size());
 		}
 		else
 		{
-			m_owners[elem] = {};
+			m_owners[buffer.index] = {};
 		}
 
-		buffer.Read(&m_array[elem * MaxElemSize], byteSize);
-		m_sizes[elem] = byteSize;
+		m_sizes[buffer.index] = buffer.data.GetValue().size();
 
-		m_dirtyFlags[elem].set();
-		m_dirtyFlags[elem].reset(client->GetSlotId());
+		m_dirtyFlags[buffer.index].set();
+		m_dirtyFlags[buffer.index].reset(client->GetSlotId());
 
 		return true;
 	}
@@ -4157,9 +4154,8 @@ void ServerGameState::SendArrayData(const fx::ClientSharedPtr& client)
 	}
 }
 
-void ServerGameState::HandleArrayUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer)
+void ServerGameState::HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer)
 {
-	auto arrayIndex = buffer.Read<uint8_t>();
 	auto data = GetClientDataUnlocked(this, client);
 
 	decltype(m_arrayHandlers)::iterator gridRef;
@@ -4178,12 +4174,12 @@ void ServerGameState::HandleArrayUpdate(const fx::ClientSharedPtr& client, net::
 
 	auto& ah = gridRef->second;
 
-	if (arrayIndex >= ah->handlers.size())
+	if (buffer.handler >= ah->handlers.size())
 	{
 		return;
 	}
 
-	auto handler = ah->handlers[arrayIndex];
+	auto handler = ah->handlers[buffer.handler];
 
 	if (!handler)
 	{
@@ -7542,17 +7538,6 @@ static InitFunction initFunction([]()
 			else
 			{
 				routeEvent();
-			}
-		} });
-
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgArrayUpdate"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
-		{
-			static fx::RateLimiterStore<uint32_t, false> arrayHandlerLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
-			static auto arrayUpdateRateLimiter = arrayHandlerLimiterStore.GetRateLimiter("arrayUpdate", fx::RateLimiterDefaults{ 75.f, 125.f });
-
-			if (arrayUpdateRateLimiter->Consume(client->GetNetId()))
-			{
-				instance->GetComponent<fx::ServerGameState>()->HandleArrayUpdate(client, buffer);
 			}
 		} });
 
