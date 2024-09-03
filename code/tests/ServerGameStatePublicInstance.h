@@ -3,6 +3,7 @@
 #include <vector>
 #include <Client.h>
 
+#include "ArrayUpdate.h"
 #include "NetGameEventV2.h"
 
 namespace fx
@@ -45,6 +46,22 @@ namespace fx
 			}
 		};
 
+		struct ArrayUpdateData
+		{
+			const fx::ClientSharedPtr client;
+			const uint8_t handler;
+			const uint16_t index;
+			const std::vector<uint8_t> data;
+
+			ArrayUpdateData(const fx::ClientSharedPtr& client, const uint8_t handler, const uint16_t index, const std::vector<uint8_t>& data)
+				: client(client),
+				  handler(handler),
+				  index(index),
+				  data(data)
+			{
+			}
+		};
+
 		static ServerGameStatePublic* Create();
 
 		static void SetClientRoutingBucket(const ClientSharedPtr& client, uint32_t routingBucket);
@@ -52,6 +69,8 @@ namespace fx
 		static std::optional<ParseGameStatePacketData>& GetParseGameStatePacketDataLastCall();
 
 		static std::optional<GameEventHandler>& GetGameEventHandlerLastCall();
+
+		static std::optional<ArrayUpdateData>& GetArrayUpdateLastCall();
 
 		static std::function<bool()>& GetGameEventHandler();
 	};
