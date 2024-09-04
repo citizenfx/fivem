@@ -6,7 +6,12 @@
 #include <StateBagComponent.h>
 
 #include "ByteReader.h"
+#include "ClientRegistry.h"
+#include "ConsoleContextInstance.h"
+#include "ResourceManagerInstance.h"
+#include "ServerInstance.h"
 #include "TestUtils.h"
+#include "packethandlers/StateBagPacketHandler.h"
 #include "state/RlMessageBuffer.h"
 
 class TestInterface : public fx::StateBagGameInterface
@@ -79,7 +84,7 @@ TEST_CASE("State Bag handle benchmarks")
 	};
 }
 
-TEST_CASE("State Bag handler v2 test")
+TEST_CASE("State Bag v2 test")
 {
 	std::string testKey = fx::TestUtils::asciiRandom(10);
 	std::string testData = fx::TestUtils::asciiRandom(50);
@@ -105,7 +110,7 @@ TEST_CASE("State Bag handler v2 test")
 	stateBagComponentHandleNewData->HandlePacketV2(std::get<0>(newPacket), stateBag);
 }
 
-TEST_CASE("State Bag handler v1 test")
+TEST_CASE("State Bag v1 test")
 {
 	std::string testKey = fx::TestUtils::asciiRandom(10);
 	std::string testData = fx::TestUtils::asciiRandom(50);
@@ -148,4 +153,86 @@ TEST_CASE("State Bag handler v1 test")
 	REQUIRE(std::string_view(data.data(), data.size()) == testData);
 
 	stateBagComponentHandleOldData->HandlePacket(std::get<0>(oldPacket), std::get<1>(oldPacket));
+}
+
+TEST_CASE("State Bag handler v2 test")
+{
+	std::string testKey = fx::TestUtils::asciiRandom(10);
+	std::string testData = fx::TestUtils::asciiRandom(50);
+
+	auto stateBagComponentCreateNewData = fx::StateBagComponent::Create(fx::StateBagRole::ClientV2);
+	TestInterface* testInterfaceNewData = new TestInterface();
+	stateBagComponentCreateNewData->SetGameInterface(testInterfaceNewData);
+	auto stateBagNewData = stateBagComponentCreateNewData->RegisterStateBag("net:1");
+	stateBagNewData->AddRoutingTarget(2);
+	testInterfaceNewData->Reset();
+	stateBagNewData->SetKey(1, testKey, testData);
+	REQUIRE(testInterfaceNewData->HasPacket());
+	auto newPacket = testInterfaceNewData->GetPacket();
+	REQUIRE(std::get<0>(newPacket) == 2);
+
+	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
+	serverInstance->SetComponent(new fx::ClientRegistry());
+
+	auto stateBagComponentCreateOldDataServer = fx::StateBagComponent::Create(fx::StateBagRole::Server);
+	auto resourceManager = fx::ResourceManagerInstance::Create();
+	serverInstance->SetComponent<fx::ResourceManager>(resourceManager);
+	resourceManager->SetComponent<fx::StateBagComponent>(stateBagComponentCreateOldDataServer);
+	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
+
+	testInterfaceNewData->Reset();
+
+	auto stateBag = stateBagComponentCreateOldDataServer->RegisterStateBag("net:1");
+	
+	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
+	client->SetSlotId(1);
+	StateBagPacketHandlerV2 handler(serverInstance.GetRef());
+	net::Buffer buffer;
+	buffer.Write(std::get<1>(newPacket).data(), std::get<1>(newPacket).size());
+	buffer.Reset();
+	handler.Handle(serverInstance.GetRef(), client, buffer);
+
+	REQUIRE(stateBag->HasKey(testKey) == true);
+	REQUIRE(stateBag->GetKey(testKey) == testData);
+}
+
+TEST_CASE("State Bag handler v1 test")
+{
+	std::string testKey = fx::TestUtils::asciiRandom(10);
+	std::string testData = fx::TestUtils::asciiRandom(50);
+
+	auto stateBagComponentCreateOldData = fx::StateBagComponent::Create(fx::StateBagRole::Client);
+	TestInterface* testInterfaceOldData = new TestInterface();
+	stateBagComponentCreateOldData->SetGameInterface(testInterfaceOldData);
+	auto stateBagOldData = stateBagComponentCreateOldData->RegisterStateBag("net:1");
+	stateBagOldData->AddRoutingTarget(2);
+	testInterfaceOldData->Reset();
+	stateBagOldData->SetKey(1, testKey, testData);
+	REQUIRE(testInterfaceOldData->HasPacket());
+	auto oldPacket = testInterfaceOldData->GetPacket();
+	REQUIRE(std::get<0>(oldPacket) == 2);
+
+	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
+	serverInstance->SetComponent(new fx::ClientRegistry());
+
+	auto stateBagComponentCreateOldDataServer = fx::StateBagComponent::Create(fx::StateBagRole::Server);
+	auto resourceManager = fx::ResourceManagerInstance::Create();
+	serverInstance->SetComponent<fx::ResourceManager>(resourceManager);
+	resourceManager->SetComponent<fx::StateBagComponent>(stateBagComponentCreateOldDataServer);
+	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
+
+	testInterfaceOldData->Reset();
+
+	auto stateBag = stateBagComponentCreateOldDataServer->RegisterStateBag("net:1");
+	
+	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
+	client->SetSlotId(1);
+	StateBagPacketHandler handler(serverInstance.GetRef());
+	net::Buffer buffer;
+	buffer.Write(std::get<1>(oldPacket).data(), std::get<1>(oldPacket).size());
+	buffer.Reset();
+	handler.Handle(serverInstance.GetRef(), client, buffer);
+
+	REQUIRE(stateBag->HasKey(testKey) == true);
+	REQUIRE(stateBag->GetKey(testKey) == testData);
 }

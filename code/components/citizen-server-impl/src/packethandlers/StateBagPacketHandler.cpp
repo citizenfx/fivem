@@ -129,7 +129,7 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 	net::packet::StateBag clientStateBag;
 
 	net::ByteReader reader{ buffer.GetRemainingBytesPtr(), buffer.GetRemainingBytes() };
-	if (clientStateBag.Process(reader))
+	if (!clientStateBag.Process(reader))
 	{
 		// this only happens when a malicious client sends packets not created from our client code
 		return;
@@ -293,7 +293,7 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 	net::packet::StateBagV2 clientStateBag;
 
 	net::ByteReader reader{ buffer.GetRemainingBytesPtr(), buffer.GetRemainingBytes() };
-	if (clientStateBag.Process(reader))
+	if (!clientStateBag.Process(reader))
 	{
 		// this only happens when a malicious client sends packets not created from our client code
 		return;
