@@ -329,7 +329,7 @@ static InitFunction initFunction([] ()
 	};
 
 	scrBindClass<NUIWindowWrapper>()
-		.AddConstructor<void(*)(const char*, int, int)>("CREATE_DUI")
+		.AddConstructor<const char*, int, int>("CREATE_DUI")
 		.AddMethod("SET_DUI_URL", &NUIWindowWrapper::SetURL)
 		.AddMethod("SEND_DUI_MESSAGE", &NUIWindowWrapper::SendMessage)
 		.AddMethod("GET_DUI_HANDLE", &NUIWindowWrapper::GetHandle)

@@ -82,7 +82,9 @@ local function isSafeNative(native)
 		local nativeType = arg.type.nativeType or 'Any'
 
 		if arg.pointer then
-			if singlePointer then
+			if arg.type.name == 'Any' then -- nativeType of Any is int
+				safe = false
+			elseif singlePointer then
 				safe = false
 			elseif nativeType ~= "vector3" and not safeArguments[nativeType] then
 				safe = false

@@ -9,10 +9,6 @@
 #include "fxScripting.h"
 #include <ManifestVersion.h>
 
-#if __has_include(<PointerArgumentHints.h>)
-#include <PointerArgumentHints.h>
-#endif
-
 #include <ResourceCallbackComponent.h>
 
 #include <chrono>
@@ -23,8 +19,11 @@
 #include <SharedFunction.h>
 
 #include "fxScriptBuffer.h"
+#include <ScriptInvoker.h>
 
 #include <v8-version.h>
+
+using namespace fx::invoker;
 
 #ifndef IS_FXSERVER
 #include <CL2LaunchMode.h>
@@ -158,22 +157,6 @@ static Platform* GetV8Platform();
 static node::IsolateData* GetNodeIsolate();
 #endif
 
-struct PointerFieldEntry
-{
-	bool empty;
-	uintptr_t value;
-
-	PointerFieldEntry()
-	{
-		empty = true;
-	}
-};
-
-struct PointerField
-{
-	PointerFieldEntry data[64];
-};
-
 // this is *technically* per-isolate, but we only register the callback for our host isolate
 static std::atomic<int> g_isV8InGc;
 
@@ -225,7 +208,7 @@ private:
 
 	void* m_parentObject;
 
-	PointerField m_pointerFields[3];
+	invoker::PointerField m_pointerFields[3];
 
 	// string values, which need to be persisted across calls as well
 	std::unique_ptr<String::Utf8Value> m_stringValues[50];
@@ -320,7 +303,7 @@ public:
 		return m_scriptHost;
 	}
 
-	inline PointerField* GetPointerFields()
+	inline invoker::PointerField* GetPointerFields()
 	{
 		return m_pointerFields;
 	}
@@ -344,7 +327,7 @@ public:
 		}
 	}
 
-	const char* AssignStringValue(const Local<Value>& value);
+	const char* AssignStringValue(const Local<Value>& value, size_t* length);
 
 	NS_DECL_ISCRIPTRUNTIME;
 
@@ -560,23 +543,6 @@ void ScriptTrace(const char* string, const TArgs& ... args)
 {
 	ScriptTraceV(string, fmt::make_printf_args(args...));
 }
-
-enum class V8MetaFields
-{
-	PointerValueInt,
-	PointerValueFloat,
-	PointerValueVector,
-	ReturnResultAnyway,
-	ResultAsInteger,
-	ResultAsLong,
-	ResultAsFloat,
-	ResultAsString,
-	ResultAsVector,
-	ResultAsObject,
-	Max
-};
-
-static uint8_t g_metaFields[(int)V8MetaFields::Max];
 
 static void V8_SetTickFunction(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -1018,10 +984,12 @@ static void V8_GetTickCount(const v8::FunctionCallbackInfo<v8::Value>& args)
 	args.GetReturnValue().Set((double)msec().count());
 }
 
-const char* V8ScriptRuntime::AssignStringValue(const Local<Value>& value)
+const char* V8ScriptRuntime::AssignStringValue(const Local<Value>& value, size_t* length)
 {
 	auto stringValue = std::make_unique<String::Utf8Value>(GetV8Isolate(), value);
+	
 	const char* str = **(stringValue.get());
+	*length = stringValue->length();
 
 	// take ownership
 	m_stringValues[m_curStringValue] = std::move(stringValue);
@@ -1033,394 +1001,310 @@ const char* V8ScriptRuntime::AssignStringValue(const Local<Value>& value)
 	return str;
 }
 
-struct StringHashGetter
+struct V8ScriptNativeContext : ScriptNativeContext
 {
-	static const int BaseArgs = 1;
-
-	uint64_t operator()(const v8::FunctionCallbackInfo<v8::Value>& args)
+	V8ScriptNativeContext(uint64_t hash, V8ScriptRuntime* runtime, v8::Isolate* isolate)
+		: ScriptNativeContext(hash, runtime->GetPointerFields())
+		, isolateScope(GetV8Isolate()), runtime(runtime), isolate(isolate), cxt(runtime->GetContext())
 	{
-		String::Utf8Value hashString(GetV8Isolate(), args[0]);
-		return strtoull(*hashString, nullptr, 16);
 	}
+
+	void DoSetError(const char* msg) override
+	{
+		isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, msg).ToLocalChecked()));
+	}
+
+	bool PushArgument(v8::Local<v8::Value> arg);
+
+	template<typename T>
+	v8::Local<v8::Value> ProcessResult(const T& value);
+
+	v8::Isolate::Scope isolateScope;
+	V8ScriptRuntime* runtime;
+	v8::Isolate* isolate;
+	v8::Local<v8::Context> cxt;
 };
 
-struct IntHashGetter
+bool V8ScriptNativeContext::PushArgument(v8::Local<v8::Value> arg)
 {
-	static const int BaseArgs = 2;
-
-	uint64_t operator()(const v8::FunctionCallbackInfo<v8::Value>& args)
+	if (arg->IsNumber())
 	{
-		auto scrt = V8ScriptRuntime::GetCurrent();
+		double value = arg->NumberValue(cxt).ToChecked();
+		int64_t intValue = static_cast<int64_t>(value);
 
-		return (args[1]->Uint32Value(scrt->GetContext()).ToChecked() | (((uint64_t)args[0]->Uint32Value(scrt->GetContext()).ToChecked()) << 32));
-	}
-};
-
-//
-// Sanitization for string result types
-// Loops through all values given by the ScRT and deny any that equals the result value which isn't of the string type
-template<typename HashGetter>
-void NativeStringResultSanitization(const v8::FunctionCallbackInfo<v8::Value>& inputArguments, fxNativeContext& context, decltype(context.arguments)& initialArguments)
-{
-	const auto resultValue = context.arguments[0];
-
-	// Step 1: quick compare all values until we found a hit
-	// By not switching between all the buffers (incl. input arguments) we'll not introduce unnecessary cache misses.
-	for (int a = 0; a < context.numArguments; ++a)
-	{
-		if (initialArguments[a] == resultValue)
+		if (intValue == value)
 		{
-			// Step 2: loop our input list for as many times as `a` was increased
-			const int inputSize = inputArguments.Length();
-			for (int i = HashGetter::BaseArgs; i < inputSize; ++i)
+			return Push(intValue);
+		}
+		else
+		{
+			return Push(static_cast<float>(value));
+		}
+	}
+	else if (arg->IsBoolean() || arg->IsBooleanObject())
+	{
+		return Push(arg->BooleanValue(isolate));
+	}
+	else if (arg->IsString())
+	{
+		// TODO: Should these be marked as immutable?
+		size_t length = 0;
+		const char* data = runtime->AssignStringValue(arg, &length);
+		return Push(data, length);
+	}
+	// null/undefined: add '0'
+	else if (arg->IsNull() || arg->IsUndefined())
+	{
+		return Push(0);
+	}
+	// metafield
+	else if (arg->IsExternal())
+	{
+		uint8_t* ptr = reinterpret_cast<uint8_t*>(Local<External>::Cast(arg)->Value());
+
+		return PushMetaPointer(ptr);
+	}
+	// placeholder vectors
+	else if (arg->IsArray())
+	{
+		Local<Array> array = Local<Array>::Cast(arg);
+		float x = 0.0f, y = 0.0f, z = 0.0f, w = 0.0f;
+
+		auto getNumber = [&](int idx)
+		{
+			Local<Value> value;
+
+			if (!array->Get(cxt, idx).ToLocal(&value))
 			{
-				const auto& v8Input = inputArguments[i];
-
-				// `a` can be reused by simply decrementing it, we'll go negative when we hit our goal as we decrement before checking (e.g.: `0 - 1 = -1` or `0 - 4 = -4`)
-				a -= v8Input->IsArray() ? std::min(Local<Array>::Cast(v8Input)->Length(), 4u) : 1u;
-
-				// string type is allowed
-				if (a < 0)
-				{
-					if (!v8Input->IsString())
-					{
-						ScriptTrace("Warning: Sanitized coerced string result for native %016x.\n", context.nativeIdentifier);
-						context.arguments[0] = 0;
-					}
-
-					return; // we found our arg, no more to check
-				}
+				return NAN;
 			}
 
-			return; // found our value, no more to check
+			if (value.IsEmpty() || !value->IsNumber())
+			{
+				return NAN;
+			}
+
+			return static_cast<float>(value->NumberValue(cxt).ToChecked());
+		};
+
+		if (array->Length() < 2 || array->Length() > 4)
+		{
+			return SetError("arrays should be vectors (wrong number of values)");
 		}
+
+		if (array->Length() >= 2)
+		{
+			x = getNumber(0);
+			y = getNumber(1);
+
+			if (x == NAN || y == NAN)
+			{
+				return SetError("invalid vector array value");
+			}
+
+			if (!Push(x) || !Push(y))
+			{
+				return false;
+			}
+		}
+
+		if (array->Length() >= 3)
+		{
+			z = getNumber(2);
+
+			if (z == NAN)
+			{
+				return SetError("invalid vector array value");
+			}
+
+			if (!Push(z))
+			{
+				return false;
+			}
+		}
+
+		if (array->Length() >= 4)
+		{
+			w = getNumber(3);
+
+			if (w == NAN)
+			{
+				return SetError("invalid vector array value");
+			}
+
+			if (!Push(w))
+			{
+				return false;
+			}
+		}
+	}
+	else if (arg->IsArrayBufferView())
+	{
+		Local<ArrayBufferView> abv = arg.As<ArrayBufferView>();
+		Local<ArrayBuffer> buffer = abv->Buffer();
+
+		auto abs = buffer->GetBackingStore();
+		return Push((uint8_t*)abs->Data() + abv->ByteOffset(), abs->ByteLength());
+	}
+	// this should be the last entry, I'd guess
+	else if (arg->IsObject())
+	{
+		Local<Object> object = arg->ToObject(cxt).ToLocalChecked();
+		Local<Value> data;
+
+		if (!object->Get(cxt, String::NewFromUtf8(GetV8Isolate(), "__data").ToLocalChecked()).ToLocal(&data))
+		{
+			return SetError("__data field does not contain a number");
+		}
+
+		if (!data.IsEmpty() && data->IsNumber())
+		{
+			auto n = data->ToNumber(runtime->GetContext());
+			v8::Local<v8::Number> number;
+
+			if (n.ToLocal(&number))
+			{
+				return Push(number->Int32Value(cxt).ToChecked());
+			}
+		}
+		else
+		{
+			return SetError("__data field does not contain a number");
+		}
+	}
+	else
+	{
+		String::Utf8Value str(GetV8Isolate(), arg);
+		return SetError(va("Invalid V8 value: %s", *str));
+	}
+
+	return true;
+}
+
+template<typename T>
+v8::Local<v8::Value> V8ScriptNativeContext::ProcessResult(const T& value)
+{
+	if constexpr (std::is_same_v<T, bool>)
+	{
+		return Boolean::New(isolate, value);
+	}
+	else if constexpr (std::is_same_v<T, int32_t>)
+	{
+		return Int32::New(isolate, value);
+	}
+	else if constexpr (std::is_same_v<T, int64_t>)
+	{
+		return Number::New(isolate, (double) value);
+	}
+	else if constexpr (std::is_same_v<T, float>)
+	{
+		return Number::New(isolate, value);
+	}
+	else if constexpr (std::is_same_v<T, ScrVector>)
+	{
+		Local<Array> result = Array::New(isolate, 3);
+
+		result->Set(cxt, 0, Number::New(isolate, value.x));
+		result->Set(cxt, 1, Number::New(isolate, value.y));
+		result->Set(cxt, 2, Number::New(isolate, value.z));
+
+		return result;
+	}
+	else if constexpr (std::is_same_v<T, const char*>)
+	{
+		if (value)
+		{
+			return String::NewFromUtf8(isolate, value).ToLocalChecked();
+		}
+		else
+		{
+			return Null(isolate);
+		}
+	}
+	else if constexpr (std::is_same_v<T, ScrString>)
+	{
+		// FIXME: This wasn't properly supported before. Should it return a Uint8Buffer buffer instead?
+		return String::NewFromUtf8(isolate, value.str, v8::NewStringType::kNormal, (int) value.len).ToLocalChecked();
+	}
+	else if constexpr (std::is_same_v<T, ScrObject>)
+	{
+		try
+		{
+			msgpack::unpacked unpacked;
+			msgpack::unpack(unpacked, value.data, value.length);
+
+			// and convert to a rapidjson object
+			rapidjson::Document document;
+			ConvertToJSON(unpacked.get(), document, document.GetAllocator());
+
+			// write as a json string
+			rapidjson::StringBuffer sb;
+			rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+
+			if (document.Accept(writer))
+			{
+				if (sb.GetString() && sb.GetSize())
+				{
+					auto maybeString = String::NewFromUtf8(GetV8Isolate(), sb.GetString(), NewStringType::kNormal, sb.GetSize());
+					Local<String> string;
+
+					if (maybeString.ToLocal(&string))
+					{
+						auto maybeValue = v8::JSON::Parse(runtime->GetContext(), string);
+						Local<Value> value;
+
+						if (maybeValue.ToLocal(&value))
+						{
+							return value;
+						}
+					}
+				}
+			}
+		}
+		catch (std::exception& /*e*/)
+		{
+		}
+
+		return Null(GetV8Isolate());
+	}
+	else
+	{
+		static_assert(always_false_v<T>, "Invalid return type");
 	}
 }
 
-template<typename HashGetter>
-static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
+static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args, uint64_t hash, int baseArgs)
 {
 	// get required entries
 	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
-	OMPtr<IScriptHost> scriptHost = runtime->GetScriptHost();
-
-	v8::Isolate::Scope isolateScope(GetV8Isolate());
-
-	auto pointerFields = runtime->GetPointerFields();
-	auto isolate = args.GetIsolate();
-
-	// exception thrower
-	auto throwException = [&](const std::string & exceptionString)
-	{
-		args.GetIsolate()->ThrowException(Exception::Error(String::NewFromUtf8(args.GetIsolate(), exceptionString.c_str()).ToLocalChecked()));
-	};
 
 	// variables to hold state
-	fxNativeContext context = { 0 };
-
-	// return values and their types
-	int numReturnValues = 0;
-	uintptr_t retvals[16] = { 0 };
-	V8MetaFields rettypes[16];
-
-	// coercion for the result value
-	V8MetaFields returnValueCoercion = V8MetaFields::Max;
-
-	// flag to return a result even if a pointer return value is passed
-	bool returnResultAnyway = false;
+	V8ScriptNativeContext context(hash, runtime, args.GetIsolate());
 
 	// get argument count for the loop
 	int numArgs = args.Length();
 
 	// verify argument count
-	if (numArgs < HashGetter::BaseArgs)
+	if (numArgs < baseArgs)
 	{
-		return throwException("wrong argument count (needs at least a hash string)");
+		context.SetError("wrong argument count (needs at least a hash string)");
+		return;
 	}
-
-	// get the hash
-	uint64_t hash = HashGetter()(args);
-
-	context.nativeIdentifier = hash;
-
-	// pushing function
-	auto push = [&](const auto & value)
+	
+	for (int i = baseArgs; i < numArgs; i++)
 	{
-		if (context.numArguments >= std::size(context.arguments))
+		if (!context.PushArgument(args[i]))
 		{
 			return;
 		}
-
-		*reinterpret_cast<uintptr_t*>(&context.arguments[context.numArguments]) = 0;
-		*reinterpret_cast<std::decay_t<decltype(value)>*>(&context.arguments[context.numArguments]) = value;
-		context.numArguments++;
-	};
-
-	auto cxt = runtime->GetContext();
-
-	// the big argument loop
-	Local<Value> a1;
-	if (HashGetter::BaseArgs < numArgs)
-	{
-		a1 = args[HashGetter::BaseArgs];
 	}
 
-	for (int i = HashGetter::BaseArgs; i < numArgs; i++)
+	if (!context.PreInvoke())
 	{
-		// get the type and decide what to do based on it
-		auto arg = args[i];
-
-		if (arg->IsNumber())
-		{
-			double value = arg->NumberValue(cxt).ToChecked();
-			int64_t intValue = static_cast<int64_t>(value);
-
-			if (intValue == value)
-			{
-				push(intValue);
-			}
-			else
-			{
-				push(static_cast<float>(value));
-			}
-		}
-		else if (arg->IsBoolean() || arg->IsBooleanObject())
-		{
-			push(arg->BooleanValue(isolate));
-		}
-		else if (arg->IsString())
-		{
-			push(runtime->AssignStringValue(arg));
-		}
-		// null/undefined: add '0'
-		else if (arg->IsNull() || arg->IsUndefined())
-		{
-			push(0);
-		}
-		// metafield
-		else if (arg->IsExternal())
-		{
-			auto pushPtr = [&](V8MetaFields metaField)
-			{
-				if (numReturnValues >= _countof(retvals))
-				{
-					throwException("too many return value arguments");
-					return false;
-				}
-
-				// push the offset and set the type
-				push(&retvals[numReturnValues]);
-				rettypes[numReturnValues] = metaField;
-
-				// increment the counter
-				if (metaField == V8MetaFields::PointerValueVector)
-				{
-					numReturnValues += 3;
-				}
-				else
-				{
-					numReturnValues += 1;
-				}
-
-				return true;
-			};
-
-			uint8_t* ptr = reinterpret_cast<uint8_t*>(Local<External>::Cast(arg)->Value());
-
-			// if the pointer is a metafield
-			if (ptr >= g_metaFields && ptr < &g_metaFields[(int)V8MetaFields::Max])
-			{
-				V8MetaFields metaField = static_cast<V8MetaFields>(ptr - g_metaFields);
-
-				// switch on the metafield
-				switch (metaField)
-				{
-				case V8MetaFields::PointerValueInt:
-				case V8MetaFields::PointerValueFloat:
-				case V8MetaFields::PointerValueVector:
-				{
-					if (!pushPtr(metaField))
-					{
-						return;
-					}
-
-					break;
-				}
-				case V8MetaFields::ReturnResultAnyway:
-					returnResultAnyway = true;
-					break;
-				case V8MetaFields::ResultAsInteger:
-				case V8MetaFields::ResultAsLong:
-				case V8MetaFields::ResultAsString:
-				case V8MetaFields::ResultAsFloat:
-				case V8MetaFields::ResultAsVector:
-				case V8MetaFields::ResultAsObject:
-					returnResultAnyway = true;
-					returnValueCoercion = metaField;
-					break;
-				}
-			}
-			// or if the pointer is a runtime pointer field
-			else if (ptr >= reinterpret_cast<uint8_t*>(pointerFields) && ptr < (reinterpret_cast<uint8_t*>(pointerFields) + (sizeof(PointerField) * 2)))
-			{
-				// guess the type based on the pointer field type
-				intptr_t ptrField = ptr - reinterpret_cast<uint8_t*>(pointerFields);
-				V8MetaFields metaField = static_cast<V8MetaFields>(ptrField / sizeof(PointerField));
-
-				if (metaField == V8MetaFields::PointerValueInt || metaField == V8MetaFields::PointerValueFloat)
-				{
-					auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
-
-					retvals[numReturnValues] = ptrFieldEntry->value;
-					ptrFieldEntry->empty = true;
-
-					if (!pushPtr(metaField))
-					{
-						return;
-					}
-				}
-			}
-			else
-			{
-				push(ptr);
-			}
-		}
-		// placeholder vectors
-		else if (arg->IsArray())
-		{
-			Local<Array> array = Local<Array>::Cast(arg);
-			float x = 0.0f, y = 0.0f, z = 0.0f, w = 0.0f;
-
-			auto getNumber = [&](int idx)
-			{
-				Local<Value> value;
-
-				if (!array->Get(cxt, idx).ToLocal(&value))
-				{
-					return NAN;
-				}
-
-				if (value.IsEmpty() || !value->IsNumber())
-				{
-					return NAN;
-				}
-
-				return static_cast<float>(value->NumberValue(cxt).ToChecked());
-			};
-
-			if (array->Length() < 2 || array->Length() > 4)
-			{
-				return throwException("arrays should be vectors (wrong number of values)");
-			}
-
-			if (array->Length() >= 2)
-			{
-				x = getNumber(0);
-				y = getNumber(1);
-
-				if (x == NAN || y == NAN)
-				{
-					return throwException("invalid vector array value");
-				}
-
-				push(x);
-				push(y);
-			}
-
-			if (array->Length() >= 3)
-			{
-				z = getNumber(2);
-
-				if (z == NAN)
-				{
-					return throwException("invalid vector array value");
-				}
-
-				push(z);
-			}
-
-			if (array->Length() >= 4)
-			{
-				w = getNumber(3);
-
-				if (w == NAN)
-				{
-					return throwException("invalid vector array value");
-				}
-
-				push(w);
-			}
-		}
-		else if (arg->IsArrayBufferView())
-		{
-			Local<ArrayBufferView> abv = arg.As<ArrayBufferView>();
-			Local<ArrayBuffer> buffer = abv->Buffer();
-
-			auto abs = buffer->GetBackingStore();
-			push((char*)abs->Data() + abv->ByteOffset());
-		}
-		// this should be the last entry, I'd guess
-		else if (arg->IsObject())
-		{
-			Local<Object> object = arg->ToObject(cxt).ToLocalChecked();
-			Local<Value> data;
-			
-			if (!object->Get(cxt, String::NewFromUtf8(GetV8Isolate(), "__data").ToLocalChecked()).ToLocal(&data))
-			{
-				return throwException("__data field does not contain a number");
-			}
-
-			if (!data.IsEmpty() && data->IsNumber())
-			{
-				auto n = data->ToNumber(runtime->GetContext());
-				v8::Local<v8::Number> number;
-
-				if (n.ToLocal(&number))
-				{
-					push(number->Int32Value(cxt).ToChecked());
-				}
-			}
-			else
-			{
-				return throwException("__data field does not contain a number");
-			}
-		}
-		else
-		{
-			String::Utf8Value str(GetV8Isolate(), arg);
-
-			return throwException(va("Invalid V8 value: %s", *str));
-		}
+		return;
 	}
 
-#if __has_include(<PointerArgumentHints.h>)
-	fx::scripting::ResultType resultTypeIntent = fx::scripting::ResultType::None;
-
-	if (!returnResultAnyway)
-	{
-		resultTypeIntent = fx::scripting::ResultType::Void;
-	}
-	else if (returnValueCoercion == V8MetaFields::ResultAsString)
-	{
-		resultTypeIntent = fx::scripting::ResultType::String;
-	}
-	else if (returnValueCoercion == V8MetaFields::ResultAsInteger || returnValueCoercion == V8MetaFields::ResultAsLong || returnValueCoercion == V8MetaFields::ResultAsFloat || returnValueCoercion == V8MetaFields::Max /* bool */)
-	{
-		resultTypeIntent = fx::scripting::ResultType::Scalar;
-	}
-	else if (returnValueCoercion == V8MetaFields::ResultAsVector)
-	{
-		resultTypeIntent = fx::scripting::ResultType::Vector;
-	}
-#endif
-
-#ifndef IS_FXSERVER
-	bool needsResultCheck = (numReturnValues == 0 || returnResultAnyway);
-	bool hadComplexType = !a1.IsEmpty() && (!a1->IsNumber() && !a1->IsBoolean() && !a1->IsNull());
-
-	decltype(context.arguments) initialArguments;
-	memcpy(initialArguments, context.arguments, sizeof(context.arguments));
-#endif
+	OMPtr<IScriptHost> scriptHost = runtime->GetScriptHost();
 
 	// invoke the native on the script host
 	if (!FX_SUCCEEDED(scriptHost->InvokeNative(context)))
@@ -1428,278 +1312,70 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 		char* error = "Unknown";
 		scriptHost->GetLastErrorText(&error);
 
-		return throwException(fmt::sprintf("Execution of native %016x in script host failed: %s", hash, error));
+		context.SetError("Execution of native %016x in script host failed: %s", hash, error);
+		return;
 	}
 
-#ifndef IS_FXSERVER
-	// clean up the result
-	if ((needsResultCheck || hadComplexType) && context.numArguments > 0)
+	if (!context.PostInvoke())
 	{
-		// if this is scrstring but nothing changed (very weird!), fatally fail
-		if (static_cast<uint32_t>(context.arguments[2]) == 0xFEED1212 && initialArguments[2] == context.arguments[2])
-		{
-			FatalError("Invalid native call in V8 resource '%s'. Please see https://aka.cfx.re/scrstring-mitigation for more information.", runtime->GetResourceName());
-		}
-
-		// If return coercion is String type
-		// Don't allow deref'ing arbitrary pointers passed in any of the arguments.
-		if (returnValueCoercion == V8MetaFields::ResultAsString && context.arguments[0])
-		{
-			NativeStringResultSanitization<HashGetter>(args, context, initialArguments);
-		}
-		// if the first value (usually result) is the same as the initial argument, clear the result (usually, result was no-op)
-		// (if vector results, these aren't directly unsafe, and may get incorrectly seen as complex)
-		else if (context.arguments[0] == initialArguments[0] && returnValueCoercion != V8MetaFields::ResultAsVector)
-		{
-			// complex type in first result means we have to clear that result
-			if (hadComplexType)
-			{
-				context.arguments[0] = 0;
-			}
-
-			// if any result is requested and there was *no* change, zero out
-			context.arguments[1] = 0;
-			context.arguments[2] = 0;
-			context.arguments[3] = 0;
-		}
+		return;
 	}
-#endif
 
-#if __has_include(<PointerArgumentHints.h>)
-	if (resultTypeIntent != fx::scripting::ResultType::None)
-	{
-		fx::scripting::PointerArgumentHints::CleanNativeResult(hash, resultTypeIntent, context.arguments);
-	}
-#endif
-
-	// padded vector struct
-	struct scrVector
-	{
-		float x;
-
-	private:
-		uint32_t pad0;
-
-	public:
-		float y;
-
-	private:
-		uint32_t pad1;
-
-	public:
-		float z;
-
-	private:
-		uint32_t pad2;
-	};
-
-	struct scrObject
-	{
-		const char* data;
-		uintptr_t length;
-	};
-
-	// JS results
-	Local<Value> returnValue = Undefined(args.GetIsolate());
+	// For a single result, return it directly.
+	// For multiple results, store them in an array.
+	Local<Value> returnValue = Undefined(context.isolate);
 	int numResults = 0;
 
-	// if no other result was requested, or we need to return the result anyway, push the result
-	if (numReturnValues == 0 || returnResultAnyway)
-	{
-		// increment the result count
-		numResults++;
+	context.ProcessResults([&](auto&& value) {
+		Local<Value> val = context.ProcessResult(value);
 
-		// handle the type coercion
-		switch (returnValueCoercion)
+		if (numResults == 0)
 		{
-		case V8MetaFields::ResultAsString:
-		{
-			const char* str = *reinterpret_cast<const char**>(&context.arguments[0]);
-
-			if (str)
-			{
-				returnValue = String::NewFromUtf8(args.GetIsolate(), str).ToLocalChecked();
-			}
-			else
-			{
-				returnValue = Null(args.GetIsolate());
-			}
-
-			break;
+			returnValue = val;
 		}
-		case V8MetaFields::ResultAsFloat:
-			returnValue = Number::New(args.GetIsolate(), *reinterpret_cast<float*>(&context.arguments[0]));
-			break;
-		case V8MetaFields::ResultAsVector:
+		else
 		{
-			scrVector vector = *reinterpret_cast<scrVector*>(&context.arguments[0]);
-
-			Local<Array> vectorArray = Array::New(args.GetIsolate(), 3);
-			vectorArray->Set(cxt, 0, Number::New(args.GetIsolate(), vector.x));
-			vectorArray->Set(cxt, 1, Number::New(args.GetIsolate(), vector.y));
-			vectorArray->Set(cxt, 2, Number::New(args.GetIsolate(), vector.z));
-
-			returnValue = vectorArray;
-
-			break;
-		}
-		case V8MetaFields::ResultAsObject:
-		{
-			scrObject object = *reinterpret_cast<scrObject*>(&context.arguments[0]);
-
-			// try parsing
-			returnValue = Null(GetV8Isolate());
-
-			try
+			if (numResults == 1)
 			{
-				msgpack::unpacked unpacked;
-				msgpack::unpack(unpacked, object.data, object.length);
-
-				// and convert to a rapidjson object
-				rapidjson::Document document;
-				ConvertToJSON(unpacked.get(), document, document.GetAllocator());
-
-				// write as a json string
-				rapidjson::StringBuffer sb;
-				rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-
-				if (document.Accept(writer))
-				{
-					if (sb.GetString() && sb.GetSize())
-					{
-						auto maybeString = String::NewFromUtf8(GetV8Isolate(), sb.GetString(), NewStringType::kNormal, sb.GetSize());
-						Local<String> string;
-
-						if (maybeString.ToLocal(&string))
-						{
-							auto maybeValue = v8::JSON::Parse(runtime->GetContext(), string);
-							Local<Value> value;
-
-							if (maybeValue.ToLocal(&value))
-							{
-								returnValue = value;
-							}
-						}
-					}
-				}
-			}
-			catch (std::exception& e)
-			{
-			}
-
-			break;
-		}
-		case V8MetaFields::ResultAsInteger:
-			returnValue = Int32::New(args.GetIsolate(), *reinterpret_cast<int32_t*>(&context.arguments[0]));
-			break;
-		case V8MetaFields::ResultAsLong:
-			returnValue = Number::New(args.GetIsolate(), double(*reinterpret_cast<int64_t*>(&context.arguments[0])));
-			break;
-		default:
-		{
-			int32_t integer = *reinterpret_cast<int32_t*>(&context.arguments[0]);
-
-			if ((integer & 0xFFFFFFFF) == 0)
-			{
-				returnValue = Boolean::New(args.GetIsolate(), false);
-			}
-			else
-			{
-				returnValue = Int32::New(args.GetIsolate(), integer);
-			}
-		}
-		}
-	}
-
-	// loop over the return value pointers
-	{
-		int i = 0;
-
-		// fast path non-array result
-		if (numReturnValues == 1 && numResults == 0)
-		{
-			switch (rettypes[0])
-			{
-			case V8MetaFields::PointerValueInt:
-				returnValue = Int32::New(args.GetIsolate(), retvals[0]);
-				break;
-
-			case V8MetaFields::PointerValueFloat:
-				returnValue = Number::New(args.GetIsolate(), *reinterpret_cast<float*>(&retvals[0]));
-				break;
-
-			case V8MetaFields::PointerValueVector:
-			{
-				scrVector vector = *reinterpret_cast<scrVector*>(&retvals[0]);
-
-				Local<Array> vectorArray = Array::New(args.GetIsolate(), 3);
-				vectorArray->Set(cxt, 0, Number::New(args.GetIsolate(), vector.x));
-				vectorArray->Set(cxt, 1, Number::New(args.GetIsolate(), vector.y));
-				vectorArray->Set(cxt, 2, Number::New(args.GetIsolate(), vector.z));
-
-				returnValue = vectorArray;
-				break;
-			}
-			}
-		}
-		else if (numReturnValues > 0)
-		{
-			Local<Object> arrayValue = Array::New(args.GetIsolate());
-
-			// transform into array
-			{
-				Local<Value> oldValue = returnValue;
-
+				Local<Array> arrayValue = Array::New(context.isolate);
+				arrayValue->Set(context.cxt, 0, returnValue);
 				returnValue = arrayValue;
-				arrayValue->Set(cxt, 0, oldValue);
 			}
 
-			while (i < numReturnValues)
-			{
-				switch (rettypes[i])
-				{
-				case V8MetaFields::PointerValueInt:
-					arrayValue->Set(cxt, numResults, Int32::New(args.GetIsolate(), retvals[i]));
-					i++;
-					break;
-
-				case V8MetaFields::PointerValueFloat:
-					arrayValue->Set(cxt, numResults, Number::New(args.GetIsolate(), *reinterpret_cast<float*>(&retvals[i])));
-					i++;
-					break;
-
-				case V8MetaFields::PointerValueVector:
-				{
-					scrVector vector = *reinterpret_cast<scrVector*>(&retvals[i]);
-
-					Local<Array> vectorArray = Array::New(args.GetIsolate(), 3);
-					vectorArray->Set(cxt, 0, Number::New(args.GetIsolate(), vector.x));
-					vectorArray->Set(cxt, 1, Number::New(args.GetIsolate(), vector.y));
-					vectorArray->Set(cxt, 2, Number::New(args.GetIsolate(), vector.z));
-
-					arrayValue->Set(cxt, numResults, vectorArray);
-
-					i += 3;
-					break;
-				}
-				}
-
-				numResults++;
-			}
+			returnValue.As<Array>()->Set(context.cxt, numResults, val);
 		}
-	}
+
+		++numResults;
+
+		return true;
+	});
 
 	// and set the return value(s)
 	args.GetReturnValue().Set(returnValue);
 }
 
-template<V8MetaFields MetaField>
-static void V8_GetMetaField(const v8::FunctionCallbackInfo<v8::Value>& args)
+
+static void V8_InvokeNativeString(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	args.GetReturnValue().Set(External::New(GetV8Isolate(), &g_metaFields[(int)MetaField]));
+	String::Utf8Value hashString(GetV8Isolate(), args[0]);
+	uint64_t hash = strtoull(*hashString, nullptr, 16);
+	return V8_InvokeNative(args, hash, 1);
 }
 
-template<V8MetaFields MetaField>
+static void V8_InvokeNativeHash(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	auto scrt = V8ScriptRuntime::GetCurrent();
+	uint64_t hash = (args[1]->Uint32Value(scrt->GetContext()).ToChecked() | (((uint64_t)args[0]->Uint32Value(scrt->GetContext()).ToChecked()) << 32));
+	return V8_InvokeNative(args, hash, 2);
+}
+
+template<MetaField MetaField>
+static void V8_GetMetaField(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	args.GetReturnValue().Set(External::New(GetV8Isolate(), &ScriptNativeContext::s_metaFields[(int)MetaField]));
+}
+
+template<MetaField MetaField>
 static void V8_GetPointerField(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
@@ -1719,13 +1395,13 @@ static void V8_GetPointerField(const v8::FunctionCallbackInfo<v8::Value>& args)
 			
 			auto arg = args[0];
 
-			if (MetaField == V8MetaFields::PointerValueFloat)
+			if (MetaField == MetaField::PointerValueFloat)
 			{
 				float value = static_cast<float>(arg->NumberValue(runtime->GetContext()).ToChecked());
 
 				pointerField->value = *reinterpret_cast<uint32_t*>(&value);
 			}
-			else if (MetaField == V8MetaFields::PointerValueInt)
+			else if (MetaField == MetaField::PointerValueInt)
 			{
 				intptr_t value = arg->IntegerValue(runtime->GetContext()).ToChecked();
 
@@ -1975,8 +1651,8 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "makeFunctionReference", V8_MakeFunctionReference },
 	// internals
 	{ "getTickCount", V8_GetTickCount },
-	{ "invokeNative", V8_InvokeNative<StringHashGetter> },
-	{ "invokeNativeByHash", V8_InvokeNative<IntHashGetter> },
+	{ "invokeNative", V8_InvokeNativeString },
+	{ "invokeNativeByHash", V8_InvokeNativeHash },
 #ifndef IS_FXSERVER
 	{ "invokeNativeRaw", V8_InvokeNativeRaw },
 	// not yet!
@@ -1991,18 +1667,18 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "submitBoundaryEnd", V8_SubmitBoundaryEnd },
 	{ "setStackTraceFunction", V8_SetStackTraceRoutine },
 	// metafields
-	{ "pointerValueIntInitialized", V8_GetPointerField<V8MetaFields::PointerValueInt> },
-	{ "pointerValueFloatInitialized", V8_GetPointerField<V8MetaFields::PointerValueFloat> },
-	{ "pointerValueInt", V8_GetMetaField<V8MetaFields::PointerValueInt> },
-	{ "pointerValueFloat", V8_GetMetaField<V8MetaFields::PointerValueFloat> },
-	{ "pointerValueVector", V8_GetMetaField<V8MetaFields::PointerValueVector> },
-	{ "returnResultAnyway", V8_GetMetaField<V8MetaFields::ReturnResultAnyway> },
-	{ "resultAsInteger", V8_GetMetaField<V8MetaFields::ResultAsInteger> },
-	{ "resultAsLong", V8_GetMetaField<V8MetaFields::ResultAsLong> },
-	{ "resultAsFloat", V8_GetMetaField<V8MetaFields::ResultAsFloat> },
-	{ "resultAsString", V8_GetMetaField<V8MetaFields::ResultAsString> },
-	{ "resultAsVector", V8_GetMetaField<V8MetaFields::ResultAsVector> },
-	{ "resultAsObject2", V8_GetMetaField<V8MetaFields::ResultAsObject> },
+	{ "pointerValueIntInitialized", V8_GetPointerField<MetaField::PointerValueInt> },
+	{ "pointerValueFloatInitialized", V8_GetPointerField<MetaField::PointerValueFloat> },
+	{ "pointerValueInt", V8_GetMetaField<MetaField::PointerValueInt> },
+	{ "pointerValueFloat", V8_GetMetaField<MetaField::PointerValueFloat> },
+	{ "pointerValueVector", V8_GetMetaField<MetaField::PointerValueVector> },
+	{ "returnResultAnyway", V8_GetMetaField<MetaField::ReturnResultAnyway> },
+	{ "resultAsInteger", V8_GetMetaField<MetaField::ResultAsInteger> },
+	{ "resultAsLong", V8_GetMetaField<MetaField::ResultAsLong> },
+	{ "resultAsFloat", V8_GetMetaField<MetaField::ResultAsFloat> },
+	{ "resultAsString", V8_GetMetaField<MetaField::ResultAsString> },
+	{ "resultAsVector", V8_GetMetaField<MetaField::ResultAsVector> },
+	{ "resultAsObject2", V8_GetMetaField<MetaField::ResultAsObject> },
 	{ "getResourcePath", V8_GetResourcePath },
 };
 
