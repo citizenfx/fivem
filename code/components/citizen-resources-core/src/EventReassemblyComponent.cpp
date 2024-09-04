@@ -200,7 +200,7 @@ void EventReassemblyComponentImpl::SetSink(EventReassemblySink* sink)
 void EventReassemblyComponentImpl::RegisterTarget(int id, uint8_t maxPendingEvents)
 {
 	std::unique_lock lock(m_listMutex);
-	m_targets[id] = Target{id, maxPendingEvents};;
+	m_targets[id] = Target{id, maxPendingEvents};
 }
 
 void EventReassemblyComponentImpl::UnregisterTarget(int id)
