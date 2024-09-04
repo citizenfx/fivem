@@ -520,6 +520,12 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 		return;
 	}
 
+	// packet that has no total amount of packet is invalid
+	if (packet.totalPackets == 0)
+	{
+		return;
+	}
+
 	if (packet.IsAck())
 	{
 		// received a ack packet to indicate the remote side received a payload packet
