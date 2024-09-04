@@ -3934,90 +3934,51 @@ void ServerGameState::ParseClonePacket(const fx::ClientSharedPtr& client, net::B
 	}
 }
 
-void ServerGameState::SendObjectIds(const fx::ClientSharedPtr& client, int numIds)
+void ServerGameState::GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds)
 {
-	// first, gather IDs
-	std::vector<int> ids;
+	auto [lock, data] = GetClientData(this, client);
+	std::unique_lock objectIdsLock(m_objectIdsMutex);
+	
+	// prevent requesting in sum more than double the amount of object ids that a single request can hold
+    // this allows reserving 64 in normal mode and 12 in big mode
+    if (data->reservedObjectIds.size() >= numIds * 2)
+    {
+	    // empty response is required, because client has g_requestedIds set to false
+    	// and will never request new ids again until a response is received
+    	net::Buffer outBuffer;
+    	outBuffer.Write<uint32_t>(HashRageString("msgObjectIds"));
+    	outBuffer.Write<uint16_t>(0);
+    	client->SendPacket(1, outBuffer, NetPacketType_Reliable);
+    	return;
+    }
+	
+	uint16_t id = 1;
 
+	for (uint8_t i = 0; i < numIds; i++)
 	{
-		auto [lock, data] = GetClientData(this, client);
-		std::unique_lock objectIdsLock(m_objectIdsMutex);
+		bool hadId = false;
 
-		// prevent requesting in sum more than double the amount of object ids that a single request can hold
-		// this allows reserving 64 in normal mode and 12 in big mode
-		if (data->reservedObjectIds.size() >= numIds * 2)
+		for (; id < m_objectIdsSent.size(); id++)
 		{
-			// empty response is required, because client has g_requestedIds set to false
-			// and will never request new ids again until a response is received
-			net::Buffer outBuffer;
-			outBuffer.Write<uint32_t>(HashRageString("msgObjectIds"));
-			outBuffer.Write<uint16_t>(0);
-			client->SendPacket(1, outBuffer, NetPacketType_Reliable);
-			return;
-		}
-
-		int id = 1;
-
-		for (int i = 0; i < numIds; i++)
-		{
-			bool hadId = false;
-
-			for (; id < m_objectIdsSent.size(); id++)
+			if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
 			{
-				if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
-				{
-					hadId = true;
+				hadId = true;
+				
+				data->objectIds.insert(id);
+				data->reservedObjectIds.insert(id);
+				freeIds.push_back(id);
+				m_objectIdsSent.set(id);
 
-					data->objectIds.insert(id);
-					data->reservedObjectIds.insert(id);
-
-					ids.push_back(id);
-					m_objectIdsSent.set(id);
-
-					break;
-				}
-			}
-
-			if (!hadId)
-			{
-				trace("couldn't assign an object id for player!\n");
 				break;
 			}
 		}
+
+		if (!hadId)
+		{
+			trace("couldn't assign an object id for player!\n");
+			break;
+		}
 	}
-
-	// compress and send
-
-	// adapted from https://stackoverflow.com/a/1081776
-	std::vector<std::tuple<int, int>> pairs;
-
-	int last = -1, len = 0;
-
-	for (int i = 0; i < ids.size(); )
-	{
-		int gap = ids[i] - 2 - last;
-		int size = 0;
-
-		while (++i < ids.size() && ids[i] == ids[i - 1] + 1) size++;
-
-		last = ids[i - 1];
-
-		pairs.emplace_back(gap, size);
-	}
-
-	net::Buffer outBuffer;
-	outBuffer.Write<uint32_t>(HashRageString("msgObjectIds"));
-	outBuffer.Write<uint16_t>(pairs.size());
-
-	for (auto& pair : pairs)
-	{
-		auto [gap, size] = pair;
-
-		outBuffer.Write<uint16_t>(gap);
-		outBuffer.Write<uint16_t>(size);
-	}
-
-	client->SendPacket(1, outBuffer, NetPacketType_Reliable);
 }
 
 template<int MaxElemSize, int Count>
@@ -7586,11 +7547,6 @@ static InitFunction initFunction([]()
 			{
 				instance->GetComponent<fx::ServerGameState>()->HandleArrayUpdate(client, buffer);
 			}
-		} });
-
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgRequestObjectIds"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
-		{
-			instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, fx::IsBigMode() ? 6 : 32);
 		} });
 
 		// #IFARQ

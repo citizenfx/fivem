@@ -59,17 +59,25 @@ public:
 	// todo: in future net version use StreamTail
 	SerializableProperty<std::vector<IdEntry>, storage_type::ConstrainedBytesArray<0, BigMode ? 6 : 32>> ids;
 
-	void SetIds(const std::vector<int>& idsToSet)
+	void SetIds(const std::vector<uint16_t>& idsToSet)
 	{
 		// compress and send
 		// adapted from https://stackoverflow.com/a/1081776
-		int last = -1;
-		for (int i = 0; i < idsToSet.size(); )
+		int32_t last = -1;
+		for (size_t i = 0; i < idsToSet.size(); )
 		{
-			int gap = idsToSet[i] - 2 - last;
-			int size = 0;
+			uint16_t gap = idsToSet[i] - 2 - last;
+			uint16_t size = 0;
 
-			while (++i < idsToSet.size() && idsToSet[i] == idsToSet[i - 1] + 1) size++;
+			while (++i < idsToSet.size())
+			{
+				if (idsToSet[i] != idsToSet[i - 1] + 1)
+				{
+					break;
+				}
+
+				size++;
+			}
 
 			last = idsToSet[i - 1];
 
@@ -77,16 +85,16 @@ public:
 		}
 	}
 
-	void GetIds(std::vector<int>& idsToRead)
+	void GetIds(std::vector<uint16_t>& idsToRead)
 	{
-		int last = 0;
+		uint16_t last = 0;
 		for (const auto& idEntry : ids.GetValue())
 		{
 			last += idEntry.gap + 1;
 
-			for (int j = 0; j <= idEntry.size; j++)
+			for (uint16_t j = 0; j <= idEntry.size; j++)
 			{
-				int objectId = last++;
+				uint16_t objectId = last++;
 				idsToRead.push_back(objectId);
 			}
 		}

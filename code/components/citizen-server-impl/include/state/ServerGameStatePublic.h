@@ -55,7 +55,7 @@ class StateBag;
 class ServerGameStatePublic : public fwRefCountable
 {
 public:
-	virtual void SendObjectIds(const fx::ClientSharedPtr& client, int numIds) = 0;
+	virtual void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds) = 0;
 
 	virtual SyncStyle GetSyncStyle() = 0;
 

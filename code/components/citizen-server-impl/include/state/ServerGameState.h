@@ -1263,7 +1263,7 @@ public:
 
 	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer);
 
-	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds);
+	void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds);
 
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
 
