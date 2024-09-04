@@ -300,6 +300,16 @@ static InitFunction initFunction([] ()
 			}
 		}
 
+		void GiveFocus(const bool* keepInput)
+		{
+			nui::GiveFocus(m_autogenHandle, keepInput, false);
+		}
+
+		bool HasFocus()
+		{
+			return nui::HasDuiFocus();
+		}
+
 	private:
 		cef_mouse_button_type_t GetButton(const char* button)
 		{
@@ -338,6 +348,8 @@ static InitFunction initFunction([] ()
 		.AddMethod("SEND_DUI_MOUSE_DOWN", &NUIWindowWrapper::InjectMouseDown)
 		.AddMethod("SEND_DUI_MOUSE_UP", &NUIWindowWrapper::InjectMouseUp)
 		.AddMethod("SEND_DUI_MOUSE_WHEEL", &NUIWindowWrapper::InjectMouseWheel)
+		.AddMethod("SET_DUI_KEYBOARD_INPUT", &NUIWindowWrapper::GiveFocus)
+		.AddMethod("DUI_HAS_KEYBOARD_INPUT", &NUIWindowWrapper::HasFocus)
 		.AddMethod("DESTROY_DUI", &NUIWindowWrapper::Destroy);		
 
 	// this *was* a multiset before but some resources would not correctly pair set/unset and then be stuck in 'set' state
@@ -412,7 +424,8 @@ static InitFunction initFunction([] ()
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_NUI_FOCUSED", [] (fx::ScriptContext& context)
 	{
-		context.SetResult(nui::HasFocus());
+		const bool isFocused = !nui::HasDuiFocus() && nui::HasFocus();
+		context.SetResult(isFocused);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_NUI_FOCUS_KEEPING_INPUT", [] (fx::ScriptContext& context)
