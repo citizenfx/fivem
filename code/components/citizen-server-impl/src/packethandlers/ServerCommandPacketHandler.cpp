@@ -1,5 +1,7 @@
 #include "StdInc.h"
 
+#include "packethandlers/ServerCommandPacketHandler.h"
+
 #include <ServerInstanceBase.h>
 
 #include <Client.h>
@@ -9,11 +11,11 @@
 #include "KeyedRateLimiter.h"
 #include "ResourceEventComponent.h"
 #include "ResourceManager.h"
-
-#include "packethandlers/ServerCommandPacketHandler.h"
-
 #include "PrintListener.h"
 #include "ServerEventComponent.h"
+
+#include <ByteReader.h>
+#include <ServerCommand.h>
 
 ServerCommandPacketHandler::ServerCommandPacketHandler(fx::ServerInstanceBase* instance)
 {
@@ -59,6 +61,23 @@ ServerCommandPacketHandler::ServerCommandPacketHandler(fx::ServerInstanceBase* i
 void ServerCommandPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
                                         net::Buffer& buffer)
 {
+	static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientServerCommand>();
+
+	if (buffer.GetRemainingBytes() > kClientMaxPacketSize)
+	{
+		// this only happens when a malicious client sends packets not created from our client code
+		return;
+	}
+
+	net::packet::ClientServerCommand clientServerCommand;
+
+	net::ByteReader reader{ buffer.GetRemainingBytesPtr(), buffer.GetRemainingBytes() };
+	if (!clientServerCommand.Process(reader))
+	{
+		// this only happens when a malicious client sends packets not created from our client code
+		return;
+	}
+
 	static fx::RateLimiterStore<uint32_t, false> netEventRateLimiterStore{
 		instance->GetComponent<console::Context>().GetRef()
 	};
@@ -81,44 +100,18 @@ void ServerCommandPacketHandler::Handle(fx::ServerInstanceBase* instance, const 
 		return;
 	}
 
-	// contains the command length
-	// kept for compatibility reasons, can be removed in future net version
-	const uint16_t commandLength = buffer.Read<uint16_t>();
-
-	if (commandLength > buffer.GetRemainingBytes() - 4)
+	if (!netSizeRateLimiter->Consume(netId, static_cast<double>(clientServerCommand.command.GetValue().size())))
 	{
-		// invalid length provided
-		return;
-	}
-
-	if (!netSizeRateLimiter->Consume(netId, static_cast<double>(commandLength)))
-	{
-		std::string command;
-		if (commandLength)
-		{
-			command.resize(commandLength);
-			buffer.Read(command.data(), commandLength);
-		}
 		// if this happens, try increasing rateLimiter_netCommandSize_rate and rateLimiter_netCommandSize_burst
 		// preferably, fix client scripts to not have this large a set of server commands with high frequency
 		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::COMMAND_RATE_LIMIT, "Reliable server command size overflow: %s",
-		                                                     command);
+		                                                     clientServerCommand.command.GetValue());
 
 		return;
 	}
 
-	if (commandLength == 0)
-	{
-		// skip empty commands
-		return;
-	}
-
-	std::string commandName = std::string(buffer.Read<std::string_view>(commandLength));
-
-	// the last 4 bytes from the command contain the command name hash
-	// can be removed with a new command endpoint
-	buffer.Read<uint32_t>();
-
+	// allocate command name to move it to the main thread
+	std::string commandName = std::string(clientServerCommand.command.GetValue());
 	gscomms_execute_callback_on_main_thread([this, instance, client, commandName = std::move(commandName)]
 	{
 		auto scope = client->EnterPrincipalScope();
