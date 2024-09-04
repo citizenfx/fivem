@@ -7,32 +7,13 @@
 
 #include "ByteReader.h"
 #include "ByteWriter.h"
+#include "ClientMetricData.h"
 #include "GameServer.h"
 #include "NetGameEventV2.h"
 #include "ServerInstance.h"
 #include "packethandlers/NetGameEventPacketHandler.h"
 
 #include "TestUtils.h"
-
-namespace fx
-{
-	class ClientMetricData
-	{
-	public:
-		fx::Client* thisptr;
-		int channel;
-		const net::Buffer buffer;
-		NetPacketType flags;
-
-		ClientMetricData(fx::Client* const thisptr, const int channel, const net::Buffer& buffer, const NetPacketType flags)
-			: thisptr(thisptr),
-			  channel(channel),
-			  buffer(buffer),
-			  flags(flags)
-		{
-		}
-	};
-}
 
 TEST_CASE("NetGameEventV2 test")
 {

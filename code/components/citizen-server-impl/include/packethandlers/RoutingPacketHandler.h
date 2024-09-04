@@ -7,6 +7,9 @@
 #include <Client.h>
 #include <state/ServerGameStatePublic.h>
 
+#include "ByteReader.h"
+#include "Route.h"
+
 class RoutingPacketHandler
 {
 public:
@@ -16,23 +19,26 @@ public:
 	
 	void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 	{
-		// TODO: in future net version remove targetNetId when the server is using onesync
-		const uint16_t targetNetId = packet.Read<uint16_t>();
-		// TODO: in future net version remove packetLength
-		packet.Read<uint16_t>();
-		const uint32_t remainingBytes = static_cast<uint32_t>(packet.GetRemainingBytes());
-		if (!remainingBytes || remainingBytes > UINT16_MAX)
+		static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientRoute>();
+
+		if (packet.GetRemainingBytes() > kClientMaxPacketSize)
 		{
-			// invalid packet length
+			// this only happens when a malicious client sends packets not created from our client code
 			return;
 		}
 
-		// read pointer for now, because client routing does not need the copied buffer
-		const uint8_t* packetData = packet.GetRemainingBytesPtr();
+		net::packet::ClientRoute clientRoute;
+
+		net::ByteReader reader{ packet.GetRemainingBytesPtr(), packet.GetRemainingBytes() };
+		if (!clientRoute.Process(reader))
+		{
+			// this only happens when a malicious client sends packets not created from our client code
+			return;
+		}
 
 		if (fx::IsOneSync())
 		{
-			std::vector packetDataCopy(packetData, packetData + remainingBytes);
+			std::vector packetDataCopy = std::vector(clientRoute.data.GetValue().begin(), clientRoute.data.GetValue().end());
 			client->SetHasRouted();
 
 			gscomms_execute_callback_on_sync_thread([instance, client, packetDataCopy = std::move(packetDataCopy)]()
@@ -42,6 +48,9 @@ public:
 
 			return;
 		}
+
+		// TODO: in future net version remove targetNetId when the server is using onesync
+		const uint16_t targetNetId = clientRoute.targetNetId;
 
 		if (targetNetId == client->GetNetId())
 		{
@@ -54,8 +63,8 @@ public:
 			net::Buffer outPacket;
 			outPacket.Write(HashRageString("msgRoute"));
 			outPacket.Write<uint16_t>(client->GetNetId());
-			outPacket.Write<uint16_t>(remainingBytes);
-			outPacket.Write(packetData, remainingBytes);
+			outPacket.Write<uint16_t>(clientRoute.data.GetValue().size());
+			outPacket.Write(clientRoute.data.GetValue().data(), clientRoute.data.GetValue().size_bytes());
 
 			targetClient->SendPacket(1, outPacket, NetPacketType_Unreliable);
 
