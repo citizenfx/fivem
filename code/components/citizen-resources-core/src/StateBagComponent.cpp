@@ -31,7 +31,7 @@ public:
 
 	virtual void HandlePacket(int source, std::string_view data, std::string* outBagNameName = nullptr) override;
 
-	virtual void HandlePacketV2(int source, StateBagMessage& message, std::string_view* outBagNameName = nullptr) override;
+	virtual void HandlePacketV2(int source, net::packet::StateBagV2& message, std::string_view* outBagNameName = nullptr) override;
 
 	virtual std::shared_ptr<StateBag> GetStateBag(std::string_view id) override;
 
@@ -400,7 +400,7 @@ void StateBagImpl::SendKeyValue(int target, std::string_view key, std::string_vi
 		if (!key.empty() && !value.empty())
 		{
 			net::ByteWriter writer (dataBuffer.data(), 131072);
-			StateBagMessage stateBagMessage (m_id, key, value);
+			net::packet::StateBagV2 stateBagMessage (m_id, key, value);
 			stateBagMessage.Process(writer);
 
 			m_parent->QueueSend(target, std::string_view{ reinterpret_cast<const char*>(dataBuffer.data()), writer.GetOffset() });
@@ -750,7 +750,7 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, s
 	}
 }
 
-void StateBagComponentImpl::HandlePacketV2(int source, StateBagMessage& message, std::string_view* outBagNameName)
+void StateBagComponentImpl::HandlePacketV2(int source, net::packet::StateBagV2& message, std::string_view* outBagNameName)
 {
 	if (message.stateBagName.GetValue().empty() || message.key.GetValue().empty() || message.data.GetValue().empty())
 	{
