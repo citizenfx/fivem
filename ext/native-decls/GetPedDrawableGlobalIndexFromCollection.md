@@ -22,4 +22,4 @@ If all drawables from all collections are placed into one continuous array - the
 * **drawableId**: Local drawable Id inside the given collection. Refer to [GET_NUMBER_OF_PED_COLLECTION_DRAWABLE_VARIATIONS](#_0x310D0271).
 
 ## Return value
-Global drawable ID that corresponds to the given collection and local drawable index. Returns -1 if Ped or collection does not exist.
+Global drawable ID that corresponds to the given collection and local drawable index. Returns -1 if Ped or collection does not exist or local index is out of bounds.

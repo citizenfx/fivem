@@ -22,6 +22,12 @@ public:
 	// There are more fields after m_infos, but we don't care about them.
 };
 
+enum class VariationType : uint8_t
+{
+	DRAWABLE,
+	PROP,
+};
+
 static uint32_t g_collectionInfoHashOffset;
 static uint32_t g_dynamicEntityArchetypeOffset;
 static uint32_t g_pedModelInfoVarInfoCollectionOffset;
@@ -117,7 +123,18 @@ static CPedVariationInfo* GetVariationInfoFromCollection(CPedVariationInfoCollec
 	return nullptr;
 }
 
-static int GetGlobalIndex(uint32_t pedId, int slotId, const char* collectionName, int localIndex, hook::cdecl_stub<int(CPedVariationInfoCollection*, int, uint32_t, uint32_t)> indexGetter)
+static uint8_t GetMaxNumberOfDrawables(CPedVariationInfo* info, uint32_t componentId)
+{
+	return g_GetMaxNumDrawables(info, componentId);
+}
+
+static uint8_t GetMaxNumberOfProps(CPedVariationInfo* info, uint32_t anchorPoint)
+{
+	auto propInfo = (CPedPropInfo*)((uintptr_t)info + g_variationInfoPropInfoOffset);
+	return g_GetMaxNumProps(propInfo, anchorPoint);
+}
+
+static int GetGlobalIndex(uint32_t pedId, int slotId, const char* collectionName, int localIndex, VariationType variationType)
 {
 	auto variationInfoCollection = GetPedVariationInfoCollection(pedId);
 	if (!variationInfoCollection)
@@ -132,8 +149,31 @@ static int GetGlobalIndex(uint32_t pedId, int slotId, const char* collectionName
 		return -1;
 	}
 
+	int maxNumVariations = 0;
+	if (variationType == VariationType::DRAWABLE)
+	{
+		maxNumVariations = static_cast<int>(GetMaxNumberOfDrawables(variationInfo, slotId));
+	}
+	else
+	{
+		maxNumVariations = static_cast<int>(GetMaxNumberOfProps(variationInfo, slotId));
+	}
+
+	// Local index is out of bounds.
+	if (localIndex < 0 || localIndex >= maxNumVariations)
+	{
+		return -1;
+	}
+
 	uint32_t collectionNameHash = HashString(collectionName);
-	return indexGetter(variationInfoCollection, localIndex, slotId, collectionNameHash);
+	if (variationType == VariationType::DRAWABLE)
+	{
+		return g_GetGlobalDrawableIndex(variationInfoCollection, localIndex, slotId, collectionNameHash);
+	}
+	else
+	{
+		return g_GetGlobalPropIndex(variationInfoCollection, localIndex, slotId, collectionNameHash);
+	}
 }
 
 template<typename T>
@@ -144,11 +184,11 @@ static int VariadicGetArgument(fx::ScriptContext& context, fx::ScriptContextBuff
 }
 
 template<typename T, typename... AdditionalArguments>
-static void RedirectNativeCallWithGlobalIndex(fx::ScriptContext& context, hook::cdecl_stub<int(CPedVariationInfoCollection*, int, uint32_t, uint32_t)> indexGetter, uint64_t nativeIdentifier)
+static void RedirectNativeCallWithGlobalIndex(fx::ScriptContext& context, VariationType variationType, uint64_t nativeIdentifier)
 {
 	uint32_t pedId = context.GetArgument<uint32_t>(0);
 	int componentId = context.GetArgument<int>(1);
-	int globalIndex = GetGlobalIndex(pedId, componentId, context.CheckArgument<const char*>(2), context.GetArgument<int>(3), indexGetter);
+	int globalIndex = GetGlobalIndex(pedId, componentId, context.CheckArgument<const char*>(2), context.GetArgument<int>(3), variationType);
 	if (globalIndex == -1)
 	{
 		if constexpr (!std::is_same<T, void>::value)
@@ -262,33 +302,33 @@ static HookFunction hookFunction([]()
 	});
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_DRAWABLE_GLOBAL_INDEX_FROM_COLLECTION", [](fx::ScriptContext& context)
 	{
-		context.SetResult<int>(GetGlobalIndex(context.GetArgument<uint32_t>(0), context.GetArgument<int>(1), context.CheckArgument<const char*>(2), context.GetArgument<int>(3), g_GetGlobalDrawableIndex));
+		context.SetResult<int>(GetGlobalIndex(context.GetArgument<uint32_t>(0), context.GetArgument<int>(1), context.CheckArgument<const char*>(2), context.GetArgument<int>(3), VariationType::DRAWABLE));
 	});
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_PROP_GLOBAL_INDEX_FROM_COLLECTION", [](fx::ScriptContext& context)
 	{
-		context.SetResult<int>(GetGlobalIndex(context.GetArgument<uint32_t>(0), context.GetArgument<int>(1), context.CheckArgument<const char*>(2), context.GetArgument<int>(3), g_GetGlobalPropIndex));
+		context.SetResult<int>(GetGlobalIndex(context.GetArgument<uint32_t>(0), context.GetArgument<int>(1), context.CheckArgument<const char*>(2), context.GetArgument<int>(3), VariationType::PROP));
 	});
 
 	// Natives to set component/prop variation using collections.
 	fx::ScriptEngine::RegisterNativeHandler("SET_PED_COLLECTION_COMPONENT_VARIATION", [](fx::ScriptContext& context)
 	{
-		// Call SET_PED_COMPONENT_VARIATION using the globalPropIndex
-		RedirectNativeCallWithGlobalIndex<void, int, int>(context, g_GetGlobalDrawableIndex, 0x262B14F48D29DE80);
+		// Call SET_PED_COMPONENT_VARIATION using the global index obtained from the collection name and local index.
+		RedirectNativeCallWithGlobalIndex<void, int, int>(context, VariationType::DRAWABLE, 0x262B14F48D29DE80);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("SET_PED_COLLECTION_PROP_INDEX", [](fx::ScriptContext& context)
 	{
-		// Call SET_PED_PROP_INDEX using the globalPropIndex
-		RedirectNativeCallWithGlobalIndex<void, int, bool>(context, g_GetGlobalPropIndex, 0x93376B65A266EB5F);
+		// Call SET_PED_PROP_INDEX using the global index obtained from the collection name and local index.
+		RedirectNativeCallWithGlobalIndex<void, int, bool>(context, VariationType::PROP, 0x93376B65A266EB5F);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("SET_PED_COLLECTION_PRELOAD_VARIATION_DATA", [](fx::ScriptContext& context)
 	{
-		// Call SET_PED_PRELOAD_VARIATION_DATA using the globalPropIndex
-		RedirectNativeCallWithGlobalIndex<void, int>(context, g_GetGlobalDrawableIndex, 0x39D55A620FCB6A3A);
+		// Call SET_PED_PRELOAD_VARIATION_DATA using the global index obtained from the collection name and local index.
+		RedirectNativeCallWithGlobalIndex<void, int>(context, VariationType::DRAWABLE, 0x39D55A620FCB6A3A);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("SET_PED_COLLECTION_PRELOAD_PROP_DATA", [](fx::ScriptContext& context)
 	{
-		// Call SET_PED_PROP_INDEX using the globalPropIndex
-		RedirectNativeCallWithGlobalIndex<void, int>(context, g_GetGlobalPropIndex, 0x2B16A3BFF1FBCE49);
+		// Call SET_PED_PROP_INDEX using the global index obtained from the collection name and local index.
+		RedirectNativeCallWithGlobalIndex<void, int>(context, VariationType::PROP, 0x2B16A3BFF1FBCE49);
 	});
 
 	// Natives to get component/prop variation using collections.
@@ -300,7 +340,7 @@ static HookFunction hookFunction([]()
 			auto variationInfo = GetVariationInfoFromCollection(variationInfoCollection, context.CheckArgument<const char*>(2));
 			if (variationInfo)
 			{
-				context.SetResult<int>(static_cast<int>(g_GetMaxNumDrawables(variationInfo, context.GetArgument<int>(1))));
+				context.SetResult<int>(static_cast<int>(GetMaxNumberOfDrawables(variationInfo, context.GetArgument<int>(1))));
 				return;
 			}
 		}
@@ -314,8 +354,7 @@ static HookFunction hookFunction([]()
 			auto variationInfo = GetVariationInfoFromCollection(variationInfoCollection, context.CheckArgument<const char*>(2));
 			if (variationInfo)
 			{
-				auto propInfo = (CPedPropInfo*)((uintptr_t)variationInfo + g_variationInfoPropInfoOffset);
-				context.SetResult<int>(static_cast<int>(g_GetMaxNumProps(propInfo, context.GetArgument<int>(1))));
+				context.SetResult<int>(static_cast<int>(GetMaxNumberOfProps(variationInfo, context.GetArgument<int>(1))));
 				return;
 			}
 		}
@@ -323,23 +362,23 @@ static HookFunction hookFunction([]()
 	});
 	fx::ScriptEngine::RegisterNativeHandler("GET_NUMBER_OF_PED_COLLECTION_TEXTURE_VARIATIONS", [](fx::ScriptContext& context)
 	{
-		// Call GET_NUMBER_OF_PED_TEXTURE_VARIATIONS using the globalPropIndex
-		RedirectNativeCallWithGlobalIndex<int>(context, g_GetGlobalDrawableIndex, 0x8F7156A3142A6BAD);
+		// Call GET_NUMBER_OF_PED_TEXTURE_VARIATIONS using the global index obtained from the collection name and local index.
+		RedirectNativeCallWithGlobalIndex<int>(context, VariationType::DRAWABLE, 0x8F7156A3142A6BAD);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("GET_NUMBER_OF_PED_COLLECTION_PROP_TEXTURE_VARIATIONS", [](fx::ScriptContext& context)
 	{
-		// Call GET_NUMBER_OF_PED_PROP_TEXTURE_VARIATIONS using the globalPropIndex
-		RedirectNativeCallWithGlobalIndex<int>(context, g_GetGlobalPropIndex, 0xA6E7F1CEB523E171);
+		// Call GET_NUMBER_OF_PED_PROP_TEXTURE_VARIATIONS using the global index obtained from the collection name and local index.
+		RedirectNativeCallWithGlobalIndex<int>(context, VariationType::PROP, 0xA6E7F1CEB523E171);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("IS_PED_COLLECTION_COMPONENT_VARIATION_VALID", [](fx::ScriptContext& context)
 	{
-		// Call IS_PED_COMPONENT_VARIATION_VALID using the globalPropIndex
-		RedirectNativeCallWithGlobalIndex<bool, int>(context, g_GetGlobalDrawableIndex, 0xE825F6B6CEA7671D);
+		// Call IS_PED_COMPONENT_VARIATION_VALID using the global index obtained from the collection name and local index.
+		RedirectNativeCallWithGlobalIndex<bool, int>(context, VariationType::DRAWABLE, 0xE825F6B6CEA7671D);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("IS_PED_COLLECTION_COMPONENT_VARIATION_GEN9_EXCLUSIVE", [](fx::ScriptContext& context)
 	{
-		// Call IS_PED_COMPONENT_VARIATION_GEN9_EXCLUSIVE using the globalPropIndex
-		RedirectNativeCallWithGlobalIndex<bool>(context, g_GetGlobalDrawableIndex, 0xC767B581);
+		// Call IS_PED_COMPONENT_VARIATION_GEN9_EXCLUSIVE using the global index obtained from the collection name and local index.
+		RedirectNativeCallWithGlobalIndex<bool>(context, VariationType::DRAWABLE, 0xC767B581);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_DRAWABLE_VARIATION_COLLECTION_LOCAL_INDEX", [](fx::ScriptContext& context)
 	{

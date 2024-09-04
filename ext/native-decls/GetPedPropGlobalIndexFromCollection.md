@@ -22,4 +22,4 @@ If all props from all collections are placed into one continuous array - the glo
 * **propIndex**: Local prop index inside the given collection. Refer to [GET_NUMBER_OF_PED_COLLECTION_PROP_DRAWABLE_VARIATIONS](#_0x3B6A13E1).
 
 ## Return value
-Global prop index that corresponds to the given collection and local prop index. Returns -1 if Ped or collection does not exist.
+Global prop index that corresponds to the given collection and local prop index. Returns -1 if Ped or collection does not exist or local index is out of bounds.
