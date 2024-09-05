@@ -53,14 +53,14 @@ static HookFunction hookFunction([]
 	{
 		// CPickupCreationDataNode::CanApplyData shadows the modelId variable when a customModelHash is used, which bypasses checking the model is streamed in.
 		// Patch the stack offset to use the original variable instead.
-		auto location = hook::get_pattern<char>("66 89 45 ? 8B 45 ? 41 0B C5 23 C3");
+		auto location = hook::get_pattern<char>("41 B8 ? ? ? ? 41 0B C0 44 89 45");
 
 		// Get stack offset of the correct modelId variable
-		auto offset = *(int8_t*)(location - 0x38);
+		auto offset = *(int8_t*)(location - 0xF);
 
 		// Use previous variable offset wherever needed
-		hook::put(location - 0xD, offset);
-		hook::put(location - 0x1, offset);
+		hook::put(location + 0x1C, offset);
+		hook::put(location + 0x28, offset);
 	}
 
 	{
