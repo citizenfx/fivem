@@ -24,5 +24,6 @@
   "citizen:scripting:mono-v2",
   "citizen:scripting:v8node",
   "voip-server:mumble",
-  "http-client"
+  "http-client",
+  "pool-sizes-state"
 ]

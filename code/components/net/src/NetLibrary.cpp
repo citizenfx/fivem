@@ -1876,7 +1876,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						buildRef = std::stoi(val);
 
-						if ((buildRef != 0 && buildRef != xbr::GetGameBuild()) || (pureLevel != fx::client::GetPureLevel()) || (poolSizesIncrease != fx::client::PoolSizeManager::GetIncreaseRequest()))
+						if ((buildRef != 0 && buildRef != xbr::GetGameBuild()) || (pureLevel != fx::client::GetPureLevel()) || (poolSizesIncrease != fx::PoolSizeManager::GetIncreaseRequest()))
 						{
 #if defined(GTA_FIVE)
 							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372 && buildRef != 2545 && buildRef != 2612 && buildRef != 2699 && buildRef != 2802 && buildRef != 2944 && buildRef != 3095 && buildRef != 3258)
@@ -1893,7 +1893,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 
-							std::optional<std::string> validationError = fx::client::PoolSizeManager::Validate(poolSizesIncrease);
+							std::optional<std::string> validationError = fx::PoolSizeManager::Validate(poolSizesIncrease);
 							if (validationError.has_value())
 							{
 								OnConnectionError(va("Server requested invalid change to pool sizes: %s.", validationError.value()), json::object({

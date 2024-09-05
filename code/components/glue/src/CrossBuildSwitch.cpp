@@ -35,9 +35,9 @@ void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncre
 		g_hadError = false;
 
 		std::string currentPoolSizesIncreaseSetting = "";
-		if (!fx::client::PoolSizeManager::GetIncreaseRequest().empty())
+		if (!fx::PoolSizeManager::GetIncreaseRequest().empty())
 		{
-			currentPoolSizesIncreaseSetting = nlohmann::json(fx::client::PoolSizeManager::GetIncreaseRequest()).dump();
+			currentPoolSizesIncreaseSetting = nlohmann::json(fx::PoolSizeManager::GetIncreaseRequest()).dump();
 		}
 
 		auto j = nlohmann::json::object({

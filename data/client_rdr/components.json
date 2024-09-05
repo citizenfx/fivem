@@ -31,6 +31,7 @@
 	"citizen:scripting:v8node",
 	"gta:core:rdr3",
 	"http-client",
+	"pool-sizes-state",
 	"debug:net",
 	"gta:net:rdr3",
 	"citizen:legacy-net:resources",

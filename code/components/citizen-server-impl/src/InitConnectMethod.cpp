@@ -32,6 +32,7 @@
 #include <MonoThreadAttachment.h>
 #include <GameBuilds.h>
 #include <CrossBuildRuntime.h>
+#include <PoolSizesState.h>
 
 #include <json.hpp>
 
@@ -403,57 +404,30 @@ static InitFunction initFunction([]()
 
 		auto poolSizesIncrease = std::make_shared<std::unordered_map<std::string, uint32_t>>();
 		auto poolSizesIncreaseVar = instance->AddVariable<std::string>("sv_poolSizesIncrease", ConVar_ReadOnly | ConVar_ServerInfo, "");
-		auto poolSizesIncreaseCmd = instance->AddCommand("increase_pool_size", [instance, poolSizesIncreaseVar, poolSizesIncrease](const std::string& poolName, int size)
+		auto poolSizesIncreaseCmd = instance->AddCommand("increase_pool_size", [instance, poolSizesIncreaseVar, poolSizesIncrease](const std::string& poolName, int sizeIncrease)
 		{
-			static std::optional<std::unordered_map<std::string, uint32_t>> poolSizeLimits;
 			static fx::GameName previousTitle = fx::GameName::GTA5;
 
 			fx::GameName gameName = instance->GetComponent<fx::GameServer>()->GetGameName();
 
-			if (!poolSizeLimits.has_value() || previousTitle != gameName)
+			if (!fx::PoolSizeManager::LimitsLoaded() || previousTitle != gameName)
 			{
 				previousTitle = gameName;
 
 				std::string limitsFileUrl = "https://content.cfx.re/mirrors/client/pool-size-limits/";
 				limitsFileUrl += gameName == fx::GameName::GTA5 ? "fivem.json" : "redm.json";
 
-				auto httpRequestPrt = Instance<HttpClient>::Get()->DoGetRequest(limitsFileUrl, [](bool success, const char* data, size_t length)
-				{
-					if (success)
-					{
-						try
-						{
-							poolSizeLimits = nlohmann::json::parse(data, data + length).get<std::unordered_map<std::string, uint32_t>>();
-						}
-						catch (std::exception& e)
-						{
-							trace("Error occured while parsing pool size limits json file: %s.\n", e.what());
-						}
-					}
-				});
-
-				httpRequestPrt->Wait();
-				if (!poolSizeLimits.has_value())
-				{
-					trace("Unable to confirm pool size limits. The requested pool size will not be set.\n");
-					return;
-				}
+				fx::PoolSizeManager::FetchLimits(limitsFileUrl, true);
 			}
 
-			auto sizeLimit = poolSizeLimits->find(poolName);
-			if (sizeLimit == poolSizeLimits->end())
+			auto validationError = fx::PoolSizeManager::Validate(poolName, sizeIncrease);
+			if (validationError.has_value())
 			{
-				trace("In it not allowed to change size of pool \"%s\".\n", poolName);
+				trace("Requested pool size increase is invalid: %s\n", validationError.value());
 				return;
 			}
 
-			if (size > sizeLimit->second)
-			{
-				trace("Requested size %d exceeds size limit for \"%s\" which is %d.\n", size, poolName, sizeLimit->second);
-				return;
-			}
-
-			(*poolSizesIncrease)[poolName] = size;
+			(*poolSizesIncrease)[poolName] = sizeIncrease;
 			// Set server variable value. It will automatically be set to client as part of connection response data.
 			poolSizesIncreaseVar->GetHelper()->SetRawValue(nlohmann::json(*poolSizesIncrease).dump());
 		});
@@ -757,7 +731,9 @@ static InitFunction initFunction([]()
 			data["netlibVersion"] = gameServer->GetNetLibVersion();
 			data["maxClients"] = atoi(gameServer->GetVariable("sv_maxclients").c_str());
 
-			// Capture poolSizesIncreaseCmd to prolong it's lifetime until connection is initialized.
+			// This expression is noop and should never be true.
+			// Capture poolSizesIncreaseCmd just to prolong it's lifetime until connection is initialized.
+			// Otherwise the command will be destroyed too soon and won't be available for the server to use.
 			if (poolSizesIncreaseCmd == nullptr)
 			{
 				trace("Something went wrong. Pool sizes increase may not be set.");

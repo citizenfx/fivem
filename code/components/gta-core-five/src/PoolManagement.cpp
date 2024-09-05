@@ -375,8 +375,8 @@ static int64_t GetSizeOfPool(void* configManager, uint32_t poolHash, int default
 {
 	int64_t size = g_origGetSizeOfPool(configManager, poolHash, defaultSize);
 
-	auto sizeIncreaseEntry = fx::client::PoolSizeManager::GetIncreaseRequest().find(poolEntries.LookupHash(poolHash));
-	if (sizeIncreaseEntry != fx::client::PoolSizeManager::GetIncreaseRequest().end())
+	auto sizeIncreaseEntry = fx::PoolSizeManager::GetIncreaseRequest().find(poolEntries.LookupHash(poolHash));
+	if (sizeIncreaseEntry != fx::PoolSizeManager::GetIncreaseRequest().end())
 	{
 		size += sizeIncreaseEntry->second;
 	}

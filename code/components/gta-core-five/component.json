@@ -3,6 +3,7 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
+		"pool-sizes-state",
 		"rage:allocator:five",
 		"rage:nutsnbolts:five",
 		"rage:scripting:five",
