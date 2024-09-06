@@ -4759,7 +4759,19 @@ void CWeaponDamageEvent::Parse(rl::MessageBufferView& buffer)
 	hitWeaponAmmoAttachment = buffer.Read<uint8_t>(1);
 	silenced = buffer.Read<uint8_t>(1);
 
-	damageFlags = buffer.Read<uint32_t>(Is2060() ? 24 : 21);
+	if (Is3258())
+	{
+		damageFlags = buffer.Read<uint32_t>(25);
+	}
+	else if (Is2060())
+	{
+		damageFlags = buffer.Read<uint32_t>(24);
+	}
+	else
+	{
+		damageFlags = buffer.Read<uint32_t>(21);
+	}
+
 	// (damageFlags >> 1) & 1
 	hasActionResult = buffer.Read<uint8_t>(1);
 
