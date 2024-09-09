@@ -9,16 +9,20 @@
 #include "scrBind.h"
 #include "Hooking.h"
 
-#include <ICoreGameInit.h>
-
-scrBindPool g_ScrBindPool{};
-
-static InitFunction initFunction([]()
+void scrBindAddSafePointer(void* classPtr)
 {
-#ifndef IS_FXSERVER
-	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+
+}
+
+bool scrBindIsSafePointer(void* classPtr)
+{
+	return true;
+}
+
+fx::TNativeHandler scrBindCreateNativeMethodStub(scrBindNativeMethodStub stub, void* udata)
+{
+	return [stub, udata](fx::ScriptContext& context)
 	{
-		g_ScrBindPool.Reset();
-	});
-#endif
-});
+		stub(context, udata);
+	};
+}

@@ -2,12 +2,24 @@
 
 namespace fx::scripting
 {
+enum class ResultType
+{
+	None,
+	Void,
+	String,
+	Scalar,
+	Vector,
+};
 
+class
 #ifdef COMPILING_RAGE_SCRIPTING_FIVE
 DLL_EXPORT
 #else
 DLL_IMPORT
 #endif
-const uint32_t* GetNativeTypeInfo(uint64_t hash);
-
+PointerArgumentHints
+{
+public:
+	static void CleanNativeResult(uint64_t nativeIdentifier, ResultType resultType, void* resultBuffer);
+};
 }
