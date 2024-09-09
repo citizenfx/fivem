@@ -24,8 +24,17 @@ class MpMenuIntlService implements IIntlService {
     const [language, country] = systemLocale.split('-');
 
     if (!country) {
+      const lcLanguage = language.toLowerCase();
+      const ucLanguage = language.toUpperCase();
+
+      // Special case for Korean locale: On some systems, the Korean locale might be returned as `ko`,
+      // but it should be standardized to `ko-KR` for consistency with South Korean regional settings.
+      if (lcLanguage === 'ko') {
+        return 'ko-KR';
+      }
+
       // Windows has some locales such as `pl` which should expand to `pl-PL`
-      return `${language.toLowerCase()}-${language.toUpperCase()}`;
+      return `${lcLanguage}-${ucLanguage}`;
     }
 
     return systemLocale;
