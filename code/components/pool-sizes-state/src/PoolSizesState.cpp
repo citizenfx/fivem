@@ -20,6 +20,7 @@ namespace fx
 
 	std::unordered_map<std::string, uint32_t> PoolSizeManager::sizeIncrease = std::unordered_map<std::string, uint32_t>();
 
+#ifndef IS_FXSERVER
 	void PoolSizeManager::FetchIncreaseRequest()
 	{
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
@@ -39,6 +40,7 @@ namespace fx
 	{
 		return sizeIncrease;
 	}
+#endif
 
 	bool PoolSizeManager::LimitsLoaded()
 	{

@@ -22,9 +22,11 @@ namespace fx
 		static std::unordered_map<std::string, uint32_t> sizeIncrease;
 
 	public:
+#ifndef IS_FXSERVER
 		static void FetchIncreaseRequest();
 
 		COMPONENT_EXPORT(POOL_SIZES_STATE) static const std::unordered_map<std::string, uint32_t>& GetIncreaseRequest();
+#endif
 
 		COMPONENT_EXPORT(POOL_SIZES_STATE) static bool LimitsLoaded();
 
