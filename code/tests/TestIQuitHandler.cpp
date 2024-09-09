@@ -23,7 +23,7 @@ TEST_CASE("IQuit test")
 	serverInstance->SetComponent(new fx::ClientRegistry());
 	serverInstance->SetComponent<fx::GameServer>(fx::GameServerInstance::Create());
 
-	std::string quitReason = fx::TestUtils::asciiRandom(1024);
+	std::string quitReason = fx::TestUtils::asciiRandom(1024 - 1/*null terminator*/);
 	net::packet::ClientIQuit clientIQuit;
 	clientIQuit.reason = quitReason;
 
@@ -45,12 +45,18 @@ TEST_CASE("IQuit test")
 
 	if (newPacketBuffer)
 	{
+		buffer.Seek(writer.GetOffset());
+		// add null terminator
+		buffer.Write<uint8_t>(0);
+		buffer.Reset();
 		handler.Handle(serverInstance.GetRef(), client1, buffer);
 	}
 	else
 	{
 		net::Buffer oldNetBuffer;
 		oldNetBuffer.Write(quitReason.data(), quitReason.size());
+		// add null terminator
+		oldNetBuffer.Write<uint8_t>(0);
 		oldNetBuffer.Reset();
 		handler.Handle(serverInstance.GetRef(), client1, oldNetBuffer);
 	}
