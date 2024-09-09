@@ -20,6 +20,7 @@ namespace fx
 
 	std::unordered_map<std::string, uint32_t> PoolSizeManager::sizeIncrease = std::unordered_map<std::string, uint32_t>();
 
+#ifndef IS_FXSERVER
 	void PoolSizeManager::FetchIncreaseRequest()
 	{
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
@@ -39,6 +40,7 @@ namespace fx
 	{
 		return sizeIncrease;
 	}
+#endif
 
 	bool PoolSizeManager::LimitsLoaded()
 	{
@@ -104,9 +106,9 @@ namespace fx
 	}
 }
 
+#ifndef IS_FXSERVER
 static InitFunction initFunction([]()
 {
-#ifndef IS_FXSERVER
 #ifdef GTA_FIVE
 	std::string limitsFileUrl = "https://content.cfx.re/mirrors/client/pool-size-limits/fivem.json";
 #else
@@ -114,5 +116,5 @@ static InitFunction initFunction([]()
 #endif
 	fx::PoolSizeManager::FetchLimits(limitsFileUrl);
 	fx::PoolSizeManager::FetchIncreaseRequest();
-#endif
 });
+#endif
