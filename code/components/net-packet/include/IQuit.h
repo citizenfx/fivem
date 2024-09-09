@@ -9,6 +9,7 @@ namespace net::packet
 class ClientIQuit : public SerializableComponent
 {
 public:
+	// todo: uses null terminator, in future net version remove it
 	SerializableProperty<std::string_view, storage_type::ConstrainedStreamTail<1, 1024>> reason;
 
 	template<typename T>
