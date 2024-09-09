@@ -12,11 +12,11 @@
 class ServerGameStatePublicImpl : public fx::ServerGameStatePublic
 {
 public:
-	static inline std::optional<fx::ServerGameStatePublicInstance::ParseGameStatePacketData>
-	parseGameStatePacketDataLastCall{};
+	static inline std::optional<fx::ServerGameStatePublicInstance::ParseGameStatePacketData> parseGameStatePacketDataLastCall{};
 
-	static inline std::optional<fx::ServerGameStatePublicInstance::GameEventHandler>
-	gameEventHandlerLastCall{};
+	static inline std::optional<fx::ServerGameStatePublicInstance::GameEventHandler> gameEventHandlerLastCall{};
+
+	static inline std::optional<fx::ServerGameStatePublicInstance::ArrayUpdateData> arrayUpdateLastCall{};
 
 	static inline std::function<bool()> gameEventHandler;
 
@@ -53,8 +53,7 @@ public:
 	{
 	}
 
-	bool SetEntityStateBag(uint8_t playerId, uint16_t objectId,
-	                       std::function<std::shared_ptr<fx::StateBag>()> createStateBag) override
+	bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<fx::StateBag>()> createStateBag) override
 	{
 		return false;
 	}
@@ -64,8 +63,7 @@ public:
 		return fx::AnyCast<uint32_t>(client->GetData("routingBucket"));
 	}
 
-	std::function<bool()> GetGameEventHandlerWithEvent(const fx::ClientSharedPtr& client,
-	                                          const std::vector<uint16_t>& targetPlayers, net::packet::ClientNetGameEventV2& netGameEvent) override
+	std::function<bool()> GetGameEventHandlerWithEvent(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::packet::ClientNetGameEventV2& netGameEvent) override
 	{
 		gameEventHandlerLastCall.emplace(client, targetPlayers, netGameEvent);
 		return gameEventHandler;
@@ -75,6 +73,11 @@ public:
 	{
 		// todo: add test for this
 		return true;
+	}
+
+	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) override
+	{
+		arrayUpdateLastCall.emplace(client, buffer.handler.GetValue(), buffer.index.GetValue(), std::vector<uint8_t>{ buffer.data.GetValue().begin(), buffer.data.GetValue().end() });
 	}
 };
 
@@ -88,14 +91,12 @@ void fx::ServerGameStatePublicInstance::SetClientRoutingBucket(const ClientShare
 	client->SetData("routingBucket", routingBucket);
 }
 
-std::optional<fx::ServerGameStatePublicInstance::ParseGameStatePacketData>& fx::ServerGameStatePublicInstance::
-GetParseGameStatePacketDataLastCall()
+std::optional<fx::ServerGameStatePublicInstance::ParseGameStatePacketData>& fx::ServerGameStatePublicInstance::GetParseGameStatePacketDataLastCall()
 {
 	return ServerGameStatePublicImpl::parseGameStatePacketDataLastCall;
 }
 
-std::optional<fx::ServerGameStatePublicInstance::GameEventHandler>& fx::ServerGameStatePublicInstance::
-GetGameEventHandlerLastCall()
+std::optional<fx::ServerGameStatePublicInstance::GameEventHandler>& fx::ServerGameStatePublicInstance::GetGameEventHandlerLastCall()
 {
 	return ServerGameStatePublicImpl::gameEventHandlerLastCall;
 }
@@ -108,6 +109,11 @@ std::optional<fx::ServerGameStatePublicInstance::SendObjectIdsData>& fx::ServerG
 std::vector<uint16_t>& fx::ServerGameStatePublicInstance::GetFreeObjectIds()
 {
 	return ServerGameStatePublicImpl::freeObjectIds;
+}
+
+std::optional<fx::ServerGameStatePublicInstance::ArrayUpdateData>& fx::ServerGameStatePublicInstance::GetArrayUpdateLastCall()
+{
+	return ServerGameStatePublicImpl::arrayUpdateLastCall;
 }
 
 std::function<bool()>& fx::ServerGameStatePublicInstance::GetGameEventHandler()

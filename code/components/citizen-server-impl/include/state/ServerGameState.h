@@ -1261,7 +1261,7 @@ public:
 
 	void HandleClientDrop(const fx::ClientSharedPtr& client, uint16_t netId, uint32_t slotId);
 
-	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer);
+	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer);
 
 	void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds);
 
@@ -1418,7 +1418,7 @@ public:
 	{
 		virtual ~ArrayHandlerBase() = default;
 
-		virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer) = 0;
+		virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) = 0;
 
 		virtual void WriteUpdates(const fx::ClientSharedPtr& client) = 0;
 

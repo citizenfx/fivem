@@ -1269,6 +1269,7 @@ namespace fx
 #include <packethandlers/StateBagPacketHandler.h>
 #include <packethandlers/NetGameEventPacketHandler.h>
 #include <packethandlers/ReassembledEventPacketHandler.h>
+#include <packethandlers/ArrayUpdatePacketHandler.h>
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
@@ -1338,7 +1339,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(new fx::UdpInterceptor());
 
 		instance->SetComponent(
-			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2, ReassembledEventPacketHandler, RequestObjectIdsPacketHandler>(
+			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2, ArrayUpdatePacketHandler, ReassembledEventPacketHandler, RequestObjectIdsPacketHandler>(
 				WithProcessTick<ThreadWait, GameServerTick>(
 					WithOutOfBand<GetInfoOutOfBand, GetStatusOutOfBand, RconOutOfBand>(
 						WithEndPoints(
