@@ -109,7 +109,7 @@ namespace fx
 
 		OnAttached(instance);
 
-		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_None, "");
+		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_ReadOnly, "");
 		m_hostname = instance->AddVariable<std::string>("sv_hostname", ConVar_ServerInfo, "default FXServer");
 		m_masters[0] = instance->AddVariable<std::string>("sv_master1", ConVar_None, kDefaultServerList);
 		m_masters[1] = instance->AddVariable<std::string>("sv_master2", ConVar_None, "");
