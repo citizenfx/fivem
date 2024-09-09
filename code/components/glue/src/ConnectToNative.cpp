@@ -98,7 +98,17 @@ static void SaveBuildNumber(uint32_t build)
 	}
 }
 
-void RestartGameToOtherBuild(int build, int pureLevel)
+static void SavePoolSizesIncreaseRequest(const std::wstring& setting)
+{
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		WritePrivateProfileString(L"Game", L"PoolSizesIncrease", setting.c_str(), fpath.c_str());
+	}
+}
+
+void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesIncreaseSetting)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 	SECURITY_ATTRIBUTES securityAttributes = { 0 };
@@ -132,6 +142,8 @@ void RestartGameToOtherBuild(int build, int pureLevel)
 	{
 		SaveBuildNumber(defaultBuild);
 	}
+
+	SavePoolSizesIncreaseRequest(poolSizesIncreaseSetting);
 
 	trace("Switching from build %d to build %d...\n", xbr::GetGameBuild(), build);
 
@@ -167,7 +179,7 @@ void RestartGameToOtherBuild(int build, int pureLevel)
 #endif
 }
 
-extern void InitializeBuildSwitch(int build, int pureLevel);
+extern void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting);
 
 void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
@@ -619,9 +631,9 @@ static InitFunction initFunction([] ()
 			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
 		});
 
-		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel)
+		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring poolSizesIncreaseSetting)
 		{
-			InitializeBuildSwitch(build, pureLevel);
+			InitializeBuildSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting));
 			g_connected = false;
 		});
 

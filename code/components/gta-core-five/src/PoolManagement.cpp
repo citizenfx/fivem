@@ -3,8 +3,8 @@
 
 #include <jitasm.h>
 #include <Hooking.h>
-
 #include <MinHook.h>
+#include <PoolSizesState.h>
 
 #include <Error.h>
 
@@ -369,6 +369,21 @@ static void* GetNetObjPositionWrap(void* a1, void* a2)
 	return g_origGetNetObjPosition(a1, a2);
 }
 
+int64_t(*g_origGetSizeOfPool)(void*, uint32_t, int);
+
+static int64_t GetSizeOfPool(void* configManager, uint32_t poolHash, int defaultSize)
+{
+	int64_t size = g_origGetSizeOfPool(configManager, poolHash, defaultSize);
+
+	auto sizeIncreaseEntry = fx::PoolSizeManager::GetIncreaseRequest().find(poolEntries.LookupHash(poolHash));
+	if (sizeIncreaseEntry != fx::PoolSizeManager::GetIncreaseRequest().end())
+	{
+		size += sizeIncreaseEntry->second;
+	}
+
+	return size;
+}
+
 static HookFunction hookFunction([] ()
 {
 	auto generateAndCallStub = [](hook::pattern_match match, int callOffset, uint32_t hash, bool isAssetStore)
@@ -465,6 +480,8 @@ static HookFunction hookFunction([] ()
 	{
 		MH_CreateHook(hook::get_pattern("41 8A E8 48 8B DA 48 85 D2 0F", -0x1E), GetRelevantSectorPosPlayersWrap, (void**)&g_origGetRelevantSectorPosPlayers);
 	}
+
+	MH_CreateHook(hook::get_pattern("45 33 DB 44 8B D2 66 44 39 59 ? 74 ? 44 0F B7 49 ? 33 D2 41 8B C2 41 F7 F1 48 8B 41 ? 48 8B 0C D0 EB ? 44 3B 11 74 ? 48 8B 49"), GetSizeOfPool, (void**)&g_origGetSizeOfPool);
 
 	//MH_CreateHook((void*)0x14159A8F0, AssignObjectIdWrap, (void**)&g_origAssignObjectId);
 

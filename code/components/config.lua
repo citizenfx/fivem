@@ -6,6 +6,7 @@ component 'scrbind-formats'
 component 'scrbind-base'
 component 'nui-profiles'
 component 'profiles'
+component 'pool-sizes-state'
 
 if _OPTIONS['game'] == 'server' then
 	component 'citizen-server-main'

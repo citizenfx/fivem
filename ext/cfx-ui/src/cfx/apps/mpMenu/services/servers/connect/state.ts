@@ -51,8 +51,10 @@ export namespace ConnectState {
 
     build: number;
     pureLevel: number;
+    poolSizesIncrease: string;
     currentBuild: number;
     currentPureLevel: number;
+    currentPoolSizesIncrease: string;
   }
   export interface BuildSwitchInfo {
     type: 'buildSwitchInfo';

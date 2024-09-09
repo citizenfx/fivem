@@ -345,7 +345,7 @@ public:
 #endif
 		fwEvent<NetLibrary*> OnNetLibraryCreate;
 
-	fwEvent<int /* build */, int /* pure level */> OnRequestBuildSwitch;
+	fwEvent<int /* build */, int /* pure level */, std::wstring /* pool sizes increase request settings */> OnRequestBuildSwitch;
 
 	fwEvent<const char*> OnAttemptDisconnect;
 

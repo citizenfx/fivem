@@ -4,6 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"http-client",
+		"pool-sizes-state",
 		"profiles",
 		"vendor:cpp-url",
 		"net:base",

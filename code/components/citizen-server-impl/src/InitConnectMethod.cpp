@@ -32,6 +32,7 @@
 #include <MonoThreadAttachment.h>
 #include <GameBuilds.h>
 #include <CrossBuildRuntime.h>
+#include <PoolSizesState.h>
 
 #include <json.hpp>
 
@@ -401,6 +402,36 @@ static InitFunction initFunction([]()
 		g_enforcedGameBuild = "1604";
 		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, "1604", &g_enforcedGameBuild);
 
+		auto poolSizesIncrease = std::make_shared<std::unordered_map<std::string, uint32_t>>();
+		auto poolSizesIncreaseVar = instance->AddVariable<std::string>("sv_poolSizesIncrease", ConVar_ReadOnly | ConVar_ServerInfo, "");
+		auto poolSizesIncreaseCmd = instance->AddCommand("increase_pool_size", [instance, poolSizesIncreaseVar, poolSizesIncrease](const std::string& poolName, int sizeIncrease)
+		{
+			static fx::GameName previousTitle = fx::GameName::GTA5;
+
+			fx::GameName gameName = instance->GetComponent<fx::GameServer>()->GetGameName();
+
+			if (!fx::PoolSizeManager::LimitsLoaded() || previousTitle != gameName)
+			{
+				previousTitle = gameName;
+
+				std::string limitsFileUrl = "https://content.cfx.re/mirrors/client/pool-size-limits/";
+				limitsFileUrl += gameName == fx::GameName::GTA5 ? "fivem.json" : "redm.json";
+
+				fx::PoolSizeManager::FetchLimits(limitsFileUrl, true);
+			}
+
+			auto validationError = fx::PoolSizeManager::Validate(poolName, sizeIncrease);
+			if (validationError.has_value())
+			{
+				trace("Requested pool size increase is invalid: %s\n", validationError.value());
+				return;
+			}
+
+			(*poolSizesIncrease)[poolName] = sizeIncrease;
+			// Set server variable value. It will automatically be set to client as part of connection response data.
+			poolSizesIncreaseVar->GetHelper()->SetRawValue(nlohmann::json(*poolSizesIncrease).dump());
+		});
+
 		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance, enforceGameBuildVar]()
 		{
 			if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::RDR3)
@@ -699,6 +730,14 @@ static InitFunction initFunction([]()
 
 			data["netlibVersion"] = gameServer->GetNetLibVersion();
 			data["maxClients"] = atoi(gameServer->GetVariable("sv_maxclients").c_str());
+
+			// This expression is noop and should never be true.
+			// Capture poolSizesIncreaseCmd just to prolong it's lifetime until connection is initialized.
+			// Otherwise the command will be destroyed too soon and won't be available for the server to use.
+			if (poolSizesIncreaseCmd == nullptr)
+			{
+				trace("Something went wrong. Pool sizes increase may not be set.");
+			}
 
 			{
 				auto oldClient = clientRegistry->GetClientByGuid(guid);
