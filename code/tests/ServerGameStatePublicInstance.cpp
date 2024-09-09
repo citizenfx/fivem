@@ -20,12 +20,18 @@ public:
 
 	static inline std::function<bool()> gameEventHandler;
 
+	static inline std::optional<fx::ServerGameStatePublicInstance::SendObjectIdsData> getFreeObjectIdsLastCall{};
+
+	static inline std::vector<uint16_t> freeObjectIds{};
+
 	ServerGameStatePublicImpl() = default;
 
 	virtual ~ServerGameStatePublicImpl() = default;
 
-	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds) override
+	void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds) override
 	{
+		getFreeObjectIdsLastCall.emplace(client, numIds);
+		freeIds = freeObjectIds;
 	}
 
 	fx::SyncStyle GetSyncStyle() override
@@ -92,6 +98,16 @@ std::optional<fx::ServerGameStatePublicInstance::GameEventHandler>& fx::ServerGa
 GetGameEventHandlerLastCall()
 {
 	return ServerGameStatePublicImpl::gameEventHandlerLastCall;
+}
+
+std::optional<fx::ServerGameStatePublicInstance::SendObjectIdsData>& fx::ServerGameStatePublicInstance::GetFreeObjectIdsLastCall()
+{
+	return ServerGameStatePublicImpl::getFreeObjectIdsLastCall;
+}
+
+std::vector<uint16_t>& fx::ServerGameStatePublicInstance::GetFreeObjectIds()
+{
+	return ServerGameStatePublicImpl::freeObjectIds;
 }
 
 std::function<bool()>& fx::ServerGameStatePublicInstance::GetGameEventHandler()

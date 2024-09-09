@@ -45,6 +45,18 @@ namespace fx
 			}
 		};
 
+		struct SendObjectIdsData
+		{
+			const ClientSharedPtr client;
+			const int numIds;
+
+			SendObjectIdsData(const fx::ClientSharedPtr& _client, const int _numIds)
+				: client(_client),
+				  numIds(_numIds)
+			{
+			}
+		};
+
 		static ServerGameStatePublic* Create();
 
 		static void SetClientRoutingBucket(const ClientSharedPtr& client, uint32_t routingBucket);
@@ -52,6 +64,10 @@ namespace fx
 		static std::optional<ParseGameStatePacketData>& GetParseGameStatePacketDataLastCall();
 
 		static std::optional<GameEventHandler>& GetGameEventHandlerLastCall();
+
+		static std::optional<SendObjectIdsData>& GetFreeObjectIdsLastCall();
+
+		static std::vector<uint16_t>& GetFreeObjectIds();
 
 		static std::function<bool()>& GetGameEventHandler();
 	};
