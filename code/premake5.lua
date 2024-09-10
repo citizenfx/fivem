@@ -299,8 +299,9 @@ workspace "CitizenMP"
 		include 'client/diag'
 	else
 		include 'server/launcher'
-		include 'tests'
 	end
+
+	include 'tests'
 	
 	if os.istarget('windows') then
 		include 'premake5_layout.lua'
