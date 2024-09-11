@@ -722,7 +722,58 @@ static void Init()
 
 		return 0;
 	}));
+	
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_NEON_COLOUR", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		const auto vn = entity->syncTree->GetVehicleAppearance();
+		
+		if (context.GetArgumentCount() > 2)
+		{
+			if (!vn->hasNeonLights)
+			{
+				*context.GetArgument<int*>(1) = -1;
+				*context.GetArgument<int*>(2) = -1;
+				*context.GetArgument<int*>(3) = -1;
+				return 1;
+			}
+			*context.GetArgument<int*>(1) = vn ? vn->neonRedColour : 0;
+			*context.GetArgument<int*>(2) = vn ? vn->neonGreenColour : 0;
+			*context.GetArgument<int*>(3) = vn ? vn->neonBlueColour : 0;
+		}
 
+		return 1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_NEON_ENABLED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		const auto vn = entity->syncTree->GetVehicleAppearance();
+
+		if (!vn)
+		{
+			return false;
+		}
+		
+		const int neonIndex = context.GetArgument<int>(0);
+		
+		switch (neonIndex)
+		{
+			case 0: // Left neon light
+				return vn->neonLeftOn;
+
+			case 1: // Right neon light
+				return vn->neonRightOn;
+
+			case 2: // Front neon light
+				return vn->neonFrontOn;
+
+			case 3: // Back neon light
+				return vn->neonBackOn;
+
+			default:
+				return false;
+		}
+	}));
+	
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_COLOURS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		if (context.GetArgumentCount() > 2)

@@ -658,250 +658,258 @@ struct CPhysicalAttachDataNode
 	}
 };
 
-struct CVehicleAppearanceDataNode {
-	CVehicleAppearanceNodeData data;
+struct CVehicleAppearanceDataNode : GenericSerializeDataNode<CVehicleAppearanceDataNode>
+{
+    CVehicleAppearanceNodeData data;
 
-	bool Parse(SyncParseState& state)
-	{
-		int primaryColour = state.buffer.Read<int>(8);
-		data.primaryColour = primaryColour;
+    template<typename Serializer>
+    bool Serializer(Serializer& s)
+    {
+        s.Serialize(8, data.primaryColour);
+        s.Serialize(8, data.secondaryColour);
+        s.Serialize(8, data.pearlColour);
+        s.Serialize(8, data.wheelColour);
+        s.Serialize(8, data.interiorColour);
+        s.Serialize(8, data.dashboardColour);
+        s.Serialize(8, data.primaryColour);
 
-		int secondaryColour = state.buffer.Read<int>(8);
-		data.secondaryColour = secondaryColour;
+        s.Serialize(data.isPrimaryColourRGB);
 
-		int pearlColour = state.buffer.Read<int>(8);
-		data.pearlColour = pearlColour;
+        if (data.isPrimaryColourRGB)
+        {
+            s.Serialize(8, data.primaryRedColour);
+            s.Serialize(8, data.primaryGreenColour);
+            s.Serialize(8, data.primaryBlueColour);
+        }
 
-		int wheelColour = state.buffer.Read<int>(8);
-		data.wheelColour = wheelColour;
+        s.Serialize(data.isSecondaryColourRGB);
 
-		int interiorColour = state.buffer.Read<int>(8);
-		data.interiorColour = interiorColour;
+        if (data.isSecondaryColourRGB)
+        {
+            s.Serialize(8, data.secondaryRedColour);
+            s.Serialize(8, data.secondaryGreenColour);
+            s.Serialize(8, data.secondaryBlueColour);
+        }
 
-		int dashboardColour = state.buffer.Read<int>(8);
-		data.dashboardColour = dashboardColour;
+        s.Serialize(8, data.envEffScale);
 
-		int isPrimaryColourRGB = state.buffer.ReadBit();
-		data.isPrimaryColourRGB = isPrimaryColourRGB;
+        s.Serialize(data.hasExtras);
 
-		if (isPrimaryColourRGB)
-		{
-			int primaryRedColour = state.buffer.Read<int>(8);
-			int primaryGreenColour = state.buffer.Read<int>(8);
-			int primaryBlueColour = state.buffer.Read<int>(8);
+        if (data.hasExtras)
+        {
+            s.Serialize(5, data.dirtLevel);
+            s.Serialize(16, data.extras);
 
-			data.primaryRedColour = primaryRedColour;
-			data.primaryGreenColour = primaryGreenColour;
-			data.primaryBlueColour = primaryBlueColour;
-		}
+            s.Serialize(data.hasCustomLivery);
 
-		int isSecondaryColourRGB = state.buffer.ReadBit();
-		data.isSecondaryColourRGB = isSecondaryColourRGB;
+            if (data.hasCustomLivery)
+            {
+                s.Serialize(5, data.liveryIndex);
+            }
+            else
+            {
+                data.liveryIndex = 0;
+            }
 
-		if (isSecondaryColourRGB)
-		{
-			int secondaryRedColour = state.buffer.Read<int>(8);
-			int secondaryGreenColour = state.buffer.Read<int>(8);
-			int secondaryBlueColour = state.buffer.Read<int>(8);
+            s.Serialize(data.hasCustomRoofLivery);
 
-			data.secondaryRedColour = secondaryRedColour;
-			data.secondaryGreenColour = secondaryGreenColour;
-			data.secondaryBlueColour = secondaryBlueColour;
-		}
+            if (data.hasCustomRoofLivery)
+            {
+                s.Serialize(5, data.roofLiveryIndex);
+            }
+            else
+            {
+                data.roofLiveryIndex = 0;
+            }
+        }
+        else
+        {
+            data.dirtLevel = 1;
+            data.hasCustomLivery = false;
+            data.hasCustomLiveryIndex = false;
+            data.liveryIndex = -1;
+            data.roofLiveryIndex = -1;
+            data.extras = 0;
+        }
 
-		int unk0 = state.buffer.Read<int>(8);
-		bool unk1 = state.buffer.ReadBit();
+        s.Serialize(2, data.kitIndex);
 
-		if (unk1)
-		{
-			int dirtLevel = state.buffer.Read<int>(5);
-			data.dirtLevel = dirtLevel;
+        if (data.kitIndex != 0)
+        {
+            for (int i = 0; i < 13; i++)
+            {
+                s.Serialize(data.hasMod);
 
-			int extras = state.buffer.Read<int>(16);
-			data.extras = extras;
-			
-			bool hasCustomLivery = state.buffer.ReadBit();
+                if (data.hasMod)
+                {
+                    s.Serialize(32, data.kitMods[i]);
+                }
+                else
+                {
+                    data.kitMods[i] = 0;
+                }
+            }
 
-			if (hasCustomLivery)
-			{
-				int liveryIndex = state.buffer.Read<int>(5);
-				data.liveryIndex = liveryIndex;
-			}
-			else
-			{
-				data.liveryIndex = -1;
-			}
+            s.Serialize(data.hasToggleMods);
 
-			bool hasCustomRoofLivery = state.buffer.ReadBit();
+            if (data.hasToggleMods)
+            {
+                s.Serialize(6, data.toggleMods);
+            }
+            else
+            {
+                data.toggleMods = 0;
+            }
 
-			if (hasCustomRoofLivery)
-			{
-				int roofLiveryIndex = state.buffer.Read<int>(5);
-				data.roofLiveryIndex = roofLiveryIndex;
-			}
-			else
-			{
-				data.roofLiveryIndex = -1;
-			}
-		}
-		else
-		{
-			data.dirtLevel = 1;
-			data.liveryIndex = -1;
-			data.roofLiveryIndex = -1;
-			data.extras = 0;
-		}
+            s.Serialize(8, data.wheelChoice);
+            s.Serialize(4, data.wheelType);
 
-		int hasCustom = state.buffer.Read<int>(2);
+            s.Serialize(data.hasDifferentRearWheel);
 
-		if (hasCustom)
-		{
-			int v5 = 0;
-			do
-			{
-				bool hasMod = state.buffer.ReadBit();
+            if (data.hasDifferentRearWheel)
+            {
+                s.Serialize(8, data.rearWheelChoice);
+            }
+            else
+            {
+                data.rearWheelChoice = 0;
+            }
 
-				if (hasMod)
-				{
-					int modIndex = state.buffer.Read<int>(32);
-				}
-				++v5;
-			} while (v5 < 0xD);
+            s.Serialize(data.hasCustomTires);
+            s.Serialize(data.hasWheelVariation1);
+        }
+        else
+        {
+            for (int i = 0; i < 13; i++)
+            {
+                data.kitMods[i] = 0;
+            }
+            data.toggleMods = 0;
+            data.wheelChoice = 0;
+            data.rearWheelChoice = 0;
+            data.wheelType = 255;
+            data.hasCustomTires = false;
+            data.hasWheelVariation1 = false;
+        }
 
-			bool unk3 = state.buffer.ReadBit();
+        s.Serialize(data.hasWindowTint);
 
-			if (unk3)
-			{
-				int unk4 = state.buffer.Read<int>(6);
-			}
+        if (data.hasWindowTint)
+        {
+            s.Serialize(8, data.windowTintIndex);
+        }
+        else
+        {
+            data.windowTintIndex = 0;
+        }
 
-			int wheelChoice = state.buffer.Read<int>(8);
-			data.wheelChoice = wheelChoice;
+        s.Serialize(data.hasTyreSmokeColours);
 
-			int wheelType = state.buffer.Read<int>(4);
-			data.wheelType = wheelType;
+        if (data.hasTyreSmokeColours)
+        {
+            s.Serialize(8, data.tyreSmokeRedColour);
+            s.Serialize(8, data.tyreSmokeGreenColour);
+            s.Serialize(8, data.tyreSmokeBlueColour);
+        }
+        else
+        {
+            data.tyreSmokeRedColour = 255;
+            data.tyreSmokeGreenColour = 255;
+            data.tyreSmokeBlueColour = 255;
+        }
 
-			bool unk7 = state.buffer.ReadBit();
+        s.Serialize(data.hasPlate);
 
-			if (unk7)
-			{
-				int unk8 = state.buffer.Read<int>(8);
-			}
+        for (int i = 0; i < 8; i++)
+        {
+            if (data.hasPlate)
+            {
+                s.Serialize(7, data.plate[i]);
+            }
+            else
+            {
+                data.plate[i] = ' ';
+            }
+        }
 
-			bool hasCustomTires = state.buffer.ReadBit();
-			data.hasCustomTires = hasCustomTires;
+        s.Serialize(32, data.numberPlateTextIndex);
+        s.Serialize(32, data.hornTypeHash);
+        s.Serialize(data.hasEmblems);
 
-			bool unk10 = state.buffer.ReadBit();
-		}
-		else
-		{
-			data.hasCustomTires = false;
-			data.wheelChoice = 0;
-			data.wheelType = 0;
-		}
+        if (data.hasEmblems)
+        {
+            s.Serialize(data.isEmblem);
 
-		bool hasWindowTint = state.buffer.ReadBit();
+            if (!data.isEmblem)
+            {
+                s.Serialize(1, data.emblemType);
+                s.Serialize(32, data.emblemId);
+                s.Serialize(data.isSizeModified);
+                s.Serialize(3, data.emblemSize);
+            }
+            else
+            {
+                s.Serialize(32, data.txdName);
+                s.Serialize(32, data.textureName);
+                data.emblemType = -1;
+                data.emblemId = 0;
+                data.emblemSize = 2;
+            }
 
-		if (hasWindowTint)
-		{
-			int windowTintIndex = state.buffer.Read<int>(8);
-			data.windowTintIndex = windowTintIndex;
-		}
-		else
-		{
-			data.windowTintIndex = -1;
-		}
+            for (int i = 0; i < 4; i++)
+            {
+                s.Serialize(data.hasBadge[i]);
 
-		bool hasTyreSmokeColours = state.buffer.ReadBit();
+                if (data.hasBadge[i])
+                {
+                    s.Serialize(10, data.badgeBoneIndex[i]);
+                    s.Serialize(8, data.badgeAlpha[i]);
 
-		if (hasTyreSmokeColours)
-		{
-			int tyreSmokeRedColour = state.buffer.Read<int>(8);
-			int tyreSmokeGreenColour = state.buffer.Read<int>(8);
-			int tyreSmokeBlueColour = state.buffer.Read<int>(8);
+                    s.Serialize(14, data.badgeOffsetX[i]);
+                    s.Serialize(14, data.badgeOffsetY[i]);
+                    s.Serialize(10, data.badgeOffsetZ[i]);
 
-			data.tyreSmokeRedColour = tyreSmokeRedColour;
-			data.tyreSmokeGreenColour = tyreSmokeGreenColour;
-			data.tyreSmokeBlueColour = tyreSmokeBlueColour;
-		}
-		else
-		{
-			data.tyreSmokeRedColour = 255;
-			data.tyreSmokeGreenColour = 255;
-			data.tyreSmokeBlueColour = 255;
-		}
+                    s.Serialize(14, data.badgeDirX[i]);
+                    s.Serialize(14, data.badgeDirY[i]);
+                    s.Serialize(10, data.badgeDirZ[i]);
 
-		bool hasPlate = state.buffer.ReadBit();
+                    s.Serialize(14, data.badgeSideX[i]);
+                    s.Serialize(14, data.badgeSideY[i]);
+                    s.Serialize(10, data.badgeSideZ[i]);
 
-		for (int i = 0; i < 8; i++)
-		{
-			if (hasPlate)
-			{
-				int plateChar = state.buffer.Read<int>(7);
-				data.plate[i] = plateChar;
-			}
-			else
-			{
-				data.plate[i] = ' ';
-			}
-		}
+                    s.Serialize(16, data.badgeSize[i]);
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < 13; i++)
+            {
+                data.hasBadge[i] = false;
+            }
+        }
 
-		int numberPlateTextIndex = state.buffer.Read<int>(32);
-		data.numberPlateTextIndex = numberPlateTextIndex;
+        s.Serialize(data.hasNeonLights);
 
-		int hornTypeHash = state.buffer.Read<int>(32);
-		data.hornTypeHash = hornTypeHash;
+        if (data.hasNeonLights)
+        {
+            s.Serialize(8, data.neonRedColour);
+            s.Serialize(8, data.neonGreenColour);
+            s.Serialize(8, data.neonBlueColour);
 
-		bool hasEmblems = state.buffer.ReadBit();
+            s.Serialize(data.neonLeftOn);
+            s.Serialize(data.neonRightOn);
+            s.Serialize(data.neonFrontOn);
+            s.Serialize(data.neonBackOn);
 
-		if (hasEmblems)
-		{
-			// Crew emblems stuff
-			bool unk22 = state.buffer.ReadBit();
+            if (Is2372())
+            {
+                s.Serialize(data.isNeonSuppressed);
+            }
+        }
 
-			if (!unk22)
-			{
-				// TODO
-			}
-			else
-			{
-				bool unk27 = state.buffer.ReadBit();
-				bool unk28 = state.buffer.ReadBit();
-				bool unk29 = state.buffer.ReadBit();
-
-				bool unk30 = state.buffer.ReadBit();
-			}
-
-			int v15 = 0;
-			do
-			{
-				// TODO
-				++v15;
-			} while(v15 < 4);
-		}
-
-		/*
-		bool hasNeonLights = state.buffer.ReadBit();
-
-		if (hasNeonLights)
-		{
-			int neonRedColour = state.buffer.Read<int>(8);
-			int neonGreenColour = state.buffer.Read<int>(8);
-			int neonBlueColour = state.buffer.Read<int>(8);
-
-			bool leftNeonEnabled = state.buffer.ReadBit();
-			bool rightNeonEnabled = state.buffer.ReadBit();
-			bool frontNeonEnabled = state.buffer.ReadBit();
-			bool rearNeonEnabled = state.buffer.ReadBit();
-			if (Is2372())
-			{
-				state.buffer.ReadBit();
-			}
-		}
-		*/
-
-		return true;
-	}
+        return true;
+    }
 };
 
 struct CVehicleDamageStatusDataNode
