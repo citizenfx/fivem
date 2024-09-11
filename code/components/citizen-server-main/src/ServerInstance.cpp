@@ -226,7 +226,6 @@ namespace fx
 				se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
 
 				// start standard resources
-				//consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
 				if (console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("txAdminServerMode"))
 				{
 					consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });

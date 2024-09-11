@@ -6,7 +6,6 @@ part of the main project.
 ## ext/
 * [**cfx-ui/**](./cfx-ui): The main menu interface for the game clients.
 * [**event-doc-gen/**](./event-doc-gen): Generation tooling for _event_ documentation.
-* [**monitor/**](./monitor): A legacy version of a built-in server monitor. See `system-resources/`.
 * [**native-decls/**](./native-decls): Native function declarations for `CFX/` natives defined in the main project.
 * [**native-doc-gen/**](./native-doc-gen): Scripts to generate `native-decls` using the `native-doc-tooling` submodule.
 * [**native-doc-tooling/**](./native-doc-tooling): A submodule for the latest version of `native-doc-tooling`, which is used to generate native definitions from the documentation in `native-decls`.
@@ -16,4 +15,3 @@ part of the main project.
 * [**system-resources/**](./system-resources): System resources bundled with FXServer by default.
 * [**typings/**](./typings): Build files for the `@citizenfx/client` and `@citizenfx/server` NPM packages.
 * [**ui-build/**](./ui-build): Scripts and data files for building `citizen/ui.zip` including root helpers, legacy UI scripts and a packed version of `cfx-ui`.
-* [**webadmin/**](./webadmin): In-process web dashboard system resource.

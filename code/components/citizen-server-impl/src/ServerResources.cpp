@@ -52,8 +52,7 @@ static std::set<std::string> g_managedResources = {
 	"baseevents",
 	"chat",
 	"sessionmanager",
-	"webadmin",
-	"monitor"
+	"monitor" // txAdmin
 };
 
 static void CheckResourceGlobs(fx::Resource* resource, int* numWarnings)

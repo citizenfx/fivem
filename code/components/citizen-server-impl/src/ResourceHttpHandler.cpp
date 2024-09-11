@@ -323,17 +323,6 @@ static InitFunction initFunction([]()
 	{
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/", [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 		{
-			auto resource = instance->GetComponent<fx::ResourceManager>()->GetResource("webadmin");
-
-			if (resource.GetRef() && resource->GetState() == fx::ResourceState::Started)
-			{
-				response->SetStatusCode(302);
-				response->SetHeader("Location", "/webadmin/");
-
-				response->End("Redirecting...");
-				return;
-			}
-
 			auto webVar = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("web_baseUrl");
 
 			if (webVar)
