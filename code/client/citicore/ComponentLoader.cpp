@@ -113,6 +113,7 @@ void ComponentLoader::Initialize()
 				L"net-http-server",
 				L"net-tcp-server",
 				L"net-base",
+				L"net-packet",
 			};
 		}
 #endif
@@ -133,6 +134,7 @@ void ComponentLoader::Initialize()
 				L"vfs-core",
 				L"net-tcp-server",
 				L"net-base",
+				L"net-packet",
 			};
 		}
 
