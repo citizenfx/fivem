@@ -305,6 +305,17 @@ public:
 
 	void AddReliableHandler(const char* type, const ReliableHandlerType& function, bool runOnMainThreadOnly = false);
 
+	template<typename PacketHandler, typename ...Args>
+	void AddPacketHandler(bool runOnMainThreadOnly, Args&... args)
+	{
+		static PacketHandler handler {std::forward<Args>(args)...};
+		m_reliableHandlers.insert({ PacketHandler::PacketType, { [](const char* buf, const size_t len)
+		{
+			net::ByteReader reader(reinterpret_cast<const uint8_t*>(buf), len);
+			handler.Process(reader);
+		}, runOnMainThreadOnly } });
+	}
+
 	void Death();
 
 	void Resurrection();
