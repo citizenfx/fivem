@@ -9,6 +9,7 @@
 #include "fxScripting.h"
 
 #include <ScriptEngine.h>
+#include <ScriptInvoker.h>
 
 #include "LuaScriptRuntime.h"
 #include "LuaScriptNatives.h"
@@ -38,6 +39,8 @@ extern LUA_INTERNAL_LINKAGE
 #include <collections/lmprof_traceevent.h>
 #include <collections/lmprof_stack.h>
 }
+
+using namespace fx::invoker;
 
 #if defined(GTA_FIVE)
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
@@ -75,9 +78,7 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 	}                                                  \
 	lua_pop((L), 1)
 
-/// <summary>
-/// </summary>
-uint8_t g_metaFields[(size_t)LuaMetaFields::Max];
+static uint8_t g_awaitSentinel;
 
 /// <summary>
 /// </summary>
@@ -87,7 +88,6 @@ static fx::OMPtr<fx::LuaScriptRuntime> g_currentLuaRuntime;
 /// </summary>
 static IScriptHost* g_lastScriptHost;
 
-uint64_t g_tickTime;
 bool g_hadProfiler;
 
 #if defined(LUA_USE_RPMALLOC)
@@ -688,10 +688,17 @@ static int Lua_SubmitBoundaryEnd(lua_State* L)
 	return 0;
 }
 
-template<LuaMetaFields metaField>
+template<MetaField metaField>
 static int Lua_GetMetaField(lua_State* L)
 {
-	lua_pushlightuserdata(L, &g_metaFields[(int)metaField]);
+	lua_pushlightuserdata(L, &ScriptNativeContext::s_metaFields[(int)metaField]);
+
+	return 1;
+}
+
+static int Lua_GetAwaitSentinel(lua_State* L)
+{
+	lua_pushlightuserdata(L, &g_awaitSentinel);
 
 	return 1;
 }
@@ -731,10 +738,10 @@ static int Lua_ResultAsObject(lua_State* L)
 		lua_remove(L, eh);
 	});
 
-	return Lua_GetMetaField<LuaMetaFields::ResultAsObject>(L);
+	return Lua_GetMetaField<MetaField::ResultAsObject>(L);
 }
 
-template<LuaMetaFields MetaField>
+template<MetaField MetaField>
 static int Lua_GetPointerField(lua_State* L)
 {
 	auto& runtime = LuaScriptRuntime::GetCurrent();
@@ -743,7 +750,7 @@ static int Lua_GetPointerField(lua_State* L)
 	auto pointerFieldStart = &pointerFields[(int)MetaField];
 
 	static uintptr_t dummyOut;
-	PointerFieldEntry* pointerField = nullptr;
+	fx::invoker::PointerFieldEntry* pointerField = nullptr;
 
 	for (int i = 0; i < _countof(pointerFieldStart->data); i++)
 	{
@@ -758,13 +765,13 @@ static int Lua_GetPointerField(lua_State* L)
 			{
 				pointerField->value = 0;
 			}
-			else if (MetaField == LuaMetaFields::PointerValueFloat)
+			else if (MetaField == MetaField::PointerValueFloat)
 			{
 				float value = static_cast<float>(luaL_checknumber(L, 1));
 
 				pointerField->value = *reinterpret_cast<uint32_t*>(&value);
 			}
-			else if (MetaField == LuaMetaFields::PointerValueInt)
+			else if (MetaField == MetaField::PointerValueInt)
 			{
 				intptr_t value = luaL_checkinteger(L, 1);
 
@@ -955,7 +962,7 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 			auto userData = lua_touserdata(thread, -1);
 			lua_pop(thread, 1);
 
-			if (userData == &g_metaFields[(int)LuaMetaFields::AwaitSentinel])
+			if (userData == &g_awaitSentinel)
 			{
 				// resume again with a reattach callback
 				lua_pushlightuserdata(thread, this);
@@ -1190,20 +1197,20 @@ static const struct luaL_Reg g_citizenLib[] = {
 	{ "SubmitBoundaryEnd", Lua_SubmitBoundaryEnd },
 	{ "SetStackTraceRoutine", Lua_SetStackTraceRoutine },
 	// metafields
-	{ "PointerValueIntInitialized", Lua_GetPointerField<LuaMetaFields::PointerValueInt> },
-	{ "PointerValueFloatInitialized", Lua_GetPointerField<LuaMetaFields::PointerValueFloat> },
-	{ "PointerValueInt", Lua_GetMetaField<LuaMetaFields::PointerValueInt> },
-	{ "PointerValueFloat", Lua_GetMetaField<LuaMetaFields::PointerValueFloat> },
-	{ "PointerValueVector", Lua_GetMetaField<LuaMetaFields::PointerValueVector> },
-	{ "ReturnResultAnyway", Lua_GetMetaField<LuaMetaFields::ReturnResultAnyway> },
-	{ "ResultAsInteger", Lua_GetMetaField<LuaMetaFields::ResultAsInteger> },
-	{ "ResultAsLong", Lua_GetMetaField<LuaMetaFields::ResultAsLong> },
-	{ "ResultAsFloat", Lua_GetMetaField<LuaMetaFields::ResultAsFloat> },
-	{ "ResultAsString", Lua_GetMetaField<LuaMetaFields::ResultAsString> },
-	{ "ResultAsVector", Lua_GetMetaField<LuaMetaFields::ResultAsVector> },
+	{ "PointerValueIntInitialized", Lua_GetPointerField<MetaField::PointerValueInt> },
+	{ "PointerValueFloatInitialized", Lua_GetPointerField<MetaField::PointerValueFloat> },
+	{ "PointerValueInt", Lua_GetMetaField<MetaField::PointerValueInt> },
+	{ "PointerValueFloat", Lua_GetMetaField<MetaField::PointerValueFloat> },
+	{ "PointerValueVector", Lua_GetMetaField<MetaField::PointerValueVector> },
+	{ "ReturnResultAnyway", Lua_GetMetaField<MetaField::ReturnResultAnyway> },
+	{ "ResultAsInteger", Lua_GetMetaField<MetaField::ResultAsInteger> },
+	{ "ResultAsLong", Lua_GetMetaField<MetaField::ResultAsLong> },
+	{ "ResultAsFloat", Lua_GetMetaField<MetaField::ResultAsFloat> },
+	{ "ResultAsString", Lua_GetMetaField<MetaField::ResultAsString> },
+	{ "ResultAsVector", Lua_GetMetaField<MetaField::ResultAsVector> },
 	{ "ResultAsObject", Lua_Noop }, // for compatibility
 	{ "ResultAsObject2", Lua_ResultAsObject },
-	{ "AwaitSentinel", Lua_GetMetaField<LuaMetaFields::AwaitSentinel> },
+	{ "AwaitSentinel", Lua_GetAwaitSentinel },
 	{ nullptr, nullptr }
 };
 }

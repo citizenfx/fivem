@@ -61,7 +61,7 @@ xcopy /y out\*.zip ..\..\data\shared\citizen\scripting\lua
 xcopy /y out\*.cs ..\..\code\client\clrcore
 xcopy /y out\v2\*.cs ..\..\code\client\clrcore-v2\Native
 xcopy /y out\Natives*.h ..\..\code\components\citizen-scripting-lua\src
-xcopy /y out\PASGen.h ..\..\code\components\rage-scripting-five\src
+xcopy /y out\NativeTypes*.h ..\..\code\components\citizen-scripting-core\src
 
 popd
 goto :eof

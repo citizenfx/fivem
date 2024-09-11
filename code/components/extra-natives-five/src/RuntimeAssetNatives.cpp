@@ -108,11 +108,11 @@ class RuntimeTxd
 public:
 	RuntimeTxd(const char* name);
 
-	RuntimeTex* CreateTexture(const char* name, int width, int height);
+	std::shared_ptr<RuntimeTex> CreateTexture(const char* name, int width, int height);
 
-	RuntimeTex* CreateTextureFromImage(const char* name, const char* fileName);
+	std::shared_ptr<RuntimeTex> CreateTextureFromImage(const char* name, const char* fileName);
 
-	RuntimeTex* CreateTextureFromDui(const char* name, const char* duiHandle);
+	std::shared_ptr<RuntimeTex> CreateTextureFromDui(const char* name, const char* duiHandle);
 
 private:
 	void EnsureTxd();
@@ -282,7 +282,7 @@ void RuntimeTxd::EnsureTxd()
 	}
 }
 
-RuntimeTex* RuntimeTxd::CreateTexture(const char* name, int width, int height)
+std::shared_ptr<RuntimeTex> RuntimeTxd::CreateTexture(const char* name, int width, int height)
 {
 	if (!m_txd)
 	{
@@ -309,8 +309,7 @@ RuntimeTex* RuntimeTxd::CreateTexture(const char* name, int width, int height)
 
 	m_textures[name] = tex;
 
-	scrBindAddSafePointer(tex.get());
-	return tex.get();
+	return tex;
 }
 
 extern void TextureReplacement_OnTextureCreate(const std::string& txd, const std::string& txn);
@@ -325,7 +324,7 @@ static void OnNextMainFrame(std::function<void()>&& fn)
 	nextFrameQueue.push(std::move(fn));
 }
 
-RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHandle)
+std::shared_ptr<RuntimeTex> RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHandle)
 {
 	if (!m_txd)
 	{
@@ -355,8 +354,7 @@ RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHa
 
 	m_textures[name] = tex;
 
-	scrBindAddSafePointer(tex.get());
-	return tex.get();
+	return tex;
 }
 
 #pragma comment(lib, "windowscodecs.lib")
@@ -441,7 +439,7 @@ static ComPtr<IWICBitmapSource> ImageToBitmapSource(std::string_view fileName)
 	return source;
 }
 
-RuntimeTex* RuntimeTxd::CreateTextureFromImage(const char* name, const char* fileName)
+std::shared_ptr<RuntimeTex> RuntimeTxd::CreateTextureFromImage(const char* name, const char* fileName)
 {
 	if (!m_txd)
 	{
@@ -484,8 +482,7 @@ RuntimeTex* RuntimeTxd::CreateTextureFromImage(const char* name, const char* fil
 
 			m_textures[name] = tex;
 
-			scrBindAddSafePointer(tex.get());
-			return tex.get();
+			return tex;
 		}
 	}
 
@@ -1096,7 +1093,7 @@ static InitFunction initFunction([]()
 	});
 
 	scrBindClass<RuntimeTxd>()
-		.AddConstructor<void(*)(const char*)>("CREATE_RUNTIME_TXD")
+		.AddConstructor<const char*>("CREATE_RUNTIME_TXD")
 		.AddMethod("CREATE_RUNTIME_TEXTURE", &RuntimeTxd::CreateTexture)
 		.AddMethod("CREATE_RUNTIME_TEXTURE_FROM_IMAGE", &RuntimeTxd::CreateTextureFromImage)
 		.AddMethod("CREATE_RUNTIME_TEXTURE_FROM_DUI_HANDLE", &RuntimeTxd::CreateTextureFromDui);
@@ -1152,156 +1149,6 @@ static InitFunction initFunction([]()
 
 					// register the archetype in the streaming module
 					registerArchetype(mi);
-				}
-			}
-		}
-	});
-
-	fx::ScriptEngine::RegisterNativeHandler("REGISTER_ENTITIES", [](fx::ScriptContext& context)
-	{
-		fx::OMPtr<IScriptRuntime> runtime;
-
-		std::string factoryRef = context.CheckArgument<const char*>(0);
-
-		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
-		{
-			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
-
-			if (resource)
-			{
-				msgpack::unpacked unpacked;
-				auto factoryObject = resource->GetManager()->CallReferenceUnpacked<msgpack::object>(factoryRef, &unpacked);
-
-				if (factoryObject.type != msgpack::type::ARRAY && factoryObject.type != msgpack::type::MAP)
-				{
-					throw std::runtime_error("Wrong type in REGISTER_ENTITIES.");
-				}
-
-				std::vector<std::map<std::string, msgpack::object>> entities =
-					(factoryObject.type == msgpack::type::ARRAY) ?
-					factoryObject.as<std::vector<std::map<std::string, msgpack::object>>>() :
-					std::vector<std::map<std::string, msgpack::object>>{ factoryObject.as<std::map<std::string, msgpack::object>>() };
-
-				static int idx;
-				std::string nameRef = fmt::sprintf("reg_ents_%d", idx++);
-
-				CMapData* mapData = new CMapData();
-
-				// 1604, temp
-				assert(!xbr::IsGameBuildOrGreater<1868>());
-
-				*(uintptr_t*)mapData = 0x1419343E0;
-				mapData->name = HashString(nameRef.c_str());
-				mapData->contentFlags = 73;
-
-				float aabbMin[3];
-				float aabbMax[3];
-
-				aabbMin[0] = FLT_MAX;
-				aabbMin[1] = FLT_MAX;
-				aabbMin[2] = FLT_MAX;
-
-				aabbMax[0] = 0.0f - FLT_MAX;
-				aabbMax[1] = 0.0f - FLT_MAX;
-				aabbMax[2] = 0.0f - FLT_MAX;
-
-				mapData->entities.Expand(entities.size());
-
-				size_t i = 0;
-
-				for (const auto& entityData : entities)
-				{
-					fwEntityDef* entityDef = (fwEntityDef*)MakeStructFromMsgPack("CEntityDef", entityData);
-					mapData->entities.Set(i, entityDef);
-
-					rage::fwModelId modelId;
-					fwArchetype* archetype = rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(entityDef->archetypeName, modelId);
-
-					if (archetype)
-					{
-						float radius = archetype->radius;
-
-						if (archetype->radius < 0.01f)
-						{
-							radius = 250.f;
-						}
-
-						// update AABB
-						float xMin = entityDef->position[0] - radius;
-						float yMin = entityDef->position[1] - radius;
-						float zMin = entityDef->position[2] - radius;
-
-						float xMax = entityDef->position[0] + radius;
-						float yMax = entityDef->position[1] + radius;
-						float zMax = entityDef->position[2] + radius;
-
-						aabbMin[0] = (xMin < aabbMin[0]) ? xMin : aabbMin[0];
-						aabbMin[1] = (yMin < aabbMin[1]) ? yMin : aabbMin[1];
-						aabbMin[2] = (zMin < aabbMin[2]) ? zMin : aabbMin[2];
-
-						aabbMax[0] = (xMax > aabbMax[0]) ? xMax : aabbMax[0];
-						aabbMax[1] = (yMax > aabbMax[1]) ? yMax : aabbMax[1];
-						aabbMax[2] = (zMax > aabbMax[2]) ? zMax : aabbMax[2];
-					}
-
-					i++;
-				}
-
-				mapData->entitiesExtentsMin[0] = aabbMin[0];
-				mapData->entitiesExtentsMin[1] = aabbMin[1];
-				mapData->entitiesExtentsMin[2] = aabbMin[2];
-
-				mapData->entitiesExtentsMax[0] = aabbMax[0];
-				mapData->entitiesExtentsMax[1] = aabbMax[1];
-				mapData->entitiesExtentsMax[2] = aabbMax[2];
-
-				mapData->streamingExtentsMin[0] = aabbMin[0];
-				mapData->streamingExtentsMin[1] = aabbMin[1];
-				mapData->streamingExtentsMin[2] = aabbMin[2];
-
-				mapData->streamingExtentsMax[0] = aabbMax[0];
-				mapData->streamingExtentsMax[1] = aabbMax[1];
-				mapData->streamingExtentsMax[2] = aabbMax[2];
-
-				auto mapTypesStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
-				auto mapDataStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");
-				
-				uint32_t mehId;
-				mapTypesStore->FindSlot(&mehId, "v_int_1");
-
-				uint32_t mapId;
-				mapDataStore->FindSlotFromHashKey(&mapId, nameRef.c_str());
-
-				if (mapId != -1)
-				{
-					void* unkRef[4] = { 0 };
-					unkRef[0] = mapData;
-
-					// 1604, temp (pso store placement cookie)
-					((void(*)(void*, uint32_t, const void*))0x14158FCD4)((void*)0x142DC9678, mapId + mapDataStore->baseIdx, unkRef);
-
-					auto pool = (atPoolBase*)((char*)mapDataStore + 56);
-					*(int32_t*)(pool->GetAt<char>(mapId) + 32) |= 2048;
-					*(int16_t*)(pool->GetAt<char>(mapId) + 38) = 1;
-					*(int32_t*)(pool->GetAt<char>(mapId) + 24) = mehId; // TODO: FIGURE OUT
-
-					//auto contents = (CMapDataContents*)mapDataStore->GetPtr(mapId);
-					auto mapMeta = (void*)mapDataStore->GetDataPtr(mapId); // not sure?
-
-					// TODO: leak
-					mapData->CreateMapDataContents()->PrepareInteriors(mapMeta, mapData, mapId);
-					
-					// reference is ignored but we pass it for formality - it actually uses PSO store placement cookies
-					streaming::strAssetReference ref;
-					ref.asset = mapData;
-
-					mapDataStore->SetResource(mapId, ref);
-					streaming::Manager::GetInstance()->Entries[mapId + mapDataStore->baseIdx].flags |= (512 << 8) | 1;
-
-					// 1604
-					((void(*)(int))0x1408CF07C)(0);
-
-					((void(*)(void*))((*(void***)0x142DCA970)[2]))((void*)0x142DCA970);
 				}
 			}
 		}
