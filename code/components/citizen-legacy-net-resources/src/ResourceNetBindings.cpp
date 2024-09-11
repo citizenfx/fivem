@@ -49,6 +49,7 @@
 
 #include <json.hpp>
 
+#include "ReassembledEventPacketHandler.h"
 #include "ScriptWarnings.h"
 
 static tbb::concurrent_queue<std::function<void()>> executeNextGameFrame;
@@ -207,7 +208,7 @@ static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::s
 	co_return list;
 }
 
-namespace
+namespace fx
 {
 	size_t g_eventReassemblyGameFrameCookie = -1;
 	
@@ -245,7 +246,7 @@ namespace
 		}
 	}
 
-	ConVar g_enableEventReassembly("sv_enableNetEventReassembly", ConVar_Replicated, true, EnableEventReassemblyChanged);
+	ConVar<bool> g_enableEventReassembly("sv_enableNetEventReassembly", ConVar_Replicated, true, EnableEventReassemblyChanged);
 }
 
 void NetLibraryResourcesComponent::UpdateOneResource()
@@ -722,20 +723,9 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 	});
 
 	// Used to enable the EventReassemblyComponent when the setr sv_enableNetEventReassembly is not inside the server config
-	EnableEventReassemblyChanged(g_enableEventReassembly.GetHelper().get());
+	fx::EnableEventReassemblyChanged(fx::g_enableEventReassembly.GetHelper().get());
 
-	netLibrary->AddReliableHandler(
-	"msgReassembledEvent", [](const char* buf, size_t len)
-	{
-		if (!g_enableEventReassembly.GetValue())
-		{
-			return;
-		}
-
-		auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
-		reassembler->HandlePacket(0, std::string_view{ buf, len });
-	},
-	true);
+	netLibrary->AddPacketHandler<fx::ReassembledEventPacketHandler>(true);
 
 	netLibrary->AddReliableHandler("msgNetEvent", [](const char* buf, size_t len)
 	{
@@ -828,7 +818,7 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_SERVER_EVENT_INTERNAL", [](fx::ScriptContext& context)
 	{
-		if (g_enableEventReassembly.GetValue())
+		if (fx::g_enableEventReassembly.GetValue())
 		{
 			TriggerLatentServerEventInternal(context);
 		} 
