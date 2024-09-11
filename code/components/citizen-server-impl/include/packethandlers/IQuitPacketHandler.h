@@ -25,7 +25,7 @@ namespace fx
 			{
 				static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientIQuit>();
 
-				if (packet.GetRemainingBytes() > kClientMaxPacketSize)
+				if (packet.GetRemainingBytes() < 1 || packet.GetRemainingBytes() > kClientMaxPacketSize)
 				{
 					instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, "");
 					return;
@@ -33,7 +33,7 @@ namespace fx
 
 				net::packet::ClientIQuit clientIQuit;
 
-				net::ByteReader reader{ packet.GetRemainingBytesPtr(), packet.GetRemainingBytes() };
+				net::ByteReader reader{ packet.GetRemainingBytesPtr(), packet.GetRemainingBytes() - 1 };
 				if (!clientIQuit.Process(reader))
 				{
 					instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, "");
