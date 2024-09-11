@@ -105,6 +105,16 @@ std::string GetMachineGuid()
 
 std::string g_entitlementSource;
 
+__declspec(noinline) static void SetEntitlementSource(const std::string& entitlementSource)
+{
+	g_entitlementSource = entitlementSource;
+}
+
+__declspec(noinline) static bool HasEntitlementSource()
+{
+	return !g_entitlementSource.empty();
+}
+
 bool LoadOwnershipTicket()
 {
     std::string filePath = GetOwnershipPath();
@@ -155,9 +165,9 @@ bool LoadOwnershipTicket()
 		{
 			if (doc.IsObject())
 			{
-				g_entitlementSource = doc["guid"].GetString();
+				SetEntitlementSource(doc["guid"].GetString());
 
-				if (!g_entitlementSource.empty())
+				if (HasEntitlementSource())
 				{
 					return true;
 				}
@@ -825,7 +835,8 @@ bool VerifyRetailOwnershipInternal(int pass)
 										{
 											trace(__FUNCTION__ ": Got a token and saved it.\n");
 
-											g_entitlementSource = r.text;
+											SetEntitlementSource(r.text);
+
 											return true;
 										}
 									}
@@ -895,7 +906,8 @@ bool VerifyRetailOwnershipInternal(int pass)
 	{
 		trace(__FUNCTION__ ": Got a token and saved it.\n");
 
-		g_entitlementSource = r.text;
+		SetEntitlementSource(r.text);
+
 		return true;
 	}
 
@@ -934,7 +946,7 @@ static ConVar<std::string>* tokenVar;
 
 bool LegitimateCopy()
 {
-    return LoadOwnershipTicket() || (VerifySteamOwnership() && SaveOwnershipTicket(g_entitlementSource)) || (VerifyRetailOwnership() && SaveOwnershipTicket(g_entitlementSource));
+    return LoadOwnershipTicket() || (VerifySteamOwnership() && SaveOwnershipTicket(ros::GetEntitlementSource())) || (VerifyRetailOwnership() && SaveOwnershipTicket(ros::GetEntitlementSource()));
 }
 
 void VerifyOwnership(int parentPid)
@@ -949,7 +961,7 @@ void VerifyOwnership(int parentPid)
 
 namespace ros
 {
-	std::string GetEntitlementSource()
+	__declspec(noinline) std::string GetEntitlementSource()
 	{
 		return g_entitlementSource;
 	}
@@ -975,5 +987,5 @@ static HookFunction hookFunction([]()
 {
 	LoadOwnershipTicket();
 
-	tokenVar->GetHelper()->SetValue(g_entitlementSource);
+	tokenVar->GetHelper()->SetValue(ros::GetEntitlementSource());
 });
