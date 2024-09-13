@@ -96,7 +96,7 @@ std::shared_ptr<sync::SyncTreeBase> MakeAutomobile(uint32_t model, float posX, f
 		cdn.m_randomSeed = rand();
 		cdn.m_tyresDontBurst = false;
 		cdn.m_vehicleStatus = 2;
-		cdn.m_unk5 = false;
+		cdn.m_usesSpecialFlightMode = false;
 	});
 
 	SetupNode(tree, [](sync::CAutomobileCreationDataNode& cdn)
@@ -131,7 +131,7 @@ std::shared_ptr<sync::SyncTreeBase> MakeVehicle(uint32_t model, float posX, floa
 		cdn.m_randomSeed = rand();
 		cdn.m_tyresDontBurst = false;
 		cdn.m_vehicleStatus = 2;
-		cdn.m_unk5 = false;
+		cdn.m_usesSpecialFlightMode = false;
 	});
 
 	if constexpr (std::is_same_v<TTree, sync::CAutomobileSyncTree> ||

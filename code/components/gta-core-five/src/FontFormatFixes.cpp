@@ -185,16 +185,6 @@ std::string regex_replace(const std::string& s,
 
 static uint32_t curTime;
 
-void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{
-	return ::operator new[](size);
-}
-
-void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{
-	return ::operator new[](size);
-}
-
 static void ParseHtmlStub(void* styledText, const wchar_t* str, int64_t length, void* pImgInfoArr, bool multiline, bool condenseWhite, void* styleMgr, void* txtFmt, void* paraFmt)
 {
 	if (!txtFmt)

@@ -52,8 +52,7 @@ static std::set<std::string> g_managedResources = {
 	"baseevents",
 	"chat",
 	"sessionmanager",
-	"webadmin",
-	"monitor"
+	"monitor" // txAdmin
 };
 
 static void CheckResourceGlobs(fx::Resource* resource, int* numWarnings)
@@ -81,7 +80,69 @@ static void CheckResourceGlobs(fx::Resource* resource, int* numWarnings)
 	}
 }
 
-static std::shared_ptr<ConVar<std::string>> g_citizenDir;
+namespace
+{
+	std::shared_ptr<ConVar<bool>> g_enableNetEventReassemblyConVar;
+	std::shared_ptr<ConVar<uint16_t>> g_netEventReassemblyMaxPendingEventsConVar;
+	std::shared_ptr<ConVar<bool>> g_netEventReassemblyUnlimitedPendingEventsConVar;
+	size_t g_eventReassemblyNetworkCookie = -1;
+	
+	std::shared_ptr<ConVar<std::string>> g_citizenDir;
+
+	void TriggerLatentClientEventInternal(fx::ScriptContext& context)
+	{
+		const std::string eventName = context.CheckArgument<const char*>(0);
+		const auto targetSrcIdx = context.CheckArgument<const char*>(1);
+
+		const void* data = context.GetArgument<const void*>(2);
+		const uint32_t dataLen = context.GetArgument<uint32_t>(3);
+
+		const int bps = context.GetArgument<int>(4);
+
+		// get the current resource manager
+		const auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		const auto rac = resourceManager->GetComponent<fx::EventReassemblyComponent>();
+
+		rac->TriggerEvent(std::stoi(targetSrcIdx), std::string_view{ eventName.c_str(), eventName.size() + 1 }, std::string_view{ reinterpret_cast<const char*>(data), dataLen }, bps);
+	}
+
+	void TriggerDisabledLatentClientEventInternal(fx::ScriptContext& context)
+	{
+		fx::scripting::Warningf("natives", "TRIGGER_LATENT_CLIENT_EVENT_INTERNAL requires setr sv_enableNetEventReassembly true\n");
+	}
+
+	void EnableEventReassemblyChangedWithInstance(internal::ConsoleVariableEntry<bool>* variableEntry, fx::ServerInstanceBase* instance, const fwRefContainer<fx::EventReassemblyComponent>& rac)
+	{
+		instance->GetComponent<fx::GameServer>()->OnNetworkTick.Disconnect(g_eventReassemblyNetworkCookie);
+
+		g_eventReassemblyNetworkCookie = -1;
+
+		if (variableEntry->GetRawValue())
+		{
+			g_eventReassemblyNetworkCookie = instance->GetComponent<fx::GameServer>()->OnNetworkTick.Connect([rac]()
+			{
+				rac->NetworkTick();
+			});
+
+			fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_CLIENT_EVENT_INTERNAL", TriggerLatentClientEventInternal);
+		}
+		else
+		{
+			fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_CLIENT_EVENT_INTERNAL", TriggerDisabledLatentClientEventInternal);
+		}
+	}
+
+	void EnableEventReassemblyChanged(internal::ConsoleVariableEntry<bool>* variableEntry)
+	{
+		const auto resourceManager = fx::ResourceManager::GetCurrent();
+		const auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+		const auto rac = resourceManager->GetComponent<fx::EventReassemblyComponent>();
+
+		EnableEventReassemblyChangedWithInstance(variableEntry, instance, rac);
+	}
+}
 
 static void ScanResources(fx::ServerInstanceBase* instance)
 {
@@ -343,16 +404,19 @@ static InitFunction initFunction([]()
 		// TODO: not instanceable
 		auto rac = resman->GetComponent<fx::EventReassemblyComponent>();
 
-		instance
-			->GetComponent<fx::GameServer>()
-			->GetComponent<fx::HandlerMapComponent>()
-			->Add(HashRageString("msgReassembledEvent"), [rac](const fx::ClientSharedPtr& client, net::Buffer& buffer)
-			{
-				rac->HandlePacket(client->GetNetId(), std::string_view{ (char*)(buffer.GetBuffer() + buffer.GetCurOffset()), buffer.GetRemainingBytes() });
-			});
+		g_enableNetEventReassemblyConVar = instance->AddVariable<bool>("sv_enableNetEventReassembly", ConVar_None, true, EnableEventReassemblyChanged);
+		g_netEventReassemblyMaxPendingEventsConVar = instance->AddVariable<uint16_t>("sv_netEventReassemblyMaxPendingEvents", ConVar_None, 100);
+		g_netEventReassemblyUnlimitedPendingEventsConVar = instance->AddVariable<bool>("sv_netEventReassemblyUnlimitedPendingEvents", ConVar_None, false);
+		if (g_netEventReassemblyMaxPendingEventsConVar->GetValue() > 254)
+		{
+			fx::scripting::Warningf("sv_netEventReassemblyMaxPendingEvents", "sv_netEventReassemblyMaxPendingEvents needs to be between [0, 254]. To allow unlimited pending events set sv_netEventReassemblyUnlimitedPendingEvents to true.\n");
+		}
 
 		g_reassemblySink.instance = instance;
 		rac->SetSink(&g_reassemblySink);
+
+		// Used to enable the EventReassemblyComponent when the setr sv_enableNetEventReassembly is not inside the server config
+		EnableEventReassemblyChangedWithInstance(g_enableNetEventReassemblyConVar->GetHelper().get(), instance, rac);
 
 		instance->GetComponent<fx::ClientRegistry>()->OnClientCreated.Connect([rac](const fx::ClientSharedPtr& client)
 		{
@@ -365,18 +429,13 @@ static InitFunction initFunction([]()
 					return;
 				}
 
-				rac->RegisterTarget(unsafeClient->GetNetId());
+				rac->RegisterTarget(unsafeClient->GetNetId(), g_netEventReassemblyUnlimitedPendingEventsConVar->GetValue() ? 0xFF : g_netEventReassemblyMaxPendingEventsConVar->GetHelper()->GetRawValue());
 	
 				unsafeClient->OnDrop.Connect([rac, unsafeClient]()
 				{
 					rac->UnregisterTarget(unsafeClient->GetNetId());
 				});
 			});
-		});
-
-		instance->GetComponent<fx::GameServer>()->OnNetworkTick.Connect([rac]()
-		{
-			rac->NetworkTick();
 		});
 
 		resman->AddMounter(MakeServerResourceMounter(resman));
@@ -863,24 +922,7 @@ static InitFunction initFunction2([]()
 		instance->GetComponent<fx::ServerEventComponent>()->TriggerClientEvent(eventName, data, dataLen, targetSrc);
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_CLIENT_EVENT_INTERNAL", [](fx::ScriptContext& context)
-	{
-		std::string eventName = context.CheckArgument<const char*>(0);
-		auto targetSrcIdx = context.CheckArgument<const char*>(1);
-
-		const void* data = context.GetArgument<const void*>(2);
-		uint32_t dataLen = context.GetArgument<uint32_t>(3);
-
-		int bps = context.GetArgument<int>(4);
-
-		// get the current resource manager
-		auto resourceManager = fx::ResourceManager::GetCurrent();
-
-		// get the owning server instance
-		auto rac = resourceManager->GetComponent<fx::EventReassemblyComponent>();
-
-		rac->TriggerEvent(std::stoi(targetSrcIdx), std::string_view{ eventName.c_str(), eventName.size() + 1 }, std::string_view{ reinterpret_cast<const char*>(data), dataLen }, bps);
-	});
+	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_CLIENT_EVENT_INTERNAL", TriggerDisabledLatentClientEventInternal);
 
 	fx::ScriptEngine::RegisterNativeHandler("START_RESOURCE", [](fx::ScriptContext& context)
 	{

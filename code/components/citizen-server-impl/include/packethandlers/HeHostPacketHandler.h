@@ -8,7 +8,9 @@
 
 #include <Client.h>
 
+#include "ByteReader.h"
 #include "GameServer.h"
+#include "HeHost.h"
 
 namespace fx
 {
@@ -42,27 +44,40 @@ namespace fx
 					return;
 				}
 
+				static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientHeHost>();
+
+				if (packet.GetRemainingBytes() > kClientMaxPacketSize)
+				{
+					return;
+				}
+
+				net::packet::ClientHeHost clientHeHost;
+
+				net::ByteReader reader{ packet.GetRemainingBytesPtr(), packet.GetRemainingBytes() };
+				if (!clientHeHost.Process(reader))
+				{
+					// this only happens when a malicious client sends packets not created from our client code
+					return;
+				}
+
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 				auto gameServer = instance->GetComponent<fx::GameServer>();
-
-				auto allegedNewId = packet.Read<uint32_t>();
-				auto baseNum = packet.Read<uint32_t>();
 
 				// check if the current host is being vouched for
 				auto currentHost = clientRegistry->GetHost();
 
-				if (currentHost && currentHost->GetNetId() == allegedNewId)
+				if (currentHost && currentHost->GetNetId() == clientHeHost.allegedNewId)
 				{
 					trace("Got a late vouch for %s - they're the current arbitrator!\n", currentHost->GetName());
 					return;
 				}
 
 				// get the new client
-				auto newClient = clientRegistry->GetClientByNetID(allegedNewId);
+				auto newClient = clientRegistry->GetClientByNetID(clientHeHost.allegedNewId);
 
 				if (!newClient)
 				{
-					trace("Got a late vouch for %d, who doesn't exist.\n", allegedNewId);
+					trace("Got a late vouch for %d, who doesn't exist.\n", clientHeHost.allegedNewId);
 					return;
 				}
 
@@ -88,11 +103,11 @@ namespace fx
 				// count votes
 				auto voteComponent = instance->GetComponent<HostVoteCount>();
 
-				auto it = voteComponent->voteCounts.find(allegedNewId);
+				auto it = voteComponent->voteCounts.find(clientHeHost.allegedNewId);
 
 				if (it == voteComponent->voteCounts.end())
 				{
-					it = voteComponent->voteCounts.insert({allegedNewId, 1}).first;
+					it = voteComponent->voteCounts.insert({clientHeHost.allegedNewId, 1}).first;
 				}
 
 				++it->second;
@@ -112,7 +127,7 @@ namespace fx
 					voteComponent->voteCounts.clear();
 
 					// set base
-					newClient->SetNetBase(baseNum);
+					newClient->SetNetBase(clientHeHost.baseNum);
 
 					// set as host and tell everyone
 					clientRegistry->SetHost(newClient);

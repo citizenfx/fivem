@@ -7,32 +7,13 @@
 
 #include "ByteReader.h"
 #include "ByteWriter.h"
+#include "ClientMetricData.h"
 #include "GameServer.h"
 #include "NetGameEventV2.h"
 #include "ServerInstance.h"
 #include "packethandlers/NetGameEventPacketHandler.h"
 
 #include "TestUtils.h"
-
-namespace fx
-{
-	class ClientMetricData
-	{
-	public:
-		fx::Client* thisptr;
-		int channel;
-		const net::Buffer buffer;
-		NetPacketType flags;
-
-		ClientMetricData(fx::Client* const thisptr, const int channel, const net::Buffer& buffer, const NetPacketType flags)
-			: thisptr(thisptr),
-			  channel(channel),
-			  buffer(buffer),
-			  flags(flags)
-		{
-		}
-	};
-}
 
 TEST_CASE("NetGameEventV2 test")
 {
@@ -96,14 +77,15 @@ TEST_CASE("NetGameEventV2 test")
 	REQUIRE(lastClientMetricData[0].flags == NetPacketType::NetPacketType_Reliable);
 
 	net::ByteReader reader {lastClientMetricData[0].buffer.GetBuffer(), lastClientMetricData[0].buffer.GetLength()};
-	net::packet::ServerNetGameEventV2 serverNetGameEvent;
+	net::packet::ServerNetGameEventV2Packet serverNetGameEvent;
 	REQUIRE(serverNetGameEvent.Process(reader) == true);
 	REQUIRE(reader.GetOffset() == reader.GetCapacity());
-	REQUIRE(serverNetGameEvent.data.GetValue() == net::Span<uint8_t>{randomEventData.data(), randomEventData.size()});
-	REQUIRE(serverNetGameEvent.eventId == eventId);
-	REQUIRE(serverNetGameEvent.isReply == isReply);
-	REQUIRE(serverNetGameEvent.eventNameHash == eventNameHash);
-	REQUIRE(serverNetGameEvent.clientNetId == static_cast<uint16_t>(client->GetNetId()));
+	REQUIRE(serverNetGameEvent.type == HashRageString("msgNetGameEventV2"));
+	REQUIRE(serverNetGameEvent.event.data.GetValue() == net::Span<uint8_t>{randomEventData.data(), randomEventData.size()});
+	REQUIRE(serverNetGameEvent.event.eventId == eventId);
+	REQUIRE(serverNetGameEvent.event.isReply == isReply);
+	REQUIRE(serverNetGameEvent.event.eventNameHash == eventNameHash);
+	REQUIRE(serverNetGameEvent.event.clientNetId == static_cast<uint16_t>(client->GetNetId()));
 
 	delete serverInstance;
 }

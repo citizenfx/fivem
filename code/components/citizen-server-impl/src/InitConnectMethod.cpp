@@ -32,6 +32,7 @@
 #include <MonoThreadAttachment.h>
 #include <GameBuilds.h>
 #include <CrossBuildRuntime.h>
+#include <PoolSizesState.h>
 
 #include <json.hpp>
 
@@ -50,6 +51,10 @@
 
 #include "NetBitVersion.h"
 
+#include <HttpClient.h>
+
+#include "CnlEndpoint.h"
+
 using json = nlohmann::json;
 
 static std::forward_list<fx::ServerIdentityProviderBase*> g_serverProviders;
@@ -64,35 +69,162 @@ void RegisterServerIdentityProvider(ServerIdentityProviderBase* provider)
 }
 }
 
-static std::mutex g_ticketMapMutex;
-static std::unordered_set<std::tuple<uint64_t, uint64_t>> g_ticketList;
-static std::chrono::milliseconds g_nextTicketGc;
+namespace
+{
+std::mutex g_publicKeyMutex;
+std::optional<Botan::RSA_PublicKey> g_publicKey {};
+std::chrono::milliseconds g_publicKeyCreation {};
 
-static bool VerifyTicket(const std::string& guid, const std::string& ticket, std::string* error = nullptr)
+/// <summary>
+/// Expires the public key.
+/// </summary>
+/// <returns>Returns true if the key is expired, false if the key creation was less then 5 minutes ago.</returns>
+bool ExpirePublicKey()
+{
+	std::unique_lock lock(g_publicKeyMutex);
+	// only expire the public key if the key is older than 5 minutes
+	if (msec() - g_publicKeyCreation > std::chrono::minutes(5))
+	{
+		g_publicKey.reset();
+		return true;
+	}
+
+	return false;
+}
+
+/// <summary>
+/// Requests the public key. If the key is already present, the function returns the key. Otherwise, the key is requested from the server.
+/// </summary>
+/// <returns>Returns an optional RSA public key.</returns>
+std::optional<Botan::RSA_PublicKey> GetPublicKey()
+{
+	static std::condition_variable requestCv;
+	static std::atomic requestInProgress(false);
+
+	// lock token access
+	std::unique_lock lock(g_publicKeyMutex);
+
+	if (g_publicKey.has_value())
+	{
+		// token already present
+		return g_publicKey;
+	}
+
+	// only one request at the same time
+	bool notInProgress = false;
+	if (requestInProgress.compare_exchange_strong(notInProgress, true))
+	{
+		// http get request for loading the token
+		Instance<HttpClient>::Get()->DoGetRequest(CNL_ENDPOINT "api/ticket/pubkey", [](bool success, const char* data, size_t length) {
+			// lock to synchronize threads awaiting the token
+			bool inProgress = true;
+			if (!requestInProgress.compare_exchange_strong(inProgress, false))
+			{
+				// already finished, invalid state should not happen
+				return;
+			}
+
+			// lock token access
+			std::unique_lock lock(g_publicKeyMutex);
+
+			if (success)
+			{
+				success = false;
+				try
+				{
+					json jsonData = json::parse(data, data + length);
+					if (jsonData.contains("key") && jsonData["key"].is_string())
+					{
+						auto publicKeyData = Botan::base64_decode(jsonData["key"]);
+
+						Botan::BigInt n, e;
+						Botan::BER_Decoder(publicKeyData)
+							.start_cons(Botan::SEQUENCE)
+							.decode(n)
+							.decode(e)
+							.end_cons();
+
+						g_publicKey = Botan::RSA_PublicKey(n, e);
+						g_publicKeyCreation = msec();
+						success = true;
+					}
+				}
+				catch (std::exception& e)
+				{
+					trace("exception while processing public key information call: %s\n", e.what());
+				}
+			}
+
+			if (!success)
+			{
+				g_publicKey.reset();
+			}
+
+			requestCv.notify_all();
+		});
+	}
+
+	// unlock token mutex and wait till request is done
+	requestCv.wait(lock, [] { return !requestInProgress; });
+	return g_publicKey;
+}
+
+std::mutex g_ticketMapMutex;
+std::unordered_set<std::tuple<uint64_t, uint64_t>> g_ticketList;
+std::chrono::milliseconds g_nextTicketGc;
+
+enum class VerifyTicketResult
+{
+	InvalidLength,
+	InvalidLength2,
+	Expired,
+	MismatchingGUID,
+	Reused,
+	InvalidSignatureLength,
+	InvalidSignature,
+	Success,
+};
+
+std::string GetVerifyTicketErrorString(VerifyTicketResult result)
+{
+	switch (result)
+	{
+		case VerifyTicketResult::InvalidLength:
+			return "Invalid ticket length.";
+		case VerifyTicketResult::InvalidLength2:
+			return "Invalid ticket length. (2)";
+		case VerifyTicketResult::Expired:
+			return "Ticket expired. Please check your server's system time.";
+		case VerifyTicketResult::MismatchingGUID:
+			return "Mismatching GUID.";
+		case VerifyTicketResult::Reused:
+			return "Reused ticket.";
+		case VerifyTicketResult::InvalidSignatureLength:
+			return "Invalid signature length.";
+		case VerifyTicketResult::InvalidSignature:
+			return "Invalid ticket signature.";
+		case VerifyTicketResult::Success:
+			return "";
+	}
+
+	return "";
+}
+
+VerifyTicketResult VerifyTicket(const std::string& guid, const std::string& ticket, const Botan::RSA_PublicKey& pk)
 {
 	auto ticketData = Botan::base64_decode(ticket);
 
 	// validate ticket length
 	if (ticketData.size() < 20 + 4 + 128)
 	{
-		if (error)
-		{
-			*error = "Invalid ticket length.";
-		}
-
-		return false;
+		return VerifyTicketResult::InvalidLength;
 	}
 
 	uint32_t length = *(uint32_t*)&ticketData[0];
 
 	if (length != 16)
 	{
-		if (error)
-		{
-			*error = "Invalid ticket length. (2)";
-		}
-
-		return false;
+		return VerifyTicketResult::InvalidLength2;
 	}
 
 	uint64_t ticketGuid = *(uint64_t*)&ticketData[4];
@@ -107,13 +239,8 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket, std
 	// verify
 	if (ticketExpiry < timeVal)
 	{
-		if (error)
-		{
-			*error = "Ticket expired. Please check your server's system time.";
-		}
-
 		console::DPrintf("server", "Connecting player: ticket expired\n");
-		return false;
+		return VerifyTicketResult::Expired;
 	}
 
 	// check the GUID
@@ -121,13 +248,8 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket, std
 
 	if (realGuid != ticketGuid)
 	{
-		if (error)
-		{
-			*error = "Mismatching GUID.";
-		}
-
 		console::DPrintf("server", "Connecting player: ticket GUID not matching\n");
-		return false;
+		return VerifyTicketResult::MismatchingGUID;
 	}
 
 	{
@@ -135,12 +257,7 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket, std
 
 		if (g_ticketList.find({ ticketExpiry, ticketGuid }) != g_ticketList.end())
 		{
-			if (error)
-			{
-				*error = "Reused ticket.";
-			}
-
-			return false;
+			return VerifyTicketResult::Reused;
 		}
 
 		if (msec() > g_nextTicketGc)
@@ -157,12 +274,7 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket, std
 
 	if (sigLength != 128)
 	{
-		if (error)
-		{
-			*error = "Invalid signature length.";
-		}
-
-		return false;
+		return VerifyTicketResult::InvalidSignatureLength;
 	}
 
 	Botan::SHA_160 hashFunction;
@@ -172,34 +284,16 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket, std
 	msg[0] = 2;
 	memcpy(&msg[1], &result[0], result.size());
 
-	auto modulus = Botan::base64_decode("1DNT1go22VUAU3BON+jCfXxs7Ow9Zxwng4ARTX/vrv6I65bsSYbdBrcc"
-										"w/50Fu7AJr8zy8+sXK8wUO4gx00frtA0adaGeZOeBqNq7/K3Gprv98wc"
-										"ftbxWjUv75pVl9Ush5yxpBPbuYUnGR/Nh2+K3GRrIrKxWYpNSF1JZYzE"
-										"+5k=");
-
-	auto exponent = Botan::base64_decode("AQAB");
-
-	Botan::BigInt n(modulus.data(), modulus.size());
-	Botan::BigInt e(exponent.data(), exponent.size());
-
-	auto pk = Botan::RSA_PublicKey(n, e);
-
 	auto signer = std::make_unique<Botan::PK_Verifier>(pk, "EMSA_PKCS1(SHA-1)");
 
 	bool valid = signer->verify_message(msg.data(), msg.size(), &ticketData[length + 4 + 4], sigLength);
 
 	if (!valid)
 	{
-		if (error)
-		{
-			*error = "Invalid ticket signature.";
-		}
-
-		console::DPrintf("server", "Connecting player: ticket RSA signature not matching\n");
-		return false;
+		return VerifyTicketResult::InvalidSignature;
 	}
 
-	return true;
+	return VerifyTicketResult::Success;
 }
 
 struct TicketData
@@ -208,7 +302,7 @@ struct TicketData
 	std::optional<std::string> extraJson;
 };
 
-static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
+std::optional<TicketData> VerifyTicketEx(const std::string& ticket, const Botan::RSA_PublicKey& pk)
 {
 	auto ticketData = Botan::base64_decode(ticket);
 
@@ -249,18 +343,6 @@ static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
 	msg[0] = 2;
 	memcpy(&msg[1], &result[0], result.size());
 
-	auto modulus = Botan::base64_decode("1DNT1go22VUAU3BON+jCfXxs7Ow9Zxwng4ARTX/vrv6I65bsSYbdBrcc"
-		"w/50Fu7AJr8zy8+sXK8wUO4gx00frtA0adaGeZOeBqNq7/K3Gprv98wc"
-		"ftbxWjUv75pVl9Ush5yxpBPbuYUnGR/Nh2+K3GRrIrKxWYpNSF1JZYzE"
-		"+5k=");
-
-	auto exponent = Botan::base64_decode("AQAB");
-
-	Botan::BigInt n(modulus.data(), modulus.size());
-	Botan::BigInt e(exponent.data(), exponent.size());
-
-	auto pk = Botan::RSA_PublicKey(n, e);
-
 	auto signer = std::make_unique<Botan::PK_Verifier>(pk, "EMSA_PKCS1(SHA-1)");
 
 	bool valid = signer->verify_message(msg.data(), msg.size(), &ticketData[length + 4 + 4 + 128 + 20 + 4], sigLength);
@@ -293,6 +375,7 @@ static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
 
 	return outData;
 }
+}
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 fx::GameBuild g_enforcedGameBuild;
@@ -318,6 +401,36 @@ static InitFunction initFunction([]()
 
 		g_enforcedGameBuild = "1604";
 		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, "1604", &g_enforcedGameBuild);
+
+		auto poolSizesIncrease = std::make_shared<std::unordered_map<std::string, uint32_t>>();
+		auto poolSizesIncreaseVar = instance->AddVariable<std::string>("sv_poolSizesIncrease", ConVar_ServerInfo | ConVar_Internal, "");
+		auto poolSizesIncreaseCmd = instance->AddCommand("increase_pool_size", [instance, poolSizesIncreaseVar, poolSizesIncrease](const std::string& poolName, int sizeIncrease)
+		{
+			static fx::GameName previousTitle = fx::GameName::GTA5;
+
+			fx::GameName gameName = instance->GetComponent<fx::GameServer>()->GetGameName();
+
+			if (!fx::PoolSizeManager::LimitsLoaded() || previousTitle != gameName)
+			{
+				previousTitle = gameName;
+
+				std::string limitsFileUrl = "https://content.cfx.re/mirrors/client/pool-size-limits/";
+				limitsFileUrl += gameName == fx::GameName::GTA5 ? "fivem.json" : "redm.json";
+
+				fx::PoolSizeManager::FetchLimits(limitsFileUrl, true);
+			}
+
+			auto validationError = fx::PoolSizeManager::Validate(poolName, sizeIncrease);
+			if (validationError.has_value())
+			{
+				trace("Requested pool size increase is invalid: %s\n", validationError.value());
+				return;
+			}
+
+			(*poolSizesIncrease)[poolName] = sizeIncrease;
+			// Set server variable value. It will automatically be set to client as part of connection response data.
+			poolSizesIncreaseVar->GetHelper()->SetRawValue(nlohmann::json(*poolSizesIncrease).dump());
+		});
 
 		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance, enforceGameBuildVar]()
 		{
@@ -516,7 +629,7 @@ static InitFunction initFunction([]()
 
 			if (!lanVar->GetValue())
 			{
-				auto ticketIt = postMap.find("cfxTicket");
+				auto ticketIt = postMap.find("cfxTicket2");
 
 				if (ticketIt == postMap.end())
 				{
@@ -524,17 +637,43 @@ static InitFunction initFunction([]()
 					return;
 				}
 
+				auto requestedPublicKey = GetPublicKey();
+				
+				if (!requestedPublicKey)
+				{
+					sendError("public key request failed.");
+					return;
+				}
+
 				try
 				{
-					std::string ticketError;
-
-					if (!VerifyTicket(guid, ticketIt->second, &ticketError))
+					VerifyTicketResult verifyResult = VerifyTicket(guid, ticketIt->second, requestedPublicKey.value());
+					
+					if (verifyResult == VerifyTicketResult::InvalidSignature)
 					{
-						sendError(fmt::sprintf("Ticket authorization failed. %s", ticketError));
+						// expire the public key if the signature is wrong in case the key got rotated
+						if (ExpirePublicKey())
+						{
+							// request a new key if the expiry was successful
+							requestedPublicKey = GetPublicKey();
+				
+							if (!requestedPublicKey)
+							{
+								sendError("public key request failed (2).");
+								return;
+							}
+
+							verifyResult = VerifyTicket(guid, ticketIt->second, requestedPublicKey.value());
+						}
+					}
+
+					if (verifyResult != VerifyTicketResult::Success)
+					{
+						sendError(fmt::sprintf("Ticket authorization failed. %s", GetVerifyTicketErrorString(verifyResult)));
 						return;
 					}
 
-					auto optionalTicket = VerifyTicketEx(ticketIt->second);
+					auto optionalTicket = VerifyTicketEx(ticketIt->second, requestedPublicKey.value());
 
 					if (!optionalTicket)
 					{
@@ -591,6 +730,14 @@ static InitFunction initFunction([]()
 
 			data["netlibVersion"] = gameServer->GetNetLibVersion();
 			data["maxClients"] = atoi(gameServer->GetVariable("sv_maxclients").c_str());
+
+			// This expression is noop and should never be true.
+			// Capture poolSizesIncreaseCmd just to prolong it's lifetime until connection is initialized.
+			// Otherwise the command will be destroyed too soon and won't be available for the server to use.
+			if (poolSizesIncreaseCmd == nullptr)
+			{
+				trace("Something went wrong. Pool sizes increase may not be set.");
+			}
 
 			{
 				auto oldClient = clientRegistry->GetClientByGuid(guid);

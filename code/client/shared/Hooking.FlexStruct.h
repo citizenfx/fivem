@@ -16,13 +16,19 @@ namespace hook
 		template<typename T>
 		const T& Get(int32_t offset)
 		{
-			return *(T*)((uintptr_t)this + offset);
+			return *(const T*)((uintptr_t)this + offset);
 		}
 
 		template<typename T>
 		void Set(int32_t offset, const T& value)
 		{
 			*(T*)((uintptr_t)this + offset) = value;
+		}
+
+		template<typename T>
+		T& At(int32_t offset)
+		{
+			return *(T*)((uintptr_t)this + offset);
 		}
 	};
 }

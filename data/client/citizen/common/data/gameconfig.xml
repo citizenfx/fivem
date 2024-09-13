@@ -293,6 +293,10 @@
 							<PoolSize value="900"/>
 						</Item>
 						<Item>
+							<PoolName>fwPortalSceneGraphNode</PoolName>
+							<PoolSize value="1500"/>
+						</Item>
+						<Item>
 							<PoolName>InteriorProxy</PoolName>
 							<PoolSize value="9060"/>
 						</Item>

@@ -34,7 +34,7 @@ void NetGameEventPacketHandlerV2::RouteEvent(const fwRefContainer<fx::ServerGame
 void NetGameEventPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer)
 {
 	static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientNetGameEventV2>();
-	static size_t kServerMaxReplySize = net::SerializableComponent::GetSize<net::packet::ServerNetGameEventV2>();
+	static size_t kServerMaxReplySize = net::SerializableComponent::GetSize<net::packet::ServerNetGameEventV2Packet>();
 
 	if (buffer.GetLength() > kClientMaxPacketSize)
 	{
@@ -67,7 +67,7 @@ void NetGameEventPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const
 
 	net::Buffer routingBuffer(kServerMaxReplySize);
 	net::ByteWriter routingWriter{ const_cast<uint8_t*>(routingBuffer.GetBuffer()), kServerMaxReplySize };
-	
+
 	if (!serverNetEventPacket.Process(routingWriter))
 	{
 		trace("Serialization of the server net event failed. Please report this error at https://github.com/citizenfx/fivem.\n");

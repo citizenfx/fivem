@@ -3,6 +3,7 @@
 #include <vector>
 #include <Client.h>
 
+#include "ArrayUpdate.h"
 #include "NetGameEventV2.h"
 
 namespace fx
@@ -45,6 +46,34 @@ namespace fx
 			}
 		};
 
+		struct ArrayUpdateData
+		{
+			const fx::ClientSharedPtr client;
+			const uint8_t handler;
+			const uint16_t index;
+			const std::vector<uint8_t> data;
+
+			ArrayUpdateData(const fx::ClientSharedPtr& client, const uint8_t handler, const uint16_t index, const std::vector<uint8_t>& data)
+				: client(client),
+				  handler(handler),
+				  index(index),
+				  data(data)
+			{
+			}
+		};
+
+		struct SendObjectIdsData
+		{
+			const ClientSharedPtr client;
+			const int numIds;
+
+			SendObjectIdsData(const fx::ClientSharedPtr& _client, const int _numIds)
+				: client(_client),
+				  numIds(_numIds)
+			{
+			}
+		};
+
 		static ServerGameStatePublic* Create();
 
 		static void SetClientRoutingBucket(const ClientSharedPtr& client, uint32_t routingBucket);
@@ -52,6 +81,12 @@ namespace fx
 		static std::optional<ParseGameStatePacketData>& GetParseGameStatePacketDataLastCall();
 
 		static std::optional<GameEventHandler>& GetGameEventHandlerLastCall();
+
+		static std::optional<ArrayUpdateData>& GetArrayUpdateLastCall();
+
+		static std::optional<SendObjectIdsData>& GetFreeObjectIdsLastCall();
+
+		static std::vector<uint16_t>& GetFreeObjectIds();
 
 		static std::function<bool()>& GetGameEventHandler();
 	};

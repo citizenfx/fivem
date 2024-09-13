@@ -10,6 +10,8 @@
 
 #include <ros/EndpointMapper.h>
 
+#include <LegitimacyAPI.h>
+
 #include <base64.h>
 #include <botan/base64.h>
 #include <botan/exceptn.h>
@@ -68,8 +70,6 @@ std::unordered_map<int, BuildData> buildInfoGTA5 = {
 using json = nlohmann::json;
 
 int StoreDecryptedBlob(void* a1, void* a2, uint32_t a3, void* inOutBlob, uint32_t a5, void* a6);
-
-extern std::string g_entitlementSource;
 
 bool LoadOwnershipTicket();
 std::string GetRockstarTicketXml();
@@ -160,7 +160,7 @@ std::string GetEntitlementBlock(uint64_t accountId, const std::string& machineHa
 		auto r = cpr::Post(
 			cpr::Url{ CNL_ENDPOINT "api/validate/entitlement" },
 			cpr::Payload{
-				{ "entitlementId", g_entitlementSource },
+				{ "entitlementId", ros::GetEntitlementSource() },
 				{ "machineHash", machineHash },
 				{ "rosId", fmt::sprintf("%lld", accountId) }
 			});

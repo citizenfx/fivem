@@ -3197,6 +3197,9 @@ void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, const fx:
 					{
 						auto [lock, clientData] = GetClientData(this, clientRef);
 						clientData->objectIds.erase(objectId);
+
+						// erase reserved object id from client, because the object got removed
+						clientData->reservedObjectIds.erase(objectId);
 					}
 				}
 
@@ -3298,6 +3301,9 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		auto [lock, data] = GetClientData(this, client);
 		data->playerId = playerId;
 		timestamp = data->syncTs;
+
+		// indicate that the reserved object id was used
+		data->reservedObjectIds.erase(objectId);
 	}
 
 	std::vector<uint8_t> bitBytes(length);
@@ -3928,76 +3934,51 @@ void ServerGameState::ParseClonePacket(const fx::ClientSharedPtr& client, net::B
 	}
 }
 
-void ServerGameState::SendObjectIds(const fx::ClientSharedPtr& client, int numIds)
+void ServerGameState::GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds)
 {
-	// first, gather IDs
-	std::vector<int> ids;
+	auto [lock, data] = GetClientData(this, client);
+	std::unique_lock objectIdsLock(m_objectIdsMutex);
+	
+	// prevent requesting in sum more than double the amount of object ids that a single request can hold
+    // this allows reserving 64 in normal mode and 12 in big mode
+    if (data->reservedObjectIds.size() >= numIds * 2)
+    {
+	    // empty response is required, because client has g_requestedIds set to false
+    	// and will never request new ids again until a response is received
+    	net::Buffer outBuffer;
+    	outBuffer.Write<uint32_t>(HashRageString("msgObjectIds"));
+    	outBuffer.Write<uint16_t>(0);
+    	client->SendPacket(1, outBuffer, NetPacketType_Reliable);
+    	return;
+    }
+	
+	uint16_t id = 1;
 
+	for (uint8_t i = 0; i < numIds; i++)
 	{
-		auto [lock, data] = GetClientData(this, client);
-		std::unique_lock objectIdsLock(m_objectIdsMutex);
+		bool hadId = false;
 
-		int id = 1;
-
-		for (int i = 0; i < numIds; i++)
+		for (; id < m_objectIdsSent.size(); id++)
 		{
-			bool hadId = false;
-
-			for (; id < m_objectIdsSent.size(); id++)
+			if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
 			{
-				if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
-				{
-					hadId = true;
+				hadId = true;
+				
+				data->objectIds.insert(id);
+				data->reservedObjectIds.insert(id);
+				freeIds.push_back(id);
+				m_objectIdsSent.set(id);
 
-					data->objectIds.insert(id);
-
-					ids.push_back(id);
-					m_objectIdsSent.set(id);
-
-					break;
-				}
-			}
-
-			if (!hadId)
-			{
-				trace("couldn't assign an object id for player!\n");
 				break;
 			}
 		}
+
+		if (!hadId)
+		{
+			trace("couldn't assign an object id for player!\n");
+			break;
+		}
 	}
-
-	// compress and send
-
-	// adapted from https://stackoverflow.com/a/1081776
-	std::vector<std::tuple<int, int>> pairs;
-
-	int last = -1, len = 0;
-
-	for (int i = 0; i < ids.size(); )
-	{
-		int gap = ids[i] - 2 - last;
-		int size = 0;
-
-		while (++i < ids.size() && ids[i] == ids[i - 1] + 1) size++;
-
-		last = ids[i - 1];
-
-		pairs.emplace_back(gap, size);
-	}
-
-	net::Buffer outBuffer;
-	outBuffer.Write<uint32_t>(HashRageString("msgObjectIds"));
-	outBuffer.Write<uint16_t>(pairs.size());
-
-	for (auto& pair : pairs)
-	{
-		auto [gap, size] = pair;
-
-		outBuffer.Write<uint16_t>(gap);
-		outBuffer.Write<uint16_t>(size);
-	}
-
-	client->SendPacket(1, outBuffer, NetPacketType_Reliable);
 }
 
 template<int MaxElemSize, int Count>
@@ -4019,25 +4000,22 @@ public:
 		return Count;
 	}
 
-	virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer) override
+	virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) override
 	{
 		std::unique_lock lock(m_mutex);
 
-		auto elem = buffer.Read<uint16_t>();
-		auto byteSize = buffer.Read<uint16_t>();
-
-		if (elem >= Count)
+		if (buffer.index >= Count)
 		{
 			return false;
 		}
 
-		if (byteSize > MaxElemSize)
+		if (buffer.data.GetValue().size() > MaxElemSize)
 		{
 			return false;
 		}
 
 		{
-			auto curClient = m_owners[elem].lock();
+			auto curClient = m_owners[buffer.index].lock();
 
 			if (curClient && !(curClient == client))
 			{
@@ -4045,20 +4023,20 @@ public:
 			}
 		}
 
-		if (byteSize)
+		if (!buffer.data.GetValue().empty())
 		{
-			m_owners[elem] = client;
+			m_owners[buffer.index] = client;
+			memcpy(&m_array[buffer.index * MaxElemSize], buffer.data.GetValue().data(), buffer.data.GetValue().size());
 		}
 		else
 		{
-			m_owners[elem] = {};
+			m_owners[buffer.index] = {};
 		}
 
-		buffer.Read(&m_array[elem * MaxElemSize], byteSize);
-		m_sizes[elem] = byteSize;
+		m_sizes[buffer.index] = buffer.data.GetValue().size();
 
-		m_dirtyFlags[elem].set();
-		m_dirtyFlags[elem].reset(client->GetSlotId());
+		m_dirtyFlags[buffer.index].set();
+		m_dirtyFlags[buffer.index].reset(client->GetSlotId());
 
 		return true;
 	}
@@ -4157,9 +4135,8 @@ void ServerGameState::SendArrayData(const fx::ClientSharedPtr& client)
 	}
 }
 
-void ServerGameState::HandleArrayUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer)
+void ServerGameState::HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer)
 {
-	auto arrayIndex = buffer.Read<uint8_t>();
 	auto data = GetClientDataUnlocked(this, client);
 
 	decltype(m_arrayHandlers)::iterator gridRef;
@@ -4178,12 +4155,12 @@ void ServerGameState::HandleArrayUpdate(const fx::ClientSharedPtr& client, net::
 
 	auto& ah = gridRef->second;
 
-	if (arrayIndex >= ah->handlers.size())
+	if (buffer.handler >= ah->handlers.size())
 	{
 		return;
 	}
 
-	auto handler = ah->handlers[arrayIndex];
+	auto handler = ah->handlers[buffer.handler];
 
 	if (!handler)
 	{
@@ -4759,7 +4736,19 @@ void CWeaponDamageEvent::Parse(rl::MessageBufferView& buffer)
 	hitWeaponAmmoAttachment = buffer.Read<uint8_t>(1);
 	silenced = buffer.Read<uint8_t>(1);
 
-	damageFlags = buffer.Read<uint32_t>(Is2060() ? 24 : 21);
+	if (Is3258())
+	{
+		damageFlags = buffer.Read<uint32_t>(25);
+	}
+	else if (Is2060())
+	{
+		damageFlags = buffer.Read<uint32_t>(24);
+	}
+	else
+	{
+		damageFlags = buffer.Read<uint32_t>(21);
+	}
+
 	// (damageFlags >> 1) & 1
 	hasActionResult = buffer.Read<uint8_t>(1);
 
@@ -7543,22 +7532,6 @@ static InitFunction initFunction([]()
 			{
 				routeEvent();
 			}
-		} });
-
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgArrayUpdate"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
-		{
-			static fx::RateLimiterStore<uint32_t, false> arrayHandlerLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
-			static auto arrayUpdateRateLimiter = arrayHandlerLimiterStore.GetRateLimiter("arrayUpdate", fx::RateLimiterDefaults{ 75.f, 125.f });
-
-			if (arrayUpdateRateLimiter->Consume(client->GetNetId()))
-			{
-				instance->GetComponent<fx::ServerGameState>()->HandleArrayUpdate(client, buffer);
-			}
-		} });
-
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgRequestObjectIds"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
-		{
-			instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, fx::IsBigMode() ? 6 : 32);
 		} });
 
 		// #IFARQ

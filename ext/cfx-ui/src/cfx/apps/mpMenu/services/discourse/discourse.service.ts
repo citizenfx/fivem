@@ -1,6 +1,7 @@
 import { inject, injectable, named } from 'inversify';
 import { makeAutoObservable } from 'mobx';
 
+import { CurrentGameBrand, CurrentGameProtocol } from 'cfx/base/gameRuntime';
 import { defineService, ServicesContainer } from 'cfx/base/servicesContainer';
 import { IAccountService } from 'cfx/common/services/account/account.service';
 import { AccountChangeEvent, SSOAuthCompleteEvent } from 'cfx/common/services/account/events';
@@ -17,6 +18,7 @@ import { AppContribution, registerAppContribution } from 'cfx/common/services/ap
 import { ScopedLogger } from 'cfx/common/services/log/scopedLogger';
 import { Deferred } from 'cfx/utils/async';
 import { fetcher } from 'cfx/utils/fetcher';
+import { invariant } from 'cfx/utils/invariant';
 import { ObservableAsyncValue } from 'cfx/utils/observable';
 import { randomBytes } from 'cfx/utils/random';
 import { SingleEventEmitter } from 'cfx/utils/singleEventEmitter';
@@ -435,6 +437,8 @@ class DiscourseService implements IAccountService, AppContribution {
   }
 
   async createAuthURL(): Promise<string> {
+    invariant(CurrentGameProtocol, 'Current game does not support link protocol');
+
     const [rsaKeys] = await Promise.all([getOrCreateRSAKeys(), mpMenu.computerName.resolved()]);
 
     this.recreateClientId();
@@ -443,8 +447,8 @@ class DiscourseService implements IAccountService, AppContribution {
       scopes: 'session_info,read,write',
       client_id: this.clientId,
       nonce: this.createNonce(),
-      auth_redirect: 'fivem://accept-auth',
-      application_name: `FiveM client on ${mpMenu.computerName.value}`,
+      auth_redirect: `${CurrentGameProtocol}://accept-auth`,
+      application_name: `${CurrentGameBrand} client on ${mpMenu.computerName.value}`,
       public_key: rsaKeys.public,
     };
 

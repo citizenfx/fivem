@@ -36,6 +36,7 @@ CitizenFX implementation components.
 * [**nui-profiles/**](./nui-profiles): NUI user profile functionality.
 * [**nui-resources/**](./nui-resources): NUI bindings to the resource system.
 * [**profiles/**](./profiles): User profile functionality.
+* [**pool-sizes-state/**](./pool-sizes-state): Track and validate server requests to increase sizes of pools.
 * [**rage-formats-x/**](./rage-formats-x): RAGE file format library.
 * [**scrbind-base/**](./scrbind-base): High-level C++ class script binding support.
 * [**scrbind-formats/**](./scrbind-formats): Uses scrBind to bind to rage:formats:x.

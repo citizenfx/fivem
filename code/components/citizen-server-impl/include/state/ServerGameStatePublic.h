@@ -21,6 +21,8 @@
 
 #include <NetGameEventV2.h>
 
+#include "ArrayUpdate.h"
+
 namespace fx
 {
 enum class SyncStyle
@@ -55,7 +57,9 @@ class StateBag;
 class ServerGameStatePublic : public fwRefCountable
 {
 public:
-	virtual void SendObjectIds(const fx::ClientSharedPtr& client, int numIds) = 0;
+	virtual void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) = 0;
+
+	virtual void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds) = 0;
 
 	virtual SyncStyle GetSyncStyle() = 0;
 

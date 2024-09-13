@@ -58,12 +58,11 @@ export function BuildSwitchRequest(props: BuildSwitchRequestProps) {
   const textData = React.useMemo(
     () => ({
       ...state,
+      sizeIncreasePerPool: formatPoolSizesIncrease(state.poolSizesIncrease),
       gameBrand: CurrentGameBrand,
     }),
     [state],
   );
-
-  const buildSwitchBodyLocalized = useL10n(getBuildSwitchBody(state), textData);
 
   return (
     <>
@@ -71,7 +70,12 @@ export function BuildSwitchRequest(props: BuildSwitchRequestProps) {
         <Flex vertical>
           <Text size="xlarge">{$L('#BuildSwitch_Heading', textData)}</Text>
 
-          <Text size="large">{nl2brx(buildSwitchBodyLocalized)}</Text>
+          <Text size="large">{$L('#BuildSwitch_GeneralDescription', textData)}</Text>
+          {state.currentBuild !== state.build && <Text size="large">{$L('#BuildSwitch_BuildDiff', textData)}</Text>}
+          {state.currentPureLevel !== state.pureLevel && <Text size="large">{$L('#BuildSwitch_PureModeDiff', textData)}</Text>}
+          {state.currentPoolSizesIncrease !== state.poolSizesIncrease && <Text size="large">{
+            state.poolSizesIncrease === "" ? $L('#BuildSwitch_PoolSizeDefault', textData) : $L('#BuildSwitch_PoolSizeDiff', textData)
+          }</Text>}
         </Flex>
       </Pad>
 
@@ -86,25 +90,6 @@ export function BuildSwitchRequest(props: BuildSwitchRequestProps) {
   );
 }
 
-function getBuildSwitchBody(switchRequest: ConnectState.BuildSwitchRequest) {
-  const buildChanged = switchRequest.currentBuild !== switchRequest.build;
-  const pureLevelChanged = switchRequest.currentPureLevel !== switchRequest.pureLevel;
-
-  if (pureLevelChanged) {
-    if (switchRequest.currentPureLevel === 0) {
-      if (!buildChanged) {
-        return '#BuildSwitch_PureBody';
-      }
-
-      return '#BuildSwitch_PureBuildBody';
-    }
-
-    if (!buildChanged) {
-      return '#BuildSwitch_PureSwitchBody';
-    }
-
-    return '#BuildSwitch_PureBuildSwitchBody';
-  }
-
-  return '#BuildSwitch_Body';
+function formatPoolSizesIncrease(request: string) {
+  return request.replace(/[\{\}\"]/g, '').replace(/:/g, ': ').replace(/,/g, ', ');
 }

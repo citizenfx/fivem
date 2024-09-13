@@ -27,6 +27,7 @@
 
 #include <CrossBuildRuntime.h>
 #include <PureModeState.h>
+#include <PoolSizesState.h>
 #include <CoreConsole.h>
 
 #include <CfxLocale.h>
@@ -549,6 +550,14 @@ void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_
 	}
 }
 
+void NetLibrary::SendReliablePacket(uint32_t type, const char* buffer, size_t length)
+{
+	if (auto impl = GetImpl())
+	{
+		impl->SendReliablePacket(type, buffer, length);
+	}
+}
+
 void NetLibrary::SendUnreliableCommand(const char* type, const char* buffer, size_t length)
 {
 	if (auto impl = GetImpl())
@@ -736,13 +745,15 @@ struct GetAuthSessionTicketResponse_t
 
 static concurrency::task<std::optional<std::string>> ResolveUrl(const std::string& rootUrl)
 {
+	static HostSharedData<CfxState> hostData("CfxInitState");
+
 	try
 	{
 		auto uri = skyr::make_url(rootUrl);
 
 		if (uri && !uri->protocol().empty())
 		{
-			if (uri->protocol() == "fivem:")
+			if (uri->protocol() == ToNarrow(hostData->GetLinkProtocol(L":")))
 			{
 				// this whatwg url spec is very 'special' and doesn't allow you to ever make a new url and set protocol to any 'special' scheme
 				// such as 'http' or 'https' or 'file'
@@ -1851,6 +1862,13 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						pureLevel = std::stoi(pureVal);
 					}
 
+					std::string poolSizesIncreaseRaw = info["vars"].value("sv_poolSizesIncrease", "");
+					std::unordered_map<std::string, uint32_t> poolSizesIncrease;
+					if (!poolSizesIncreaseRaw.empty())
+					{
+						poolSizesIncrease = nlohmann::json::parse(poolSizesIncreaseRaw);
+					}
+
 					auto val = info["vars"].value("sv_enforceGameBuild", "");
 					int buildRef = 0;
 
@@ -1858,7 +1876,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						buildRef = std::stoi(val);
 
-						if ((buildRef != 0 && buildRef != xbr::GetRequestedGameBuild()) || (pureLevel != fx::client::GetPureLevel()))
+						if ((buildRef != 0 && buildRef != xbr::GetRequestedGameBuild()) || (pureLevel != fx::client::GetPureLevel()) || (poolSizesIncrease != fx::PoolSizeManager::GetIncreaseRequest()))
 						{
 #if defined(GTA_FIVE)
 							if (buildRef != 1 && buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372 && buildRef != 2545 && buildRef != 2612 && buildRef != 2699 && buildRef != 2802 && buildRef != 2944 && buildRef != 3095 && buildRef != 3258)
@@ -1875,7 +1893,19 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 
-							OnRequestBuildSwitch(buildRef, pureLevel);
+							std::optional<std::string> validationError = fx::PoolSizeManager::Validate(poolSizesIncrease);
+							if (validationError.has_value())
+							{
+								OnConnectionError(va("Server requested invalid change to pool sizes: %s.", validationError.value()), json::object({
+									{ "fault", "either" },
+									{ "action", "#ErrorAction_TryAgainContactOwner" },
+								})
+								.dump());
+								m_connectionState = CS_IDLE;
+								return;
+							}
+
+							OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw));
 							m_connectionState = CS_IDLE;
 							return;
 						}
@@ -1884,7 +1914,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #if defined(GTA_FIVE)
 					if (xbr::GetRequestedGameBuild() != 1604 && buildRef == 0)
 					{
-						OnRequestBuildSwitch(1604, 0);
+						OnRequestBuildSwitch(1604, 0, L"");
 						m_connectionState = CS_IDLE;
 						return;
 					}

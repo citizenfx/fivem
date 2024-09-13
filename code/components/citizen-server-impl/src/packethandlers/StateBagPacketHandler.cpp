@@ -22,7 +22,7 @@ void StateBagPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx::C
 }
 
 void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
-                                                  const net::Buffer& packet)
+                                                  const net::Buffer& buffer)
 {
 	static fx::RateLimiterStore<uint32_t, false> stateBagRateLimiterStore{
 		instance->GetComponent<console::Context>().GetRef()
@@ -102,7 +102,7 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 		return;
 	}
 
-	uint32_t dataLength = packet.GetRemainingBytes();
+	uint32_t dataLength = buffer.GetRemainingBytes();
 	if (!stateBagSizeRateLimiter->Consume(netId, double(dataLength)))
 	{
 		if (!client->IsDropping())
@@ -126,14 +126,21 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 		return;
 	}
 
+	net::packet::StateBag clientStateBag;
+
+	net::ByteReader reader{ buffer.GetRemainingBytesPtr(), buffer.GetRemainingBytes() };
+	if (!clientStateBag.Process(reader))
+	{
+		// this only happens when a malicious client sends packets not created from our client code
+		return;
+	}
+
 	uint32_t slotId = client->GetSlotId();
 	if (slotId != -1)
 	{
 		std::string bagNameOnFailure;
 
-		std::string_view packetData(reinterpret_cast<const char*>(packet.GetBuffer() + packet.GetCurOffset()),
-		                            packet.GetRemainingBytes());
-		stateBagComponent->HandlePacket(slotId, packetData, &bagNameOnFailure);
+		stateBagComponent->HandlePacket(slotId, clientStateBag.data, &bagNameOnFailure);
 
 		// state bag isn't present, apply conditions for automatic creation
 		if (!bagNameOnFailure.empty())
@@ -154,7 +161,7 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 					}))
 					{
 						// second attempt, should go through now
-						stateBagComponent->HandlePacket(slotId, packetData);
+						stateBagComponent->HandlePacket(slotId, clientStateBag.data);
 					}
 				}
 			}
@@ -172,8 +179,10 @@ void StateBagPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const fx:
 }
 
 void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
-                                                    const net::Buffer& packet)
+                                                    const net::Buffer& buffer)
 {
+	static size_t kMaxPacketSize = net::SerializableComponent::GetSize<net::packet::StateBagV2>();
+	
 	static fx::RateLimiterStore<uint32_t, false> stateBagRateLimiterStore{
 		instance->GetComponent<console::Context>().GetRef()
 	};
@@ -252,7 +261,7 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 		return;
 	}
 
-	uint32_t dataLength = packet.GetRemainingBytes();
+	size_t dataLength = buffer.GetRemainingBytes();
 	if (!stateBagSizeRateLimiter->Consume(netId, double(dataLength)))
 	{
 		if (!client->IsDropping())
@@ -276,15 +285,26 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 		return;
 	}
 
+	if (buffer.GetRemainingBytes() > kMaxPacketSize)
+	{
+		return;
+	}
+
+	net::packet::StateBagV2 clientStateBag;
+
+	net::ByteReader reader{ buffer.GetRemainingBytesPtr(), buffer.GetRemainingBytes() };
+	if (!clientStateBag.Process(reader))
+	{
+		// this only happens when a malicious client sends packets not created from our client code
+		return;
+	}
+
 	uint32_t slotId = client->GetSlotId();
 	if (slotId != -1)
 	{
 		std::string_view bagNameOnFailure;
 
-		net::ByteReader reader(packet.GetBuffer() + packet.GetCurOffset(), packet.GetRemainingBytes());
-		fx::StateBagMessage message;
-		message.Process(reader);
-		stateBagComponent->HandlePacketV2(slotId, message, &bagNameOnFailure);
+		stateBagComponent->HandlePacketV2(slotId, clientStateBag, &bagNameOnFailure);
 
 		// state bag isn't present, apply conditions for automatic creation
 		if (!bagNameOnFailure.empty())
@@ -305,7 +325,7 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 					}))
 					{
 						// second attempt, should go through now
-						stateBagComponent->HandlePacketV2(slotId, message);
+						stateBagComponent->HandlePacketV2(slotId, clientStateBag);
 					}
 				}
 			}

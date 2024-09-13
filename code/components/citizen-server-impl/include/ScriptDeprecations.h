@@ -7,7 +7,10 @@ namespace fx
 enum class ScriptDeprecations : uint8_t
 {
 	// The client old net id is used inside the playerConnect event, the 'source' from the script runtime should be used instead
-	CLIENT_EVENT_OLD_NET_ID
+	CLIENT_EVENT_OLD_NET_ID,
+
+	// It's not possible to get the heli tail rotor health, it's the heli rear rotor health, GET_HELI_REAR_ROTOR_HEALTH should be used instead
+	GET_HELI_TAIL_ROTOR_HEALTH
 };
 
 template<ScriptDeprecations TDeprecation>

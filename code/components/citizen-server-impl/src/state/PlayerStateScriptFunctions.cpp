@@ -11,9 +11,9 @@
 
 #include <se/Security.h>
 
-#include <MakeClientFunction.h>
-
 #include <state/ServerGameState.h>
+
+#include <MakePlayerEntityFunction.h>
 
 static void CreatePlayerCommands();
 
@@ -32,81 +32,29 @@ static InitFunction initFunction([]()
 
 static void CreatePlayerCommands()
 {
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WANTED_LEVEL", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WANTED_LEVEL", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
-		// get the current resource manager
-		auto resourceManager = fx::ResourceManager::GetCurrent();
-
-		// get the owning server instance
-		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
-
-		// get the server's game state
-		auto gameState = instance->GetComponent<fx::ServerGameState>();
-		
-		try
-		{
-			auto entity = gameState->GetEntity(fx::AnyCast<uint32_t>(client->GetData("playerEntity")));
-
-			auto node = entity->syncTree->GetPlayerWantedAndLOS();
+		auto node = entity->syncTree->GetPlayerWantedAndLOS();
 			
-			return node ? node->wantedLevel : 0;
-		}
-		catch (std::bad_any_cast&)
-		{
-			return 0;
-		}
+		return node ? node->wantedLevel : 0;
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("IS_PLAYER_EVADING_WANTED_LEVEL", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	fx::ScriptEngine::RegisterNativeHandler("IS_PLAYER_EVADING_WANTED_LEVEL", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
-		// get the current resource manager
-		auto resourceManager = fx::ResourceManager::GetCurrent();
+		auto node = entity->syncTree->GetPlayerWantedAndLOS();
 
-		// get the owning server instance
-		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
-
-		// get the server's game state
-		auto gameState = instance->GetComponent<fx::ServerGameState>();
-
-		try
-		{
-			auto entity = gameState->GetEntity(fx::AnyCast<uint32_t>(client->GetData("playerEntity")));
-
-			auto node = entity->syncTree->GetPlayerWantedAndLOS();
-
-			return node ? node->isEvading : 0;
-		}
-		catch (std::bad_any_cast&)
-		{
-			return 0;
-		}
+		return node ? node->isEvading : 0;
 	}));
 	
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_TIME_IN_PURSUIT", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_TIME_IN_PURSUIT", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
-		// get the current resource manager
-		auto resourceManager = fx::ResourceManager::GetCurrent();
+		bool prevPursuitArg = context.GetArgument<bool>(1);
 
-		// get the owning server instance
-		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
-
-		// get the server's game state
-		auto gameState = instance->GetComponent<fx::ServerGameState>();
-
-		try
+		if (auto node = entity->syncTree->GetPlayerWantedAndLOS())
 		{
-			auto entity = gameState->GetEntity(fx::AnyCast<uint32_t>(client->GetData("playerEntity")));
-
-			auto node = entity->syncTree->GetPlayerWantedAndLOS();
-			bool prevPursuitArg = context.GetArgument<bool>(1);
-
-			if (node)
-				return prevPursuitArg ? node->timeInPrevPursuit : node->timeInPursuit;
-			else
-				return -1;
+			return prevPursuitArg ? node->timeInPrevPursuit : node->timeInPursuit;
 		}
-		catch (std::bad_any_cast&) {
-			return -1;
-		}
-	}));
+
+		return -1;
+	}, -1));
 }

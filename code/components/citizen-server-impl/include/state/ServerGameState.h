@@ -204,14 +204,6 @@ struct CDoorScriptGameStateDataNodeData
 	bool holdOpen;
 };
 
-struct CHeliControlDataNodeData
-{
-	bool engineOff;
-
-	bool hasLandingGear;
-	uint32_t landingGearState;
-};
-
 struct CPlayerCameraNodeData
 {
 	int camMode;
@@ -344,6 +336,8 @@ struct CVehicleAppearanceNodeData
 	char plate[9];
 
 	int numberPlateTextIndex;
+
+	int hornTypeHash;
 
 	inline CVehicleAppearanceNodeData()
 	{
@@ -561,7 +555,41 @@ struct CPlayerGameStateNodeData
 struct CHeliHealthNodeData
 {
 	int mainRotorHealth;
-	int tailRotorHealth;
+	int rearRotorHealth;
+
+	bool boomBroken;
+	bool canBoomBreak;
+	bool hasCustomHealth;
+
+	int bodyHealth;
+	int gasTankHealth;
+	int engineHealth;
+
+	float mainRotorDamage;
+	float rearRotorDamage;
+	float tailRotorDamage;
+
+	bool disableExplosionFromBodyDamage;
+};
+
+struct CHeliControlDataNodeData
+{
+	float yawControl;
+	float pitchControl;
+	float rollControl;
+	float throttleControl;
+
+	bool engineOff;
+
+	bool hasLandingGear;
+	uint32_t landingGearState;
+
+	bool isThrusterModel;
+	float thrusterSideRCSThrottle;
+	float thrusterThrottle;
+
+	bool hasVehicleTask;
+	bool lockedToXY;
 };
 
 struct CVehicleSteeringNodeData
@@ -635,8 +663,6 @@ public:
 
 	virtual CDoorScriptGameStateDataNodeData* GetDoorScriptGameState() = 0;
 
-	virtual CHeliControlDataNodeData* GetHeliControl() = 0;
-
 	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
 
 	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() = 0;
@@ -680,6 +706,8 @@ public:
 	virtual CDummyObjectCreationNodeData* GetDummyObjectState() = 0;
 
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
+
+	virtual CHeliControlDataNodeData* GetHeliControl() = 0;
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
 
@@ -1111,6 +1139,7 @@ struct GameStateClientData
 {
 	rl::MessageBuffer ackBuffer{ 16384 };
 	std::unordered_set<int> objectIds;
+	std::unordered_set<int> reservedObjectIds;
 
 	std::mutex selfMutex;
 
@@ -1184,9 +1213,9 @@ public:
 
 	void HandleClientDrop(const fx::ClientSharedPtr& client, uint16_t netId, uint32_t slotId);
 
-	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer);
+	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer);
 
-	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds);
+	void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds);
 
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
 
@@ -1341,7 +1370,7 @@ public:
 	{
 		virtual ~ArrayHandlerBase() = default;
 
-		virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer) = 0;
+		virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) = 0;
 
 		virtual void WriteUpdates(const fx::ClientSharedPtr& client) = 0;
 

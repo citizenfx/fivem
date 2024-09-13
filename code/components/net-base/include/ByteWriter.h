@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "DataStream.h"
+#include "Span.h"
 
 namespace net
 {

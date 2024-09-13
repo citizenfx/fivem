@@ -304,7 +304,7 @@ function AddEventHandler(eventName, eventRoutine)
 end
 
 function RemoveEventHandler(eventData)
-	if not eventData.key and not eventData.name then
+	if not eventData or not eventData.key or not eventData.name then
 		error('Invalid event data passed to RemoveEventHandler()', 2)
 	end
 
@@ -425,6 +425,16 @@ if isDuplicityVersion then
 			cb(0, nil, {}, 'Failure handling HTTP request')
 		end
 	end
+
+	function PerformHttpRequestAwait(url, method, data, headers, options)
+		local p = promise.new()
+		PerformHttpRequest(url, function(...)
+			p:resolve({...})
+		end, method, data, headers, options)
+
+		Citizen.Await(p)
+		return table.unpack(p.value)
+	end
 else
 	function TriggerServerEvent(eventName, ...)
 		local payload = msgpack_pack_args(...)
@@ -476,7 +486,7 @@ local function doStackFormat(err)
 		return nil
 	end
 
-	return '^1SCRIPT ERROR: ' .. err .. "^7\n" .. fst
+	return string.format('^1SCRIPT ERROR: %s^7\n%s', err or '', fst)
 end
 
 Citizen.SetCallRefRoutine(function(refId, argsSerialized)

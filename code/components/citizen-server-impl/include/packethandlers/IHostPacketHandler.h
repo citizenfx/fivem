@@ -7,6 +7,7 @@
 #include <Client.h>
 
 #include "GameServer.h"
+#include "IHost.h"
 
 namespace fx
 {
@@ -28,15 +29,30 @@ namespace fx
 					return;
 				}
 
+				static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientIHost>();
+
+				if (packet.GetRemainingBytes() > kClientMaxPacketSize)
+				{
+					return;
+				}
+
+				net::packet::ClientIHost clientIHost;
+
+				net::ByteReader reader{ packet.GetRemainingBytesPtr(), packet.GetRemainingBytes() };
+				if (!clientIHost.Process(reader))
+				{
+					// this only happens when a malicious client sends packets not created from our client code
+					return;
+				}
+
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 				auto gameServer = instance->GetComponent<fx::GameServer>();
 
-				auto baseNum = packet.Read<uint32_t>();
 				auto currentHost = clientRegistry->GetHost();
 
 				if (!currentHost || currentHost->IsDead())
 				{
-					client->SetNetBase(baseNum);
+					client->SetNetBase(clientIHost.baseNum);
 					clientRegistry->SetHost(client);
 
 					net::Buffer hostBroadcast;

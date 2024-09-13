@@ -45,6 +45,8 @@
 
 #include "ClientDropReasons.h"
 
+#include <packethandlers/RequestObjectIdsPacketHandler.h>
+
 constexpr const char kDefaultServerList[] = "https://servers-ingress-live.fivem.net/ingress";
 
 static fx::GameServer* g_gameServer;
@@ -107,7 +109,7 @@ namespace fx
 
 		OnAttached(instance);
 
-		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_None, "");
+		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_ReadOnly, "");
 		m_hostname = instance->AddVariable<std::string>("sv_hostname", ConVar_ServerInfo, "default FXServer");
 		m_masters[0] = instance->AddVariable<std::string>("sv_master1", ConVar_None, kDefaultServerList);
 		m_masters[1] = instance->AddVariable<std::string>("sv_master2", ConVar_None, "");
@@ -738,7 +740,7 @@ namespace fx
 
 						if (IsOneSync())
 						{
-							m_instance->GetComponent<fx::ServerGameStatePublic>()->SendObjectIds(client, fx::IsBigMode() ? 4 : 64);
+							RequestObjectIdsPacketHandler::SendObjectIds(m_instance, client, fx::IsBigMode() ? 4 : 64);
 						}
 
 						ForceHeartbeatSoon();
@@ -1266,6 +1268,8 @@ namespace fx
 #include <packethandlers/TimeSyncReqPacketHandler.h>
 #include <packethandlers/StateBagPacketHandler.h>
 #include <packethandlers/NetGameEventPacketHandler.h>
+#include <packethandlers/ReassembledEventPacketHandler.h>
+#include <packethandlers/ArrayUpdatePacketHandler.h>
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
@@ -1335,7 +1339,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(new fx::UdpInterceptor());
 
 		instance->SetComponent(
-			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2>(
+			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2, ArrayUpdatePacketHandler, ReassembledEventPacketHandler, RequestObjectIdsPacketHandler>(
 				WithProcessTick<ThreadWait, GameServerTick>(
 					WithOutOfBand<GetInfoOutOfBand, GetStatusOutOfBand, RconOutOfBand>(
 						WithEndPoints(
