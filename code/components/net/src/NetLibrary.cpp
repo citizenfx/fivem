@@ -558,11 +558,11 @@ void NetLibrary::SendReliablePacket(uint32_t type, const char* buffer, size_t le
 	}
 }
 
-void NetLibrary::SendUnreliableCommand(const char* type, const char* buffer, size_t length)
+void NetLibrary::SendUnreliablePacket(uint32_t type, const char* buffer, size_t length)
 {
 	if (auto impl = GetImpl())
 	{
-		impl->SendUnreliableCommand(HashRageString(type), buffer, length);
+		impl->SendUnreliablePacket(type, buffer, length);
 	}
 }
 

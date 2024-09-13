@@ -32,6 +32,10 @@
 
 #include <concurrent_queue.h>
 
+#include "ByteReader.h"
+#include "ByteWriter.h"
+#include "SerializableComponent.h"
+
 #define NETWORK_PROTOCOL 12
 
 enum NetAddressType
@@ -100,6 +104,7 @@ class
 	NetLibrary : public INetLibrary, public INetLibraryInherit, public fx::ComponentHolderImpl<NetLibrary>
 {
 public:
+
 	enum ConnectionState
 	{
 		CS_IDLE,
@@ -182,6 +187,8 @@ private:
 
 	std::function<void(const std::string&, const std::string&)> m_cardResponseHandler;
 
+	std::vector<uint8_t> m_sendBuffer;
+
 private:
 	typedef std::function<void(const char* buf, size_t len)> ReliableHandlerType;
 
@@ -233,7 +240,43 @@ public:
 
 	void SendReliablePacket(uint32_t type, const char* buffer, size_t length);
 
-	void SendUnreliableCommand(const char* type, const char* buffer, size_t length);
+	void SendUnreliablePacket(uint32_t type, const char* buffer, size_t length);
+
+	template<typename Packet>
+	bool SendNetPacket(Packet& packet, bool reliable = true)
+	{
+		static std::thread::id threadId = std::this_thread::get_id();
+
+		if (std::this_thread::get_id() != threadId)
+		{
+			trace("Error: SendNetPacket called from multiple threads!\n");
+			return false;
+		}
+
+		static const size_t kMaxSize = net::SerializableComponent::GetSize<Packet>();
+		if (m_sendBuffer.size() < kMaxSize)
+		{
+			m_sendBuffer.resize(kMaxSize);
+		}
+
+		net::ByteWriter writer(m_sendBuffer.data(), kMaxSize);
+		if (!packet.Process(writer))
+		{
+			trace("Serialization of the %d packet failed. Please report this error at https://github.com/citizenfx/fivem.\n", packet.type.GetValue());
+			return false;
+		}
+
+		if (reliable)
+		{
+			SendReliablePacket(packet.type, reinterpret_cast<const char*>(m_sendBuffer.data()), writer.GetOffset());
+		}
+		else
+		{
+			SendUnreliablePacket(packet.type, reinterpret_cast<const char*>(m_sendBuffer.data()), writer.GetOffset());
+		}
+
+		return true;
+	}
 
 	void RunMainFrame();
 
@@ -391,7 +434,7 @@ public:
 	// event to intercept server events for debugging
 	// a1: event name
 	// a2: event payload
-	fwEvent<const std::string&, const std::string&> OnTriggerServerEvent;
+	fwEvent<const std::string_view&, const std::string_view&> OnTriggerServerEvent;
 
 	static
 #ifndef COMPILING_NET

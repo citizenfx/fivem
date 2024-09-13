@@ -36,13 +36,10 @@ public:
 	virtual void SendData(const NetAddress& netAddress, const char* data, size_t length) = 0;
 
 	virtual void SendReliableCommand(uint32_t type, const char* buffer, size_t length) = 0;
-
+	
 	virtual void SendReliablePacket(uint32_t type, const char* buffer, size_t length) = 0;
 
-	virtual void SendUnreliableCommand(uint32_t type, const char* buffer, size_t length)
-	{
-		return SendReliableCommand(type, buffer, length);
-	}
+	virtual void SendUnreliablePacket(uint32_t type, const char* buffer, size_t length) = 0;
 
 	virtual void SendConnect(const std::string& token, const std::string& connectData) = 0;
 
