@@ -9,6 +9,8 @@
 
 #include <boost/preprocessor/repeat.hpp>
 
+#include "ArrayUpdate.h"
+
 namespace rage
 {
 class netArrayHandlerBase
@@ -146,7 +148,6 @@ void ArrayManager_Update()
 
 	for (int arrayIndex : arrayHandlers)
 	{
-		static net::Buffer outBuffer;
 		auto arrayHandler = (*g_arrayManager)->GetArrayHandler(arrayIndex, nullptr);
 
 		if (arrayHandler)
@@ -159,7 +160,7 @@ void ArrayManager_Update()
 			{
 				memset(data.data(), 0, data.size());
 
-				std::string sv;
+				net::Span<uint8_t> sv;
 
 				if (!arrayHandler->IsElementEmpty(elem))
 				{
@@ -167,23 +168,20 @@ void ArrayManager_Update()
 					rage::datBitBuffer buffer(data.data(), data.size());
 					arrayHandler->WriteElement(buffer, elem, nullptr);
 
-					sv = { reinterpret_cast<char*>(data.data()), (buffer.m_curBit / 8) + 1 };
+					sv = { data.data(), (buffer.m_curBit / 8) + 1 };
 				}
 
 				// check hash for equality
-				auto thisHash = std::hash<std::string>()(sv);
+				auto thisHash = std::hash<std::string_view>()({reinterpret_cast<const char*>(sv.data()), sv.size()});
 
 				if (thisHash != info->hashes[elem])
 				{
 					// write the array update
-					outBuffer.Reset();
-
-					outBuffer.Write<uint8_t>(arrayIndex);
-					outBuffer.Write<uint16_t>(elem);
-					outBuffer.Write<uint16_t>(sv.size());
-					outBuffer.Write(sv.data(), sv.size());
-
-					g_netLibrary->SendReliableCommand("msgArrayUpdate", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+					net::packet::ClientArrayUpdatePacket clientArrayUpdatePacket;
+					clientArrayUpdatePacket.data.handler = arrayIndex;
+					clientArrayUpdatePacket.data.index = elem;
+					clientArrayUpdatePacket.data.data = sv;
+					g_netLibrary->SendNetPacket(clientArrayUpdatePacket);
 
 					info->hashes[elem] = thisHash;
 				}

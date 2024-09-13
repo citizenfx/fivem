@@ -49,8 +49,10 @@
 
 #include <json.hpp>
 
+#include "NetEvent.h"
 #include "ReassembledEventPacketHandler.h"
 #include "ScriptWarnings.h"
+#include "ServerCommand.h"
 
 static tbb::concurrent_queue<std::function<void()>> executeNextGameFrame;
 static NetAddress g_netAddress;
@@ -830,20 +832,18 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_SERVER_EVENT_INTERNAL", [netLibrary](fx::ScriptContext& context)
 	{
-		std::string eventName = context.GetArgument<const char*>(0);
+		std::string_view eventName = context.GetArgument<const char*>(0);
 		size_t payloadSize = context.GetArgument<uint32_t>(2);
 
-		std::string eventPayload = std::string(context.GetArgument<const char*>(1), payloadSize);
+		std::string_view eventPayload = std::string_view(context.GetArgument<const char*>(1), payloadSize);
 
 		netLibrary->OnTriggerServerEvent(eventName, eventPayload);
 
-		net::Buffer buffer;
-		buffer.Write<uint16_t>(eventName.size() + 1);
-		buffer.Write(eventName.c_str(), eventName.size() + 1);
-
-		buffer.Write(eventPayload.c_str(), eventPayload.size());
-
-		netLibrary->SendReliableCommand("msgServerEvent", reinterpret_cast<const char*>(buffer.GetBuffer()), buffer.GetCurOffset());
+		net::packet::ClientServerEventPacket clientServerEventPacket;
+		// null terminated event name
+		clientServerEventPacket.data.eventName = {reinterpret_cast<uint8_t*>(const_cast<char*>(context.GetArgument<const char*>(0))), eventName.size() + 1};
+		clientServerEventPacket.data.eventData = {reinterpret_cast<uint8_t*>(const_cast<char*>(eventPayload.data())), eventPayload.size()};
+		netLibrary->SendNetPacket(clientServerEventPacket);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("REQUEST_RESOURCE_FILE_SET", [this](fx::ScriptContext& context)
@@ -910,15 +910,9 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 			return true;
 		}
 
-		std::string s = console::GetDefaultContext()->GetCommandManager()->GetRawCommand();
-
-		net::Buffer buffer;
-		buffer.Write<uint16_t>(s.size());
-		buffer.Write(s.c_str(), std::min(s.size(), static_cast<size_t>(INT16_MAX)));
-		buffer.Write<uint32_t>(HashString(context.c_str()));
-
-		netLibrary->SendReliableCommand("msgServerCommand", reinterpret_cast<const char*>(buffer.GetBuffer()), buffer.GetCurOffset());
-
+		net::packet::ClientServerCommandPacket serverCommand;
+		serverCommand.data.command = console::GetDefaultContext()->GetCommandManager()->GetRawCommand();
+		netLibrary->SendNetPacket(serverCommand);
 		return false;
 	},
 	99999);
@@ -930,7 +924,9 @@ static class : public fx::EventReassemblySink
 {
 	virtual void SendPacket(int target, std::string_view packet) override
 	{
-		g_netLibrary->SendUnreliableCommand("msgReassembledEvent", packet.data(), packet.size());
+		net::packet::ReassembledEventPacket reassembled;
+		reassembled.data.data = net::Span{reinterpret_cast<uint8_t*>(const_cast<char*>(packet.data())), packet.size()};
+		g_netLibrary->SendNetPacket(reassembled, false);
 	}
 } g_eventSink;
 

@@ -558,7 +558,7 @@ struct
 
 				packer.pack_array(0);
 
-				g_netLibrary->SendNetEvent("hostingSession", std::string(nameArgs.data(), nameArgs.size()), -2);
+				g_netLibrary->SendNetEvent("hostingSession", std::string(nameArgs.data(), nameArgs.size()));
 
 				state = HS_WAIT_HOSTING;
 			}
@@ -631,7 +631,7 @@ struct
 
 					packer.pack_array(0);
 
-					g_netLibrary->SendNetEvent("hostedSession", std::string(nameArgs.data(), nameArgs.size()), -2);
+					g_netLibrary->SendNetEvent("hostedSession", std::string(nameArgs.data(), nameArgs.size()));
 				}
 			}
 			else if (!*g_isNetGame)

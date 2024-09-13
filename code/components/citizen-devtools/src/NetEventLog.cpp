@@ -23,7 +23,7 @@ struct EventLogEntry
 static boost::circular_buffer<EventLogEntry> g_eventLog(150);
 static std::mutex g_eventLogMutex;
 
-static void EventLog_Add(const std::string& eventName, size_t payloadSize, bool out)
+static void EventLog_Add(const std::string_view& eventName, size_t payloadSize, bool out)
 {
 	EventLogEntry eve;
 	eve.eventName = eventName;
@@ -99,7 +99,7 @@ static InitFunction initFunction([]()
 
 	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* library)
 	{
-		library->OnTriggerServerEvent.Connect([](const std::string& eventName, const std::string& eventPayload)
+		library->OnTriggerServerEvent.Connect([](const std::string_view& eventName, const std::string_view& eventPayload)
 		{
 			EventLog_Add(eventName, eventPayload.size(), true);
 		});

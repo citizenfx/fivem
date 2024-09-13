@@ -315,7 +315,7 @@ public:
 
 	uint64_t GetGUID();
 
-	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized, int target);
+	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized);
 
 	void SetRichError(const std::string& data = "{}");
 

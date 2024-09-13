@@ -36,6 +36,7 @@
 
 #include "IQuit.h"
 #include "NetBitVersion.h"
+#include "NetEvent.h"
 
 #ifdef FIVEM_INTERNAL_POSTMAP
 #include "InternalServerPostmap_includes.h"
@@ -2150,34 +2151,12 @@ bool NetLibrary::ProcessPreGameTick()
 	return true;
 }
 
-void NetLibrary::SendNetEvent(const std::string& eventName, const std::string& jsonString, int i)
+void NetLibrary::SendNetEvent(const std::string& eventName, const std::string& jsonString)
 {
-	const char* cmdType = "msgNetEvent";
-
-	if (i == -1)
-	{
-		i = UINT16_MAX;
-	}
-	else if (i == -2)
-	{
-		cmdType = "msgServerEvent";
-	}
-
-	size_t eventNameLength = eventName.length();
-
-	net::Buffer buffer;
-
-	if (i >= 0)
-	{
-		buffer.Write<uint16_t>(i);
-	}
-
-	buffer.Write<uint16_t>(uint16_t(eventNameLength + 1));
-	buffer.Write(eventName.c_str(), eventNameLength + 1);
-
-	buffer.Write(jsonString.c_str(), jsonString.size());
-	
-	SendReliableCommand(cmdType, reinterpret_cast<const char*>(buffer.GetBuffer()), buffer.GetCurOffset());
+	net::packet::ClientServerEventPacket clientServerEvent;
+	clientServerEvent.data.eventName = {reinterpret_cast<uint8_t*>(const_cast<char*>(eventName.c_str())), eventName.length() + 1};
+	clientServerEvent.data.eventData = {reinterpret_cast<uint8_t*>(const_cast<char*>(jsonString.c_str())), jsonString.size()};
+	SendNetPacket(clientServerEvent);
 }
 
 /*void NetLibrary::AddReliableHandler(const char* type, ReliableHandlerType function)
