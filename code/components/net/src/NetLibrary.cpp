@@ -34,6 +34,7 @@
 
 #include <json.hpp>
 
+#include "IQuit.h"
 #include "NetBitVersion.h"
 
 #ifdef FIVEM_INTERNAL_POSTMAP
@@ -2005,7 +2006,9 @@ void NetLibrary::Disconnect(const char* reason)
 	{
 		m_disconnecting = true;
 
-		SendReliableCommand("msgIQuit", g_disconnectReason.c_str(), g_disconnectReason.length() + 1);
+		net::packet::ClientIQuitPacket clientIQuit;
+		clientIQuit.data.reason = {reason, g_disconnectReason.size() + 1};
+		SendNetPacket(clientIQuit);
 
 		if (auto impl = GetImpl())
 		{
