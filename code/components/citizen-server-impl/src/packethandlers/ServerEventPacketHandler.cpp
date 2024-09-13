@@ -12,6 +12,9 @@
 
 #include "packethandlers/ServerEventPacketHandler.h"
 
+#include "ByteReader.h"
+#include "NetEvent.h"
+
 void ServerEventPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
                                       net::Buffer& buffer)
 {
@@ -37,20 +40,26 @@ void ServerEventPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx
 		return;
 	}
 
-	const uint16_t eventNameLength = buffer.Read<uint16_t>();
+	static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientServerEvent>();
 
-	// validate input, eventNameLength 1 would be zero, because we remove last byte
-	if (eventNameLength <= 1)
+	if (buffer.GetRemainingBytes() > kClientMaxPacketSize)
 	{
+		// this only happens when a malicious client sends packets not created from our client code
 		return;
 	}
 
-	const std::string_view eventNameView = buffer.Read<std::string_view>(eventNameLength - 1);
+	net::packet::ClientServerEvent clientServerEvent;
 
-	// read 0, maybe we can drop the uint8 in the future with a new net version update
-	buffer.Read<uint8_t>();
+	net::ByteReader reader{ buffer.GetRemainingBytesPtr(), buffer.GetRemainingBytes() };
+	if (!clientServerEvent.Process(reader))
+	{
+		// this only happens when a malicious client sends packets not created from our client code
+		return;
+	}
 
-	const uint32_t dataLength = static_cast<uint32_t>(buffer.GetRemainingBytes());
+	const std::string_view eventNameView = {reinterpret_cast<const char*>(clientServerEvent.eventName.GetValue().data()), clientServerEvent.eventName.GetValue().size() - 1};
+
+	const uint32_t dataLength = clientServerEvent.eventData.GetValue().size();
 
 	if (!netEventSizeRateLimiter->Consume(netId, static_cast<double>(eventNameView.size() + dataLength)))
 	{
@@ -62,7 +71,7 @@ void ServerEventPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx
 		return;
 	}
 
-	const std::string_view dataView = buffer.Read<std::string_view>(dataLength);
+	const std::string_view dataView = {reinterpret_cast<const char*>(clientServerEvent.eventData.GetValue().data()), clientServerEvent.eventData.GetValue().size()};
 
 	const fwRefContainer<fx::ResourceManager> resourceManager = instance->GetComponent<fx::ResourceManager>();
 	const fwRefContainer<fx::ResourceEventManagerComponent> eventManager = resourceManager->GetComponent<
