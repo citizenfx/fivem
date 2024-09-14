@@ -1,7 +1,6 @@
 #pragma once
 
 #include "SerializableComponent.h"
-#include "SerializableOptional.h"
 #include "SerializableProperty.h"
 #include "SerializableStorageType.h"
 

@@ -30,6 +30,9 @@
 #include <CfxState.h>
 #include <HostSharedData.h>
 
+#include "HeHost.h"
+#include "IHost.h"
+
 NetLibrary* g_netLibrary;
 
 #include <ws2tcpip.h>
@@ -286,13 +289,11 @@ void MigrateSessionCopy(char* target, char* source)
 	g_origMigrateCopy(target, source);
 
 	auto sessionAddress = reinterpret_cast<rlSessionInfo<Build>*>(target - 16);
-	
-	std::unique_ptr<net::Buffer> msgBuffer(new net::Buffer(64));
 
-	msgBuffer->Write<uint32_t>((sessionAddress->addr.localAddr().ip.addr & 0xFFFF) ^ 0xFEED);
-	msgBuffer->Write<uint32_t>(sessionAddress->addr.unkKey1());
-
-	g_netLibrary->SendReliableCommand("msgHeHost", reinterpret_cast<const char*>(msgBuffer->GetBuffer()), msgBuffer->GetCurOffset());
+	net::packet::ClientHeHostPacket packet;
+	packet.data.allegedNewId = (sessionAddress->addr.localAddr().ip.addr & 0xFFFF) ^ 0xFEED;
+	packet.data.baseNum = sessionAddress->addr.unkKey1();
+	g_netLibrary->SendNetPacket(packet);
 }
 
 static hook::cdecl_stub<bool()> isNetworkHost([] ()
@@ -838,7 +839,7 @@ static HookFunction initFunction([]()
 	});
 
 	// host state sending
-	g_netLibrary->OnBuildMessage.Connect([] (const std::function<void(uint32_t, const char*, int)>& writeReliable)
+	g_netLibrary->OnBuildMessage.Connect([] ()
 	{
 		ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
 
@@ -855,8 +856,9 @@ static HookFunction initFunction([]()
 		{
 			if (isHost)
 			{
-				auto base = g_netLibrary->GetServerBase();
-				writeReliable(HashRageString("msgIHost"), (char*)&base, sizeof(base));
+				net::packet::ClientIHostPacket iHostPacket;
+				iHostPacket.data.baseNum = g_netLibrary->GetServerBase();
+				g_netLibrary->SendNetPacket(iHostPacket);
 			}
 
 			lastHostState = isHost;

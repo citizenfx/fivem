@@ -12,6 +12,8 @@
 
 #include <MinHook.h>
 
+#include "ObjectIds.h"
+
 static std::list<int> g_objectIds;
 static std::set<int> g_usedObjectIds;
 static std::set<int> g_stolenObjectIds;
@@ -224,10 +226,8 @@ static HookFunction hookFunction([]()
 		{
 			if (!g_requestedIds)
 			{
-				net::Buffer outBuffer;
-				outBuffer.Write<uint16_t>(32);
-
-				g_netLibrary->SendReliableCommand("msgRequestObjectIds", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+				net::packet::ClientRequestObjectIdsPacket packet;
+				g_netLibrary->SendNetPacket(packet);
 
 				g_requestedIds = true;
 			}

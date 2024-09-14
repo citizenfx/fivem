@@ -2173,7 +2173,7 @@ NetLibrary::NetLibrary()
 }
 
 __declspec(dllexport) fwEvent<NetLibrary*> NetLibrary::OnNetLibraryCreate;
-__declspec(dllexport) fwEvent<const std::function<void(uint32_t, const char*, int)>&> NetLibrary::OnBuildMessage;
+__declspec(dllexport) fwEvent<> NetLibrary::OnBuildMessage;
 
 NetLibrary* NetLibrary::Create()
 {

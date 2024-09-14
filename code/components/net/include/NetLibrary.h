@@ -440,7 +440,7 @@ public:
 #ifndef COMPILING_NET
 		__declspec(dllimport)
 #endif
-		fwEvent<const std::function<void(uint32_t, const char*, int)>&> OnBuildMessage;
+		fwEvent<> OnBuildMessage;
 
 	fwEvent<> OnConnectionTimedOut;
 

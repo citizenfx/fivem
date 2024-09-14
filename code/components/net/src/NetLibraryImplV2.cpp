@@ -314,7 +314,7 @@ void NetLibraryImplV2::RunFrame()
 			m_base->AddSendTick();
 		}
 
-		NetLibrary::OnBuildMessage(std::bind(&NetLibraryImplV2::SendReliableCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+		NetLibrary::OnBuildMessage();
 	}
 }
 
