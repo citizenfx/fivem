@@ -4303,6 +4303,104 @@ void ServerGameState::HandleGameStateNAck(fx::ServerInstanceBase* instance, cons
 	}
 }
 
+void ServerGameState::HandleGameStateAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateAck& packet)
+{
+	auto sgs = instance->GetComponent<fx::ServerGameState>();
+
+	if (sgs->GetSyncStyle() != fx::SyncStyle::ARQ)
+	{
+		return;
+	}
+
+	auto slotId = client->GetSlotId();
+
+	if (slotId == -1)
+	{
+		return;
+	}
+
+	uint64_t frameIndex = packet.GetFrameIndex();
+
+	eastl::fixed_map<uint16_t, uint64_t, 32> ignoreHandles;
+	for (auto& ignoreListEntry : packet.GetIgnoreList())
+	{
+		ignoreHandles.emplace(ignoreListEntry.entry, ignoreListEntry.lastFrame);
+	}
+
+	auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
+			
+	const auto& ref = clientData->frameStates[frameIndex];
+	const auto& [synced, deletions] = ref;
+
+	{
+		for (const uint16_t objectId : packet.GetRecreateList())
+		{
+			if (auto entIter = synced.find(objectId); entIter != synced.end())
+			{
+				if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
+				{
+					if (auto secIt = clientData->syncedEntities.find(MakeHandleUniqifierPair(objectId, ent->uniqifier)); secIt != clientData->syncedEntities.end())
+					{
+						secIt->second.hasCreated = false;
+					}
+				}
+			}
+		}
+
+		for (auto& ignoreListEntry : packet.GetIgnoreList())
+		{
+			if (auto entIter = synced.find(ignoreListEntry.entry); entIter != synced.end())
+			{
+				if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
+				{
+					std::lock_guard _(ent->frameMutex);
+					ent->lastFramesSent[slotId] = std::min(ent->lastFramesSent[slotId], ignoreListEntry.lastFrame);
+					ent->lastFramesPreSent[slotId] = std::min(ent->lastFramesPreSent[slotId], ignoreListEntry.lastFrame);
+				}
+			}
+		}
+	}
+
+	{
+		for (auto& [id, entityData] : synced)
+		{
+			fx::sync::SyncEntityPtr entityRef = entityData.GetEntity(sgs.GetRef());
+
+			if (entityRef)
+			{
+				if (!entityRef->syncTree)
+				{
+					continue;
+				}
+
+				bool hasCreated = false;
+
+				if (auto secIt = clientData->syncedEntities.find(MakeHandleUniqifierPair(id, entityRef->uniqifier)); secIt != clientData->syncedEntities.end())
+				{
+					hasCreated = secIt->second.hasCreated;
+				}
+
+				bool hasDeleted = entityRef->deletedFor.test(slotId);
+
+				if (!hasCreated || hasDeleted)
+				{
+					continue;
+				}
+
+				if (ignoreHandles.find(entityRef->handle) != ignoreHandles.end())
+				{
+					continue;
+				}
+
+				std::lock_guard _(entityRef->frameMutex);
+				entityRef->lastFramesSent[slotId] = std::min(frameIndex, entityRef->lastFramesPreSent[slotId]);
+			}
+		}
+
+		clientData->frameStates.erase(frameIndex);
+	}
+}
+
 void ServerGameState::DeleteEntity(const fx::sync::SyncEntityPtr& entity)
 {
 	if (entity->type != sync::NetObjEntityType::Player && entity->syncTree)
@@ -7695,123 +7793,6 @@ static InitFunction initFunction([]()
 			else
 			{
 				routeEvent();
-			}
-		} });
-
-		// #IFARQ
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(
-		HashRageString("gameStateAck"),
-		{ fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
-		{
-			auto sgs = instance->GetComponent<fx::ServerGameState>();
-
-			if (sgs->GetSyncStyle() != fx::SyncStyle::ARQ)
-			{
-				return;
-			}
-
-			auto slotId = client->GetSlotId();
-
-			if (slotId == -1)
-			{
-				return;
-			}
-
-			// read packet
-			uint64_t frameIndex = buffer.Read<uint64_t>();
-
-			eastl::fixed_map<uint16_t, uint64_t, 32> ignoreHandles;
-			eastl::fixed_set<uint16_t, 32> recreateHandles;
-			uint8_t ignoreCount = buffer.Read<uint8_t>();
-
-			for (int i = 0; i < ignoreCount; i++)
-			{
-				uint16_t id = buffer.Read<uint16_t>();
-				uint64_t lastFrame = buffer.Read<uint64_t>();
-				ignoreHandles.emplace(id, lastFrame);
-			}
-
-			uint8_t recreateCount = buffer.Read<uint8_t>();
-
-			for (int i = 0; i < recreateCount; i++)
-			{
-				uint16_t id = buffer.Read<uint16_t>();
-				recreateHandles.emplace(id);
-			}
-
-			// process
-			auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
-
-			
-			const auto& ref = clientData->frameStates[frameIndex];
-			const auto& [synced, deletions] = ref;
-
-			{
-				for (uint16_t objectId : recreateHandles)
-				{
-					if (auto entIter = synced.find(objectId); entIter != synced.end())
-					{
-						if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
-						{
-							if (auto secIt = clientData->syncedEntities.find(MakeHandleUniqifierPair(objectId, ent->uniqifier)); secIt != clientData->syncedEntities.end())
-							{
-								secIt->second.hasCreated = false;
-							}
-						}
-					}
-				}
-
-				for (auto [objectId, lastFrame] : ignoreHandles)
-				{
-					if (auto entIter = synced.find(objectId); entIter != synced.end())
-					{
-						if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
-						{
-							std::lock_guard _(ent->frameMutex);
-							ent->lastFramesSent[slotId] = std::min(ent->lastFramesSent[slotId], lastFrame);
-							ent->lastFramesPreSent[slotId] = std::min(ent->lastFramesPreSent[slotId], lastFrame);
-						}
-					}
-				}
-			}
-
-			{
-				for (auto& [id, entityData] : synced)
-				{
-					fx::sync::SyncEntityPtr entityRef = entityData.GetEntity(sgs.GetRef());
-
-					if (entityRef)
-					{
-						if (!entityRef->syncTree)
-						{
-							continue;
-						}
-
-						bool hasCreated = false;
-
-						if (auto secIt = clientData->syncedEntities.find(MakeHandleUniqifierPair(id, entityRef->uniqifier)); secIt != clientData->syncedEntities.end())
-						{
-							hasCreated = secIt->second.hasCreated;
-						}
-
-						bool hasDeleted = entityRef->deletedFor.test(slotId);
-
-						if (!hasCreated || hasDeleted)
-						{
-							continue;
-						}
-
-						if (ignoreHandles.find(entityRef->handle) != ignoreHandles.end())
-						{
-							continue;
-						}
-
-						std::lock_guard _(entityRef->frameMutex);
-						entityRef->lastFramesSent[slotId] = std::min(frameIndex, entityRef->lastFramesPreSent[slotId]);
-					}
-				}
-
-				clientData->frameStates.erase(frameIndex);
 			}
 		} });
 	}, 999999);

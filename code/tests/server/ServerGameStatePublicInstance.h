@@ -85,6 +85,22 @@ namespace fx
 			}
 		};
 
+		struct GameStateAckData
+		{
+			const fx::ClientSharedPtr client;
+			const uint64_t frameIndex;
+			const std::vector<net::packet::ClientGameStateNAck::IgnoreListEntry> ignoreList;
+			const std::vector<uint16_t> recreateList;
+
+			GameStateAckData(const fx::ClientSharedPtr& client, const uint64_t frameIndex, const std::vector<net::packet::ClientGameStateNAck::IgnoreListEntry> ignoreList, const std::vector<uint16_t> recreateList)
+				: client(client),
+				  frameIndex(frameIndex),
+				  ignoreList(std::move(ignoreList)),
+				  recreateList(std::move(recreateList))
+			{
+			}
+		};
+
 		struct SendObjectIdsData
 		{
 			const ClientSharedPtr client;
@@ -108,6 +124,8 @@ namespace fx
 		static std::optional<ArrayUpdateData>& GetArrayUpdateLastCall();
 		
 		static std::optional<GameStateNAckData>& GetGameStateNAckLastCall();
+
+		static std::optional<GameStateAckData>& GetGameStateAckLastCall();
 
 		static std::optional<SendObjectIdsData>& GetFreeObjectIdsLastCall();
 

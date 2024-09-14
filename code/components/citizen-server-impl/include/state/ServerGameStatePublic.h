@@ -22,6 +22,7 @@
 #include <NetGameEventV2.h>
 
 #include "ArrayUpdate.h"
+#include "GameStateAck.h"
 #include "GameStateNAck.h"
 
 namespace fx
@@ -61,6 +62,8 @@ public:
 	virtual void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) = 0;
 
 	virtual void HandleGameStateNAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateNAck& buffer) = 0;
+
+	virtual void HandleGameStateAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateAck& buffer) = 0;
 	
 	virtual void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds) = 0;
 

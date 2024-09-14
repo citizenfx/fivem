@@ -42,6 +42,7 @@
 
 #include <ByteReader.h>
 
+#include "GameStateAck.h"
 #include "GameStateNAck.h"
 
 extern rage::netObject* g_curNetObjectSelection;
@@ -1610,26 +1611,13 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 
 		if (isLast)
 		{
-			net::Buffer outBuffer;
-			outBuffer.Write<uint64_t>(frameIndex);
-			outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
-
-			for (auto [entry, lastFrame] : ignoreList)
-			{
-				outBuffer.Write<uint16_t>(entry);
-				outBuffer.Write<uint64_t>(lastFrame);
-			}
-
-			outBuffer.Write<uint8_t>(uint8_t(recreateList.size()));
-
-			for (uint16_t entry : recreateList)
-			{
-				outBuffer.Write<uint16_t>(entry);
-			}
-
 			Log("GSAck for frame index %d w/ %d ignore and %d rec\n", frameIndex, ignoreList.size(), recreateList.size());
 
-			m_netLibrary->SendUnreliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+			net::packet::ClientGameStateAckPacket gameStateAckPacket;
+			gameStateAckPacket.data.SetFrameIndex(frameIndex);
+			gameStateAckPacket.data.SetIgnoreList(ignoreList);
+			gameStateAckPacket.data.SetRecreateList(recreateList);
+			m_netLibrary->SendNetPacket(gameStateAckPacket, false);
 
 			ignoreList.clear();
 			recreateList.clear();

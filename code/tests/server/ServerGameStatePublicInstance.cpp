@@ -10,6 +10,7 @@
 #include <state/ServerGameStatePublic.h>
 
 #include "GameStateNAck.h"
+#include "GameStateAck.h"
 
 class ServerGameStatePublicImpl : public fx::ServerGameStatePublic
 {
@@ -21,6 +22,8 @@ public:
 	static inline std::optional<fx::ServerGameStatePublicInstance::ArrayUpdateData> arrayUpdateLastCall{};
 
 	static inline std::optional<fx::ServerGameStatePublicInstance::GameStateNAckData> gameStateNAckLastCall{};
+
+	static inline std::optional<fx::ServerGameStatePublicInstance::GameStateAckData> gameStateAckLastCall{};
 
 	static inline std::function<bool()> gameEventHandler;
 
@@ -88,6 +91,11 @@ public:
 	{
 		gameStateNAckLastCall.emplace(client, buffer.GetFlags(), buffer.GetFrameIndex(), buffer.GetFirstMissingFrame(), buffer.GetLastMissingFrame(), std::vector<net::packet::ClientGameStateNAck::IgnoreListEntry>{ buffer.GetIgnoreList().begin(), buffer.GetIgnoreList().end() }, std::vector<uint16_t>{ buffer.GetRecreateList().begin(), buffer.GetRecreateList().end() });
 	}
+
+	void HandleGameStateAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateAck& buffer) override
+	{
+		gameStateAckLastCall.emplace(client, buffer.GetFrameIndex(), std::vector<net::packet::ClientGameStateNAck::IgnoreListEntry>{ buffer.GetIgnoreList().begin(), buffer.GetIgnoreList().end() }, std::vector<uint16_t>{ buffer.GetRecreateList().begin(), buffer.GetRecreateList().end() });
+	}
 };
 
 fx::ServerGameStatePublic* fx::ServerGameStatePublicInstance::Create()
@@ -128,6 +136,11 @@ std::optional<fx::ServerGameStatePublicInstance::ArrayUpdateData>& fx::ServerGam
 std::optional<fx::ServerGameStatePublicInstance::GameStateNAckData>& fx::ServerGameStatePublicInstance::GetGameStateNAckLastCall()
 {
 	return ServerGameStatePublicImpl::gameStateNAckLastCall;
+}
+
+std::optional<fx::ServerGameStatePublicInstance::GameStateAckData>& fx::ServerGameStatePublicInstance::GetGameStateAckLastCall()
+{
+	return ServerGameStatePublicImpl::gameStateAckLastCall;
 }
 
 std::function<bool()>& fx::ServerGameStatePublicInstance::GetGameEventHandler()
