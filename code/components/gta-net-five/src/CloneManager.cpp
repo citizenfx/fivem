@@ -194,7 +194,9 @@ private:
 
 	void ProcessTimestampAck(uint32_t timestamp);
 
-	virtual void SendPacket(int peer, std::string_view data) override;
+	void SendPacket(int peer, net::packet::StateBagPacket& data) override;
+
+	void SendPacket(int peer, net::packet::StateBagV2Packet& data) override;
 
 private:
 	NetLibrary* m_netLibrary;
@@ -328,16 +330,14 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 	m_savedEntityVec.erase(std::remove(m_savedEntityVec.begin(), m_savedEntityVec.end(), netObject), m_savedEntityVec.end());
 }
 
-void CloneManagerLocal::SendPacket(int peer, std::string_view data)
+void CloneManagerLocal::SendPacket(int peer, net::packet::StateBagPacket& packet)
 {
-	if (m_sbac->GetRole() == fx::StateBagRole::ClientV2)
-	{
-		m_netLibrary->SendReliableCommand("msgStateBagV2", data.data(), data.size());
-	}
-	else
-	{
-		m_netLibrary->SendReliableCommand("msgStateBag", data.data(), data.size());	
-	}
+	m_netLibrary->SendNetPacket(packet);
+}
+
+void CloneManagerLocal::SendPacket(int peer, net::packet::StateBagV2Packet& packet)
+{
+	m_netLibrary->SendNetPacket(packet);
 }
 
 void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)

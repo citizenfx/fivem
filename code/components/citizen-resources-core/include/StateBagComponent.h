@@ -30,7 +30,12 @@ public:
 	//
 	// SendPacket should submit the passed data to the specified peer.
 	//
-	virtual void SendPacket(int peer, std::string_view data) = 0;
+	virtual void SendPacket(int peer, net::packet::StateBagPacket& packet) = 0;
+
+	//
+	// SendPacket should submit the passed data to the specified peer.
+	//
+	virtual void SendPacket(int peer, net::packet::StateBagV2Packet& packet) = 0;
 
 	//
 	// IsAsynchronous returns whether or not this game interface requires thread marshaling

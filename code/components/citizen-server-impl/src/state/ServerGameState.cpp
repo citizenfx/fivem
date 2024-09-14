@@ -41,6 +41,7 @@
 #include <citizen_util/shared_reference.h>
 
 #include "ByteReader.h"
+#include "ByteWriter.h"
 #include "NetGameEventV2.h"
 
 #ifdef STATE_FIVE
@@ -4181,7 +4182,7 @@ void ServerGameState::DeleteEntity(const fx::sync::SyncEntityPtr& entity)
 	}
 }
 
-void ServerGameState::SendPacket(int peer, std::string_view data)
+void ServerGameState::SendPacket(int peer, net::packet::StateBagPacket& packet)
 {
 	auto creg = m_instance->GetComponent<fx::ClientRegistry>();
 
@@ -4194,10 +4195,41 @@ void ServerGameState::SendPacket(int peer, std::string_view data)
 
 	if (client)
 	{
-		net::Buffer buffer;
-		buffer.Write<uint32_t>(HashRageString("msgStateBag"));
-		buffer.Write(data.data(), data.size());
+		net::Buffer buffer (packet.data.data.GetValue().size() + 4);
+		net::ByteWriter writer(buffer.GetBuffer(), buffer.GetLength());
+		if (!packet.Process(writer))
+		{
+			trace("Serialization of the server state bag packet failed. Please report this error at https://github.com/citizenfx/fivem.\n");
+			return;
+		}
 
+		buffer.Seek(writer.GetOffset());
+		client->SendPacket(1, buffer, NetPacketType_Reliable);
+	}
+}
+
+void ServerGameState::SendPacket(int peer, net::packet::StateBagV2Packet& packet)
+{
+	auto creg = m_instance->GetComponent<fx::ClientRegistry>();
+
+	if (peer < 0)
+	{
+		return;
+	}
+
+	auto client = creg->GetClientBySlotID(peer);
+
+	if (client)
+	{
+		net::Buffer buffer (packet.data.stateBagName.GetValue().size() + 2 + packet.data.key.GetValue().size() + 2 + packet.data.data.GetValue().size() + 4);
+		net::ByteWriter writer(buffer.GetBuffer(), buffer.GetLength());
+		if (!packet.Process(writer))
+		{
+			trace("Serialization of the server state bag v2 packet failed. Please report this error at https://github.com/citizenfx/fivem.\n");
+			return;
+		}
+
+		buffer.Seek(writer.GetOffset());
 		client->SendPacket(1, buffer, NetPacketType_Reliable);
 	}
 }

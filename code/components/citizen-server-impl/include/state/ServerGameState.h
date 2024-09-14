@@ -1464,7 +1464,9 @@ private:
 public:
 	bool MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client);
 
-	void SendPacket(int peer, std::string_view data) override;
+	void SendPacket(int peer, net::packet::StateBagPacket& packet) override;
+
+	void SendPacket(int peer, net::packet::StateBagV2Packet& packet) override;
 
 	bool IsAsynchronous() override;
 

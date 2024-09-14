@@ -6,6 +6,7 @@
 #include <StateBagComponent.h>
 
 #include "ByteReader.h"
+#include "ByteWriter.h"
 #include "ClientRegistry.h"
 #include "ConsoleContextInstance.h"
 #include "ResourceManagerInstance.h"
@@ -16,11 +17,24 @@
 
 class TestInterface : public fx::StateBagGameInterface
 {
-	std::optional<std::tuple<int, std::string>> lastPacket;
+	std::optional<std::pair<int, std::vector<uint8_t>>> lastPacket;
 public:
-	void SendPacket(int peer, std::string_view data) override
+	void SendPacket(int peer, net::packet::StateBagPacket& packet) override
 	{
-		lastPacket.emplace(peer, data);
+		auto& val = lastPacket.emplace(peer, std::vector<uint8_t>{});
+		val.second.resize(net::SerializableComponent::GetSize<net::packet::StateBagPacket>());
+		net::ByteWriter writer(val.second.data(), val.second.size());
+		packet.Process(writer);
+		val.second.resize(writer.GetOffset());
+	}
+
+	void SendPacket(int peer, net::packet::StateBagV2Packet& packet) override
+	{
+		auto& val = lastPacket.emplace(peer, std::vector<uint8_t>{});
+		val.second.resize(net::SerializableComponent::GetSize<net::packet::StateBagV2Packet>());
+		net::ByteWriter writer(val.second.data(), val.second.size());
+		packet.Process(writer);
+		val.second.resize(writer.GetOffset());
 	}
 
 	void Reset()
@@ -33,7 +47,7 @@ public:
 		return lastPacket.has_value();
 	}
 
-	std::tuple<int, std::string> GetPacket()
+	std::pair<int, std::vector<uint8_t>> GetPacket()
 	{
 		return lastPacket.value();
 	}
@@ -59,7 +73,8 @@ TEST_CASE("State Bag handle benchmarks")
 	auto stateBagComponentHandleOldData = fx::StateBagComponent::Create(fx::StateBagRole::Client);
 
 	BENCHMARK("stateBagHandler") {
-		stateBagComponentHandleOldData->HandlePacket(std::get<0>(oldPacket), std::string_view(reinterpret_cast<const char*>(std::get<1>(oldPacket).data()), std::get<1>(oldPacket).size()));
+		// first 4 bytes are the packet type hash
+		stateBagComponentHandleOldData->HandlePacket(std::get<0>(oldPacket), std::string_view(reinterpret_cast<const char*>(std::get<1>(oldPacket).data() + 4), std::get<1>(oldPacket).size() - 4));
 	};
 
 	// create new data
@@ -77,10 +92,10 @@ TEST_CASE("State Bag handle benchmarks")
 	auto stateBagComponentHandleNewData = fx::StateBagComponent::Create(fx::StateBagRole::Server);
 
 	BENCHMARK("stateBagHandlerV2") {
-		net::packet::StateBagV2 stateBag;
-		net::ByteReader reader(reinterpret_cast<const uint8_t*>(std::get<1>(newPacket).data()), std::get<1>(newPacket).size());
+		net::packet::StateBagV2Packet stateBag;
+		net::ByteReader reader(std::get<1>(newPacket).data(), std::get<1>(newPacket).size());
 		stateBag.Process(reader);
-		stateBagComponentHandleNewData->HandlePacketV2(std::get<0>(newPacket), stateBag);
+		stateBagComponentHandleNewData->HandlePacketV2(std::get<0>(newPacket), stateBag.data);
 	};
 }
 
@@ -102,12 +117,13 @@ TEST_CASE("State Bag v2 test")
 
 	auto stateBagComponentHandleNewData = fx::StateBagComponent::Create(fx::StateBagRole::Server);
 
-	net::packet::StateBagV2 stateBag;
-	net::ByteReader reader(reinterpret_cast<const uint8_t*>(std::get<1>(newPacket).data()), std::get<1>(newPacket).size());
+	net::packet::StateBagV2Packet stateBag;
+	net::ByteReader reader(std::get<1>(newPacket).data(), std::get<1>(newPacket).size());
 	REQUIRE(stateBag.Process(reader) == true);
-	REQUIRE(stateBag.key == testKey);
-	REQUIRE(stateBag.data == testData);
-	stateBagComponentHandleNewData->HandlePacketV2(std::get<0>(newPacket), stateBag);
+	REQUIRE(stateBag.type == HashRageString("msgStateBagV2"));
+	REQUIRE(stateBag.data.key == testKey);
+	REQUIRE(stateBag.data.data == testData);
+	stateBagComponentHandleNewData->HandlePacketV2(std::get<0>(newPacket), stateBag.data);
 }
 
 TEST_CASE("State Bag v1 test")
@@ -128,8 +144,8 @@ TEST_CASE("State Bag v1 test")
 	
 	auto stateBagComponentHandleOldData = fx::StateBagComponent::Create(fx::StateBagRole::Client);
 
-	REQUIRE(std::get<1>(oldPacket).size() == testKey.size() + testData.size() + 11);
-	rl::MessageBuffer buffer{ reinterpret_cast<const uint8_t*>(std::get<1>(oldPacket).data()), std::get<1>(oldPacket).size() };
+	REQUIRE(std::get<1>(oldPacket).size() == testKey.size() + testData.size() + 11 + 4/*packet type*/);
+	rl::MessageBuffer buffer{ reinterpret_cast<const uint8_t*>(std::get<1>(oldPacket).data() + 4), std::get<1>(oldPacket).size() - 4 };
 	uint16_t idLength;
 	buffer.Read<uint16_t>(16, &idLength);
 	std::vector<char> idBuffer(idLength - 1);
@@ -152,7 +168,7 @@ TEST_CASE("State Bag v1 test")
 
 	REQUIRE(std::string_view(data.data(), data.size()) == testData);
 
-	stateBagComponentHandleOldData->HandlePacket(std::get<0>(oldPacket), std::get<1>(oldPacket));
+	stateBagComponentHandleOldData->HandlePacket(std::get<0>(oldPacket), {reinterpret_cast<const char*>(oldPacket.second.data() + 4), oldPacket.second.size() - 4});
 }
 
 TEST_CASE("State Bag handler v2 test")
@@ -190,6 +206,7 @@ TEST_CASE("State Bag handler v2 test")
 	net::Buffer buffer;
 	buffer.Write(std::get<1>(newPacket).data(), std::get<1>(newPacket).size());
 	buffer.Reset();
+	REQUIRE(buffer.Read<uint32_t>() == HashRageString("msgStateBagV2"));
 	handler.Handle(serverInstance.GetRef(), client, buffer);
 
 	REQUIRE(stateBag->HasKey(testKey) == true);
@@ -231,6 +248,7 @@ TEST_CASE("State Bag handler v1 test")
 	net::Buffer buffer;
 	buffer.Write(std::get<1>(oldPacket).data(), std::get<1>(oldPacket).size());
 	buffer.Reset();
+	REQUIRE(buffer.Read<uint32_t>() == HashRageString("msgStateBag"));
 	handler.Handle(serverInstance.GetRef(), client, buffer);
 
 	REQUIRE(stateBag->HasKey(testKey) == true);
