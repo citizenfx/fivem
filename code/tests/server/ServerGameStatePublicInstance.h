@@ -4,6 +4,7 @@
 #include <Client.h>
 
 #include "ArrayUpdate.h"
+#include "GameStateNAck.h"
 #include "NetGameEventV2.h"
 
 namespace fx
@@ -62,6 +63,28 @@ namespace fx
 			}
 		};
 
+		struct GameStateNAckData
+		{
+			const fx::ClientSharedPtr client;
+			const uint8_t flags;
+			const uint64_t frameIndex;
+			const uint64_t firstMissingFrame;
+			const uint64_t lastMissingFrame;
+			const std::vector<net::packet::ClientGameStateNAck::IgnoreListEntry> ignoreList;
+			const std::vector<uint16_t> recreateList;
+
+			GameStateNAckData(const fx::ClientSharedPtr& client, const uint8_t flags, const uint64_t frameIndex, const uint64_t firstMissingFrame, const uint64_t lastMissingFrame, const std::vector<net::packet::ClientGameStateNAck::IgnoreListEntry> ignoreList, const std::vector<uint16_t> recreateList)
+				: client(client),
+				  flags(flags),
+				  frameIndex(frameIndex),
+				  firstMissingFrame(firstMissingFrame),
+				  lastMissingFrame(lastMissingFrame),
+				  ignoreList(std::move(ignoreList)),
+				  recreateList(std::move(recreateList))
+			{
+			}
+		};
+
 		struct SendObjectIdsData
 		{
 			const ClientSharedPtr client;
@@ -83,6 +106,8 @@ namespace fx
 		static std::optional<GameEventHandler>& GetGameEventHandlerLastCall();
 
 		static std::optional<ArrayUpdateData>& GetArrayUpdateLastCall();
+		
+		static std::optional<GameStateNAckData>& GetGameStateNAckLastCall();
 
 		static std::optional<SendObjectIdsData>& GetFreeObjectIdsLastCall();
 

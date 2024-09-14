@@ -4171,6 +4171,138 @@ void ServerGameState::HandleArrayUpdate(const fx::ClientSharedPtr& client, net::
 	handler->ReadUpdate(client, buffer);
 }
 
+void ServerGameState::HandleGameStateNAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateNAck& packet)
+{
+	if (GetSyncStyle() != fx::SyncStyle::NAK)
+	{
+		return;
+	}
+
+	auto slotId = client->GetSlotId();
+	if (slotId == -1)
+	{
+		return;
+	}
+
+	const uint8_t flags = packet.GetFlags();
+	const auto thisFrame = packet.GetFrameIndex();
+				
+	if (flags & 1)
+	{
+		const auto firstMissingFrame = packet.GetFirstMissingFrame();
+		const auto lastMissingFrame = packet.GetLastMissingFrame();
+
+		auto [lock, clientData] = GetClientData(this, client);
+		auto& states = clientData->frameStates;
+
+		eastl::fixed_map<uint16_t, uint64_t, 64> lastSentCorrections;
+
+		for (uint64_t frame = lastMissingFrame; frame >= firstMissingFrame; --frame)
+		{
+			if (auto frameIt = states.find(frame); frameIt != states.end())
+			{
+				auto& [synced, deletions] = frameIt->second;
+				for (auto& [objectId, entData] : synced)
+				{
+					if (auto ent = entData.GetEntity(this))
+					{
+						const auto entIdentifier = MakeHandleUniqifierPair(objectId, ent->uniqifier);
+
+						if (!entData.isCreated)
+						{
+							if (auto syncedIt = clientData->syncedEntities.find(entIdentifier); syncedIt != clientData->syncedEntities.end())
+							{
+								syncedIt->second.hasCreated = false;
+								syncedIt->second.hasNAckedCreate = true;
+							}
+						}
+						else
+						{
+							std::lock_guard _(ent->frameMutex);
+							ent->lastFramesSent[slotId] = std::min(entData.lastSent, ent->lastFramesSent[slotId]);
+							lastSentCorrections[objectId] = ent->lastFramesSent[slotId];
+						}
+					}
+				}
+
+				for (auto [identPair, deletionData] : deletions)
+				{
+					clientData->entitiesToDestroy[identPair] = { fx::sync::SyncEntityPtr{}, deletionData };
+				}
+			}
+			else
+			{
+				instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverOneSyncDropResourceName, fx::ClientDropReason::ONE_SYNC_TOO_MANY_MISSED_FRAMES, "Timed out after 60 seconds (1, %d)", lastMissingFrame - firstMissingFrame);
+				return;
+			}
+		}
+
+		// propagate these frames into newer states, as well
+		for (auto frameIt = states.upper_bound(lastMissingFrame); frameIt != states.end(); frameIt++)
+		{
+			auto& [synced, deletions] = frameIt->second;
+
+			for (const auto& [objectId, correction] : lastSentCorrections)
+			{
+				if (auto entIt = synced.find(objectId); entIt != synced.end())
+				{
+					entIt->second.lastSent = correction;
+				}
+			}
+		}
+	}
+
+	auto [lock, clientData] = GetClientData(this, client);
+	auto& states = clientData->frameStates;
+
+	if (auto frameIt = states.find(thisFrame); frameIt != states.end())
+	{
+		// ignore list
+		if (flags & 2)
+		{
+			for (auto& ignoreListEntry : packet.GetIgnoreList())
+			{
+				auto& [synced, deletions] = frameIt->second;
+				if (auto entIter = synced.find(ignoreListEntry.entry); entIter != synced.end())
+				{
+					if (auto ent = entIter->second.GetEntity(this))
+					{
+						std::lock_guard _(ent->frameMutex);
+						ent->lastFramesSent[slotId] = std::min(ignoreListEntry.lastFrame, ent->lastFramesSent[slotId]);
+					}
+				}
+			}
+		}
+
+		// recreate list
+		if (flags & 4)
+		{
+			for (uint16_t objectId : packet.GetRecreateList())
+			{
+				GS_LOG("attempt recreate of id %d for client %d\n", objectId, client->GetNetId());
+				auto& [synced, deletions] = frameIt->second;
+				if (auto entIter = synced.find(objectId); entIter != synced.end())
+				{
+					if (auto ent = entIter->second.GetEntity(this))
+					{
+						const auto entIdentifier = MakeHandleUniqifierPair(objectId, ent->uniqifier);
+						if (auto syncedIt = clientData->syncedEntities.find(entIdentifier); syncedIt != clientData->syncedEntities.end())
+						{
+							GS_LOG("recreating id %d for client %d\n", objectId, client->GetNetId());
+							syncedIt->second.hasCreated = false;
+							syncedIt->second.hasNAckedCreate = true;
+						}
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverOneSyncDropResourceName, fx::ClientDropReason::ONE_SYNC_TOO_MANY_MISSED_FRAMES, "Timed out after 60 seconds (2)");
+	}
+}
+
 void ServerGameState::DeleteEntity(const fx::sync::SyncEntityPtr& entity)
 {
 	if (entity->type != sync::NetObjEntityType::Player && entity->syncTree)
@@ -7682,164 +7814,5 @@ static InitFunction initFunction([]()
 				clientData->frameStates.erase(frameIndex);
 			}
 		} });
-
-		// #IFNAK
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("gameStateNAck"), {
-			fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer) {
-				auto sgs = instance->GetComponent<fx::ServerGameState>();
-
-				if (sgs->GetSyncStyle() != fx::SyncStyle::NAK)
-				{
-					return;
-				}
-				
-				auto slotId = client->GetSlotId();
-				if (slotId == -1)
-				{
-					return;
-				}
-
-				const uint8_t flags = buffer.Read<uint8_t>();
-				const auto thisFrame = buffer.Read<uint64_t>();
-				
-				if (flags & 1)
-				{
-					const auto firstMissingFrame = buffer.Read<uint64_t>();
-					const auto lastMissingFrame = buffer.Read<uint64_t>();
-
-					auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
-					auto& states = clientData->frameStates;
-
-					eastl::fixed_map<uint16_t, uint64_t, 64> lastSentCorrections;
-
-					for (uint64_t frame = lastMissingFrame; frame >= firstMissingFrame; --frame)
-					{
-						if (auto frameIt = states.find(frame); frameIt != states.end())
-						{
-							auto& [synced, deletions] = frameIt->second;
-							for (auto& [objectId, entData] : synced)
-							{
-								if (auto ent = entData.GetEntity(sgs.GetRef()))
-								{
-									const auto entIdentifier = MakeHandleUniqifierPair(objectId, ent->uniqifier);
-
-									if (!entData.isCreated)
-									{
-										if (auto syncedIt = clientData->syncedEntities.find(entIdentifier); syncedIt != clientData->syncedEntities.end())
-										{
-											syncedIt->second.hasCreated = false;
-											syncedIt->second.hasNAckedCreate = true;
-										}
-									}
-									else
-									{
-										std::lock_guard _(ent->frameMutex);
-										ent->lastFramesSent[slotId] = std::min(entData.lastSent, ent->lastFramesSent[slotId]);
-										lastSentCorrections[objectId] = ent->lastFramesSent[slotId];
-									}
-								}
-							}
-
-							for (auto [identPair, deletionData] : deletions)
-							{
-								clientData->entitiesToDestroy[identPair] = { fx::sync::SyncEntityPtr{}, deletionData };
-							}
-						}
-						else
-						{
-							instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverOneSyncDropResourceName, fx::ClientDropReason::ONE_SYNC_TOO_MANY_MISSED_FRAMES, "Timed out after 60 seconds (1, %d)", lastMissingFrame - firstMissingFrame);
-							return;
-						}
-					}
-
-					// propagate these frames into newer states, as well
-					for (auto frameIt = states.upper_bound(lastMissingFrame); frameIt != states.end(); frameIt++)
-					{
-						auto& [synced, deletions] = frameIt->second;
-
-						for (const auto& [objectId, correction] : lastSentCorrections)
-						{
-							if (auto entIt = synced.find(objectId); entIt != synced.end())
-							{
-								entIt->second.lastSent = correction;
-							}
-						}
-					}
-				}
-
-				auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
-				auto& states = clientData->frameStates;
-
-				if (auto frameIt = states.find(thisFrame); frameIt != states.end())
-				{
-					// ignore list
-					if (flags & 2)
-					{
-						eastl::fixed_vector<std::tuple<uint16_t, uint64_t>, 100> ignoredUpdates;
-						uint8_t ignoreCount = buffer.Read<uint8_t>();
-						for (int i = 0; i < ignoreCount; i++)
-						{
-							auto objectId = buffer.Read<uint16_t>();
-							uint64_t resendFrame = 0;
-
-							if (flags & 8)
-							{
-								resendFrame = buffer.Read<uint64_t>();
-							}
-
-							ignoredUpdates.emplace_back(objectId, resendFrame);
-						}
-
-						for (auto [objectId, resendFrame] : ignoredUpdates)
-						{
-							auto& [synced, deletions] = frameIt->second;
-							if (auto entIter = synced.find(objectId); entIter != synced.end())
-							{
-								if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
-								{
-									std::lock_guard _(ent->frameMutex);
-									ent->lastFramesSent[slotId] = std::min(resendFrame, ent->lastFramesSent[slotId]);
-								}
-							}
-						}
-					}
-
-					// recreate list
-					if (flags & 4)
-					{
-						eastl::fixed_vector<uint16_t, 100> recreates;
-						uint8_t recreateCount = buffer.Read<uint8_t>();
-						for (int i = 0; i < recreateCount; i++)
-						{
-							recreates.push_back(buffer.Read<uint16_t>());
-						}
-
-						for (auto objectId : recreates)
-						{
-							GS_LOG("attempt recreate of id %d for client %d\n", objectId, client->GetNetId());
-							auto& [synced, deletions] = frameIt->second;
-							if (auto entIter = synced.find(objectId); entIter != synced.end())
-							{
-								if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
-								{
-									const auto entIdentifier = MakeHandleUniqifierPair(objectId, ent->uniqifier);
-									if (auto syncedIt = clientData->syncedEntities.find(entIdentifier); syncedIt != clientData->syncedEntities.end())
-									{
-										GS_LOG("recreating id %d for client %d\n", objectId, client->GetNetId());
-										syncedIt->second.hasCreated = false;
-										syncedIt->second.hasNAckedCreate = true;
-									}
-								}
-							}
-						}
-					}
-				}
-				else
-				{
-					instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverOneSyncDropResourceName, fx::ClientDropReason::ONE_SYNC_TOO_MANY_MISSED_FRAMES, "Timed out after 60 seconds (2)");
-					return;
-				}
-			}
-		});
 	}, 999999);
 });

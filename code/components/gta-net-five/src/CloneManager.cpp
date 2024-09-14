@@ -42,6 +42,8 @@
 
 #include <ByteReader.h>
 
+#include "GameStateNAck.h"
+
 extern rage::netObject* g_curNetObjectSelection;
 rage::netObject* g_curNetObject;
 
@@ -1505,7 +1507,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		drillTs = 0;
 	}
 
-	static std::vector<std::tuple<uint16_t, uint64_t>> ignoreList;
+	static std::vector<net::packet::ClientGameStateNAck::IgnoreListEntry> ignoreList;
 	static std::vector<uint16_t> recreateList;
 
 	for (auto& clone : msg.GetClones())
@@ -1640,53 +1642,27 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			return;
 		}
 
-		uint8_t flags = 8;
-		if (isMissingFrames)
-		{
-			flags |= 1;
-		}
-		if (!ignoreList.empty())
-		{
-			flags |= 2;
-		}
-		if (!recreateList.empty())
-		{
-			flags |= 4;
-		}
-
-		net::Buffer outBuffer;
-		outBuffer.Write<uint8_t>(flags);
-
 		FrameIndex newIndex(msg.GetFrameIndex());
 
-		outBuffer.Write<uint64_t>(newIndex.frameIndex);
+		net::packet::ClientGameStateNAckPacket gameStateNAckPacket;
+		gameStateNAckPacket.data.SetFrameIndex(newIndex.frameIndex);
 
 		if (isMissingFrames)
 		{
-			outBuffer.Write<uint64_t>(firstMissingFrame);
-			outBuffer.Write<uint64_t>(lastMissingFrame);
+			gameStateNAckPacket.data.SetIsMissingFrames(isMissingFrames, firstMissingFrame, lastMissingFrame);
 		}
 
 		if (!ignoreList.empty())
 		{
-			outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
-			for (auto [entry, lastFrame] : ignoreList)
-			{
-				outBuffer.Write<uint16_t>(entry);
-				outBuffer.Write<uint64_t>(lastFrame);
-			}
+			gameStateNAckPacket.data.SetIgnoreList(ignoreList);
 		}
 
 		if (!recreateList.empty())
 		{
-			outBuffer.Write<uint8_t>(uint8_t(recreateList.size()));
-			for (uint16_t entry : recreateList)
-			{
-				outBuffer.Write<uint16_t>(entry);
-			}
+			gameStateNAckPacket.data.SetRecreateList(recreateList);
 		}
 
-		m_netLibrary->SendReliableCommand("gameStateNAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+		m_netLibrary->SendNetPacket(gameStateNAckPacket);
 
 		ignoreList.clear();
 		recreateList.clear();
