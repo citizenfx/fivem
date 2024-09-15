@@ -463,7 +463,7 @@ local function doStackFormat(err)
 		return nil
 	end
 
-	return '^1SCRIPT ERROR: ' .. err .. "^7\n" .. fst
+	return string.format('^1SCRIPT ERROR: %s^7\n%s', err or '', fst)
 end
 
 Citizen.SetCallRefRoutine(function(refId, argsSerialized)
