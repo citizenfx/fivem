@@ -231,31 +231,7 @@ static HookFunction initFunction([]()
 		}
 	});
 
-	g_netLibrary->AddReliableHandler("msgFrame", [](const char* data, size_t len)
-	{
-		net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
-		auto idx = buffer.Read<uint32_t>();
-
-		auto icgi = Instance<ICoreGameInit>::Get();
-
-		uint8_t strictLockdown = buffer.Read<uint8_t>();
-
-		static uint8_t lastStrictLockdown;
-
-		if (strictLockdown != lastStrictLockdown)
-		{
-			if (!strictLockdown)
-			{
-				icgi->ClearVariable("strict_entity_lockdown");
-			}
-			else
-			{
-				icgi->SetVariable("strict_entity_lockdown");
-			}
-
-			lastStrictLockdown = strictLockdown;
-		}
-	}, true);
+	g_netLibrary->AddPacketHandler<fx::FramePacketHandler>(true);
 
 	OnMainGameFrame.Connect([]()
 	{

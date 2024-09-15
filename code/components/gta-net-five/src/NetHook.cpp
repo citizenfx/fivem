@@ -30,6 +30,7 @@
 #include <CfxState.h>
 #include <HostSharedData.h>
 
+#include "FramePacketHandler.h"
 #include "HeHost.h"
 #include "IHost.h"
 
@@ -874,34 +875,7 @@ static HookFunction initFunction([]()
 		}
 	});
 
-	g_netLibrary->AddReliableHandler("msgFrame", [](const char* data, size_t len)
-	{
-		net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
-		auto idx = buffer.Read<uint32_t>();
-
-		auto icgi = Instance<ICoreGameInit>::Get();
-		
-		uint8_t strictLockdown = buffer.Read<uint8_t>();
-		uint8_t syncStyle = buffer.Read<uint8_t>();
-
-		static uint8_t lastStrictLockdown;
-
-		if (strictLockdown != lastStrictLockdown)
-		{
-			if (!strictLockdown)
-			{
-				icgi->ClearVariable("strict_entity_lockdown");
-			}
-			else
-			{
-				icgi->SetVariable("strict_entity_lockdown");
-			}
-
-			lastStrictLockdown = strictLockdown;
-		}
-
-		icgi->SyncIsARQ = syncStyle == 1;
-	}, true);
+	g_netLibrary->AddPacketHandler<fx::FramePacketHandler>(true);
 
 	g_netLibrary->SetBase(GetTickCount());
 

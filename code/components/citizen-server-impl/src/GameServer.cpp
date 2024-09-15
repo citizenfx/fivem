@@ -47,6 +47,9 @@
 
 #include <packethandlers/RequestObjectIdsPacketHandler.h>
 
+#include "ByteWriter.h"
+#include "Frame.h"
+
 constexpr const char kDefaultServerList[] = "https://servers-ingress-live.fivem.net/ingress";
 
 static fx::GameServer* g_gameServer;
@@ -898,13 +901,15 @@ namespace fx
 						!lf ||
 						(m_serverTime - fx::AnyCast<uint64_t>(lf)) > 1000)
 					{
-						net::Buffer outMsg;
-						outMsg.Write(HashRageString("msgFrame"));
-						outMsg.Write<uint32_t>(0);
-						outMsg.Write<uint8_t>(lockdownMode);
-						outMsg.Write<uint8_t>(syncStyle);
-
-						client->SendPacket(0, outMsg, NetPacketType_Reliable);
+						net::packet::ServerFramePacket serverFrame;
+						serverFrame.data.lockdownMode = lockdownMode;
+						serverFrame.data.syncStyle = syncStyle;
+						static const size_t kMaxFrameSize = net::SerializableComponent::GetSize<net::packet::ServerFramePacket>();
+						net::Buffer responseBuffer(kMaxFrameSize);
+						net::ByteWriter writer(responseBuffer.GetBuffer(), kMaxFrameSize);
+						serverFrame.Process(writer);
+						responseBuffer.Seek(writer.GetOffset());
+						client->SendPacket(0, responseBuffer, NetPacketType_Reliable);
 
 						client->SetData("lockdownMode", lockdownMode);
 						client->SetData("syncStyle", syncStyle);
