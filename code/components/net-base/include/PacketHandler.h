@@ -10,7 +10,7 @@ public:
 	static constexpr uint32_t PacketType = PacketTypeHash;
 
 	template<typename T, class HandleFunc, typename ...Args>
-	bool ProcessPacket(T& stream, const HandleFunc&& handle, Args&... args)
+	bool ProcessPacket(T& stream, const HandleFunc&& handle, Args&&... args)
 	{
 		static size_t kMaxSize = SerializableComponent::GetSize<Packet>();
 		if ((stream.GetCapacity() - stream.GetOffset()) > kMaxSize)
