@@ -57,7 +57,7 @@ public:
 	};
 
 	// todo: in future net version use StreamTail
-	SerializableProperty<std::vector<IdEntry>, storage_type::ConstrainedBytesArray<0, BigMode ? 6 : 32>> ids;
+	SerializableProperty<std::vector<IdEntry>, storage_type::ConstrainedBytesArray<0, BigMode ? 6 : 64>> ids;
 
 	void SetIds(const std::vector<uint16_t>& idsToSet)
 	{
