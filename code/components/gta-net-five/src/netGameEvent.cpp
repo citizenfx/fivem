@@ -1,6 +1,6 @@
 #include <StdInc.h>
 
-#include "netGameEvent.h"
+#include "NetGameEventPacket.h"
 
 #include "ByteReader.h"
 #include "ByteWriter.h"
@@ -12,7 +12,8 @@
 #include "MinHook.h"
 #include "NetBitVersion.h"
 #include "netBuffer.h"
-#include "NetGameEventV2.h"
+#include "NetGameEventPacket.h"
+#include "NetGameEvent.h"
 #include "NetLibrary.h"
 #include "netPlayerManager.h"
 #include "Pool.h"
@@ -383,10 +384,16 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 		}
 	}
 
+	std::vector<uint16_t> targetPlayersVector;
+	targetPlayersVector.reserve(targetPlayers.size());
+	for (const uint16_t playerId : targetPlayers)
+	{
+		targetPlayersVector.push_back(playerId);
+	}
+
 	if (icgi->IsNetVersionOrHigher(net::NetBitVersion::netVersion4))
 	{
 		static std::vector<uint32_t> eventIdentsToHash = netEventMgr_GetIdentsToEventHash();
-		static std::vector<uint8_t> eventSendBuffer (net::SerializableComponent::GetSize<net::packet::ClientNetGameEventV2>());
 
 		if (ev->eventType >= eventIdentsToHash.size())
 		{
@@ -394,47 +401,25 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 			return;
 		}
 
-		net::packet::ClientNetGameEventV2 clientNetGameEvent;
-		std::vector<uint16_t> targetPlayersVector;
-		targetPlayersVector.reserve(targetPlayers.size());
-		for (const uint16_t playerId : targetPlayers)
-		{
-			targetPlayersVector.push_back(playerId);
-		}
-		clientNetGameEvent.targetPlayers.SetValue({ targetPlayersVector.data(), targetPlayersVector.size() });
-		clientNetGameEvent.eventId = eventId;
-		clientNetGameEvent.isReply = false;
-		clientNetGameEvent.eventNameHash = eventIdentsToHash[ev->eventType];
-		clientNetGameEvent.data.SetValue(net::Span{static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength()});
+		net::packet::ClientNetGameEventV2Packet clientNetGameEvent;
+		clientNetGameEvent.event.targetPlayers.SetValue({ targetPlayersVector.data(), targetPlayersVector.size() });
+		clientNetGameEvent.event.eventId = eventId;
+		clientNetGameEvent.event.isReply = false;
+		clientNetGameEvent.event.eventNameHash = eventIdentsToHash[ev->eventType];
+		clientNetGameEvent.event.data.SetValue(net::Span{static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength()});
 
-		net::ByteWriter writer {eventSendBuffer.data(), eventSendBuffer.size()};
-		if (!clientNetGameEvent.Process(writer))
-		{
-			// event could not be written
-			return;
-		}
-
-		g_netLibrary->SendReliableCommand("msgNetGameEventV2", (const char*)eventSendBuffer.data(), writer.GetOffset());
+		g_netLibrary->SendNetPacket(clientNetGameEvent);
 	}
 	else
 	{
-		outBuffer.Write<uint8_t>(targetPlayers.size());
+		net::packet::ClientNetGameEventPacket clientNetGameEvent;
+		clientNetGameEvent.event.targetPlayers.SetValue({ targetPlayersVector.data(), targetPlayersVector.size() });
+		clientNetGameEvent.event.eventId = eventId;
+		clientNetGameEvent.event.isReply = 0;
+		clientNetGameEvent.event.eventType = ev->eventType;
+		clientNetGameEvent.event.data.SetValue({static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength() });
 
-		for (const uint16_t playerId : targetPlayers)
-		{
-			outBuffer.Write<uint16_t>(playerId);
-		}
-
-		outBuffer.Write<uint16_t>(eventId);
-		outBuffer.Write<uint8_t>(0); // is reply
-		outBuffer.Write<uint16_t>(ev->eventType);
-
-		uint32_t len = rlBuffer.GetDataLength();
-		outBuffer.Write<uint16_t>(len); // length (short)
-		outBuffer.Write(rlBuffer.m_data, len); // data
-
-		// max packet size and the buffer layout should match up with the serverside handler in ServerGameState.cpp
-		g_netLibrary->SendReliableCommand("msgNetGameEvent", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+		g_netLibrary->SendNetPacket(clientNetGameEvent);
 	}
 }
 
@@ -930,7 +915,6 @@ static void DecideNetGameEvent(rage::netGameEvent* ev, CNetGamePlayer* player, C
 			if (icgi->IsNetVersionOrHigher(net::NetBitVersion::netVersion4))
 			{
 				static std::vector<uint32_t> eventIdentsToHash = netEventMgr_GetIdentsToEventHash();
-				static std::vector<uint8_t> eventSendBuffer (net::SerializableComponent::GetSize<net::packet::ClientNetGameEventV2>());
 
 				if (ev->eventType >= eventIdentsToHash.size())
 				{
@@ -940,44 +924,39 @@ static void DecideNetGameEvent(rage::netGameEvent* ev, CNetGamePlayer* player, C
 
 				const auto targetPlayerRes = g_netIdsByPlayer.find(player);
 
-				net::packet::ClientNetGameEventV2 clientNetGameEvent;
+				net::packet::ClientNetGameEventV2Packet clientNetGameEvent;
 				uint16_t targetPlayerId;
 				if (targetPlayerRes != g_netIdsByPlayer.end())
 				{
 					// target player is not available for the reply
 					// but sending it to the server for event processing is fine
 					targetPlayerId = targetPlayerRes->second;
-					clientNetGameEvent.targetPlayers.SetValue({&targetPlayerId, 1});
+					clientNetGameEvent.event.targetPlayers.SetValue({&targetPlayerId, 1});
 				}
-				clientNetGameEvent.eventId = evH;
-				clientNetGameEvent.isReply = true;
-				clientNetGameEvent.eventNameHash = eventIdentsToHash[ev->eventType];
-				clientNetGameEvent.data = {static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength()};
+				clientNetGameEvent.event.eventId = evH;
+				clientNetGameEvent.event.isReply = true;
+				clientNetGameEvent.event.eventNameHash = eventIdentsToHash[ev->eventType];
+				clientNetGameEvent.event.data = {static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength()};
 
-				net::ByteWriter writer {eventSendBuffer.data(), eventSendBuffer.size()};
-				if (!clientNetGameEvent.Process(writer))
-				{
-					// event could not be written
-					return;
-				}
-
-				g_netLibrary->SendReliableCommand("msgNetGameEventV2", (const char*)eventSendBuffer.data(), writer.GetOffset());
+				g_netLibrary->SendNetPacket(clientNetGameEvent);
 			} else
 			{
-				net::Buffer outBuffer;
-				outBuffer.Write<uint8_t>(1);
-				outBuffer.Write<uint16_t>(g_netIdsByPlayer[player]);
+				net::packet::ClientNetGameEventPacket clientNetGameEvent;
+				uint16_t targetPlayerId;
+				if (const auto targetPlayerRes = g_netIdsByPlayer.find(player); targetPlayerRes != g_netIdsByPlayer.end())
+				{
+					// target player is not available for the reply
+					// but sending it to the server for event processing is fine
+					targetPlayerId = targetPlayerRes->second;
+					clientNetGameEvent.event.targetPlayers.SetValue({&targetPlayerId, 1});
+				}
 
-				outBuffer.Write<uint16_t>(evH);
-				outBuffer.Write<uint8_t>(1); // is reply
-				outBuffer.Write<uint16_t>(ev->eventType);
+				clientNetGameEvent.event.eventId = evH;
+				clientNetGameEvent.event.isReply = 1;
+				clientNetGameEvent.event.eventType = ev->eventType;
+				clientNetGameEvent.event.data = {static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength()};
 
-				uint32_t len = rlBuffer.GetDataLength();
-				outBuffer.Write<uint16_t>(len); // length (short)
-				outBuffer.Write(rlBuffer.m_data, len); // data
-
-				// max packet size and the buffer layout should match up with the serverside handler in ServerGameState.cpp
-				g_netLibrary->SendReliableCommand("msgNetGameEvent", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+				g_netLibrary->SendNetPacket(clientNetGameEvent);
 			}
 		}
 	}

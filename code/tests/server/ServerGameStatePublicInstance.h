@@ -5,7 +5,7 @@
 
 #include "ArrayUpdate.h"
 #include "GameStateNAck.h"
-#include "NetGameEventV2.h"
+#include "NetGameEventPacket.h"
 
 namespace fx
 {

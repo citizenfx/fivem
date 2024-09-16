@@ -42,7 +42,7 @@
 
 #include "ByteReader.h"
 #include "ByteWriter.h"
-#include "NetGameEventV2.h"
+#include "NetGameEventPacket.h"
 
 #ifdef STATE_FIVE
 static constexpr int kNetObjectTypeBitLength = 4;

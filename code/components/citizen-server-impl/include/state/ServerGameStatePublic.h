@@ -19,7 +19,7 @@
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include <NetGameEventV2.h>
+#include <NetGameEventPacket.h>
 
 #include "ArrayUpdate.h"
 #include "GameStateAck.h"
