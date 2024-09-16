@@ -74,7 +74,11 @@ static void DoMapping()
 
 	int versionIdx = -1;
 
-	if (strncmp(buildString, "Jun 20 2024", 11) == 0)
+	if (strncmp(buildString, "Sep 10 2024", 11) == 0)
+	{
+		versionIdx = 3323;
+	}
+	else if (strncmp(buildString, "Jun 20 2024", 11) == 0)
 	{
 		versionIdx = 3258;
 	}
