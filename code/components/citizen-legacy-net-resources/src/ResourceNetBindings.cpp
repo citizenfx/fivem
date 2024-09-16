@@ -51,8 +51,12 @@
 
 #include "NetEvent.h"
 #include "ReassembledEventPacketHandler.h"
+#include "ResourceStartPacketHandler.h"
+#include "ResourceStopPacketHandler.h"
 #include "ScriptWarnings.h"
 #include "ServerCommand.h"
+
+#include "NetLibraryResourcesComponent.h"
 
 static tbb::concurrent_queue<std::function<void()>> executeNextGameFrame;
 static NetAddress g_netAddress;
@@ -98,26 +102,6 @@ static auto UrlEncodeWrap(const std::string& base, const std::string& str)
 
 	return base + str;
 };
-
-class NetLibraryResourcesComponent : public fwRefCountable, public fx::IAttached<NetLibrary>
-{
-public:
-	virtual void AttachToObject(NetLibrary* netLibrary) override;
-
-private:
-	void UpdateResources(const std::string& updateList, const std::function<void()>& doneCb);
-
-	void UpdateOneResource();
-
-	bool RequestResourceFileSet(fx::Resource* resource, const std::string& setName);
-
-private:
-	std::queue<std::string> m_resourceUpdateQueue;
-
-	NetLibrary* m_netLibrary;
-};
-
-DECLARE_INSTANCE_TYPE(NetLibraryResourcesComponent);
 
 static std::mutex progressMutex;
 static std::optional<std::tuple<std::string, int, int, bool>> nextProgress;
@@ -759,64 +743,8 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 		eventManager->QueueEvent(std::string(eventName), std::string(&eventData[0], eventData.size()), source);
 	});
 
-	netLibrary->AddReliableHandler("msgResStop", [](const char* buf, size_t len)
-	{
-		std::string resourceName(buf, len);
-
-		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
-		resourceManager->MakeCurrent();
-
-		auto resource = resourceManager->GetResource(resourceName);
-
-		if (resource.GetRef() == nullptr)
-		{
-			trace("Server requested resource %s to be stopped, but we don't know that resource\n", resourceName.c_str());
-			return;
-		}
-
-#if 0
-			if (resource->GetState() != ResourceStateRunning)
-			{
-				trace("Server requested resource %s to be stopped, but it's not running\n", resourceName.c_str());
-				return;
-			}
-#endif
-
-		resource->Stop();
-	});
-
-	netLibrary->AddReliableHandler("msgResStart", [this](const char* buf, size_t len)
-	{
-		std::string resourceName(buf, len);
-
-		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
-		resourceManager->MakeCurrent();
-
-		auto resource = resourceManager->GetResource(resourceName);
-
-		if (resource.GetRef() != nullptr)
-		{
-#if 0
-				if (resource->GetState() != ResourceStateStopped)
-				{
-					trace("Server requested resource %s to be started, but it's not stopped\n", resourceName.c_str());
-					return;
-				}
-#endif
-		}
-
-		std::lock_guard _(g_resourceStartRequestMutex);
-		if (g_resourceStartRequestSet.find(resourceName) == g_resourceStartRequestSet.end())
-		{
-			g_resourceStartRequestSet.insert(resourceName);
-			m_resourceUpdateQueue.push(resourceName);
-
-			executeNextGameFrame.push([this]()
-			{
-				UpdateOneResource();
-			});
-		}
-	});
+	netLibrary->AddPacketHandler<fx::ResourceStopPacketHandler>();
+	netLibrary->AddPacketHandler<fx::ResourceStartPacketHandler>();
 
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_SERVER_EVENT_INTERNAL", [](fx::ScriptContext& context)
 	{
