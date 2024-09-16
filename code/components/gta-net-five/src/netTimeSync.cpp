@@ -16,6 +16,7 @@
 #include <TimeSync.h>
 
 #include "ByteWriter.h"
+#include "PacketHandler.h"
 
 extern ICoreGameInit* icgi;
 extern NetLibrary* g_netLibrary;
@@ -89,15 +90,8 @@ void rage::netTimeSync<Build>::Update()
 }
 
 template<int Build>
-void rage::netTimeSync<Build>::HandleTimeSync(net::ByteReader& reader)
+void rage::netTimeSync<Build>::HandleTimeSync(net::packet::TimeSyncResponse& packet)
 {
-	net::packet::TimeSyncResponse packet;
-	if (!packet.Process(reader))
-	{
-		trace("Deserialization of the TimeSyncResponse failed. Please report this error at https://github.com/citizenfx/fivem.\n");
-		return;
-	}
-	
 	const uint32_t reqTime = packet.request.requestTime;
 	const uint32_t reqSequence = packet.request.requestSequence;
 	const uint32_t resDelta = packet.serverTimeMillis;
@@ -253,7 +247,7 @@ static inline void TimeSyncMainGameFrameUpdate()
 #endif
 }
 
-static inline void HandleTimeSyncUpdatePacket(net::ByteReader& buf)
+static void rage::HandleTimeSyncUpdatePacket(net::packet::TimeSyncResponse& buf)
 {
 #ifdef GTA_FIVE
 	if (xbr::IsGameBuildOrGreater<2372>())
@@ -280,15 +274,27 @@ static inline void HandleTimeSyncUpdatePacket(net::ByteReader& buf)
 #endif
 }
 
+namespace fx
+{
+class TimeSyncResponsePacketHandler : public net::PacketHandler<net::packet::TimeSyncResponse, HashRageString("msgTimeSync")>
+{
+public:
+	template<typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPacket(stream, [](net::packet::TimeSyncResponse& timeSyncResponse)
+		{
+			rage::HandleTimeSyncUpdatePacket(timeSyncResponse);
+		});
+	}
+};
+}
+
 static InitFunction initFunction([]()
 {
 	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* lib)
 	{
-		lib->AddReliableHandler("msgTimeSync", [](const char* data, size_t len)
-		{
-			net::ByteReader reader(reinterpret_cast<const uint8_t*>(data), len);
-			HandleTimeSyncUpdatePacket(reader);
-		});
+		lib->AddPacketHandler<fx::TimeSyncResponsePacketHandler>(false);
 	});
 });
 
