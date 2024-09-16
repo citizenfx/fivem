@@ -55,11 +55,13 @@ namespace fx
 					client->SetNetBase(clientIHost.baseNum);
 					clientRegistry->SetHost(client);
 
-					net::Buffer hostBroadcast;
-					hostBroadcast.Write(net::force_consteval<uint32_t, HashRageString("msgIHost")>);
-					hostBroadcast.Write<uint16_t>(client->GetNetId());
-					hostBroadcast.Write(client->GetNetBase());
-
+					net::Buffer hostBroadcast(net::SerializableComponent::GetSize<net::packet::ServerIHostPacket>());
+					net::packet::ServerIHostPacket serverIHostPacket;
+					serverIHostPacket.data.netId = client->GetNetId();
+					serverIHostPacket.data.baseNum = client->GetNetBase();
+					net::ByteWriter writer(hostBroadcast.GetBuffer(), hostBroadcast.GetLength());
+					serverIHostPacket.Process(writer);
+					hostBroadcast.Seek(writer.GetOffset());
 					gameServer->Broadcast(hostBroadcast);
 					//client->SendPacket(1, hostBroadcast, NetPacketType_Reliable);
 				}

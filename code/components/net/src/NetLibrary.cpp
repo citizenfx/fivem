@@ -34,6 +34,7 @@
 
 #include <json.hpp>
 
+#include "IHostPacketHandler.h"
 #include "IQuit.h"
 #include "NetBitVersion.h"
 #include "NetEvent.h"
@@ -2181,15 +2182,7 @@ NetLibrary* NetLibrary::Create()
 
 	lib->CreateResources();
 
-	lib->AddReliableHandler("msgIHost", [=] (const char* buf, size_t len)
-	{
-		net::Buffer buffer(reinterpret_cast<const uint8_t*>(buf), len);
-
-		uint16_t hostNetID = buffer.Read<uint16_t>();
-		uint32_t hostBase = buffer.Read<uint32_t>();
-
-		lib->SetHost(hostNetID, hostBase);
-	});
+	lib->AddPacketHandler<fx::IHostPacketHandler>(false, lib);
 
 	OnNetLibraryCreate(lib);
 

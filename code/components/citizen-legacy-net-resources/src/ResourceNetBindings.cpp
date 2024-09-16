@@ -713,9 +713,9 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 	fx::EnableEventReassemblyChanged(fx::g_enableEventReassembly.GetHelper().get());
 
 	netLibrary->AddPacketHandler<fx::ReassembledEventPacketHandler>(true);
-	netLibrary->AddPacketHandler<fx::NetEventPacketHandler>();
-	netLibrary->AddPacketHandler<fx::ResourceStopPacketHandler>();
-	netLibrary->AddPacketHandler<fx::ResourceStartPacketHandler>();
+	netLibrary->AddPacketHandler<fx::NetEventPacketHandler>(false);
+	netLibrary->AddPacketHandler<fx::ResourceStopPacketHandler>(false);
+	netLibrary->AddPacketHandler<fx::ResourceStartPacketHandler>(false);
 
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_SERVER_EVENT_INTERNAL", [](fx::ScriptContext& context)
 	{
