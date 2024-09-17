@@ -46,6 +46,8 @@
 #include "GameStateNAck.h"
 #include "PackedAcksPacketHandler.h"
 #include "PackedClonesPacketHandler.h"
+#include "StateBagPacketHandler.h"
+#include "StateBagV2PacketHandler.h"
 
 extern rage::netObject* g_curNetObjectSelection;
 rage::netObject* g_curNetObject;
@@ -430,22 +432,8 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 
 	m_sbac = sbac;
 
-	m_netLibrary->AddReliableHandler(
-	"msgStateBag", [this](const char* data, size_t len)
-	{
-		m_sbac->HandlePacket(0, std::string_view{ data, len });
-	},
-	true);
-
-	m_netLibrary->AddReliableHandler(
-	"msgStateBagV2", [this](const char* data, size_t len)
-	{
-		net::ByteReader reader (reinterpret_cast<const uint8_t*>(data), len);
-		net::packet::StateBagV2 stateBag;
-		stateBag.Process(reader);
-		m_sbac->HandlePacketV2(0, stateBag);
-	},
-	true);
+	m_netLibrary->AddPacketHandler<fx::StateBagPacketHandler>(true, m_sbac);
+	m_netLibrary->AddPacketHandler<fx::StateBagV2PacketHandler>(true, m_sbac);
 
 	fx::ResourceManager::OnInitializeInstance.Connect([sbac](fx::ResourceManager* rm)
 	{
