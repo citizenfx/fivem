@@ -78,9 +78,19 @@ namespace fx
 		fx::ClientSharedPtr client = fx::ClientSharedPtr::Construct(guid);
 		fx::ClientWeakPtr weakClient(client);
 		
-		client->OnAssignNetId.Connect([this, weakClient]()
+		client->OnAssignNetId.Connect([this, weakClient](const uint32_t previousNetId)
 		{
-			m_clientsByNetId[weakClient.lock()->GetNetId()] = weakClient;
+			fx::ClientSharedPtr client = weakClient.lock();
+			if (client)
+			{
+				m_clientsByNetId[client->GetNetId()] = weakClient;
+			}
+
+			// todo: cleanup the old net id directly after playerJoining returns the correct id
+			//if (previousNetId != 0xFFFF)
+			//{
+			//	m_clientsByNetId[previousNetId].reset();
+			//}
 		});
 
 		client->OnAssignPeer.Connect([this, weakClient]()
@@ -173,6 +183,9 @@ namespace fx
 
 		client->SetNetId(m_curNetId);
 		incrementId();
+
+		// increment amount of connected clients
+		++m_amountConnectedClients;
 	}
 
 	void ClientRegistry::HandleConnectedClient(const fx::ClientSharedPtr& client, uint32_t oldNetID)

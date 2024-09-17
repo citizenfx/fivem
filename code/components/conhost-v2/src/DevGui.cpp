@@ -292,6 +292,8 @@ devgui_convar "Tools/Performance/Resource Monitor" resmon
 devgui_convar "Tools/Performance/Streaming Memory Viewer" strmem
 devgui_convar "Tools/Streaming/Streaming Stats" strdbg
 devgui_convar "Tools/Streaming/Streaming List" strlist
+devgui_convar "Tools/Streaming/Pool Monitor" net_showPools
+devgui_convar "Tools/Streaming/pgRawStreamer assets" net_pgStats
 devgui_convar "Tools/Network/OneSync/Network Object Viewer" netobjviewer
 devgui_convar "Tools/Network/OneSync/Network SyncLog" netobjviewer_syncLog
 devgui_convar "Tools/Network/OneSync/Network Time" net_showTime

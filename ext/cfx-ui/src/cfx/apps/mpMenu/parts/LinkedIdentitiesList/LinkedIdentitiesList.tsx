@@ -1,14 +1,18 @@
-import React from "react";
-import { BrandIcon } from "cfx/ui/Icons";
-import { observer } from "mobx-react-lite";
-import { FaDiscord, FaRoad, FaSteam, FaXbox } from "react-icons/fa";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Title } from "cfx/ui/Title/Title";
-import { useService } from "cfx/base/servicesContainer";
-import { IConvarService, KnownConvars } from "../../services/convars/convars.service";
-import { ILinkedIdentitiesService } from "../../services/linkedIdentities/linkedIdentities.service";
-import { ILinkedIdentity, LinkedIdentityProvider } from "../../services/linkedIdentities/types";
-import { $L } from "cfx/common/services/intl/l10n";
+import {
+  BrandIcon,
+  Flex,
+  Title,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+import { FaDiscord, FaRoad, FaSteam, FaXbox } from 'react-icons/fa';
+
+import { useService } from 'cfx/base/servicesContainer';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { ILinkedIdentitiesService } from 'cfx/common/services/linkedIdentities/linkedIdentities.service';
+
+import { IConvarService, KnownConvars } from '../../services/convars/convars.service';
+import { ILinkedIdentity, LinkedIdentityProvider } from '../../services/linkedIdentities/types';
 
 export const LinkedIdentitiesList = observer(function LinkedIdentitiesList() {
   const ConvarService = useService(IConvarService);
@@ -20,9 +24,8 @@ export const LinkedIdentitiesList = observer(function LinkedIdentitiesList() {
 
   if (ConvarService.getBoolean(KnownConvars.streamerMode)) {
     return (
-      <>
-        {'<HIDDEN>'}
-      </>
+      // eslint-disable-next-line react/jsx-no-useless-fragment
+      <>{'<HIDDEN>'}</>
     );
   }
 
@@ -43,29 +46,33 @@ export const LinkedIdentitiesList = observer(function LinkedIdentitiesList() {
           {icon}
           {username}
         </Flex>
-      </Title>
+      </Title>,
     );
   }
 
   return (
-    <Flex gap="large">
-      {identityNodes}
-    </Flex>
+    <Flex gap="large">{identityNodes}</Flex>
   );
 });
 
 function getProviderIcon(provider: LinkedIdentityProvider): React.ReactNode {
   switch (provider) {
     case LinkedIdentityProvider.Steam: {
-      return <FaSteam />;
+      return (
+        <FaSteam />
+      );
     }
 
     case LinkedIdentityProvider.Discord: {
-      return <FaDiscord />;
+      return (
+        <FaDiscord />
+      );
     }
 
     case LinkedIdentityProvider.XboxLive: {
-      return <FaXbox />;
+      return (
+        <FaXbox />
+      );
     }
 
     case LinkedIdentityProvider.ROS: {
@@ -73,7 +80,9 @@ function getProviderIcon(provider: LinkedIdentityProvider): React.ReactNode {
     }
 
     case LinkedIdentityProvider.Cfxre: {
-      return <FaRoad />;
+      return (
+        <FaRoad />
+      );
     }
   }
 
@@ -83,19 +92,27 @@ function getProviderIcon(provider: LinkedIdentityProvider): React.ReactNode {
 function getLinkedIdentityTitle(identity: ILinkedIdentity): React.ReactNode {
   switch (identity.provider) {
     case LinkedIdentityProvider.Discord: {
-      return <>Discord - {$L('#Settings_LinkedIdentity_AddedManually')}</>;
+      return (
+        <>Discord - {$L('#Settings_LinkedIdentity_AddedManually')}</>
+      );
     }
 
     case LinkedIdentityProvider.Steam: {
-      return <>Steam - {$L('#Settings_LinkedIdentity_DetectedAutomatically')} 🎉</>;
+      return (
+        <>Steam - {$L('#Settings_LinkedIdentity_DetectedAutomatically')} 🎉</>
+      );
     }
 
     case LinkedIdentityProvider.XboxLive: {
-      return <>Xbox Live - {$L('#Settings_LinkedIdentity_DetectedAutomatically')} 🎉</>;
+      return (
+        <>Xbox Live - {$L('#Settings_LinkedIdentity_DetectedAutomatically')} 🎉</>
+      );
     }
 
     case LinkedIdentityProvider.ROS: {
-      return <>Rockstar Online Services - {$L('#Settings_LinkedIdentity_DetectedAutomatically')} 🎉</>;
+      return (
+        <>Rockstar Online Services - {$L('#Settings_LinkedIdentity_DetectedAutomatically')} 🎉</>
+      );
     }
 
     case LinkedIdentityProvider.Cfxre: {

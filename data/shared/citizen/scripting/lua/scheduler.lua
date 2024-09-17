@@ -304,7 +304,7 @@ function AddEventHandler(eventName, eventRoutine)
 end
 
 function RemoveEventHandler(eventData)
-	if not eventData.key and not eventData.name then
+	if not eventData or not eventData.key or not eventData.name then
 		error('Invalid event data passed to RemoveEventHandler()', 2)
 	end
 
@@ -425,6 +425,16 @@ if isDuplicityVersion then
 			cb(0, nil, {}, 'Failure handling HTTP request')
 		end
 	end
+
+	function PerformHttpRequestAwait(url, method, data, headers, options)
+		local p = promise.new()
+		PerformHttpRequest(url, function(...)
+			p:resolve({...})
+		end, method, data, headers, options)
+
+		Citizen.Await(p)
+		return table.unpack(p.value)
+	end
 else
 	function TriggerServerEvent(eventName, ...)
 		local payload = msgpack_pack_args(...)
@@ -476,7 +486,7 @@ local function doStackFormat(err)
 		return nil
 	end
 
-	return '^1SCRIPT ERROR: ' .. err .. "^7\n" .. fst
+	return string.format('^1SCRIPT ERROR: %s^7\n%s', err or '', fst)
 end
 
 Citizen.SetCallRefRoutine(function(refId, argsSerialized)
@@ -830,24 +840,21 @@ end
 local function prefixNewlines(str, prefix)
 	str = tostring(str)
 
-	local out = ''
-
-	for bit in str:gmatch('[^\r\n]*\r?\n') do
-		out = out .. prefix .. bit
+	if #str == 0 then
+		return str
 	end
 
-	if #out == 0 or out:sub(#out) ~= '\n' then
-		out = out .. '\n'
-	end
-
-	return out
+	return prefix .. str:gsub("\n(.)", "\n" .. prefix .. "%1")
 end
 
 -- Handle an export with multiple return values.
 local function exportProcessResult(resource, exportName, status, ...)
 	if not status then
 		local result = tostring(select(1, ...))
-		error(('\n^5 An error occurred while calling export `%s` in resource `%s`:\n%s^5 ---'):format(exportName, resource, prefixNewlines(result, '  ')), 2)
+		if result:len() > 2048 then
+			result = result:sub(1, 1024) .. '\n... [large output partially truncated] ...\n' .. result:sub(-1024)
+		end
+		error(('\n^5 An error occurred while calling export `%s` in resource `%s`:\n%s\n^5 ---'):format(exportName, resource, prefixNewlines(result, '  ')), 2)
 	end
 	return ...
 end

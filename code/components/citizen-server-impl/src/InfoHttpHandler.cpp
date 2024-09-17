@@ -134,6 +134,7 @@ struct InfoHttpHandlerComponentLocals : fwRefCountable
 	std::shared_ptr<ConVar<int>> maxClientsVar;
 	std::shared_ptr<ConVar<std::string>> iconVar;
 	std::shared_ptr<ConVar<std::string>> versionVar;
+	std::shared_ptr<ConVar<int>> versionBuildNoVar;
 	std::shared_ptr<ConsoleCommand> crashCmd;
 	int paranoiaLevel = 0;
 	std::shared_ptr<ConVar<int>> paranoiaVar;
@@ -160,6 +161,9 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 	maxClientsVar = instance->AddVariable<int>("sv_maxClients", ConVar_ServerInfo, 30);
 	iconVar = instance->AddVariable<std::string>("sv_icon", ConVar_Internal, "");
 	versionVar = instance->AddVariable<std::string>("version", ConVar_Internal, "FXServer-" GIT_DESCRIPTION);
+	const char* lastPeriod = strrchr(GIT_TAG, '.');
+	int versionBuildNo = lastPeriod == nullptr ? 0 : strtol(lastPeriod + 1, nullptr, 10);
+	versionBuildNoVar = instance->AddVariable<int>("buildNumber", ConVar_Internal, versionBuildNo);
 	crashCmd = instance->AddCommand("_crash", []()
 	{
 		*(volatile int*)0 = 0;
@@ -380,7 +384,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 
 		clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 		{
-			if (client->GetNetId() >= 0xFFFF)
+			if (!client->HasConnected())
 			{
 				return;
 			}
@@ -473,21 +477,11 @@ json InfoHttpHandlerComponentLocals::GetDynamicJson()
 {
 	auto server = m_instance->GetComponent<fx::GameServer>();
 
-	int numClients = 0;
-
-	m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
-	{
-		if (client->GetNetId() < 0xFFFF)
-		{
-			++numClients;
-		}
-	});
-
 	auto json = json::object({
 		{ "hostname", server->GetVariable("sv_hostname") },
 		{ "gametype", server->GetVariable("gametype") },
 		{ "mapname", server->GetVariable("mapname") },
-		{ "clients", numClients },
+		{ "clients", m_instance->GetComponent<fx::ClientRegistry>()->GetAmountOfConnectedClients() },
 		{ "iv", server->GetVariable("sv_infoVersion") },
 		{ "sv_maxclients", server->GetVariable("sv_maxclients") },
 	});

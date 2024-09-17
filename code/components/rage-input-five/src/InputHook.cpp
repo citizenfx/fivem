@@ -23,6 +23,8 @@ static int* g_mouseButtons;
 static int* g_inputOffset;
 static rage::ioMouse* g_input;
 
+static bool* g_isClippedCursor;
+
 static bool g_useGlobalMouseMovement = true;
 static POINT g_mouseMovement{ 0 };
 
@@ -74,6 +76,32 @@ void DisableHostCursor()
 {
 	while (ShowCursor(FALSE) >= 0)
 		;
+}
+
+static BOOL ClipHostCursor(const RECT* lpRekt)
+{
+	static RECT lastRect;
+	static RECT* lastRectPtr;
+
+	*g_isClippedCursor = lpRekt != nullptr;
+	if ((lpRekt && !lastRectPtr) || (lastRectPtr && !lpRekt) || (lpRekt && !EqualRect(&lastRect, lpRekt)))
+	{
+		// update last rect
+		if (lpRekt)
+		{
+			lastRect = *lpRekt;
+			lastRectPtr = &lastRect;
+		}
+		else
+		{
+			memset(&lastRect, 0xCC, 0);
+			lastRectPtr = nullptr;
+		}
+
+		return ClipCursor(lpRekt);
+	}
+
+	return TRUE;
 }
 
 static INT HookShowCursor(BOOL show)
@@ -131,8 +159,6 @@ void InputHook::EnableSetCursorPos(bool enabled)
 {
 	g_enableSetCursorPos = enabled;
 }
-
-#include <LaunchMode.h>
 
 static std::map<int, std::vector<InputHook::ControlBypass>> g_controlBypasses;
 
@@ -313,35 +339,14 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 BOOL WINAPI ClipCursorWrap(const RECT* lpRekt)
 {
-	static RECT lastRect;
-	static RECT* lastRectPtr;
-
-	int may = 1;
-	InputHook::QueryMayLockCursor(may);
-
-	if (!may)
+	const RECT* lpResult = nullptr;
+	if (lpRekt != nullptr)
 	{
-		lpRekt = nullptr;
+		int may = 1;
+		InputHook::QueryMayLockCursor(may);
+		lpResult = may != 0 ? lpRekt : nullptr;
 	}
-
-	if ((lpRekt && !lastRectPtr) || (lastRectPtr && !lpRekt) || (lpRekt && !EqualRect(&lastRect, lpRekt)))
-	{
-		// update last rect
-		if (lpRekt)
-		{
-			lastRect = *lpRekt;
-			lastRectPtr = &lastRect;
-		}
-		else
-		{
-			memset(&lastRect, 0xCC, 0);
-			lastRectPtr = nullptr;
-		}
-
-		return ClipCursor(lpRekt);
-	}
-
-	return TRUE;
+	return ClipHostCursor(lpResult);
 }
 
 HKL WINAPI ActivateKeyboardLayoutWrap(IN HKL hkl, IN UINT flags)
@@ -648,16 +653,13 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 #endif
 
 static void (*origIOPadUpdate)(void*, bool);
+static void* ioPadArray = nullptr;
 
 // This hook is used for ReverseGame Gamepad input
 static void rage__ioPad__Update(rage::ioPad* thisptr, bool onlyVibrate)
 {
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
 	WaitForSingleObject(rgd->inputMutex, INFINITE);
-
-	static char* location = (char*)hook::get_pattern("48 8D 05 ? ? ? ? 48 2B C8 48 B8 AB AA AA AA AA");
-	static int offset = *(int*)(location + 3);
-	static void* ioPadArray = location + offset + 7;
 
 #if 0
 	XINPUT_STATE state;
@@ -697,7 +699,7 @@ static HookFunction hookFunction([]()
 
 		if (!may)
 		{
-			ClipCursorWrap(nullptr);
+			ClipHostCursor(nullptr);
 			*captureCount = 0;
 		}
 	});
@@ -723,6 +725,16 @@ static HookFunction hookFunction([]()
 
 	g_gameKeyArray = (char*)(location + *(int32_t*)location + 4);
 
+	// ClipHostCursor now controls the rage::ioMouse field that signals that
+	// ClipCursor has non-null lpRect.
+	{
+		auto location = hook::get_pattern<char>("FF 15 ? ? ? ? C6 05 ? ? ? ? ? EB 18");
+		g_isClippedCursor = hook::get_address<bool*>(location + 0x6, 0x2, 0x7);
+
+		hook::nop(location + 0x6, 0x7);
+		hook::nop(location + 0x20, 0x7);
+	}
+
 	// disable directinput keyboard handling
 	// TODO: change for Five
 	//hook::return_function(hook::pattern("A1 ? ? ? ? 83 EC 14 53 33 DB").count(1).get(0).get<void>());
@@ -733,21 +745,18 @@ static HookFunction hookFunction([]()
 
 	// force input to be handled using WM_KEYUP/KEYDOWN, not DInput/RawInput
 
-	if (!Is372())
-	{
-		// disable DInput device creation
-		char* dinputCreate = hook::pattern("45 33 C9 FF 50 18 BF 26").count(1).get(0).get<char>(0);
-		hook::nop(dinputCreate, 200); // that's a lot of nops!
-		hook::nop(dinputCreate + 212, 6);
-		hook::nop(dinputCreate + 222, 6);
+	// disable DInput device creation
+	char* dinputCreate = hook::pattern("45 33 C9 FF 50 18 BF 26").count(1).get(0).get<char>(0);
+	hook::nop(dinputCreate, 200); // that's a lot of nops!
+	hook::nop(dinputCreate + 212, 6);
+	hook::nop(dinputCreate + 222, 6);
 
-		// jump over raw input keyboard handling
-		hook::put<uint8_t>(hook::pattern("44 39 2E 75 ? B8 FF 00 00 00").count(1).get(0).get<void>(3), 0xEB);
+	// jump over raw input keyboard handling
+	hook::put<uint8_t>(hook::pattern("44 39 2E 75 ? B8 FF 00 00 00").count(1).get(0).get<void>(3), 0xEB);
 
-		// default international keyboard mode to on
-		// (this will always use a US layout to map VKEY scan codes, instead of using the local layout)
-		hook::put<uint8_t>(hook::get_pattern("8D 48 EF 41 3B CE 76 0C", 6), 0xEB);
-	}
+	// default international keyboard mode to on
+	// (this will always use a US layout to map VKEY scan codes, instead of using the local layout)
+	hook::put<uint8_t>(hook::get_pattern("8D 48 EF 41 3B CE 76 0C", 6), 0xEB);
 
 	// fix repeated ClipCursor calls (causing DWM load)
 	hook::iat("user32.dll", ClipCursorWrap, "ClipCursor");
@@ -793,6 +802,24 @@ static HookFunction hookFunction([]()
 
 	// cancel out ioLogitechLedDevice
 	hook::jump(hook::get_pattern("85 C0 0F 85 ? ? 00 00 48 8B CB FF 15", -0x77), Return0);
+
+	// hook up cursor lock to CMousePointer::_bIsVisible
+	static auto isPointerVisible = hook::get_address<bool*>(hook::get_pattern("80 3D ? ? ? ? 00 0F 45 C6 88 05 ? ? ? ? 48 8B 5C", 10), 2, 6) + 2;
+
+	InputHook::QueryMayLockCursor.Connect([](int& may)
+	{
+		if (*isPointerVisible)
+		{
+			may = FALSE;
+		}
+	});
+
+	
+	{
+		char* location = (char*)hook::get_pattern("48 8D 05 ? ? ? ? 48 2B C8 48 B8 AB AA AA AA AA");
+		int offset = *(int*)(location + 3);
+		ioPadArray = location + offset + 7;
+	}
 });
 
 fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> InputHook::DeprecatedOnWndProc;

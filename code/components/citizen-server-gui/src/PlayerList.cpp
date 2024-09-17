@@ -10,36 +10,10 @@
 
 #include <deque>
 
+#include "net/PacketNames.h"
+
 static void SvPlayerList_Render(fx::ServerInstanceBase* instance);
 static SvGuiModule svplayerlist("Player List", "svplayerlist", ImGuiWindowFlags_NoCollapse, SvPlayerList_Render);
-
-static std::pair<uint32_t, const char*> g_knownPackets[]
-{
-	{ HashRageString("msgConVars"),"msgConVars" },
-	{ HashRageString("msgEnd"),	"msgEnd" },
-	{ HashRageString("msgEntityCreate"),"msgEntityCreate" },
-	{ HashRageString("msgNetGameEvent"),"msgNetGameEvent" },
-	{ HashRageString("msgObjectIds"),"msgObjectIds" },
-	{ HashRageString("msgPackedAcks"),"msgPackedAcks" },
-	{ HashRageString("msgPackedClones"),"msgPackedClones" },
-	{ HashRageString("msgPaymentRequest"),"msgPaymentRequest" },
-	{ HashRageString("msgRequestObjectIds"),"msgRequestObjectIds" },
-	{ HashRageString("msgResStart"),"msgResStart" },
-	{ HashRageString("msgResStop"),"msgResStop" },
-	{ HashRageString("msgRoute"),"msgRoute" },
-	{ HashRageString("msgRpcEntityCreation"),"msgRpcEntityCreation" },
-	{ HashRageString("msgRpcNative"),"msgRpcNative" },
-	{ HashRageString("msgServerCommand"),"msgServerCommand" },
-	{ HashRageString("msgServerEvent"),"msgServerEvent" },
-	{ HashRageString("msgTimeSync"),"msgTimeSync" },
-	{ HashRageString("msgTimeSyncReq"),"msgTimeSyncReq" },
-	{ HashRageString("msgWorldGrid"),"msgWorldGrid" },
-	{ HashRageString("msgFrame"),"msgFrame" },
-	{ HashRageString("msgIHost"),"msgIHost" },
-	{ HashRageString("gameStateAck"),"gameStateAck" },
-	{ HashRageString("gameStateNAck"),"gameStateNAck" },
-	{ HashRageString("msgNetEvent"),"msgNetEvent" },
-};
 
 struct PlayerAdvancedData
 {
@@ -67,12 +41,12 @@ struct PlayerAdvancedData
 	// the callbacks will add to this automatically over time
 	std::atomic_uint32_t bytesOutRaw;
 	std::atomic_uint32_t bytesInRaw;
-	// # of times each packet was seen. (Array sizeof g_knownPackets)
-	std::atomic_uint16_t pktOccurancesRecv[std::size(g_knownPackets)];
-	std::atomic_uint16_t pktOccurancesSend[std::size(g_knownPackets)];
-	// # of bytes used per packet type. (Array sizeof g_knownPackets)
-	std::atomic_uint16_t pktBytesRecv[std::size(g_knownPackets)];
-	std::atomic_uint16_t pktBytesSend[std::size(g_knownPackets)];
+	// # of times each packet was seen. (Array sizeof net::PacketNames)
+	std::atomic_uint16_t pktOccurancesRecv[std::size(net::PacketNames)];
+	std::atomic_uint16_t pktOccurancesSend[std::size(net::PacketNames)];
+	// # of bytes used per packet type. (Array sizeof net::PacketNames)
+	std::atomic_uint16_t pktBytesRecv[std::size(net::PacketNames)];
+	std::atomic_uint16_t pktBytesSend[std::size(net::PacketNames)];
 
 	// After it is time for a Graph update, the collect function will shove the number into the record here(graph requires float type)
 	std::deque<float> clientOutBytes;
@@ -116,7 +90,7 @@ static const auto& CollectPlayers(fx::ServerInstanceBase* instance)
 		std::unique_lock lock(g_playerListDataMutex);
 		auto& entry = g_playerListData[client->GetGuid()];
 		entry.name = fmt::sprintf("[%d] %s", client->GetNetId(), client->GetName());
-		unsigned int secondsTotalOnline = std::chrono::duration_cast<std::chrono::seconds>(client->GetLastSeen() - client->GetFirstSeen()).count();
+		unsigned int secondsTotalOnline = client->GetSecondsOnline();
 		entry.secondsOnline = (secondsTotalOnline % 60);
 		entry.minutesOnline = ((secondsTotalOnline / 60) % 60);
 		entry.hoursOnline = (secondsTotalOnline / 3600);
@@ -165,7 +139,7 @@ void RecvFromClient_Callback(fx::Client* client, uint32_t packetId, net::Buffer&
 	// first 4 bytes are the rageHash
 	uint32_t pktHash = *(uint32_t*)data.data();
 	int i = 0;
-	for (auto hash : g_knownPackets)
+	for (auto hash : net::PacketNames)
 	{
 		if (hash.first == pktHash)
 		{
@@ -197,7 +171,7 @@ void SendToClient_Callback(fx::Client* client, int channel, const net::Buffer& b
 	// first 4 bytes are the rageHash
 	uint32_t pktHash = *(uint32_t*)data.data();
 	int i = 0;
-	for (auto hash : g_knownPackets)
+	for (auto hash : net::PacketNames)
 	{
 		if (hash.first == pktHash)
 		{
@@ -267,17 +241,17 @@ static void CollectAdvancedDataForPlayer(PlayerAdvancedData* entry)
 	entry->pktsSeenRecv.clear();
 	entry->pktsSeenSend.clear();
 
-	for (int i = 0; i < std::size(g_knownPackets); i++)
+	for (int i = 0; i < std::size(net::PacketNames); i++)
 	{
 		if (entry->pktOccurancesRecv[i] > 0)
 		{
-			entry->pktsSeenRecv.push_back(fmt::sprintf("%s[x%d] - %dB\n", g_knownPackets[i].second, entry->pktOccurancesRecv[i], entry->pktBytesRecv[i]));
+			entry->pktsSeenRecv.push_back(fmt::sprintf("%s[x%d] - %dB\n", net::PacketNames[i].second, entry->pktOccurancesRecv[i], entry->pktBytesRecv[i]));
 			entry->pktOccurancesRecv[i] = 0;
 			entry->pktBytesRecv[i] = 0;
 		}
 		if (entry->pktOccurancesSend[i] > 0)
 		{
-			entry->pktsSeenSend.push_back(fmt::sprintf("%s[x%d] - %dB\n", g_knownPackets[i].second, entry->pktOccurancesSend[i], entry->pktBytesSend[i]));
+			entry->pktsSeenSend.push_back(fmt::sprintf("%s[x%d] - %dB\n", net::PacketNames[i].second, entry->pktOccurancesSend[i], entry->pktBytesSend[i]));
 			entry->pktOccurancesSend[i] = 0;
 			entry->pktBytesSend[i] = 0;
 		}

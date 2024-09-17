@@ -73,6 +73,10 @@ bool fx::NoticeLogicProcessor::ProcessNoticeRule(const nlohmann::json& ruleRef, 
 		case RuleOp::NullOrEmpty:
 		case RuleOp::Contains:
 		case RuleOp::Equals:
+		case RuleOp::GreaterThan:
+		case RuleOp::GreaterThanOrEquals:
+		case RuleOp::LessThan:
+		case RuleOp::LessThanOrEquals:
 		{
 			auto& typeObject = ruleObject["type"];
 			if (!typeObject.is_string())
@@ -96,24 +100,42 @@ bool fx::NoticeLogicProcessor::ProcessNoticeRule(const nlohmann::json& ruleRef, 
 				}
 
 				auto cvEntry = m_cvManager->FindEntryRaw(keyObject.get<std::string>());
+				if (!cvEntry)
+				{
+					return opNum == RuleOp::NullOrEmpty;
+				}
 
+				auto currentValue = cvEntry->GetValue();
 				if (opNum == RuleOp::NullOrEmpty)
-					return !cvEntry || cvEntry->GetValue() == "";
+				{
+					return currentValue == "";
+				}
 
 				auto& dataObject = ruleObject["data"];
-				if (!dataObject.is_string())
+				auto treatDataAsNumber = dataObject.is_number_integer();
+				// Only string and number comparands are supported
+				if (!dataObject.is_string() && !treatDataAsNumber)
 				{
 					return false;
 				}
 
-				switch (opNum)
+				if (treatDataAsNumber)
 				{
-					case RuleOp::Contains:
-						return cvEntry->GetValue().find(dataObject.get<std::string>()) != std::string::npos;
-					case RuleOp::Equals:
-						return cvEntry->GetValue() == dataObject.get<std::string>();
-					default:
-						break;
+					auto currentValueNumber = strtol(currentValue.c_str(), nullptr, 10);
+					auto comparandNumber = dataObject.get<int>();
+					return PerformNumberComparison(opNum, currentValueNumber, comparandNumber);
+				}
+				else
+				{
+					switch (opNum)
+					{
+						case RuleOp::Contains:
+							return currentValue.find(dataObject.get<std::string>()) != std::string::npos;
+						case RuleOp::Equals:
+							return currentValue == dataObject.get<std::string>();
+						default:
+							break;
+					}
 				}
 			}
 			else if (typeNum == RuleType::StartedResourceList && opNum == RuleOp::Contains)
@@ -160,5 +182,24 @@ void fx::NoticeLogicProcessor::BeginProcessingNotices(fx::ServerInstanceBase* se
 				}
 			}
 		}
+	}
+}
+
+bool fx::NoticeLogicProcessor::PerformNumberComparison(RuleOp operation, int currentValue, int comparand)
+{
+	switch (operation)
+	{
+	case RuleOp::Equals:
+		return currentValue == comparand;
+	case RuleOp::GreaterThan:
+		return currentValue > comparand;
+	case RuleOp::GreaterThanOrEquals:
+		return currentValue >= comparand;
+	case RuleOp::LessThan:
+		return currentValue < comparand;
+	case RuleOp::LessThanOrEquals:
+		return currentValue <= comparand;
+	default:
+		return false;
 	}
 }

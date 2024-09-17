@@ -132,7 +132,7 @@ struct FiveMConsoleBase
 		}
 	}
 
-	virtual bool FilterLog(const std::string& channel, const std::string& message)
+	virtual bool FilterLog(const std::string& channel)
 	{
 		return true;
 	}
@@ -629,31 +629,14 @@ struct CfxBigConsole : FiveMConsoleBase
 		}
 	}
 
-	virtual bool FilterLog(const std::string& channel, const std::string& message) override
+	virtual bool FilterLog(const std::string& channel) override
 	{
-		bool isTxAdmin = (channel == "script:monitor" || channel == "script:monitor:nui");
-
-		if (isTxAdmin)
-		{
-			static std::recursive_mutex txLogMutex;
-			static std::stringstream txLogBuffer;
-
-			std::unique_lock _(txLogMutex);
-			txLogBuffer << message;
-
-			static ConsoleCommand txLogPrint("txLogPrint", []()
-			{
-				std::unique_lock _(txLogMutex);
-				console::Printf("script:monitorPrint", "%s\n", txLogBuffer.str());
-			});
-		}
-
 		if (IsNonProduction())
 		{
 			return true;
 		}
 
-		if (channel == "script:game:nui" || isTxAdmin)
+		if (channel == "script:game:nui")
 		{
 			return false;
 		}
@@ -799,7 +782,7 @@ struct MiniConsole : CfxBigConsole
 		ItemTimes.clear();
 	}
 
-	virtual bool FilterLog(const std::string& channel, const std::string& message) override
+	virtual bool FilterLog(const std::string& channel) override
 	{
 		std::unique_lock<std::recursive_mutex> lock(ItemsMutex);
 
@@ -936,7 +919,7 @@ void SendPrintMessage(const std::string& channel, const std::string& message)
 
 		for (auto& console : g_consoles)
 		{
-			if (console->FilterLog(channel, str))
+			if (console->FilterLog(channel))
 			{
 				std::unique_lock<std::recursive_mutex> lock(console->ItemsMutex);
 
@@ -958,7 +941,7 @@ void SendPrintMessage(const std::string& channel, const std::string& message)
 		{
 			for (auto& console : g_consoles)
 			{
-				if (console->FilterLog(channel, "\n"))
+				if (console->FilterLog(channel))
 				{
 					console->AddLog(channel.c_str(), "");
 				}

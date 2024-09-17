@@ -38,6 +38,8 @@ private:
 
 	std::shared_ptr<uvw::TimerHandle> m_writeTimeout;
 
+	std::shared_ptr<uvw::TimerHandle> m_connectionTimeoutTimer;
+
 	std::atomic<uint64_t> m_pendingWrites;
 
 	std::shared_mutex m_writeCallbackMutex;
@@ -50,6 +52,8 @@ private:
 
 	volatile bool m_closingClient;
 
+	std::chrono::duration<uint64_t, std::milli> m_connectionTimeout { std::chrono::seconds { 5 } };
+
 private:
 	void HandleRead(ssize_t nread, const std::unique_ptr<char[]>& buf);
 
@@ -58,6 +62,8 @@ private:
 	void CloseClient();
 
 	void ResetWriteTimeout();
+
+	void ResetConnectionTimeout();
 
 	inline std::vector<char>& GetReadBuffer()
 	{
@@ -97,6 +103,10 @@ public:
 	virtual void Close() override;
 
 	virtual void ScheduleCallback(TScheduledCallback&& callback, bool performInline) override;
+
+	void StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout) override;
+
+	void SetConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout);
 
 private:
 	void WriteInternal(std::unique_ptr<char[]> data, size_t size, TCompleteCallback&& onComplete);

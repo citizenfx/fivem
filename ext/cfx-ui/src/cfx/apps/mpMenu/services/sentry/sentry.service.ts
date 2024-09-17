@@ -1,25 +1,29 @@
 import * as Sentry from '@sentry/react';
 import { BrowserTracing } from '@sentry/tracing';
+import { inject, injectable } from 'inversify';
+
 import { CurrentGameBuild, CurrentGameName, CurrentGamePureLevel } from 'cfx/base/gameRuntime';
 import { ServicesContainer } from 'cfx/base/servicesContainer';
 import { IAccountService } from 'cfx/common/services/account/account.service';
 import { IAccount } from 'cfx/common/services/account/types';
 import { AppContribution, registerAppContribution } from 'cfx/common/services/app/app.extensions';
+import { ASID } from 'cfx/utils/asid';
 import { fetcher } from 'cfx/utils/fetcher';
-import { inject, injectable } from 'inversify';
+
 import { mpMenu } from '../../mpMenu';
 import { IConvarService } from '../convars/convars.service';
-import { ASID } from "cfx/utils/asid";
 
 const ENABLE_SENTRY = !__CFXUI_DEV__ && process.env.CI_PIPELINE_ID;
 
 if (ENABLE_SENTRY) {
   Sentry.init({
-    dsn: "https://cb2ef6d1855b4c5f83c5530b72b8aacb@sentry.fivem.net/12",
+    dsn: 'https://cb2ef6d1855b4c5f83c5530b72b8aacb@sentry.fivem.net/12',
 
-    integrations: [new BrowserTracing({
-      tracingOrigins: ['localhost', 'nui-game-internal', /\.fivem.net/, /\.cfx.re/],
-    })],
+    integrations: [
+      new BrowserTracing({
+        tracingOrigins: ['localhost', 'nui-game-internal', /\.fivem.net/, /\.cfx.re/],
+      }),
+    ],
 
     tracesSampleRate: 0.05,
 
@@ -38,7 +42,7 @@ if (ENABLE_SENTRY) {
 
       const og = hint.originalException;
 
-      if (typeof og === 'object' && og) {
+      if (typeof og === 'object' && og instanceof Error) {
         event.tags ??= {};
         event.extra ??= {};
 
@@ -76,15 +80,16 @@ export function registerSentryService(container: ServicesContainer) {
 
 @injectable()
 class SentryService implements AppContribution {
-  constructor(
-    @inject(IAccountService)
-    protected readonly accountService: IAccountService,
-    @inject(IConvarService)
-    protected readonly convarService: IConvarService,
-  ) { }
+  @inject(IAccountService)
+  protected readonly accountService: IAccountService;
+
+  @inject(IConvarService)
+  protected readonly convarService: IConvarService;
 
   init() {
-    this.accountService.accountChange.addListener(({ account }) => this.setSentryUser(account));
+    this.accountService.accountChange.addListener(({
+      account,
+    }) => this.setSentryUser(account));
 
     this.setSentryUser(this.accountService.account);
 
@@ -100,7 +105,9 @@ class SentryService implements AppContribution {
         storageEstimateQuota: storageEstimate.quota || 'unknown',
         storageEstimateUsage: storageEstimate.usage || 'unknown',
       });
-    } catch (e) { }
+    } catch {
+      // Do nothing
+    }
 
     Sentry.setContext('NUI', {
       systemLanguages: mpMenu.systemLanguages,
@@ -111,30 +118,38 @@ class SentryService implements AppContribution {
 
     await this.convarService.whenPopulated();
 
-    Sentry.setContext('convars', Object.fromEntries(
-      Object.entries(this.convarService.getAll()).filter(([key, value]) => {
-        if (key.startsWith('cl_')) {
-          return false;
-        }
-        if (key.startsWith('cam_')) {
-          return false;
-        }
-        if (key.startsWith('net_')) {
-          return false;
-        }
-        if (key.startsWith('game_')) {
-          return false;
-        }
-        if (key.startsWith('voice_')) {
-          return false;
-        }
-        if (key.startsWith('profile_')) {
-          return false;
-        }
+    Sentry.setContext(
+      'convars',
+      Object.fromEntries(
+        Object.entries(this.convarService.getAll()).filter(([key]) => {
+          if (key.startsWith('cl_')) {
+            return false;
+          }
 
-        return true;
-      }),
-    ));
+          if (key.startsWith('cam_')) {
+            return false;
+          }
+
+          if (key.startsWith('net_')) {
+            return false;
+          }
+
+          if (key.startsWith('game_')) {
+            return false;
+          }
+
+          if (key.startsWith('voice_')) {
+            return false;
+          }
+
+          if (key.startsWith('profile_')) {
+            return false;
+          }
+
+          return true;
+        }),
+      ),
+    );
   }
 
   private readonly setSentryUser = (account: IAccount | null) => {
@@ -143,7 +158,7 @@ class SentryService implements AppContribution {
         id: account.id,
         link: `https://forum.cfx.re/u/${account.id}`,
         username: account.username,
-      })
+      });
     } else {
       Sentry.setContext('cfxUser', null);
     }

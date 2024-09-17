@@ -13,8 +13,14 @@
 
 #include <CrossBuildRuntime.h>
 
+struct CrossMappingEntry
+{
+	uint64_t entries[28];
+};
+
 static std::unordered_map<uint64_t, uint64_t> g_mappingTable;
 static std::shared_ptr<DeferredInitializer> g_mappingInitializer;
+static std::unordered_map<uint64_t, const CrossMappingEntry*> g_unmappedTable;
 
 namespace rage
 {
@@ -32,6 +38,22 @@ namespace rage
 
 		return it->second;
 	}
+
+	void ReviveNative(uint64_t inNative)
+	{
+		g_mappingInitializer->Wait();
+
+		if (auto it = g_unmappedTable.find(inNative); it != g_unmappedTable.end())
+		{
+			for (uint64_t hash : it->second->entries)
+			{
+				if (hash != 0 && hash != inNative)
+				{
+					g_mappingTable.insert({ hash, inNative });
+				}
+			}
+		}
+	}
 }
 
 extern "C" DLL_EXPORT uint64_t MapNative(uint64_t inNative)
@@ -39,10 +61,10 @@ extern "C" DLL_EXPORT uint64_t MapNative(uint64_t inNative)
 	return rage::MapNative(inNative);
 }
 
-struct CrossMappingEntry
+extern "C" DLL_EXPORT void ReviveNative(uint64_t inNative)
 {
-	uint64_t entries[28];
-};
+	rage::ReviveNative(inNative);
+}
 
 static void DoMapping()
 {
@@ -52,7 +74,15 @@ static void DoMapping()
 
 	int versionIdx = -1;
 
-	if (strncmp(buildString, "Dec  8 2023", 11) == 0)
+	if (strncmp(buildString, "Sep 10 2024", 11) == 0)
+	{
+		versionIdx = 3323;
+	}
+	else if (strncmp(buildString, "Jun 20 2024", 11) == 0)
+	{
+		versionIdx = 3258;
+	}
+	else if (strncmp(buildString, "Dec  8 2023", 11) == 0)
 	{
 		versionIdx = 3095;
 	}
@@ -166,38 +196,33 @@ static void DoMapping()
 		}
 	}
 
-	if (Is372())
+	if (xbr::IsGameBuild<1604>())
 	{
-		assert(maxVersion == 2);
+		assert(maxVersion == 19);
 	}
-	// 2060
-	else if (Is2060())
+	else if (xbr::IsGameBuild<2060>())
 	{
 		assert(maxVersion == 22);
 	}
-	else if (Is2189())
+	else if (xbr::IsGameBuild<2189>())
 	{
 		assert(maxVersion == 23);
 	}
-	else if (Is2372())
+	else if (xbr::IsGameBuild<2372>())
 	{
 		assert(maxVersion == 24);
 	}
-	else if (Is2545() || Is2612() || Is2699())
+	else if (xbr::IsGameBuild<2545>() || xbr::IsGameBuild<2612>() || xbr::IsGameBuild<2699>())
 	{
 		assert(maxVersion == 25);
 	}
-	else if (Is2802())
+	else if (xbr::IsGameBuild<2802>())
 	{
 		assert(maxVersion == 26);
 	}
-	else if (Is2944() || Is3095())
+	else if (xbr::IsGameBuildOrGreater<2944>())
 	{
 		assert(maxVersion == 27);
-	}
-	else if (Is1604())
-	{
-		assert(maxVersion == 19);
 	}
 	else
 	{
@@ -208,11 +233,21 @@ static void DoMapping()
 	{
 		for (auto& nativeEntry : crossMapping_universal)
 		{
+			bool hasNative = nativeEntry.entries[maxVersion] != 0;
 			for (int i = 0; i < maxVersion; i++)
 			{
-				if (nativeEntry.entries[i] != 0 && nativeEntry.entries[maxVersion] != 0)
+				if (uint64_t hash = nativeEntry.entries[i])
 				{
-					g_mappingTable.insert({ nativeEntry.entries[i], nativeEntry.entries[maxVersion] });
+					if (hasNative)
+					{
+						g_mappingTable.insert({ hash, nativeEntry.entries[maxVersion] });
+					}
+					else
+					{
+						// Native was removed this version: add it to a separate table
+						// so it can potentially be revived by custom implementations.
+						g_unmappedTable.insert({ hash, &nativeEntry });
+					}
 				}
 			}
 		}

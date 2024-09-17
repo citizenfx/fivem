@@ -168,22 +168,26 @@ end
 
 local function getNative(nativeName)
 	-- get the native
-	local n
+	for _, v in ipairs(natives) do
+		if #v.apiset == 0 or v.apiset[1] == 'client' then
+			if v.name == nativeName then
+				return v
+			end
 
-	for k, v in ipairs(natives) do
-		if v.name == nativeName and (#v.apiset == 0 or v.apiset[1] == 'client') then
-			n = v
-			break
+			for _, aliasName in ipairs(v.aliases) do
+				if nativeName == aliasName then
+					return v
+				end
+			end
 		end
 	end
-
-	return n
+	return nil
 end
 
 local function getServerNative(nativeName)
 	-- get the native
 	local n
-	
+
 	for k, v in ipairs(natives) do
 		if v.name == nativeName and #v.apiset > 0 and v.apiset[1] == 'server' then
 			n = v
@@ -251,14 +255,14 @@ function rpcEnvironment.context_rpc(nativeName)
 			if not ctx then
 				if v.pointer then
 					ctx = { idx = k - 1, type = 'ObjDel' }
-					
+
 					table.insert(args, {
 						translate = true,
 						type = 'ObjDel'
 					})
 				else
 					ctx = { idx = k - 1, type = 'ObjRef' }
-					
+
 					table.insert(args, {
 						translate = true,
 						type = 'ObjRef'
@@ -281,52 +285,55 @@ function rpcEnvironment.context_rpc(nativeName)
 	rn.ctx = ctx
 	rn.args = args
 
-	removeServerNative(nativeName)
-	codeEnvironment.native(nativeName)
-		codeEnvironment.arguments(n.arguments)
-		codeEnvironment.apiset('server')
-		codeEnvironment.returns('void')
-		curNative.rpc = true
-		curNative.ogHash = n.hash
+	removeServerNative(n.name)
+	codeEnvironment.native(n.name)
+	codeEnvironment.arguments(n.arguments)
+	codeEnvironment.apiset('server')
+	codeEnvironment.returns('void')
+	for _, aliasName in ipairs(n.aliases) do
+		codeEnvironment.alias(aliasName)
+	end
+	curNative.rpc = true
+	curNative.ogHash = n.hash
 
-		if n.doc then
-			codeEnvironment.doc(n.doc)
-		end
+	if n.doc then
+		codeEnvironment.doc(n.doc)
+	end
 
 	rn.hash = n.hash
-	rn.name = nativeName
+	rn.name = n.name
 
 	rn.type = 'ctx'
 
 	table.insert(rpcNatives, rn)
-	
+
 	return function(tbl)
 		-- single getter
 		if type(tbl) == 'table' and #tbl == 1 then
 			tbl = { getter = tbl[1] }
 		end
-		
+
 		-- if we need to define a getter
 		if tbl.getter then
 			local rvArg = n.arguments[2].type
-			
+
 			local function isFloat(arg)
 				return arg.type.nativeType == 'float'
 			end
-			
+
 			-- check if this is perhaps a vector3
 			if #n.arguments >= 4 and isFloat(n.arguments[2]) and isFloat(n.arguments[3]) and isFloat(n.arguments[4]) then
 				rvArg = types['Vector3']
 			end
-			
+
 			rn.getter = {
 				returnType = rvArg.name,
 				returnArgStart = 1,
 				name = tbl.getter
 			}
-			
+
 			local cxtRef
-			
+
 			if ctx.type == 'Player' then
 				cxtRef = codeEnvironment.Player
 			elseif ctx.type == 'Entity' then
@@ -334,14 +341,14 @@ function rpcEnvironment.context_rpc(nativeName)
 			elseif ctx.type == 'ObjRef' then
 				cxtRef = codeEnvironment.int
 			end
-			
+
 			if not getServerNative(tbl.getter) then
 				codeEnvironment.native(tbl.getter)
-					codeEnvironment.arguments {
-						cxtRef 'self'
-					}
-					codeEnvironment.apiset('server')
-					codeEnvironment.returns(rvArg)
+				codeEnvironment.arguments {
+					cxtRef 'self'
+				}
+				codeEnvironment.apiset('server')
+				codeEnvironment.returns(rvArg)
 			end
 		end
 	end
@@ -390,20 +397,23 @@ function rpcEnvironment.entity_rpc(nativeName)
 
 	rn.args = args
 
-	removeServerNative(nativeName)
-	codeEnvironment.native(nativeName)
-		codeEnvironment.arguments(n.arguments)
-		codeEnvironment.apiset('server')
-		codeEnvironment.returns('Entity')
-		curNative.rpc = true
-		curNative.ogHash = n.hash
+	removeServerNative(n.name)
+	codeEnvironment.native(n.name)
+	codeEnvironment.arguments(n.arguments)
+	codeEnvironment.apiset('server')
+	codeEnvironment.returns('Entity')
+	for _, aliasName in ipairs(n.aliases) do
+		codeEnvironment.alias(aliasName)
+	end
+	curNative.rpc = true
+	curNative.ogHash = n.hash
 
-		if n.doc then
-			codeEnvironment.doc(n.doc)
-		end
+	if n.doc then
+		codeEnvironment.doc(n.doc)
+	end
 
 	rn.hash = n.hash
-	rn.name = nativeName
+	rn.name = n.name
 
 	rn.type = 'entity'
 
@@ -452,21 +462,24 @@ function rpcEnvironment.object_rpc(nativeName)
 	end
 
 	rn.args = args
-	
-	removeServerNative(nativeName)
-	codeEnvironment.native(nativeName)
-		codeEnvironment.arguments(n.arguments)
-		codeEnvironment.apiset('server')
-		codeEnvironment.returns(n.returns)
-		curNative.rpc = true
-		curNative.ogHash = n.hash
 
-		if n.doc then
-			codeEnvironment.doc(n.doc)
-		end
+	removeServerNative(n.name)
+	codeEnvironment.native(n.name)
+	codeEnvironment.arguments(n.arguments)
+	codeEnvironment.apiset('server')
+	codeEnvironment.returns(n.returns)
+	for _, aliasName in ipairs(n.aliases) do
+		codeEnvironment.alias(aliasName)
+	end
+	curNative.rpc = true
+	curNative.ogHash = n.hash
+
+	if n.doc then
+		codeEnvironment.doc(n.doc)
+	end
 
 	rn.hash = n.hash
-	rn.name = nativeName
+	rn.name = n.name
 
 	rn.type = 'object'
 
@@ -487,7 +500,7 @@ function trim(s)
 	return s:gsub("^%s*(.-)%s*$", "%1")
 end
 
-function parseDocString(native)
+function parseDocString(native, keepCodeFencing)
 	local docString = native.doc
 
 	if not docString then
@@ -502,7 +515,9 @@ function parseDocString(native)
 		summary = ''
 	end
 
-	summary = trim(summary:gsub('^```(.+)```$', '%1'))
+	if not keepCodeFencing then
+		summary = trim(summary:gsub('^```(.+)```$', '%1'))
+	end
 
 	local paramsData = {}
 	local hasParams = false

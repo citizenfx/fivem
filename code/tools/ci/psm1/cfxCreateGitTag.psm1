@@ -14,13 +14,17 @@ function Invoke-CreateGitTag {
         $Context.addBuildWarning("Cannot create git tag as GITHUB_CRED env var does not exist")
         return
     }
-
-    git config user.name citizenfx-ci
-    git config user.email pr@fivem.net
-
-    git tag -a $tag $env:CI_COMMIT_SHA -m "${env:CI_COMMIT_REF_NAME}_$tag"
-
-    git remote add github_tag https://$env:GITHUB_CRED@github.com/citizenfx/fivem.git
-    git push github_tag $tag
-    git remote remove github_tag
+    
+    if ($Context.IsDryRun) {
+        Write-Output "DRY RUN: Would create git tag for server: $tag"
+    } else {
+        git config user.name citizenfx-ci
+        git config user.email pr@fivem.net
+    
+        git tag -a $tag $env:CI_COMMIT_SHA -m "${env:CI_COMMIT_REF_NAME}_$tag"
+    
+        git remote add github_tag https://$env:GITHUB_CRED@github.com/citizenfx/fivem.git
+        git push github_tag $tag
+        git remote remove github_tag
+    }
 }

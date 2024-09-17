@@ -34,12 +34,11 @@ void AddCustomText(const char* key, const char* value);
 
 static hook::cdecl_stub<void(int unk, uint32_t* titleHash, uint32_t* messageHash, uint32_t* subMessageHash, int flags, bool, int8_t, void*, void*, bool, bool)> setWarningMessage([] ()
 {
-	if (Is372())
+	if (xbr::IsGameBuildOrGreater<3258>())
 	{
-		return hook::get_call<void*>(hook::get_call(hook::pattern("57 41 56 41 57 48 83 EC 50 4C 63 F2").count(1).get(0).get<char>(0xAC)) + 0x6D);
+		return hook::get_pattern("48 89 5C 24 ? 4C 89 44 24 ? 89 4C 24");
 	}
-
-	if (xbr::IsGameBuildOrGreater<2699>())
+	else if (xbr::IsGameBuildOrGreater<2699>())
 	{
 		return hook::get_pattern("44 38 ? ? ? ? ? 0F 85 C5 02 00 00 E8", -0x38);
 	}
@@ -124,23 +123,14 @@ void Void()
 static HookFunction hookFunction([]()
 {
 	MH_Initialize();
-
-	if (!Is372())
-	{
-		MH_CreateHook(hook::get_pattern("74 07 B0 01 E9 ? ? ? ? 83 65", (xbr::IsGameBuildOrGreater<2372>() ? -0x23 : -0x26)), Void, (void**)&g_origLoadMultiplayerTextChat);
-
-		g_textChat = hook::get_address<void**>(hook::get_pattern("74 04 C6 40 01 01 48 8B 0D", 9));
-	}
-
+	MH_CreateHook(hook::get_pattern("74 07 B0 01 E9 ? ? ? ? 83 65", (xbr::IsGameBuildOrGreater<2372>() ? -0x23 : -0x26)), Void, (void**)&g_origLoadMultiplayerTextChat);
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	if (!Is372())
-	{
-		g_textInputBox = hook::get_address<void**>(hook::get_pattern("C7 45 D4 07 00 00 00 48", xbr::IsGameBuildOrGreater<2802>() ? 36 : 10));
+	g_textChat = hook::get_address<void**>(hook::get_pattern("74 04 C6 40 01 01 48 8B 0D", 9));
+	g_textInputBox = hook::get_address<void**>(hook::get_pattern("C7 45 D4 07 00 00 00 48", xbr::IsGameBuildOrGreater<2802>() ? 36 : 10));
 
-		// disable text input box gfx unload
-		hook::nop(hook::get_pattern("E8 ? ? ? ? 83 8B A0 04 00 00 FF"), 5);
-	}
+	// disable text input box gfx unload
+	hook::nop(hook::get_pattern("E8 ? ? ? ? 83 8B A0 04 00 00 FF"), 5);
 
 	// disable gamer info menu shutdown (testing/temp dbg for blocking loads on host/join)
 	//hook::return_function(hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0));
@@ -163,77 +153,19 @@ static bool (*g_isScWaitingForInit)();
 
 void RunRlInitServicing()
 {
-	// E8 ? ? ? ? C6 05 ? ? ? ? ? EB 41
-	if (xbr::IsGameBuildOrGreater<3095>())
-	{
-		((void (*)())hook::get_adjusted(0x140006D04))();
-		((void (*)())hook::get_adjusted(0x140809E54))();
-		((void (*)())hook::get_adjusted(0x140028578))();
-		((void (*)(void*))hook::get_adjusted(0x141657DF0))((void*)hook::get_adjusted(0x142FB57D0));
-	}
-	else if (xbr::IsGameBuildOrGreater<2944>())
-	{
-		((void (*)())hook::get_adjusted(0x140006B28))();
-		((void (*)())hook::get_adjusted(0x140804254))();
-		((void (*)())hook::get_adjusted(0x140028200))();
-		((void (*)(void*))hook::get_adjusted(0x141643218))((void*)hook::get_adjusted(0x142F60330));
-	}
-	else if (xbr::IsGameBuildOrGreater<2802>())
-	{
-		((void (*)())hook::get_adjusted(0x1400069DC))();
-		((void (*)())hook::get_adjusted(0x140802754))();
-		((void (*)())hook::get_adjusted(0x14002802C))();
-		((void (*)(void*))hook::get_adjusted(0x14161D450))((void*)hook::get_adjusted(0x142ED8B20));
-	}
-	else if (xbr::IsGameBuildOrGreater<2699>())
-	{
-		((void (*)())hook::get_adjusted(0x1400069F4))();
-		((void (*)())hook::get_adjusted(0x1407FE28C))();
-		((void (*)())hook::get_adjusted(0x140027C20))();
-		((void (*)(void*))hook::get_adjusted(0x14160A9AC))((void*)hook::get_adjusted(0x142FF1F70));
-	}
-	else if (xbr::IsGameBuildOrGreater<2612>())
-	{
-		((void (*)())hook::get_adjusted(0x140006C38))();
-		((void (*)())hook::get_adjusted(0x1407FB420))();
-		((void (*)())hook::get_adjusted(0x14002778C))();
-		((void (*)(void*))hook::get_adjusted(0x1416135F8))((void*)hook::get_adjusted(0x142E710F0));
-	}
-	else if (xbr::IsGameBuildOrGreater<2545>())
-	{
-		((void (*)())hook::get_adjusted(0x140006A28))();
-		((void (*)())hook::get_adjusted(0x1407FB28C))();
-		((void (*)())hook::get_adjusted(0x1400275C8))();
-		((void (*)(void*))hook::get_adjusted(0x141612950))((void*)hook::get_adjusted(0x142E6F960));
-	}
-	else if (xbr::IsGameBuildOrGreater<2372>())
-	{
-		((void (*)())hook::get_adjusted(0x140006718))();
-		((void (*)())hook::get_adjusted(0x1407F6050))();
-		((void (*)())hook::get_adjusted(0x1400263CC))();
-		((void (*)(void*))hook::get_adjusted(0x14160104C))((void*)hook::get_adjusted(0x142E34900));
-	}
-	else if (xbr::IsGameBuildOrGreater<2189>())
-	{
-		((void (*)())hook::get_adjusted(0x140006748))();
-		((void (*)())hook::get_adjusted(0x1407F4150))();
-		((void (*)())hook::get_adjusted(0x140026120))();
-		((void (*)(void*))hook::get_adjusted(0x1415E4AC8))((void*)hook::get_adjusted(0x142E5C2D0));
-	}
-	else if (xbr::IsGameBuildOrGreater<2060>())
-	{
-		((void (*)())hook::get_adjusted(0x140006A80))();
-		((void (*)())hook::get_adjusted(0x1407EB39C))();
-		((void (*)())hook::get_adjusted(0x1400263A4))();
-		((void (*)(void*))hook::get_adjusted(0x1415CF268))((void*)hook::get_adjusted(0x142D3DCC0));
-	}
-	else
-	{
-		((void (*)())hook::get_adjusted(0x1400067E8))();
-		((void (*)())hook::get_adjusted(0x1407D1960))();
-		((void (*)())hook::get_adjusted(0x140025F7C))();
-		((void (*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
-	}
+	using dummyVoidFunc = void(*)();
+	using dummyVoidFunc2 = void(*)(void*);
+
+	dummyVoidFunc rlInitFunc1 = (dummyVoidFunc)hook::get_pattern<void*>("48 89 5C 24 ? 48 89 74 24 ? 55 57 41 54 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? E8");
+	dummyVoidFunc rlInitFunc2 = (dummyVoidFunc)hook::get_call(hook::get_pattern<void*>("E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 80 3D ? ? ? ? ? 74 ? 33 C9"));
+	dummyVoidFunc rlInitFunc3 = (dummyVoidFunc)hook::get_pattern<void*>("48 83 EC ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 48 8D 0D");
+	dummyVoidFunc2 rlInitFunc4 = (dummyVoidFunc2)hook::get_pattern<void*>("48 83 EC ? 48 8D 0D ? ? ? ? 33 D2 E8 ? ? ? ? E8");
+	void* argToRlInitFunc4 = hook::get_by_offset<void, int32_t>(hook::get_pattern<uint8_t>("48 8D 0D ? ? ? ? C6 05 ? ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? B2"), 3);
+
+	rlInitFunc1();
+	rlInitFunc2();
+	rlInitFunc3();
+	rlInitFunc4(argToRlInitFunc4);
 }
 
 void WaitForRlInit()
@@ -289,9 +221,8 @@ static InitFunction initFunction([] ()
 				g_origLoadMultiplayerTextChat(*g_textChat);
 			}
 
-			if (!Is372())
+			// temp hook bits to prevent *opening* the gfx
 			{
-				// temp hook bits to prevent *opening* the gfx
 				auto func = hook::get_call(hook::get_pattern<char>("38 59 59 75 05 E8", 5));
 
 				uint8_t oldCode[128];

@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## SET_MILLISECONDS_PER_GAME_MINUTE
 

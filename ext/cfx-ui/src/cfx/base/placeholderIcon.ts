@@ -1,12 +1,14 @@
-import { getGradientFor } from "cfx/utils/color";
+import { getGradientFor } from 'cfx/utils/color';
 
 export function createPlaceholderIconDataURI(id: string): string {
   const icon = createPlaceholderIconSVGString(id);
 
-  if (URL && ('createObjectURL' in URL)) {
-    return URL.createObjectURL(new Blob([icon], {
-      type: 'image/svg+xml',
-    }));
+  if (URL && 'createObjectURL' in URL) {
+    return URL.createObjectURL(
+      new Blob([icon], {
+        type: 'image/svg+xml',
+      }),
+    );
   }
 
   return `data:image/svg+xml;base64,${btoa(decodeURIComponent(encodeURIComponent(icon)))}`;

@@ -1,21 +1,33 @@
-import { randomBytes } from "cfx/utils/random";
-import { decryptBase64, getOrCreateRSAKeys } from "./rsaKeys";
-import { serializeQueryString } from "cfx/utils/url";
-import { SingleEventEmitter } from "cfx/utils/singleEventEmitter";
-import { fetcher } from "cfx/utils/fetcher";
-import { IAccountService } from "cfx/common/services/account/account.service";
-import { IAccount, ILoginCredentials, ILoginResponse, IRegisterCredentials, IRegisterResponse, LoginStatus, RegisterStatus } from "cfx/common/services/account/types";
-import { IDiscourse } from "./types";
-import { mpMenu } from "../../mpMenu";
-import { inject, injectable, named } from "inversify";
-import { AccountChangeEvent, SSOAuthCompleteEvent } from "cfx/common/services/account/events";
-import { ConvarService } from "../convars/convars.service";
-import { defineService, ServicesContainer } from "cfx/base/servicesContainer";
-import { makeAutoObservable } from "mobx";
-import { AppContribution, registerAppContribution } from "cfx/common/services/app/app.extensions";
-import { ScopedLogger } from "cfx/common/services/log/scopedLogger";
-import { Deferred } from "cfx/utils/async";
-import { ObservableAsyncValue } from "cfx/utils/observable";
+import { inject, injectable, named } from 'inversify';
+import { makeAutoObservable } from 'mobx';
+
+import { CurrentGameBrand, CurrentGameProtocol } from 'cfx/base/gameRuntime';
+import { defineService, ServicesContainer } from 'cfx/base/servicesContainer';
+import { IAccountService } from 'cfx/common/services/account/account.service';
+import { AccountChangeEvent, SSOAuthCompleteEvent } from 'cfx/common/services/account/events';
+import {
+  IAccount,
+  ILoginCredentials,
+  ILoginResponse,
+  IRegisterCredentials,
+  IRegisterResponse,
+  LoginStatus,
+  RegisterStatus,
+} from 'cfx/common/services/account/types';
+import { AppContribution, registerAppContribution } from 'cfx/common/services/app/app.extensions';
+import { ScopedLogger } from 'cfx/common/services/log/scopedLogger';
+import { Deferred } from 'cfx/utils/async';
+import { fetcher } from 'cfx/utils/fetcher';
+import { invariant } from 'cfx/utils/invariant';
+import { ObservableAsyncValue } from 'cfx/utils/observable';
+import { randomBytes } from 'cfx/utils/random';
+import { SingleEventEmitter } from 'cfx/utils/singleEventEmitter';
+import { serializeQueryString } from 'cfx/utils/url';
+
+import { decryptBase64, getOrCreateRSAKeys } from './rsaKeys';
+import { IDiscourse } from './types';
+import { mpMenu } from '../../mpMenu';
+import { ConvarService } from '../convars/convars.service';
 
 export const IDiscourseService = defineService<IDiscourseService>('DiscourseService');
 export type IDiscourseService = DiscourseService;
@@ -32,33 +44,47 @@ class DiscourseService implements IAccountService, AppContribution {
   @inject(ConvarService)
   protected readonly convarsService: ConvarService;
 
-  @inject(ScopedLogger) @named('DiscourseService')
+  @inject(ScopedLogger)
+  @named('DiscourseService')
   protected readonly logService: ScopedLogger;
 
   public readonly siteData: ObservableAsyncValue<IDiscourse.Site>;
 
   readonly accountChange = new SingleEventEmitter<AccountChangeEvent>();
+
   readonly SSOAuthComplete = new SingleEventEmitter<SSOAuthCompleteEvent>();
 
   private initialAuthCompleteDeferred = new Deferred<boolean>();
 
   private _account: Account | null = null;
-  get account(): Account | null { return this._account }
+  get account(): Account | null {
+    return this._account;
+  }
   private set account(account: Account | null) {
     this._account = account;
     this.accountChange.emit({ account });
   }
 
   private _accountLoadError: string | null = null;
-  public get accountLoadError(): string | null { return this._accountLoadError }
-  private set accountLoadError(accountLoadError: string | null) { this._accountLoadError = accountLoadError }
+  public get accountLoadError(): string | null {
+    return this._accountLoadError;
+  }
+  private set accountLoadError(accountLoadError: string | null) {
+    this._accountLoadError = accountLoadError;
+  }
 
   private _accountLoadComplete = false;
-  get accountLoadComplete(): boolean { return this._accountLoadComplete }
-  private set accountLoadComplete(loaded: boolean) { this._accountLoadComplete = loaded }
+  get accountLoadComplete(): boolean {
+    return this._accountLoadComplete;
+  }
+  private set accountLoadComplete(loaded: boolean) {
+    this._accountLoadComplete = loaded;
+  }
 
   private _authToken: string = '';
-  public get authToken(): string { return this._authToken }
+  public get authToken(): string {
+    return this._authToken;
+  }
   private set authToken(authToken: string) {
     this._authToken = authToken;
 
@@ -84,6 +110,7 @@ class DiscourseService implements IAccountService, AppContribution {
 
     window.localStorage.setItem(LSKeys.CLIENT_ID, clientID);
   }
+
   private recreateClientId() {
     this.clientId = randomBytes(32);
   }
@@ -160,7 +187,10 @@ class DiscourseService implements IAccountService, AppContribution {
   }
 
   getAvatarUrlForUser(template: string, size = 250): string {
-    const prefix = template[0] === '/' ? BASE_URL : '';
+    const prefix = template[0] === '/'
+      ? BASE_URL
+      : '';
+
     return prefix + template.replace('{size}', size.toString());
   }
 
@@ -169,10 +199,11 @@ class DiscourseService implements IAccountService, AppContribution {
     this.authToken = '';
   };
 
+  // eslint-disable-next-line default-param-last
   async makeApiCall<TRequest, TResponse>(path: string, method = 'GET', data?: TRequest): Promise<TResponse> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
     };
 
     if (this.clientId && this.authToken) {
@@ -199,6 +230,7 @@ class DiscourseService implements IAccountService, AppContribution {
     }
   }
 
+  // eslint-disable-next-line default-param-last
   async makeExternalCall<TRequest, TResponse>(url: string, method = 'GET', data?: TRequest): Promise<TResponse> {
     const request = new Request(url, {
       method,
@@ -257,7 +289,7 @@ class DiscourseService implements IAccountService, AppContribution {
 
   async getUsernameError(username: string): Promise<string | null> {
     if (!username) {
-      return `Can't be empty`;
+      return 'Can\'t be empty';
     }
 
     if (username.length < 3) {
@@ -282,6 +314,7 @@ class DiscourseService implements IAccountService, AppContribution {
       }
 
       console.error(e);
+
       return 'Unable to verify username, forum service is unavailable';
     }
   }
@@ -297,17 +330,21 @@ class DiscourseService implements IAccountService, AppContribution {
       method: 'POST',
       headers: {
         'Cfx-Entitlement-Ticket': ownershipTicket,
-        "x-requested-with": 'XMLHttpRequest',
-        "discourse-present": 'true',
-        "x-csrf-token": csrf,
+        'x-requested-with': 'XMLHttpRequest',
+        'discourse-present': 'true',
+        'x-csrf-token': csrf,
       },
       credentials: 'include',
-      body: passwordResetForm
+      body: passwordResetForm,
     });
   }
 
   async login(credentials: ILoginCredentials): Promise<ILoginResponse> {
-    const { email, password, totp } = credentials;
+    const {
+      email,
+      password,
+      totp,
+    } = credentials;
 
     if (!email || !password) {
       return {
@@ -352,7 +389,10 @@ class DiscourseService implements IAccountService, AppContribution {
     const ownershipTicket = await this.getOwnershipTicket();
 
     try {
-      const { success, message } = await this.performRegistration(credentials, ownershipTicket);
+      const {
+        success,
+        message,
+      } = await this.performRegistration(credentials, ownershipTicket);
 
       if (success) {
         return {
@@ -397,10 +437,9 @@ class DiscourseService implements IAccountService, AppContribution {
   }
 
   async createAuthURL(): Promise<string> {
-    const [rsaKeys] = await Promise.all([
-      getOrCreateRSAKeys(),
-      mpMenu.computerName.resolved(),
-    ]);
+    invariant(CurrentGameProtocol, 'Current game does not support link protocol');
+
+    const [rsaKeys] = await Promise.all([getOrCreateRSAKeys(), mpMenu.computerName.resolved()]);
 
     this.recreateClientId();
 
@@ -408,8 +447,8 @@ class DiscourseService implements IAccountService, AppContribution {
       scopes: 'session_info,read,write',
       client_id: this.clientId,
       nonce: this.createNonce(),
-      auth_redirect: 'fivem://accept-auth',
-      application_name: `FiveM client on ${mpMenu.computerName.value}`,
+      auth_redirect: `${CurrentGameProtocol}://accept-auth`,
+      application_name: `${CurrentGameBrand} client on ${mpMenu.computerName.value}`,
       public_key: rsaKeys.public,
     };
 
@@ -417,7 +456,10 @@ class DiscourseService implements IAccountService, AppContribution {
   }
 
   async applyAuthPayload(payload: string): Promise<void> {
-    const { key, nonce } = JSON.parse(await decryptBase64(payload));
+    const {
+      key,
+      nonce,
+    } = JSON.parse(await decryptBase64(payload));
 
     if (nonce !== this.getLastNonce()) {
       throw new Error('We were not expecting this reply - please try connecting your account again.');
@@ -427,10 +469,13 @@ class DiscourseService implements IAccountService, AppContribution {
   }
 
   private async updateDiscourseIdentity() {
-    mpMenu.invokeNative('setDiscourseIdentity', JSON.stringify({
-      token: this.authToken,
-      clientId: this.clientId,
-    }));
+    mpMenu.invokeNative(
+      'setDiscourseIdentity',
+      JSON.stringify({
+        token: this.authToken,
+        clientId: this.clientId,
+      }),
+    );
   }
 
   private async syntheticAuth() {
@@ -439,14 +484,11 @@ class DiscourseService implements IAccountService, AppContribution {
     const authKeyResponse = await fetcher.fetch(`${BASE_URL}/user-api-key`, {
       method: 'POST',
       headers: {
-        "x-requested-with": 'XMLHttpRequest',
-        "discourse-present": 'true',
+        'x-requested-with': 'XMLHttpRequest',
+        'discourse-present': 'true',
         'Cfx-Entitlement-Ticket': ownershipTicket,
       },
-      body: await parseAuthFormDataFromURL(
-        await this.createAuthURL(),
-        ownershipTicket,
-      ),
+      body: await parseAuthFormDataFromURL(await this.createAuthURL(), ownershipTicket),
     });
 
     const callbackURL = new URL(authKeyResponse.url);
@@ -460,11 +502,13 @@ class DiscourseService implements IAccountService, AppContribution {
   }
 
   private async createCSRFToken(): Promise<string> {
-    const { csrf } = await fetcher.json(`${BASE_URL}/session/csrf.json`, {
+    const {
+      csrf,
+    } = await fetcher.json(`${BASE_URL}/session/csrf.json`, {
       method: 'GET',
       headers: {
-        "x-requested-with": 'XMLHttpRequest',
-        "discourse-present": 'true',
+        'x-requested-with': 'XMLHttpRequest',
+        'discourse-present': 'true',
         'Cfx-Entitlement-Ticket': await this.getOwnershipTicket(),
       },
       credentials: 'include',
@@ -487,8 +531,15 @@ class DiscourseService implements IAccountService, AppContribution {
     return window.localStorage.getItem(LSKeys.LAST_AUTH_NONCE) || '';
   }
 
-  private async performRegistration(credentials: IRegisterCredentials, ownershipTicket: string): Promise<{ success: boolean, message: string }> {
-    const { email, password, username } = credentials;
+  private async performRegistration(
+    credentials: IRegisterCredentials,
+    ownershipTicket: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const {
+      email,
+      password,
+      username,
+    } = credentials;
 
     const secrets = await getRegistrationSecrets(ownershipTicket);
 
@@ -519,7 +570,11 @@ class DiscourseService implements IAccountService, AppContribution {
   }
 
   private async createSession(credentials: ILoginCredentials) {
-    const { email, password, totp } = credentials;
+    const {
+      email,
+      password,
+      totp,
+    } = credentials;
 
     const body = new FormData();
     body.append('login', email);
@@ -530,12 +585,13 @@ class DiscourseService implements IAccountService, AppContribution {
       body.append('second_factor_token', totp);
     }
 
+    // eslint-disable-next-line no-return-await
     return await fetcher.json(`${BASE_URL}/session`, {
       method: 'POST',
       headers: {
-        "x-requested-with": 'XMLHttpRequest',
-        "discourse-present": 'true',
-        "x-csrf-token": await this.createCSRFToken(),
+        'x-requested-with': 'XMLHttpRequest',
+        'discourse-present': 'true',
+        'x-csrf-token': await this.createCSRFToken(),
         'Cfx-Entitlement-Ticket': await this.getOwnershipTicket(),
       },
       credentials: 'include',
@@ -553,7 +609,9 @@ class DiscourseService implements IAccountService, AppContribution {
     const payload = new URL(`http://dummy/?${data.data}`).searchParams.get('payload');
 
     if (!payload) {
-      return this.handleExternalAuthFail('Failed to authenticate: invalid payload, please try again');
+      this.handleExternalAuthFail('Failed to authenticate: invalid payload, please try again');
+
+      return;
     }
 
     try {
@@ -563,17 +621,14 @@ class DiscourseService implements IAccountService, AppContribution {
       await this.loadCurrentAccount(loadCurrentAccountShouldThrowOnError);
 
       this.SSOAuthComplete.emit(SSOAuthCompleteEvent.success());
-
-      return;
     } catch (e) {
-      return this.handleExternalAuthFail(e.message);
+      this.handleExternalAuthFail(e.message);
     }
   };
 
   private handleExternalAuthFail(error: string) {
     this.SSOAuthComplete.emit(SSOAuthCompleteEvent.error(error));
   }
-
 }
 
 enum LSKeys {
@@ -583,23 +638,20 @@ enum LSKeys {
 }
 
 const BASE_URL = 'https://forum.cfx.re';
-const SIGN_OUT_INDUCING_URL_PARTS = [
-  'forum.cfx.re',
-  'forum.fivem.net',
-];
+const SIGN_OUT_INDUCING_URL_PARTS = ['forum.cfx.re', 'forum.fivem.net'];
 function isSignOutInducingUrl(url: string): boolean {
   return SIGN_OUT_INDUCING_URL_PARTS.some((part) => url.includes(part));
 }
 
+// eslint-disable-next-line no-useless-escape, @stylistic/max-len
 const EMAIL_REGEXP = /^[a-zA-Z0-9!#\$%&'*+\/=?\^_`{|}~\-]+(?:\.[a-zA-Z0-9!#\$%&'\*+\/=?\^_`{|}~\-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)+[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?$/;
-
 
 async function parseAuthFormDataFromURL(authUrl: string, ownershipTicket: string): Promise<FormData> {
   const authPageString = await fetcher.text(authUrl, {
     method: 'GET',
     headers: {
-      "x-requested-with": 'XMLHttpRequest',
-      "discourse-present": 'true',
+      'x-requested-with': 'XMLHttpRequest',
+      'discourse-present': 'true',
       'Cfx-Entitlement-Ticket': ownershipTicket,
     },
     credentials: 'include',
@@ -608,8 +660,14 @@ async function parseAuthFormDataFromURL(authUrl: string, ownershipTicket: string
   const authPage = new DOMParser().parseFromString(authPageString, 'text/html');
   const authFormData = new FormData();
 
-  authFormData.append('authenticity_token', (<HTMLInputElement>authPage.querySelector('input[name="authenticity_token"]')).value);
-  authFormData.append('application_name', (<HTMLInputElement>authPage.querySelector('input[name="application_name"]')).value);
+  authFormData.append(
+    'authenticity_token',
+    (<HTMLInputElement>authPage.querySelector('input[name="authenticity_token"]')).value,
+  );
+  authFormData.append(
+    'application_name',
+    (<HTMLInputElement>authPage.querySelector('input[name="application_name"]')).value,
+  );
   authFormData.append('nonce', (<HTMLInputElement>authPage.querySelector('input[name="nonce"]')).value);
   authFormData.append('client_id', (<HTMLInputElement>authPage.querySelector('input[name="client_id"]')).value);
   authFormData.append('auth_redirect', 'https://nui-game-internal/ui/app/index.html');
@@ -620,7 +678,9 @@ async function parseAuthFormDataFromURL(authUrl: string, ownershipTicket: string
   return authFormData;
 }
 
-async function getRegistrationSecrets(ownershipTicket: string): Promise<{ value: string, challenge: string | string[] }> {
+async function getRegistrationSecrets(
+  ownershipTicket: string,
+): Promise<{ value: string; challenge: string | string[] }> {
   try {
     const secrets = await fetcher.json(`${BASE_URL}/session/hp.json`, {
       method: 'GET',
@@ -641,7 +701,9 @@ async function getRegistrationSecrets(ownershipTicket: string): Promise<{ value:
     }
 
     if (!Array.isArray(secrets.challenge) && typeof secrets.challenge !== 'string') {
-      throw new TypeError(`Invalid secrets response, .challenge must be a string or array: "${JSON.stringify(secrets)}"`);
+      throw new TypeError(
+        `Invalid secrets response, .challenge must be a string or array: "${JSON.stringify(secrets)}"`,
+      );
     }
 
     return secrets;
@@ -653,20 +715,23 @@ async function getRegistrationSecrets(ownershipTicket: string): Promise<{ value:
 }
 
 type ICurrentSessionResponse = {
-  current_user: IDiscourse.User,
+  current_user: IDiscourse.User;
 };
 type IUserResponse = {
   user: {
-    groups: IDiscourse.Group[],
-  },
+    groups: IDiscourse.Group[];
+  };
 };
 
 export class Account implements IAccount {
   public readonly id: number;
+
   public readonly username: string;
+
   public readonly avatarTemplate: string;
 
   public readonly isStaff: boolean;
+
   public readonly isPremium: boolean;
 
   constructor(
@@ -677,11 +742,13 @@ export class Account implements IAccount {
     const {
       id,
       username,
+      // eslint-disable-next-line camelcase
       avatar_template,
     } = apiResponse.current_user;
 
     this.id = id;
     this.username = username;
+    // eslint-disable-next-line camelcase
     this.avatarTemplate = avatar_template;
 
     this.isStaff = Boolean(userResponse.user.groups.find((group) => group.name === 'staff'));

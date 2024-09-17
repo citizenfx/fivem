@@ -1,15 +1,20 @@
-import 'pdfjs-dist/web/pdf_viewer.css';
-
-import React from "react";
+/* eslint-disable react/no-unescaped-entities */
+import {
+  Icons,
+  Flex,
+  Text,
+  Title,
+} from '@cfx-dev/ui-components';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as pdfjsViewer from 'pdfjs-dist/web/pdf_viewer';
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Text } from "cfx/ui/Text/Text";
-import { Icons } from "cfx/ui/Icons";
-import { LinkButton } from "cfx/ui/Button/LinkButton";
-import { Title } from "cfx/ui/Title/Title";
+import React from 'react';
+
+import { LinkButton } from 'cfx/ui/Button/LinkButton';
+import { useTimeoutFlag } from 'cfx/utils/hooks';
+
+import 'pdfjs-dist/web/pdf_viewer.css';
+
 import s from './PDFRenderer.module.scss';
-import { useTimeoutFlag } from "cfx/utils/hooks";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.js', import.meta.url).toString();
 
@@ -30,6 +35,7 @@ async function loadAndRender(src: string, container: HTMLDivElement, abortSignal
 
   if (abortSignal.aborted) {
     doc.destroy();
+
     return;
   }
 
@@ -45,7 +51,7 @@ async function loadAndRender(src: string, container: HTMLDivElement, abortSignal
   });
 
   const adjustDocumentScale = () => {
-    viewer.currentScaleValue = "page-width";
+    viewer.currentScaleValue = 'page-width';
   };
 
   window.addEventListener('resize', adjustDocumentScale);
@@ -65,7 +71,7 @@ async function loadAndRender(src: string, container: HTMLDivElement, abortSignal
 }
 
 export interface PDFRendererProps {
-  src: string,
+  src: string;
 }
 
 export function PDFRenderer(props: PDFRendererProps) {
@@ -84,7 +90,9 @@ export function PDFRenderer(props: PDFRendererProps) {
 
     loadAndRender(src, ref.current, abortController.signal);
 
-    return () => abortController.abort();
+    return () => {
+      abortController.abort();
+    };
   }, [src]);
 
   return (
@@ -109,16 +117,10 @@ function DelayedPlaceholder(props: PDFRendererProps) {
 
   return (
     <Flex fullWidth fullHeight centered vertical gap="xlarge">
-      <Text size="large">
-        It seems like we couldn't load the document for you.
-      </Text>
+      <Text size="large">It seems like we couldn't load the document for you.</Text>
 
       <Title title={src}>
-        <LinkButton
-          to={src}
-          icon={Icons.externalLink}
-          text="Open the document in your browser"
-        />
+        <LinkButton to={src} icon={Icons.externalLink} text="Open the document in your browser" />
       </Title>
     </Flex>
   );

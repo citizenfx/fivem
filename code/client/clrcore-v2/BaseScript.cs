@@ -34,6 +34,8 @@ namespace CitizenFX.Core
 		}
 
 		private readonly List<KeyValuePair<int, DynFunc>> m_commands = new List<KeyValuePair<int, DynFunc>>();
+		
+		private readonly Dictionary<string, DynFunc> m_nuiCallbacks = new Dictionary<string, DynFunc>();
 
 #if REMOTE_FUNCTION_ENABLED
 		private readonly List<RemoteHandler> m_persistentFunctions = new List<RemoteHandler>();
@@ -100,6 +102,9 @@ namespace CitizenFX.Core
 							case KeyMapAttribute keyMap:
 								RegisterKeyMap(keyMap.Command, keyMap.Description, keyMap.InputMapper, keyMap.InputParameter, Func.CreateCommand(this, method, keyMap.RemapParameters));
 								break;
+							case NuiCallbackAttribute nuiCallback:
+								RegisterNuiCallback(nuiCallback.CallbackName, Func.Create(this, method));
+								break;
 #endif
 							case ExportAttribute export:
 								Exports.Add(export.Export, Func.Create(this, method), export.Binding);
@@ -140,6 +145,11 @@ namespace CitizenFX.Core
 					ReferenceFunctionManager.SetDelegate(m_commands[i].Key, m_commands[i].Value);
 				}
 
+				foreach (var nuiCallback in m_nuiCallbacks)
+				{
+					Native.CoreNatives.RegisterNuiCallback(nuiCallback.Key, nuiCallback.Value);
+				}
+				
 				EventHandlers.Enable();
 				Exports.Enable();
 
@@ -170,6 +180,11 @@ namespace CitizenFX.Core
 				for (int i = 0; i < m_commands.Count; ++i)
 				{
 					ReferenceFunctionManager.SetDelegate(m_commands[i].Key, (_0, _1) => null);
+				}
+				
+				foreach (var nuiCallback in m_nuiCallbacks)
+				{
+					Native.CoreNatives.RemoveNuiCallback(nuiCallback.Key);
 				}
 
 				EventHandlers.Disable();
@@ -273,18 +288,100 @@ namespace CitizenFX.Core
 
 		internal void RegisterKeyMap(string command, string description, string inputMapper, string inputParameter, DynFunc dynFunc)
 		{
-#if IS_FXSERVER
+#if !GTA_FIVE
 			throw new NotImplementedException();
 #else
 			if (inputMapper != null && inputParameter != null)
 			{
-				Debug.WriteLine(command);
 				Native.CoreNatives.RegisterKeyMapping(command, description, inputMapper, inputParameter);
 			}
 			m_commands.Add(new KeyValuePair<int, DynFunc>(ReferenceFunctionManager.CreateCommand(command, dynFunc, false), dynFunc));
 #endif
 		}
+		
+		#endregion
+		
+		#region NUI Callback registration
 
+		internal void RegisterNuiCallback(string callbackName, DynFunc dynFunc)
+		{
+#if IS_FXSERVER
+			throw new NotImplementedException();
+#endif
+			m_nuiCallbacks.Add(callbackName, dynFunc);
+			Native.CoreNatives.RegisterNuiCallback(callbackName, dynFunc);
+		}
+
+		/// <summary>
+		/// Registers the NUI callback and binds it to the the <see cref="BaseScript"/>
+		/// </summary>
+		/// <param name="callbackName">the NUI callback to add</param>
+		/// <param name="delegateFn">The function to bind the callback to, the callback will be invoked with an ExpandoObject containing the data and a <see cref="Callback"/> </param>
+#if IS_FXSERVER
+		/// <summary>Does nothing on server side</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public void RegisterNuiCallback(string callbackName, Delegate delegateFn)
+		{
+#if IS_FXSERVER
+			throw new NotImplementedException();
+#endif
+			DynFunc dynFunc = Func.Create(delegateFn);
+			m_nuiCallbacks.Add(callbackName, dynFunc);
+			Native.CoreNatives.RegisterNuiCallback(callbackName, dynFunc);
+		}
+		
+		/// <summary>
+		/// Unregisters the NUI callback from the <see cref="BaseScript"/>
+		/// </summary>
+		/// <param name="callbackName">the NUI callback to remove</param>
+#if IS_FXSERVER
+		/// <summary>Does nothing on server side</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public void UnregisterNuiCallback(string callbackName)
+		{
+#if IS_FXSERVER
+			throw new NotImplementedException();
+#endif
+			m_nuiCallbacks.Remove(callbackName);
+			Native.CoreNatives.RemoveNuiCallback(callbackName);
+		}
+		
+		/// <summary>
+		/// Registers a NUI callback to the specified <paramref name="callbackName"/>
+		/// </summary>
+		/// <param name="callbackName">the event that the callback will bind to</param>
+		/// <param name="delegateFn">The function to bind the callback to, the callback will be invoked with an ExpandoObject containing the data and a <see cref="Callback"/> </param>
+#if IS_FXSERVER
+		/// <summary>Does nothing on server side</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public static void AddNuiCallback(string callbackName, Delegate delegateFn)
+		{
+#if IS_FXSERVER
+			throw new NotImplementedException();
+#endif
+			Native.CoreNatives.RegisterNuiCallback(callbackName, delegateFn);
+		}
+
+		/// <summary>
+		/// Removes the NUI callback for the specified <paramref namem="callbackName"/>
+		/// </summary>
+		/// <param name="callbackName">the callback event that will be removed</param>
+#if IS_FXSERVER
+		/// <summary>Does nothing on server side</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public static void RemoveNuiCallback(string callbackName) 
+		{
+#if IS_FXSERVER
+			throw new NotImplementedException();
+#else
+			Native.CoreNatives.RemoveNuiCallback(callbackName);
+#endif
+		}
+		
 		#endregion
 
 		#region Script loading

@@ -1,10 +1,12 @@
-import { AuthFormMode, DEAFULT_AUTH_FORM_MODE } from "cfx/common/parts/AuthForm/AuthFormState";
-import { IAccountService } from "cfx/common/services/account/account.service";
-import { IAnalyticsService } from "cfx/common/services/analytics/analytics.service";
-import { defineService, ServicesContainer, useService } from "cfx/base/servicesContainer";
-import { createEnumChecker } from "cfx/utils/enum";
-import { inject, injectable, optional } from "inversify";
-import { makeAutoObservable } from "mobx";
+import { inject, injectable, optional } from 'inversify';
+import { makeAutoObservable } from 'mobx';
+
+import { defineService, ServicesContainer, useService } from 'cfx/base/servicesContainer';
+import { AuthFormMode, DEAFULT_AUTH_FORM_MODE } from 'cfx/common/parts/AuthForm/AuthFormState';
+import { IAccountService } from 'cfx/common/services/account/account.service';
+import { IAnalyticsService } from 'cfx/common/services/analytics/analytics.service';
+import { ElementPlacements, EventActionNames } from 'cfx/common/services/analytics/types';
+import { createEnumChecker } from 'cfx/utils/enum';
 
 export const IAuthService = defineService<IAuthService>('AuthService');
 export type IAuthService = AuthService;
@@ -31,22 +33,35 @@ namespace LS_KEYS {
 
 @injectable()
 export class AuthService {
-  @inject(IAnalyticsService) @optional()
+  @inject(IAnalyticsService)
+  @optional()
   protected readonly analyticsService: IAnalyticsService | void;
 
   private _UIOpen: boolean = false;
-  public get UIOpen(): boolean { return this._UIOpen }
-  private set UIOpen(UIOpen: boolean) { this._UIOpen = UIOpen }
+  public get UIOpen(): boolean {
+    return this._UIOpen;
+  }
+  private set UIOpen(UIOpen: boolean) {
+    this._UIOpen = UIOpen;
+  }
 
   private _mementoState = getSavedMementoState();
-  private get mementoState(): AuthModalMementoState { return this._mementoState }
-  private set mementoState(state: AuthModalMementoState) { this._mementoState = state }
+  private get mementoState(): AuthModalMementoState {
+    return this._mementoState;
+  }
+  private set mementoState(state: AuthModalMementoState) {
+    this._mementoState = state;
+  }
 
   private _authFormMode = DEAFULT_AUTH_FORM_MODE;
 
   private _authFormDisabled: boolean = false;
-  public get authFormDisabled(): boolean { return this._authFormDisabled }
-  private set authFormDisabled(authFormDisabled: boolean) { this._authFormDisabled = authFormDisabled }
+  public get authFormDisabled(): boolean {
+    return this._authFormDisabled;
+  }
+  private set authFormDisabled(authFormDisabled: boolean) {
+    this._authFormDisabled = authFormDisabled;
+  }
 
   get isAuthenticated(): boolean {
     return this._authFormMode === AuthFormMode.Authenticated;
@@ -79,8 +94,13 @@ export class AuthService {
     });
   }
 
-  readonly openUI = () => this.UIOpen = true;
-  readonly closeUI = () => this.UIOpen = false;
+  readonly openUI = () => {
+    this.UIOpen = true;
+  };
+
+  readonly closeUI = () => {
+    this.UIOpen = false;
+  };
 
   readonly handleAuthFormDisabled = (disabled: boolean) => {
     this.authFormDisabled = disabled;
@@ -105,7 +125,7 @@ export class AuthService {
 
   readonly handleAuthFormModeChange = (mode: AuthFormMode) => {
     this._authFormMode = mode;
-  }
+  };
 
   readonly handleAuthFormDone = () => {
     this.UIOpen = false;
@@ -121,19 +141,17 @@ export class AuthService {
       return;
     }
 
-    let action = 'Closed';
-    const properties = {
-      category: 'AuthModal',
-      label: authFormModeToAnalyticsLabel[this._authFormMode],
-    };
-
-    if (ignored) {
-      action = 'ClosedAndIgnored';
-    }
-
     this.analyticsService.trackEvent({
-      action,
-      properties,
+      action: EventActionNames.CTAOther,
+      properties: {
+        element_placement: ElementPlacements.AuthModal,
+        text: `Closed ${
+          ignored
+            ? 'And Ignored'
+            : ''
+        } ${authFormModeToAnalyticsLabel[this._authFormMode]}`,
+        link_url: '',
+      },
     });
   }
 }

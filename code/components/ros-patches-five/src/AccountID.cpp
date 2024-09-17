@@ -41,9 +41,9 @@
 constexpr const auto kROSBlobEmailOffset = 8;
 constexpr const auto kROSBlobTicketOffset = 2800;
 constexpr const auto kROSBlobSessionTicketOffset = 3312;
-constexpr const auto kROSBlobAccountIdOffset = 3816;
-constexpr const auto kROSBlobUsernameOffset = 3743;
-constexpr const auto kROSBlobSessionKeyOffset = 4360;
+constexpr const auto kROSBlobAccountIdOffset = 3824;
+constexpr const auto kROSBlobUsernameOffset = 3751;
+constexpr const auto kROSBlobSessionKeyOffset = 4368;
 
 template<typename... Ts>
 static auto PostAutoLogin(Ts&&... args)
@@ -351,6 +351,9 @@ extern bool RunSteamAuthUi(const nlohmann::json& json);
 extern bool RunEpicAuthUi(const nlohmann::json& json);
 std::string g_tpaId;
 std::string g_tpaToken;
+std::string g_rosData2;
+
+bool LoadOwnershipTicket();
 
 static nlohmann::json LoadStoredTpaData()
 {
@@ -365,6 +368,14 @@ static nlohmann::json LoadStoredTpaData()
 
 		// open and read the profile file
 		std::wstring profilePath = cfxPath + L"\\ros_auth.json";
+
+		if (!LoadOwnershipTicket())
+		{
+			std::error_code err;
+			std::filesystem::remove(profilePath, err);
+
+			return j;
+		}
 
 		if (FILE* profileFile = _wfopen(profilePath.c_str(), L"rb"))
 		{
@@ -725,66 +736,27 @@ void ValidateEpic(int parentPid)
 
 	s = eosToken->AccessToken;
 
-	for (;;)
+	blob->inUI = true;
+
+	if (!RunEpicAuthUi(nlohmann::json::object({ { "EpicAccountId", accountId },
+		{ "EpicPlayerName", "uhh" },
+		{ "epicAccessToken", s }, { "TpaTokens", GetTpaTokens() } })))
 	{
-		j = nlohmann::json::object({{ "platform", "pcros" },
-		{ "authTicket", s } });
-
-		j["tpaTokens"] = GetTpaTokens();
-
-		r = PostAutoLogin(
-			cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinepic" },
-			cpr::Body{
-			j.dump() });
-
-		if (r.error)
-		{
-			bye();
+		blob->inUI = false;
+		bye();
 
 #ifdef IS_RDR3
-			FatalError("Error during auto-signin with ROS using Epic: %s", r.error.message);
+		FatalError("Error during Epic ROS signin\n");
 #endif
 
-			return;
-		}
-
-		j = nlohmann::json::parse(r.text);
-
-		if (!j["Status"].get<bool>())
-		{
-			auto code = j["Error"].value("Code", "");
-
-			if (code != "4000.210")
-			{
-				bye();
-
-#ifdef IS_RDR3
-				FatalError("Error during Epic ROS signin (%s)\n%s", code, MapMessage(j));
-#endif
-
-				return;
-			}
-
-			blob->inUI = true;
-
-			if (!RunEpicAuthUi(nlohmann::json::object({ { "EpicAccountId", accountId },
-				{ "EpicPlayerName", "uhh" },
-				{ "epicAccessToken", s } })))
-			{
-				blob->inUI = false;
-				bye();
-
-				return;
-			}
-
-			blob->inUI = false;
-
-			AddTpaToken(g_tpaId, g_tpaToken);
-			continue;
-		}
-
-		break;
+		return;
 	}
+
+	blob->inUI = false;
+
+	AddTpaToken(g_tpaId, g_tpaToken);
+	
+	j = nlohmann::json::parse(g_rosData2);
 
 	auto sessionKey = Botan::base64_decode(j.value("SessionKey", ""));
 
@@ -795,12 +767,12 @@ void ValidateEpic(int parentPid)
 
 	auto tick = j.value("Ticket", "");
 
-	*(uint64_t*)&blob->data[3816] = j.value("RockstarId", uint64_t(0));
-	strcpy((char*)&blob->data[2800], j.value("Ticket", "").c_str());
-	strcpy((char*)&blob->data[3312], tree.get<std::string>("Response.SessionTicket").c_str());
+	*(uint64_t*)&blob->data[kROSBlobAccountIdOffset] = j.value("RockstarId", uint64_t(0));
+	strcpy((char*)&blob->data[kROSBlobTicketOffset], tick.c_str());
+	strcpy((char*)&blob->data[kROSBlobSessionTicketOffset], j.value("SessionTicket", "").c_str());
 	memcpy(&blob->data[kROSBlobSessionKeyOffset], sessionKey.data(), sessionKey.size());
-	strcpy((char*)&blob->data[8], j.value("Email", "").c_str());
-	strcpy((char*)&blob->data[0xE9F], j.value("Nickname", "").c_str());
+	strcpy((char*)&blob->data[kROSBlobEmailOffset], j.value("Email", "").c_str());
+	strcpy((char*)&blob->data[kROSBlobUsernameOffset], j.value("Nickname", "").c_str());
 
 	j = nlohmann::json::object({
 #ifdef IS_RDR3
@@ -886,95 +858,50 @@ void ValidateSteam(int parentPid)
 	cpr::Response r;
 	std::string s;
 
-	for (;;)
+	s = GetAuthSessionTicket(appId);
+
+	if (s.empty())
 	{
+#if defined(IS_RDR3)
+		appId = 1404210; // RDO
+		appName = "rdr2_rdo";
 		s = GetAuthSessionTicket(appId);
 
 		if (s.empty())
-		{
-#if defined(IS_RDR3)
-			appId = 1404210; // RDO
-			appName = "rdr2_rdo";
-			s = GetAuthSessionTicket(appId);
-
-			if (s.empty())
 #endif
-			{
-				return;
-			}
-		}
-
-		j = nlohmann::json::object({
-			{ "appId", appId },
-			{ "platform", "pcros" },
-			{ "authTicket", s },
-		});
-
-		j["tpaTokens"] = GetTpaTokens();
-
-		r = PostAutoLogin(
-			cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinsteam" },
-			cpr::Body{
-				j.dump()
-			});
-
-		if (r.error)
 		{
-#ifdef IS_RDR3
-			FatalError("Error during auto-signin with ROS using Steam: %s", r.error.message);
-#endif
-
 			return;
 		}
-
-		j = nlohmann::json::parse(r.text);
-
-		if (!j["Status"].get<bool>())
-		{
-			auto code = j["Error"].value("Code", "");
-
-			if (code != "4000.210")
-			{
-#ifdef IS_RDR3
-				FatalError("Error during Steam ROS signin (%s)\n%s", code, MapMessage(j));
-#endif
-
-				return;
-			}
-
-			blob->inUI = true;
-
-			if (!RunSteamAuthUi(nlohmann::json::object({ { "SteamAppId", int32_t(appId) },
-				{ "SteamAuthTicket", s } })))
-			{
-				blob->inUI = false;
-				return;
-			}
-
-			blob->inUI = false;
-
-			AddTpaToken(g_tpaId, g_tpaToken);
-			continue;
-		}
-
-		break;
 	}
 
+	blob->inUI = true;
+
+	if (!RunSteamAuthUi(nlohmann::json::object({ { "SteamAppId", int32_t(appId) },
+		{ "SteamAuthTicket", s }, { "TpaTokens", GetTpaTokens() } })))
+	{
+#ifdef IS_RDR3
+		FatalError("Error during Steam ROS signin\n");
+#endif
+
+		blob->inUI = false;
+		return;
+	}
+
+	blob->inUI = false;
+
+	AddTpaToken(g_tpaId, g_tpaToken);
+
+	j = nlohmann::json::parse(g_rosData2);
+
 	auto sessionKey = Botan::base64_decode(j.value("SessionKey", ""));
-
-	std::istringstream stream(j.value("Xml", ""));
-
-	boost::property_tree::ptree tree;
-	boost::property_tree::read_xml(stream, tree);
-
 	auto tick = j.value("Ticket", "");
 
-	*(uint64_t*)&blob->data[3816] = j.value("RockstarId", uint64_t(0));
-	strcpy((char*)&blob->data[2800], j.value("Ticket", "").c_str());
-	strcpy((char*)&blob->data[3312], tree.get<std::string>("Response.SessionTicket").c_str());
+	*(uint64_t*)&blob->data[kROSBlobAccountIdOffset] = j.value("RockstarId", uint64_t(0));
+	strcpy((char*)&blob->data[kROSBlobTicketOffset], tick.c_str());
+	strcpy((char*)&blob->data[kROSBlobSessionTicketOffset], j.value("SessionTicket", "").c_str());
 	memcpy(&blob->data[kROSBlobSessionKeyOffset], sessionKey.data(), sessionKey.size());
-	strcpy((char*)&blob->data[8], j.value("Email", "").c_str());
-	strcpy((char*)&blob->data[0xE9F], j.value("Nickname", "").c_str());
+	strcpy((char*)&blob->data[kROSBlobEmailOffset], j.value("Email", "").c_str());
+	strcpy((char*)&blob->data[kROSBlobUsernameOffset], j.value("Nickname", "").c_str());
 
 	j = nlohmann::json::object({
 		{ "title", appName },

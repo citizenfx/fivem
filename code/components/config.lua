@@ -6,6 +6,7 @@ component 'scrbind-formats'
 component 'scrbind-base'
 component 'nui-profiles'
 component 'profiles'
+component 'pool-sizes-state'
 
 if _OPTIONS['game'] == 'server' then
 	component 'citizen-server-main'
@@ -16,9 +17,6 @@ if _OPTIONS['game'] == 'server' then
 		component 'citizen-devtools'
 		component 'citizen-server-fxdk'
 	end
-	--[[if os.is('windows') then
-		component 'citizen-ssh-server'
-	end]]
 	component 'citizen-scripting-v8node'
 	component 'citizen-scripting-mono'
 	component 'citizen-scripting-mono-v2'
@@ -75,6 +73,7 @@ else
 end
 
 component 'net-base'
+component 'net-packet'
 component 'net-tcp-server'
 component 'net-http-server'
 

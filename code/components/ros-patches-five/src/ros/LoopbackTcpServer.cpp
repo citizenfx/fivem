@@ -109,6 +109,11 @@ void LoopbackTcpServerStream::Close()
 	}
 }
 
+void LoopbackTcpServerStream::StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout)
+{
+	// a connection timeout is not required for the loopback tcp server stream, because its only on the client and not exposed to the network
+}
+
 LoopbackTcpServer::LoopbackTcpServer(LoopbackTcpServerManager* manager, const std::string& hostName)
 	: m_port(0), m_manager(manager), m_hostName(hostName)
 {
@@ -1788,12 +1793,6 @@ static HANDLE(__stdcall* g_oldCreateFileA)(LPCSTR, DWORD, DWORD, LPSECURITY_ATTR
 static hook::cdecl_stub<void(int, int)> setupLoadingScreens([]()
 {
 #if defined(GTA_FIVE)
-	// trailing byte differs between 323 and 505
-	if (Is372())
-	{
-		return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? 40", 5));
-	}
-
 	return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? C6", 5));
 #else
 	return (void*)0;

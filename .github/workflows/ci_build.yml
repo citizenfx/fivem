@@ -11,7 +11,7 @@ jobs:
           - [ FiveM,  five,   windows ]
           - [ RedM,   rdr3,   windows ]
           - [ Server, server, windows ]
-          #- [ Server, server, linux   ]
+          - [ Server, server, linux   ]
     name: ${{ matrix.builds[0] }}${{ matrix.builds[2] == 'linux' && ' (Linux)' || '' }}
     runs-on: ${{ matrix.builds[2] == 'windows' && 'windows-latest' || 'ubuntu-20.04' }}
     env:
@@ -48,12 +48,6 @@ jobs:
         shell: bash
         run: |
           mkdir -p "$ROOT_DEP" && cd "$_" || exit 1
-          
-          echo Downloading boost
-          curl -s -L https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.7z -o boost.7z
-          7z -bso0 x boost.7z -oboost
-          rm boost.7z
-          echo "BOOST_ROOT=$PWD\boost\boost_1_71_0" >> "$GITHUB_ENV"
         
       - name: Compile
         shell: bash

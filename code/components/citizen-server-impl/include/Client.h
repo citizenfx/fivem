@@ -101,15 +101,6 @@ namespace fx
 		return entry->GetData();
 	}
 
-	namespace sync
-	{
-		class ClientSyncDataBase
-		{
-		public:
-			virtual ~ClientSyncDataBase() = default;
-		};
-	}
-
 	struct gs_peer_deleter
 	{
 		inline void operator()(int* data)
@@ -122,6 +113,7 @@ namespace fx
 		}
 	};
 
+	class GameStateClientData;
 
 	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>, public se::PrincipalSource
 	{
@@ -132,16 +124,44 @@ namespace fx
 
 		void SetNetId(uint32_t netId);
 
-		void SetNetBase(uint32_t netBase);
+		inline void SetNetBase(uint32_t netBase)
+		{
+			m_netBase = netBase;
+		}
 
 		// updates the last-seen timer
 		void Touch();
 
 		bool IsDead();
 
+		inline bool HasNetId() const
+		{
+			return m_netId != 0xFFFF;
+		}
+
+		inline bool HasConnected() const
+		{
+			return m_netId < 0xFFFF;
+		}
+
 		inline uint32_t GetNetId()
 		{
 			return m_netId;
+		}
+
+		inline bool HasPreviousNetId() const
+		{
+			return m_previousNetId != 0xFFFF;
+		}
+
+		inline uint32_t GetPreviousNetId()
+		{
+			return m_previousNetId;
+		}
+
+		inline bool HasSlotId() const
+		{
+			return m_slotId != 0xFFFFFFFF;
 		}
 
 		inline uint32_t GetSlotId()
@@ -213,6 +233,11 @@ namespace fx
 			return m_lastSeen;
 		}
 
+		inline unsigned int GetSecondsOnline()
+		{
+			return std::chrono::duration_cast<std::chrono::seconds>(m_lastSeen - m_firstSeen).count();
+		}
+
 		inline const std::vector<std::string>& GetIdentifiers()
 		{
 			return m_identifiers;
@@ -263,13 +288,13 @@ namespace fx
 			}
 		}
 
-		inline std::shared_ptr<sync::ClientSyncDataBase> GetSyncData()
+		inline std::shared_ptr<GameStateClientData> GetSyncData()
 		{
 			std::shared_lock _(m_syncDataMutex);
 			return m_syncData;
 		}
 
-		inline void SetSyncData(const std::shared_ptr<sync::ClientSyncDataBase>& ptr)
+		inline void SetSyncData(const std::shared_ptr<GameStateClientData>& ptr)
 		{
 			std::unique_lock _(m_syncDataMutex);
 			m_syncData = ptr;
@@ -331,7 +356,7 @@ namespace fx
 
 		void SendPacket(int channel, const net::Buffer& buffer, NetPacketType flags = NetPacketType_Unreliable);
 
-		fwEvent<> OnAssignNetId;
+		fwEvent<uint32_t> OnAssignNetId;
 		fwEvent<> OnAssignPeer;
 		fwEvent<> OnAssignTcpEndPoint;
 		fwEvent<> OnAssignConnectionToken;
@@ -378,6 +403,10 @@ namespace fx
 		// the client's netid
 		uint32_t m_netId;
 
+		// the client's previous netid
+		// needs to be stored, because scripts can still have access to it after playerConnecting and playerJoining event
+		uint32_t m_previousNetId;
+
 		// the client's slot ID
 		uint32_t m_slotId;
 
@@ -394,7 +423,7 @@ namespace fx
 		std::unique_ptr<int, gs_peer_deleter> m_peer;
 
 		// sync data
-		std::shared_ptr<sync::ClientSyncDataBase> m_syncData;
+		std::shared_ptr<GameStateClientData> m_syncData;
 		std::shared_mutex m_syncDataMutex;
 		std::mutex m_syncDataCreationMutex;
 

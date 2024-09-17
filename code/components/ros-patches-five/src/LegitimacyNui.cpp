@@ -79,7 +79,9 @@ namespace {
 			window->AddChildView(browser_view_);
 			//window->CenterWindow(CefSize(705, 535));
 			window->CenterWindow(CefSize(1280, 720));
-			window->Show();
+
+			// Do not show by default
+			//window->Show();
 
 			// Give keyboard focus to the browser view.
 			browser_view_->RequestFocus();
@@ -165,6 +167,16 @@ public:
 
 	bool IsClosing() const { return is_closing_; }
 
+	void SetWindow(CefRefPtr<CefWindow> window)
+	{
+		window_ = window;
+	}
+
+	CefRefPtr<CefWindow> GetWindow()
+	{
+		return window_;
+	}
+
 	virtual CefRefPtr<CefResourceHandler> GetResourceHandler(
 		CefRefPtr<CefBrowser> browser,
 		CefRefPtr<CefFrame> frame,
@@ -215,6 +227,8 @@ private:
 	typedef std::list<CefRefPtr<CefBrowser>> BrowserList;
 	BrowserList browser_list_;
 
+	CefRefPtr<CefWindow> window_;
+
 	bool is_closing_;
 
 	ScuiAuthFlow flow_;
@@ -240,7 +254,13 @@ void SimpleApp::OnContextInitialized()
 	handler, url, browser_settings, {}, nullptr, nullptr);
 
 	// Create the Window. It will show itself after creation.
-	CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view));
+	handler->SetWindow(CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view)));
+
+	// Show window for normal flow, i.e. not steam/epic
+	if (flow_ == ScuiAuthFlow::LegitimacyNui)
+	{
+		handler->GetWindow()->Show();
+	}
 }
 
 namespace {
@@ -372,6 +392,7 @@ auto SimpleHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPt
 }
 
 extern std::string g_rosData;
+extern std::string g_rosData2;
 extern bool g_oldAge;
 extern std::string g_rosEmail;
 
@@ -408,6 +429,12 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 			frame->ExecuteJavaScript(fmt::sprintf("RGSC_JS_REFRESH_STEAM_TICKET_RESULT(JSON.stringify({ Ticket: '%s' }));",
 				GetAuthSessionTicket(0)), "https://rgl.rockstargames.com/scui.js", 0);
 		}
+		else if (nativeType == "signinFailed")
+		{
+			trace(__FUNCTION__ ": Auto-SignIn failed, showing login window.\n");
+
+			GetWindow()->Show();
+		}
 		else if (nativeType == "signin")
 		{
 			trace(__FUNCTION__ ": Processing NUI sign-in.\n");
@@ -441,8 +468,18 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 				{ "OrigNickname", json["Nickname"] },
 			});
 
+			auto obj2 = nlohmann::json::object({
+			{ "Ticket", json["ticket"] },
+			{ "SessionKey", json["sessionKey"] },
+			{ "RockstarId", std::stoull(tree.get<std::string>("Response.RockstarAccount.RockstarId")) },
+			{ "SessionTicket", tree.get<std::string>("Response.SessionTicket") },
+			{ "Nickname", json["Nickname"] },
+			{ "Email", g_rosEmail },
+			});
+
 			g_tpaId = tree.get<std::string>("Response.RockstarAccount.RockstarId");
 			g_rosData = obj.dump();
+			g_rosData2 = obj2.dump();
 
 			trace(__FUNCTION__ ": Processed NUI sign-in - closing all browsers.\n");
 
@@ -516,7 +553,7 @@ function RGSC_GET_TITLE_ID()
 function RGSC_GET_VERSION_INFO()
 {
 	return JSON.stringify({
-		Version: '2.1.6.5',
+		Version: '9.9.9.9',
 		TitleVersion: ''
 	});
 }
@@ -535,6 +572,10 @@ function RGSC_SIGN_IN(s)
 	if (data.XMLResponse)
 	{
 		window.invokeNative('signin', s);
+	}
+	else if (data.Error)
+	{
+		window.invokeNative('signinFailed', '');
 	}
 	else
 	{
@@ -618,18 +659,46 @@ function RGSC_READY_TO_ACCEPT_COMMANDS()
 
 	if (flowType === 'steam' || flowType === 'epic')
 	{
+		const ORIG_fetch = window.fetch;
+
+		window.fetch = (...args) => {
+			const requestUrl = args[0];
+
+			if (typeof requestUrl === 'string') {
+				if (requestUrl.endsWith('autologinsteam') || requestUrl.endsWith('autologinepic')) {
+					const newBody = {
+						...JSON.parse(args[1].body),
+						tpaTokens: flowData.TpaTokens,
+					};
+
+					if (flowType === 'steam') {
+						newBody.AppId = flowData.SteamAppId;
+						newBody.authTicket = flowData.SteamAuthTicket;
+					}
+					if (flowType === 'epic') {
+						newBody.authTicket = flowData.epicAccessToken;
+						newBody.platformUserId = flowData.EpicAccountId;
+					}
+
+					args[1].body = JSON.stringify(newBody);
+				}	
+			}
+
+			return ORIG_fetch(...args);
+		};
+
 		RGSC_JS_SIGN_IN(JSON.stringify({
-    "RockstarId": "0",
-    "Nickname": "",
-    "LastSignInTime": "0",
-    "AutoSignIn": false,
-    "Local": false,
-    "SaveEmail": false,
-    "SavePassword": false,
-    "Ticket": "",
-    "AvatarUrl": "",
-    "RememberedMachineToken": ""
-}));
+			"RockstarId": "0",
+			"Nickname": "",
+			"LastSignInTime": "0",
+			"AutoSignIn": false,
+			"Local": false,
+			"SaveEmail": false,
+			"SavePassword": false,
+			"Ticket": "",
+			"AvatarUrl": "",
+			"RememberedMachineToken": ""
+		}));
 	}
 
 	return true;

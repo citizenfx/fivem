@@ -2,6 +2,7 @@
 #include <Hooking.h>
 
 #include <netObjectMgr.h>
+#include <NetworkPlayerMgr.h>
 
 static rage::netObjectMgr** g_objectMgr;
 

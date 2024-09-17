@@ -168,7 +168,7 @@ void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame
 
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
-	static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, false);
+	static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, true);
 
 	static std::string defaultUiUrl = "https://nui-game-internal/ui/app/index.html";
 	static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, defaultUiUrl);

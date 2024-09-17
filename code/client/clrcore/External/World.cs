@@ -6,10 +6,9 @@ using System.Linq;
 #if MONO_V2
 using CitizenFX.Core;
 using API = CitizenFX.FiveM.Native.Natives;
-using Prop = CitizenFX.FiveM.Object;
 using TaskPed = CitizenFX.Core.Coroutine<CitizenFX.FiveM.Ped>;
 using TaskPickup = CitizenFX.Core.Coroutine<CitizenFX.FiveM.Pickup>;
-using TaskProp = CitizenFX.Core.Coroutine<CitizenFX.FiveM.Object>;
+using TaskProp = CitizenFX.Core.Coroutine<CitizenFX.FiveM.Prop>;
 using TaskVehicle = CitizenFX.Core.Coroutine<CitizenFX.FiveM.Vehicle>;
 using compat_i32_u32 = System.UInt32;
 using compat_i32_i64 = System.Int64;

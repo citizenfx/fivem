@@ -20,6 +20,8 @@
 #include <VFSManager.h>
 #include <boost/algorithm/string.hpp>
 
+#include <concurrent_queue.h>
+
 #include "atArray.h"
 
 void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
@@ -237,13 +239,40 @@ static HookFunction hookFunction([] ()
 	}
 });
 
-static SpawnThread spawnThread;
+enum class Mode : uint8_t
+{
+	LOCAL_MODE,
+	STORY_MODE,
+	EDITOR_MODE,
+	LEVEL_LOAD,
+};
 
-#include <concurrent_queue.h>
+static SpawnThread spawnThread;
 
 static concurrency::concurrent_queue<std::function<void()>> g_onShutdownQueue;
 
-static void LoadLevel(const char* levelName)
+/// Does the game mode require resetting the SpawnThread.
+static inline bool DoesModeRequiresReset(Mode mode)
+{
+	return mode == Mode::LEVEL_LOAD || mode == Mode::EDITOR_MODE;
+}
+
+/// Initialize correct ICoreGameInit variables for the given level mode.
+static void SetCoreGameMode(Mode mode)
+{
+	auto setVariable = [](const std::string& variable, bool enabled)
+	{
+		enabled ? Instance<ICoreGameInit>::Get()->SetVariable(variable)
+				: Instance<ICoreGameInit>::Get()->ClearVariable(variable);
+	};
+
+	// editorMode implies localMode; editorMode is cleared after _ACTIVATE_ROCKSTAR_EDITOR.
+	setVariable("storyMode", mode == Mode::STORY_MODE);
+	setVariable("localMode", mode == Mode::LOCAL_MODE || mode == Mode::EDITOR_MODE);
+	setVariable("editorMode", mode == Mode::EDITOR_MODE);
+}
+
+static void LoadLevel(const char* levelName, Mode mode)
 {
 	static auto gameInit = Instance<ICoreGameInit>::Get();
 
@@ -253,7 +282,8 @@ static void LoadLevel(const char* levelName)
 
 	if (!gameInit->GetGameLoaded())
 	{
-		if ((!gameInit->HasVariable("storyMode") && !gameInit->HasVariable("localMode")) || gameInit->HasVariable("editorMode"))
+		SetCoreGameMode(mode);
+		if (DoesModeRequiresReset(mode))
 		{
 			spawnThread.ResetInityThings();
 		}
@@ -267,30 +297,15 @@ static void LoadLevel(const char* levelName)
 	}
 	else
 	{
-		bool sm = gameInit->HasVariable("storyMode");
-		bool lm = gameInit->HasVariable("localMode");
-		bool em = gameInit->HasVariable("editorMode");
-
 		gameInit->KillNetwork((wchar_t*)1);
 
-		auto fEvent = ([sm, lm, em]()
+		auto fEvent = ([mode]()
 		{
 			gameInit->ReloadGame();
 
-			if (sm)
+			SetCoreGameMode(mode);
+			if (DoesModeRequiresReset(mode))
 			{
-				gameInit->SetVariable("storyMode");
-			}
-
-			if (lm)
-			{
-				gameInit->SetVariable("localMode");
-			}
-
-			if (em)
-			{
-				gameInit->SetVariable("localMode"); // see editorModeCommand. 'ShouldSkipLoading' will return false otherwise.
-				gameInit->SetVariable("editorMode");
 				spawnThread.ResetInityThings();
 			}
 
@@ -376,25 +391,21 @@ static InitFunction initFunction([] ()
 
 	static ConsoleCommand loadLevelCommand("loadlevel", [](const std::string& level)
 	{
-		LoadLevel(level.c_str());
+		LoadLevel(level.c_str(), Mode::LEVEL_LOAD);
 	});
 
 	static ConsoleCommand storyModeyCommand("storymode", []()
 	{
-		Instance<ICoreGameInit>::Get()->SetVariable("storyMode");
-		LoadLevel("gta5");
+		LoadLevel("gta5", Mode::STORY_MODE);
 	});
 
 	static ConsoleCommand editorModeCommand("replayEditor", []()
 	{
-		Instance<ICoreGameInit>::Get()->SetVariable("localMode");
-		Instance<ICoreGameInit>::Get()->SetVariable("editorMode");
-		LoadLevel("gta5");
+		LoadLevel("gta5", Mode::EDITOR_MODE);
 	});
 
 	static ConsoleCommand localGameCommand("localGame", [](const std::string& resourceDir)
 	{
-		Instance<ICoreGameInit>::Get()->SetVariable("localMode");
 		Instance<ICoreGameInit>::Get()->SetData("localResource", resourceDir);
 
 		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
@@ -480,12 +491,12 @@ static InitFunction initFunction([] ()
 			res->Start();
 		});
 
-		LoadLevel("gta5");
+		LoadLevel("gta5", Mode::LOCAL_MODE);
 	});
 
 	static ConsoleCommand loadLevelCommand2("invoke-levelload", [](const std::string& level)
 	{
-		LoadLevel(level.c_str());
+		LoadLevel(level.c_str(), Mode::LEVEL_LOAD);
 	});
 
 	rage::scrEngine::OnScriptInit.Connect([] ()

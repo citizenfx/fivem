@@ -3,43 +3,19 @@
 
 #include <jitasm.h>
 #include <Hooking.h>
-
 #include <MinHook.h>
+#include <PoolSizesState.h>
 
 #include <Error.h>
 
 #include "CrossBuildRuntime.h"
 
-class RageHashList
-{
-public:
-	template<int Size>
-	RageHashList(const char*(&list)[Size])
-	{
-		for (int i = 0; i < Size; i++)
-		{
-			m_lookupList.insert({ HashString(list[i]), list[i] });
-		}
-	}
+#include "RageHashList.h"
 
-	inline std::string LookupHash(uint32_t hash)
-	{
-		auto it = m_lookupList.find(hash);
 
-		if (it != m_lookupList.end())
-		{
-			return std::string(it->second);
-		}
-
-		return fmt::sprintf("0x%08x", hash);
-	}
-
-private:
-	std::map<uint32_t, std::string_view> m_lookupList;
-};
-
-static std::map<uint32_t, atPoolBase*> g_pools;
-static std::map<atPoolBase*, uint32_t> g_inversePools;
+static std::unordered_map<uint32_t, atPoolBase*> g_pools;
+static std::unordered_map<atPoolBase*, uint32_t> g_inversePools;
+static std::unordered_map<std::string, atPoolBase*> g_namedPools;
 
 static const char* poolEntriesTable[] = {
 	"AnimatedBuilding",
@@ -192,11 +168,20 @@ static const char* poolEntriesTable[] = {
 	"OcclusionPortalInfo",
 #include "gta_vtables.h"
 	"Decorator",
+	"StreamPed req data",
+	"StreamPed render data",
+	"CChatHelper",
+	"Landing gear parts",
+	"PedProp render data",
+	"PedProp req data",
+	"camStickyAimHelper",
+	"Entity Alt request data",
+	"TextStore",
 };
 
 static RageHashList poolEntries(poolEntriesTable);
 
-GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
+atPoolBase* rage::GetPoolBase(uint32_t hash)
 {
 	auto it = g_pools.find(hash);
 
@@ -208,10 +193,16 @@ GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
 	return it->second;
 }
 
+const std::unordered_map<std::string, atPoolBase*>& rage::GetPools()
+{
+	return g_namedPools;
+}
+
 static atPoolBase* SetPoolFn(atPoolBase* pool, uint32_t hash)
 {
 	g_pools[hash] = pool;
 	g_inversePools.insert({ pool, hash });
+	g_namedPools[poolEntries.LookupHash(hash)] = pool;
 
 	return pool;
 }
@@ -228,6 +219,7 @@ static void PoolDtorWrap(atPoolBase* pool)
 
 		g_pools.erase(hash);
 		g_inversePools.erase(pool);
+		g_namedPools.erase(poolEntries.LookupHash(hash));
 	}
 
 	return g_origPoolDtor(pool);
@@ -377,6 +369,21 @@ static void* GetNetObjPositionWrap(void* a1, void* a2)
 	return g_origGetNetObjPosition(a1, a2);
 }
 
+int64_t(*g_origGetSizeOfPool)(void*, uint32_t, int);
+
+static int64_t GetSizeOfPool(void* configManager, uint32_t poolHash, int defaultSize)
+{
+	int64_t size = g_origGetSizeOfPool(configManager, poolHash, defaultSize);
+
+	auto sizeIncreaseEntry = fx::PoolSizeManager::GetIncreaseRequest().find(poolEntries.LookupHash(poolHash));
+	if (sizeIncreaseEntry != fx::PoolSizeManager::GetIncreaseRequest().end())
+	{
+		size += sizeIncreaseEntry->second;
+	}
+
+	return size;
+}
+
 static HookFunction hookFunction([] ()
 {
 	auto generateAndCallStub = [](hook::pattern_match match, int callOffset, uint32_t hash, bool isAssetStore)
@@ -473,6 +480,8 @@ static HookFunction hookFunction([] ()
 	{
 		MH_CreateHook(hook::get_pattern("41 8A E8 48 8B DA 48 85 D2 0F", -0x1E), GetRelevantSectorPosPlayersWrap, (void**)&g_origGetRelevantSectorPosPlayers);
 	}
+
+	MH_CreateHook(hook::get_pattern("45 33 DB 44 8B D2 66 44 39 59 ? 74 ? 44 0F B7 49 ? 33 D2 41 8B C2 41 F7 F1 48 8B 41 ? 48 8B 0C D0 EB ? 44 3B 11 74 ? 48 8B 49"), GetSizeOfPool, (void**)&g_origGetSizeOfPool);
 
 	//MH_CreateHook((void*)0x14159A8F0, AssignObjectIdWrap, (void**)&g_origAssignObjectId);
 

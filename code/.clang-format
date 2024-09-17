@@ -23,7 +23,6 @@ AllowShortBlocksOnASingleLine: false
 BreakBeforeBraces: Custom
 BreakConstructorInitializers: BeforeColon
 ConstructorInitializerIndentWidth: 4
-NamespaceIndentation: All
 SortIncludes: false
 SpaceAfterTemplateKeyword: false
 SpaceBeforeCpp11BracedList: false

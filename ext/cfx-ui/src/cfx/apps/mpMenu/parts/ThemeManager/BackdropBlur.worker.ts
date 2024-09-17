@@ -36,9 +36,11 @@ async function createBlurred(imageUrl: string) {
 }
 
 async function loadImage(src: string) {
-  const img = await (await fetch(src, {
-    mode: 'no-cors',
-  })).blob();
+  const img = await (
+    await fetch(src, {
+      mode: 'no-cors',
+    })
+  ).blob();
 
   return createImageBitmap(img);
 }
@@ -47,16 +49,13 @@ function getImageData(image: HTMLImageElement | ImageBitmap): [Uint8ClampedArray
   const ar = image.width / image.height;
 
   const w = 128;
+  // eslint-disable-next-line no-bitwise
   const h = w * ar | 0;
 
   const canvas = new OffscreenCanvas(w, h);
 
-  const context = canvas.getContext("2d");
+  const context = canvas.getContext('2d');
   context!.drawImage(image, 0, 0, w, h);
 
-  return [
-    context!.getImageData(0, 0, w, h).data,
-    w,
-    h,
-  ];
+  return [context!.getImageData(0, 0, w, h).data, w, h];
 }

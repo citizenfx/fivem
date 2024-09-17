@@ -477,7 +477,7 @@ namespace CitizenFX.Core
 		private int m_retvalBufferSize;
 
 		[SecuritySafeCritical]
-		public void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retvalSerialized, out int retvalSize)
+		public void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retval)
 		{
 			// not using using statements here as old Mono on Linux build doesn't know of these
 #if IS_FXSERVER
@@ -496,33 +496,16 @@ namespace CitizenFX.Core
 
 					if (retvalData != null)
 					{
-						if (m_retvalBuffer == IntPtr.Zero)
-						{
-							m_retvalBuffer = Marshal.AllocHGlobal(32768);
-							m_retvalBufferSize = 32768;
-						}
-
-						if (m_retvalBufferSize < retvalData.Length)
-						{
-							m_retvalBuffer = Marshal.ReAllocHGlobal(m_retvalBuffer, new IntPtr(retvalData.Length));
-							m_retvalBufferSize = retvalData.Length;
-						}
-
-						Marshal.Copy(retvalData, 0, m_retvalBuffer, retvalData.Length);
-
-						retvalSerialized = m_retvalBuffer;
-						retvalSize = retvalData.Length;
+						retval = GameInterface.MakeMemoryBuffer(retvalData);
 					}
 					else
 					{
-						retvalSerialized = IntPtr.Zero;
-						retvalSize = 0;
+						retval = IntPtr.Zero;
 					}
 				}
 				catch (Exception e)
 				{
-					retvalSerialized = IntPtr.Zero;
-					retvalSize = 0;
+					retval = IntPtr.Zero;
 
 					PrintError($"reference call", e.InnerException ?? e);
 				}
@@ -654,6 +637,7 @@ namespace CitizenFX.Core
 			private FastMethod<Action<IntPtr, IntPtr, int>> submitBoundaryStartMethod;
 			private FastMethod<Action<IntPtr, IntPtr, int>> submitBoundaryEndMethod;
 			private FastMethod<Func<IntPtr, IntPtr, int>> getLastErrorTextMethod;
+			private FastMethod<Func<IntPtr, IntPtr, IntPtr, int, IntPtr, int>> invokeFunctionReference;
 
 			[SecuritySafeCritical]
 			public DirectScriptHost(IntPtr hostPtr)
@@ -668,6 +652,7 @@ namespace CitizenFX.Core
 				submitBoundaryStartMethod = new FastMethod<Action<IntPtr, IntPtr, int>>(nameof(submitBoundaryStartMethod), hostPtr, 5);
 				submitBoundaryEndMethod = new FastMethod<Action<IntPtr, IntPtr, int>>(nameof(submitBoundaryEndMethod), hostPtr, 6);
 				getLastErrorTextMethod = new FastMethod<Func<IntPtr, IntPtr, int>>(nameof(getLastErrorTextMethod), hostPtr, 7);
+				invokeFunctionReference = new FastMethod<Func<IntPtr, IntPtr, IntPtr, int, IntPtr, int>>(nameof(invokeFunctionReference), hostPtr, 8);
 			}
 
 			[SecuritySafeCritical]
@@ -823,6 +808,19 @@ namespace CitizenFX.Core
 				}
 
 				return retVal;
+			}
+
+			public unsafe int InvokeFunctionReference(string refId, byte[] argsSerialized, int argsSize, IntPtr ret)
+			{
+				var refIdBytes = Encoding.UTF8.GetBytes(refId);
+
+				fixed (byte* refIdBytesFixed = refIdBytes)
+				{
+					fixed (byte* argsSerializedStart = argsSerialized)
+					{
+						return invokeFunctionReference.method(hostPtr, new IntPtr(refIdBytesFixed), new IntPtr(argsSerializedStart), argsSize, ret);
+					}
+				}
 			}
 		}
 

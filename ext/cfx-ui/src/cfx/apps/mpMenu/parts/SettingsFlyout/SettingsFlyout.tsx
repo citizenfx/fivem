@@ -1,17 +1,23 @@
-import React from "react";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Flyout } from "cfx/ui/Flyout/Flyout";
-import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
-import { observer } from "mobx-react-lite";
-import { SettingItem } from "../../../../common/parts/Settings/SettingItem/SettingItem";
-import { useLocation } from "react-router-dom";
-import { NavList } from "cfx/ui/NavList/NavList";
-import { ICategory } from "cfx/common/services/settings/types";
-import { Box } from "cfx/ui/Layout/Box/Box";
-import { Page } from "cfx/ui/Layout/Page/Page";
-import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
-import { useService } from "cfx/base/servicesContainer";
-import { ISettingsUIService } from "cfx/common/services/settings/settings.service";
+import {
+  Box,
+  Flex,
+  FlexRestricter,
+  Page,
+  Scrollable,
+  NavList,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+import { useLocation } from 'react-router-dom';
+
+import { useService } from 'cfx/base/servicesContainer';
+import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
+import { EventActionNames, ElementPlacements } from 'cfx/common/services/analytics/types';
+import { ISettingsUIService } from 'cfx/common/services/settings/settings.service';
+import { ICategory } from 'cfx/common/services/settings/types';
+import { Flyout } from 'cfx/ui/Flyout/Flyout';
+
+import { SettingItem } from '../../../../common/parts/Settings/SettingItem/SettingItem';
 
 function useCloseOnLocationChange(settingsUIService: ISettingsUIService) {
   const location = useLocation();
@@ -20,31 +26,41 @@ function useCloseOnLocationChange(settingsUIService: ISettingsUIService) {
 
 export const SettingsFlyout = observer(function SettingsFlyout() {
   const SettingsUIService = useService(ISettingsUIService);
+  const eventHandler = useEventHandler();
 
   // Whenever location changes - close flyout
   useCloseOnLocationChange(SettingsUIService);
 
   const category = SettingsUIService.category!;
 
+  const handleOnActivate = React.useCallback(
+    (activateCategory: string) => {
+      SettingsUIService.selectCategory(activateCategory);
+      eventHandler({
+        action: EventActionNames.SiteNavClick,
+        properties: {
+          text: activateCategory,
+          link_url: '/',
+          element_placement: ElementPlacements.Settings,
+          position: 1,
+        },
+      });
+    },
+    [eventHandler, SettingsUIService],
+  );
+
   return (
-    <Flyout
-      disableSoundEffects
-      disabled={!SettingsUIService.visible}
-      onClose={SettingsUIService.close}
-      size="small"
-    >
+    <Flyout disableSoundEffects disabled={!SettingsUIService.visible} onClose={SettingsUIService.close} size="small">
       <Page>
         <Flex vertical fullWidth fullHeight gap="xlarge">
-          <Flyout.Header onClose={SettingsUIService.close}>
-            Settings
-          </Flyout.Header>
+          <Flyout.Header onClose={SettingsUIService.close}>Settings</Flyout.Header>
 
           <FlexRestricter vertical>
             <Flex fullWidth fullHeight gap="xlarge">
               <Box noShrink width={50}>
                 <NavList
                   items={SettingsUIService.navListItems}
-                  onActivate={SettingsUIService.selectCategory}
+                  onActivate={handleOnActivate}
                   activeItemId={SettingsUIService.categoryID}
                 />
               </Box>
@@ -65,10 +81,12 @@ export const SettingsFlyout = observer(function SettingsFlyout() {
 });
 
 interface ControlsProps {
-  category: ICategory,
+  category: ICategory;
 }
 const Controls = observer(function Controls(props: ControlsProps) {
-  const { category } = props;
+  const {
+    category,
+  } = props;
 
   const nodes: React.ReactNode[] = [];
 
@@ -77,15 +95,11 @@ const Controls = observer(function Controls(props: ControlsProps) {
       continue;
     }
 
-    nodes.push(
-      <SettingItem key={id} setting={setting} />
-    );
+    nodes.push(<SettingItem key={id} setting={setting} />);
   }
 
   return (
-    <>
-      {nodes}
-    </>
+    // eslint-disable-next-line react/jsx-no-useless-fragment
+    <>{nodes}</>
   );
 });
-

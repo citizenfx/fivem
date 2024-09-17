@@ -17,7 +17,7 @@ set UIRoot=%~dp0\data
 pushd ..\cfx-ui\
 
 :: install packages (using Yarn now)
-call yarn
+call yarn --ignore-engines --frozen-lockfile
 :: propagate error
 if %ERRORLEVEL% neq 0 exit /b 1
 
@@ -37,9 +37,8 @@ if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 :: delete old app
 rmdir /s /q %UIRoot%\app\
 
-:: copy new app
-mkdir %UIRoot%\app\
-xcopy /y /e build\mpMenu\*.* %UIRoot%\app\
+:: move new app
+move /y build\mpMenu %UIRoot%\app
 
 :: pop directory
 popd
@@ -57,11 +56,7 @@ popd
 
 rmdir /s /q %~dp0\data_big\app\
 mkdir %~dp0\data_big\app\static\media\
-move /y %UIRoot%\app\static\media\*bg*.jpg %~dp0\data_big\app\static\media\
-move /y %UIRoot%\app\static\media\*bgeditor.png %~dp0\data_big\app\static\media\
-move /y %UIRoot%\app\static\media\*.svg %~dp0\data_big\app\static\media\
-move /y %UIRoot%\app\static\media\*.woff2 %~dp0\data_big\app\static\media\
-move /y %UIRoot%\app\static\media\*.mp3 %~dp0\data_big\app\static\media\
+move /y %UIRoot%\app\static\media\*.* %~dp0\data_big\app\static\media\
 move /y %UIRoot%\loadscreen\*.jpg %~dp0\data_big\loadscreen\
 
 powershell -ExecutionPolicy Unrestricted .\make_dates.ps1 %~dp0\data

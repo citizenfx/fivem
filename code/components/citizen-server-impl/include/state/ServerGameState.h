@@ -47,6 +47,8 @@ static constexpr const size_t kGamePlayerCap =
 
 #include <StateBagComponent.h>
 
+#include <net/NetObjEntityType.h>
+
 #ifdef STATE_FIVE
 inline bool Is2060()
 {
@@ -133,6 +135,26 @@ inline bool Is3095()
 	static bool value = ([]()
 	{
 		return fx::GetEnforcedGameBuildNumber() >= 3095;
+	})();
+
+	return value;
+}
+
+inline bool Is3258()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 3258;
+	})();
+
+	return value;
+}
+
+inline bool Is3323()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 3323;
 	})();
 
 	return value;
@@ -238,14 +260,6 @@ struct CDoorScriptGameStateDataNodeData
 {
 	uint32_t doorSystemState;
 	bool holdOpen;
-};
-
-struct CHeliControlDataNodeData
-{
-	bool engineOff;
-
-	bool hasLandingGear;
-	uint32_t landingGearState;
 };
 
 struct CPlayerCameraNodeData
@@ -381,6 +395,8 @@ struct CVehicleAppearanceNodeData
 
 	int numberPlateTextIndex;
 
+	int hornTypeHash;
+
 	inline CVehicleAppearanceNodeData()
 	{
 		memset(plate, 0, sizeof(plate));
@@ -412,7 +428,7 @@ struct CVehicleGameStateNodeData
 	int lockStatus;
 	int doorsOpen;
 	int doorPositions[1 << 7];
-	bool noLongerNeeded;
+	bool isStationary;
 	bool lightsOn;
 	bool highbeamsOn;
 	bool hasBeenOwnedByPlayer;
@@ -597,7 +613,41 @@ struct CPlayerGameStateNodeData
 struct CHeliHealthNodeData
 {
 	int mainRotorHealth;
-	int tailRotorHealth;
+	int rearRotorHealth;
+
+	bool boomBroken;
+	bool canBoomBreak;
+	bool hasCustomHealth;
+
+	int bodyHealth;
+	int gasTankHealth;
+	int engineHealth;
+
+	float mainRotorDamage;
+	float rearRotorDamage;
+	float tailRotorDamage;
+
+	bool disableExplosionFromBodyDamage;
+};
+
+struct CHeliControlDataNodeData
+{
+	float yawControl;
+	float pitchControl;
+	float rollControl;
+	float throttleControl;
+
+	bool engineOff;
+
+	bool hasLandingGear;
+	uint32_t landingGearState;
+
+	bool isThrusterModel;
+	float thrusterSideRCSThrottle;
+	float thrusterThrottle;
+
+	bool hasVehicleTask;
+	bool lockedToXY;
 };
 
 struct CVehicleSteeringNodeData
@@ -671,8 +721,6 @@ public:
 
 	virtual CDoorScriptGameStateDataNodeData* GetDoorScriptGameState() = 0;
 
-	virtual CHeliControlDataNodeData* GetHeliControl() = 0;
-
 	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
 
 	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() = 0;
@@ -717,6 +765,8 @@ public:
 
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
 
+	virtual CHeliControlDataNodeData* GetHeliControl() = 0;
+
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
 
 	virtual CEntityScriptGameStateNodeData* GetEntityScriptGameState() = 0;
@@ -736,57 +786,6 @@ public:
 	virtual bool GetScriptHash(uint32_t* scriptHash) = 0;
 
 	virtual bool IsEntityVisible(bool* visible) = 0;
-};
-
-enum class NetObjEntityType
-{
-#ifdef STATE_FIVE
-	Automobile = 0,
-	Bike = 1,
-	Boat = 2,
-	Door = 3,
-	Heli = 4,
-	Object = 5,
-	Ped = 6,
-	Pickup = 7,
-	PickupPlacement = 8,
-	Plane = 9,
-	Submarine = 10,
-	Player = 11,
-	Trailer = 12,
-	Train = 13,
-#elif defined(STATE_RDR3)
-	Animal = 0,
-	Automobile = 1,
-	Bike = 2,
-	Boat = 3,
-	Door = 4,
-	Heli = 5,
-	Object = 6,
-	Ped = 7,
-	Pickup = 8,
-	PickupPlacement = 9,
-	Plane = 10,
-	Submarine = 11,
-	Player = 12,
-	Trailer = 13,
-	Train = 14,
-	DraftVeh = 15,
-	StatsTracker = 16,
-	PropSet = 17,
-	AnimScene = 18,
-	GroupScenario = 19,
-	Herd = 20,
-	Horse = 21,
-	WorldState = 22,
-	WorldProjectile = 23,
-	Incident = 24,
-	Guardzone = 25,
-	PedGroup = 26,
-	CombatDirector = 27,
-	PedSharedTargeting = 28,
-	Persistent = 29,
-#endif
 };
 
 struct SyncEntityState
@@ -1194,10 +1193,11 @@ struct SyncedEntityData
 constexpr auto maxSavedClientFrames = 650; // enough for ~8-9 seconds, after 5 we'll start using worst-case frames
 constexpr auto maxSavedClientFramesWorstCase = (60000 / 15); // enough for ~60 seconds
 
-struct GameStateClientData : public sync::ClientSyncDataBase
+struct GameStateClientData
 {
 	rl::MessageBuffer ackBuffer{ 16384 };
 	std::unordered_set<int> objectIds;
+	std::unordered_set<int> reservedObjectIds;
 
 	std::mutex selfMutex;
 
@@ -1271,11 +1271,19 @@ public:
 
 	void HandleClientDrop(const fx::ClientSharedPtr& client, uint16_t netId, uint32_t slotId);
 
-	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer);
+	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer);
 
-	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds);
+	void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds);
 
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
+
+	bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<StateBag>()> createStateBag) override;
+
+	uint32_t GetClientRoutingBucket(const fx::ClientSharedPtr& client) override;
+
+	std::function<bool()> GetGameEventHandlerWithEvent(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::packet::ClientNetGameEventV2& netGameEvent) override;
+
+	bool IsClientRelevantEntity(const fx::ClientSharedPtr& client, uint32_t objectId) override;
 
 private:
 	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
@@ -1346,6 +1354,7 @@ public:
 
 private:
 	std::function<bool()> GetRequestControlEventHandler(const fx::ClientSharedPtr& client, net::Buffer&& buffer);
+	std::function<bool()> GetRequestControlEventHandlerWithEvent(const fx::ClientSharedPtr& client, net::packet::ClientNetGameEventV2& netGameEvent);
 
 public:
 	fx::sync::SyncEntityPtr GetEntity(uint8_t playerId, uint16_t objectId);
@@ -1419,7 +1428,7 @@ public:
 	{
 		virtual ~ArrayHandlerBase() = default;
 
-		virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer) = 0;
+		virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) = 0;
 
 		virtual void WriteUpdates(const fx::ClientSharedPtr& client) = 0;
 

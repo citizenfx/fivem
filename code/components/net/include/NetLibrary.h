@@ -231,6 +231,8 @@ public:
 
 	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length) override;
 
+	void SendReliablePacket(uint32_t type, const char* buffer, size_t length);
+
 	void SendUnreliableCommand(const char* type, const char* buffer, size_t length);
 
 	void RunMainFrame();
@@ -343,7 +345,7 @@ public:
 #endif
 		fwEvent<NetLibrary*> OnNetLibraryCreate;
 
-	fwEvent<int /* build */, int /* pure level */> OnRequestBuildSwitch;
+	fwEvent<int /* build */, int /* pure level */, std::wstring /* pool sizes increase request settings */> OnRequestBuildSwitch;
 
 	fwEvent<const char*> OnAttemptDisconnect;
 

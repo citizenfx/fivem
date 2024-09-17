@@ -46,8 +46,8 @@ static const char* GetPlayerNameFromGamerInfo(rlGamerInfo* addr)
 
 static HookFunction hookFunction([]()
 {
-	// function that (hopefully, again!) is only used for getting names from SC data blocks
-	void* playerNameGetter = hook::pattern("49 8B CC FF 50 60 48 8B C8 E8").count(1).get(0).get<void>(9);
+	// function that (hopefully, again!) is only used for getting names from SC data blocks (rage::rlGamerInfo::GetName)
+	void* playerNameGetter = hook::pattern("49 8B ? FF 50 60 48 8B C8 E8 ? ? ? ? 4C 8B C0 48 8D 15").count(1).get(0).get<void>(9);
 
 	hook::jump(hook::get_call(playerNameGetter), GetPlayerNameFromGamerInfo);
 });

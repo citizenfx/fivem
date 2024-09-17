@@ -10,24 +10,38 @@
 #include "GfxUtil.h"
 
 #include "CefImeHandler.h"
+#include "CefOleHandler.h"
 
 #include "memdbgon.h"
 
 #include <CrossBuildRuntime.h>
 
 extern OsrImeHandlerWin* g_imeHandler;
+extern OsrDragHandlerWin g_dragHandler;
 
 NUIRenderHandler::NUIRenderHandler(NUIClient* client)
 	: m_paintingPopup(false), m_owner(client), m_currentDragOp(DRAG_OPERATION_NONE)
 {
-	auto hWnd = CoreGetGameWindow();
-
-	m_dropTarget = DropTargetWin::Create(this, hWnd);
 }
 
 NUIRenderHandler::~NUIRenderHandler()
 {
-	m_dropTarget->CancelCallback();
+	if (m_dropTarget)
+	{
+		m_dropTarget->CancelCallback();
+	}
+}
+
+CComPtr<DropTargetWin> NUIRenderHandler::GetDropTarget()
+{
+	if (!m_dropTarget)
+	{
+		if (auto hWnd = CoreGetGameWindow())
+		{
+			m_dropTarget = DropTargetWin::Create(this, hWnd);
+		}
+	}
+	return m_dropTarget;
 }
 
 void NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
@@ -265,20 +279,22 @@ void NUIRenderHandler::PaintPopup(const void* buffer, int width, int height)
 	window->AddDirtyRect(m_popupRect);
 }
 
-bool g_isDragging;
-
 bool NUIRenderHandler::StartDragging(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDragData> drag_data, CefRenderHandler::DragOperationsMask allowed_ops, int x, int y)
 {
-	if (!m_dropTarget)
+	auto dropTarget = GetDropTarget();
+	if (!dropTarget)
 	{
 		return false;
 	}
 
+	auto wndThread = GetWindowThreadProcessId(CoreGetGameWindow(), nullptr);
+	auto dragThread = GetCurrentThreadId();
+
 	m_currentDragOp = DRAG_OPERATION_NONE;
-	g_isDragging = true;
+	g_dragHandler.EnableBackgroundDragging(wndThread, dragThread);
 	CefBrowserHost::DragOperationsMask result =
-		m_dropTarget->StartDragging(browser, drag_data, allowed_ops, x, y);
-	g_isDragging = false;
+		dropTarget->StartDragging(browser, drag_data, allowed_ops, x, y);
+	g_dragHandler.DisableBackgroundDragging();
 	m_currentDragOp = DRAG_OPERATION_NONE;
 	POINT pt = {};
 	GetCursorPos(&pt);

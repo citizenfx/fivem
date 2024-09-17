@@ -1,20 +1,20 @@
-import { Page } from "cfx/ui/Layout/Page/Page";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { InsideNavBar } from "cfx/apps/mpMenu/parts/NavBar/InsideNavBar";
-import { observer } from "mobx-react-lite";
-import { HomePageNavBarLinks } from "./HomePage.links";
-import { Feed } from "./Feed/Feed";
-import { Box } from "cfx/ui/Layout/Box/Box";
-import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
-import { PlatformStatus } from "./PlatformStatus/PlatformStatus";
-import { useActivityService } from "cfx/common/services/activity/activity.service";
-import { FaRetweet } from "react-icons/fa";
-import { FiTwitter } from "react-icons/fi";
-import { $L } from "cfx/common/services/intl/l10n";
-import { PlatformStats } from "./PlatformStats/PlatformStats";
-import { TopServersBlock } from "./TopServers/TopServers";
-import { Continuity } from "./Continuity/Continuity";
-import { Footer } from "./Footer/Footer";
+import { Box, Flex, FlexRestricter, Page } from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import { FaRetweet } from 'react-icons/fa';
+import { FiTwitter } from 'react-icons/fi';
+
+import { InsideNavBar } from 'cfx/apps/mpMenu/parts/NavBar/InsideNavBar';
+import { useActivityService } from 'cfx/common/services/activity/activity.service';
+import { $L } from 'cfx/common/services/intl/l10n';
+
+import { Continuity } from './Continuity/Continuity';
+import { Feed } from './Feed/Feed';
+import { Footer } from './Footer/Footer';
+import { HomePageNavBarLinks } from './HomePage.links';
+import { PlatformStats } from './PlatformStats/PlatformStats';
+import { PlatformStatus } from './PlatformStatus/PlatformStatus';
+import { TopServersBlock } from './TopServers/TopServers';
+
 import s from './HomePage.module.scss';
 
 export const HomePage = observer(function HomePage() {
@@ -54,10 +54,11 @@ export const HomePage = observer(function HomePage() {
                   title={(
                     <>
                       {$L('#Home_Feed_Community_Desc')}
-                      <br/>
-                      <br/>
-                      <strong>Be aware</strong> that the feed items from the servers you have previously played on will be back in the future.
-                      <br/>
+                      <br />
+                      <br />
+                      <strong>Be aware</strong> that the feed items from the servers you have previously played on will
+                      be back in the future.
+                      <br />
                       Due to the performance problems we were producing for Mastodon servers, it was disabled.
                     </>
                   )}
@@ -74,6 +75,6 @@ export const HomePage = observer(function HomePage() {
           </FlexRestricter>
         </Flex>
       </Flex>
-    </Page >
+    </Page>
   );
 });

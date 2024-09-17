@@ -7,12 +7,16 @@ npm install -g npm@7.19.1
 mkdir -p data
 
 # txAdmin
-cd ../txAdmin/
-npm ci
-npm run build
-cd ../system-resources/
+MONITOR_PATH=data/monitor
+MONITOR_ARTIFACT_PATH=data/monitor.zip
 
-cp -a ../txAdmin/dist data/monitor
+rm -rf $MONITOR_PATH
+mkdir -p $MONITOR_PATH
+
+node manager.js download --name=monitor --file=$MONITOR_ARTIFACT_PATH
+
+unzip $MONITOR_ARTIFACT_PATH -d $MONITOR_PATH
+rm $MONITOR_ARTIFACT_PATH
 
 # chat
 cd resources/chat/

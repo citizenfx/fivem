@@ -60,7 +60,7 @@ static bool ReturnObjectId(void* objectIds, uint16_t objectId)
 
 		// only return it to ourselves if it was ours to begin with
 		// (and only use this for network protocol version 0x201903031957 or above - otherwise server bookkeeping will go out of sync)
-		if (Instance<ICoreGameInit>::Get()->NetProtoVersion < 0x201903031957 || g_stolenObjectIds.find(objectId) == g_stolenObjectIds.end())
+		if (g_stolenObjectIds.find(objectId) == g_stolenObjectIds.end())
 		{
 			if (!TheClones->IsRemovingObjectId(objectId))
 			{

@@ -9,6 +9,10 @@
 
 #include <ScriptEngine.h>
 
+#include <CoreConsole.h>
+
+#include <CfxState.h>
+
 #ifdef GTA_FIVE
 #define DEFAULT_APP_ID "382624125287399424"
 #define DEFAULT_APP_ASSET "fivem_large"
@@ -53,6 +57,12 @@ static std::string g_discordAppAssetText;
 static std::string g_discordAppAssetSmallText;
 
 static std::optional<std::tuple<std::pair<std::string, std::string>, std::pair<std::string, std::string>>> g_buttons;
+
+static std::shared_ptr<ConVar<std::string>> g_richPresenceState;
+
+static std::string g_lastRichPresenceState = "disabled";
+
+static size_t g_onGameFrameCookie = -1;
 
 static void UpdatePresence()
 {
@@ -153,17 +163,81 @@ static void UpdatePresence()
 	}
 }
 
+static void OnRichPresenceStateChange(internal::ConsoleVariableEntry<std::string>* richPresenceState)
+{
+	std::string state = richPresenceState->GetValue();
+
+	if (state != "disabled" && state != "restricted" && state != "enabled")
+	{
+		richPresenceState->SetValue("enabled");
+		return;
+	}
+
+	if (state == g_lastRichPresenceState)
+	{
+		return;
+	}
+
+	if (g_lastRichPresenceState == "enabled")
+	{
+		OnGameFrame.Disconnect(g_onGameFrameCookie);
+		g_onGameFrameCookie = -1;
+	}
+
+	if (g_lastRichPresenceState == "disabled" || (state == "restricted" && g_lastDiscordAppId != DEFAULT_APP_ID))
+	{
+		if (state == "restricted" && g_lastDiscordAppId != DEFAULT_APP_ID)
+		{
+			g_lastDiscordAppId = DEFAULT_APP_ID;
+			Discord_Shutdown();
+		}
+		DiscordEventHandlers handlers;
+		memset(&handlers, 0, sizeof(handlers));
+		Discord_Initialize(g_lastDiscordAppId.c_str(), &handlers, 1, nullptr);
+	}
+
+	if (state == "enabled" && g_onGameFrameCookie == -1)
+	{
+		g_richPresenceChanged = true;
+		g_onGameFrameCookie = OnGameFrame.Connect([]()
+		{
+			Discord_RunCallbacks();
+
+			UpdatePresence();
+		});
+	}
+	else if (state == "restricted")
+	{
+		DiscordRichPresence discordPresence;
+		memset(&discordPresence, 0, sizeof(discordPresence));
+		discordPresence.largeImageKey = g_discordAppAsset.c_str();
+		discordPresence.smallImageKey = g_discordAppAssetSmall.c_str();
+		discordPresence.largeImageText = g_discordAppAssetText.c_str();
+		discordPresence.smallImageText = g_discordAppAssetSmallText.c_str();
+
+		Discord_UpdatePresence(&discordPresence);
+	}
+	else if (state == "disabled")
+	{
+		Discord_Shutdown();
+	}
+
+	g_lastRichPresenceState = state;
+};
+
 static InitFunction initFunction([]()
 {
-	DiscordEventHandlers handlers;
-	memset(&handlers, 0, sizeof(handlers));
 	g_discordAppId = DEFAULT_APP_ID;
 	g_discordAppAsset = DEFAULT_APP_ASSET;
 	g_discordAppAssetSmall = DEFAULT_APP_ASSET_SMALL;
 	g_discordAppAssetText = DEFAULT_APP_ASSET_TEXT;
 	g_discordAppAssetSmallText = DEFAULT_APP_ASSET_SMALL_TEXT;
-	
-	Discord_Initialize(g_discordAppId.c_str(), &handlers, 1, nullptr);
+	g_richPresenceState = std::make_shared<ConVar<std::string>>("cl_discordRichPresence", ConVar_Archive | ConVar_UserPref | ConVar_ScriptRestricted, "", OnRichPresenceStateChange);
+
+	if (g_richPresenceState->GetValue() == "")
+	{
+		g_richPresenceState->GetHelper()->SetValue("enabled");
+	}
 
 	OnRichPresenceSetTemplate.Connect([](const std::string& text)
 	{
@@ -190,13 +264,6 @@ static InitFunction initFunction([]()
 	});
 
 	OnRichPresenceSetTemplate("In the menus\n");
-
-	OnGameFrame.Connect([]()
-	{
-		Discord_RunCallbacks();
-
-		UpdatePresence();
-	});
 
 	OnKillNetworkDone.Connect([]()
 	{
@@ -230,6 +297,9 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_DISCORD_RICH_PRESENCE_ACTION", [](fx::ScriptContext& context)
 	{
+		static HostSharedData<CfxState> hostData("CfxInitState");
+		static auto linkProtocolConnect = ToNarrow(hostData->GetLinkProtocol(L"://connect/"));
+
 		int idx = context.GetArgument<int>(0);
 		std::string label = context.CheckArgument<const char*>(1);
 		std::string url = context.CheckArgument<const char*>(2);
@@ -239,7 +309,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		if (url.find("https://") != 0 && url.find("fivem://connect/") != 0)
+		if (url.find("https://") != 0 && url.find(linkProtocolConnect) != 0)
 		{
 			return;
 		}

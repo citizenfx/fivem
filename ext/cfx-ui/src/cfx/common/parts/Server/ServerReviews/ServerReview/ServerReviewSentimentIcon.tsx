@@ -1,7 +1,7 @@
-import { ServerReviewSentiment } from "cfx/common/services/servers/reviews/types";
-import { Icon } from "cfx/ui/Icon/Icon";
-import { ui } from "cfx/ui/ui";
-import { BsHandThumbsDown, BsHandThumbsUp } from "react-icons/bs";
+import { Icon, ui } from '@cfx-dev/ui-components';
+import { BsHandThumbsDown, BsHandThumbsUp } from 'react-icons/bs';
+
+import { ServerReviewSentiment } from 'cfx/common/services/servers/reviews/types';
 
 const REVIEW_SENTIMENT_ICON: Record<ServerReviewSentiment, React.ReactNode> = {
   [ServerReviewSentiment.Undecided]: null,
@@ -24,13 +24,13 @@ const REVIEW_SENTIMENT_ICON: Record<ServerReviewSentiment, React.ReactNode> = {
 };
 
 export interface ServerReviewSentimentIconProps {
-  sentiment: ServerReviewSentiment,
+  sentiment: ServerReviewSentiment;
 }
 
-export function ServerReviewSentimentIcon({ sentiment }: ServerReviewSentimentIconProps) {
+export function ServerReviewSentimentIcon({
+  sentiment,
+}: ServerReviewSentimentIconProps) {
   return (
-    <Icon size="xxlarge">
-      {REVIEW_SENTIMENT_ICON[sentiment]}
-    </Icon>
+    <Icon size="xxlarge">{REVIEW_SENTIMENT_ICON[sentiment]}</Icon>
   );
 }

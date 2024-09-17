@@ -9,6 +9,8 @@
 #include <CrossBuildRuntime.h>
 #include <Error.h>
 
+#include "netTimeSync.h"
+
 NetLibrary* g_netLibrary;
 
 // shared relay functions (from early rev. gta:net:five; do update!)
@@ -233,12 +235,7 @@ static HookFunction initFunction([]()
 
 		auto icgi = Instance<ICoreGameInit>::Get();
 
-		uint8_t strictLockdown = 0;
-
-		if (icgi->NetProtoVersion >= 0x202002271209)
-		{
-			strictLockdown = buffer.Read<uint8_t>();
-		}
+		uint8_t strictLockdown = buffer.Read<uint8_t>();
 
 		static uint8_t lastStrictLockdown;
 
@@ -711,8 +708,6 @@ struct LoggedInt
 	int value;
 };
 
-bool IsWaitingForTimeSync();
-
 static int ReturnTrue()
 {
 	return true;
@@ -722,7 +717,7 @@ static HookFunction hookFunction([]()
 {
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
 	{
-		g_quitMsg = message;
+		g_quitMsg = "Quit: " + message;
 		ExitProcess(-1);
 	});
 
@@ -892,7 +887,7 @@ static HookFunction hookFunction([]()
 		case 5:
 			if (cgi->OneSyncEnabled)
 			{
-				if (IsWaitingForTimeSync())
+				if (sync::IsWaitingForTimeSync())
 				{
 					return;
 				}

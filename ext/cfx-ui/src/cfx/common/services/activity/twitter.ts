@@ -1,30 +1,34 @@
-import { splitByIndices } from "cfx/utils/string";
-import { IActivityItemData, IActivityItemMedia, IRawTweet, IRawTweetTypes } from "./types";
+import { splitByIndices } from '@cfx-dev/ui-components';
 
-function parseYoutube(url: string): [ boolean, string ] {
+import { IActivityItemData, IActivityItemMedia, IRawTweet, IRawTweetTypes } from './types';
+
+function parseYoutube(url: string): [boolean, string] {
   const parsedUrl = new URL(url);
+
   if (parsedUrl.hostname === 'youtu.be' && parsedUrl.pathname.length >= 5) {
-    return [ true, parsedUrl.pathname.substring(1) ];
-  } else if (parsedUrl.hostname == 'youtube.com' && parsedUrl.pathname.startsWith('/watch')) {
+    return [true, parsedUrl.pathname.substring(1)];
+  }
+
+  if (parsedUrl.hostname === 'youtube.com' && parsedUrl.pathname.startsWith('/watch')) {
     const v = parsedUrl.searchParams.get('v');
 
     if (v) {
-      return [ true, v ];
+      return [true, v];
     }
   }
 
-  return [ false, '' ];
+  return [false, ''];
 }
 
 function isYoutube(url: string) {
-  const [ valid ] = parseYoutube(url);
+  const [valid] = parseYoutube(url);
 
   return valid;
 }
 
 export function rawTweetToActivityDataItem(rawTweet: IRawTweet): IActivityItemData | null {
   let actualTweet = rawTweet;
-  let repostedBy: string | undefined = undefined;
+  let repostedBy: string | undefined;
 
   if (rawTweet.retweeted_status) {
     actualTweet = rawTweet.retweeted_status;
@@ -33,7 +37,7 @@ export function rawTweetToActivityDataItem(rawTweet: IRawTweet): IActivityItemDa
 
   const fallbackContent = new Map([[0, actualTweet.text]]);
   let content: Map<number, string>;
-  let media: IActivityItemMedia[] = [];
+  const media: IActivityItemMedia[] = [];
 
   try {
     if (actualTweet.extended_entities?.media) {
@@ -57,9 +61,8 @@ export function rawTweetToActivityDataItem(rawTweet: IRawTweet): IActivityItemDa
         if (mediaEntity.type === 'animated_gif' || mediaEntity.type === 'video') {
           mediaItem.fullAspectRatio = mediaEntity.video_info.aspect_ratio[0] / mediaEntity.video_info.aspect_ratio[1];
           mediaItem.fullUrl = mediaEntity.video_info.variants
-            .filter(a => a.content_type?.startsWith('video/'))
-            .sort((a, b) => b.bitrate - a.bitrate)[0]
-            .url;
+            .filter((a) => a.content_type?.startsWith('video/'))
+            .sort((a, b) => b.bitrate - a.bitrate)[0].url;
         }
 
         media.push(mediaItem);
@@ -71,10 +74,10 @@ export function rawTweetToActivityDataItem(rawTweet: IRawTweet): IActivityItemDa
     // some tweets (e.g. https://twitter.com/Lucas7yoshi_RS/status/1665445339946418178) may have both an embed and a
     // YT link
     if (media.length === 0) {
-      const youtubeUrls = actualTweet.entities?.urls?.filter(x => isYoutube(x.expanded_url)) || [];
+      const youtubeUrls = actualTweet.entities?.urls?.filter((x) => isYoutube(x.expanded_url)) || [];
 
       for (const youtube of youtubeUrls) {
-        const [ _, videoId ] = parseYoutube(youtube.expanded_url);
+        const [_, videoId] = parseYoutube(youtube.expanded_url);
 
         media.push({
           id: videoId,
@@ -91,7 +94,9 @@ export function rawTweetToActivityDataItem(rawTweet: IRawTweet): IActivityItemDa
       }
     }
 
-    const mediaIndicesFull = (actualTweet.entities.media || []).map((media) => media.indices).concat(youtubeIndices);
+    const mediaIndicesFull = (actualTweet.entities.media || [])
+      .map((tweetMedia) => tweetMedia.indices)
+      .concat(youtubeIndices);
     const mediaIndices = mediaIndicesFull.map(([x]) => x);
 
     const urlIndicesFull = (actualTweet.entities.urls || []).map((url) => url.indices);
@@ -110,10 +115,12 @@ export function rawTweetToActivityDataItem(rawTweet: IRawTweet): IActivityItemDa
   }
 
   try {
-    const links = (actualTweet.entities.urls || []).map((link) => ({
-      indices: link.indices,
-      url: link.display_url,
-    } as IActivityItemData['links'][0]));
+    const links = (actualTweet.entities.urls || []).map(
+      (link) => ({
+        indices: link.indices,
+        url: link.display_url,
+      }) as IActivityItemData['links'][0],
+    );
 
     const activity: IActivityItemData = {
       id: actualTweet.id_str,
@@ -123,7 +130,7 @@ export function rawTweetToActivityDataItem(rawTweet: IRawTweet): IActivityItemDa
       media,
       userAvatarUrl: actualTweet.user.profile_image_url_https || actualTweet.user.profile_image_url,
       userDisplayName: actualTweet.user.name,
-      userScreenName: '@' + actualTweet.user.screen_name,
+      userScreenName: `@${actualTweet.user.screen_name}`,
       links,
       repostedBy,
     };

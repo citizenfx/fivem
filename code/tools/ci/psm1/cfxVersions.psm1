@@ -71,6 +71,7 @@ function Get-CfxVersions {
 
         $LauncherPaths = @(
             "code/premake5.lua"
+            "code/premake5_builds.lua"
             "code/shared/"
             "code/tools/dbg/"
             "code/client/launcher/"
@@ -101,7 +102,6 @@ function Get-CfxVersions {
         $versions.UI = ((git rev-list $versions.UICommit | measure-object).Count * 10) + 1100000
 
         $SystemResourcesPaths = @(
-            "ext/txAdmin"
             "ext/system-resources"
         )
         $versions.SystemResourcesCommit = (git rev-list -1 HEAD $SystemResourcesPaths)

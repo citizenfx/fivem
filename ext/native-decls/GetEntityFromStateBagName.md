@@ -37,7 +37,7 @@ AddStateBagChangeHandler("blockTasks", null, async (bagName, key, value /* boole
 AddStateBagChangeHandler("blockTasks", nil, function(bagName, key, value) 
     local entity = GetEntityFromStateBagName(bagName)
     -- Whoops, we don't have a valid entity!
-    if entity === 0 then return end
+    if entity == 0 then return end
     -- We don't want to freeze the entity position if the entity collision hasn't loaded yet
     while not HasCollisionLoadedAroundEntity(entity) do
         -- The entity went out of our scope before the collision loaded

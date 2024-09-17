@@ -1,13 +1,19 @@
-import { returnTrue } from "cfx/utils/functional";
-import { IListableServerView } from "./types";
-import { IServerListConfig } from "../lists/types";
-import { ISearchTerm } from "cfx/base/searchTermsParser";
-import { arrayAll, arraySome } from "cfx/utils/array";
-import { normalizeSearchString } from "cfx/base/serverUtils";
+import { returnTrue } from '@cfx-dev/ui-components';
+
+import { ISearchTerm } from 'cfx/base/searchTermsParser';
+import { normalizeSearchString } from 'cfx/base/serverUtils';
+import { arrayAll, arraySome } from 'cfx/utils/array';
+
+import { IListableServerView } from './types';
+import { IServerListConfig } from '../lists/types';
 
 type IFilter = (server: IListableServerView) => boolean;
 
-export function filterList(servers: Record<string, IListableServerView>, sortedList: string[], config: IServerListConfig): string[] {
+export function filterList(
+  servers: Record<string, IListableServerView>,
+  sortedList: string[],
+  config: IServerListConfig,
+): string[] {
   const filters: IFilter[] = [];
 
   compileTagsFilters(filters, config);
@@ -49,9 +55,7 @@ function compileLocaleFilters(filters: IFilter[], config: IServerListConfig) {
     : returnTrue;
 
   if (localeEntries.length) {
-    filters.push(
-      (server) => someFilter(server) && allFilter(server),
-    );
+    filters.push((server) => someFilter(server) && allFilter(server));
   }
 }
 
@@ -62,33 +66,28 @@ function compileTagsFilters(filters: IFilter[], config: IServerListConfig) {
   const tagEntries = Object.entries(config.tags);
 
   if (tagEntries.length) {
-    filters.push(
-      (server) => arrayAll(tagEntries, ([tag, enabled]) => enabled === Boolean(server.tagsMap[tag])),
-    );
+    filters.push((server) => arrayAll(tagEntries, ([tag, enabled]) => enabled === Boolean(server.tagsMap[tag])));
   }
 }
 
 function compileOnlyPremiumFilters(filters: IFilter[], config: IServerListConfig) {
   if (config.onlyPremium) {
-    filters.push(
-      (server) => Boolean(server.premium),
-    );
+    filters.push((server) => Boolean(server.premium));
   }
 }
 
 function compileEmptyFullFilters(filters: IFilter[], config: IServerListConfig) {
-  const { hideFull, hideEmpty } = config;
+  const {
+    hideFull,
+    hideEmpty,
+  } = config;
 
   if (hideFull) {
-    filters.push(
-      (server) => !server.isFull,
-    );
+    filters.push((server) => !server.isFull);
   }
 
   if (hideEmpty) {
-    filters.push(
-      (server) => !server.isEmpty,
-    );
+    filters.push((server) => !server.isEmpty);
   }
 }
 
@@ -106,7 +105,7 @@ function compileTermValueMatcher(term: ISearchTerm): (against: string) => boolea
 
 function compileSearchTermsFilters(filters: IFilter[], config: IServerListConfig) {
   const {
-    searchTextParsed: terms
+    searchTextParsed: terms,
   } = config;
 
   if (!terms.length) {
@@ -114,11 +113,15 @@ function compileSearchTermsFilters(filters: IFilter[], config: IServerListConfig
   }
 
   for (const term of terms) {
-    const { type, value, invert } = term;
+    const {
+      type,
+      value,
+      invert,
+    } = term;
 
     const valueMatcher = compileTermValueMatcher(term);
 
-    let filter: IFilter | undefined = undefined;
+    let filter: IFilter | undefined;
 
     switch (type) {
       case 'name': {
@@ -147,7 +150,7 @@ function compileSearchTermsFilters(filters: IFilter[], config: IServerListConfig
           const idx = server.locale.indexOf(value);
 
           const starts = idx === 0;
-          const ends = idx === (server.locale.length - 2);
+          const ends = idx === server.locale.length - 2;
 
           return starts || ends;
         };
@@ -155,17 +158,24 @@ function compileSearchTermsFilters(filters: IFilter[], config: IServerListConfig
       }
 
       case 'category': {
-        const { category } = term;
+        const {
+          category,
+        } = term;
 
         filter = (server) => {
-          const categoryMatcher = server.categories[category] || server.categories[category + 's'];
+          const categoryMatcher = server.categories[category] || server.categories[`${category}s`];
+
           if (!categoryMatcher) {
             return false;
           }
 
           switch (categoryMatcher.type) {
-            case 'string': return valueMatcher(categoryMatcher.against);
-            case 'array': return categoryMatcher.against.some((categoryMatchee) => valueMatcher(categoryMatchee));
+            case 'string':
+              return valueMatcher(categoryMatcher.against);
+            case 'array':
+              return categoryMatcher.against.some((categoryMatchee) => valueMatcher(categoryMatchee));
+            default:
+              return false;
           }
         };
         break;
@@ -173,11 +183,9 @@ function compileSearchTermsFilters(filters: IFilter[], config: IServerListConfig
     }
 
     if (filter) {
-      filters.push(
-        invert
-          ? (server) => !filter!(server)
-          : filter,
-      );
+      filters.push(invert
+        ? (server) => !filter!(server)
+        : filter);
     }
   }
 }

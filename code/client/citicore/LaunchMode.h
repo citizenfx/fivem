@@ -1,27 +1,5 @@
 #pragma once
 
-inline bool CfxIsSinglePlayer()
-{
-#ifdef _WIN32
-	static bool isSinglePlayer = false;
-	static bool isSinglePlayerSet = false;
-
-	if (!isSinglePlayerSet)
-	{
-		if (wcsstr(GetCommandLineW(), L" -sp") != nullptr || wcsstr(GetCommandLineW(), L"b372") != nullptr)
-		{
-			isSinglePlayer = true;
-		}
-
-		isSinglePlayerSet = true;
-	}
-
-	return isSinglePlayer;
-#else
-	return false;
-#endif
-}
-
 inline bool CfxIsWine()
 {
 #ifdef _WIN32

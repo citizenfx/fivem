@@ -23,9 +23,13 @@ ConsoleVariableManager::ConsoleVariableManager(console::Context* parentContext)
 
 			if (entry)
 			{
-				entry->variable->SetValue(value);
-
-				entry->flags |= addFlags;
+				// Only update flag if the value could be set - this prevents
+				// Replicated, ReadOnly, and Internal convars from having its
+				// flags modified.
+				if (entry->variable->SetValue(value))
+				{
+					entry->flags |= addFlags;
+				}
 
 				return;
 			}

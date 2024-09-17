@@ -151,6 +151,10 @@ struct audMixerDevice
 static hook::thiscall_stub<void*(rage::audMixerDevice*, int)> audMixerDevice__FreePcmSourceSlot([]()
 {
 #ifdef GTA_FIVE
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		return hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8B D9 8B 89 ? ? ? ? 8B FA");
+	}
 	return hook::get_call(hook::get_pattern("8B CE E8 ? ? ? ? E9 ? 00 00 00 83 FF FF", 2));
 #elif IS_RDR3
 	return hook::get_pattern("8B DA 48 8B 89 ? ? ? ? 44 0F AF C2 49 03 C8", -0xC);
@@ -379,7 +383,8 @@ static HookFunction hookFunction([]()
 	{
 		// Re-Build rage::audMixerDevice::GeneratePcm() because the stack-buffer for audMixerSyncSignalArray is too small
 #ifdef GTA_FIVE
-		auto funcStart = hook::get_pattern("48 8D A8 78 FD FF FF 48 81 EC 60 03 00 00 ? 8B F1", -0x18);
+		// 3258: the buffer size was changed from 64 to 128, but still not enough according to rage__audMixerDevice__GeneratePcm hook
+		auto funcStart = hook::get_pattern("48 8D A8 78 ? FF FF 48 81 EC 60 ? 00 00 ? 8B F1", -0x18);
 
 		if (!xbr::IsGameBuildOrGreater<2189>())
 		{
@@ -389,12 +394,22 @@ static HookFunction hookFunction([]()
 		{
 			MH_CreateHook(funcStart, rage__audMixerDevice__GeneratePcm<2189>, nullptr);
 		}
-		
+
 		MH_EnableHook(funcStart);
 
-		auto line = hook::get_pattern("48 8D 15 ? ? ? ? 41 B9 FF FF 00 00 45 85 E4");
+		void* line = nullptr;
+		void* line2 = nullptr;
+		if (xbr::IsGameBuildOrGreater<3258>())
+		{
+			line = hook::get_pattern("48 8D 15 ? ? ? ? 41 B9 ? ? ? ? 89 BD");
+			line2 = hook::get_pattern("48 8B 05 ? ? ? ? 41 0F AF 9E");
+		}
+		else
+		{
+			line = hook::get_pattern("48 8D 15 ? ? ? ? 41 B9 FF FF 00 00 45 85 E4");
+			line2 = hook::get_pattern("48 8B 05 ? ? ? ? 0F AF ? ? 03");
+		}
 		rage::audDriver::m_VoiceManager = hook::get_address<int64_t*>(line, 3, 7);
-		auto line2 = hook::get_pattern("48 8B 05 ? ? ? ? 0F AF ? ? 03");
 		rage::audDriver::sm_Mixer = hook::get_address<char**>(line2, 3, 7);
 #elif IS_RDR3
 		auto location = hook::get_pattern("E8 ? ? ? ? 48 8D 4C 24 ? E8 ? ? ? ? 45 8B 87 ? ? ? ? 48", -0x2E);
@@ -419,7 +434,7 @@ static HookFunction hookFunction([]()
 		static auto asynchronousAudio = hook::get_address<bool*>(hook::get_pattern("E8 ? ? ? ? 40 38 35 ? ? ? ? 75 05", 8));
 		static auto audioTimeout = hook::get_address<int*>(hook::get_pattern("8B 15 ? ? ? ? 41 03 D6 3B", 2));
 #elif IS_RDR3
-		static auto asynchronousAudio = hook::get_address<bool*>(hook::get_pattern("80 3D ? ? ? ? ? 74 38 33 DB 40 84 FF 74 19"));
+		static auto asynchronousAudio = hook::get_address<bool*>(hook::get_pattern("80 3D ? ? ? ? ? 74 38 33 DB 40 84 FF 74 19", 2));
 		static auto audioTimeout = hook::get_address<int*>(hook::get_pattern("8B 15 ? ? ? ? 41 03 D6 3B", 2));
 #endif
 		// See https://github.com/citizenfx/fivem/issues/1446 comments for a more viable solution:

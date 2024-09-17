@@ -11,6 +11,7 @@
 #include <functional>
 #include <mutex>
 #include <queue>
+#include <thread>
 
 #include <VFSDevice.h>
 
@@ -75,6 +76,14 @@ public:
 	virtual void Abort() = 0;
 
 	virtual std::string GetRawBody() = 0;
+
+	inline void Wait()
+	{
+		while (!HasCompleted())
+		{
+			std::this_thread::yield();
+		}
+	}
 };
 
 struct ManualHttpRequestHandle : HttpRequestHandle

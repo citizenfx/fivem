@@ -43,6 +43,7 @@ namespace CitizenFX.Core
 				lock (s_nextFrame)
 				{
 					s_nextFrame.Add(coroutine);
+					ScriptInterface.RequestTickNextFrame();
 				}
 			}
 			else
@@ -62,7 +63,7 @@ namespace CitizenFX.Core
 		/// <param name="coroutine">Action to execute</param>
 		/// <param name="time">Time when it should be executed, see <see cref="CurrentTime"/></param>
 		public static void Schedule(Action coroutine, TimePoint time)
-		{			
+		{
 			if (time <= CurrentTime) // e.g.: Coroutine.Wait(0u) or Coroutine.Delay(0u)
 			{
 				Schedule(coroutine);
@@ -72,14 +73,30 @@ namespace CitizenFX.Core
 				lock (s_queue)
 				{
 					// linear ordered insert, performance improvement might be a binary tree (i.e.: priority queue)
-					for (var it = s_queue.First; it != null; it = it.Next)
+					var it = s_queue.First;
+					if (it != null)
 					{
+						// if added to the front, we'll also need to request for a tick/call-in
 						if (time < it.Value.Item1)
 						{
-							s_queue.AddBefore(it, new Tuple<ulong, Action>(time, coroutine));
+							s_queue.AddFirst(new Tuple<ulong, Action>(time, coroutine));
+							ScriptInterface.RequestTick(time);
+
 							return;
 						}
+
+						// check next
+						for (it = it.Next; it != null; it = it.Next)
+						{
+							if (time < it.Value.Item1)
+							{
+								s_queue.AddBefore(it, new Tuple<ulong, Action>(time, coroutine));
+								return;
+							}
+						}
 					}
+					else
+						ScriptInterface.RequestTick(time); // no tasks were scheduled, so this needs to request a call-in
 
 					s_queue.AddLast(new Tuple<ulong, Action>(time, coroutine));
 				}
@@ -149,26 +166,27 @@ namespace CitizenFX.Core
 				// scheduled coroutines (ordered)
 				for (var it = s_queue.First; it != null;)
 				{
-					var curIt = it;
-					it = curIt.Next;
+					var current = it.Value;
 
-					if (curIt.Value.Item1 <= timeNow)
+					if (current.Item1 <= timeNow)
 					{
+						s_queue.Remove(it); // make sure we remove this one before any subsequent scheduling can happen
+						it = s_queue.First; // next is now over here, making use of the CPU cached results to keep performance
+
 						try
 						{
-							curIt.Value.Item2();
+							current.Item2();
 						}
 						catch (Exception ex)
 						{
 							Debug.WriteLine(ex.ToString());
 						}
-						finally
-						{
-							s_queue.Remove(curIt);
-						}
 					}
 					else
+					{
+						ScriptInterface.RequestTick(current.Item1);
 						return;
+					}
 				}
 			}
 		}

@@ -1,14 +1,18 @@
-import { usePlatformStatusService } from "cfx/apps/mpMenu/services/platformStatus/platformStatus.service";
-import { StatusLevel } from "cfx/apps/mpMenu/services/platformStatus/types";
-import { GameName } from "cfx/base/game";
-import { CurrentGameName } from "cfx/base/gameRuntime";
-import { $L } from "cfx/common/services/intl/l10n";
-import { LinkButton } from "cfx/ui/Button/LinkButton";
-import { Icons } from "cfx/ui/Icons";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { TextBlock } from "cfx/ui/Text/Text";
-import { Title } from "cfx/ui/Title/Title";
-import { observer } from "mobx-react-lite";
+import {
+  Icons,
+  Flex,
+  TextBlock,
+  Title,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+
+import { usePlatformStatusService } from 'cfx/apps/mpMenu/services/platformStatus/platformStatus.service';
+import { StatusLevel } from 'cfx/apps/mpMenu/services/platformStatus/types';
+import { GameName } from 'cfx/base/game';
+import { CurrentGameName } from 'cfx/base/gameRuntime';
+import { AnalyticsLinkButton } from 'cfx/common/parts/AnalyticsLinkButton/AnalyticsLinkButton';
+import { ElementPlacements } from 'cfx/common/services/analytics/types';
+import { $L } from 'cfx/common/services/intl/l10n';
 
 const statusIconColors = {
   [StatusLevel.AllSystemsOperational]: 'success',
@@ -31,12 +35,13 @@ export const PlatformStats = observer(function PlatformStats() {
     <Flex>
       {showStatusButton && (
         <Title fixedOn="bottom" title={PlatformStatusService.message}>
-          <LinkButton
+          <AnalyticsLinkButton
             to="https://status.cfx.re/"
             theme="transparent"
             size="large"
             icon={statusIcons[PlatformStatusService.level]}
             className={`cfx-color-${statusIconColors[PlatformStatusService.level]}`}
+            elementPlacement={ElementPlacements.Nav}
           />
         </Title>
       )}

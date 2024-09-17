@@ -749,6 +749,15 @@ inline T get_call(T address)
 	return (T)target;
 }
 
+template<typename T, typename OffsetType>
+inline T* get_by_offset(uint8_t* address, OffsetType offset)
+{
+	intptr_t base_address = get_adjusted(address);
+	intptr_t target = *(OffsetType*)(base_address + offset);
+	target += (base_address + offset + sizeof(OffsetType));
+	return reinterpret_cast<T*>(target);
+}
+
 template<typename TTarget, typename T>
 inline void set_call(TTarget* target, T address)
 {
@@ -818,4 +827,5 @@ inline T get_address(TAddr address, size_t offsetTo4ByteAddr, size_t numBytesInL
 
 #include "Hooking.Invoke.h"
 #include "Hooking.Patterns.h"
+#include "Hooking.FlexStruct.h"
 #endif

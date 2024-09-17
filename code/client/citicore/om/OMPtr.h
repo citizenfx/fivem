@@ -103,6 +103,18 @@ public:
 		return GetAddressOf();
 	}
 
+	result_t CopyTo(T** ptr) const
+	{
+		if (m_ref)
+		{
+			m_ref->AddRef();
+		}
+
+		*ptr = m_ref;
+
+		return FX_S_OK;
+	}
+
 	template<class TOther>
 	result_t As(OMPtr<TOther>* p)
 	{

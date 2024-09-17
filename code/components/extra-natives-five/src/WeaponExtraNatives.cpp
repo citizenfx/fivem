@@ -97,13 +97,13 @@ static flashlightProcessFn origFlashlightProcess;
 
 static std::atomic_bool g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = false;
 
+static unsigned char* g_flashlightAndByte = nullptr;
 static void Flashlight_Process(CWeaponComponentFlashlight* thisptr, CPed* ped)
 {
 	// Copy every flag except for FLASHLIGHT_ON which is 1
 	// 80 63 49 FE          and     byte ptr [rbx+49h], 0FEh
 	// change to 0xFF so it copies the ON flag as well
 	// (This byte is located in the original Flashlight::Process() function.)
-	static unsigned char* g_flashlightAndByte = hook::get_pattern<unsigned char>("80 63 49 FE EB", 3);
 
 	if (!g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING)
 	{
@@ -222,14 +222,11 @@ static void* CTaskGun_Stage1_1_TransitionStage(void* CTask, int newStage)
 
 typedef void* (*CTaskAimGunOnFootProcessStagesFn)(unsigned char*, int, int);
 static CTaskAimGunOnFootProcessStagesFn origCTaskAimGunOnFoot_ProcessStages;
+typedef CWeapon* (*GetWeaponFn)(void*);
+static uint32_t pedOffsetToWeaponMgr = 0;
+static GetWeaponFn GetWeapon = nullptr;
 static void* CTaskAimGunOnFoot_ProcessStages(unsigned char* thisptr, int stage, int substage)
 {
-	// Borrow the GetWeapon() and offset into Ped from another vfunc in this class.
-	static unsigned char* addr = hook::get_pattern<unsigned char>("0F 84 ? ? ? ? 48 8B 8F ? ? ? ? E8 ? ? ? ? 48 8B F0");
-	static uint32_t pedOffsetToWeaponMgr = *(uint32_t*)(addr + 9);
-	typedef CWeapon* (*GetWeaponFn)(void*);
-	static GetWeaponFn GetWeapon = hook::get_address<GetWeaponFn>((uintptr_t)addr + 13, 1, 5);
-
 	CPed* ped = *(CPed**)(thisptr + 16);
 
 	if (!(g_SET_WEAPONS_NO_AUTOSWAP || g_SET_WEAPONS_NO_AUTORELOAD) || ped != getLocalPlayerPed())
@@ -471,6 +468,17 @@ static HookFunction hookFunction([]()
 		uintptr_t* flashlightVtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("83 CD FF 48 8D 05 ? ? ? ? 33 DB", 6));
 		origFlashlightProcess = (flashlightProcessFn)flashlightVtable[index];
 		hook::put(&flashlightVtable[index], (uintptr_t)Flashlight_Process);
+	}
+
+	// Borrow the GetWeapon() and offset into Ped from another vfunc in this class.
+	{
+		unsigned char* addr = hook::get_pattern<unsigned char>("0F 84 ? ? ? ? 48 8B 8F ? ? ? ? E8 ? ? ? ? 48 8B F0");
+		pedOffsetToWeaponMgr = *(uint32_t*)(addr + 9);
+		GetWeapon = hook::get_address<GetWeaponFn>((uintptr_t)addr + 13, 1, 5);
+	}
+
+	{
+		g_flashlightAndByte = hook::get_pattern<unsigned char>("80 63 49 FE EB", 3);
 	}
 
 	// Disable auto-swaps

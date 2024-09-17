@@ -1,4 +1,4 @@
-import { defineService, useService } from "../../../base/servicesContainer";
+import { defineService, useService } from '../../../base/servicesContainer';
 
 export const IUiService = defineService<IUiService>('UiService');
 export interface IUiService {
@@ -12,7 +12,7 @@ export function useUiService() {
 }
 
 export interface IUiDimensions {
-  viewportWidth: number,
-  viewportHeight: number,
-  quant: number,
+  viewportWidth: number;
+  viewportHeight: number;
+  quant: number;
 }

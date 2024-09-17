@@ -9,11 +9,10 @@
 #include <Hooking.h>
 
 #include <ICoreGameInit.h>
-#include <LaunchMode.h>
 
 uint32_t GetCurrentMapGroup()
 {
-	bool isSP = (CfxIsSinglePlayer() || Instance<ICoreGameInit>::Get()->HasVariable("storyMode"));
+	bool isSP = Instance<ICoreGameInit>::Get()->HasVariable("storyMode");
 	return (isSP) ? HashString("GROUP_MAP_SP") : HashString("GROUP_MAP");
 }
 

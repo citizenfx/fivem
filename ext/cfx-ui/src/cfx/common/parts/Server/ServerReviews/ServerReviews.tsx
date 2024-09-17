@@ -1,25 +1,32 @@
-import { useService } from "cfx/base/servicesContainer";
-import { $L } from "cfx/common/services/intl/l10n";
-import { IServersReviewsService } from "cfx/common/services/servers/reviews/serversReviews.service";
-import { IServerView } from "cfx/common/services/servers/types";
-import { Button } from "cfx/ui/Button/Button";
-import { Indicator } from "cfx/ui/Indicator/Indicator";
-import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Text, TextBlock } from "cfx/ui/Text/Text";
-import { observer } from "mobx-react-lite";
-import { MdOutlineReviews, MdReviews } from "react-icons/md";
-import { ServerReview } from "./ServerReview/ServerReview";
-import { ServerReviewForm } from "./ServerReviewForm/ServerReviewForm";
-import { Icons } from "cfx/ui/Icons";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
+/* eslint-disable react/no-unescaped-entities */
+import {
+  Button,
+  Icons,
+  Indicator,
+  InfoPanel,
+  Flex,
+  Pad,
+  Text,
+  TextBlock,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import { MdOutlineReviews, MdReviews } from 'react-icons/md';
+
+import { useService } from 'cfx/base/servicesContainer';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { IServersReviewsService } from 'cfx/common/services/servers/reviews/serversReviews.service';
+import { IServerView } from 'cfx/common/services/servers/types';
+
+import { ServerReview } from './ServerReview/ServerReview';
 
 export interface ServerReviewsProps {
-  server: IServerView,
+  server: IServerView;
 }
 
 export const ServerReviews = observer(function ServerReviews(props: ServerReviewsProps) {
-  const { server } = props;
+  const {
+    server,
+  } = props;
 
   const ServersReviewsService = useService(IServersReviewsService);
 
@@ -30,17 +37,13 @@ export const ServerReviews = observer(function ServerReviews(props: ServerReview
   const serverReviews = ServersReviewsService.getForServer(server.id);
 
   const nodes = serverReviews.itemsSequence.map((id) => (
-    <ServerReview
-      key={id}
-      review={serverReviews.items[id]}
-      serverReviews={serverReviews}
-    />
+    <ServerReview key={id} review={serverReviews.items[id]} serverReviews={serverReviews} />
   ));
 
   return (
     <Flex vertical>
       <Flex centered="axis" gap="small">
-        <Text size="small" opacity="75" >
+        <Text size="small" opacity="75">
           <MdOutlineReviews />
         </Text>
 
@@ -83,19 +86,13 @@ export const ServerReviews = observer(function ServerReviews(props: ServerReview
         <InfoPanel type="success">
           <Flex>
             <MdReviews />
-            <span>
-              {$L('#Reviews_SubmittedReviewNeedsApproval')}
-            </span>
+            <span>{$L('#Reviews_SubmittedReviewNeedsApproval')}</span>
           </Flex>
         </InfoPanel>
       )}
 
       {!!serverReviews.ownReview && (
-        <ServerReview
-          disableActions
-          review={serverReviews.ownReview}
-          serverReviews={serverReviews}
-        />
+        <ServerReview disableActions review={serverReviews.ownReview} serverReviews={serverReviews} />
       )}
 
       {nodes}

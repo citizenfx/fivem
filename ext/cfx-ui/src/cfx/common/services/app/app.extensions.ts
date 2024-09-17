@@ -1,15 +1,19 @@
-import { interfaces } from "inversify";
-import { ServicesContainer } from "../../../base/servicesContainer";
+import { interfaces } from 'inversify';
+
+import { ServicesContainer } from '../../../base/servicesContainer';
 
 export const AppContribution = Symbol('AppContribution');
 export interface AppContribution {
-  init?(): any,
+  init?(): any;
 
-  beforeRender?(): any,
+  beforeRender?(): any;
 
-  afterRender?(): any,
+  afterRender?(): any;
 }
 
-export function registerAppContribution<T extends AppContribution>(container: ServicesContainer, service: interfaces.Newable<T>) {
+export function registerAppContribution<T extends AppContribution>(
+  container: ServicesContainer,
+  service: interfaces.Newable<T>,
+) {
   container.registerImpl(AppContribution, service);
 }

@@ -1,17 +1,7 @@
 name: Validate PR
 on:
-  pull_request:
+  pull_request_target:
     types: [ reopened, opened, edited, synchronize, ready_for_review ]
-    paths:
-      - 'code/**'
-      - '!.github/**'
-      - '!code/tools/**'
-      - '!ext/**'
-      - '!*.bat'
-      - '!*.cmd'
-      - '!*.ps1'
-      - '!*.psm1'
-      - '!*.sh'
 
 permissions:
   pull-requests: write
@@ -27,14 +17,68 @@ jobs:
     runs-on: ubuntu-latest
     env:
       COMMITS_URL: ${{ github.event.pull_request.commits_url }}
+      FILES_URL: ${{ github.event.pull_request.url }}/files
       PR_TITLE: ${{ github.event.pull_request.title }}
       PR_DESCR: ${{ github.event.pull_request.body }}
-      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-      PR_GITHUB_CONTEXT: ${{ toJSON(github) }}
+    outputs:
+      requires_compilation: ${{ steps.check_changed_files.outputs.requires_compilation }}
     steps:
-      - name: Check PR details
+      - name: Check PR's changed files
+        id: check_changed_files
         run: |
+          # Include or exclude files, no greedy matching so use [^.]* to go up to the first dot '.'
+          # Later inclusions override previous exclusions, following same logic as GitHub's paths checking
+          filterFiles=(
+                '^code/*'
+                '!^.github/*'
+                '!^code/tools/*'
+                '!^ext/*'
+                '^ext/native-decls/[^.]*\.md' # do include native declarations
+                '!.bat$'
+                '!.cmd$'
+                '!.ps1$'
+                '!.psm1$'
+                '!.sh$'
+          )
+          
+          # check changed files
+          readarray -t changedFiles < <(curl -ks "$FILES_URL" | jq '.[].filename')
+          
+          shouldCompile=false
+          
+          for (( i=0; i < ${#changedFiles[@]}; i++ )); do
+              echo ${changedFiles[$i]}
+          done
+          
+          # file path matching
+          for (( i=0; i < ${#changedFiles[@]}; i++ )); do
+              # remove first and last " (quotes)
+              path=${changedFiles[$i]:1:-1}
+              exclude=0
+              
+              for regex in ${filterFiles[@]}; do
+                  if [[ ${regex:0:1} = '!' ]]; then
+                      if [[ "$path" =~ ${regex:1} ]]; then
+                          exclude=1
+                      fi
+                  else
+                      if [[ "$path" =~ $regex ]]; then
+                          exclude=0
+                          shouldCompile=true
+                      fi
+                  fi
+              done
+              
+              if [[ $exclude -ne 0 ]]; then
+                  shouldCompile=false
+                  break
+              fi
+          done
+          
+          echo "requires_compilation=$shouldCompile" >> "$GITHUB_OUTPUT"
+      
+      - name: Check PR details
+        run: |          
           valid=true
           
           if [[ ${#PR_TITLE} -lt 10 ]]; then
@@ -79,7 +123,7 @@ jobs:
             echo 'Titles need to:'
             echo '- Start with: fix, tweak, or feat,'
             echo '- Within parenthesis contain the area the change is applying,'
-            echo '- Colon + space, i.e: ": \",'
+            echo '- Colon + space, i.e: ": " (without quotes)'
             echo '- Description longer than 8 characters".'
             echo 
             echo 'Examples of correct commit titles:'
@@ -132,12 +176,13 @@ jobs:
   build_all:
     name: Build
     needs: input_validation
+    if: ${{ needs.input_validation.outputs.requires_compilation == 'true' }}
     uses: ./.github/workflows/ci_build.yml
   
   post_build:
     name: Post Build PR actions
     if: always()
-    needs: build_all
+    needs: [ build_all, input_validation ]
     runs-on: ubuntu-latest
     steps:
       - name: Mark PR as valid

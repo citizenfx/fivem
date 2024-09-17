@@ -1,8 +1,7 @@
-using module .\cfxInterBuildCache.psm1
-
 class CfxBuildContext {
     [string] $ProjectRoot
 
+    [boolean] $IsDryRun
     [boolean] $IsReleaseBuild
 
     [string] $ProductName
@@ -31,6 +30,9 @@ class CfxBuildContext {
 
     [string] $PrivateRoot = ""
     [string] $PrivateUri = ""
+
+    [string] $ToolkitRoot = ""
+    [string] $ToolkitUri = ""
 
     [string] $SentryOrgName = "citizenfx"
     [string] $SentryProjectName
@@ -101,6 +103,7 @@ function Get-CfxBuildContext {
 
     $ctx.ProjectRoot = $env:CI_PROJECT_DIR -replace '/', '\'
 
+    $ctx.IsDryRun = $env:CFX_DRY_RUN -eq "true"
     $ctx.IsReleaseBuild = $env:CFX_RELEASE_BUILD -eq "true"
 
     # Perform basic checks
@@ -111,12 +114,7 @@ function Get-CfxBuildContext {
         throw "CI did not provide the branch name"
     }
 
-    # Figure out build cache root
-    if ($env:CFX_USE_INTER_BUILD_CACHE -eq "true") {
-        $ctx.BuildCacheRoot = Get-InterBuildCache -ProjectRoot $ctx.ProjectRoot
-    } else {
-        $ctx.BuildCacheRoot = [IO.Path]::GetFullPath($ctx.getPathInProject(".build-cache"))
-    }
+    $ctx.BuildCacheRoot = [IO.Path]::GetFullPath($ctx.getPathInProject(".build-cache"))
 
     $ctx.CodeRoot = $ctx.getPathInProject("code")
     $ctx.CachesRoot = $ctx.getPathInProject("caches")
@@ -132,6 +130,15 @@ function Get-CfxBuildContext {
     }
     elseif ($ctx.IsReleaseBuild) {
         throw "Release build requires FIVEM_PRIVATE_URI env var to be defined"
+    }
+
+    # Figure out toolkit
+    if ($env:CFX_BUILD_TOOLKIT_URI) {
+        $ctx.ToolkitRoot = $ctx.getPathInBuildCache("cfx-build-toolkit")
+        $ctx.ToolkitUri = $env:CFX_BUILD_TOOLKIT_URI
+    }
+    elseif ($ctx.IsReleaseBuild) {
+        throw "Release build requires CFX_BUILD_TOOLKIT_URI env var to be defined"
     }
 
     $premakeDirSubpath = ""

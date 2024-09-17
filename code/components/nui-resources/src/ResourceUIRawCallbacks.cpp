@@ -24,17 +24,23 @@ struct RequestWrap
 	std::string method;
 	std::string body;
 	std::string path;
+	std::optional<std::string> resource;
 
-	MSGPACK_DEFINE_MAP(headers, rawHeaders, method, path, body);
+	MSGPACK_DEFINE_MAP(headers, rawHeaders, method, path, body, resource);
 };
 
 static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& type, const std::string& ref)
 {
-	return [resource, type, ref](const std::string& path, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& postData, ResUIResultCallback cb)
+	return [resource, type, ref](const std::string& path, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& postData, const std::optional<std::string>& originResource, ResUIResultCallback cb)
 	{
 		RequestWrap req;
 		req.method = (postData.empty()) ? "GET" : "POST";
 		req.body = postData;
+
+		if (originResource.has_value())
+		{
+			req.resource = originResource.value();
+		}
 
 		std::map<std::string, msgpack::object> headerMap;
 		for (auto& header : headers)

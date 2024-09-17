@@ -24,6 +24,9 @@ function Invoke-CfxSetupPrivate {
 
         if (Test-Path "$($Context.PrivateRoot)\.git") {
             Push-Location $Context.PrivateRoot
+                git remote set-url origin $privateUri | Out-Null
+                Test-LastExitCode "Failed to set origin url for private"
+
                 git fetch origin | Out-Null
                 Test-LastExitCode "Failed to fetch private"
 
@@ -35,6 +38,9 @@ function Invoke-CfxSetupPrivate {
             $cloneToPath = [IO.Path]::GetFileName($Context.PrivateRoot)
 
             Remove-Item -Force -Recurse -ErrorAction Ignore $Context.PrivateRoot | Out-Null
+
+            # Ensure parent directory exists
+            New-Item -ItemType Directory -Force $parentPath | Out-Null
 
             Push-Location $parentPath
                 git clone -b $privateBranch $privateUri $cloneToPath | Out-Null

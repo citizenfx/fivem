@@ -5,7 +5,7 @@
 namespace fx
 {
 	Client::Client(const std::string& guid)
-	: m_guid(guid), m_netId(0xFFFF), m_netBase(-1), m_lastSeen(0), m_hasRouted(false), m_slotId(-1), m_dropping(false), 
+	: m_guid(guid), m_netId(0xFFFF), m_previousNetId(0xFFFF), m_netBase(-1), m_lastSeen(0), m_hasRouted(false), m_slotId(-1), m_dropping(false), 
 	  m_firstSeen(msec()), m_clientNetworkMetricsSendCallback(nullptr), m_clientNetworkMetricsRecvCallback(nullptr)
 	{
 
@@ -19,16 +19,12 @@ namespace fx
 		OnAssignPeer();
 	}
 
-	void Client::SetNetBase(uint32_t netBase)
-	{
-		m_netBase = netBase;
-	}
-
 	void Client::SetNetId(uint32_t netId)
 	{
+		m_previousNetId = m_netId;
 		m_netId = netId;
 
-		OnAssignNetId();
+		OnAssignNetId(m_previousNetId);
 
 		UpdateCachedPrincipalValues();
 	}
@@ -48,7 +44,7 @@ namespace fx
 	bool Client::IsDead()
 	{
 		// if we've not connected yet, we can't be dead
-		if (m_netId >= 0xFFFF)
+		if (!HasConnected())
 		{
 			auto canBeDead = GetData("canBeDead");
 

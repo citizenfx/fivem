@@ -59,12 +59,45 @@ public:
 	bool Read(void* buffer, size_t length);
 	void Write(const void* buffer, size_t length);
 
+	bool CanRead(size_t length) const
+	{
+		return m_curOff + length <= m_bytes->size();
+	}
+
+	bool EndsAfterRead(size_t length) const
+	{
+		return m_curOff + length >= m_bytes->size();
+	}
+
 	template<typename T>
 	T Read()
 	{
 		T tempValue;
 		Read(&tempValue, sizeof(T));
 
+		return tempValue;
+	}
+
+	/// <summary>
+	/// Reads a std::string[_view] from the buffer. std::string_view is read allocation free
+	/// </summary>
+	/// <param name="length">length of the string to read in bytes</param>
+	/// <returns>when the requested length can be read, it returns a std::string[_view] containing the data of the buffer at the current read position with the requested length, otherwise an empty std::string[_view] is returned.</returns>
+	template <typename T, typename = std::enable_if_t<std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>>>
+	T Read(size_t length)
+	{
+		if (EndsAfterRead(length))
+		{
+			m_end = true;
+
+			if (!CanRead(length))
+			{
+				return T();
+			}
+		}
+
+		T tempValue = T((char*)(GetRemainingBytesPtr()), length);
+		m_curOff += length;
 		return tempValue;
 	}
 
@@ -76,17 +109,19 @@ public:
 
 	bool ReadTo(Buffer& other, size_t length);
 
-	inline void Reset()
+	void Reset()
 	{
 		m_curOff = 0;
 	}
 
-	inline const uint8_t* GetBuffer() const { return &(*m_bytes)[0]; }
-	inline size_t GetLength() const { return m_bytes->size(); }
-	inline size_t GetCurOffset() const { return m_curOff; }
-	inline size_t GetRemainingBytes() const { return GetLength() - GetCurOffset(); }
-	inline void Seek(size_t position) { if (position <= GetLength()) { m_curOff = position; } }
+	const uint8_t* GetBuffer() const { return &(*m_bytes)[0]; }
+	uint8_t* GetBuffer() { return &(*m_bytes)[0]; }
+	size_t GetLength() const { return m_bytes->size(); }
+	size_t GetCurOffset() const { return m_curOff; }
+	size_t GetRemainingBytes() const { return GetLength() - GetCurOffset(); }
+	const uint8_t* GetRemainingBytesPtr() const { return GetBuffer() + m_curOff; }
+	void Seek(size_t position) { if (position <= GetLength()) { m_curOff = position; } }
 
-	inline const std::vector<uint8_t>& GetData() const { return *m_bytes; }
+	const std::vector<uint8_t>& GetData() const { return *m_bytes; }
 };
 }

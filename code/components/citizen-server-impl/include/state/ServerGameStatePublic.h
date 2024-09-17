@@ -19,6 +19,10 @@
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <NetGameEventV2.h>
+
+#include "ArrayUpdate.h"
+
 namespace fx
 {
 enum class SyncStyle
@@ -48,10 +52,14 @@ public:
 };
 }
 
+class StateBag;
+
 class ServerGameStatePublic : public fwRefCountable
 {
 public:
-	virtual void SendObjectIds(const fx::ClientSharedPtr& client, int numIds) = 0;
+	virtual void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) = 0;
+
+	virtual void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds) = 0;
 
 	virtual SyncStyle GetSyncStyle() = 0;
 
@@ -60,6 +68,14 @@ public:
 	virtual void ParseGameStatePacket(const fx::ClientSharedPtr& client, const std::vector<uint8_t>& packetData) = 0;
 
 	virtual void ForAllEntities(const std::function<void(sync::Entity*)>& cb) = 0;
+
+	virtual bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<StateBag>()> createStateBag) = 0;
+
+	virtual uint32_t GetClientRoutingBucket(const fx::ClientSharedPtr& client) = 0;
+
+	virtual std::function<bool()> GetGameEventHandlerWithEvent(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::packet::ClientNetGameEventV2& netGameEvent) = 0;
+
+	virtual bool IsClientRelevantEntity(const fx::ClientSharedPtr& client, uint32_t objectId) = 0;
 };
 }
 

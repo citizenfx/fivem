@@ -115,6 +115,7 @@ static void ErrorDo(uint32_t error
 
 		VirtualProtect(retAddr, code.GetCodeSize(), PAGE_EXECUTE_READWRITE, &oldProtect);
 		memcpy(retAddr, code.GetCode(), code.GetCodeSize());
+		VirtualProtect(retAddr, code.GetCodeSize(), oldProtect, &oldProtect);
 
 		// for good measure
 		FlushInstructionCache(GetCurrentProcess(), retAddr, code.GetCodeSize());

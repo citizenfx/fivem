@@ -11,6 +11,8 @@
 #include "atArray.h"
 
 #include <GameInit.h>
+#include <fxScripting.h>
+#include <Resource.h>
 
 class CPedHeadBlendData
 {
@@ -56,6 +58,13 @@ public:
 static uint64_t* _id_CPedHeadBlendData;
 static uintptr_t _baseClipsetLocation;
 static uint32_t _pedSweatOffset;
+static float* _motionAimingTurnTransitionThresholdMin = nullptr;
+static float* _motionAimingTurnTransitionThresholdMax = nullptr;
+
+// There really isn't a deg2rad function anywhere (TODO: move this to a sensible spot?)
+#define MATH_PI 3.14159265358979323846f
+#define MATH_DEG2RAD (MATH_PI / 180.0f)
+#define DEG2RAD(angle) ((angle) * MATH_DEG2RAD)
 
 static hook::cdecl_stub<uint64_t(void* entity, uint64_t list)> g_extensionList_get([]()
 {
@@ -99,6 +108,10 @@ static HookFunction initFunction([]()
 	_pedSweatOffset = *hook::get_pattern<uint32_t>("72 04 41 0F 28 D0 F3 0F 10 8B", 10);
 
 	g_pedPersonalities = hook::get_address<decltype(g_pedPersonalities)>(hook::get_call(hook::get_pattern<char>("8B 86 B0 00 00 00 BB D5 46 DF E4 85 C0", 0x12)) + 15, 3, 7);
+
+	uint8_t* ptr = (uint8_t*)hook::get_pattern("0F 2F 35 ? ? ? ? 72 ? 0F 2F 35 ? ? ? ? 76 ? B0");
+	_motionAimingTurnTransitionThresholdMin = hook::get_address<float*>(ptr, 3, 7);
+	_motionAimingTurnTransitionThresholdMax = hook::get_address<float*>(ptr + 9, 3, 7);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_EYE_COLOR", [=](fx::ScriptContext& context)
 	{
@@ -365,5 +378,46 @@ static HookFunction initFunction([]()
 		}
 
 		context.SetResult<bool>(result);
+	});
+
+
+	// Purpose: The game's default values for these make shooting while traveling Left quite a bit slower than shooting while traveling right
+	fx::ScriptEngine::RegisterNativeHandler("SET_PED_TURNING_THRESHOLDS", [](fx::ScriptContext& context) 
+	{
+		// Default Min: -45 Degrees
+		// Default Max: 135 Degrees
+		// 
+		//        \ ,- ~ ||~ - ,
+		//     , ' \    x   x    ' ,
+		//   ,      \    x    x   x  ,
+		//  ,         \  x     x      ,
+		// ,            \     x    x  ,
+		// ,              \      x    ,
+		// ,                \   x     ,
+		//  ,                 \   x x ,
+		//   ,                  \  x ,
+		//     ,                 \, '
+		//       ' - , _ _ _ ,  '  \
+		// If the transition angle is within the shaded portion (x), there will be no transition(Quicker)
+		// The angle corresponds to where you are looking(North on the circle) vs. the heading of your character.
+		// Note: For some reason, the transition spin is only clockwise.
+
+		float min = context.GetArgument<float>(0);
+		float max = context.GetArgument<float>(1);
+
+		*_motionAimingTurnTransitionThresholdMin = DEG2RAD(min);
+		*_motionAimingTurnTransitionThresholdMax = DEG2RAD(max);
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			resource->OnStop.Connect([]()
+			{
+				*_motionAimingTurnTransitionThresholdMin = DEG2RAD(-45.0f);
+				*_motionAimingTurnTransitionThresholdMax = DEG2RAD(135.0f);
+			});
+		}
 	});
 });

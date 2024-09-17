@@ -1,3 +1,4 @@
+@import "~@cfx-dev/ui-components/dist/styles-scss/global.scss";
 @import "themes.scss";
 
 // Calculating mpMenu viewport size
@@ -20,6 +21,8 @@
 html {
   // On 720p quant will be 4px
 	--quant: calc(var(--height) * 0.0055);
+  // Base font size, needs to be here as we then use rems to define various font sizes
+  font-size: ui.q(2.5);
 }
 
 body {
@@ -37,13 +40,13 @@ body {
   @include ui.def('viewport-right',  calc(100vw - ui.use('viewport-left')));
 }
 
-#backdrop {
+#backdrop-outlet {
   width: 100vw;
   height: 100vh;
 
   background: ui.color-token('backdrop');
 }
-.cfxui-blurred-backdrop #backdrop {
+.cfxui-blurred-backdrop #backdrop-outlet {
   backdrop-filter: blur(20px) contrast(50%);
 }
 
@@ -96,5 +99,97 @@ body {
   }
   &:active {
     background-color: ui.color-token('scrollbar-active');
+  }
+}
+
+* {
+  box-sizing: border-box;
+	padding: 0;
+	margin: 0;
+	user-select: none;
+	outline: none;
+  line-height: 1;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+
+  cursor: pointer;
+
+  @include ui.animated();
+
+  &.unstyle {
+    text-decoration: none;
+  }
+
+  &:hover {
+    text-decoration-color: ui.color-token('link-hover-decoration');
+  }
+}
+
+button {
+  font-size: var(--font-size);
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+
+  overflow: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: ui.color-token('text');
+  @include ui.font-family('secondary');
+  @include ui.font-weight('bold');
+}
+h1 {
+  font-size: 2rem;
+}
+h2 {
+  font-size: 1.5rem;
+}
+h3 {
+  font-size: 1.25rem;
+}
+h4 {
+  font-size: 1rem;
+}
+h5 {
+  font-size: 0.8rem;
+}
+h6 {
+  font-size: 0.7rem;
+}
+
+kbd {
+  font-weight: 300;
+  padding: 2px ui.q(.5);
+  background-color: ui.color-token('kbd-background');
+  border-radius: 2px;
+  border: solid 1px ui.color-token('kbd-border');
+}
+
+p {
+  padding: ui.offset('small') 0;
+
+  line-height: 1.4;
+}
+
+li::marker {
+  color: ui.color-token('li-marker');
+}
+
+.brand-icon {
+  width: 1em;
+  height: 1em;
+
+  fill: currentColor;
+  stroke: currentColor;
+
+  &.mirror {
+    transform: rotateY(180deg);
   }
 }

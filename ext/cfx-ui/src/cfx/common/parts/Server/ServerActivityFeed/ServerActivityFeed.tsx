@@ -1,22 +1,26 @@
-import React from "react";
-import { ActiveActivityPubFeed } from "cfx/common/services/activity/ActiveActivityPubFeed";
-import { ActivityItem } from "cfx/ui/ActivityItem/ActivityItem";
-import { Button } from "cfx/ui/Button/Button";
-import { Flyout } from "cfx/ui/Flyout/Flyout";
-import { Indicator } from "cfx/ui/Indicator/Indicator";
-import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
-import { Text } from "cfx/ui/Text/Text";
-import { observer } from "mobx-react-lite";
-import { BsEmojiFrownFill } from "react-icons/bs";
-import { IoNewspaperSharp } from "react-icons/io5";
-import { useActivityService } from "cfx/common/services/activity/activity.service";
-import { $L } from "cfx/common/services/intl/l10n";
+import {
+  Button,
+  Indicator,
+  InfoPanel,
+  Flex,
+  Scrollable,
+  Text,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+import { BsEmojiFrownFill } from 'react-icons/bs';
+import { IoNewspaperSharp } from 'react-icons/io5';
+
+import { ActiveActivityPubFeed } from 'cfx/common/services/activity/ActiveActivityPubFeed';
+import { useActivityService } from 'cfx/common/services/activity/activity.service';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { ActivityItem } from 'cfx/ui/ActivityItem/ActivityItem';
+import { Flyout } from 'cfx/ui/Flyout/Flyout';
+
 import s from './ServerActivityFeed.module.scss';
 
 export interface ServerActivityFeedProps {
-  pub: string,
+  pub: string;
 }
 
 export const ServerActivityFeed = observer(function ServerActivityFeed(props: ServerActivityFeedProps) {
@@ -49,9 +53,7 @@ export const ServerActivityFeed = observer(function ServerActivityFeed(props: Se
               <BsEmojiFrownFill />
             </Text>
 
-            <Text size="large">
-              {$L('#ServerDetail_Feed_LoadError', { feed: feed.id })}
-            </Text>
+            <Text size="large">{$L('#ServerDetail_Feed_LoadError', { feed: feed.id })}</Text>
 
             {feed.initError && (
               <Text opacity="75">
@@ -75,9 +77,7 @@ export const ServerActivityFeed = observer(function ServerActivityFeed(props: Se
               <BsEmojiFrownFill />
             </Text>
 
-            <Text size="large">
-              {$L('#ServerDetail_Feed_Empty', { feed: feed.id })}
-            </Text>
+            <Text size="large">{$L('#ServerDetail_Feed_Empty', { feed: feed.id })}</Text>
           </Flex>
         </InfoPanel>
       </Flex>
@@ -108,10 +108,7 @@ export const ServerActivityFeed = observer(function ServerActivityFeed(props: Se
 
           {hasMoreItems && (
             <div className={s.morer}>
-              <Button
-                text={$L('#ServerDetail_Feed_ShowMore')}
-                onClick={() => setShowAll(true)}
-              />
+              <Button text={$L('#ServerDetail_Feed_ShowMore')} onClick={() => setShowAll(true)} />
             </div>
           )}
         </Flex>
@@ -120,11 +117,13 @@ export const ServerActivityFeed = observer(function ServerActivityFeed(props: Se
   );
 });
 
-function Header({ id }: { id: string }) {
+function Header({
+  id,
+}: { id: string }) {
   return (
     <Flex repell>
       <Flex centered gap="small">
-        <Text size="small" opacity="75" >
+        <Text size="small" opacity="75">
           <IoNewspaperSharp />
         </Text>
 
@@ -136,7 +135,13 @@ function Header({ id }: { id: string }) {
   );
 }
 
-const ServerActivityFeedFlyout = observer(function ServerActivityFeed({ feed, onClose }: { feed: ActiveActivityPubFeed, onClose(): void }) {
+const ServerActivityFeedFlyout = observer(function ServerActivityFeedFlyout({
+  feed,
+  onClose,
+}: {
+  feed: ActiveActivityPubFeed;
+  onClose(): void;
+}) {
   React.useEffect(() => {
     feed.loadAll();
   }, [feed]);

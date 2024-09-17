@@ -88,10 +88,27 @@ void ClientEngineMapper::LookupMethods()
 bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool child)
 {
 	// 2021-05 Steam removes strings entirely from user interfaces
-	if (!child && hook::range_pattern((uintptr_t)methodPtr, (uintptr_t)methodPtr + 128, "42 3B 74 11 10 4A 8D 14 11 7C").count_hint(1).size() > 0)
+	if (!child)
 	{
-		*isUser = true;
-		return true;
+		for (auto pattern : {
+			 "41 8B ? 48 8D 0D ? ? ? ? 8B ? FF 15", // >= 6.55.98.67 (2021-05)
+#if 0
+			 // Above pattern tries to generically match around EnterCriticalSection as
+			 // the assembly is consistent between updates. If *too* generic, replace
+			 // with the following:
+			 "42 3B 74 11 10 4A 8D 14 11 7C",    // >= 6.55.98.67 (2021-05)
+			 "48 C1 E0 05 48 03 C2 3B 78 10 7C", // >= 8.74.80.95 (2024-03)
+			 "48 C1 E2 05 49 03 D1 3B 7A 10 7C", // >= 8.93.40.59 (2024-05)
+#endif
+		})
+		{
+			uintptr_t method = reinterpret_cast<uintptr_t>(methodPtr);
+			if (hook::range_pattern(method, method + 128, pattern).count_hint(1).size() > 0)
+			{
+				*isUser = true;
+				return true;
+			}
+		}
 	}
 
 	// output variable

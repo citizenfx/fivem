@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## REMOVE_TIMECYCLE_MODIFIER_VAR
 

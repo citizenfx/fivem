@@ -13,6 +13,7 @@
 #include "LuaScriptRuntime.h"
 #include "LuaScriptNatives.h"
 #include "ResourceScriptingComponent.h"
+#include "fxScriptBuffer.h"
 
 #include <msgpack.hpp>
 #include <json.hpp>
@@ -63,20 +64,16 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 
 // Utility for sanitizing error messages in an unprotected states. Avoid string coercion (cvt2str) to ensure errors 
 // do not compound.
-#define LUA_SCRIPT_TRACE(L, MSG, ...)                     \
-    try                                                   \
-    {                                                     \
-        const char* err = "error object is not a string"; \
-        if (lua_type((L), -1) == LUA_TSTRING)             \
-        {                                                 \
-            err = lua_tostring((L), -1);                  \
-        }                                                 \
-        ScriptTrace(MSG ": %s\n", ##__VA_ARGS__, err);    \
-    }                                                     \
-    catch (...)                                           \
-    {                                                     \
-    }                                                     \
-    lua_pop((L), 1)
+#define LUA_SCRIPT_TRACE(L, MSG, ...)                  \
+	try                                                \
+	{                                                  \
+		const char* err = Lua_GetErrorMessage(L, -1);  \
+		ScriptTrace(MSG ": %s\n", ##__VA_ARGS__, err); \
+	}                                                  \
+	catch (...)                                        \
+	{                                                  \
+	}                                                  \
+	lua_pop((L), 1)
 
 /// <summary>
 /// </summary>
@@ -215,6 +212,26 @@ static int Lua_Print(lua_State* L)
 	}
 	ScriptTrace("\n");
 	return 0;
+}
+
+static const char* Lua_GetErrorMessage(lua_State* L, int index)
+{
+	const char* msg = "error object is not a string";
+	if (lua_type(L, index) == LUA_TSTRING)
+	{
+		msg = lua_tostring(L, index);
+	}
+	else if (luaL_callmeta(L, index, "__tostring") && lua_type(L, -1) == LUA_TSTRING)
+	{
+		msg = lua_tostring(L, -1);
+		lua_pop(L, 1);
+	}
+	else
+	{
+		lua_pop(L, 1);
+	}
+
+	return msg;
 }
 
 #if LUA_VERSION_NUM >= 504
@@ -461,10 +478,8 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 	// set the event callback in the current routine
 	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
 
-	luaRuntime->SetCallRefRoutine([=](int32_t refId, const char* argsSerialized, size_t argsSize, char** retval, size_t* retvalLength)
+	luaRuntime->SetCallRefRoutine([=](int32_t refId, const char* argsSerialized, size_t argsSize)
 	{
-		// static array for retval output (sadly)
-		static std::vector<char> retvalArray(32768);
 		LuaProfilerScope _profile(luaRuntime);
 
 		// set the error handler
@@ -480,30 +495,25 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 		lua_pushlstring(L, argsSerialized, argsSize);
 
 		// invoke the tick routine
+		fx::OMPtr<IScriptBuffer> rv;
+
 		if (lua_pcall(L, 2, 1, eh) != 0)
 		{
 			LUA_SCRIPT_TRACE(L, "Error running call reference function for resource %s", luaRuntime->GetResourceName());
-
-			*retval = nullptr;
-			*retvalLength = 0;
 		}
 		else
 		{
-			const char* retvalString = lua_tolstring(L, -1, retvalLength);
+			size_t retvalLength = 0;
+			const char* retvalString = lua_tolstring(L, -1, &retvalLength);
 
-			if (*retvalLength > retvalArray.size())
-			{
-				retvalArray.resize(*retvalLength);
-			}
-
-			memcpy(&retvalArray[0], retvalString, fwMin(retvalArray.size(), *retvalLength));
-
-			*retval = &retvalArray[0];
+			rv = fx::MemoryScriptBuffer::Make(retvalString, retvalLength);
 
 			lua_pop(L, 1); // as there's a result
 		}
 
 		lua_pop(L, 1);
+
+		return rv;
 	});
 
 	return 0;
@@ -613,41 +623,30 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 	fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
 	LuaProfilerScope _profile(luaRuntime.GetRef(), false);
 
-	constexpr uint32_t kInvokeFunctionReferenceHash = HashString("INVOKE_FUNCTION_REFERENCE");
-
-	// variables to hold state
-	fxNativeContext context = { 0 };
-
-	context.numArguments = 4;
-	context.nativeIdentifier = kInvokeFunctionReferenceHash;
-
-	// identifier string
-	context.arguments[0] = reinterpret_cast<uintptr_t>(luaL_checkstring(L, 1));
-
-	// argument data
 	size_t argLength;
 	const char* argString = luaL_checklstring(L, 2, &argLength);
 
-	context.arguments[1] = reinterpret_cast<uintptr_t>(argString);
-	context.arguments[2] = static_cast<uintptr_t>(argLength);
-
-	// return value length
-	size_t retLength = 0;
-	context.arguments[3] = reinterpret_cast<uintptr_t>(&retLength);
-
 	// invoke
-	if (FX_FAILED(scriptHost->InvokeNative(context)))
+	fx::OMPtr<IScriptBuffer> retvalBuffer;
+	if (FX_FAILED(scriptHost->InvokeFunctionReference(const_cast<char*>(luaL_checkstring(L, 1)), const_cast<char*>(argString), argLength, retvalBuffer.GetAddressOf())))
 	{
 		char* error = "Unknown";
 		scriptHost->GetLastErrorText(&error);
 
 		_profile.Close();
-		lua_pushstring(L, va("Execution of native %016x in script host failed: %s", kInvokeFunctionReferenceHash, error));
+		lua_pushstring(L, va("Execution of function reference in script host failed: %s", error));
 		return lua_error(L);
 	}
 
 	// get return values
-	lua_pushlstring(L, reinterpret_cast<const char*>(context.arguments[0]), retLength);
+	if (retvalBuffer.GetRef())
+	{
+		lua_pushlstring(L, retvalBuffer->GetBytes(), retvalBuffer->GetLength());
+	}
+	else
+	{
+		lua_pushnil(L);
+	}
 
 	// return as such
 	return 1;
@@ -987,22 +986,37 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 	{
 		if (resumeValue != LUA_OK)
 		{
-			std::string err = "error object is not a string";
-			if (lua_type(thread, -1) == LUA_TSTRING)
-			{
-				err = lua_tostring(thread, -1);
-			}                        
-
+			std::string err = Lua_GetErrorMessage(thread, -1);                    
 			static auto formatStackTrace = fx::ScriptEngine::GetNativeHandler(HashString("FORMAT_STACK_TRACE"));
-			auto stack = FxNativeInvoke::Invoke<const char*>(formatStackTrace, nullptr, 0);
 			std::string stackData = "(nil stack trace)";
-			
-			if (stack)
+
+			try
 			{
-				stackData = stack;
+				auto stack = FxNativeInvoke::Invoke<const char*>(formatStackTrace, nullptr, 0);
+				if (stack)
+				{
+					stackData = stack;
+				}
 			}
+			catch (...)
+			{
+				// We already have stackData set so we don't need to do anything
+			}
+
 			ScriptTrace("^1SCRIPT ERROR: %s^7\n", err);
 			ScriptTrace("%s", stackData);
+#if LUA_VERSION_NUM >= 504
+			int resetStatus = lua_resetthread(thread);
+
+			std::string resetErr = Lua_GetErrorMessage(thread, -1);
+
+			// We can't just check whether the resetStatus is OK because
+			// if there was no error lua_resetthread returns the same status it received
+			if (resetStatus != resumeValue || resetErr != err)
+			{
+				ScriptTrace("^1Error while closing to-be-closed variables: %s^7\n", resetErr);
+			}
+#endif
 		}
 
 		luaL_unref(L, LUA_REGISTRYINDEX, bookmark);
@@ -1723,19 +1737,16 @@ result_t LuaScriptRuntime::TriggerEvent(char* eventName, char* eventPayload, uin
 	return FX_S_OK;
 }
 
-result_t LuaScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, char** retvalSerialized, uint32_t* retvalLength)
+result_t LuaScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, IScriptBuffer** retval)
 {
-	*retvalLength = 0;
-	*retvalSerialized = nullptr;
+	*retval = nullptr;
 
 	if (m_callRefRoutine)
 	{
 		LuaPushEnvironment pushed(this);
 
-		size_t retvalLengthS;
-		m_callRefRoutine(refIdx, argsSerialized, argsLength, retvalSerialized, &retvalLengthS);
-
-		*retvalLength = retvalLengthS;
+		auto rv = m_callRefRoutine(refIdx, argsSerialized, argsLength);
+		return rv.CopyTo(retval);
 	}
 
 	return FX_S_OK;

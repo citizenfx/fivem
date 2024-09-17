@@ -7,9 +7,9 @@ return {
 		language "C++"
 		kind 'StaticLib'
 
-		files_project(os.getenv("BOOST_ROOT") .. '/libs/random/src/')
+		files_project('../vendor/boost-submodules/boost-random/src/')
 		{
-			'*.cpp'
+			'random_device.cpp'
 		}
 	end
 }

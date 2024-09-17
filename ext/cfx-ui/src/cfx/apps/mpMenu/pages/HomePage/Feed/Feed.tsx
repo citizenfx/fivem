@@ -1,21 +1,24 @@
-import React from "react";
-import { ActivityItem } from "cfx/ui/ActivityItem/ActivityItem";
-import { Icons } from "cfx/ui/Icons";
-import { Island } from "cfx/ui/Island/Island";
-import { Text } from "cfx/ui/Text/Text";
-import { Title } from "cfx/ui/Title/Title";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { IActivityItem } from "cfx/common/services/activity/types";
-import { observer } from "mobx-react-lite";
+import {
+  Icons,
+  Island,
+  Flex,
+  Pad,
+  Scrollable,
+  Text,
+  Title,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+
+import { IActivityItem } from 'cfx/common/services/activity/types';
+import { ActivityItem } from 'cfx/ui/ActivityItem/ActivityItem';
 
 export interface FeedProps {
-  items: IActivityItem[],
+  items: IActivityItem[];
 
-  icon: React.ReactNode,
-  label: JSX.Element,
-  title: JSX.Element,
+  icon: React.ReactNode;
+  label: JSX.Element;
+  title: JSX.Element;
 }
 
 export const Feed = observer(function Feed(props: FeedProps) {
@@ -78,4 +81,4 @@ export const Feed = observer(function Feed(props: FeedProps) {
       </Flex>
     </Island>
   );
-})
+});

@@ -1,5 +1,6 @@
 #include "StdInc.h"
 
+#include <array>
 #include <mutex>
 
 #include <d3d11_1.h>
@@ -16,7 +17,6 @@
 #include <Error.h>
 
 #include <CrossBuildRuntime.h>
-#include <LaunchMode.h>
 #include <CL2LaunchMode.h>
 
 #include <CoreConsole.h>
@@ -168,6 +168,7 @@ static void InvokeRender()
 
 static IDXGISwapChain1* g_swapChain1;
 static DWORD g_swapChainFlags;
+static std::array<void*, 2> g_swapChainFlagLocations;
 static ID3D11DeviceContext* g_dc;
 
 static bool g_allowTearing;
@@ -698,10 +699,8 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 	}
 
 	// patch stuff here as only now do we know swapchain flags
-	auto pattern = hook::pattern("C7 44 24 28 02 00 00 00 89 44 24 20 41").count(2);
-
-	hook::put<uint32_t>(pattern.get(0).get<void>(4), g_swapChainFlags | 2);
-	hook::put<uint32_t>(pattern.get(1).get<void>(4), g_swapChainFlags | 2);
+	hook::put<uint32_t>(g_swapChainFlagLocations[0], g_swapChainFlags | 2);
+	hook::put<uint32_t>(g_swapChainFlagLocations[1], g_swapChainFlags | 2);
 
 	// we assume all users will stop using the object by the time it is dereferenced
 	if (!initState->isReverseGame)
@@ -1005,10 +1004,13 @@ static auto GetBackbuf()
 static auto GetInvariantD3D11Device()
 {
 	WRL::ComPtr<IDXGIDevice> realDeviceDxgi;
-	WRL::ComPtr<ID3D11Device> realDevice;
+	WRL::ComPtr<ID3D11Device> realDevice = nullptr;
 
 	GetD3D11Device()->QueryInterface(IID_PPV_ARGS(&realDeviceDxgi));
-	realDeviceDxgi.As(&realDevice);
+	if (realDeviceDxgi)
+	{
+		realDeviceDxgi.As(&realDevice);
+	}
 
 	return realDevice;
 }
@@ -1055,6 +1057,10 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 
 		auto realDevice = GetInvariantD3D11Device();
 		auto realDeviceContext = GetInvariantD3D11DeviceContext();
+		if (!realDevice)
+		{
+			return;
+		}
 
 		auto m_width = resDesc.Width;
 		auto m_height = resDesc.Height;
@@ -1205,15 +1211,21 @@ void CaptureInternalScreenshot()
 			texDesc.CPUAccessFlags = 0;
 			texDesc.MiscFlags = 0;
 
+			WRL::ComPtr<ID3D11Device> device = GetInvariantD3D11Device();
+			if (!device)
+			{
+				return;
+			}
+
 			WRL::ComPtr<ID3D11Texture2D> d3dTex;
-			HRESULT hr = GetInvariantD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+			HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, &d3dTex);
 			if FAILED(hr)
 			{
 				return;
 			}
 
 			D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
-			GetInvariantD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
+			device->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
 
 			d3dTex.CopyTo(&myTexture);
 		}
@@ -1263,7 +1275,7 @@ void CaptureInternalScreenshot()
 	
 	if (SUCCEEDED(GetInvariantD3D11DeviceContext()->Map(myStagingTexture, 0, D3D11_MAP_READ, 0, &msr)))
 	{
-		size_t blen = (resDesc.Height / 4) * msr.RowPitch;
+		size_t blen = (static_cast<size_t>(resDesc.Height / 4)) * msr.RowPitch;
 		std::unique_ptr<uint8_t[]> data(new uint8_t[blen]);
 		memcpy(data.get(), msr.pData, blen);
 
@@ -1361,15 +1373,21 @@ void CaptureBufferOutput()
 		texDesc.CPUAccessFlags = 0;
 		texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
+		WRL::ComPtr<ID3D11Device> device = GetInvariantD3D11Device();
+		if (!device)
+		{
+			return;
+		}
+
 		WRL::ComPtr<ID3D11Texture2D> d3dTex;
-		HRESULT hr = GetInvariantD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+		HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, &d3dTex);
 		if (FAILED(hr))
 		{
 			return;
 		}
 
 		D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
-		GetInvariantD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
+		device->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
 
 		d3dTex.CopyTo(&myTexture);
 
@@ -1730,7 +1748,7 @@ static HWND WINAPI HookCreateWindowExW(_In_ DWORD dwExStyle, _In_opt_ LPCWSTR lp
 	static HostSharedData<CfxState> initState("CfxInitState");
 	HWND w;
 
-	auto wndName = (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"FiveM® by Cfx.re";
+	const auto wndName = L"FiveM® by Cfx.re";
 
 	if (initState->isReverseGame)
 	{
@@ -1981,6 +1999,12 @@ static HookFunction hookFunction([] ()
 		g_dxgiSwapChain = hook::get_address<IDXGISwapChain**>(fnStart + 0x127);
 
 		MH_CreateHook(fnStart, WrapVideoModeChange, (void**)&g_origVideoModeChange);	
+	}
+
+	{
+		auto pattern = hook::pattern("C7 44 24 28 02 00 00 00 89 44 24 20 41").count(2);
+		g_swapChainFlagLocations[0] = pattern.get(0).get<void>(4);
+		g_swapChainFlagLocations[1] = pattern.get(1).get<void>(4);
 	}
 
 	g_resetVideoMode = hook::get_pattern<std::remove_pointer_t<decltype(g_resetVideoMode)>>("8B 44 24 50 4C 8B 17 44 8B 4E 04 44 8B 06", -0x61);

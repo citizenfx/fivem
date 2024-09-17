@@ -1,13 +1,18 @@
-import { getCustomInGameBackdropPath } from "cfx/apps/mpMenu/parts/ThemeManager/backdrop";
-import { Button } from "cfx/ui/Button/Button";
-import { Icons } from "cfx/ui/Icons";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Title } from "cfx/ui/Title/Title";
-import { observer } from "mobx-react-lite";
-import { mpMenu } from "../../../mpMenu";
-import { useUiService } from "cfx/common/services/ui/ui.service";
-import { KnownConvars, useConvarService } from "../../../services/convars/convars.service";
-import { $L } from "cfx/common/services/intl/l10n";
+import {
+  Button,
+  Icons,
+  Flex,
+  Title,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+
+import { getCustomInGameBackdropPath } from 'cfx/apps/mpMenu/parts/ThemeManager/backdrop';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { useUiService } from 'cfx/common/services/ui/ui.service';
+
+import { mpMenu } from '../../../mpMenu';
+import { KnownConvars, useConvarService } from '../../../services/convars/convars.service';
+
 import s from './CustomBackdropControl.module.scss';
 
 export const CustomBackdropControl = observer(() => {
@@ -28,10 +33,7 @@ export const CustomBackdropControl = observer(() => {
   return (
     <Flex vertical>
       <Flex>
-        <Button
-          text="Select"
-          onClick={onClick}
-        />
+        <Button text="Select" onClick={onClick} />
 
         {hasCustomBackdropSet && (
           <Title fixedOn="right" title={$L('#Settings_CustomBackdropReset')}>

@@ -18,10 +18,11 @@
 #include <om/OMComponent.h>
 
 #include "MonoMethods.h"
+#include "ScriptSharedData.h"
 
 namespace fx::mono
 {
-class MonoScriptRuntime : public fx::OMClass<MonoScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntimeWithBookmarks,
+class MonoScriptRuntime : public fx::OMClass<MonoScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime,
 	IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, /*IScriptStackWalkingRuntime,*/ IScriptDebugRuntime, IScriptProfiler>
 {
 private:
@@ -35,22 +36,22 @@ private:
 	IScriptHost* m_scriptHost;
 	IScriptHostWithResourceData* m_resourceHost;
 	IScriptHostWithManifest* m_manifestHost;
-	IScriptHostWithBookmarks* m_bookmarkHost;
 
 	fx::OMPtr<IScriptRuntimeHandler> m_handler;
 	fx::Resource* m_parentObject;
 	IDebugEventListener* m_debugListener;
 	std::unordered_map<std::string, int> m_scriptIds;
-	uint64_t m_scheduledTime = ~uint64_t(0);
+
+	ScriptSharedData m_sharedData;
 
 	// method targets
 	Method m_loadAssembly;
 
 	// method thunks, these are for calls that require performance
-	Thunk<uint32_t(uint64_t gameTime, bool profiling)> m_tick;
-	Thunk<uint32_t(MonoString* eventName, const char* argsSerialized, uint32_t serializedSize, MonoString* sourceId, uint64_t gameTime, bool profiling)> m_triggerEvent;
+	Thunk<void(uint64_t gameTime, bool profiling)> m_tick;
+	Thunk<void(MonoString* eventName, const char* argsSerialized, uint32_t serializedSize, MonoString* sourceId, uint64_t gameTime, bool profiling)> m_triggerEvent;
 
-	Thunk<uint32_t(int32_t refIndex, char* argsSerialized, uint32_t argsSize, char** retvalSerialized, uint32_t* retvalSize, uint64_t gameTime, bool profiling)> m_callRef;
+	Thunk<void(int32_t refIndex, char* argsSerialized, uint32_t argsSize, MonoArray** retval, uint64_t gameTime, bool profiling)> m_callRef;
 	Thunk<void(int32_t refIndex, int32_t* newRefIdx)> m_duplicateRef = nullptr;
 	Thunk<void(int32_t refIndex)> m_removeRef = nullptr;
 
@@ -65,6 +66,8 @@ public:
 
 	MonoArray* CanonicalizeRef(int referenceId) const;
 
+	MonoArray* InvokeFunctionReference(MonoString* referenceId, MonoArray* argsSerialized) const;
+
 	bool ReadAssembly(MonoString* name, MonoArray** assembly, MonoArray** symbols) const;
 
 private:
@@ -75,9 +78,7 @@ public:
 
 	NS_DECL_ISCRIPTFILEHANDLINGRUNTIME;
 
-	NS_DECL_ISCRIPTTICKRUNTIMEWITHBOOKMARKS;
-
-	void ScheduleTick(uint64_t timeMilliseconds);
+	NS_DECL_ISCRIPTTICKRUNTIME;
 
 	NS_DECL_ISCRIPTEVENTRUNTIME;
 
@@ -96,14 +97,5 @@ inline MonoScriptRuntime::MonoScriptRuntime()
 {
 	m_instanceId = rand();
 	m_name = "ScriptDomain_" + std::to_string(m_instanceId);
-}
-
-inline void MonoScriptRuntime::ScheduleTick(uint64_t timeMilliseconds)
-{
-	if (timeMilliseconds < m_scheduledTime)
-	{
-		m_scheduledTime = timeMilliseconds;
-		m_bookmarkHost->ScheduleBookmark(this, 0, timeMilliseconds * 1000); // positive values are expected to me microseconds and absolute
-	}
 }
 }

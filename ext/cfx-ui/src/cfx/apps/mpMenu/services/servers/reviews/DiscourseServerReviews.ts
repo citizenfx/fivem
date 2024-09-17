@@ -1,21 +1,27 @@
-import { formatCFXID, TCFXID } from "cfx/base/identifiers";
-import { loadPlaytimes } from "cfx/common/services/servers/activity/playtimes";
-import { IServerActivityUserPlaytime } from "cfx/common/services/servers/activity/types";
-import { IServerReviewReportOption, IServerReviewItem, IServerReviews, IServerReviewSubmitData } from "cfx/common/services/servers/reviews/types";
-import { timeout } from "cfx/utils/async";
-import { fetcher } from "cfx/utils/fetcher";
-import { ObservableAsyncValue } from "cfx/utils/observable";
-import { makeAutoObservable, observable } from "mobx";
-import { IDiscourseService } from "../../discourse/discourse.service";
-import { IDiscourse } from "../../discourse/types";
-import { DiscourseServerReviewItem, IUserStub, RecognizedTopicTags } from "./reviewItem";
+import { makeAutoObservable, observable } from 'mobx';
+
+import { formatCFXID, TCFXID } from 'cfx/base/identifiers';
+import { loadPlaytimes } from 'cfx/common/services/servers/activity/playtimes';
+import { IServerActivityUserPlaytime } from 'cfx/common/services/servers/activity/types';
+import {
+  IServerReviewReportOption,
+  IServerReviewItem,
+  IServerReviews,
+  IServerReviewSubmitData,
+} from 'cfx/common/services/servers/reviews/types';
+import { fetcher } from 'cfx/utils/fetcher';
+import { ObservableAsyncValue } from 'cfx/utils/observable';
+
+import { DiscourseServerReviewItem, IUserStub, RecognizedTopicTags } from './reviewItem';
+import { IDiscourseService } from '../../discourse/discourse.service';
+import { IDiscourse } from '../../discourse/types';
 
 // discourse' server reviews category id
 const REVIEWS_CATEGORY_ID = 76;
 
 // the required play time (in seconds) to be allowed to post a review
 const HOURS = 3600;
-const REVIEW_REQUIRED_PLAYTIME = (2 * HOURS);
+const REVIEW_REQUIRED_PLAYTIME = 2 * HOURS;
 
 enum OwnReviewState {
   Loading,
@@ -27,40 +33,76 @@ enum OwnReviewState {
 
 export class DiscourseServerReviews implements IServerReviews {
   private _initialLoading: boolean = true;
-  public get initialLoading(): boolean { return this._initialLoading }
-  private set initialLoading(initialLoading: boolean) { this._initialLoading = initialLoading }
+  public get initialLoading(): boolean {
+    return this._initialLoading;
+  }
+  private set initialLoading(initialLoading: boolean) {
+    this._initialLoading = initialLoading;
+  }
 
   private _items: Record<string, IServerReviewItem> = {};
-  public get items(): Record<string, IServerReviewItem> { return this._items }
-  private set items(items: Record<string, IServerReviewItem>) { this._items = items }
+  public get items(): Record<string, IServerReviewItem> {
+    return this._items;
+  }
+  private set items(items: Record<string, IServerReviewItem>) {
+    this._items = items;
+  }
 
   private _itemsSequence: string[] = [];
-  public get itemsSequence(): string[] { return this._itemsSequence }
-  private set itemsSequence(itemsSequence: string[]) { this._itemsSequence = itemsSequence }
+  public get itemsSequence(): string[] {
+    return this._itemsSequence;
+  }
+  private set itemsSequence(itemsSequence: string[]) {
+    this._itemsSequence = itemsSequence;
+  }
 
   private _playtimes: Record<TCFXID, IServerActivityUserPlaytime> = {};
-  public get playtimes(): Record<TCFXID, IServerActivityUserPlaytime> { return this._playtimes }
-  private set playtimes(playtimes: Record<TCFXID, IServerActivityUserPlaytime>) { this._playtimes = playtimes }
+  public get playtimes(): Record<TCFXID, IServerActivityUserPlaytime> {
+    return this._playtimes;
+  }
+  private set playtimes(playtimes: Record<TCFXID, IServerActivityUserPlaytime>) {
+    this._playtimes = playtimes;
+  }
 
   private _loadingMoreItems: boolean = false;
-  public get loadingMoreItems(): boolean { return this._loadingMoreItems }
-  private set loadingMoreItems(loadingMoreItems: boolean) { this._loadingMoreItems = loadingMoreItems }
+  public get loadingMoreItems(): boolean {
+    return this._loadingMoreItems;
+  }
+  private set loadingMoreItems(loadingMoreItems: boolean) {
+    this._loadingMoreItems = loadingMoreItems;
+  }
 
   private _hasMoreItemsToLoad: boolean = false;
-  public get hasMoreItemsToLoad(): boolean { return this._hasMoreItemsToLoad }
-  private set hasMoreItemsToLoad(hasMoreItemsToLoad: boolean) { this._hasMoreItemsToLoad = hasMoreItemsToLoad }
+  public get hasMoreItemsToLoad(): boolean {
+    return this._hasMoreItemsToLoad;
+  }
+  private set hasMoreItemsToLoad(hasMoreItemsToLoad: boolean) {
+    this._hasMoreItemsToLoad = hasMoreItemsToLoad;
+  }
 
   private _ownReview: IServerReviewItem | null = null;
-  public get ownReview(): IServerReviewItem | null { return this._ownReview }
-  private set ownReview(ownReview: IServerReviewItem | null) { this._ownReview = ownReview }
+  public get ownReview(): IServerReviewItem | null {
+    return this._ownReview;
+  }
+  private set ownReview(ownReview: IServerReviewItem | null) {
+    this._ownReview = ownReview;
+  }
 
   private _ownReviewState: OwnReviewState = OwnReviewState.Loading;
-  public get ownReviewState(): OwnReviewState { return this._ownReviewState }
-  private set ownReviewState(ownReviewState: OwnReviewState) { this._ownReviewState = ownReviewState }
+  public get ownReviewState(): OwnReviewState {
+    return this._ownReviewState;
+  }
+  private set ownReviewState(ownReviewState: OwnReviewState) {
+    this._ownReviewState = ownReviewState;
+  }
 
   private _ownPlaytime: IServerActivityUserPlaytime | null = null;
-  public get ownPlaytime(): IServerActivityUserPlaytime | null { return this._ownPlaytime }
-  private set ownPlaytime(ownPlaytime: IServerActivityUserPlaytime | null) { this._ownPlaytime = ownPlaytime }
+  public get ownPlaytime(): IServerActivityUserPlaytime | null {
+    return this._ownPlaytime;
+  }
+  private set ownPlaytime(ownPlaytime: IServerActivityUserPlaytime | null) {
+    this._ownPlaytime = ownPlaytime;
+  }
 
   public get canSubmitReview(): boolean {
     if (!this.discourseService.account) {
@@ -118,12 +160,9 @@ export class DiscourseServerReviews implements IServerReviews {
         title: data.title,
         raw: data.content,
         category: REVIEWS_CATEGORY_ID,
-        tags: [
-          this.serverId,
-          data.recommend
-            ? RecognizedTopicTags.Recommend
-            : RecognizedTopicTags.NotRecommend,
-        ],
+        tags: [this.serverId, data.recommend
+          ? RecognizedTopicTags.Recommend
+          : RecognizedTopicTags.NotRecommend],
         archetype: 'regular',
 
         typing_duration_msecs: 3000, // TODO
@@ -168,10 +207,12 @@ export class DiscourseServerReviews implements IServerReviews {
       const params = new URLSearchParams({
         page,
         ascending: false,
-        order: 'likes'
+        order: 'likes',
       } as any);
 
-      const response = await this.discourseService.makeApiCall<void, IDiscourse.TagTopicsResponse>(`/tags/c/${REVIEWS_CATEGORY_ID}/${this.serverId}.json?${params}`);
+      const response = await this.discourseService.makeApiCall<void, IDiscourse.TagTopicsResponse>(
+        `/tags/c/${REVIEWS_CATEGORY_ID}/${this.serverId}.json?${params}`,
+      );
 
       const users: Record<number, IUserStub> = {};
 
@@ -206,7 +247,9 @@ export class DiscourseServerReviews implements IServerReviews {
       // }
 
       for (const topic of response.topic_list.topics) {
-        const userId = topic.posters?.find((poster) => poster.description === 'Original Poster' && poster.user_id > 0)?.user_id || -1;
+        const userId = topic.posters?.find(
+          (poster) => poster.description === 'Original Poster' && poster.user_id > 0,
+        )?.user_id || -1;
 
         if (userId === this.discourseService.account?.id) {
           continue;
@@ -236,9 +279,12 @@ export class DiscourseServerReviews implements IServerReviews {
     });
 
     try {
-      const response = await this.discourseService.makeApiCall<void, IDiscourse.TagTopicsResponse>(`/tags/c/${REVIEWS_CATEGORY_ID}/${this.serverId}/l/posted.json`);
+      const response = await this.discourseService.makeApiCall<void, IDiscourse.TagTopicsResponse>(
+        `/tags/c/${REVIEWS_CATEGORY_ID}/${this.serverId}/l/posted.json`,
+      );
 
       const [topic] = response.topic_list.topics;
+
       if (!topic) {
         this.ownReviewState = OwnReviewState.None;
 
@@ -257,6 +303,7 @@ export class DiscourseServerReviews implements IServerReviews {
         // No reviews - can post still, right
         if (e.status === 404) {
           this.ownReviewState = OwnReviewState.None;
+
           return;
         }
       }
@@ -296,15 +343,21 @@ export class DiscourseServerReviews implements IServerReviews {
     this.items[reviewItem.id] = reviewItem;
   }
 
-  private loadDetailsAndTransformToServerReviewItem(topic: IDiscourse.Topic, user: IUserStub | null): IServerReviewItem {
+  private loadDetailsAndTransformToServerReviewItem(
+    topic: IDiscourse.Topic,
+    user: IUserStub | null,
+  ): IServerReviewItem {
     const loadPost = async () => {
-      const postsResponse = await this.discourseService.makeApiCall<void, IDiscourse.TopicPostsResponse>(`/t/${topic.id}/posts.json`);
+      const postsResponse = await this.discourseService.makeApiCall<void, IDiscourse.TopicPostsResponse>(
+        `/t/${topic.id}/posts.json`,
+      );
 
       if (!Array.isArray(postsResponse.post_stream.posts)) {
         throw new Error('Invalid response');
       }
 
       const [post] = postsResponse.post_stream.posts;
+
       if (!post) {
         throw new Error('Invalid response: no first post');
       }
@@ -312,12 +365,6 @@ export class DiscourseServerReviews implements IServerReviews {
       return post;
     };
 
-    return new DiscourseServerReviewItem(
-      this.discourseService,
-      this.flagOptions,
-      topic,
-      user,
-      loadPost,
-    );
+    return new DiscourseServerReviewItem(this.discourseService, this.flagOptions, topic, user, loadPost);
   }
 }

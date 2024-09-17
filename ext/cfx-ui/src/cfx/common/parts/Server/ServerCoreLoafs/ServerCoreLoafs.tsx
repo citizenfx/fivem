@@ -1,31 +1,39 @@
-import React from "react";
-import { getGameBuildDLCName } from "cfx/base/game";
-import { $L } from "cfx/common/services/intl/l10n";
-import { IServerView, ServerPureLevel } from "cfx/common/services/servers/types";
-import { Avatar } from "cfx/ui/Avatar/Avatar";
-import { Badge } from "cfx/ui/Badge/Badge";
-import { LinkButton } from "cfx/ui/Button/LinkButton";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Symbols } from "cfx/ui/Symbols";
-import { Text } from "cfx/ui/Text/Text";
-import { Title } from "cfx/ui/Title/Title";
-import { getValue, ValueOrGetter } from "cfx/utils/getValue";
-import { useDynamicRef, useOpenFlag } from "cfx/utils/hooks";
-import { observer } from "mobx-react-lite";
-import { AiFillCrown } from "react-icons/ai";
-import { BsLockFill, BsMap } from "react-icons/bs";
-import { IoGameController } from "react-icons/io5";
-import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
-import { Loaf } from "cfx/ui/Loaf/Loaf";
-import { Button } from "cfx/ui/Button/Button";
-import { BiCopy } from "react-icons/bi";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Flex,
+  Loaf,
+  Symbols,
+  Text,
+  Title,
+  ValueOrGetter,
+  getValue,
+  useDynamicRef,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+import { AiFillCrown } from 'react-icons/ai';
+import { BiCopy } from 'react-icons/bi';
+import { BsLockFill, BsMap } from 'react-icons/bs';
+import { IoGameController } from 'react-icons/io5';
+
+import { getGameBuildDLCName } from 'cfx/base/game';
+import { AnalyticsLinkButton } from 'cfx/common/parts/AnalyticsLinkButton/AnalyticsLinkButton';
+import { ElementPlacements } from 'cfx/common/services/analytics/types';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { IServerView, ServerPureLevel } from 'cfx/common/services/servers/types';
+import { useOpenFlag } from 'cfx/utils/hooks';
+
+import { ServerBoostButton } from '../ServerBoostButton/ServerBoostButton';
+
 import s from './ServerCoreLoafs.module.scss';
 
 interface IExtraLoafDescriptor {
-  key: keyof IServerView,
-  title?: React.ReactNode | ((value: string) => React.ReactNode),
-  icon?: ValueOrGetter<React.ReactNode>,
-  value?(value: string): React.ReactNode,
+  key: keyof IServerView;
+  title?: React.ReactNode | ((value: string) => React.ReactNode);
+  icon?: ValueOrGetter<React.ReactNode>;
+  value?(value: string): React.ReactNode;
 }
 
 const EXTRA_DETAIL_BITS: IExtraLoafDescriptor[] = [
@@ -59,10 +67,14 @@ const EXTRA_DETAIL_BITS: IExtraLoafDescriptor[] = [
   {
     key: 'pureLevel',
     icon: <BsLockFill />,
-    title: (level: ServerPureLevel) => $L(`#ServerDetail_Info_PureLevel_${level}`, undefined, `Pure Mode Level ${level}`),
+    title: (level: ServerPureLevel) => $L(
+      `#ServerDetail_Info_PureLevel_${level}`,
+      undefined,
+      `Pure Mode Level ${level}`,
+    ),
     value: (level: ServerPureLevel) => {
       if (!level || level === ServerPureLevel.None) {
-        return;
+        return null;
       }
 
       return (
@@ -71,7 +83,7 @@ const EXTRA_DETAIL_BITS: IExtraLoafDescriptor[] = [
         </>
       );
     },
-  }
+  },
 ];
 
 function getTitle(title: IExtraLoafDescriptor['title'], value: string): React.ReactNode {
@@ -83,21 +95,26 @@ function getTitle(title: IExtraLoafDescriptor['title'], value: string): React.Re
 }
 
 export interface ServerCoreLoafsProps {
-  server: IServerView,
-
-  hideActions?: boolean,
+  server: IServerView;
+  hideActions?: boolean;
+  elementPlacement?: ElementPlacements;
 }
 
 export const ServerCoreLoafs = observer(function ServerCoreLoafs(props: ServerCoreLoafsProps) {
   const {
     server,
+    elementPlacement,
     hideActions = false,
   } = props;
 
   const nodes: React.ReactNode[] = [];
 
   if (!hideActions && server.ownerName && server.ownerProfile) {
-    const { ownerName, ownerProfile, ownerAvatar } = server;
+    const {
+      ownerName,
+      ownerProfile,
+      ownerAvatar,
+    } = server;
 
     const titleNode = (
       <Flex centered>
@@ -116,30 +133,21 @@ export const ServerCoreLoafs = observer(function ServerCoreLoafs(props: ServerCo
 
     nodes.push(
       <Title key="owner-link" title={titleNode}>
-        <LinkButton
+        <AnalyticsLinkButton
           to={ownerProfile}
           size="small"
           icon={<AiFillCrown />}
           text={ownerName}
+          elementPlacement={elementPlacement}
         />
-      </Title>
+      </Title>,
     );
   }
 
   if (!hideActions && server.joinId && !server.private) {
-    nodes.push(
-      <Copier
-        key="copy-join-id"
-        text={`cfx.re/join/${server.joinId}`}
-      />
-    );
+    nodes.push(<Copier key="copy-join-id" text={`cfx.re/join/${server.joinId}`} />);
 
-    nodes.push(
-      <ServerBoostButton
-        key="boost-button"
-        server={server}
-      />
-    );
+    nodes.push(<ServerBoostButton key="boost-button" server={server} />);
   }
 
   if (server.onesyncEnabled) {
@@ -154,7 +162,7 @@ export const ServerCoreLoafs = observer(function ServerCoreLoafs(props: ServerCo
             ync
           </span>
         </Loaf>
-      </Title>
+      </Title>,
     );
   }
 
@@ -175,14 +183,19 @@ export const ServerCoreLoafs = observer(function ServerCoreLoafs(props: ServerCo
           {!!extraLoaf.icon && getValue(extraLoaf.icon)}
           {displayValue}
         </Loaf>
-      </Title>
+      </Title>,
     );
   }
 
-  return <>{nodes}</>;
+  return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
+    <>{nodes}</>
+  );
 });
 
-function Copier({ text }) {
+function Copier({
+  text,
+}: { text: string }) {
   const [copied, setCopied, unsetCopied] = useOpenFlag(false);
 
   const textRef = useDynamicRef(text);
@@ -204,11 +217,14 @@ function Copier({ text }) {
     setCopied();
   }, []);
 
-  React.useEffect(() => () => {
-    if (timerRef.current !== null) {
-      clearTimeout(timerRef.current);
-    }
-  }, []);
+  React.useEffect(
+    () => () => {
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+      }
+    },
+    [],
+  );
 
   if ('clipboard' in navigator === false) {
     return null;
@@ -220,12 +236,7 @@ function Copier({ text }) {
 
   return (
     <Title key="join-link-copier" title={title}>
-      <Button
-        size="small"
-        icon={<BiCopy />}
-        text={text}
-        onClick={handleClick}
-      />
+      <Button size="small" icon={<BiCopy />} text={text} onClick={handleClick} />
     </Title>
   );
 }

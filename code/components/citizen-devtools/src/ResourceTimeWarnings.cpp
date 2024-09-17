@@ -7,6 +7,16 @@
 
 #include <CoreConsole.h>
 
+#ifndef IS_FXSERVER
+#include <Pool.h>
+#include <Streaming.h>
+#endif
+
+#include <iomanip>
+#include <sstream>
+#include <ctime>
+#include <chrono>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -20,6 +30,52 @@
 DLL_IMPORT ImFont* GetConsoleFontTiny();
 
 using namespace std::chrono_literals;
+
+void BytesToHumanReadable(std::string& humanSize, int totalBytes)
+{
+	humanSize = fmt::sprintf("%d B", totalBytes);
+
+	if (totalBytes > (1024 * 1024 * 1024))
+	{
+		humanSize = fmt::sprintf("%.2f GiB", totalBytes / 1024.0 / 1024.0 / 1024.0);
+	}
+	else if (totalBytes > (1024 * 1024))
+	{
+		humanSize = fmt::sprintf("%.2f MiB", totalBytes / 1024.0 / 1024.0);
+	}
+	else if (totalBytes > 1024)
+	{
+		humanSize = fmt::sprintf("%.2f KiB", totalBytes / 1024.0);
+	}
+}
+
+#ifndef IS_FXSERVER
+std::string PrettyFormatFileTime(uint64_t filetime)
+{
+	// Convert uint64_t to FILETIME
+	FILETIME ft;
+	ft.dwLowDateTime = static_cast<DWORD>(filetime & 0xFFFFFFFF);
+	ft.dwHighDateTime = static_cast<DWORD>(filetime >> 32);
+
+	// Convert FILETIME to SYSTEMTIME
+	SYSTEMTIME st;
+	if (!FileTimeToSystemTime(&ft, &st))
+	{
+		return "Invalid FILETIME";
+	}
+
+	// Create a string stream to format the date and time
+	std::stringstream ss;
+	ss << std::setfill('0') << std::setw(2) << st.wDay << "."
+	   << std::setfill('0') << std::setw(2) << st.wMonth << "."
+	   << std::setw(4) << st.wYear << " "
+	   << std::setfill('0') << std::setw(2) << st.wHour << ":"
+	   << std::setfill('0') << std::setw(2) << st.wMinute << ":"
+	   << std::setfill('0') << std::setw(2) << st.wSecond;
+
+	return ss.str();
+}
+#endif
 
 inline std::chrono::microseconds usec()
 {
@@ -371,6 +427,8 @@ static InitFunction initFunction([]()
 	static std::mutex mutex;
 
 	static bool taskMgrEnabled;
+	static bool m_enabledPools;
+	static bool m_enabledPgRawStreamerStats;
 
 	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive | ConVar_UserPref, false, &taskMgrEnabled);
 
@@ -702,20 +760,8 @@ static InitFunction initFunction([]()
 					}
 					else
 					{
-						std::string humanSize = fmt::sprintf("%d B", totalBytes);
-
-						if (totalBytes > (1024 * 1024 * 1024))
-						{
-							humanSize = fmt::sprintf("%.2f GiB", totalBytes / 1024.0 / 1024.0 / 1024.0);
-						}
-						else if (totalBytes > (1024 * 1024))
-						{
-							humanSize = fmt::sprintf("%.2f MiB", totalBytes / 1024.0 / 1024.0);
-						}
-						else if (totalBytes > 1024)
-						{
-							humanSize = fmt::sprintf("%.2f KiB", totalBytes / 1024.0);
-						}
+						std::string humanSize;
+						BytesToHumanReadable(humanSize, totalBytes);
 
 						ImGui::Text("%s+", humanSize.c_str());
 					}
@@ -724,20 +770,8 @@ static InitFunction initFunction([]()
 
 					if (streamingUsage > 0)
 					{
-						std::string humanSize = fmt::sprintf("%d B", streamingUsage);
-
-						if (streamingUsage > (1024 * 1024 * 1024))
-						{
-							humanSize = fmt::sprintf("%.2f GiB", streamingUsage / 1024.0 / 1024.0 / 1024.0);
-						}
-						else if (streamingUsage > (1024 * 1024))
-						{
-							humanSize = fmt::sprintf("%.2f MiB", streamingUsage / 1024.0 / 1024.0);
-						}
-						else if (streamingUsage > 1024)
-						{
-							humanSize = fmt::sprintf("%.2f KiB", streamingUsage / 1024.0);
-						}
+						std::string humanSize;
+						BytesToHumanReadable(humanSize, streamingUsage);
 
 						ImGui::Text("%s", humanSize.c_str());
 					}
@@ -753,4 +787,243 @@ static InitFunction initFunction([]()
 			ImGui::End();
 		}
 	});
+
+#ifndef IS_FXSERVER
+	static ConVar<bool> poolVar("net_showPools", ConVar_Archive | ConVar_UserPref, false, &m_enabledPools);
+
+	ConHost::OnShouldDrawGui.Connect([this](bool* should)
+	{
+		*should = *should || m_enabledPools;
+	});
+
+	ConHost::OnDrawGui.Connect([this]()
+	{
+		if (!m_enabledPools)
+		{
+			return;
+		}
+
+		if (ImGui::Begin("Pool List", &m_enabledPools))
+		{
+			static char search[100];
+			ImGui::InputText("Search", search, IM_ARRAYSIZE(search));
+			int totalSizeAllocated = 0;
+			int totalSizeUsed = 0;
+			auto pools = rage::GetPools();
+			struct PoolInfo
+			{
+				std::string name;
+				size_t itemSize;
+				size_t totalSize;
+				size_t items;
+				size_t maxItems;
+				float used;
+
+				PoolInfo(const std::string& _name, size_t _itemSize, size_t _totalSize, size_t _items, size_t _maxItems, float _used)
+					: name(_name), itemSize(_itemSize), totalSize(_totalSize), items(_items), maxItems(_maxItems), used(_used)
+				{
+				}
+			};
+			std::vector<PoolInfo> poolsInfo;
+			poolsInfo.reserve(pools.size());
+
+			for (auto [key, pool] : pools)
+			{
+				totalSizeAllocated += pool->GetSize() * pool->GetEntrySize();
+				totalSizeUsed += pool->GetCount() * pool->GetEntrySize();
+
+				float usedPercent = pool->GetSize() == 0 ? 0.f : (static_cast<float>(pool->GetCount()) / pool->GetSize() * 100.f);
+				PoolInfo poolInfo(key, pool->GetEntrySize(), pool->GetEntrySize() * pool->GetSize(), pool->GetCount(), pool->GetSize(), usedPercent);
+				poolsInfo.push_back(poolInfo);
+			}
+
+			std::string humanSizeAllocated;
+			BytesToHumanReadable(humanSizeAllocated, totalSizeAllocated);
+			ImGui::Text("Total size allocated: %s", humanSizeAllocated.c_str());
+
+			std::string humanSizeUsed;
+			BytesToHumanReadable(humanSizeUsed, totalSizeUsed);
+			ImGui::Text("Total size used: %s", humanSizeUsed.c_str());
+
+			bool shouldExport = false;
+			if (ImGui::Button("Export"))
+			{
+				shouldExport = true;
+			}
+
+			if (ImGui::BeginTable("Pool values", 6, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
+			{
+				ImGui::TableSetupColumn("Pool name", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableSetupColumn("Item size", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableSetupColumn("Total size", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableSetupColumn("Items", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableSetupColumn("Max items", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableSetupColumn("Used", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableHeadersRow();
+
+				{
+					auto sortSpecs = ImGui::TableGetSortSpecs();
+
+					if (sortSpecs && sortSpecs->SpecsCount > 0)
+					{
+						std::sort(poolsInfo.begin(), poolsInfo.end(), [sortSpecs](const PoolInfo& left, const PoolInfo& right)
+						{
+							for (int n = 0; n < sortSpecs->SpecsCount; n++)
+							{
+								const ImGuiTableColumnSortSpecs* sortSpec = &sortSpecs->Specs[n];
+								int delta = 0;
+								switch (sortSpec->ColumnIndex)
+								{
+									case 0:
+										delta = strcmpi(left.name.c_str(), right.name.c_str());
+										break;
+									case 1:
+										delta = left.itemSize - right.itemSize;
+										break;
+									case 2:
+										delta = left.totalSize - right.totalSize;
+										break;
+									case 3:
+										delta = left.items - right.items;
+										break;
+									case 4:
+										delta = left.maxItems - right.maxItems;
+										break;
+									case 5:
+										delta = static_cast<int>(left.used * 1000) - static_cast<int>(right.used * 1000);
+										break;
+								}
+								if (delta > 0)
+									return (sortSpec->SortDirection == ImGuiSortDirection_Ascending) ? false : true;
+								if (delta < 0)
+									return (sortSpec->SortDirection == ImGuiSortDirection_Ascending) ? true : false;
+							}
+
+							return strcmpi(left.name.c_str(), right.name.c_str()) < 0;
+						});
+					}
+				}
+
+				for (const auto& poolData : poolsInfo)
+				{
+					if (!poolData.name._Starts_with(search))
+					{
+						continue;
+					}
+
+					std::string humanSize;
+					BytesToHumanReadable(humanSize, poolData.totalSize);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", poolData.name.c_str());
+					ImGui::TableNextColumn();
+					ImGui::Text("%d", poolData.itemSize);
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", humanSize.c_str());
+					ImGui::TableNextColumn();
+					ImGui::Text("%d", poolData.items);
+					ImGui::TableNextColumn();
+					ImGui::Text("%d", poolData.maxItems);
+					ImGui::TableNextColumn();
+					ImGui::Text("%.2f%%", poolData.used);
+				}
+				ImGui::EndTable();
+			}
+
+			if (shouldExport)
+			{
+				// Properly sort it before export
+				std::sort(poolsInfo.begin(), poolsInfo.end(), [](const PoolInfo& left, const PoolInfo& right)
+				{
+					return strcmpi(left.name.c_str(), right.name.c_str()) < 0;
+				});
+
+				trace("--- Pools memory usage report ---\n");
+				trace("Allocated: %s\n", humanSizeAllocated.c_str());
+				trace("Used: %s\n", humanSizeUsed.c_str());
+				trace("Pools details:\n");
+
+				for (const auto& poolData : poolsInfo)
+				{
+					std::string humanSize;
+					BytesToHumanReadable(humanSize, poolData.totalSize);
+
+					trace(" - %s, item size = %d, total size = %s, items count = %d, pool size = %d\n", poolData.name.c_str(), poolData.itemSize, humanSize.c_str(), poolData.items, poolData.maxItems);
+				}
+				trace("--- Pools memory usage report end ---\n");
+			}
+		}
+		ImGui::End();
+	});
+
+
+	static ConVar<bool> pgStatsVar("net_pgStats", ConVar_Archive | ConVar_UserPref, false, &m_enabledPgRawStreamerStats);
+
+	ConHost::OnShouldDrawGui.Connect([this](bool* should)
+	{
+		*should = *should || m_enabledPgRawStreamerStats;
+	});
+
+	ConHost::OnDrawGui.Connect([this]()
+	{
+		if (!m_enabledPgRawStreamerStats)
+		{
+			return;
+		}
+
+		if (ImGui::Begin("Loaded pgRawStreamer assets", &m_enabledPgRawStreamerStats))
+		{
+			static char search[100] = "";
+			ImGui::InputText("Search", search, IM_ARRAYSIZE(search));
+			auto assets = rage::GetPgRawStreamerEntries();
+			ImGui::LabelText("Assets total", "%d/65535", assets.GetCount());
+
+			ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable;
+			if (ImGui::BeginTable("Assets", 2, tableFlags))
+			{
+				ImGui::TableSetupColumn("Asset path", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableSetupColumn("Add timestamp", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableHeadersRow();
+
+				if (assets.GetCount() > 1)
+				{
+					ImGuiListClipper clipper;
+					// -1 because 1st item in Entries always dummy in GTAV and RDR3
+					clipper.Begin(assets.GetCount() - 1);
+
+					while (clipper.Step())
+					{
+						for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
+						{
+							int assetsIndex = row + 1;
+							if (!assets[assetsIndex].name)
+							{
+								continue;
+							}
+
+							const std::string name = assets[assetsIndex].name;
+							if (!name._Starts_with(search))
+							{
+								continue;
+							}
+
+							const std::string datetime = PrettyFormatFileTime(assets[assetsIndex].timestamp);
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Text("%s", assets[assetsIndex].name);
+							ImGui::TableNextColumn();
+							ImGui::Text("%s", datetime.c_str());
+						}
+					}
+				}
+
+				ImGui::EndTable();
+			}
+		}
+
+		ImGui::End();
+	});
+#endif
 });

@@ -1,6 +1,5 @@
 #include "StdInc.h"
 
-#include <LaunchMode.h>
 #include <Hooking.h>
 
 #include <regex>
@@ -186,16 +185,6 @@ std::string regex_replace(const std::string& s,
 
 static uint32_t curTime;
 
-void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{
-	return ::operator new[](size);
-}
-
-void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{
-	return ::operator new[](size);
-}
-
 static void ParseHtmlStub(void* styledText, const wchar_t* str, int64_t length, void* pImgInfoArr, bool multiline, bool condenseWhite, void* styleMgr, void* txtFmt, void* paraFmt)
 {
 	if (!txtFmt)
@@ -360,11 +349,6 @@ static void FormatGtaTextWrap(const char* in, char* out, bool a3, void* a4, floa
 
 static HookFunction hookFunction([]()
 {
-	if (CfxIsSinglePlayer())
-	{
-		return;
-	}
-
 	MH_Initialize();
 	MH_CreateHook(hook::get_call(hook::get_pattern("40 88 6C 24 28 44 88 44 24 20 4C 8B C3 48 8B D6", 16)), ParseHtmlStub, (void**)&g_parseHtml);
 	MH_CreateHook(hook::get_pattern("48 8B F1 44 8D 6F 01 48", -48), GFxEditTextCharacterDef__SetTextValue, (void**)&g_origGFxEditTextCharacterDef__SetTextValue);

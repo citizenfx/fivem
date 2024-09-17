@@ -1,26 +1,32 @@
-import { useServersService } from "cfx/common/services/servers/servers.service";
-import { IPinnedServersCollection, IServerView } from "cfx/common/services/servers/types";
-import { Button } from "cfx/ui/Button/Button";
-import { Icon } from "cfx/ui/Icon/Icon";
-import { Icons } from "cfx/ui/Icons";
-import { Box } from "cfx/ui/Layout/Box/Box";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { Modal } from "cfx/ui/Modal/Modal";
-import { PremiumBadge } from "cfx/ui/PremiumBadge/PremiumBadge";
-import { Text } from "cfx/ui/Text/Text";
-import { Title } from "cfx/ui/Title/Title";
-import { useOpenFlag } from "cfx/utils/hooks";
-import { observer } from "mobx-react-lite";
-import { ServerIcon } from "../ServerIcon/ServerIcon";
-import { ServerPower } from "../ServerPower/ServerPower";
-import { ServerTileItem, ServerTileItemProps } from "../ServerTileItem/ServerTileItem";
-import { ServerTitle } from "../ServerTitle/ServerTitle";
+import {
+  Icon,
+  Icons,
+  Interactive,
+  Box,
+  Flex,
+  FlexRestricter,
+  Pad,
+  Modal,
+  PremiumBadge,
+  Text,
+  Title,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+
+import { ElementPlacements } from 'cfx/common/services/analytics/types';
+import { useServersService } from 'cfx/common/services/servers/servers.service';
+import { IPinnedServersCollection, IServerView } from 'cfx/common/services/servers/types';
+import { useOpenFlag } from 'cfx/utils/hooks';
+
+import { ServerIcon } from '../ServerIcon/ServerIcon';
+import { ServerPower } from '../ServerPower/ServerPower';
+import { ServerTileItem, ServerTileItemProps } from '../ServerTileItem/ServerTileItem';
+import { ServerTitle } from '../ServerTitle/ServerTitle';
+
 import s from './ServerSelectorTileItem.module.scss';
 
 export type ServerSelectorTileItemProps = Omit<ServerTileItemProps, 'server'> & {
-  serversCollection: IPinnedServersCollection,
+  serversCollection: IPinnedServersCollection;
 };
 
 export const ServerSelectorTileItem = observer(function ServerSelectorTileItem(props: ServerSelectorTileItemProps) {
@@ -46,43 +52,32 @@ export const ServerSelectorTileItem = observer(function ServerSelectorTileItem(p
   });
 
   const firstServer = servers[0];
+
   if (!firstServer) {
     return null;
   }
 
   return (
     <>
-      <div className={s.root} onClick={openModal}>
+      <Interactive className={s.root} onClick={openModal}>
         <Flex vertical fullHeight>
           <Flex repell>
             {label}
 
             <Flex centered="axis" gap="small">
-              <Icon opacity="50">
-                {Icons.playersCount}
-              </Icon>
-              <Text opacity="75">
-                {totalPlayers}
-              </Text>
+              <Icon opacity="50">{Icons.playersCount}</Icon>
+              <Text opacity="75">{totalPlayers}</Text>
             </Flex>
           </Flex>
 
           <Flex fullWidth>
             <Box height={10}>
-              <ServerIcon
-                glow
-                type="list"
-                server={firstServer}
-              />
+              <ServerIcon glow type="list" server={firstServer} />
             </Box>
 
             <FlexRestricter>
               <Flex vertical fullHeight fullWidth centered="cross-axis" gap="small">
-                <ServerTitle
-                  truncated
-                  size="xlarge"
-                  title={serversCollection.title}
-                />
+                <ServerTitle truncated size="xlarge" title={serversCollection.title} />
 
                 {!!firstServer.projectDescription && (
                   <Title delay={500} fixedOn="bottom-left" title={firstServer.projectDescription}>
@@ -95,9 +90,7 @@ export const ServerSelectorTileItem = observer(function ServerSelectorTileItem(p
             </FlexRestricter>
           </Flex>
         </Flex>
-
-
-      </div>
+      </Interactive>
 
       {modalOpen && (
         <ServerSelectorModal
@@ -112,11 +105,11 @@ export const ServerSelectorTileItem = observer(function ServerSelectorTileItem(p
 });
 
 interface ServerSelectorModalProps {
-  title: string,
-  servers: Array<IServerView | undefined>,
-  totalPlayers: number,
-  onClose(): void,
-};
+  title: string;
+  servers: Array<IServerView | undefined>;
+  totalPlayers: number;
+  onClose(): void;
+}
 
 const ServerSelectorModal = observer(function ServerSelectorModal(props: ServerSelectorModalProps) {
   const {
@@ -127,6 +120,7 @@ const ServerSelectorModal = observer(function ServerSelectorModal(props: ServerS
   } = props;
 
   const firstServer = servers[0];
+
   if (!firstServer) {
     return null;
   }
@@ -145,6 +139,7 @@ const ServerSelectorModal = observer(function ServerSelectorModal(props: ServerS
         placeControlsBelow
         hideDescription
         server={server}
+        elementPlacement={ElementPlacements.ServerSelectorModal}
       />
     );
   });
@@ -154,24 +149,19 @@ const ServerSelectorModal = observer(function ServerSelectorModal(props: ServerS
       <Flex vertical gap="none">
         <Pad size="xlarge">
           <Flex vertical centered>
-            <div></div>
-            <div></div>
+            <div />
+            <div />
             <ServerIcon server={firstServer} type="details" glow />
 
-            <div></div>
+            <div />
 
             <ServerTitle size="xxxlarge" title={title} />
 
             <Flex centered="axis" gap="normal">
               <Flex centered="axis" gap="thin">
-                <Icon opacity="75">
-                  {Icons.playersCount}
-                </Icon>
-                <Text>
-                  {totalPlayers}
-                </Text>
+                <Icon opacity="75">{Icons.playersCount}</Icon>
+                <Text>{totalPlayers}</Text>
               </Flex>
-
 
               <ServerPower server={firstServer} />
 
@@ -189,9 +179,7 @@ const ServerSelectorModal = observer(function ServerSelectorModal(props: ServerS
         </Pad>
 
         <Pad size="large">
-          <Flex vertical>
-            {serverNodes}
-          </Flex>
+          <Flex vertical>{serverNodes}</Flex>
         </Pad>
       </Flex>
     </Modal>

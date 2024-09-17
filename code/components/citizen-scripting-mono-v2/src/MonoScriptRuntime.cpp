@@ -5,6 +5,8 @@
 #include "MonoDomainScope.h"
 #include "MonoFreeable.h"
 
+#include "fxScriptBuffer.h"
+
 #include <msgpack.hpp>
 #include <Profiler.h>
 
@@ -104,11 +106,6 @@ result_t MonoScriptRuntime::Create(IScriptHost* host)
 			fx::OMPtr<IScriptHostWithManifest> manifestPtr;
 			ptr.As(&manifestPtr);
 			m_manifestHost = manifestPtr.GetRef();
-
-			fx::OMPtr<IScriptHostWithBookmarks> bookmarkPtr;
-			ptr.As(&bookmarkPtr);
-			m_bookmarkHost = bookmarkPtr.GetRef();
-			m_bookmarkHost->CreateBookmarks(this);
 		}
 
 		char* resourceName = nullptr;
@@ -134,7 +131,7 @@ result_t MonoScriptRuntime::Create(IScriptHost* host)
 		auto* thisPtr = this;
 		MonoException* exc;
 		auto initialize = Method::Find(image, "CitizenFX.Core.ScriptInterface:Initialize");
-		initialize({ mono_string_new(m_appDomain, resourceName), &thisPtr, &m_instanceId }, &exc);
+		initialize({ mono_string_new(m_appDomain, resourceName), &thisPtr, &m_instanceId, &m_sharedData }, &exc);
 
 		mono_domain_set_internal(mono_get_root_domain()); // back to root for v1
 
@@ -172,16 +169,26 @@ result_t MonoScriptRuntime::Destroy()
 
 	m_appDomain = nullptr;
 	m_scriptHost = nullptr;
-	m_bookmarkHost->RemoveBookmarks(this);
-	m_bookmarkHost = nullptr;
 
 	mono_domain_set_internal(mono_get_root_domain()); // back to root for v1
 
 	return ReturnOrError(exc);
 }
 
-result_t MonoScriptRuntime::TickBookmarks(uint64_t* bookmarks, int32_t numBookmarks)
+result_t MonoScriptRuntime::Tick()
 {
+	// Tick-less: we don't pay for runtime entry and exit costs if there's nothing to do.
+	{
+		auto nextScheduledTime = m_sharedData.m_scheduledTime.load();
+		if (GetCurrentSchedulerTime() < nextScheduledTime)
+		{
+			return FX_S_OK;
+		}
+
+		// We can ignore the time between the load above and the store below as the runtime will set this value again if there's still work to do
+		m_sharedData.m_scheduledTime.store(~uint64_t(0));
+	}
+
 	m_handler->PushRuntime(static_cast<IScriptRuntime*>(this));
 	if (m_parentObject)
 		m_parentObject->OnActivate();
@@ -190,12 +197,8 @@ result_t MonoScriptRuntime::TickBookmarks(uint64_t* bookmarks, int32_t numBookma
 
 	MONO_BOUNDARY_START
 
-	// reset scheduled time, nextTick will set the next time
-	m_scheduledTime = ~uint64_t(0);
-
 	MonoException* exc;
-	uint64_t nextTick = m_tick(GetCurrentSchedulerTime(), IsProfiling(), &exc);
-	ScheduleTick(nextTick);
+	m_tick(GetCurrentSchedulerTime(), IsProfiling(), &exc);
 
 	MONO_BOUNDARY_END
 
@@ -216,11 +219,9 @@ result_t MonoScriptRuntime::TriggerEvent(char* eventName, char* argsSerialized, 
 	MONO_BOUNDARY_START
 
 	MonoException* exc = nullptr;
-	uint64_t nextTick = m_triggerEvent(mono_string_new(m_appDomain, eventName),
+	m_triggerEvent(mono_string_new(m_appDomain, eventName),
 		argsSerialized, serializedSize, mono_string_new(m_appDomain, sourceId),
 		GetCurrentSchedulerTime(), IsProfiling(), &exc);
-
-	ScheduleTick(nextTick);
 
 	MONO_BOUNDARY_END
 
@@ -263,11 +264,14 @@ int MonoScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* 
 	}
 
 	// last supported date for this pilot of mono_rt2, in UTC
-	constexpr int maxYear = 2023, maxMonth = 12, maxDay = 31;
+	constexpr int maxYear = 2024, maxMonth = 12, maxDay = 31;
 
 	// Allowed values for mono_rt2
 	constexpr std::string_view allowedValues[] = {
 		// put latest on top, right here ↓
+	    "Prerelease expiring 2024-12-31. See https://aka.cfx.re/mono-rt2-preview for info."sv,
+		"Prerelease expiring 2024-06-30. See https://aka.cfx.re/mono-rt2-preview for info."sv,
+		"Prerelease expiring 2024-03-31. See https://aka.cfx.re/mono-rt2-preview for info."sv,
 		"Prerelease expiring 2023-12-31. See https://aka.cfx.re/mono-rt2-preview for info."sv,
 		"Prerelease expiring 2023-08-31. See https://aka.cfx.re/mono-rt2-preview for info."sv,
 		"Prerelease expiring 2023-06-30. See https://aka.cfx.re/mono-rt2-preview for info."sv,
@@ -326,9 +330,7 @@ result_t MonoScriptRuntime::LoadFile(char* scriptFile)
 	bool isProfiling = IsProfiling();
 
 	MonoException* exc = nullptr;
-	MonoObject* nextTickObject = m_loadAssembly({ mono_string_new(m_appDomain, scriptFile), &currentTime, &isProfiling }, &exc);
-	uint64_t nextTick = *reinterpret_cast<uint64_t*>(mono_object_unbox(nextTickObject));
-	ScheduleTick(nextTick);
+	m_loadAssembly({ mono_string_new(m_appDomain, scriptFile), &currentTime, &isProfiling }, &exc);
 	
 	console::PrintWarning(_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
 		"Assembly %s has been loaded into the mono rt2 runtime. This runtime is still in beta and shouldn't be used in production, "
@@ -337,18 +339,26 @@ result_t MonoScriptRuntime::LoadFile(char* scriptFile)
 	return ReturnOrError(exc);
 }
 
-result_t MonoScriptRuntime::CallRef(int32_t refIndex, char* argsSerialized, uint32_t argsSize, char** retvalSerialized, uint32_t* retvalSize)
+result_t MonoScriptRuntime::CallRef(int32_t refIndex, char* argsSerialized, uint32_t argsSize, IScriptBuffer** buffer)
 {
-	*retvalSerialized = nullptr;
-	*retvalSize = 0;
-
 	fx::PushEnvironment env(this);
 	MonoComponentHost::EnsureThreadAttached();
 	MonoDomainScope scope(m_appDomain);
 
+	MonoArray* retval = nullptr;
 	MonoException* exc = nullptr;
-	uint64_t nextTick = m_callRef(refIndex, argsSerialized, argsSize, retvalSerialized, retvalSize, GetCurrentSchedulerTime(), IsProfiling(), &exc);
-	ScheduleTick(nextTick);
+	m_callRef(refIndex, argsSerialized, argsSize, &retval, GetCurrentSchedulerTime(), IsProfiling(), &exc);
+
+	*buffer = nullptr;
+
+	if (retval)
+	{
+		char* retvalStart = mono_array_addr(retval, char, 0);
+		uintptr_t retvalLength = mono_array_length(retval);
+
+		auto rvb = fx::MemoryScriptBuffer::Make(retvalStart, retvalLength);
+		rvb.CopyTo(buffer);
+	}
 
 	return ReturnOrError(exc);
 }
@@ -387,6 +397,27 @@ MonoArray* MonoScriptRuntime::CanonicalizeRef(int referenceId) const
 	memcpy(mono_array_addr_with_size(arr, 1, 0), str, size);
 
 	fwFree(str);
+
+	return arr;
+}
+
+MonoArray* MonoScriptRuntime::InvokeFunctionReference(MonoString* referenceId, MonoArray* argsSerialized) const
+{
+	std::string referenceString = UTF8CString(referenceId);
+
+	char* argsStart = mono_array_addr(argsSerialized, char, 0);
+	uintptr_t argsLength = mono_array_length(argsSerialized);
+
+	fx::OMPtr<IScriptBuffer> retval;
+	result_t hr = m_scriptHost->InvokeFunctionReference(const_cast<char*>(referenceString.c_str()), argsStart, argsLength, retval.GetAddressOf());
+	size_t size = (retval.GetRef()) ? retval->GetLength() : 0;
+
+	MonoArray* arr = mono_array_new(m_appDomain, mono_get_byte_class(), size);
+
+	if (size)
+	{
+		memcpy(mono_array_addr_with_size(arr, 1, 0), retval->GetBytes(), size);
+	}
 
 	return arr;
 }

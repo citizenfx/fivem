@@ -1,40 +1,47 @@
-import React from "react";
-import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
-import { ConnectState } from "cfx/apps/mpMenu/services/servers/connect/state";
-import { CurrentGameBrand, CurrentGameName } from "cfx/base/gameRuntime";
-import { createPlaceholderIconDataURI } from "cfx/base/placeholderIcon";
-import { ServerIcon } from "cfx/common/parts/Server/ServerIcon/ServerIcon";
-import { useAccountService } from "cfx/common/services/account/account.service";
-import { $L, useL10n } from "cfx/common/services/intl/l10n";
-import { IServerView } from "cfx/common/services/servers/types";
-import { Avatar } from "cfx/ui/Avatar/Avatar";
-import { Button } from "cfx/ui/Button/Button";
-import { ButtonBar } from "cfx/ui/Button/ButtonBar";
-import { ControlBox } from "cfx/ui/ControlBox/ControlBox";
-import { Icon } from "cfx/ui/Icon/Icon";
-import { BrandIcon } from "cfx/ui/Icons";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { Separator } from "cfx/ui/Separator/Separator";
-import { Text, TextBlock, TextColor } from "cfx/ui/Text/Text";
-import { noop } from "cfx/utils/functional";
-import { html2react } from "cfx/utils/html2react";
-import { linkify } from "cfx/utils/links";
-import { nl2br } from "cfx/utils/nl2br";
-import { observer } from "mobx-react-lite";
-import { BsCheckCircle, BsFillQuestionCircleFill, BsXCircleFill } from "react-icons/bs";
-import { MdWrongLocation } from "react-icons/md";
-import { replaceCfxRePlaceholders, useRenderedFormattedMessage } from "../../utils/messageFormatting";
-import { usePlatformStatusService } from "../../services/platformStatus/platformStatus.service";
-import { StatusLevel } from "../../services/platformStatus/types";
-import { Modal } from "cfx/ui/Modal/Modal";
-import { useStreamerMode } from "../../services/convars/convars.service";
+import {
+  Avatar,
+  Button,
+  ButtonBar,
+  ControlBox,
+  Icon,
+  BrandIcon,
+  Flex,
+  Pad,
+  Modal,
+  Separator,
+  Text,
+  TextBlock,
+  noop,
+  linkify,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+import { BsCheckCircle, BsFillQuestionCircleFill, BsXCircleFill } from 'react-icons/bs';
+import { MdWrongLocation } from 'react-icons/md';
+
+import { mpMenu } from 'cfx/apps/mpMenu/mpMenu';
+import { ConnectState } from 'cfx/apps/mpMenu/services/servers/connect/state';
+import { CurrentGameBrand, CurrentGameName } from 'cfx/base/gameRuntime';
+import { createPlaceholderIconDataURI } from 'cfx/base/placeholderIcon';
+import { ServerIcon } from 'cfx/common/parts/Server/ServerIcon/ServerIcon';
+import { useAccountService } from 'cfx/common/services/account/account.service';
+import { $L, useL10n } from 'cfx/common/services/intl/l10n';
+import { IServerView } from 'cfx/common/services/servers/types';
+import { html2react } from 'cfx/utils/html2react';
+import { nl2br } from 'cfx/utils/nl2br';
+
+import { useStreamerMode } from '../../services/convars/convars.service';
+import { usePlatformStatusService } from '../../services/platformStatus/platformStatus.service';
+import { StatusLevel } from '../../services/platformStatus/types';
+import { replaceCfxRePlaceholders, useRenderedFormattedMessage } from '../../utils/messageFormatting';
+
+type IconColor = React.ComponentProps<typeof Icon>['color'];
 
 type ConnectFailedProps = {
-  state: ConnectState.Failed,
-  server: IServerView,
-  onClose?(): void,
-}
+  state: ConnectState.Failed;
+  server: IServerView;
+  onClose?(): void;
+};
 export const ConnectFailed = observer(function ConnectFailed(props: ConnectFailedProps) {
   const {
     state,
@@ -43,14 +50,13 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
   } = props;
 
   const {
-    extra,
-    extraActions,
-    title = '#Servers_ConnectFailed',
+    extra, extraActions, title = '#Servers_ConnectFailed',
   } = state;
 
   const stateMessage = useRenderedFormattedMessage(state, server);
   const serviceStatus = useServiceStatus(extra?.status);
   const bodyLocalized = serviceStatus
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     ? useL10n(serviceStatus?.body)
     : '';
 
@@ -59,10 +65,7 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
       <Pad size="large">
         <Flex vertical gap="large" fullWidth>
           {!!extra?.fault && (
-            <FailureScheme
-              fault={extra.fault}
-              server={server}
-            />
+            <FailureScheme fault={extra.fault} server={server} />
           )}
 
           <Text size="xlarge" color="error">
@@ -83,21 +86,14 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
 
           {!!extra?.action && (
             <Flex vertical>
-              <Text size="large">
-                {$L('#ErrorActions')}
-              </Text>
+              <Text size="large">{$L('#ErrorActions')}</Text>
 
-              <StateExtraAction
-                server={server}
-                action={extra.action}
-              />
+              <StateExtraAction server={server} action={extra.action} />
             </Flex>
           )}
 
           <Flex vertical fullWidth>
-            <Text size="large">
-              {$L('#ErrorDetails')}
-            </Text>
+            <Text size="large">{$L('#ErrorDetails')}</Text>
 
             <TextBlock typographic userSelectable>
               {stateMessage}
@@ -111,17 +107,15 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
           {!!extraActions?.length && (
             <ButtonBar>
               {extraActions.map((extraAction) => (
-                <Button
-                  key={extraAction.id}
-                  text={extraAction.label}
-                  onClick={extraAction.action}
-                />
+                <Button key={extraAction.id} text={extraAction.label} onClick={extraAction.action} />
               ))}
             </ButtonBar>
           )}
 
           <Button
-            theme={extraActions?.length ? 'transparent' : 'default'}
+            theme={extraActions?.length
+              ? 'transparent'
+              : 'default'}
             text={$L('#Servers_CloseOverlay')}
             onClick={onClose}
           />
@@ -131,10 +125,12 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
   );
 });
 
-function useServiceStatus(showStatusAnyway: boolean | undefined | null): { title: string, body: string } | null {
+function useServiceStatus(showStatusAnyway: boolean | undefined | null): { title: string; body: string } | null {
   const PlatformStatusService = usePlatformStatusService();
 
-  const level = PlatformStatusService.level;
+  const {
+    level,
+  } = PlatformStatusService;
 
   // Refresh platform status
   React.useEffect(() => {
@@ -158,28 +154,23 @@ function useServiceStatus(showStatusAnyway: boolean | undefined | null): { title
   return null;
 }
 
-const StateExtraAction = observer(function StateExtraAction(props: { action: string, server: IServerView }) {
-  const { action, server } = props;
+const StateExtraAction = observer(function StateExtraAction(props: { action: string; server: IServerView }) {
+  const {
+    action,
+    server,
+  } = props;
 
   const actionLocalized = useL10n(action);
 
-  const actionx = React.useMemo(() => {
-    return html2react(
-      linkify(
-        nl2br(
-          replaceCfxRePlaceholders(
-            actionLocalized,
-            server,
-          ),
-        ),
-      ),
-    );
-  }, [actionLocalized, server]);
+  const actionx = React.useMemo(
+    () => html2react(
+      linkify(nl2br(replaceCfxRePlaceholders(actionLocalized, server))),
+    ),
+    [actionLocalized, server],
+  );
 
   return (
-    <TextBlock typographic>
-      {actionx}
-    </TextBlock>
+    <TextBlock typographic>{actionx}</TextBlock>
   );
 });
 
@@ -187,7 +178,10 @@ function isCfxFault(fault: string): boolean {
   return fault.startsWith('cfx');
 }
 
-const FailureScheme = observer(function FailureScheme(props: { server: IServerView, fault: NonNullable<ConnectState.Failed['extra']>['fault'] }) {
+const FailureScheme = observer(function FailureScheme(props: {
+  server: IServerView;
+  fault: NonNullable<ConnectState.Failed['extra']>['fault'];
+}) {
   const {
     fault,
     server,
@@ -201,74 +195,58 @@ const FailureScheme = observer(function FailureScheme(props: { server: IServerVi
     ? AccountService.account.getAvatarUrl()
     : createPlaceholderIconDataURI(mpMenu.getPlayerNickname());
 
+  // eslint-disable-next-line no-nested-ternary
   const userToCfx = fault === 'you'
     ? 'bye'
-    : (
-      fault === 'either'
-        ? 'unknown'
-        : (
-          isCfxFault(fault)
-            ? 'broken'
-            : 'ok'
-        )
-    );
+    // eslint-disable-next-line no-nested-ternary
+    : fault === 'either'
+      ? 'unknown'
+      : isCfxFault(fault)
+        ? 'broken'
+        : 'ok';
 
+  // eslint-disable-next-line no-nested-ternary
   const cfxToServer = fault === 'you'
     ? 'bye'
-    : (
-      (fault === 'either' || isCfxFault(fault))
-        ? 'unknown'
-        : 'broken'
-    );
+    : fault === 'either' || isCfxFault(fault)
+      ? 'unknown'
+      : 'broken';
 
   return (
     <Flex repell fullWidth centered gap="large">
       <Flex vertical centered>
         <Avatar
           size="large"
-          url={streamerMode ? null : userAvatarURL}
+          url={streamerMode
+            ? null
+            : userAvatarURL}
         />
 
-        <Text size="large">
-          {$L('#Error_You')}
-        </Text>
+        <Text size="large">{$L('#Error_You')}</Text>
       </Flex>
 
-      <Separator
-        content={<ConnectivityIcon state={userToCfx} />}
-      />
+      <Separator content={<ConnectivityIcon state={userToCfx} />} />
 
       <Flex vertical centered>
-        <Text size="xxlarge">
-          {BrandIcon[CurrentGameName]}
-        </Text>
+        <Text size="xxlarge">{BrandIcon[CurrentGameName]}</Text>
 
-        <Text size="large">
-          {CurrentGameBrand}
-        </Text>
+        <Text size="large">{CurrentGameBrand}</Text>
       </Flex>
 
-      <Separator
-        content={<ConnectivityIcon state={cfxToServer} />}
-      />
+      <Separator content={<ConnectivityIcon state={cfxToServer} />} />
 
       <Flex vertical centered>
         <ControlBox size="large">
-          <ServerIcon
-            type="list"
-            server={server}
-          />
+          <ServerIcon type="list" server={server} />
         </ControlBox>
 
-        <Text size="large">
-          {$L('#Error_Server')}
-        </Text>
+        <Text size="large">{$L('#Error_Server')}</Text>
       </Flex>
     </Flex>
   );
 });
 
-const iconsMap: Record<string, { icon: React.ReactNode, color: TextColor }> = {
+const iconsMap: Record<string, { icon: React.ReactNode; color: IconColor }> = {
   ok: {
     icon: <BsCheckCircle />,
     color: 'success',
@@ -286,8 +264,12 @@ const iconsMap: Record<string, { icon: React.ReactNode, color: TextColor }> = {
     color: 'primary',
   },
 };
-function ConnectivityIcon(props: { state: 'ok' | 'unknown' | 'broken' | 'bye' }) {
-  const { icon, color } = iconsMap[props.state];
+function ConnectivityIcon({
+  state,
+}: { state: 'ok' | 'unknown' | 'broken' | 'bye' }) {
+  const {
+    icon, color,
+  } = iconsMap[state];
 
   return (
     <Icon color={color} size="xxlarge">

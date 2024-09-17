@@ -16,8 +16,8 @@
 #include <gameSkeleton.h>
 
 #include <CoreConsole.h>
-#include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
+#include <CustomRtti.h>
 
 static volatile void* g_dummyState;
 
@@ -91,36 +91,6 @@ intptr_t VerifyNetObj2(char* a1, int a2)
 	}
 
 	return origVerifyNetObj2(a1, a2);
-}
-
-struct VirtualBase
-{
-	virtual ~VirtualBase() {}
-};
-
-struct VirtualDerivative : public VirtualBase
-{
-	virtual ~VirtualDerivative() override {}
-};
-
-std::string GetType(void* d)
-{
-	VirtualBase* self = (VirtualBase*)d;
-
-	std::string typeName = fmt::sprintf("unknown (vtable %p)", (void*)hook::get_unadjusted(*(void**)self));
-
-	if (!xbr::IsGameBuildOrGreater<2802>())
-	{
-		try
-		{
-			typeName = typeid(*self).name();
-		}
-		catch (std::__non_rtti_object&)
-		{
-		}
-	}
-
-	return typeName;
 }
 
 static void(*g_origUnsetGameObj)(void*, void*, bool, bool);
@@ -213,26 +183,19 @@ static void(*g_origCVehicleModelInfo__init)(void* mi, void* data);
 
 static hook::cdecl_stub<void*(uint32_t)> _getExplosionInfo([]()
 {
-	if (Is372())
-	{
-		return (void*)nullptr;
-	}
 	return hook::get_call(hook::get_pattern("BA 52 28 0C 03 85 D2 74 09 8B CA E8", 11));
 });
 
 void CVehicleModelInfo__init(char* mi, char* data)
 {
-	if (!Is372())
+	uint32_t explosionHash = *(uint32_t*)(data + 96);
+
+	if (!explosionHash || !_getExplosionInfo(explosionHash))
 	{
-		uint32_t explosionHash = *(uint32_t*)(data + 96);
-
-		if (!explosionHash || !_getExplosionInfo(explosionHash))
-		{
-			explosionHash = HashString("explosion_info_default");
-		}
-
-		*(uint32_t*)(data + 96) = explosionHash;
+		explosionHash = HashString("explosion_info_default");
 	}
+
+	*(uint32_t*)(data + 96) = explosionHash;
 
 	g_origCVehicleModelInfo__init(mi, data);
 }
@@ -389,11 +352,6 @@ static void VehUnloadParserHook(void* par, const char* fn, const char* ext, void
 
 static void VehicleMetadataUnloadMagic()
 {
-	if (Is372())
-	{
-		return;
-	}
-
 	auto funcStart = hook::get_pattern<char>("48 8B D9 48 8D 4C 24 40 E8 ? ? ? ? 48 83", -0x15);
 
 	auto ctorRef = funcStart + 0x1D;
@@ -657,19 +615,13 @@ static HookFunction hookFunction{[] ()
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	// don't load SP games in netmode sessions
-	if (!CfxIsSinglePlayer())
-	{
-		MH_Initialize();
-		MH_CreateHook(hook::get_pattern("84 C0 75 07 BB 02 00 00 00 EB 0C", -0x22), DoReadSaveGame, (void**)&g_origDoReadSaveGame);
-		MH_EnableHook(MH_ALL_HOOKS);
-	}
-
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("84 C0 75 07 BB 02 00 00 00 EB 0C", -0x22), DoReadSaveGame, (void**)&g_origDoReadSaveGame);
+	MH_EnableHook(MH_ALL_HOOKS);
+	
 	// disable crashing on train validity check failing
 	// (this is, oddly, a cloud tunable?!)
-	if (!Is372())
-	{
-		hook::put<uint8_t>(hook::get_address<uint8_t*>(hook::get_pattern("44 38 3D ? ? ? ? 74 0E B1 01 E8", 3)), 0);
-	}
+	hook::put<uint8_t>(hook::get_address<uint8_t*>(hook::get_pattern("44 38 3D ? ? ? ? 74 0E B1 01 E8", 3)), 0);
 
 	// mismatched NVIDIA drivers may lead to NVAPI calls (NvAPI_EnumPhysicalGPUs/NvAPI_EnumLogicalGPUs, NvAPI_D3D_GetCurrentSLIState) returning a
 	// preposterous amount of SLI GPUs. since SLI is not supported at all for Cfx (due to lack of SLI profile), just ignore GPU count provided by NVAPI/AGS.
@@ -686,7 +638,7 @@ static HookFunction hookFunction{[] ()
 	// block *any* CGameWeatherEvent
 	// (hotfix)
 	// CGameWeatherEvent was removed from the game in 2372 build.
-	if (!CfxIsSinglePlayer() && !xbr::IsGameBuildOrGreater<2372>())
+	if (!xbr::IsGameBuildOrGreater<2372>())
 	{
 		hook::return_function(hook::get_pattern("45 33 C9 41 B0 01 41 8B D3 E9", -10));
 	}
@@ -712,14 +664,11 @@ static HookFunction hookFunction{[] ()
 	hook::nop(txdFixStubLoc, 6);
 	hook::call_rcx(txdFixStubLoc, txdFixStub.GetCode()); // call_rcx as the stub depends on rax being valid
 
-	if (!CfxIsSinglePlayer())
-	{
-		// unknown function doing 'something' to scrProgram entries for a particular scrThread - we of course don't have any scrProgram
-		//hook::jump(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnInt<-1>);
-		MH_Initialize();
-		MH_CreateHook(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnIfMp, (void**)&g_origScrProgramReturn);
-		MH_EnableHook(MH_ALL_HOOKS);
-	}
+	// unknown function doing 'something' to scrProgram entries for a particular scrThread - we of course don't have any scrProgram
+	//hook::jump(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnInt<-1>);
+	MH_Initialize();
+	MH_CreateHook(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnIfMp, (void**)&g_origScrProgramReturn);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	// make sure a drawfrag dc doesn't actually run if there's no frag (bypass ERR_GFX_DRAW_DATA)
 	// 505-specific, possibly
@@ -749,7 +698,6 @@ static HookFunction hookFunction{[] ()
 		}
 	} carFixStub;
 
-	if (!Is372())
 	{
 		auto location = hook::get_pattern("0F B7 99 ? ? 00 00 EB 38", 0);
 		hook::nop(location, 7);
@@ -827,8 +775,8 @@ static HookFunction hookFunction{[] ()
 			// check if this is a composite bound
 			if (*(uint8_t*)(bound + 16) != 10) // actually 10, but to verify this works
 			{
-				auto boundType = GetType(bound);
-				auto instType = GetType(inst);
+				auto boundType = SearchTypeName(bound, true);
+				auto instType = SearchTypeName(inst, true);
 
 				std::string frag = "<unknown>";
 
@@ -979,97 +927,6 @@ static HookFunction hookFunction{[] ()
 	// causes ErrorDo signature because of null pointers - we'll just replace validation and force the array to be size 0
 	hook::jump(hook::get_pattern("44 0F B7 41 20 33 D2 45"), VehicleEntryPointValidate);
 
-	static uint64_t lastClothValue;
-	static char* lastClothPtr;
-
-	// cloth data in vehicle audio, validity check
-	// for crash sig @4316ee
-	static struct : jitasm::Frontend
-	{
-		static void ReportCrash()
-		{
-			static bool hasCrashedBefore = false;
-
-			if (!hasCrashedBefore)
-			{
-				hasCrashedBefore = true;
-
-				trace("WARNING: cloth data crash triggered (invalid pointer: %016llx, dummy: %016llx)\n", (uintptr_t)lastClothPtr, (uintptr_t)lastClothValue);
-
-				AddCrashometry("cloth_data_crash", "true");
-			}
-		}
-
-		static bool VerifyClothDataInst(char* pointer)
-		{
-			__try
-			{
-				lastClothValue = *(uint64_t*)(pointer + 0x1E0);
-
-				return true;
-			}
-			__except (EXCEPTION_EXECUTE_HANDLER)
-			{
-				lastClothPtr = pointer;
-				ReportCrash();
-
-				return false;
-			}
-		}
-
-		void InternalMain() override
-		{
-			// save rcx and rax as these are our instruction operands
-			push(rcx);
-			push(rax);
-
-			// set up a stack frame for function calling
-			push(rbp);
-			mov(rbp, rsp);
-			sub(rsp, 32);
-
-			// call VerifyClothDataInst with rax (the pointer to probe)
-			mov(rcx, rax);
-			mov(rax, (uintptr_t)&VerifyClothDataInst);
-			call(rax);
-
-			// if 0, it's invalid
-			test(al, al);
-			jz("otherReturn");
-
-			// pop stack frame and execute original cmp instruction
-			add(rsp, 32);
-			pop(rbp);
-
-			pop(rax);
-			pop(rcx);
-
-			cmp(qword_ptr[rax + 0x1E0], rcx);
-
-			ret();
-
-			// pop stack frame and set ZF
-			L("otherReturn");
-
-			add(rsp, 32);
-			pop(rbp);
-
-			pop(rax);
-			pop(rcx);
-
-			xor(rdx, rdx);
-
-			ret();
-		}
-	} clothFixStub1;
-
-	if (!xbr::IsGameBuildOrGreater<3095>()) // seems to be fixed as of 3095.0
-	{
-		auto location = hook::get_pattern("74 66 48 39 88 E0 01 00 00 74 5D", 2);
-		hook::nop(location, 7);
-		hook::call_reg<2>(location, clothFixStub1.GetCode());
-	}
-
 	// fix some deeply nested call used by CVehicle destructor (related to CApplyDamage?) crashing uncommonly on a null pointer
 	static struct : jitasm::Frontend
 	{
@@ -1120,7 +977,6 @@ static HookFunction hookFunction{[] ()
 	}
 
 	// always create OffscreenBuffer3 so that it can't not exist at CRenderer init time (FIVEM-CLIENT-1290-F)
-	if (!Is372())
 	{
 		hook::put<uint8_t>(hook::get_pattern("4C 89 25 ? ? ? ? 75 0E 8B", 7), 0xEB);
 	}
@@ -1151,24 +1007,20 @@ static HookFunction hookFunction{[] ()
 		hook::set_call(&g_origReinitRenderPhase, location);
 		hook::call(location, ReinitRenderPhaseWrap);
 
-		if (!CfxIsSinglePlayer())
+		Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
 		{
-			Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+			if (g_pendingReinit)
 			{
-				if (g_pendingReinit)
-				{
-					trace("Attempted a mode change during shutdown - executing it now...\n");
+				trace("Attempted a mode change during shutdown - executing it now...\n");
 
-					g_origReinitRenderPhase(g_pendingReinit);
-					g_pendingReinit = nullptr;
-				}
-			});
-		}
+				g_origReinitRenderPhase(g_pendingReinit);
+				g_pendingReinit = nullptr;
+			}
+		});
 	}
 
 	// CScene_unk_callsBlenderM58: over 50 iterated objects (CEntity+40 == 5, CObject) will lead to a stack buffer overrun
 	// 1604 signature: happy-venus-purple (FIVEM-CLIENT-1604-NEW-18G4)
-	if (!Is372())
 	{
 		static struct : jitasm::Frontend
 		{
@@ -1218,10 +1070,7 @@ static HookFunction hookFunction{[] ()
 	MH_CreateHook(hook::get_pattern("B8 01 00 00 00 0F A2 C1 EB 08", -0x11), GetCacheLineSizeHook, (void**)&g_origGetCacheLineSize);
 
 	// and to prevent unloading
-	if (!Is372())
-	{
-		MH_CreateHook(hook::get_pattern("41 BD D8 00 00 00 39 6B 60 74", -0x30), CText__UnloadSlotHook, (void**)&g_origCText__UnloadSlot);
-	}
+	MH_CreateHook(hook::get_pattern("41 BD D8 00 00 00 39 6B 60 74", -0x30), CText__UnloadSlotHook, (void**)&g_origCText__UnloadSlot);
 
 	// patch atPoolBase::Init call for dlDrawListMgr cloth entries
 	{

@@ -43,6 +43,10 @@
 
 #include <InfoHttpHandler.h>
 
+#include "ClientDropReasons.h"
+
+#include <packethandlers/RequestObjectIdsPacketHandler.h>
+
 constexpr const char kDefaultServerList[] = "https://servers-ingress-live.fivem.net/ingress";
 
 static fx::GameServer* g_gameServer;
@@ -105,7 +109,7 @@ namespace fx
 
 		OnAttached(instance);
 
-		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_None, "");
+		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_ReadOnly, "");
 		m_hostname = instance->AddVariable<std::string>("sv_hostname", ConVar_ServerInfo, "default FXServer");
 		m_masters[0] = instance->AddVariable<std::string>("sv_master1", ConVar_None, kDefaultServerList);
 		m_masters[1] = instance->AddVariable<std::string>("sv_master2", ConVar_None, "");
@@ -131,7 +135,7 @@ namespace fx
 		{
 			m_clientRegistry->ForAllClients([this, &reason](const fx::ClientSharedPtr& client)
 			{
-				DropClient(client, "Server shutting down: %s", reason);
+				DropClientWithReason(client, fx::serverDropResourceName, ClientDropReason::SERVER_SHUTDOWN, "Server shutting down: %s", reason);
 			});
 		});
 
@@ -200,7 +204,7 @@ namespace fx
 						.Help("Time spent on server ticks")
 						.Register(*m_instance->GetComponent<ServerPerfComponent>()->GetRegistry())
 						.Add({ {"name", "svMain"} }, prometheus::Histogram::BucketBoundaries{
-							.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
+							0.001, 0.002, 0.004, 0.006, 0.008, 0.010, 0.015, 0.020, 0.030, 0.050, 0.070, 0.100, 0.150, 0.250
 						});
 
 					uv_timer_init(loop, &mainData->tickTimer);
@@ -330,12 +334,12 @@ namespace fx
 				.Help("Time spent on server ticks")
 				.Register(*m_instance->GetComponent<ServerPerfComponent>()->GetRegistry())
 				.Add({ {"name", "svNetwork"} }, prometheus::Histogram::BucketBoundaries{
-					.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
-					});
+					0.001, 0.002, 0.004, 0.006, 0.008, 0.010, 0.015, 0.020, 0.030, 0.050, 0.070, 0.100, 0.150, 0.250
+				});
 
 			auto processSendList = [this]()
 			{
-				while (auto *packet = m_netSendList.pop(&fx::GameServerPacket::queueKey))
+				while (auto *packet = m_netSendList.pop_until_empty(&fx::GameServerPacket::queueKey))
 				{
 					m_net->SendPacket(packet->peer, packet->channel, packet->buffer, packet->type);
 					m_packetPool.destruct(packet);
@@ -445,8 +449,8 @@ namespace fx
 				.Help("Time spent on server ticks")
 				.Register(*m_instance->GetComponent<ServerPerfComponent>()->GetRegistry())
 				.Add({ {"name", "svSync"} }, prometheus::Histogram::BucketBoundaries{
-					.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
-					});
+					0.001, 0.002, 0.004, 0.006, 0.008, 0.010, 0.015, 0.020, 0.030, 0.050, 0.070, 0.100, 0.150, 0.250
+				});
 
 			uv_timer_init(loop, &netData->tickTimer);
 			uv_timer_start(&netData->tickTimer, UvPersistentCallback(&netData->tickTimer, [this, mpd](uv_timer_t*)
@@ -630,8 +634,6 @@ namespace fx
 		return variable->GetValue();
 	}
 
-	std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString);
-
 	void GameServer::ProcessPacket(NetPeerBase* peer, const uint8_t* data, size_t size)
 	{
 		// create a netbuffer and read the message type
@@ -683,7 +685,7 @@ namespace fx
 
 					if (IsOneSync())
 					{
-						if (client->GetSlotId() == -1)
+						if (!client->HasSlotId())
 						{
 							SendOutOfBand(peer->GetAddress(), "error Not enough client slot IDs.");
 
@@ -696,7 +698,7 @@ namespace fx
 					bool wasNew = false;
 					auto oldNetID = client->GetNetId();
 
-					if (client->GetNetId() >= 0xFFFF)
+					if (!client->HasConnected())
 					{
 						m_clientRegistry->HandleConnectingClient(client);
 
@@ -731,14 +733,14 @@ namespace fx
 
 					if (wasNew)
 					{
-						gscomms_execute_callback_on_main_thread([=]()
+						gscomms_execute_callback_on_main_thread([this, client, oldNetID]()
 						{
 							m_clientRegistry->HandleConnectedClient(client, oldNetID);
 						});
 
 						if (IsOneSync())
 						{
-							m_instance->GetComponent<fx::ServerGameStatePublic>()->SendObjectIds(client, fx::IsBigMode() ? 4 : 64);
+							RequestObjectIdsPacketHandler::SendObjectIds(m_instance, client, fx::IsBigMode() ? 4 : 64);
 						}
 
 						ForceHeartbeatSoon();
@@ -936,12 +938,12 @@ namespace fx
 							commandListFormat << fmt::sprintf("%s (%d B, %d msec ago)\n", name, bigCmd.size, bigCmd.timeAgo);
 						}
 
-						DropClient(client, "Server->client connection timed out. Pending commands: %d.\nCommand list:\n%s", timeoutInfo.pendingCommands, commandListFormat.str());
+						DropClientWithReason(client, fx::serverDropResourceName, ClientDropReason::CLIENT_CONNECTION_TIMED_OUT_WITH_PENDING_COMMANDS, "Server->client connection timed out. Pending commands: %d.\nCommand list:\n%s", timeoutInfo.pendingCommands, commandListFormat.str());
 						continue;
 					}
 				}
 
-				DropClient(client, "Server->client connection timed out. Last seen %d msec ago.", lastSeen.count());
+				DropClientWithReason(client, fx::serverDropResourceName, ClientDropReason::CLIENT_CONNECTION_TIMED_OUT, "Server->client connection timed out. Last seen %d msec ago.", lastSeen.count());
 			}
 		}
 
@@ -1076,11 +1078,10 @@ namespace fx
 		OnTick();
 	}
 
-	void GameServer::DropClientv(const fx::ClientSharedPtr& client, const std::string& reason, fmt::printf_args args)
+	void GameServer::DropClientv(const fx::ClientSharedPtr& client, const std::string& resourceName, ClientDropReason clientDropReason, const std::string& reason)
 	{
-		std::string realReason = fmt::vsprintf(reason, args);
-
-		if (reason.empty())
+		std::string realReason = reason;
+		if (realReason.empty())
 		{
 			realReason = "Dropped.";
 		}
@@ -1092,13 +1093,13 @@ namespace fx
 
 		client->SetDropping();
 
-		gscomms_execute_callback_on_main_thread([this, client, realReason]()
+		gscomms_execute_callback_on_main_thread([this, client, resourceName = std::move(resourceName), realReason = std::move(realReason), clientDropReason]()
 		{
-			DropClientInternal(client, realReason);
+			DropClientInternal(client, resourceName, clientDropReason, realReason);
 		});
 	}
 
-	void GameServer::DropClientInternal(const fx::ClientSharedPtr& client, const std::string& realReason)
+	void GameServer::DropClientInternal(const fx::ClientSharedPtr& client, const std::string& resourceName, ClientDropReason clientDropReason, const std::string& realReason)
 	{
 		// send an out-of-band error to the client
 		if (client->GetPeer())
@@ -1113,7 +1114,7 @@ namespace fx
 		MonoEnsureThreadAttached();
 
 		// verify if the client is still using a TempID
-		bool isFinal = (client->GetNetId() < 0xFFFF);
+		bool isFinal = client->HasConnected();
 
 		// trigger a event signaling the player's drop, if final
 		if (isFinal)
@@ -1124,7 +1125,9 @@ namespace fx
 				->TriggerEvent2(
 					"playerDropped",
 					{ fmt::sprintf("internal-net:%d", client->GetNetId()) },
-					realReason
+					realReason,
+					resourceName,
+					static_cast<uint32_t>(clientDropReason)
 				);
 		}
 
@@ -1244,397 +1247,29 @@ namespace fx
 				server->ProcessServerFrame(frameTime);
 			}
 		};
-
-		struct GetInfoOOB
-		{
-			inline void Process(const fwRefContainer<fx::GameServer>& server, const net::PeerAddress& from, const std::string_view& data) const
-			{
-				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getinfo", fx::RateLimiterDefaults{ 2.0, 10.0 });
-
-				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
-				{
-					return;
-				}
-
-				int numClients = 0;
-
-				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
-				{
-					if (client->GetNetId() < 0xFFFF)
-					{
-						++numClients;
-					}
-				});
-
-				server->SendOutOfBand(from, fmt::format(
-					"infoResponse\n"
-					"\\sv_maxclients\\{6}\\clients\\{4}\\challenge\\{0}\\gamename\\CitizenFX\\protocol\\4\\hostname\\{1}\\gametype\\{2}\\mapname\\{3}\\iv\\{5}",
-					std::string(data.substr(0, data.find_first_of(" \n"))),
-					server->GetVariable("sv_hostname"),
-					server->GetVariable("gametype"),
-					server->GetVariable("mapname"),
-					numClients,
-					server->GetVariable("sv_infoVersion"),
-					server->GetVariable("sv_maxclients")
-				));
-			}
-
-			inline const char* GetName() const
-			{
-				return "getinfo";
-			}
-		};
-
-		struct GetStatusOOB
-		{
-			inline void Process(const fwRefContainer<fx::GameServer>& server, const net::PeerAddress& from, const std::string_view& data) const
-			{
-				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getstatus", fx::RateLimiterDefaults{ 1.0, 5.0 });
-
-				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
-				{
-					return;
-				}
-
-				int numClients = 0;
-				std::stringstream clientList;
-
-				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
-				{
-					if (client->GetNetId() < 0xFFFF)
-					{
-						clientList << fmt::sprintf("%d %d \"%s\"\n", 0, 0, client->GetName());
-
-						++numClients;
-					}
-				});
-
-				std::stringstream infoVars;
-
-				auto addInfo = [&](const std::string& key, const std::string& value)
-				{
-					infoVars << "\\" << key << "\\" << value;
-				};
-
-				addInfo("sv_maxclients", "24");
-				addInfo("clients", std::to_string(numClients));
-
-				server->GetInstance()->GetComponent<console::Context>()->GetVariableManager()->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
-				{
-					addInfo(name, var->GetValue());
-				}, ConVar_ServerInfo);
-
-				server->SendOutOfBand(from, fmt::format(
-					"statusResponse\n"
-					"{0}\n"
-					"{1}",
-					infoVars.str(),
-					clientList.str()
-				));
-			}
-
-			inline const char* GetName() const
-			{
-				return "getstatus";
-			}
-		};
-
-		struct RconOOB
-		{
-			void Process(const fwRefContainer<fx::GameServer>& server, const net::PeerAddress& from, const std::string_view& dataView) const
-			{
-				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("rcon", fx::RateLimiterDefaults{ 0.2, 5.0 });
-
-				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
-				{
-					return;
-				}
-
-				std::string data(dataView);
-
-				gscomms_execute_callback_on_main_thread([=]()
-				{
-					try
-					{
-						int spacePos = data.find_first_of(" \n");
-
-						if (spacePos == std::string::npos)
-						{
-							return;
-						}
-
-						auto password = data.substr(0, spacePos);
-						auto command = data.substr(spacePos);
-
-						auto serverPassword = server->GetRconPassword();
-
-						std::string printString;
-
-						ScopeDestructor destructor([&]()
-						{
-							server->SendOutOfBand(from, "print " + printString);
-						});
-
-						if (serverPassword.empty())
-						{
-							printString += "The server must set rcon_password to be able to use this command.\n";
-							return;
-						}
-
-						if (password != serverPassword)
-						{
-							printString += "Invalid password.\n";
-							return;
-						}
-
-						// log rcon request
-						console::Printf("rcon", "Rcon from %s\n%s\n", from.ToString(), command);
-
-						// reset rate limit for this key
-						limiter->Reset(from);
-
-						PrintListenerContext context([&printString](std::string_view print)
-						{
-							printString += print;
-						});
-
-						fx::PrintFilterContext filterContext([](ConsoleChannel& channel, std::string_view print)
-						{
-							channel = fmt::sprintf("rcon/%s", channel);
-						});
-
-						auto ctx = server->GetInstance()->GetComponent<console::Context>();
-						ctx->ExecuteBuffer();
-
-						se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
-						ctx->AddToBuffer(std::string(command));
-						ctx->ExecuteBuffer();
-					}
-					catch (std::exception& e)
-					{
-
-					}
-				});
-			}
-
-			inline const char* GetName() const
-			{
-				return "rcon";
-			}
-		};
-
-		struct RoutingPacketHandler
-		{
-			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
-			{
-				uint16_t targetNetId = packet.Read<uint16_t>();
-				uint16_t packetLength = packet.Read<uint16_t>();
-
-				std::vector<uint8_t> packetData(packetLength);
-				if (packet.Read(packetData.data(), packetData.size()))
-				{
-					if (targetNetId == 0xFFFF)
-					{
-						client->SetHasRouted();
-
-						gscomms_execute_callback_on_sync_thread([instance, client, packetData]()
-						{
-							instance->GetComponent<fx::ServerGameStatePublic>()->ParseGameStatePacket(client, packetData);
-						});
-
-						return;
-					}
-
-					auto targetClient = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(targetNetId);
-
-					if (targetClient)
-					{
-						net::Buffer outPacket;
-						outPacket.Write(0xE938445B);
-						outPacket.Write<uint16_t>(client->GetNetId());
-						outPacket.Write(packetLength);
-						outPacket.Write(packetData.data(), packetLength);
-
-						targetClient->SendPacket(1, outPacket, NetPacketType_Unreliable);
-
-						client->SetHasRouted();
-					}
-				}
-			}
-
-			inline static constexpr const char* GetPacketId()
-			{
-				return "msgRoute";
-			}
-		};
-
-		struct IHostPacketHandler
-		{
-			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
-			{
-				if (IsOneSync())
-				{
-					return;
-				}
-
-				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
-				auto gameServer = instance->GetComponent<fx::GameServer>();
-
-				auto baseNum = packet.Read<uint32_t>();
-				auto currentHost = clientRegistry->GetHost();
-
-				if (!currentHost || currentHost->IsDead())
-				{
-					client->SetNetBase(baseNum);
-					clientRegistry->SetHost(client);
-
-					net::Buffer hostBroadcast;
-					hostBroadcast.Write(0xB3EA30DE);
-					hostBroadcast.Write<uint16_t>(client->GetNetId());
-					hostBroadcast.Write(client->GetNetBase());
-
-					gameServer->Broadcast(hostBroadcast);
-					//client->SendPacket(1, hostBroadcast, NetPacketType_Reliable);
-				}
-			}
-
-			inline static constexpr const char* GetPacketId()
-			{
-				return "msgIHost";
-			}
-		};
-
-		struct HostVoteCount : public fwRefCountable
-		{
-			std::map<uint32_t, int> voteCounts;
-		};
-
-		struct HeHostPacketHandler
-		{
-			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
-			{
-				if (IsOneSync())
-				{
-					return;
-				}
-
-				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
-				auto gameServer = instance->GetComponent<fx::GameServer>();
-
-				auto allegedNewId = packet.Read<uint32_t>();
-				auto baseNum = packet.Read<uint32_t>();
-
-				// check if the current host is being vouched for
-				auto currentHost = clientRegistry->GetHost();
-
-				if (currentHost && currentHost->GetNetId() == allegedNewId)
-				{
-					trace("Got a late vouch for %s - they're the current arbitrator!\n", currentHost->GetName());
-					return;
-				}
-
-				// get the new client
-				auto newClient = clientRegistry->GetClientByNetID(allegedNewId);
-
-				if (!newClient)
-				{
-					trace("Got a late vouch for %d, who doesn't exist.\n", allegedNewId);
-					return;
-				}
-
-				// count the total amount of living (networked) clients
-				int numClients = 0;
-
-				clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
-				{
-					if (client->HasRouted())
-					{
-						++numClients;
-					}
-				});
-
-				// get a count of needed votes
-				int votesNeeded = (int)ceil(numClients * 0.6);
-
-				if (votesNeeded <= 0)
-				{
-					votesNeeded = 1;
-				}
-
-				// count votes
-				auto voteComponent = instance->GetComponent<HostVoteCount>();
-
-				auto it = voteComponent->voteCounts.find(allegedNewId);
-
-				if (it == voteComponent->voteCounts.end())
-				{
-					it = voteComponent->voteCounts.insert({ allegedNewId, 1 }).first;
-				}
-
-				++it->second;
-
-				// log
-				trace("Received a vouch for %s, they have %d vouches and need %d.\n", newClient->GetName(), it->second, votesNeeded);
-
-				// is the vote count exceeded?
-				if (it->second >= votesNeeded)
-				{
-					// make new arbitrator
-					trace("%s is the new arbitrator, with an overwhelming %d vote/s.\n", newClient->GetName(), it->second);
-
-					// clear vote list
-					voteComponent->voteCounts.clear();
-
-					// set base
-					newClient->SetNetBase(baseNum);
-
-					// set as host and tell everyone
-					clientRegistry->SetHost(newClient);
-
-					net::Buffer hostBroadcast;
-					hostBroadcast.Write(0xB3EA30DE);
-					hostBroadcast.Write<uint16_t>(newClient->GetNetId());
-					hostBroadcast.Write(newClient->GetNetBase());
-
-					gameServer->Broadcast(hostBroadcast);
-				}
-			}
-
-			inline static constexpr const char* GetPacketId()
-			{
-				return "msgHeHost";
-			}
-		};
-
-		struct IQuitPacketHandler
-		{
-			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
-			{
-				gscomms_execute_callback_on_main_thread([=]() mutable
-				{
-					std::vector<char> reason(packet.GetRemainingBytes());
-					packet.Read(reason.data(), reason.size());
-
-					auto gameServer = instance->GetComponent<fx::GameServer>();
-
-					gameServer->DropClient(client, "%s", reason.data());
-				});
-			}
-
-			inline static constexpr const char* GetPacketId()
-			{
-				return "msgIQuit";
-			}
-		};
 	}
 }
-
-DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 
 #include <decorators/WithEndpoints.h>
 #include <decorators/WithOutOfBand.h>
 #include <decorators/WithProcessTick.h>
 #include <decorators/WithPacketHandler.h>
+
+#include <outofbandhandlers/GetInfoOutOfBand.h>
+#include <outofbandhandlers/GetStatusOutOfBand.h>
+#include <outofbandhandlers/RconOutOfBand.h>
+
+#include <packethandlers/RoutingPacketHandler.h>
+#include <packethandlers/HeHostPacketHandler.h>
+#include <packethandlers/IHostPacketHandler.h>
+#include <packethandlers/IQuitPacketHandler.h>
+#include <packethandlers/ServerEventPacketHandler.h>
+#include <packethandlers/ServerCommandPacketHandler.h>
+#include <packethandlers/TimeSyncReqPacketHandler.h>
+#include <packethandlers/StateBagPacketHandler.h>
+#include <packethandlers/NetGameEventPacketHandler.h>
+#include <packethandlers/ReassembledEventPacketHandler.h>
+#include <packethandlers/ArrayUpdatePacketHandler.h>
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
@@ -1671,6 +1306,10 @@ void gscomms_execute_callback_on_sync_thread(const std::function<void()>& fn)
 
 void gscomms_reset_peer(int peer)
 {
+	if (!g_gameServer)
+	{
+		return;
+	}
 	gscomms_execute_callback_on_net_thread([=]()
 	{
 		g_gameServer->InternalResetPeer(peer);
@@ -1679,6 +1318,10 @@ void gscomms_reset_peer(int peer)
 
 void gscomms_send_packet(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType flags)
 {
+	if (!g_gameServer)
+	{
+		return;
+	}
 	g_gameServer->InternalSendPacket(client, peer, channel, buffer, flags);
 }
 
@@ -1696,9 +1339,9 @@ static InitFunction initFunction([]()
 		instance->SetComponent(new fx::UdpInterceptor());
 
 		instance->SetComponent(
-			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler>(
+			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2, ArrayUpdatePacketHandler, ReassembledEventPacketHandler, RequestObjectIdsPacketHandler>(
 				WithProcessTick<ThreadWait, GameServerTick>(
-					WithOutOfBand<GetInfoOOB, GetStatusOOB, RconOOB>(
+					WithOutOfBand<GetInfoOutOfBand, GetStatusOutOfBand, RconOutOfBand>(
 						WithEndPoints(
 							NewGameServer()
 						)
@@ -1709,7 +1352,7 @@ static InitFunction initFunction([]()
 		);
 
 		instance->SetComponent(new fx::PeerAddressRateLimiterStore(instance->GetComponent<console::Context>().GetRef()));
-		instance->SetComponent(new fx::ServerDecorators::HostVoteCount());
+		instance->SetComponent(new HostVoteCount());
 	});
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)

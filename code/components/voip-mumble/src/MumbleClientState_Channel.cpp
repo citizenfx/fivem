@@ -62,8 +62,7 @@ void MumbleClientState::ProcessChannelState(MumbleProto::ChannelState& channelSt
 		if (channelIt == m_channels.end())
 		{
 			auto channel = MumbleChannel(m_client, channelState);
-
-			m_channels.insert(std::make_pair(id, channel));
+			m_channels.emplace(id, channel);
 
 			auto name = channel.GetName();
 

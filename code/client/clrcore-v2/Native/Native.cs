@@ -9,12 +9,13 @@ namespace CitizenFX.Core.Native
 		private static UIntPtr s_0xd233a168;
 		private static UIntPtr s_0x5fa79b0f;
 		private static UIntPtr s_0xd7664fd1;
-		private static UIntPtr s_0xe3551879;
 		private static UIntPtr s_0x1e86f206;
 		private static UIntPtr s_0xf4e2079d;
 		private static UIntPtr s_0x637f4c75;
 		private static UIntPtr s_0x8d50e33a;
 		private static UIntPtr s_0x91310870;
+		private static UIntPtr s_registerNuiCallback; // 0xc59b980c
+		private static UIntPtr s_unregisterRawNuiCallback; // 0x7fb46432
 #if IS_FXSERVER
 		private static UIntPtr s_0x2f7a49e6;
 		private static UIntPtr s_0x70b35890;
@@ -34,12 +35,23 @@ namespace CitizenFX.Core.Native
 		}
 
 		[SecuritySafeCritical]
-		internal static unsafe void RegisterCommand(CString commandName, InFunc handler, bool restricted)
+		internal static unsafe void RegisterNuiCallback(CString callbackName, InFunc handler)
 		{
-			fixed (byte* p_commandName = commandName?.value, p_handler = &handler.value[0])
+			fixed (byte* p_callbackType = callbackName?.value, p_handler = &handler.value[0])
 			{
-				ulong* __data = stackalloc ulong[] { (ulong)p_commandName, (ulong)p_handler, N64.Val(restricted) };
-				ScriptContext.InvokeNative(ref s_0x5fa79b0f, 0x5fa79b0f, __data, 3); // REGISTER_COMMAND
+				ulong* __data = stackalloc ulong[] { (ulong)p_callbackType, (ulong)p_handler };
+				ScriptContext.InvokeNative(ref s_registerNuiCallback, 0xc59b980c, __data, 2); // REGISTER_NUI_CALLBACK
+			}
+		}
+		
+		
+		[SecuritySafeCritical]
+		internal static unsafe void RemoveNuiCallback(CString callbackName)
+		{
+			fixed (byte* p_callbackType = callbackName?.value)
+			{
+				ulong* __data = stackalloc ulong[] { (ulong)p_callbackType };
+				ScriptContext.InvokeNative(ref s_unregisterRawNuiCallback, 0x7fb46432, __data, 1); // UNREGISTER_RAW_NUI_CALLBACK
 			}
 		}
 
@@ -53,6 +65,16 @@ namespace CitizenFX.Core.Native
 			{
 				ulong* __data = stackalloc ulong[] { (ulong)p_commandString, (ulong)p_description, (ulong)p_defaultMapper, (ulong)p_defaultParameter };
 				ScriptContext.InvokeNative(ref s_0xd7664fd1, 0xd7664fd1, __data, 4);
+			}
+		}
+		
+		[SecuritySafeCritical]
+		internal static unsafe void RegisterCommand(CString commandName, InFunc handler, bool restricted)
+		{
+			fixed (byte* p_commandName = commandName?.value, p_handler = &handler.value[0])
+			{
+				ulong* __data = stackalloc ulong[] { (ulong)p_commandName, (ulong)p_handler, N64.Val(restricted) };
+				ScriptContext.InvokeNative(ref s_0x5fa79b0f, 0x5fa79b0f, __data, 3); // REGISTER_COMMAND
 			}
 		}
 
@@ -95,19 +117,6 @@ namespace CitizenFX.Core.Native
 				ulong* __data = stackalloc ulong[] { (ulong)p_referenceIdentity };
 				ScriptContext.InvokeNative(ref s_0xf4e2079d, 0xf4e2079d, __data, 1); // DUPLICATE_FUNCTION_REFERENCE
 				return (byte[])*(OutString*)__data;
-			}
-		}
-
-		[SecuritySafeCritical]
-		internal static unsafe object[] InvokeFunctionReference(CString referenceIdentity, InPacket argsSerialized)
-		{
-			fixed (void* p_referenceIdentity = referenceIdentity?.value, p_argsSerialized = argsSerialized.value)
-			{
-				ulong retLength;
-				ulong* __data = stackalloc ulong[] { (ulong)p_referenceIdentity, (ulong)p_argsSerialized, unchecked((ulong)argsSerialized.value?.LongLength), (ulong)&retLength };
-				ScriptContext.InvokeNative(ref s_0xe3551879, 0xe3551879, __data, 4); // INVOKE_FUNCTION_REFERENCE
-
-				return MsgPackDeserializer.DeserializeArray(*(byte**)__data, (long)retLength);
 			}
 		}
 

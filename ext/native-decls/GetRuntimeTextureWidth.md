@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## GET_RUNTIME_TEXTURE_WIDTH
 

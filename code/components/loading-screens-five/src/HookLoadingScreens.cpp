@@ -5,8 +5,6 @@
 
 #include <stack>
 
-#include <LaunchMode.h>
-
 #include <nutsnbolts.h>
 #include <CefOverlay.h>
 #include <DrawCommands.h>
@@ -291,8 +289,16 @@ int CountRelevantDataFileEntries()
 
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
 
+void (*g_updateContentArray)(void*);
+
 int dlcIdx = -1;
+int extraContentWrapperIdx = std::numeric_limits<int>::max();
+void** g_extraContentManagerLocation;
 std::map<uint32_t, std::string> g_dlcNameMap;
+
+char g_extraContentManagerContentOffset;
+uint32_t g_mountableContentSize;
+uint32_t g_mountableContentFlagsOffset;
 
 static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 {
@@ -310,7 +316,7 @@ static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 
 	if (dlcIdx >= 0)
 	{
-		rage::OnInitFunctionInvoking(rage::INIT_SESSION, 14 + dlcIdx, ifd);
+		rage::OnInitFunctionInvoking(rage::INIT_SESSION, extraContentWrapperIdx + dlcIdx, ifd);
 
 		dlcIdx++;
 	}
@@ -329,6 +335,16 @@ extern bool g_doDrawBelowLoadingScreens;
 
 static HookFunction hookFunction([] ()
 {
+	{
+		g_extraContentManagerLocation = hook::get_address<void**>(hook::get_pattern("79 91 C8 BC E8 ? ? ? ? 48 8D", -0x16));
+
+		g_extraContentManagerContentOffset = *(char*)hook::get_pattern<char>("48 83 C1 ? 89 82", 3);
+		g_mountableContentSize = *(uint32_t*)hook::get_pattern<char>("48 69 C0 ? ? ? ? 48 03 43 ? F6 80", 3);
+		g_mountableContentFlagsOffset = *(uint32_t*)hook::get_pattern<char>("8A 81 ? ? ? ? 41 BC ? ? ? ? 48 8B F9", 2);
+
+		g_updateContentArray = (void(*)(void*))hook::get_call(hook::get_pattern("E8 ? ? ? ? 44 8A C3 B2"));
+	}
+
 	hook::jump(hook::get_pattern("44 8B D8 4D 63 C8 4C 3B C8 7D 33 8B", -0x16), &CDataFileMgr::FindNextEntry);
 	hook::jump(hook::get_pattern("4C 8B C9 45 85 C0 79 05 45 33 C0 EB 07 44", -0x0B), &CDataFileMgr::FindPreviousEntry);
 
@@ -338,10 +354,7 @@ static HookFunction hookFunction([] ()
 	InstrumentFunction<LoadScreenFuncs>(functions[4], functions);
 
 	// don't play game loading music
-	if (!CfxIsSinglePlayer())
-	{
-		hook::return_function(hook::get_pattern("41 B8 97 96 11 96", -0x9A));
-	}
+	hook::return_function(hook::get_pattern("41 B8 97 96 11 96", -0x9A));
 
 	// loading screen state 10 draws postFX every frame, which will make for a lot of unneeded GPU load below NUI
 	loadingScreenState = hook::get_address<int*>(hook::get_pattern("83 3D ? ? ? ? 05 75 ? 8B"), 2, 7);

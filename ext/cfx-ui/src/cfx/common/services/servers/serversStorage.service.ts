@@ -1,5 +1,6 @@
-import { defineService } from "cfx/base/servicesContainer";
-import { IHistoryServer } from "./types";
+import { defineService } from 'cfx/base/servicesContainer';
+
+import { IHistoryServer } from './types';
 
 export const IServersStorageService = defineService<IServersStorageService>('erversStorageService');
 export interface IServersStorageService {

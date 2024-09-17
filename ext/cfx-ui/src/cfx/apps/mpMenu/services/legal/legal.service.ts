@@ -1,8 +1,9 @@
-import { ServicesContainer, defineService, useService } from "cfx/base/servicesContainer";
-import { ASID } from "cfx/utils/asid";
-import { joaat } from "cfx/utils/hash";
-import { injectable } from "inversify";
-import { makeAutoObservable } from "mobx";
+import { injectable } from 'inversify';
+import { makeAutoObservable } from 'mobx';
+
+import { ServicesContainer, defineService, useService } from 'cfx/base/servicesContainer';
+import { ASID } from 'cfx/utils/asid';
+import { joaat } from 'cfx/utils/hash';
 
 export const ILegalService = defineService<LegalService>('legalService');
 
@@ -18,21 +19,26 @@ const LS_KEY = 'legalAcceptanceData';
 
 type LegalAcceptanceData = {
   tos: {
-    acceptedAtTimestamp: number,
-    versionHash: number,
-  },
+    acceptedAtTimestamp: number;
+    versionHash: number;
+  };
 };
 
 @injectable()
 export class LegalService {
   readonly CURRENT_TOS_VERSION = 'September 12, 2023';
+
   readonly TOS_URL = 'https://fivem.net/terms';
 
   private readonly currentTOSVersionHash = joaat(`${ASID}.${this.CURRENT_TOS_VERSION}`);
 
   private _hasUserAccepted: boolean;
-  public get hasUserAccepted(): boolean { return this._hasUserAccepted }
-  private set hasUserAccepted(hasUserAccepted: boolean) { this._hasUserAccepted = hasUserAccepted }
+  public get hasUserAccepted(): boolean {
+    return this._hasUserAccepted;
+  }
+  private set hasUserAccepted(hasUserAccepted: boolean) {
+    this._hasUserAccepted = hasUserAccepted;
+  }
 
   constructor() {
     this._hasUserAccepted = this.reviveHasUserAccepted();
@@ -46,7 +52,7 @@ export class LegalService {
         tos: {
           acceptedAtTimestamp: Date.now(),
           versionHash: this.currentTOSVersionHash,
-        }
+        },
       };
 
       window.localStorage.setItem(LS_KEY, btoa(JSON.stringify(data)));

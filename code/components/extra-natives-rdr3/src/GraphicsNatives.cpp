@@ -1,37 +1,99 @@
 #include <StdInc.h>
 #include <ScriptEngine.h>
 #include <Hooking.h>
-#include <MinHook.h>
 
-struct DrawOrigin
+#include "CfxRGBA.h"
+#include "Hooking.Stubs.h"
+#include "GamePrimitives.h"
+#include "scrEngine.h"
+
+enum ScriptImDrawType : uint32_t
 {
-	float posX; // +0
-	float posY; // +4
-	float posZ; // +8
-	float posPad;  // +12
-	int unkIndex; // +16
-	char pad[12]; // +20
+	SCRIPT_IM_LINE = 0,
+	SCRIPT_IM_POLY,
+	SCRIPT_IM_BOX,
+	SCRIPT_IM_BACKFACE_CULLING_OFF,
+	SCRIPT_IM_BACKFACE_CULLING_ON,
+};
+
+struct ScriptImRequest
+{
+	rage::Vec3V m_first;
+	rage::Vec3V m_second;
+	rage::Vec3V m_third;
+	uint32_t m_color;
+	ScriptImDrawType m_type;
+	char m_pad[8];
+};
+
+static constexpr int kMaxScriptImRequests = 1024;
+static std::vector<ScriptImRequest> g_scriptImRequests{};
+
+static ScriptImRequest** g_scriptImBuffer;
+static uint16_t* g_scriptImEntriesCount;
+
+static hook::cdecl_stub<void()> initScriptImBuffer([]()
+{
+	return hook::get_pattern("48 89 5C 24 ? 57 48 83 EC 20 0F B7 05 ? ? ? ? 33 FF");
+});
+
+static void(*g_origRenderScriptIm)();
+static void RenderScriptIm()
+{
+	// The game never uses this buffer itself, but it *may* be changed in the future updates.
+	// This code isn't ready for such a scenario, so might potentially require tweaks.
+	// Like if something allocate script im buffer before us, we would need to resize it
+	// and not just rewrite everything without custom stuff.
+
+	if (g_scriptImRequests.empty())
+	{
+		return;
+	}
+
+	*g_scriptImEntriesCount = g_scriptImRequests.size();
+
+	// If the buffer isn't allocated, let's do it.
+	if (!*g_scriptImBuffer)
+	{
+		initScriptImBuffer();
+	}
+
+	// Failed to allocate? Bail out.
+	if (!*g_scriptImBuffer)
+	{
+		*g_scriptImEntriesCount = 0;
+		return;
+	}
+
+	// Move stuff from our temp vector to the in-game buffer.
+	std::move(g_scriptImRequests.begin(), g_scriptImRequests.end(), *g_scriptImBuffer);
+
+	g_origRenderScriptIm();
+
+	g_scriptImRequests.clear();
+	*g_scriptImEntriesCount = 0;
+}
+
+struct DrawOriginData
+{
+	rage::Vec3V m_pos;
+	bool m_is2d; // +16
+	char m_pad[15];
 }; // 32
 
-enum DrawType
+struct DrawOriginStore
 {
-	Line = 0,
-	Poly,
+	DrawOriginData m_items[32];
+	uint32_t m_count;
+	char pad_404[12];
 };
 
-struct Vector3
-{
-	float x, y, z;
-};
+static bool(*isGamePaused)();
 
-struct DrawRequest
-{
-	DrawType type;
-	uint32_t color;
-	Vector3 first;
-	Vector3 second;
-	Vector3 third;
-};
+static int* g_frameDrawIndex1;
+static int* g_frameDrawIndex2;
+static DrawOriginStore* g_drawOriginStore;
+static uint32_t* g_scriptDrawOriginIndex;
 
 struct WorldhorizonManager
 {
@@ -41,76 +103,18 @@ struct WorldhorizonManager
 	// etc...
 };
 
-constexpr int NUM_MAX_DRAW_REQUESTS = 1024;
-
-static DrawRequest drawRequests[NUM_MAX_DRAW_REQUESTS];
-
-static int drawRequestsCount = 0;
-
-static uint32_t ConvertRGBAToHex(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha)
-{
-	return ((alpha & 0xFF) << 24) + ((blue & 0xFF) << 16) + ((green & 0xFF) << 8) + (red & 0xFF);
-}
-
-static hook::cdecl_stub<void*(uint64_t points, int pointsAmount, void* a3, bool filling, uint32_t drawColor)> g_drawPoints([]()
-{
-	return hook::get_call(hook::get_pattern("41 8D 50 03 0F 29 45 F0 8B 41 30 48 8D 4D D0", 0x13));
-});
-
-static void(*g_origScriptImRenderPhase)();
-static void ScriptImRenderPhase()
-{
-	if (drawRequestsCount > 0)
-	{
-		for (int i = 0; i < drawRequestsCount; i++)
-		{
-			DrawRequest& data = drawRequests[i];
-
-			switch (data.type)
-			{
-			case Line:
-			{
-				float points[8] = {
-					data.first.x, data.first.y, data.first.z, 0.0f,
-					data.second.x, data.second.y, data.second.z, 0.0f,
-				};
-
-				g_drawPoints((uint64_t)&points, 2, 0, false, data.color);
-				break;
-			}
-			case Poly:
-			{
-				float points[12] = {
-					data.first.x, data.first.y, data.first.z, 0.0f,
-					data.second.x, data.second.y, data.second.z, 0.0f,
-					data.third.x, data.third.y, data.third.z, 0.0f,
-				};
-
-				g_drawPoints((uint64_t)&points, 3, 0, true, data.color);
-				break;
-			}
-			}
-		}
-
-		drawRequestsCount = 0;
-	}
-
-	g_origScriptImRenderPhase();
-}
-
-static bool(*isGamePaused)();
-
-static int* g_frameDrawIndex1;
-static int* g_frameDrawIndex2;
-static void* g_drawOriginStore;
-
-static uint32_t* g_scriptDrawOrigin;
-
 static WorldhorizonManager* g_worldhorizonMgr;
+
+CViewportGame** g_viewportGame;
 
 static HookFunction hookFunction([]()
 {
+	static_assert(sizeof(ScriptImRequest) == 64);
+	static_assert(sizeof(DrawOriginData) == 32);
+	static_assert(sizeof(DrawOriginStore) == 1040);
+
 	{
+		g_viewportGame = hook::get_address<CViewportGame**>(hook::get_pattern("0F 2F F0 76 ? 4C 8B 35", 8));
 		g_worldhorizonMgr = hook::get_address<WorldhorizonManager*>(hook::get_pattern("89 44 24 40 48 8D 0D ? ? ? ? 8B 84 24 90 00", 7));
 	}
 
@@ -119,47 +123,60 @@ static HookFunction hookFunction([]()
 
 		g_frameDrawIndex1 = hook::get_address<int*>(location - 20);
 		g_frameDrawIndex2 = hook::get_address<int*>(location - 7);
-		g_drawOriginStore = hook::get_address<void*>(location + 10);
+		g_drawOriginStore = hook::get_address<DrawOriginStore*>(location + 10);
 
 		hook::set_call(&isGamePaused, location - 27);
 	}
 
 	{
 		auto location = hook::get_pattern<char>("89 41 34 8B 05 ? ? ? ? 89 41 30 8A 05");
-		g_scriptDrawOrigin = hook::get_address<uint32_t*>(location + 5);
+		g_scriptDrawOriginIndex = hook::get_address<uint32_t*>(location + 5);
+	}
+
+	{
+		auto location = hook::get_pattern<char>("48 89 05 ? ? ? ? E8 ? ? ? ? 66 89 3D");
+
+		g_scriptImBuffer = hook::get_address<ScriptImRequest**>(location + 3);
+		g_scriptImEntriesCount = hook::get_address<uint16_t*>(location + 15);
+	}
+
+	{
+		auto location = hook::get_pattern("33 C9 E8 ? ? ? ? E8 ? ? ? ? 33 C9 E8 ? ? ? ? 0F", -0x28);
+		g_origRenderScriptIm = hook::trampoline(location, RenderScriptIm);
 	}
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_DRAW_ORIGIN", [](fx::ScriptContext& context)
 	{
-		auto drawIndex = *((isGamePaused()) ? g_frameDrawIndex2 : g_frameDrawIndex1);
-		auto store = ((uint64_t)g_drawOriginStore + 1040 * drawIndex);
-		auto usedIndexes = *(uint32_t*)(store + 1024);
+		auto drawIndex = *(isGamePaused() ? g_frameDrawIndex2 : g_frameDrawIndex1);
 
-		if (usedIndexes >= 32)
+		auto& store = g_drawOriginStore[drawIndex];
+		const auto index = store.m_count;
+
+		if (index >= 32)
 		{
 			return;
 		}
 
-		*(uint32_t*)(store + 1024) = usedIndexes + 1;
+		DrawOriginData data;
+		data.m_pos.x = context.GetArgument<float>(0);
+		data.m_pos.y = context.GetArgument<float>(1);
+		data.m_pos.z = context.GetArgument<float>(2);
+		data.m_is2d = context.GetArgument<bool>(3);
 
-		DrawOrigin data;
-		data.posX = context.GetArgument<float>(0);
-		data.posY = context.GetArgument<float>(1);
-		data.posZ = context.GetArgument<float>(2);
-		data.unkIndex = context.GetArgument<int>(3);
+		store.m_items[index] = data;
+		store.m_count += 1;
 
-		*(DrawOrigin*)(store + 32 * usedIndexes) = data;
-		*g_scriptDrawOrigin = usedIndexes;
+		*g_scriptDrawOriginIndex = index;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("CLEAR_DRAW_ORIGIN", [](fx::ScriptContext& context)
 	{
-		*g_scriptDrawOrigin = -1;
+		*g_scriptDrawOriginIndex = -1;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("DRAW_LINE", [](fx::ScriptContext& context)
 	{
-		if (drawRequestsCount >= NUM_MAX_DRAW_REQUESTS)
+		if (g_scriptImRequests.size() >= kMaxScriptImRequests)
 		{
 			return;
 		}
@@ -172,23 +189,23 @@ static HookFunction hookFunction([]()
 		auto toY = context.GetArgument<float>(4);
 		auto toZ = context.GetArgument<float>(5);
 
-		auto red = context.GetArgument<int>(6);
-		auto green = context.GetArgument<int>(7);
-		auto blue = context.GetArgument<int>(8);
-		auto alpha = context.GetArgument<int>(9);
+		auto red = context.GetArgument<uint8_t>(6);
+		auto green = context.GetArgument<uint8_t>(7);
+		auto blue = context.GetArgument<uint8_t>(8);
+		auto alpha = context.GetArgument<uint8_t>(9);
 
-		DrawRequest req;
-		req.type = Line;
-		req.first = { fromX, fromY, fromZ };
-		req.second = { toX, toY, toZ };
-		req.color = ConvertRGBAToHex(red, green, blue, alpha);
+		ScriptImRequest req;
+		req.m_type = SCRIPT_IM_LINE;
+		req.m_first = { fromX, fromY, fromZ };
+		req.m_second = { toX, toY, toZ };
+		req.m_color = CRGBA(red, green, blue, alpha).AsABGR();
 
-		drawRequests[drawRequestsCount++] = req;
+		g_scriptImRequests.push_back(req);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("DRAW_POLY", [](fx::ScriptContext& context)
 	{
-		if (drawRequestsCount >= NUM_MAX_DRAW_REQUESTS)
+		if (g_scriptImRequests.size() >= kMaxScriptImRequests)
 		{
 			return;
 		}
@@ -205,19 +222,63 @@ static HookFunction hookFunction([]()
 		auto thirdY = context.GetArgument<float>(7);
 		auto thirdZ = context.GetArgument<float>(8);
 
-		auto red = context.GetArgument<int>(9);
-		auto green = context.GetArgument<int>(10);
-		auto blue = context.GetArgument<int>(11);
-		auto alpha = context.GetArgument<int>(12);
+		auto red = context.GetArgument<uint8_t>(9);
+		auto green = context.GetArgument<uint8_t>(10);
+		auto blue = context.GetArgument<uint8_t>(11);
+		auto alpha = context.GetArgument<uint8_t>(12);
 
-		DrawRequest req;
-		req.type = Poly;
-		req.first = { firstX, firstY, firstZ };
-		req.second = { secondX, secondY, secondZ };
-		req.third = { thirdX, thirdY, thirdZ };
-		req.color = ConvertRGBAToHex(red, green, blue, alpha);
+		ScriptImRequest req;
+		req.m_type = SCRIPT_IM_POLY;
+		req.m_first = { firstX, firstY, firstZ };
+		req.m_second = { secondX, secondY, secondZ };
+		req.m_third = { thirdX, thirdY, thirdZ };
+		req.m_color = CRGBA(red, green, blue, alpha).AsABGR();
 
-		drawRequests[drawRequestsCount++] = req;
+		g_scriptImRequests.push_back(req);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DRAW_BOX", [](fx::ScriptContext& context)
+	{
+		if (g_scriptImRequests.size() >= kMaxScriptImRequests)
+		{
+			return;
+		}
+
+		auto fromX = context.GetArgument<float>(0);
+		auto fromY = context.GetArgument<float>(1);
+		auto fromZ = context.GetArgument<float>(2);
+
+		auto toX = context.GetArgument<float>(3);
+		auto toY = context.GetArgument<float>(4);
+		auto toZ = context.GetArgument<float>(5);
+
+		auto red = context.GetArgument<uint8_t>(6);
+		auto green = context.GetArgument<uint8_t>(7);
+		auto blue = context.GetArgument<uint8_t>(8);
+		auto alpha = context.GetArgument<uint8_t>(9);
+
+		ScriptImRequest req;
+		req.m_type = SCRIPT_IM_BOX;
+		req.m_first = { fromX, fromY, fromZ };
+		req.m_second = { toX, toY, toZ };
+		req.m_color = CRGBA(red, green, blue, alpha).AsABGR();
+
+		g_scriptImRequests.push_back(req);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_BACKFACECULLING", [](fx::ScriptContext& context)
+	{
+		if (g_scriptImRequests.size() >= kMaxScriptImRequests)
+		{
+			return;
+		}
+
+		auto flag = context.GetArgument<bool>(0);
+
+		ScriptImRequest req;
+		req.m_type = flag ? SCRIPT_IM_BACKFACE_CULLING_ON : SCRIPT_IM_BACKFACE_CULLING_OFF;
+
+		g_scriptImRequests.push_back(req);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("DISABLE_WORLDHORIZON_RENDERING", [](fx::ScriptContext& context)
@@ -230,7 +291,28 @@ static HookFunction hookFunction([]()
 		}
 	});
 
-	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("33 C9 E8 ? ? ? ? E8 ? ? ? ? 33 C9 E8 ? ? ? ? 0F", -0x28), ScriptImRenderPhase, (void**)&g_origScriptImRenderPhase);
-	MH_EnableHook(MH_ALL_HOOKS);
+	fx::ScriptEngine::RegisterNativeHandler("GET_WORLD_COORD_FROM_SCREEN_COORD", [](fx::ScriptContext& context)
+	{
+		float screenX = context.GetArgument<float>(0);
+		float screenY = context.GetArgument<float>(1);
+
+		using namespace DirectX;
+		rage::Vec3V start = Unproject((*g_viewportGame)->viewport, rage::Vec3V{ screenX, screenY, 0.0f });
+		rage::Vec3V end = Unproject((*g_viewportGame)->viewport, rage::Vec3V{ screenX, screenY, 1.0f });
+
+		auto startVector = XMLoadFloat3((XMFLOAT3*)&start);
+		auto endVector = XMLoadFloat3((XMFLOAT3*)&end);
+		auto normalVector = XMVector3Normalize(XMVectorSubtract(endVector, startVector));
+
+		scrVector* worldOut = context.GetArgument<scrVector*>(2);
+		scrVector* normalOut = context.GetArgument<scrVector*>(3);
+
+		worldOut->x = start.x;
+		worldOut->y = start.y;
+		worldOut->z = start.z;
+
+		normalOut->x = XMVectorGetX(normalVector);
+		normalOut->y = XMVectorGetY(normalVector);
+		normalOut->z = XMVectorGetZ(normalVector);
+	});
 });

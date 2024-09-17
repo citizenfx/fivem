@@ -3,6 +3,13 @@ local isRDR = not TerraingridActivate and true or false
 local chatInputActive = false
 local chatInputActivating = false
 local chatLoaded = false
+local currentResourceName = GetCurrentResourceName()
+
+local function UsePreSecurityBehavior()
+  -- use `setr sysresource_chat_disableOriginSecurityChecks true` on the server to allow non secure execution
+  -- of commands and events, `setr` will also disallow clients to change it
+  return GetConvar('sysresource_chat_disableOriginSecurityChecks', 'true') == 'true'
+end
 
 RegisterNetEvent('chatMessage')
 RegisterNetEvent('chat:addTemplate')
@@ -125,24 +132,34 @@ AddEventHandler('chat:clear', function(name)
   })
 end)
 
-RegisterNUICallback('chatResult', function(data, cb)
+RegisterRawNuiCallback('chatResult', function(requestData, cb)
+  local resource = requestData.resource
+  local securityDisabled = UsePreSecurityBehavior();
+
+  -- only allow actual resources to call in here
+  if resource == nil and not securityDisabled then
+    return
+  end
+  
   chatInputActive = false
   SetNuiFocus(false)
-
+  
+  local data = json.decode(requestData.body)
+  
   if not data.canceled then
-    local id = PlayerId()
-
-    --deprecated
-    local r, g, b = 0, 0x99, 255
-
     if data.message:sub(1, 1) == '/' then
-      ExecuteCommand(data.message:sub(2))
+      -- Only this resource's NUI page can execute commands
+      if resource == currentResourceName or securityDisabled then
+        ExecuteCommand(data.message:sub(2))
+      end
     else
+      local id = PlayerId()
+      local r, g, b = 0, 0x99, 255 --deprecated
       TriggerServerEvent('_chat:messageEntered', GetPlayerName(id), { r, g, b }, data.message, data.mode)
     end
   end
-
-  cb('ok')
+  
+  cb({ body = 'ok' })
 end)
 
 local function refreshCommands()
@@ -212,7 +229,9 @@ RegisterNUICallback('loaded', function(data, cb)
   refreshThemes()
 
   chatLoaded = true
-
+  addSuggestion('/toggleChat', 'set Chat state', {
+    { name = "state", help = "whenactive hidden visible" },
+  })
   cb('ok')
 end)
 
@@ -225,13 +244,12 @@ local CHAT_HIDE_STATES = {
 local kvpEntry = GetResourceKvpString('hideState')
 local chatHideState = kvpEntry and tonumber(kvpEntry) or CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
 local isFirstHide = true
+if RegisterKeyMapping then
+	RegisterKeyMapping('toggleChat', 'Toggle chat', 'keyboard', 'l')
+end
 
-if not isRDR then
-  if RegisterKeyMapping then
-    RegisterKeyMapping('toggleChat', 'Toggle chat', 'keyboard', 'l')
-  end
-
-  RegisterCommand('toggleChat', function()
+RegisterCommand('toggleChat', function(source, args, rawCommand)
+  if not args[1] then
     if chatHideState == CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE then
       chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
     elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_SHOW then
@@ -239,12 +257,18 @@ if not isRDR then
     elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_HIDE then
       chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
     end
-
-    isFirstHide = false
-
-    SetResourceKvp('hideState', tostring(chatHideState))
-  end, false)
-end
+  else
+    if args[1] == "visible" then
+      chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
+    elseif args[1] == "hidden" then
+      chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
+    elseif args[1] == "whenactive" then
+      chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
+    end
+  end
+  isFirstHide = false
+  SetResourceKvp('hideState', tostring(chatHideState))
+end, false)
 
 Citizen.CreateThread(function()
   SetTextChatEnabled(false)
@@ -252,12 +276,13 @@ Citizen.CreateThread(function()
 
   local lastChatHideState = -1
   local origChatHideState = -1
+  local input = isRDR and `INPUT_MP_TEXT_CHAT_ALL` or 245
 
   while true do
     Wait(0)
 
     if not chatInputActive then
-      if IsControlPressed(0, isRDR and `INPUT_MP_TEXT_CHAT_ALL` or 245) --[[ INPUT_MP_TEXT_CHAT_ALL ]] then
+      if IsControlPressed(0, input) then
         chatInputActive = true
         chatInputActivating = true
 
@@ -268,7 +293,7 @@ Citizen.CreateThread(function()
     end
 
     if chatInputActivating then
-      if not IsControlPressed(0, isRDR and `INPUT_MP_TEXT_CHAT_ALL` or 245) then
+      if not IsControlPressed(0, input) then
         SetNuiFocus(true)
 
         chatInputActivating = false

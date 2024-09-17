@@ -30,8 +30,10 @@ if kvpHandle ~= -1 then
 		if key then
 			print(('%s: %s'):format(key, GetResourceKvpString(key)))
 		end
-	until key
+	until not key
 
 	EndFindKvp(kvpHandle)
+else
+	print('No KVPs found')
 end
 ```

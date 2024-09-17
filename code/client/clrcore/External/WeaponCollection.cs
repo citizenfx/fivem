@@ -2,7 +2,6 @@ using System.Collections.Generic;
 
 #if MONO_V2
 using API = CitizenFX.FiveM.Native.Natives;
-using Prop = CitizenFX.FiveM.Object;
 
 namespace CitizenFX.FiveM
 #else

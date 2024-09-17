@@ -1,6 +1,7 @@
-import { IActivityItemMedia } from "cfx/common/services/activity/types";
-import { noop } from "cfx/utils/functional";
-import React from "react";
+import { noop } from '@cfx-dev/ui-components';
+import React from 'react';
+
+import { IActivityItemMedia } from 'cfx/common/services/activity/types';
 
 export interface IActivityItemContext {
   showFull(media: IActivityItemMedia, previewRef: React.RefObject<HTMLElement | null>): void;

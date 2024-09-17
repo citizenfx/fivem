@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## BREAK_OFF_VEHICLE_WHEEL
 

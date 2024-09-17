@@ -3,6 +3,8 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
+		"net:base",
+		"net:packet",
 		"vendor:cpp-url",
 		"vendor:msgpack-c",
 		"vendor:pplx",

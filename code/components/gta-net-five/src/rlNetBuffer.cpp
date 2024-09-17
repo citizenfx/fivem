@@ -12,7 +12,7 @@ extern ICoreGameInit* icgi;
 
 namespace rl
 {
-	bool MessageBuffer::GetLengthHackState()
+	bool MessageBufferLengthHack::GetState()
 	{
 		return icgi->OneSyncBigIdEnabled;
 	}

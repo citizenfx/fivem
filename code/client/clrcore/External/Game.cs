@@ -105,7 +105,7 @@ namespace CitizenFX.Core
 		PM_NAME_CHALL
 	}
 
-	public static class Game
+	public static partial class Game
 	{
 		#region Fields
 		internal static readonly string[] _radioNames = {
@@ -729,10 +729,10 @@ namespace CitizenFX.Core
 		/// <returns>The Jenkins hash of the <see cref="string"/></returns>
 		public static int GenerateHash(string input)
 		{
+			uint hash = 0;
 			// If reorganization is needed then this encryption is better off in separate type, e.g.: `Encryption`
 			if (!string.IsNullOrEmpty(input))
 			{
-				uint hash = 0;
 				var len = input.Length;
 
 				input = input.ToLowerInvariant();
@@ -747,41 +747,9 @@ namespace CitizenFX.Core
 				hash += hash << 3;
 				hash ^= hash >> 11;
 				hash += hash << 15;
-
-				return unchecked((int)hash);
 			}
 
-			return 0;
-		}
-
-		/// <inheritdoc cref="GenerateHash"/>
-		/// <remarks>Using a non-ASCII string has undefined behavior.</remarks>
-		public static uint GenerateHashASCII(string input)
-		{
-			uint hash = 0;
-
-			if (input != null)
-			{
-				var len = input.Length;
-				for (var i = 0; i < len; i++)
-				{
-					uint c = input[i];
-					if ((c - 'A') <= 26)
-					{
-						c += ('a' - 'A');
-					}
-
-					hash += c;
-					hash += (hash << 10);
-					hash ^= (hash >> 6);
-				}
-
-				hash += (hash << 3);
-				hash ^= (hash >> 11);
-				hash += (hash << 15);
-			}
-
-			return hash;
+			return unchecked((int)hash);
 		}
 
 		/// <summary>
@@ -1025,7 +993,7 @@ namespace CitizenFX.Core
 
 			public static bool operator ==(WeaponHudStats left, WeaponHudStats right)
 			{
-				return left.Equals(right);
+				return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.Equals(right);
 			}
 
 			public static bool operator !=(WeaponHudStats left, WeaponHudStats right)
@@ -1101,7 +1069,7 @@ namespace CitizenFX.Core
 
 			public static bool operator ==(WeaponComponentHudStats left, WeaponComponentHudStats right)
 			{
-				return left.Equals(right);
+				return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.Equals(right);
 			}
 
 			public static bool operator !=(WeaponComponentHudStats left, WeaponComponentHudStats right)

@@ -1,4 +1,10 @@
 @echo off
+
+if "%CFX_DRY_RUN%"=="true" (
+    echo "DRY RUN: Would upload npm package for client"
+    goto :end
+)
+
 set ROOT=%CD%
 cd %~dp0
 
@@ -11,3 +17,6 @@ call npm config set git-tag-version false
 
 call npm version "2.0.%CI_PIPELINE_ID%-1"
 call npm publish
+
+:end
+exit /B 0

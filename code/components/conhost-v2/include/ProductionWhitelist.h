@@ -36,4 +36,5 @@ static std::vector<std::string> g_prodCommandsWhitelist{
 	"cl_crosshair_dynamic_splitalpha_innermod",
 	"cl_crosshair_dynamic_splitalpha_outermod",
 	"cl_crosshair_dynamic_maxdist_splitratio",
+	"cl_crosshair_t"
 };

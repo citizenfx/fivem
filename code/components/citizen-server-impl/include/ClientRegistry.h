@@ -97,6 +97,11 @@ namespace fx
 
 			m_clientsByPeer[client->GetPeer()].reset();
 			m_clientsByNetId[client->GetNetId()].reset();
+			if (client->HasPreviousNetId())
+			{
+				m_clientsByNetId[client->GetPreviousNetId()].reset();
+			}
+
 			m_clientsByConnectionToken[client->GetConnectionToken()].reset();
 			m_clientsByConnectionTokenHash[HashString(client->GetConnectionToken().c_str())].reset();
 
@@ -113,6 +118,12 @@ namespace fx
 
 			// unassign slot ID
 			client->SetSlotId(-1);
+
+			// decrement amount of connected clients if the client was connected
+			if (client->HasConnected())
+			{
+				--m_amountConnectedClients;
+			}
 		}
 
 		inline fx::ClientSharedPtr GetClientByGuid(const std::string& guid)
@@ -266,6 +277,8 @@ namespace fx
 
 		fwEvent<Client*> OnConnectedClient;
 
+		uint32_t GetAmountOfConnectedClients() { return m_amountConnectedClients; }
+
 	private:
 		uint16_t m_hostNetId;
 
@@ -287,6 +300,8 @@ namespace fx
 		uint16_t m_curNetId;
 
 		ServerInstanceBase* m_instance;
+
+		std::atomic<uint32_t> m_amountConnectedClients {0};
 	};
 }
 

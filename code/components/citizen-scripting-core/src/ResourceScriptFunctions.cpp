@@ -396,4 +396,40 @@ static InitFunction initFunction([] ()
 
 		sbac->OnStateBagChange.Disconnect(size_t(cookie));
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("STATE_BAG_HAS_KEY", [](fx::ScriptContext& context)
+	{
+		auto bagName = context.CheckArgument<const char*>(0);
+		auto keyName = context.CheckArgument<const char*>(1);
+
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		auto bag = sbac->GetStateBag(bagName);
+
+		if (!bag)
+		{
+			context.SetResult(false);
+			return;
+		}
+
+		context.SetResult(bag->HasKey(keyName));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_STATE_BAG_KEYS", [](fx::ScriptContext& context)
+	{
+		auto bagName = context.CheckArgument<const char*>(0);
+
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		std::vector<std::string> keys;
+
+		if (auto bag = sbac->GetStateBag(bagName))
+		{
+			keys = bag->GetKeys();
+		}
+
+		context.SetResult(fx::SerializeObject(keys));
+	});
 });

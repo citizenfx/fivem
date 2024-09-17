@@ -1303,29 +1303,6 @@ void Component_RunPreInit()
 		FatalError("Could not load bin/libcef.dll.\nLoadLibraryW failed for reason %d.", gle);
 	}
 
-	if (wcsstr(GetCommandLineW(), L"type=gpu"))
-	{
-		auto mojo__Connector__RaiseError = (uint8_t*)((char*)libcef + 0x2d12f4a);
-
-		if (*mojo__Connector__RaiseError == 0xB2)
-		{
-			hook::putVP<uint8_t>(mojo__Connector__RaiseError, 0xCC);
-		}
-	}
-
-	{
-		// echo network::SetFetchMetadataHeaders | pdbdump -r libcef.dll.pdb:0x180000000
-		auto network__SetFetchMetadataHeaders = (uint8_t*)((char*)libcef + 0x3d36e0c);
-
-		if (*network__SetFetchMetadataHeaders == 0x41)
-		{
-			hook::putVP<uint8_t>(network__SetFetchMetadataHeaders, 0xC3);
-
-			// GL robust error handling
-			hook::putVP<uint32_t>((char*)libcef + 0x26C818A, 0x90C3C033);
-		}
-	}
-
 	__HrLoadAllImportsForDll("libcef.dll");
 
 	// verify if the CEF API hash is screwed

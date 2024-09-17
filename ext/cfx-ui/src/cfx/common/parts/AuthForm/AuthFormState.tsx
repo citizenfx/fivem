@@ -1,23 +1,25 @@
-import React from "react";
-import { Icons } from "cfx/ui/Icons";
-import { Indicator } from "cfx/ui/Indicator/Indicator";
-import { Text } from "cfx/ui/Text/Text";
-import { makeAutoObservable, reaction } from "mobx";
-import { Button } from "cfx/ui/Button/Button";
-import { LoginStatus, RegisterStatus } from "cfx/common/services/account/types";
-import { Optional } from "cfx/utils/types";
-import { dispose, Disposer, IDisposableObject } from "cfx/utils/disposable";
-import { SSOAuthCompleteEvent } from "cfx/common/services/account/events";
-import { OnlyLatest } from "cfx/utils/async";
-import { returnTrue } from "cfx/utils/functional";
-import { inject, injectable } from "inversify";
-import { IAccountService } from "cfx/common/services/account/account.service";
-import { useDisposableInstance } from "cfx/utils/hooks";
-import { useServiceResolver } from "cfx/base/servicesContainer";
-import { currentGameNameIs } from "cfx/base/gameRuntime";
-import { GameName } from "cfx/base/game";
-import { LocaleKeyOrString, LocaleKeyOrString_nl2br } from "cfx/common/services/intl/types";
-import { $L } from "cfx/common/services/intl/l10n";
+/* eslint-disable camelcase */
+import {
+  Button,
+  Icons,
+  Indicator,
+  Text,
+  returnTrue,
+} from '@cfx-dev/ui-components';
+import { inject, injectable } from 'inversify';
+import { makeAutoObservable, reaction } from 'mobx';
+import React from 'react';
+
+import { useServiceResolver } from 'cfx/base/servicesContainer';
+import { IAccountService } from 'cfx/common/services/account/account.service';
+import { SSOAuthCompleteEvent } from 'cfx/common/services/account/events';
+import { LoginStatus, RegisterStatus } from 'cfx/common/services/account/types';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { LocaleKeyOrString, LocaleKeyOrString_nl2br } from 'cfx/common/services/intl/types';
+import { OnlyLatest } from 'cfx/utils/async';
+import { dispose, Disposer, IDisposableObject } from 'cfx/utils/disposable';
+import { useDisposableInstance } from 'cfx/utils/hooks';
+import { Optional } from 'cfx/utils/types';
 
 export type IAuthFormState = AuthFormState;
 export function useAuthFormState(): AuthFormState {
@@ -45,32 +47,55 @@ export const DEAFULT_AUTH_FORM_MODE = AuthFormMode.LogIn;
 @injectable()
 class AuthFormState {
   public onDone: Optional<() => void>;
+
   public onModeChange: Optional<(mode: AuthFormMode) => void>;
+
   public onDisabledChange: Optional<(disabled: boolean) => void>;
 
   private _mode = DEAFULT_AUTH_FORM_MODE;
-  public get mode(): AuthFormMode { return this._mode }
-  private set mode(mode: AuthFormMode) { this._mode = mode }
+  public get mode(): AuthFormMode {
+    return this._mode;
+  }
+  private set mode(mode: AuthFormMode) {
+    this._mode = mode;
+  }
 
   public readonly username: FieldController;
+
   public readonly email: FieldController;
 
   private _password = '';
-  public get password(): string { return this._password }
-  private set password(password: string) { this._password = password }
+  public get password(): string {
+    return this._password;
+  }
+  private set password(password: string) {
+    this._password = password;
+  }
 
   private _passwordResetPending = false;
-  public get passwordResetPending(): boolean { return this._passwordResetPending }
-  private set passwordResetPending(pending: boolean) { this._passwordResetPending = pending }
+  public get passwordResetPending(): boolean {
+    return this._passwordResetPending;
+  }
+  private set passwordResetPending(pending: boolean) {
+    this._passwordResetPending = pending;
+  }
 
   // Two-Factor authentication code
   private _totp = '';
-  public get totp(): string { return this._totp }
-  private set totp(totp: string) { this._totp = totp }
+  public get totp(): string {
+    return this._totp;
+  }
+  private set totp(totp: string) {
+    this._totp = totp;
+  }
 
   private _submitPending = false;
-  private get submitPending(): boolean { return this._submitPending }
-  private set submitPending(pending: boolean) { this._submitPending = pending }
+  private get submitPending(): boolean {
+    return this._submitPending;
+  }
+  private set submitPending(pending: boolean) {
+    this._submitPending = pending;
+  }
 
   public readonly submitMessage: SubmitMessage;
 
@@ -91,22 +116,21 @@ class AuthFormState {
   }
 
   get showExternalAuthButton(): boolean {
-    if (!currentGameNameIs(GameName.FiveM)) {
-      return false;
-    }
-
     return this.isLogIn;
   }
 
   get showEmailField(): boolean {
     return this.isLogIn || this.isRegistration;
   }
+
   get showPasswordField(): boolean {
     return this.isLogIn || this.isRegistration;
   }
+
   get showUsernameField(): boolean {
     return this.isRegistration;
   }
+
   get showTOTPField(): boolean {
     return this.isTOTP;
   }
@@ -114,6 +138,7 @@ class AuthFormState {
   get hasValidEmail(): boolean {
     return this.email.isValid;
   }
+
   get hasValidUsername(): boolean {
     return this.username.isValid;
   }
@@ -145,18 +170,23 @@ class AuthFormState {
   get isLogIn(): boolean {
     return this.mode === AuthFormMode.LogIn;
   }
+
   get isRegistration(): boolean {
     return this.mode === AuthFormMode.Registration;
   }
+
   get isRegistrationActivation(): boolean {
     return this.mode === AuthFormMode.RegistrationActivation;
   }
+
   get isTOTP(): boolean {
     return this.mode === AuthFormMode.TOTP;
   }
+
   get isExternal(): boolean {
     return this.mode === AuthFormMode.External;
   }
+
   get isAuthenticated(): boolean {
     return this.mode === AuthFormMode.Authenticated;
   }
@@ -172,18 +202,24 @@ class AuthFormState {
     this.submitMessage = new SubmitMessage();
     this.toDispose = new Disposer();
 
-    this.username = this.toDispose.register(new FieldController(
-      (username) => this.accountService.getUsernameError(username),
-      (newUsername) => usernameRegexp.test(newUsername),
-    ));
+    this.username = this.toDispose.register(
+      new FieldController(
+        (username) => this.accountService.getUsernameError(username),
+        (newUsername) => usernameRegexp.test(newUsername),
+      ),
+    );
 
-    this.email = this.toDispose.register(new FieldController(
-      (email) => this.accountService.getEmailError(email),
-    ));
+    this.email = this.toDispose.register(new FieldController((email) => this.accountService.getEmailError(email)));
 
     this.toDispose.add(
-      reaction(() => this.disabled, (disabled) => this.onDisabledChange?.(disabled)),
-      reaction(() => this.mode, (mode) => this.onModeChange?.(mode)),
+      reaction(
+        () => this.disabled,
+        (disabled) => this.onDisabledChange?.(disabled),
+      ),
+      reaction(
+        () => this.mode,
+        (mode) => this.onModeChange?.(mode),
+      ),
 
       this.accountService.SSOAuthComplete.addListener(this.handleExternalAuthComplete),
     );
@@ -218,11 +254,14 @@ class AuthFormState {
 
           switch (response.status) {
             case LoginStatus.Success: {
-              return this.switchToAuthenticated();
+              this.switchToAuthenticated();
+
+              return;
             }
 
             case LoginStatus.Error: {
               this.submitMessage.setError(response.error);
+
               return;
             }
 
@@ -233,8 +272,6 @@ class AuthFormState {
               requestAnimationFrame(() => {
                 totpFieldRef.current?.focus();
               });
-
-              return;
             }
           }
 
@@ -299,15 +336,18 @@ class AuthFormState {
     this.totp = '';
     this.submitMessage.reset();
   };
+
   public readonly switchToRegistration = () => {
     this.mode = AuthFormMode.Registration;
     this.totp = '';
     this.submitMessage.reset();
   };
+
   private readonly switchToRegistrationActivation = () => {
     this.mode = AuthFormMode.RegistrationActivation;
     this.submitMessage.reset();
   };
+
   private readonly switchToAuthenticated = () => {
     this.mode = AuthFormMode.Authenticated;
     this.submitMessage.reset();
@@ -397,7 +437,9 @@ class AuthFormState {
 
   private readonly handleExternalAuthComplete = (event: SSOAuthCompleteEvent) => {
     if (event.success) {
-      return this.switchToAuthenticated();
+      this.switchToAuthenticated();
+
+      return;
     }
 
     this.switchToLogIn();
@@ -407,18 +449,31 @@ class AuthFormState {
 
 class FieldController implements IDisposableObject {
   private _value: string = '';
-  public get value(): string { return this._value }
-  private set value(value: string) { this._value = value }
+  public get value(): string {
+    return this._value;
+  }
+  private set value(value: string) {
+    this._value = value;
+  }
 
   private _error: string | null = null;
-  public get error(): string | null { return this._error }
-  private set error(error: string | null) { this._error = error }
+  public get error(): string | null {
+    return this._error;
+  }
+  private set error(error: string | null) {
+    this._error = error;
+  }
 
   private _validationPending: boolean = false;
-  public get validationPending(): boolean { return this._validationPending }
-  private set validationPending(validationPending: boolean) { this._validationPending = validationPending }
+  public get validationPending(): boolean {
+    return this._validationPending;
+  }
+  private set validationPending(validationPending: boolean) {
+    this._validationPending = validationPending;
+  }
 
   private readonly validatorRunner: OnlyLatest<[string], string | null>;
+
   private toDispose: Disposer;
 
   public get isValid(): boolean {
@@ -438,14 +493,16 @@ class FieldController implements IDisposableObject {
 
     this.toDispose = new Disposer();
 
-    this.validatorRunner = this.toDispose.register(new OnlyLatest(
-      this.validator,
-      (error) => {
-        this.error = error;
-        this.validationPending = false;
-      },
-      validatorDelay,
-    ));
+    this.validatorRunner = this.toDispose.register(
+      new OnlyLatest(
+        this.validator,
+        (error) => {
+          this.error = error;
+          this.validationPending = false;
+        },
+        validatorDelay,
+      ),
+    );
   }
 
   public dispose() {
@@ -471,6 +528,7 @@ class FieldController implements IDisposableObject {
 
 class SubmitMessage {
   private _error = true;
+
   private _message = '';
 
   public get isError(): boolean {

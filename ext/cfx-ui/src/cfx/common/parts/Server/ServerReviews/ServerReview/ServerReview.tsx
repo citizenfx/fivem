@@ -1,27 +1,33 @@
-import React from "react";
-import format from "date-fns/format";
-import { IServerReviewItem, IServerReviews } from "cfx/common/services/servers/reviews/types";
-import { Avatar } from "cfx/ui/Avatar/Avatar";
-import { Box } from "cfx/ui/Layout/Box/Box";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Text, TextBlock } from "cfx/ui/Text/Text";
-import { Title } from "cfx/ui/Title/Title";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { observer } from "mobx-react-lite";
-import { ServerReviewSentimentIcon } from "./ServerReviewSentimentIcon";
-import { Separator } from "cfx/ui/Separator/Separator";
-import { ServerReviewReactions } from "./ServerReviewReactions";
-import { ServerReviewReport } from "./ServerReviewReport";
-import { OnScreenSensor } from "cfx/ui/OnScreenSensor";
-import { Indicator } from "cfx/ui/Indicator/Indicator";
-import { $L } from "cfx/common/services/intl/l10n";
+import {
+  Avatar,
+  Indicator,
+  Box,
+  Flex,
+  Pad,
+  OnScreenSensor,
+  Separator,
+  Text,
+  TextBlock,
+  Title,
+} from '@cfx-dev/ui-components';
+import format from 'date-fns/format';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+
+import { $L } from 'cfx/common/services/intl/l10n';
+import { IServerReviewItem, IServerReviews } from 'cfx/common/services/servers/reviews/types';
+
+import { ServerReviewReactions } from './ServerReviewReactions';
+import { ServerReviewReport } from './ServerReviewReport';
+import { ServerReviewSentimentIcon } from './ServerReviewSentimentIcon';
+
 import s from './ServerReview.module.scss';
 
 export interface ServerReviewProps {
-  review: IServerReviewItem,
-  serverReviews: IServerReviews,
+  review: IServerReviewItem;
+  serverReviews: IServerReviews;
 
-  disableActions?: boolean,
+  disableActions?: boolean;
 }
 
 export const ServerReview = observer(function ServerReview(props: ServerReviewProps) {
@@ -33,7 +39,10 @@ export const ServerReview = observer(function ServerReview(props: ServerReviewPr
   } = props;
 
   if (review.hidden) {
-    return (<></>);
+    return (
+      // eslint-disable-next-line react/jsx-no-useless-fragment
+      <></>
+    );
   }
 
   const playtimeRaw = serverReviews.playtimes[review.authorCfxId];
@@ -45,26 +54,26 @@ export const ServerReview = observer(function ServerReview(props: ServerReviewPr
   return (
     <ServerReviewLayout
       avatar={<Avatar url={review.authorAvatarURL} />}
-      authorName={
+      authorName={(
         <Title fixedOn="bottom-left" title={review.authorName}>
           <Text truncated typographic>
             {review.authorName}
           </Text>
         </Title>
-      }
-      playtime={
+      )}
+      playtime={(
         <Title title={$L('#Review_Playtime')}>
           <TextBlock size="small" opacity="75">
             {playtime}
           </TextBlock>
         </Title>
-      }
-      postedAt={
+      )}
+      postedAt={(
         <Text size="small" opacity="25">
           Posted: {format(review.createdAt, 'd MMM y')}
         </Text>
-      }
-      title={
+      )}
+      title={(
         <>
           <ServerReviewSentimentIcon sentiment={review.sentiment} />
 
@@ -73,35 +82,29 @@ export const ServerReview = observer(function ServerReview(props: ServerReviewPr
             {review.title}
           </Text>
         </>
-      }
-      content={
+      )}
+      content={(
         <TextBlock typographic className={s.content}>
-          {review.loaded ? review.content : <Indicator />}
+          {review.loaded
+            ? review.content
+            : <Indicator />}
         </TextBlock>
-      }
-      reactions={
-        showReactions && (
-          <ServerReviewReactions
-            disabled={disableActions}
-            reactions={review.reactions!}
-          />
-        )
-      }
-      report={
-        showReport && (
-          <ServerReviewReport
-            report={review.report!}
-            className={s['show-on-hover']}
-          />
-        )
-      }
+      )}
+      reactions={showReactions && (
+        <ServerReviewReactions disabled={disableActions} reactions={review.reactions!} />
+      )}
+      report={showReport && (
+        <ServerReviewReport report={review.report!} className={s['show-on-hover']} />
+      )}
     />
   );
 });
 
 type LayoutProps<T extends string> = { [key in T]: React.ReactNode };
 
-function ServerReviewLayout(props: LayoutProps<'avatar' | 'authorName' | 'playtime' | 'postedAt' | 'title' | 'content' | 'reactions' | 'report'>) {
+function ServerReviewLayout(
+  props: LayoutProps<'avatar' | 'authorName' | 'playtime' | 'postedAt' | 'title' | 'content' | 'reactions' | 'report'>,
+) {
   const {
     avatar,
     authorName,
@@ -137,9 +140,7 @@ function ServerReviewLayout(props: LayoutProps<'avatar' | 'authorName' | 'playti
 
           <Box grow>
             <Flex vertical>
-              <Flex centered="axis">
-                {title}
-              </Flex>
+              <Flex centered="axis">{title}</Flex>
 
               {content}
 

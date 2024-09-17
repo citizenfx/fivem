@@ -14,9 +14,26 @@ static uintptr_t g_currentStub = hook::exe_end();
 
 extern "C"
 {
+	DLL_EXPORT void* AllocateStubMemoryImpl(size_t size)
+	{
+		// Try and pick a sensible alignment
+		size_t alignMask = ((size > 64) ? 16 : 8) - 1;
+
+		g_currentStub = (g_currentStub + alignMask) & ~alignMask;
+
+		char* code = (char*)g_currentStub + hook::baseAddressDifference;
+
+		DWORD oldProtect;
+		VirtualProtect(code, size, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+		g_currentStub += size;
+
+		return code;
+	}
+
 	DLL_EXPORT void* AllocateFunctionStubImpl(void* function, int type)
 	{
-		char* code = (char*)g_currentStub + hook::baseAddressDifference;
+		char* code = (char*) AllocateStubMemoryImpl(20);
 
 		DWORD oldProtect;
 		VirtualProtect(code, 15, PAGE_EXECUTE_READWRITE, &oldProtect);
@@ -35,17 +52,7 @@ extern "C"
 		return code;
 	}
 
-	DLL_EXPORT void* AllocateStubMemoryImpl(size_t size)
-	{
-		char* code = (char*)g_currentStub + hook::baseAddressDifference;
 
-		DWORD oldProtect;
-		VirtualProtect(code, size, PAGE_EXECUTE_READWRITE, &oldProtect);
-
-		g_currentStub += size;
-
-		return code;
-	}
 }
 #endif
 
@@ -78,7 +85,7 @@ static InitFunction initFunction([]()
 		return;
 	}
 
-	std::wstring hintsFile = MakeRelativeCitPath(ToWide(fmt::sprintf("data\\cache\\hints_%s.dat", xbr::GetGameBuildIdentifier())));
+	std::wstring hintsFile = MakeRelativeCitPath(ToWide(fmt::sprintf("data\\cache\\hints_%s.dat", xbr::GetCurrentGameBuildString())));
 	FILE* hints = _wfopen(hintsFile.c_str(), L"rb");
 	size_t numHints = 0;
 

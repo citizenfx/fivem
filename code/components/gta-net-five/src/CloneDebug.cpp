@@ -9,6 +9,8 @@
 
 #include <CoreConsole.h>
 
+#include <CustomRtti.h>
+
 #include <netBlender.h>
 #include <netObjectMgr.h>
 #include <CloneManager.h>
@@ -272,37 +274,9 @@ namespace rage
 rage::netObject* g_curNetObjectSelection;
 static rage::netSyncNodeBase* g_curSyncNodeSelection;
 
-// tripping typeid(..) to use RTTI
-struct VirtualBase
-{
-	virtual ~VirtualBase() = 0;
-};
-
-static std::string GetClassTypeName(void* ptr)
-{
-	std::string name;
-
-#ifdef GTA_FIVE
-	// Rest in pease RTTI in V, we will miss you
-	if (xbr::IsGameBuildOrGreater<2802>())
-	{
-		name = fmt::sprintf("%016llx", hook::get_unadjusted(*(uint64_t*)ptr));
-	}
-	else
-	{
-		name = typeid(*(VirtualBase*)ptr).name();
-		name = name.substr(6);
-	}
-#elif IS_RDR3
-	name = fmt::sprintf("%016llx", hook::get_unadjusted(*(uint64_t*)ptr));
-#endif
-
-	return name;
-}
-
 static void RenderSyncNode(rage::netObject* object, rage::netSyncNodeBase* node)
 {
-	std::string objectName = GetClassTypeName(node);
+	std::string objectName = SearchTypeName(node);
 
 	if (node->IsParentNode())
 	{
@@ -354,11 +328,7 @@ static void RenderNetObjectTree()
 				{
 					try
 					{
-#ifdef GTA_FIVE
-						std::string objectName = GetClassTypeName(object);
-#elif IS_RDR3
-						std::string objectName = GetNetObjEntityName(object->GetObjectType());
-#endif
+						std::string objectName = fx::sync::GetNetObjEntityName(object->GetObjectType());
 
 						if (ImGui::TreeNodeEx(object,
 							ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ((g_curNetObjectSelection == object) ? ImGuiTreeNodeFlags_Selected : 0),
@@ -746,10 +716,6 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 	if (icgi->OneSyncBigIdEnabled)
 	{
 		sizeLength = 16;
-	}
-	else if (icgi->NetProtoVersion < 0x201812271741)
-	{
-		sizeLength = 11;
 	}
 
 	eastl::bitset<200> processedNodes;
@@ -1245,14 +1211,7 @@ void AssociateSyncTree(int objectId, rage::netSyncTree* syncTree)
 
 static const char* DescribeGameObject(void* object)
 {
-	struct VirtualBase
-	{
-		virtual ~VirtualBase() = default;
-	};
-
-	auto vObject = (VirtualBase*)object;
-
-	static std::string objectName = GetClassTypeName(vObject);
+	static std::string objectName = SearchTypeName(object);
 
 	return objectName.c_str();
 }
@@ -1458,7 +1417,7 @@ static InitFunction initFunction([]()
 #if _DEBUG
 static void DumpSyncNode(rage::netSyncNodeBase* node, std::string indent = "\t", bool last = true)
 {
-	std::string objectName = GetClassTypeName(node);
+	std::string objectName = SearchTypeName(node);
 
 	if (node->IsParentNode())
 	{
@@ -1486,7 +1445,7 @@ static void DumpSyncNode(rage::netSyncNodeBase* node, std::string indent = "\t",
 
 static void DumpSyncTree(rage::netSyncTree* syncTree)
 {
-	std::string objectName = GetClassTypeName(syncTree);
+	std::string objectName = SearchTypeName(syncTree);
 
 	trace("using %s = SyncTree<\n", objectName);
 

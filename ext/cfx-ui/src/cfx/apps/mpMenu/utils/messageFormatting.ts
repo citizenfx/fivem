@@ -1,28 +1,29 @@
-import { CurrentGameBrand } from "cfx/base/gameRuntime";
-import { IServerView } from "cfx/common/services/servers/types";
-import { noop } from "cfx/utils/functional";
-import { html2react } from "cfx/utils/html2react";
-import { invariant } from "cfx/utils/invariant";
-import { linkify } from "cfx/utils/links";
-import { renderMarkdown } from "cfx/utils/markdown";
-import { nl2br } from "cfx/utils/nl2br";
-import { fastRandomId } from "cfx/utils/random";
-import React from "react";
-import { mpMenu } from "../mpMenu";
-import { useStreamerMode } from "../services/convars/convars.service";
+import { linkify, noop } from '@cfx-dev/ui-components';
+import React from 'react';
+
+import { CurrentGameBrand } from 'cfx/base/gameRuntime';
+import { IServerView } from 'cfx/common/services/servers/types';
+import { html2react } from 'cfx/utils/html2react';
+import { invariant } from 'cfx/utils/invariant';
+import { renderMarkdown } from 'cfx/utils/markdown';
+import { nl2br } from 'cfx/utils/nl2br';
+import { fastRandomId } from 'cfx/utils/random';
+
+import { mpMenu } from '../mpMenu';
+import { useStreamerMode } from '../services/convars/convars.service';
 
 export interface IExtraAction {
-  id: string,
-  label: string,
-  action(): void,
+  id: string;
+  label: string;
+  action(): void;
 }
 
 export interface IFormattedMessage {
-  message: string,
-  messageFormatted: boolean,
+  message: string;
+  messageFormatted: boolean;
 
-  title?: string,
-  extraActions?: IExtraAction[],
+  title?: string;
+  extraActions?: IExtraAction[];
 }
 
 export const FORMATTED_MESSAGE_MAGIC = '[md]';
@@ -54,6 +55,7 @@ export function parseFormattedMessage(message: string): IFormattedMessage {
   };
 
   const $aNodes = $html.querySelectorAll('a[href^="cfx.re://"');
+
   if ($aNodes.length) {
     fmt.extraActions = [];
 
@@ -69,6 +71,7 @@ export function parseFormattedMessage(message: string): IFormattedMessage {
   }
 
   const $h1Node = $html.querySelector('h1');
+
   if ($h1Node) {
     fmt.title = $h1Node.innerText;
 
@@ -80,7 +83,10 @@ export function parseFormattedMessage(message: string): IFormattedMessage {
   return fmt;
 }
 
-export function useRenderedFormattedMessage<T extends IFormattedMessage>(msg: T, server?: IServerView): React.ReactNode {
+export function useRenderedFormattedMessage<T extends IFormattedMessage>(
+  msg: T,
+  server?: IServerView,
+): React.ReactNode {
   const streamerMode = useStreamerMode();
 
   return React.useMemo(() => {
@@ -89,16 +95,9 @@ export function useRenderedFormattedMessage<T extends IFormattedMessage>(msg: T,
     }
 
     return html2react(
-      linkify(
-        nl2br(
-          replaceCfxRePlaceholders(
-            streamerMode
-              ? censorServerAddress(msg.message)
-              : msg.message,
-            server,
-          )
-        ),
-      ),
+      linkify(nl2br(replaceCfxRePlaceholders(streamerMode
+        ? censorServerAddress(msg.message)
+        : msg.message, server))),
     );
   }, [msg, streamerMode]);
 }
@@ -115,8 +114,9 @@ namespace CfxRePlaceholders {
 }
 export function replaceCfxRePlaceholders(message: string, server?: IServerView | null | undefined): string {
   if (message.includes(CfxRePlaceholders.STATUSPAGE_STR)) {
-    return message.replace(CfxRePlaceholders.STATUSPAGE_RE, `<a href="https://status.cfx.re">Cfx.re Status</a>`)
-      .replace(CfxRePlaceholders.SUPPORT_RE, `<a href="https://aka.cfx.re/support">Cfx.re Support</a>`);
+    return message
+      .replace(CfxRePlaceholders.STATUSPAGE_RE, '<a href="https://status.cfx.re">Cfx.re Status</a>')
+      .replace(CfxRePlaceholders.SUPPORT_RE, '<a href="https://aka.cfx.re/support">Cfx.re Support</a>');
   }
 
   if (server?.ownerName) {
@@ -130,6 +130,7 @@ export function replaceCfxRePlaceholders(message: string, server?: IServerView |
 
     const messageIsARejection = message.startsWith(CfxRePlaceholders.REJECTION_STR);
     const messageIsNotFromCfxRe = !message.includes('CitizenFX ticket was specified');
+
     if (messageIsARejection && messageIsNotFromCfxRe) {
       return [
         message.replace(CfxRePlaceholders.REJECTION_STR, `Connection rejected by ${avatarLink}'s server:`),
@@ -142,11 +143,9 @@ export function replaceCfxRePlaceholders(message: string, server?: IServerView |
     if (message.includes(CfxRePlaceholders.OWNER_STR)) {
       return message.replace(CfxRePlaceholders.OWNER_RE, avatarLink);
     }
-  } else {
-    if (message.includes(CfxRePlaceholders.OWNER_STR)) {
-      // #TODO: localization!
-      return message.replace(CfxRePlaceholders.OWNER_RE, 'the server owner');
-    }
+  } else if (message.includes(CfxRePlaceholders.OWNER_STR)) {
+    // #TODO: localization!
+    return message.replace(CfxRePlaceholders.OWNER_RE, 'the server owner');
   }
 
   return message;

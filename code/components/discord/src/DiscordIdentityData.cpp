@@ -20,19 +20,29 @@ static HookFunction initFunction([]()
 	{
 		HANDLE hPipe = INVALID_HANDLE_VALUE;
 
-		for (int i = 0; i < 10; i++)
+		while (true)
 		{
-			hPipe = CreateFileW(va(L"\\\\.\\pipe\\discord-ipc-%d", i), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+			// Iterating over 10 possible discord ipc pipe URLs according to official documentation https://github.com/discord/discord-rpc/blob/master/documentation/hard-mode.md
+			for (int i = 0; i < 10; i++)
+			{
+				hPipe = CreateFileW(va(L"\\\\.\\pipe\\discord-ipc-%d", i), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
-			if (hPipe != INVALID_HANDLE_VALUE)
+				if (hPipe != INVALID_HANDLE_VALUE)
+				{
+					break;
+				}
+			}
+
+			// Trying to connect to discord pipe in 5 sec interval for the case when discord was launched after game start
+			if (hPipe == NULL || hPipe == INVALID_HANDLE_VALUE)
+			{
+				Sleep(5000);
+				continue;
+			}
+			else
 			{
 				break;
 			}
-		}
-
-		if (hPipe == NULL || hPipe == INVALID_HANDLE_VALUE)
-		{
-			return;
 		}
 
 		auto writePipe = [hPipe](int opCode, const json& data)

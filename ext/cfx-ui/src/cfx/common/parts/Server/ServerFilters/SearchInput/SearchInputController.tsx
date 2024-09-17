@@ -1,14 +1,13 @@
-import React from "react";
-import { useServiceResolver } from "cfx/base/servicesContainer";
-import { scopedLogger, ScopedLogger } from "cfx/common/services/log/scopedLogger";
-import { ICategorySearchTerm, ISearchTerm, searchTermToString } from "cfx/base/searchTermsParser";
-import { IServersService } from "cfx/common/services/servers/servers.service";
-import { noop } from "cfx/utils/functional";
-import { useInstance } from "cfx/utils/hooks";
-import { replaceRange } from "cfx/utils/string";
-import { inject, injectable } from "inversify";
-import { makeAutoObservable, observable } from "mobx";
-import { clone } from "cfx/utils/object";
+import { useInstance, noop, replaceRange } from '@cfx-dev/ui-components';
+import { inject, injectable } from 'inversify';
+import { makeAutoObservable, observable } from 'mobx';
+import React from 'react';
+
+import { ICategorySearchTerm, ISearchTerm, searchTermToString } from 'cfx/base/searchTermsParser';
+import { useServiceResolver } from 'cfx/base/servicesContainer';
+import { scopedLogger, ScopedLogger } from 'cfx/common/services/log/scopedLogger';
+import { IServersService } from 'cfx/common/services/servers/servers.service';
+import { clone } from 'cfx/utils/object';
 
 export enum SuggestionState {
   NOT_AVAILABLE,
@@ -31,26 +30,47 @@ export class SearchInputController {
   protected readonly serversService: IServersService;
 
   private _inputInFocus: boolean = false;
-  public get inputInFocus(): boolean { return this._inputInFocus }
-  private set inputInFocus(inputInFocus: boolean) { this._inputInFocus = inputInFocus; this.onActive(inputInFocus) }
+  public get inputInFocus(): boolean {
+    return this._inputInFocus;
+  }
+  private set inputInFocus(inputInFocus: boolean) {
+    this._inputInFocus = inputInFocus;
+    this.onActive(inputInFocus);
+  }
 
   private _activeTermIndex: number = -1;
-  private get activeTermIndex(): number { return this._activeTermIndex }
-  private set activeTermIndex(activeTermIndex: number) { this._activeTermIndex = activeTermIndex }
+  private get activeTermIndex(): number {
+    return this._activeTermIndex;
+  }
+  private set activeTermIndex(activeTermIndex: number) {
+    this._activeTermIndex = activeTermIndex;
+  }
 
   private _selectedSuggestionIndex: number = 0;
-  public get selectedSuggestionIndex(): number { return this._selectedSuggestionIndex }
-  private set selectedSuggestionIndex(selectedSuggestionIndex: number) { this._selectedSuggestionIndex = selectedSuggestionIndex }
+  public get selectedSuggestionIndex(): number {
+    return this._selectedSuggestionIndex;
+  }
+  private set selectedSuggestionIndex(selectedSuggestionIndex: number) {
+    this._selectedSuggestionIndex = selectedSuggestionIndex;
+  }
 
   onActive: (active: boolean) => void = noop;
+
   onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void = noop;
 
   value: string = '';
+
   onChange: (value: string) => void = noop;
+
   handleChange: (value: string) => void = noop;
+
   private _parsed: ISearchTerm[] = [];
-  private get parsed(): ISearchTerm[] { return this._parsed }
-  private set parsed(parsed: ISearchTerm[]) { this._parsed = parsed }
+  private get parsed(): ISearchTerm[] {
+    return this._parsed;
+  }
+  private set parsed(parsed: ISearchTerm[]) {
+    this._parsed = parsed;
+  }
 
   get activeTerm(): ICategorySearchTerm | null {
     if (this.activeTermIndex === -1) {
@@ -62,6 +82,7 @@ export class SearchInputController {
     }
 
     const term = this.parsed[this.activeTermIndex];
+
     if (!term) {
       return null;
     }
@@ -82,7 +103,9 @@ export class SearchInputController {
   }
 
   get suggestions(): string[] | SuggestionState {
-    const activeTerm = this.activeTerm;
+    const {
+      activeTerm,
+    } = this;
 
     if (!activeTerm) {
       return SuggestionState.NOT_AVAILABLE;
@@ -111,7 +134,9 @@ export class SearchInputController {
       return false;
     }
 
-    const activeTerm = this.activeTerm;
+    const {
+      activeTerm,
+    } = this;
 
     if (!activeTerm) {
       return false;
@@ -121,7 +146,9 @@ export class SearchInputController {
       return false;
     }
 
-    const suggestions = this.suggestions;
+    const {
+      suggestions,
+    } = this;
 
     if (suggestions === SuggestionState.NOT_AVAILABLE) {
       return false;
@@ -142,8 +169,13 @@ export class SearchInputController {
     return true;
   }
 
-  readonly handleInputFocus = () => this.inputInFocus = true;
-  readonly handleInputBlur = () => this.inputInFocus = false;
+  readonly handleInputFocus = () => {
+    this.inputInFocus = true;
+  };
+
+  readonly handleInputBlur = () => {
+    this.inputInFocus = false;
+  };
 
   constructor() {
     makeAutoObservable(this, {
@@ -181,11 +213,13 @@ export class SearchInputController {
 
     if (isEnter) {
       let term = this.activeTerm;
+
       if (!term) {
         return;
       }
 
       const suggestion = suggestions[suggestionIndex];
+
       if (!suggestion) {
         return;
       }
@@ -194,7 +228,7 @@ export class SearchInputController {
       term.value = suggestion;
 
       const replacement = this.activeTermIndex === this.parsed.length - 1
-        ? searchTermToString(term) + ' '
+        ? `${searchTermToString(term)} `
         : searchTermToString(term);
 
       this.onChange(replaceRange(
@@ -207,7 +241,11 @@ export class SearchInputController {
       return;
     }
 
-    let newSuggestionIndex = this.selectedSuggestionIndex + (isArrowUp ? -1 : 1);
+    let newSuggestionIndex = this.selectedSuggestionIndex + (
+      isArrowUp
+        ? -1
+        : 1
+    );
 
     if (newSuggestionIndex < 0) {
       newSuggestionIndex = suggestions.length - 1;

@@ -115,19 +115,22 @@ export default defineComponent({
     window.addEventListener("message", this.listener);
   },
   watch: {
-    messages() {
-      if (this.hideState !== ChatHideStates.AlwaysHide) {
-        if (this.showWindowTimer) {
-          clearTimeout(this.showWindowTimer);
+    messages: {
+      handler() {
+        if (this.hideState !== ChatHideStates.AlwaysHide) {
+          if (this.showWindowTimer) {
+            clearTimeout(this.showWindowTimer);
+          }
+          this.showWindow = true;
+          this.resetShowWindowTimer();
         }
-        this.showWindow = true;
-        this.resetShowWindowTimer();
-      }
 
-      const messagesObj = this.$refs.messages as HTMLDivElement;
-      this.$nextTick(() => {
-        messagesObj.scrollTop = messagesObj.scrollHeight;
-      });
+        const messagesObj = this.$refs.messages as HTMLDivElement;
+        this.$nextTick(() => {
+          messagesObj.scrollTop = messagesObj.scrollHeight;
+        });
+      },
+      deep: true
     }
   },
   computed: {

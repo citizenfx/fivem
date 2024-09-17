@@ -24,9 +24,6 @@ namespace CitizenFX.Core
 
 		private static Dictionary<int, Function> s_references = new Dictionary<int, Function>();
 
-		private static IntPtr m_retvalBuffer;
-		private static int m_retvalBufferSize;
-
 		/// <summary>
 		/// Register a delegate to other runtimes and/or our host (reference function)
 		/// </summary>
@@ -121,42 +118,18 @@ namespace CitizenFX.Core
 		}
 
 		[SecurityCritical]
-		internal unsafe static void IncomingCall(int refIndex, byte* argsSerialized, uint argsSize, out IntPtr retvalSerialized, out uint retvalSize)
+		internal unsafe static void IncomingCall(int refIndex, byte* argsSerialized, uint argsSize, out byte[] retval)
 		{
 			try
 			{
-				var retvalData = Invoke(refIndex, argsSerialized, argsSize);
-				if (retvalData != null)
-				{
-					int length = retvalData.Length;
-
-					if (m_retvalBuffer == IntPtr.Zero)
-					{
-						m_retvalBufferSize = Math.Max(32768, length);
-						m_retvalBuffer = Marshal.AllocHGlobal(m_retvalBufferSize);
-					}
-					else if (m_retvalBufferSize < length)
-					{
-						m_retvalBufferSize = length;
-						m_retvalBuffer = Marshal.ReAllocHGlobal(m_retvalBuffer, new IntPtr(m_retvalBufferSize));
-					}
-
-					Marshal.Copy(retvalData, 0, m_retvalBuffer, length);
-
-					retvalSerialized = m_retvalBuffer;
-					retvalSize = (uint)length;
-
-					return;
-				}
+				retval = Invoke(refIndex, argsSerialized, argsSize);
 			}
 			catch (Exception e)
 			{
 
 				Debug.PrintError(e.InnerException ?? e, "reference call");
+				retval = null;
 			}
-
-			retvalSerialized = IntPtr.Zero;
-			retvalSize = 0u;
 		}
 
 		[SecurityCritical]

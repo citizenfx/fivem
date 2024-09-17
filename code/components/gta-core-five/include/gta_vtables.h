@@ -4736,6 +4736,7 @@
 "CNetObjObject",
 "CNetObjPed",
 "CNetObjPed::CNetTennisMotionData",
+"CNetObjPhysical",
 "CNetObjPickup",
 "CNetObjPickupPlacement",
 "CNetObjVehicle",

@@ -6,6 +6,8 @@
 #include <netObject.h>
 #include <MinHook.h>
 
+#include <EntitySystem.h>
+
 // PatchVehicleHoodCamera.cpp
 enum eVehicleType : uint32_t
 {
@@ -167,12 +169,99 @@ static bool CVehicleCreationDataNode__CanApply(void* thisptr, rage::netObject* n
 	return g_origVehicleCreationDataNode__CanApply(thisptr, netObj);
 }
 
+class CNetObjVehicle : public rage::netObject
+{
+};
+
+class CVehicleControlDataNode
+{
+public:
+	inline static ptrdiff_t kIsSubmarineOffset;
+
+	inline bool IsSubmarine()
+	{
+		auto subLoc = reinterpret_cast<char*>(this) + kIsSubmarineOffset;
+		return *reinterpret_cast<bool*>(subLoc);
+	}
+
+	inline void SetSubmarine(bool isSubmarine)
+	{
+		auto subLoc = reinterpret_cast<char*>(this) + kIsSubmarineOffset;
+		*reinterpret_cast<bool*>(subLoc) = isSubmarine;
+	}
+};
+
+class IVehicleNodeDataAccessor
+{
+public:
+	inline static ptrdiff_t kBaseOffset;
+	inline static ptrdiff_t kVehicleTypeOffset;
+
+	inline CNetObjVehicle* GetBaseObject()
+	{
+		auto baseLoc = reinterpret_cast<char*>(this) - kBaseOffset;
+		return reinterpret_cast<CNetObjVehicle*>(baseLoc);
+	}
+
+	inline eVehicleType GetVehicleType()
+	{
+		if (auto netObj = GetBaseObject())
+		{
+			if (auto vehicle = static_cast<char*>(netObj->GetGameObject()))
+			{
+				return *reinterpret_cast<eVehicleType*>(vehicle + kVehicleTypeOffset);
+			}
+		}
+
+		return VEHICLE_TYPE_CAR; // Unexpected path.
+	}
+};
+
+static void (*g_CNetObjVehicle_SetVehicleControlData)(IVehicleNodeDataAccessor*, CVehicleControlDataNode*);
+static void CNetObjVehicle_SetVehicleControlData(IVehicleNodeDataAccessor* netObj, CVehicleControlDataNode* dataNode)
+{
+	if (dataNode->IsSubmarine())
+	{
+		if (netObj->GetVehicleType() != VEHICLE_TYPE_SUBMARINE)
+		{
+			dataNode->SetSubmarine(false);
+		}
+	}
+
+	g_CNetObjVehicle_SetVehicleControlData(netObj, dataNode);
+}
+
 static HookFunction hookinit([]()
 {
+	MH_Initialize();
+
 	// sig intended to break if offsets change (haven't so far)
 	char* location = hook::get_pattern<char>("83 B9 40 03 00 00 08 0F B6");
 	location -= 25;
 	g_getArcheTypeForHash = hook::get_address<GetArchetypeForHashFn>(location, 1, 5);
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 10 55 48 8B EC 48 83 EC 20 8B 45 10 8B 89 C8 00 00 00"), CVehicleCreationDataNode__CanApply, (void**)&g_origVehicleCreationDataNode__CanApply);
+
+	{
+		// Offset from CNetObjVehicle to IVehicleNodeDataAccessor
+		IVehicleNodeDataAccessor::kBaseOffset = *hook::get_pattern<int32_t>("48 89 83 ? ? ? ? 48 89 B3 ? ? ? ? 80 A3", 3);
+
+		// Stolen from "VehicleExtraNatives.cpp" and "PatchVehicleHoodCamera.cpp"
+		IVehicleNodeDataAccessor::kVehicleTypeOffset = *hook::get_pattern<int32_t>("41 83 BF ? ? ? ? 0B 74", 3);
+
+		// CNetObjVehicle::SetVehicleControlData has changed quite a bit across builds.
+		auto pattern = hook::pattern("80 ? ? ? ? ? ? 74 26 ? 8B 06 ? 8B CE").count(1).get(0);
+		ptrdiff_t offset = xbr::IsGameBuildOrGreater<3095>() ? -0xD1 :
+						   xbr::IsGameBuildOrGreater<2372>() ? -0xC5 :
+						   xbr::IsGameBuildOrGreater<2060>() ? -0xCE : -0x73;
+
+		CVehicleControlDataNode::kIsSubmarineOffset = *pattern.get<int32_t>(2);
+		MH_CreateHook(pattern.get<void>(offset), CNetObjVehicle_SetVehicleControlData, (void**)&g_CNetObjVehicle_SetVehicleControlData);
+
+#ifdef _DEBUG
+		assert(IVehicleNodeDataAccessor::kBaseOffset == 512);
+		assert(CVehicleControlDataNode::kIsSubmarineOffset == 281);
+#endif
+	}
+
 	MH_EnableHook(MH_ALL_HOOKS);
 });

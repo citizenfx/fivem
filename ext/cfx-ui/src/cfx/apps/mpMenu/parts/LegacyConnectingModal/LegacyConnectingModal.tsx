@@ -1,18 +1,22 @@
-import React from "react";
-import { $L } from "cfx/common/services/intl/l10n";
-import { Indicator } from "cfx/ui/Indicator/Indicator";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { Modal } from "cfx/ui/Modal/Modal";
-import { observer } from "mobx-react-lite";
-import { useMpMenuServersConnectService } from "../../services/servers/serversConnect.mpMenu";
-import { BuildSwitchRequest } from "./BuildSwitchRequest";
-import { ServerHeader } from "./ServerHeader";
-import { ConnectStatus } from "./ConnectStatus";
-import { AdaptiveCardPresenter } from "./AdaptiveCardPresenter/AdaptiveCardPresenter";
-import { ConnectFailed } from "./ConnectFailed";
-import { BuildSwitchInfo } from "./BuildSwitchInfo";
-import { Box } from "cfx/ui/Layout/Box/Box";
+import {
+  Indicator,
+  Box,
+  Flex,
+  Pad,
+  Modal,
+} from '@cfx-dev/ui-components';
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+
+import { $L } from 'cfx/common/services/intl/l10n';
+
+import { AdaptiveCardPresenter } from './AdaptiveCardPresenter/AdaptiveCardPresenter';
+import { BuildSwitchInfo } from './BuildSwitchInfo';
+import { BuildSwitchRequest } from './BuildSwitchRequest';
+import { ConnectFailed } from './ConnectFailed';
+import { ConnectStatus } from './ConnectStatus';
+import { ServerHeader } from './ServerHeader';
+import { useMpMenuServersConnectService } from '../../services/servers/serversConnect.mpMenu';
 
 export const LegacyConnectingModal = observer(function LegacyConnectingModal() {
   const service = useMpMenuServersConnectService();
@@ -38,50 +42,34 @@ export const LegacyConnectingModal = observer(function LegacyConnectingModal() {
 
       case 'status': {
         node = (
-          <ConnectStatus
-            state={service.state}
-            onCancel={service.cancel}
-          />
+          <ConnectStatus state={service.state} onCancel={service.cancel} />
         );
         break;
       }
 
       case 'failed': {
         node = (
-          <ConnectFailed
-            state={service.state}
-            server={service.server!}
-            onClose={service.cancel}
-          />
+          <ConnectFailed state={service.state} server={service.server!} onClose={service.cancel} />
         );
         break;
       }
 
       case 'card': {
         node = (
-          <AdaptiveCardPresenter
-            card={service.state.card}
-            onCancel={service.cancel}
-          />
+          <AdaptiveCardPresenter card={service.state.card} onCancel={service.cancel} />
         );
         break;
       }
 
       case 'buildSwitchRequest': {
         node = (
-          <BuildSwitchRequest
-            state={service.state}
-            onCancel={service.cancel}
-          />
+          <BuildSwitchRequest state={service.state} onCancel={service.cancel} />
         );
         break;
       }
       case 'buildSwitchInfo': {
         node = (
-          <BuildSwitchInfo
-            state={service.state}
-            onCancel={service.cancel}
-          />
+          <BuildSwitchInfo state={service.state} onCancel={service.cancel} />
         );
         break;
       }
@@ -89,7 +77,12 @@ export const LegacyConnectingModal = observer(function LegacyConnectingModal() {
   }
 
   return (
-    <Modal disableBackdropClose onClose={service.canCancel ? service.cancel : undefined}>
+    <Modal
+      disableBackdropClose
+      onClose={service.canCancel
+        ? service.cancel
+        : undefined}
+    >
       <Box width="calc(var(--width) / 2)">
         {!!service.server && service.showServer && (
           <ServerHeader server={service.server} />

@@ -177,15 +177,23 @@ namespace rage
 	class audMixerDevice
 	{
 	public:
+		static constexpr uint32_t kSubmixCount = 40;
+
+	public:
 		audMixerSubmix* CreateSubmix(const char* name, int numOutputChannels, bool a3);
 		uint8_t GetSubmixIndex(audMixerSubmix* submix);
 		void ComputeProcessingGraph();
 		void FlagThreadCommandBufferReadyToProcess(uint32_t a1 = 0);
 		void InitClientThread(const char* name, uint32_t bufferSize);
 
+		inline uint32_t GetSubmixCount()
+		{
+			return m_numSubmixes;
+		}
+
 		inline audMixerSubmix* GetSubmix(int idx)
 		{
-			if (idx < 0 || idx >= 40)
+			if (idx < 0 || idx >= m_numSubmixes)
 			{
 				return nullptr;
 			}
@@ -198,9 +206,9 @@ namespace rage
 
 		uint64_t m_8;
 #ifdef GTA_FIVE
-		uint8_t m_submixes[40][256];
+		uint8_t m_submixes[kSubmixCount][256];
 #elif IS_RDR3
-		uint8_t m_submixes[40][368];
+		uint8_t m_submixes[kSubmixCount][368];
 #endif
 		uint32_t m_numSubmixes;
 	};
@@ -244,6 +252,13 @@ namespace rage
 
 	audMixerSubmix* audMixerDevice::CreateSubmix(const char* name, int numOutputChannels, bool a3)
 	{
+		// FORUM-5083891: game-code does not sanitize the fixed number of
+		// submixes. Avoid clobbering memory.
+		if (GetSubmixCount() >= kSubmixCount)
+		{
+			trace("Exceeded maximum number of audio submixes <%d> supported by the game!\n", kSubmixCount);
+			return nullptr;
+		}
 		return _audMixerDevice_CreateSubmix(this, name, numOutputChannels, a3);
 	}
 
@@ -1074,14 +1089,15 @@ namespace rage
 		static audCategoryControllerManager* GetInstance();
 	};
 
+	static audCategoryControllerManager** g_audCategoryControllerManager = nullptr;
 	audCategoryControllerManager* audCategoryControllerManager::GetInstance()
 	{
-#ifdef GTA_FIVE
-		static auto patternRef = hook::get_address<audCategoryControllerManager**>(hook::get_pattern("45 33 C0 BA 90 1C E2 44 E8", -4));
-#elif IS_RDR3
-		static auto patternRef = hook::get_address<audCategoryControllerManager**>(hook::get_pattern("48 8B 0D ? ? ? ? E8 ? ? ? ? 8B 15 ? ? ? ? 48 8D 0D ? ? ? ? E8", 3));
-#endif
-		return *patternRef;
+		if (!g_audCategoryControllerManager)
+		{
+			return nullptr;
+		}
+
+		return *g_audCategoryControllerManager;
 	}
 
 	static hook::thiscall_stub<char*(audCategoryControllerManager*, uint32_t)> _audCategoryControllerManager_CreateController([]()
@@ -1108,6 +1124,8 @@ namespace rage
 		initParamVal = hook::get_address<uint8_t*>(hook::get_pattern("BA 11 CC 23 C3 E8 ? ? ? ? 48 8D", 0x16));
 
 		audDriver::sm_Mixer = hook::get_address<audMixerDevice**>(hook::get_pattern("75 64 44 0F B7 45 06 48 8B 0D", 10));
+
+		g_audCategoryControllerManager = hook::get_address<audCategoryControllerManager**>(hook::get_pattern("45 33 C0 BA 90 1C E2 44 E8", -4));
 #elif IS_RDR3
 		g_frontendAudioEntity = hook::get_address<audEntityBase*>(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 45 84 E4 74 ? 39 1D"), 3, 7);
 
@@ -1116,6 +1134,8 @@ namespace rage
 		initParamVal = hook::get_address<uint8_t*>(hook::get_pattern("8A 05 ? ? ? ? 48 8B CF F3 0F 11 45 ? 88 45 66"), 2, 6);
 
 		audDriver::sm_Mixer = hook::get_address<audMixerDevice**>(hook::get_pattern("48 8B 05 ? ? ? ? 44 38 8C 01 ? ? ? ? 0F"), 3, 7);
+
+		g_audCategoryControllerManager = hook::get_address<audCategoryControllerManager**>(hook::get_pattern("48 8B 0D ? ? ? ? E8 ? ? ? ? 8B 15 ? ? ? ? 48 8D 0D ? ? ? ? E8", 3));
 #endif
 	});
 #ifdef GTA_FIVE
@@ -2113,7 +2133,7 @@ void RageAudioStream::ProcessPacket(const float** data, int frames, int64_t pts)
 	if (TryEnsureInitialized())
 	{
 		// interleave and normalize the data
-		std::vector<int16_t> buffer(frames * m_initParams.channels);
+		std::vector<int16_t> buffer(static_cast<std::vector<int16_t>::size_type>(frames) * m_initParams.channels);
 		auto cursor = buffer.data();
 
 		for (int f = 0; f < frames; f++)
@@ -2582,7 +2602,7 @@ static InitFunction initFunction([]()
 	{
 		int idx = ctx.GetArgument<int>(1);
 
-		if (idx < 0 || idx > 40)
+		if (idx < 0 || idx >= rage::audMixerDevice::kSubmixCount)
 		{
 			idx = -1;
 		}

@@ -1,8 +1,8 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security;
+using System.Threading;
 
 #if IS_FXSERVER
 using ContextType = CitizenFX.Core.fxScriptContext;
@@ -12,8 +12,6 @@ using ContextType = CitizenFX.Core.RageScriptContext;
 
 /*
 * Notes while working on this environment:
-*  - Scheduling: any function that can potentially add tasks to the C#'s scheduler needs to return the time
-*    of when it needs to be activated again, which then needs to be scheduled in the core scheduler (bookmark).
 */
 
 namespace CitizenFX.Core
@@ -24,6 +22,8 @@ namespace CitizenFX.Core
 		internal static int InstanceId { get; private set; }
 		internal static string ResourceName { get; private set; }
 		internal static CString CResourceName { get; private set; }
+
+		private static unsafe ScriptSharedData* s_sharedData;
 
 		#region Callable from C#
 
@@ -64,6 +64,12 @@ namespace CitizenFX.Core
 
 		[SecurityCritical]
 		internal static unsafe byte[] CanonicalizeRef(int refId) => CanonicalizeRef(s_runtime, refId);
+		
+		[SecurityCritical, MethodImpl(MethodImplOptions.InternalCall)]
+		private static extern unsafe byte[] InvokeFunctionReference(UIntPtr host, string refId, byte[] argsSerialized);
+
+		[SecurityCritical]
+		internal static unsafe byte[] InvokeFunctionReference(string refId, byte[] argsSerialized) => InvokeFunctionReference(s_runtime, refId, argsSerialized);
 
 		[SecurityCritical, MethodImpl(MethodImplOptions.InternalCall)]
 		private static extern unsafe bool ReadAssembly(UIntPtr host, string file, out byte[] assembly, out byte[] symbols);
@@ -71,16 +77,37 @@ namespace CitizenFX.Core
 		[SecurityCritical]
 		internal static unsafe bool ReadAssembly(string file, out byte[] assembly, out byte[] symbols) => ReadAssembly(s_runtime, file, out assembly, out symbols);
 
+		/// <summary>
+		/// Schedule a call-in at the given time, uses CAS to make sure we only overwrite if the given time is earlier than the stored one.
+		/// </summary>
+		/// <param name="time">Next time to request a call in</param>
+		[SecuritySafeCritical]
+		internal static unsafe void RequestTick(ulong time)
+		{			
+			ulong prevTime = (ulong)Interlocked.Read(ref s_sharedData->m_scheduledTimeAsLong);
+			while (time < prevTime)
+			{
+				prevTime = (ulong)Interlocked.CompareExchange(ref s_sharedData->m_scheduledTimeAsLong, (long)time, (long)prevTime);
+			}
+		}
+
+		/// <summary>
+		/// Schedule a call-in for the next frame.
+		/// </summary>
+		[SecuritySafeCritical]
+		public static unsafe void RequestTickNextFrame() => s_sharedData->m_scheduledTime = 0UL; // 64 bit read/writes – while aligned – are atomic on 64 bit machines
+
 		#endregion
 
 		#region Called by Native
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
-		internal static void Initialize(string resourceName, UIntPtr runtime, int instanceId)
+		private static unsafe void Initialize(string resourceName, UIntPtr runtime, int instanceId, ScriptSharedData* sharedData)
 		{
 			s_runtime = runtime;
 			InstanceId = instanceId;
 			ResourceName = resourceName;
 			CResourceName = resourceName;
+			s_sharedData = sharedData;
 
 			Resource.Current = new Resource(resourceName);
 			Debug.Initialize(resourceName);
@@ -93,7 +120,7 @@ namespace CitizenFX.Core
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
-		internal static ulong Tick(ulong hostTime, bool profiling)
+		internal static void Tick(ulong hostTime, bool profiling)
 		{
 			Scheduler.CurrentTime = (TimePoint)hostTime;
 			Profiler.IsProfiling = profiling;
@@ -107,12 +134,10 @@ namespace CitizenFX.Core
 			{
 				Debug.PrintError(e, "Tick()");
 			}
-
-			return Scheduler.NextTaskTime();
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
-		internal static unsafe ulong TriggerEvent(string eventName, byte* argsSerialized, int serializedSize, string sourceString, ulong hostTime, bool profiling)
+		internal static unsafe void TriggerEvent(string eventName, byte* argsSerialized, int serializedSize, string sourceString, ulong hostTime, bool profiling)
 		{
 			Scheduler.CurrentTime = (TimePoint)hostTime;
 			Profiler.IsProfiling = profiling;
@@ -136,28 +161,24 @@ namespace CitizenFX.Core
 					EventsManager.IncomingEvent(eventName, sourceString, origin, argsSerialized, serializedSize, args);
 				}
 			}
-			
-			return Scheduler.NextTaskTime();
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
-		internal static unsafe ulong LoadAssembly(string name, ulong hostTime, bool profiling)
+		internal static unsafe void LoadAssembly(string name, ulong hostTime, bool profiling)
 		{
 			Scheduler.CurrentTime = (TimePoint)hostTime;
 			Profiler.IsProfiling = profiling;
 
 			ScriptManager.LoadAssembly(name, true);
-
-			return Scheduler.NextTaskTime();
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
-		internal static unsafe ulong CallRef(int refIndex, byte* argsSerialized, uint argsSize, out IntPtr retvalSerialized, out uint retvalSize, ulong hostTime, bool profiling)
+		internal static unsafe ulong CallRef(int refIndex, byte* argsSerialized, uint argsSize, out byte[] retval, ulong hostTime, bool profiling)
 		{
 			Scheduler.CurrentTime = (TimePoint)hostTime;
 			Profiler.IsProfiling = profiling;
 
-			ReferenceFunctionManager.IncomingCall(refIndex, argsSerialized, argsSize, out retvalSerialized, out retvalSize);
+			ReferenceFunctionManager.IncomingCall(refIndex, argsSerialized, argsSize, out retval);
 
 			return Scheduler.NextTaskTime();
 		}

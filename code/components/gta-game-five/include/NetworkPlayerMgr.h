@@ -10,15 +10,16 @@
 #include <CrossBuildRuntime.h>
 #include <XBRVirtual.h>
 #include <netPeerAddress.h>
+#include <Hooking.h>
 
 #define DECLARE_ACCESSOR(x) \
-	decltype(impl.m2372.x)& x()        \
-	{                       \
-		return (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x;   \
+	decltype(impl.m3095.x)& x() \
+	{ \
+		return (xbr::IsGameBuildOrGreater<3095>()) ? impl.m3095.x : (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x; \
 	} \
-	const decltype(impl.m2372.x)& x() const                         \
-	{                                                    \
-		return (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x;  \
+	const decltype(impl.m3095.x)& x() const \
+	{ \
+		return (xbr::IsGameBuildOrGreater<3095>()) ? impl.m3095.x : (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x; \
 	}
 
 #ifdef COMPILING_GTA_GAME_FIVE
@@ -37,7 +38,7 @@ struct rlGamerInfo
 
 namespace rage
 {
-	class netPlayer : XBR_VIRTUAL_BASE_2802(0)
+	class GTA_GAME_EXPORT netPlayer : XBR_VIRTUAL_BASE_2802(0)
 	{
 	public:
 		//virtual ~netPlayer() = 0;
@@ -50,22 +51,18 @@ namespace rage
 
 		XBR_VIRTUAL_METHOD(const char*, GetName, ())
 
-		XBR_VIRTUAL_METHOD(void, m_20, ())
-
-		XBR_VIRTUAL_METHOD(void, m_28, ())
-
-		XBR_VIRTUAL_METHOD(void*, GetGamerInfo_raw, ())
+		void* GetGamerInfoBase();
 
 		template<int Build>
 		inline auto GetGamerInfo()
 		{
-			return (rlGamerInfo<Build>*)GetGamerInfo_raw();
+			return (rlGamerInfo<Build>*)GetGamerInfoBase();
 		}
 	};
 }
 
 // using XBRVirt is safe here because it's right below so the counter increments right away
-class CNetGamePlayer : public rage::netPlayer
+class GTA_GAME_EXPORT CNetGamePlayer : public rage::netPlayer
 {
 public:
 	XBR_VIRTUAL_METHOD(void, m_38, ())
@@ -85,6 +82,7 @@ private:
 		char end[EndPad];
 	};
 
+	// Do not forget to update `DECLARE_ACCESSOR` define when adding new impl!
 	union
 	{
 		Impl<12, 0, 28> m1604;
@@ -96,14 +94,14 @@ private:
 public:
 	void* GetPlayerInfo()
 	{
-		return (xbr::IsGameBuildOrGreater<3095>()) ? impl.m3095.playerInfo :  (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.playerInfo : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.playerInfo : impl.m1604.playerInfo;
+		return playerInfo();
 	}
 
 public:
-	DECLARE_ACCESSOR(nonPhysicalPlayerData);
-	DECLARE_ACCESSOR(activePlayerIndex);
-	DECLARE_ACCESSOR(physicalPlayerIndex);
-	DECLARE_ACCESSOR(playerInfo);
+	DECLARE_ACCESSOR(nonPhysicalPlayerData)
+	DECLARE_ACCESSOR(activePlayerIndex)
+	DECLARE_ACCESSOR(physicalPlayerIndex)
+	DECLARE_ACCESSOR(playerInfo)
 };
 
 class CNetworkPlayerMgr
@@ -111,3 +109,5 @@ class CNetworkPlayerMgr
 public:
 	static GTA_GAME_EXPORT CNetGamePlayer* GetPlayer(int playerIndex);
 };
+
+#undef DECLARE_ACCESSOR

@@ -1,13 +1,22 @@
 #pragma once
 
 #include <NetworkPlayerMgr.h>
+#include <net/NetObjEntityType.h>
 
-enum class NetObjEntityType;
+using NetObjEntityType = fx::sync::NetObjEntityType;
 
 template<int Offset>
 inline int MapNetObjectMethod()
 {
 	int offset = Offset;
+
+	if constexpr (Offset >= 0xA8)
+	{
+		if (xbr::IsGameBuildOrGreater<3258>())
+		{
+			offset += 0x8;
+		}
+	}
 
 	if constexpr (Offset >= 0x8)
 	{
