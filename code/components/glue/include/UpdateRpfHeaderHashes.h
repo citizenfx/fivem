@@ -623,6 +623,25 @@ Sha256Result updateSafeHashesInit[] = {
     ShaUnpack("c2bfefac4448c3271c15c1eb39c81c405505a966f698bda3408032ac010cb526"), // update2.rpf/x64/data/lang/russian_rel.rpf
     ShaUnpack("828962418a93ecf93044d0a9a79f27b9ef528f040432eb3f97a6f47e2d99ec19"), // update2.rpf/x64/data/lang/spanish_rel.rpf
     ShaUnpack("d64a9acc5b84d3db6da92c62429e995e19e5aa621343a2759e11e12b9d4947ca"), // update2.rpf/x64/levels/gta5/script/script_rel.rpf
+    // 3323/update.rpf
+    ShaUnpack("e3101eae56495a4d0eafe450c04073e3a41e15b743888561ee44d644a4a11400"), // update.rpf
+    ShaUnpack("824c778c183a32e05afe9f9181d46f9f60e070cb00857a2c32fa7fd8132b6347"), // update.rpf/x64/data/cdimages/scaleform_frontend.rpf
+    // 3323/update2.rpf
+    ShaUnpack("7d266cc3ccbf844193f695e1111ba028d392796ba1439eef9c0873cb0b49ed6b"), // update2.rpf
+    ShaUnpack("b0da021d0df99b5b89e3697d236566f59edd818461037b32e917c8925fa22468"), // update2.rpf/x64/data/lang/american_rel.rpf
+    ShaUnpack("8390727556bfc5a165c5cf2dbfe9e39ffbca62d5e80e12c5e8cfa98b2b009a24"), // update2.rpf/x64/data/lang/chinese_rel.rpf
+    ShaUnpack("3ffcdddb8c20c2d076928550f629844f7e7bbee67cd75b41c9a545037ae80237"), // update2.rpf/x64/data/lang/chinesesimp_rel.rpf
+    ShaUnpack("1fd69d06075fa33c528e651669fc75c5d50f6eaffd784c488058beb615a57f32"), // update2.rpf/x64/data/lang/french_rel.rpf
+    ShaUnpack("1da1c61739793b39d2ec4eb86bcdb356d8479d9bddeff561a0ebafc208c36ea2"), // update2.rpf/x64/data/lang/german_rel.rpf
+    ShaUnpack("629bb2c20cea9ab31f7e7c270dd4e459939d2cf6a4bd24298cc0f302e4a0e85d"), // update2.rpf/x64/data/lang/italian_rel.rpf
+    ShaUnpack("9a355be1c150c8bb46a251adc3c8695d3eedc24c5d466bb6389ea8a769e764d4"), // update2.rpf/x64/data/lang/japanese_rel.rpf
+    ShaUnpack("fcdd3f694222b58447fda6ff31394cf146fa4cd0825012de1a699d608edd51a2"), // update2.rpf/x64/data/lang/korean_rel.rpf
+    ShaUnpack("b484024762292b06fe83108c71d89944a4c928333089aa6a679ff191d4ed38f6"), // update2.rpf/x64/data/lang/mexican_rel.rpf
+    ShaUnpack("7ca239eadaa75c57bfe2a38c8478ca5fb4ff1da2e8aec69393ea776adf7b7fed"), // update2.rpf/x64/data/lang/polish_rel.rpf
+    ShaUnpack("cf1418b6526e5dc05b699743c9caada1e3cd9e717c6997fdb441a27b400df0e6"), // update2.rpf/x64/data/lang/portuguese_rel.rpf
+    ShaUnpack("c9a7b8187442edf2e624501ecd5bcc19cf9ed31343e7388a28ecaff7a1a06c3e"), // update2.rpf/x64/data/lang/russian_rel.rpf
+    ShaUnpack("e7282580378be4407de22388000e617787af93c6920779e66f444f3469ae3f64"), // update2.rpf/x64/data/lang/spanish_rel.rpf
+    ShaUnpack("657fd2cd6040159bb51011b8f4f64b60c02419a93bb537ec4c24dd25a3ed0f63"), // update2.rpf/x64/levels/gta5/script/script_rel.rpf
 };
 
 }}

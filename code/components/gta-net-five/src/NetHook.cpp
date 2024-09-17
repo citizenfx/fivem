@@ -345,59 +345,7 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 
 	// b2190+: hook::get_call(hook::get_pattern("8B D7 8B CE 41 0F 95 C0 41 0F BA E8 08 E8", 13))
 
-	if (xbr::IsGameBuild<2189>())
-	{
-		return (void*)hook::get_adjusted(0x14105DFE8);
-	}
-
-	if (xbr::IsGameBuild<2372>())
-	{
-		return (void*)hook::get_adjusted(0x1410646BC);
-	}
-
-	if (xbr::IsGameBuild<2545>())
-	{
-		return (void*)hook::get_adjusted(0x14106FF30);
-	}
-
-	if (xbr::IsGameBuild<2612>())
-	{
-		return (void*)hook::get_adjusted(0x141071468);
-	}
-
-	if (xbr::IsGameBuild<2699>())
-	{
-		return (void*)hook::get_adjusted(0x14107AE54);
-	}
-
-	if (xbr::IsGameBuild<2802>())
-	{
-		return (void*)hook::get_adjusted(0x14107A4DC);
-	}
-
-	if (xbr::IsGameBuild<2944>())
-	{
-		return (void*)hook::get_adjusted(0x141088EB0);
-	}
-
-	if (xbr::IsGameBuild<3095>())
-	{
-		return (void*)hook::get_adjusted(0x141094DF8);
-	}
-
-	if (xbr::IsGameBuild<3258>())
-	{
-		return (void*)hook::get_adjusted(0x1410A1444);
-	}
-
-	// 1737
-	//return (void*)0x141029A20;
-
-	// 1868
-	//return (void*)0x141037BCC;
-
-	// 2060
-	return (void*)hook::get_adjusted(0x1410494F8);
+	return hook::get_call(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 41 8A D8 8B FA 8B F1 E8 ? ? ? ? 45 33 C0", 0x31));
 });
 
 static void** g_networkMgrPtr = nullptr;
@@ -1515,6 +1463,16 @@ static HookFunction hookFunction([] ()
 		g_quitMsg = "Quit: " + message;
 		ExitProcess(-1);
 	});
+
+	// Increase network heap size with 1mb for our needs
+	if (xbr::IsGameBuildOrGreater<3323>())
+	{
+		uint32_t* size1 = hook::get_pattern<uint32_t>("41 B8 00 00 E0 00 48 8B C8", 2);
+		uint32_t* size2 = hook::get_pattern<uint32_t>("BA 00 00 E0 00 48 8B 01", 1);
+
+		*size1 += 1024 * 1024;
+		*size2 += 1024 * 1024;
+	}
 
 	// exit game on game exit from alt-f4
 	hook::call(hook::get_pattern("48 83 F8 04 75 ? 40 88", 6), ExitCleanly);

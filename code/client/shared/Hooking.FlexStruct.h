@@ -30,5 +30,16 @@ namespace hook
 		{
 			return *(T*)((uintptr_t)this + offset);
 		}
+
+		template<typename Ret, typename... Args>
+		Ret CallVirtual(int32_t offset, Args... args)
+		{
+			// Calculate the address of the virtual method
+			auto vtable = *(uintptr_t**)this; // Dereference to get the vtable
+			auto method = (Ret(*)(void*, Args...))(*(uintptr_t*)((uintptr_t)vtable + offset));
+
+			// Call the virtual method
+			return method(this, std::forward<Args>(args)...);
+		}
 	};
 }

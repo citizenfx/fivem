@@ -28,6 +28,7 @@ export function getGameBuildDLCName(gameBuild: string): string {
     case '3095':
       return 'The Chop Shop';
     case '3258':
+    case '3323':
       return 'Bottom Dollar Bounties';
   }
 
