@@ -16,17 +16,11 @@ public:
 	{
 		return ProcessPacket(stream, [](net::packet::ServerObjectIds<false>& serverObjectIds)
 		{
-			std::vector<uint16_t> objectIds;
-			serverObjectIds.GetIds(objectIds);
-
-			for (uint16_t& objectId : objectIds)
+			serverObjectIds.ForEachId([](uint16_t objectId)
 			{
-				trace("object ids " + std::to_string(objectId) + "\n");
-				TheClones->Log("got object id %d\n", objectId);
-
 				g_objectIds.push_back(objectId);
 				g_stolenObjectIds.erase(objectId);
-			}
+			});
 
 			g_requestedIds = false;
 		});
