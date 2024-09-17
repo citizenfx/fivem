@@ -3072,6 +3072,11 @@ struct CPlayerGameStateDataNode
 			state.buffer.ReadBit();
 		}
 
+		if (Is3095())
+		{
+			state.buffer.ReadBit();
+		}
+
 		auto unk70 = state.buffer.ReadBit();
 
 		if (unk70)
@@ -3177,6 +3182,13 @@ struct CPlayerGameStateDataNode
 		}
 
 		int unk101 = state.buffer.Read<int>(13);
+		
+		if (Is3095())
+		{
+			state.buffer.Read<int>(8);
+			state.buffer.Read<int>(8);
+		}
+
 		auto unk102 = state.buffer.ReadBit();
 		auto noCollision = state.buffer.ReadBit();
 		auto unk104 = state.buffer.ReadBit();
