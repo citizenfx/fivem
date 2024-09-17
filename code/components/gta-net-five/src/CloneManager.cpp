@@ -44,6 +44,8 @@
 
 #include "GameStateAck.h"
 #include "GameStateNAck.h"
+#include "PackedAcksPacketHandler.h"
+#include "PackedClonesPacketHandler.h"
 
 extern rage::netObject* g_curNetObjectSelection;
 rage::netObject* g_curNetObject;
@@ -163,6 +165,9 @@ public:
 		}
 	}
 
+	void HandleCloneSync(const char* data, size_t len) override;
+	void HandleCloneAcks(const char* data, size_t len) override;
+
 private:
 	void WriteUpdates();
 
@@ -175,10 +180,6 @@ private:
 	void AttemptFlushAckBuffer();
 
 private:
-	void HandleCloneAcks(const char* data, size_t len);
-
-	void HandleCloneSync(const char* data, size_t len);
-
 	bool HandleCloneCreate(const msgClone& msg);
 
 	AckResult HandleCloneUpdate(const msgClone& msg);
@@ -349,19 +350,8 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	m_netLibrary = netLibrary;
 
 	// add message handlers
-	m_netLibrary->AddReliableHandler(
-	"msgPackedClones", [this](const char* data, size_t len)
-	{
-		HandleCloneSync(data, len);
-	},
-	true);
-
-	m_netLibrary->AddReliableHandler(
-	"msgPackedAcks", [this](const char* data, size_t len)
-	{
-		HandleCloneAcks(data, len);
-	},
-	true);
+	m_netLibrary->AddPacketHandler<fx::PackedClonesPacketHandler>(true);
+	m_netLibrary->AddPacketHandler<fx::PackedAcksPacketHandler>(true);
 
 	std::thread([this]()
 	{
