@@ -140,4 +140,39 @@ public:
 		);
 	}
 };
+
+/// <summary>
+/// ServerNetGameEvent is the packet that is send from the server to the client.
+/// </summary>
+class ServerNetGameEvent : public SerializableComponent
+{
+public:
+	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedStreamTail<1, 2048>> data;
+
+	template<typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPropertiesInOrder<T>(
+		stream,
+		data
+		);
+	}
+};
+
+class ServerNetGameEventPacket : public SerializableComponent
+{
+public:
+	SerializableProperty<uint32_t> type{ HashRageString("msgNetGameEvent") };
+	ServerNetGameEvent event;
+
+	template<typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPropertiesInOrder<T>(
+		stream,
+		type,
+		event
+		);
+	}
+};
 }

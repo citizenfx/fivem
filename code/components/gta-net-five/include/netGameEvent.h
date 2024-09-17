@@ -2,6 +2,7 @@
 
 #include "EntitySystem.h"
 #include "NetworkPlayerMgr.h"
+#include "NetGameEventPacket.h"
 
 namespace rage
 {
@@ -252,4 +253,7 @@ namespace rage
 	void EventManager_Update();
 	bool EnsurePlayer31();
 	CNetGamePlayer* GetPlayer31();
+
+	static void HandleNetGameEvent(const char* idata, size_t len);
+	static void HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGameEventV2);
 }

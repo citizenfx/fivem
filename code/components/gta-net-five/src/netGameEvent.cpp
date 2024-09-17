@@ -25,6 +25,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "NetGameEventPacketHandler.h"
+#include "NetGameEventV2PacketHandler.h"
+
 using namespace std::chrono_literals;
 
 // TODO: event expiration?
@@ -423,7 +426,7 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 	}
 }
 
-static void HandleNetGameEvent(const char* idata, size_t len)
+void rage::HandleNetGameEvent(const char* idata, size_t len)
 {
 	if (!icgi->HasVariable("networkInited"))
 	{
@@ -534,7 +537,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	}
 }
 
-static void HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGameEventV2)
+void rage::HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGameEventV2)
 {
 	if (!icgi->HasVariable("networkInited"))
 	{
@@ -1202,34 +1205,8 @@ static InitFunction initFunction([]()
 	{
 		icgi = Instance<ICoreGameInit>::Get();
 
-		netLibrary->AddReliableHandler("msgNetGameEvent", [](const char* data, size_t len)
-		{
-			if (!icgi->OneSyncEnabled)
-			{
-				return;
-			}
-
-			HandleNetGameEvent(data, len);
-		}, true);
-
-		netLibrary->AddReliableHandler("msgNetGameEventV2", [](const char* data, size_t len)
-		{
-			if (!icgi->OneSyncEnabled)
-			{
-				return;
-			}
-
-			net::packet::ServerNetGameEventV2 serverNetGameEventV2;
-
-			net::ByteReader reader { reinterpret_cast<const uint8_t*>(data), len };
-
-			if (!serverNetGameEventV2.Process(reader))
-			{
-				return;
-			}
-
-			HandleNetGameEventV2(serverNetGameEventV2);
-		}, true);
+		netLibrary->AddPacketHandler<fx::NetGameEventPacketHandler>(true);
+		netLibrary->AddPacketHandler<fx::NetGameEventV2PacketHandler>(true);
 	});
 
 	OnKillNetworkDone.Connect([]()
