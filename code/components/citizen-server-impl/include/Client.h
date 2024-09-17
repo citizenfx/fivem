@@ -23,6 +23,9 @@
 
 #include <shared_mutex>
 
+#include "ByteWriter.h"
+#include "SerializableComponent.h"
+
 constexpr auto MAX_CLIENTS = (2048 + 1);
 
 namespace {
@@ -355,6 +358,25 @@ namespace fx
 		}
 
 		void SendPacket(int channel, const net::Buffer& buffer, NetPacketType flags = NetPacketType_Unreliable);
+
+		template<typename TSerializable>
+		void SendSerializable(int channel, TSerializable& serializable, NetPacketType flags = NetPacketType_Unreliable)
+		{
+			// todo: add a size method and split max and min size
+			static size_t maxSize = net::SerializableComponent::GetSize<TSerializable>();
+
+			net::Buffer netBuffer(maxSize);
+			net::ByteWriter writer(netBuffer.GetBuffer(), netBuffer.GetLength());
+
+			if (!serializable.Process(writer))
+			{
+				return;
+			}
+
+			netBuffer.Seek(writer.GetOffset());
+
+			SendPacket(channel, netBuffer, flags);
+		}
 
 		fwEvent<uint32_t> OnAssignNetId;
 		fwEvent<> OnAssignPeer;
