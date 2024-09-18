@@ -445,3 +445,6 @@
 [submodule "vendor/boost-submodules/boost-tokenizer"]
 	path = vendor/boost-submodules/boost-tokenizer
 	url = https://github.com/boostorg/tokenizer
+[submodule "vendor/libnode/node"]
+	path = vendor/libnode/node
+	url = https://github.com/nodejs/node.git
