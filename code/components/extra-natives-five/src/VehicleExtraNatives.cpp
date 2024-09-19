@@ -236,7 +236,7 @@ static void writeVehicleMemory(fx::ScriptContext& context, std::string_view nn)
 	}
 }
 
-static float* PassengerWeightPtr;
+static float* PassengerMassPtr;
 
 static int StreamRenderGfxPtrOffset;
 static int HandlingDataPtrOffset;
@@ -757,7 +757,7 @@ static HookFunction initFunction([]()
 
 	{
 		auto location = hook::get_pattern<char>("F3 0F 59 3D ? ? ? ? F3 0F 58 3D ? ? ? ? 48 85 C9", 4);
-		PassengerWeightPtr = hook::get_address<float*>(location);
+		PassengerMassPtr = hook::get_address<float*>(location);
 	}
 
 	{
@@ -1525,7 +1525,7 @@ static HookFunction initFunction([]()
 		ResetFlyThroughWindscreenParams();
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("SET_PASSENGER_WEIGHT", [](fx::ScriptContext& context)
+	fx::ScriptEngine::RegisterNativeHandler("SET_GLOBAL_PASSENGER_MASS_MULTIPLIER", [](fx::ScriptContext& context)
 	{
 		float weight = context.GetArgument<float>(0);
 
@@ -1533,13 +1533,12 @@ static HookFunction initFunction([]()
 		{
 			weight = 0.0;
 		}
-
-		*PassengerWeightPtr = weight;
+		*PassengerMassPtr = weight;
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_PASSENGER_WEIGHT", [](fx::ScriptContext& context)
+	fx::ScriptEngine::RegisterNativeHandler("GET_GLOBAL_PASSENGER_MASS_MULTIPLIER", [](fx::ScriptContext& context)
 	{
-		context.SetResult<float>(* PassengerWeightPtr);
+		context.SetResult<float>(*PassengerMassPtr);
 	});
 
 	static struct : jitasm::Frontend
@@ -1619,6 +1618,8 @@ static HookFunction initFunction([]()
 
 		g_isFuelConsumptionOn = false;
 		g_globalFuelConsumptionMultiplier = 1.f;
+
+		*PassengerMassPtr = 0.05f;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context)
