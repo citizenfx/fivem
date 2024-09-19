@@ -1533,14 +1533,11 @@ static HookFunction initFunction([]()
 		{
 			weight = 0.0;
 		}
-		trace("Setting weight %.6f was %.6f\n", weight, *PassengerMassPtr);
 		*PassengerMassPtr = weight;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_GLOBAL_PASSENGER_MASS_MULTIPLIER", [](fx::ScriptContext& context)
 	{
-		trace("Weight is %.6f\n", *PassengerMassPtr);
-
 		context.SetResult<float>(*PassengerMassPtr);
 	});
 
