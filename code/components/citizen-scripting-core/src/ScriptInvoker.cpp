@@ -14,12 +14,15 @@
 #include <CL2LaunchMode.h>
 
 #ifndef IS_FXSERVER
-#include <scrEngine.h>
+#include <ExceptionToModuleHelper.h>
+#include <Error.h>
 #endif
 
 #ifndef _WIN32
 #include <sys/mman.h>
 #endif
+
+// See codegen_out_pointer_args.lua for type info generation
 
 #define PAS_FLAG_BLOCKED 0x80000000 // Completely block this native
 #define PAS_FLAG_TRIVIAL 0x40000000 // No native arguments are unsafe
@@ -114,9 +117,7 @@ void* ScriptNativeContext::AllocIsolatedData(const void* input, size_t size)
 
 	if (asize > (size_t)(isolatedBufferEnd - isolatedBuffer))
 	{
-		SetError("too much isolated data");
-
-		return nullptr;
+		throw ScriptError("too much isolated data");
 	}
 
 	uint8_t* result = isolatedBuffer;
@@ -134,11 +135,11 @@ void* ScriptNativeContext::AllocIsolatedData(const void* input, size_t size)
 	return result;
 }
 
-bool ScriptNativeContext::PushReturnValue(MetaField field, const uintptr_t* value)
+void ScriptNativeContext::PushReturnValue(MetaField field, const uintptr_t* value)
 {
 	if (numReturnValues >= std::size(rettypes))
 	{
-		return SetError("too many return value arguments");
+		throw ScriptError("too many return value arguments");
 	}
 
 	int slots = (field == MetaField::PointerValueVector) ? 3 : 1;
@@ -146,11 +147,6 @@ bool ScriptNativeContext::PushReturnValue(MetaField field, const uintptr_t* valu
 
 	// COMPAT: Some code uses PointerValue arguments to act as struct output fields, so we need them to be stored contiguously in memory.
 	void* data = AllocIsolatedData(value, size);
-
-	if (!data)
-	{
-		return false;
-	}
 
 	retvals[numReturnValues] = data;
 	rettypes[numReturnValues] = field;
@@ -162,10 +158,10 @@ bool ScriptNativeContext::PushReturnValue(MetaField field, const uintptr_t* valu
 	type.IsString = false;
 	type.IsPointer = true;
 
-	return PushRaw(reinterpret_cast<uintptr_t>(data), type);
+	PushRaw(reinterpret_cast<uintptr_t>(data), type);
 }
 
-bool ScriptNativeContext::PushMetaPointer(uint8_t* ptr)
+void ScriptNativeContext::PushMetaPointer(uint8_t* ptr)
 {
 	// if the pointer is a metafield
 	if (ptr >= s_metaFields && ptr < &s_metaFields[(int)MetaField::Max])
@@ -179,7 +175,7 @@ bool ScriptNativeContext::PushMetaPointer(uint8_t* ptr)
 			case MetaField::PointerValueFloat:
 			case MetaField::PointerValueVector:
 			{
-				return PushReturnValue(metaField, nullptr);
+				PushReturnValue(metaField, nullptr);
 				break;
 			}
 			case MetaField::ReturnResultAnyway:
@@ -210,21 +206,23 @@ bool ScriptNativeContext::PushMetaPointer(uint8_t* ptr)
 		{
 			auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
 			ptrFieldEntry->empty = true;
-			return PushReturnValue(metaField, &ptrFieldEntry->value);
+			PushReturnValue(metaField, &ptrFieldEntry->value);
 		}
 	}
 	else
 	{
-		return SetError("unknown userdata pointer");
+		throw ScriptError("unknown userdata pointer");
 	}
-
-	return true;
 }
 
 bool ScriptNativeContext::PreInvoke()
 {
 	if (!CheckArguments())
 	{
+		arguments[0] = 0;
+		arguments[1] = 0;
+		arguments[2] = 0;
+
 		return false;
 	}
 
@@ -243,80 +241,84 @@ bool ScriptNativeContext::PreInvoke()
 	return true;
 }
 
-bool ScriptNativeContext::PostInvoke()
+void ScriptNativeContext::Invoke(IScriptHost& host)
 {
-	// Don't allow returning a pointer which was passed in.
-	switch (returnValueCoercion)
+	if (PreInvoke())
 	{
-		case MetaField::ResultAsLong:
+		if (!FX_SUCCEEDED(host.InvokeNative(*this)))
 		{
-			if (uintptr_t result = arguments[0])
-			{
-				for (int i = 0; i < numArguments; ++i)
-				{
-					// Avoid leaking the addresses of any pointers
-					if (result == initialArguments[i] && types[i].IsPointer)
-					{
-						return SetError("pointer result matches an argument");
-					}
-				}
-			}
+			char* error = "Unknown";
+			host.GetLastErrorText(&error);
 
-			break;
+			throw std::exception(va("Execution of native %016llx in script host failed: %s", nativeIdentifier, error));
 		}
 
-		case MetaField::ResultAsString:
-		{
-			if (uintptr_t result = arguments[0])
-			{
-				for (int i = 0; i < numArguments; ++i)
-				{
-					// Avoid reading arguments as pointers
-					if (result == initialArguments[i])
-					{
-						// We are returning a pointer which matches what we passed in.
-						// However, allow it if we are just returning a string we already passed in (i.e GET_CONVAR default)
-						if (types[i].IsString)
-						{
-							continue;
-						}
+		PostInvoke();
+	}
+}
 
-						return SetError("pointer result matches an argument");
-					}
-				}
-			}
-
-			// The caller passed in a ScrString marker, and it's still there.
-			if (static_cast<uint32_t>(arguments[2]) == SCRSTRING_MAGIC_BINARY && initialArguments[2] == arguments[2])
-			{
-				return SetError("unexpected scrstring marker");
-			}
-
-			break;
-		}
-
-		case MetaField::ResultAsObject:
-		{
-			if (uintptr_t result = arguments[0])
-			{
-				for (int i = 0; i < numArguments; ++i)
-				{
-					// An object should never match one which was passed in
-					if (result == initialArguments[i])
-					{
-						return SetError("pointer result matches an argument");
-					}
-				}
-			}
-
-			break;
-		}
+#ifndef IS_FXSERVER
+static LONG FilterFunc(PEXCEPTION_POINTERS ep, uint64_t nativeIdentifier)
+{
+	if (IsErrorException(ep))
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
 	}
 
-	if (!CheckResults())
+	// C++ exceptions?
+	if (ep->ExceptionRecord->ExceptionCode == 0xE06D7363)
 	{
-		return false;
+		return EXCEPTION_CONTINUE_SEARCH;
 	}
+
+	// INVOKE_FUNCTION_REFERENCE crashing as top-level is usually related to native state corruption,
+	// we'll likely want to crash on this instead rather than on an assertion down the chain
+	if (nativeIdentifier == HashString("INVOKE_FUNCTION_REFERENCE"))
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+static void InvokeNativeHandler(fxNativeContext& context, rage::scrEngine::NativeHandler handler)
+{
+	void* exceptionAddress = nullptr;
+
+	// call the original function
+	__try
+	{
+		NativeContextRaw rageContext(context.arguments, context.numArguments);
+
+		handler(&rageContext);
+
+		// append vector3 result components
+		rageContext.SetVectorResults();
+	}
+	__except (
+		exceptionAddress = GetExceptionInformation()->ExceptionRecord->ExceptionAddress,
+		FilterFunc(GetExceptionInformation(), context.nativeIdentifier))
+	{
+		throw std::exception(va("Error executing native 0x%016llx at address %s.", context.nativeIdentifier, FormatModuleAddress(exceptionAddress)));
+	}
+}
+
+void ScriptNativeContext::Invoke(rage::scrEngine::NativeHandler handler)
+{
+	if (PreInvoke())
+	{
+		InvokeNativeHandler(*this, handler);
+
+		PostInvoke();
+	}
+}
+#endif
+
+void ScriptNativeContext::PostInvoke()
+{
+	CheckPointerResult();
+
+	CheckResults();
 
 	// Copy any data back out
 	for (int i = 0; i < numIsolatedBuffers; ++i)
@@ -325,8 +327,6 @@ bool ScriptNativeContext::PostInvoke()
 
 		std::memcpy(buffer.NativeBuffer, buffer.SafeBuffer, buffer.Size);
 	}
-
-	return true;
 }
 
 bool ScriptNativeContext::CheckArguments()
@@ -340,7 +340,7 @@ bool ScriptNativeContext::CheckArguments()
 
 		if ((info & PAS_FLAG_BLOCKED) && g_EnforceTypeInfo)
 		{
-			return SetError("native is blocked");
+			throw ScriptError("native is blocked");
 		}
 
 		nargs = (int)(info & 0xFF);
@@ -363,7 +363,7 @@ bool ScriptNativeContext::CheckArguments()
 		{
 			if (g_StrictTypeInfo)
 			{
-				return SetError("not enough arguments (%i < %i)", numArguments, nargs);
+				throw ScriptError("not enough arguments (%i < %i)", numArguments, nargs);
 			}
 
 			// COMPAT: Some code doesn't pass in enough arguments, so just fill in any missing ones with zero
@@ -401,7 +401,7 @@ bool ScriptNativeContext::CheckArguments()
 			{
 				if (g_StrictTypeInfo)
 				{
-					return SetError("arg[%i]: expected non-pointer", i);
+					throw ScriptError("arg[%i]: expected non-pointer", i);
 				}
 
 				// COMPAT: We aren't expecting a pointer, but got one. Just replace it with a dummy value.
@@ -418,7 +418,13 @@ bool ScriptNativeContext::CheckArguments()
 
 				if (arguments[i] > maxValue)
 				{
-					return SetError("arg[%i]: value too large (%i > %i)", i, arguments[i], maxValue);
+					if (g_StrictTypeInfo)
+					{
+						throw ScriptError("arg[%i]: value too large (%i > %i)", i, arguments[i], maxValue);
+					}
+
+					// COMPAT: Silently fail
+					return false;
 				}
 			}
 
@@ -429,7 +435,7 @@ bool ScriptNativeContext::CheckArguments()
 		{
 			if (arguments[i] != 0) // Argument should be a pointer, but also allow NULL
 			{
-				return SetError("arg[%i]: expected pointer, got non-zero integer", i);
+				throw ScriptError("arg[%i]: expected pointer, got non-zero integer", i);
 			}
 
 			continue;
@@ -439,7 +445,7 @@ bool ScriptNativeContext::CheckArguments()
 		{
 			if (!type.IsString)
 			{
-				return SetError("arg[%i]: expected string", i);
+				throw ScriptError("arg[%i]: expected string", i);
 			}
 
 			continue;
@@ -449,7 +455,7 @@ bool ScriptNativeContext::CheckArguments()
 
 		if (type.Size < minSize)
 		{
-			return SetError("arg[%i]: buffer too small (%u < %u)", i, type.Size, minSize);
+			throw ScriptError("arg[%i]: buffer too small (%u < %u)", i, type.Size, minSize);
 		}
 
 		if (minSize != 0) // We know how large this argument should be, so don't bother isolating it.
@@ -464,17 +470,14 @@ bool ScriptNativeContext::CheckArguments()
 
 			if (length > type.Size)
 			{
-				return SetError("arg[%i]: buffer length too large (%u > %u)", i, length, type.Size);
+				throw ScriptError("arg[%i]: buffer length too large (%u > %u)", i, length, type.Size);
 			}
 
 			continue;
 		}
 
 		// We're not really sure how large this pointer should be, so isolate it.
-		if (!IsolatePointer(i))
-		{
-			return false;
-		}
+		IsolatePointer(i);
 	}
 
 	// Process any unknown arguments which might have been added in later versions, or this is an unknown native.
@@ -483,10 +486,7 @@ bool ScriptNativeContext::CheckArguments()
 		if (types[i].IsPointer)
 		{
 			// We have no idea how this pointer might be used, so isolate it.
-			if (!IsolatePointer(i))
-			{
-				return false;
-			}
+			IsolatePointer(i);
 		}
 		else
 		{
@@ -501,7 +501,7 @@ bool ScriptNativeContext::CheckArguments()
 	return true;
 }
 
-bool ScriptNativeContext::CheckResults()
+void ScriptNativeContext::CheckResults()
 {
 	if (!typeInfo)
 	{
@@ -529,12 +529,12 @@ bool ScriptNativeContext::CheckResults()
 
 				case MetaField::ResultAsObject:
 				{
-					return SetError("undocumented natives cannot return an object");
+					throw ScriptError("undocumented natives cannot return an object");
 				}
 			}
 		}
 
-		return true;
+		return;
 	}
 
 	uint32_t rtype = (typeInfo[0] >> 8) & 0xFF;
@@ -549,7 +549,7 @@ bool ScriptNativeContext::CheckResults()
 			}
 			else if (rtype != PAS_RET_LONG)
 			{
-				return SetError("result type is not a long");
+				throw ScriptError("result type is not a long");
 			}
 
 			break;
@@ -565,7 +565,7 @@ bool ScriptNativeContext::CheckResults()
 			}
 			else if (rtype != PAS_RET_SCRSTRING)
 			{
-				return SetError("result type is not a string");
+				throw ScriptError("result type is not a string");
 			}
 
 			break;
@@ -575,7 +575,7 @@ bool ScriptNativeContext::CheckResults()
 		{
 			if (rtype != PAS_RET_VECTOR3)
 			{
-				return SetError("result type is not a vector");
+				throw ScriptError("result type is not a vector");
 			}
 
 			break;
@@ -585,7 +585,7 @@ bool ScriptNativeContext::CheckResults()
 		{
 			if (rtype != PAS_RET_SCROBJECT)
 			{
-				return SetError("result type is not an object");
+				throw ScriptError("result type is not an object");
 			}
 
 			break;
@@ -604,36 +604,100 @@ bool ScriptNativeContext::CheckResults()
 			break;
 		}
 	}
-
-	return true;
 }
 
-bool ScriptNativeContext::IsolatePointer(int index)
+void ScriptNativeContext::CheckPointerResult()
+{
+	// Don't allow returning a pointer which was passed in.
+	switch (returnValueCoercion)
+	{
+		case MetaField::ResultAsLong:
+		{
+			if (uintptr_t result = arguments[0])
+			{
+				for (int i = 0; i < numArguments; ++i)
+				{
+					// Avoid leaking the addresses of any pointers
+					if (result == initialArguments[i] && types[i].IsPointer)
+					{
+						throw ScriptError("long result matches a pointer argument");
+					}
+				}
+			}
+
+			break;
+		}
+
+		case MetaField::ResultAsString:
+		{
+			if (uintptr_t result = arguments[0])
+			{
+				for (int i = 0; i < numArguments; ++i)
+				{
+					// Avoid reading arguments as pointers
+					if (result == initialArguments[i])
+					{
+						// We are returning a pointer which matches what we passed in.
+						// However, allow it if we are just returning a string we already passed in (i.e GET_CONVAR default)
+						if (types[i].IsString)
+						{
+							continue;
+						}
+
+						throw ScriptError("string result matches a pointer argument");
+					}
+				}
+			}
+
+			// The caller passed in a ScrString marker, and it's still there.
+			if (static_cast<uint32_t>(arguments[2]) == SCRSTRING_MAGIC_BINARY && initialArguments[2] == arguments[2])
+			{
+				throw ScriptError("unexpected scrstring marker");
+			}
+
+			break;
+		}
+
+		case MetaField::ResultAsObject:
+		{
+			if (uintptr_t result = arguments[0])
+			{
+				for (int i = 0; i < numArguments; ++i)
+				{
+					// An object should never match one which was passed in
+					if (result == initialArguments[i])
+					{
+						throw ScriptError("object result matches a pointer argument");
+					}
+				}
+			}
+
+			break;
+		}
+	}
+}
+
+void ScriptNativeContext::IsolatePointer(int index)
 {
 	ArgumentType& type = types[index];
 
 	if (!type.IsPointer)
 	{
-		return SetError("arg[%i]: is not a pointer", index);
+		throw ScriptError("arg[%i]: is not a pointer", index);
 	}
 
 	if (type.IsIsolated)
 	{
-		return true;
+		return;
 	}
 
 	if (numIsolatedBuffers >= std::size(isolatedBuffers))
 	{
-		return SetError("too many unknown pointers");
+		throw ScriptError("too many unknown pointers");
 	}
 
 	uint8_t*& argument = *reinterpret_cast<uint8_t**>(&arguments[index]);
 	uint8_t* storage = (uint8_t*)AllocIsolatedData(argument, (size_t)type.Size + (type.IsString ? 1 : 0));
-
-	if (!storage)
-	{
-		return false;
-	}
 
 	auto& buffer = isolatedBuffers[numIsolatedBuffers++];
 	buffer.Size = type.Size;
@@ -641,8 +705,6 @@ bool ScriptNativeContext::IsolatePointer(int index)
 	buffer.SafeBuffer = storage;
 
 	type.IsIsolated = true;
-
-	return true;
 }
 
 }

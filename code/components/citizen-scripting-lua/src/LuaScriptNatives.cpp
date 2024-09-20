@@ -100,44 +100,11 @@ LUA_SCRIPT_LINKAGE int Lua_GetNativeHandler(lua_State* L)
 
 	return 1;
 }
-
-static LONG ShouldHandleUnwind(PEXCEPTION_POINTERS ep, DWORD exceptionCode, uint64_t identifier);
-
-static uint64_t g_nativeIdentifier;
-static void* exceptionAddress;
-
-static __declspec(noinline) LONG FilterFunc(PEXCEPTION_POINTERS exceptionInformation)
-{
-	exceptionAddress = exceptionInformation->ExceptionRecord->ExceptionAddress;
-	
-	return ShouldHandleUnwind(exceptionInformation, exceptionInformation->ExceptionRecord->ExceptionCode, g_nativeIdentifier);
-}
-
-static LUA_INLINE void CallHandler(rage::scrEngine::NativeHandler handler, uint64_t nativeIdentifier, fxNativeContext& context)
-{
-	NativeContextRaw rageContext(context.arguments, context.numArguments);
-
-	// call the original function
-	__try
-	{
-		g_nativeIdentifier = nativeIdentifier;
-		handler(&rageContext);
-
-		// append vector3 result components
-		rageContext.SetVectorResults();
-	}
-	__except (FilterFunc(GetExceptionInformation()))
-	{
-		throw std::exception(va("Error executing native 0x%016llx at address %s.", nativeIdentifier, FormatModuleAddress(exceptionAddress)));
-	}
-}
 #endif
 
 struct LuaScriptNativeContext final : ScriptNativeContext
 {
 	LuaScriptNativeContext(uint64_t hash, lua_State* L, fx::LuaScriptRuntime& runtime);
-
-	[[noreturn]] void DoSetError(const char* msg) override;
 
 	void PushArgument(int idx);
 	void PushTableArgument(int idx);
@@ -152,12 +119,6 @@ struct LuaScriptNativeContext final : ScriptNativeContext
 LuaScriptNativeContext::LuaScriptNativeContext(uint64_t hash, lua_State* L, fx::LuaScriptRuntime& runtime)
 	: ScriptNativeContext(hash, runtime.GetPointerFields()), L(L), runtime(runtime)
 {
-}
-
-void LuaScriptNativeContext::DoSetError(const char* msg)
-{
-	lua_pushstring(L, msg);
-	lua_error(L);
 }
 
 void LuaScriptNativeContext::PushArgument(int idx)
@@ -240,7 +201,7 @@ void LuaScriptNativeContext::PushArgument(int idx)
 		}
 		default:
 		{
-			SetError("invalid lua type: %s", lua_typename(L, ttype(value)));
+			throw ScriptError("invalid lua type: %s", lua_typename(L, ttype(value)));
 		}
 	}
 #else
@@ -323,7 +284,7 @@ void LuaScriptNativeContext::PushArgument(int idx)
 		}
 		default:
 		{
-			SetError("invalid lua type: %s", lua_typename(L, type));
+			throw ScriptError("invalid lua type: %s", lua_typename(L, type));
 		}
 	}
 #endif
@@ -370,7 +331,7 @@ void LuaScriptNativeContext::PushTableArgument(int idx)
 		else
 		{
 			lua_pop(L, 1);
-			SetError("invalid lua type in __data");
+			throw ScriptError("invalid lua type in __data");
 		}
 	}
 }
@@ -420,7 +381,7 @@ void LuaScriptNativeContext::ProcessResult(const T& value)
 	}
 }
 
-static int __Lua_InvokeNative(lua_State* L, uint64_t hash
+static int Lua_DoInvokeNative(lua_State* L, uint64_t hash
 #ifndef IS_FXSERVER
 	, rage::scrEngine::NativeHandler handler = nullptr
 #endif
@@ -445,8 +406,6 @@ static int __Lua_InvokeNative(lua_State* L, uint64_t hash
 	}
 #endif
 
-	// Note: SetError/lua_error doesn't return, so don't need to check return values
-
 	// get required entries
 	auto& luaRuntime = fx::LuaScriptRuntime::GetCurrent();
 
@@ -457,48 +416,31 @@ static int __Lua_InvokeNative(lua_State* L, uint64_t hash
 		context.PushArgument(arg);
 	}
 
-	context.PreInvoke();
-
-	// invoke the native on the script host
 #ifndef IS_FXSERVER
 	if (handler)
 	{
-		NativeContextRaw rageContext(context.arguments, context.numArguments);
-
 		try
 		{
-			CallHandler(handler, hash, context);
+			context.Invoke(handler);
 		}
-		catch (std::exception& e)
+		catch (const std::exception& e)
 		{
 			fx::ScriptTrace("%s: execution failed: %s\n", __func__, e.what());
 
-			context.SetError("Execution of native %016llx in script host failed: %s", hash, e.what());
+			throw;
 		}
 	}
 	else
 #endif
 	{
-		fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
-
-		if (!FX_SUCCEEDED(scriptHost->InvokeNative(context)))
-		{
-			char* error = "Unknown";
-			scriptHost->GetLastErrorText(&error);
-
-			context.SetError("Execution of native %016llx in script host failed: %s", hash, error);
-		}
+		context.Invoke(*luaRuntime->GetScriptHost());
 	}
-
-	context.PostInvoke();
 
 	int numResults = lua_gettop(L);
 
 	context.ProcessResults([&](auto&& value)
 	{
 		context.ProcessResult(value);
-
-		return true;
 	});
 
 	numResults = lua_gettop(L) - numResults;
@@ -506,19 +448,39 @@ static int __Lua_InvokeNative(lua_State* L, uint64_t hash
 	return numResults;
 }
 
+template <typename Func>
+static int Lua_TryCatch(lua_State* L, Func&& func)
+{
+	try
+	{
+		return func(L);
+	}
+	catch (const std::exception& ex)
+	{
+		lua_pushstring(L, ex.what());
+	}
+
+	// Throw the error after cleaning up the stack
+	return lua_error(L);
+}
+
 LUA_SCRIPT_LINKAGE int Lua_InvokeNative(lua_State* L)
 {
-	uint64_t hash = lua_tointeger(L, 1); // TODO: Use luaL_checkinteger
+	return Lua_TryCatch(L, [](lua_State* L) {
+		uint64_t hash = lua_tointeger(L, 1); // TODO: Use luaL_checkinteger
 
-	return __Lua_InvokeNative(L, hash);
+		return Lua_DoInvokeNative(L, hash);
+	});
 }
 
 #ifndef IS_FXSERVER
 LUA_SCRIPT_LINKAGE int Lua_InvokeNative2(lua_State* L)
 {
-	auto handlerRef = (FastNativeHandler*)luaL_checkudata(L, 1, "FastNativeHandler");
+	return Lua_TryCatch(L, [](lua_State* L) {
+		auto handlerRef = (FastNativeHandler*)luaL_checkudata(L, 1, "FastNativeHandler");
 
-	return __Lua_InvokeNative(L, handlerRef->hash, handlerRef->handler);
+		return Lua_DoInvokeNative(L, handlerRef->hash, handlerRef->handler);
+	});
 }
 #endif
 
