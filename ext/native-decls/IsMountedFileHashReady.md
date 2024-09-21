@@ -2,13 +2,13 @@
 ns: CFX
 apiset: client
 ---
-## GET_MOUNTED_FILE_HASH
+## IS_MOUNTED_FILE_HASH_READY
 
 ```c
-char* GET_MOUNTED_FILE_HASH(char* path);
+BOOL IS_MOUNTED_FILE_HASH_READY(char* path);
 ```
 
-This native returns the hash of the file that is currently mounted. The hash can be useful to verify if the file has been altered. If the path is not whitelisted, the file has not been fetched or the file is not mounted, the native will return "missing".
+This native is used to check if the hash of a file is ready for use with [`GET_MOUNTED_FILE_HASH`](#_0xC1657E48_).
 
 ## Examples
 
@@ -34,4 +34,4 @@ end
 
 ## Return value
 
-The hash of the mounted file as a string.
+Returns `true` if the hash is ready, `false` otherwise.
