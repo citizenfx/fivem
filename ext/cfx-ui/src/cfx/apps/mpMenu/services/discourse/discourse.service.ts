@@ -259,13 +259,17 @@ class DiscourseService implements IAccountService, AppContribution {
     }
   }
 
-  async getEmailError(email: string): Promise<string | null> {
+  async getEmailError(email: string, onlineCheck: boolean): Promise<string | null> {
     if (!email) {
       return 'Email can not be empty';
     }
 
     if (!EMAIL_REGEXP.test(email)) {
       return 'Email is invalid';
+    }
+
+    if (!onlineCheck) {
+      return null;
     }
 
     try {
