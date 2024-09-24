@@ -12,6 +12,8 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/range/iterator_range_core.hpp>
 
 #include <botan/auto_rng.h>
 #include <botan/rsa.h>
@@ -897,9 +899,9 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
 		if (boost::filesystem::exists(appDataPath, ec))
 		{
-			for (boost::filesystem::directory_iterator it(appDataPath); it != boost::filesystem::directory_iterator(); it++)
+			for(auto& entry : boost::make_iterator_range(boost::filesystem::directory_iterator(appDataPath), {}))
 			{
-				auto path = it->path();
+				auto path = entry.path();
 
 				if (path.filename().string().find("in-", 0) == 0 || path.filename().string().find("out-", 0) == 0)
 				{
