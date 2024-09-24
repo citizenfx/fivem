@@ -21,7 +21,7 @@ namespace Botan {
 class BOTAN_UNSTABLE_API CurveGFp_Repr
    {
    public:
-      virtual ~CurveGFp_Repr() = default;
+      virtual ~CurveGFp_Repr() {}
 
       virtual const BigInt& get_p() const = 0;
       virtual const BigInt& get_a() const = 0;

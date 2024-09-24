@@ -58,6 +58,12 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      BigInt(uint64_t n);
 
      /**
+     * Create BigInt of specified size, all zeros
+     * @param n size of the internal register in words
+     */
+     static BigInt with_capacity(size_t n);
+
+     /**
      * Copy Constructor
      * @param other the BigInt to copy
      */
@@ -726,6 +732,12 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * If predicate is true add value to *this
      */
      void ct_cond_add(bool predicate, const BigInt& value);
+
+     /**
+     * Shift @p shift bits to the left, runtime is independent of
+     * the value of @p shift.
+     */
+     void ct_shift_left(size_t shift);
 
      /**
      * If predicate is true flip the sign of *this

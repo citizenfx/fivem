@@ -30,7 +30,7 @@ class BigInt;
 class BOTAN_PUBLIC_API(2,0) Credentials_Manager
    {
    public:
-      virtual ~Credentials_Manager() = default;
+      virtual ~Credentials_Manager() {}
 
       /**
       * Return a list of the certificates of CAs that we trust in this

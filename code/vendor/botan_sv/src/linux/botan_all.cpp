@@ -1,5 +1,5 @@
 /*
-* Botan 2.19.3 Amalgamation
+* Botan 2.19.5 Amalgamation
 * (C) 1999-2020 The Botan Authors
 *
 * Botan is released under the Simplified BSD License (see license.txt)
@@ -259,7 +259,7 @@ inline void swap_bits(T& x, T& y, T mask, size_t shift)
 
 namespace Botan {
 
-alignas(64) const uint32_t CAST_SBOX1[256] = {
+BOTAN_ALIGNAS(64) const uint32_t CAST_SBOX1[256] = {
    0x30FB40D4, 0x9FA0FF0B, 0x6BECCD2F, 0x3F258C7A, 0x1E213F2F, 0x9C004DD3,
    0x6003E540, 0xCF9FC949, 0xBFD4AF27, 0x88BBBDB5, 0xE2034090, 0x98D09675,
    0x6E63A0E0, 0x15C361D2, 0xC2E7661D, 0x22D4FF8E, 0x28683B6F, 0xC07FD059,
@@ -304,7 +304,7 @@ alignas(64) const uint32_t CAST_SBOX1[256] = {
    0xB141AB08, 0x7CCA89B9, 0x1A69E783, 0x02CC4843, 0xA2F7C579, 0x429EF47D,
    0x427B169C, 0x5AC9F049, 0xDD8F0F00, 0x5C8165BF };
 
-alignas(64) const uint32_t CAST_SBOX2[256] = {
+BOTAN_ALIGNAS(64) const uint32_t CAST_SBOX2[256] = {
    0x1F201094, 0xEF0BA75B, 0x69E3CF7E, 0x393F4380, 0xFE61CF7A, 0xEEC5207A,
    0x55889C94, 0x72FC0651, 0xADA7EF79, 0x4E1D7235, 0xD55A63CE, 0xDE0436BA,
    0x99C430EF, 0x5F0C0794, 0x18DCDB7D, 0xA1D6EFF3, 0xA0B52F7B, 0x59E83605,
@@ -349,7 +349,7 @@ alignas(64) const uint32_t CAST_SBOX2[256] = {
    0x5C038323, 0x3E5D3BB9, 0x43D79572, 0x7E6DD07C, 0x06DFDF1E, 0x6C6CC4EF,
    0x7160A539, 0x73BFBE70, 0x83877605, 0x4523ECF1 };
 
-alignas(64) const uint32_t CAST_SBOX3[256] = {
+BOTAN_ALIGNAS(64) const uint32_t CAST_SBOX3[256] = {
    0x8DEFC240, 0x25FA5D9F, 0xEB903DBF, 0xE810C907, 0x47607FFF, 0x369FE44B,
    0x8C1FC644, 0xAECECA90, 0xBEB1F9BF, 0xEEFBCAEA, 0xE8CF1950, 0x51DF07AE,
    0x920E8806, 0xF0AD0548, 0xE13C8D83, 0x927010D5, 0x11107D9F, 0x07647DB9,
@@ -394,7 +394,7 @@ alignas(64) const uint32_t CAST_SBOX3[256] = {
    0x52BCE688, 0x1B03588A, 0xF7BAEFD5, 0x4142ED9C, 0xA4315C11, 0x83323EC5,
    0xDFEF4636, 0xA133C501, 0xE9D3531C, 0xEE353783 };
 
-alignas(64) const uint32_t CAST_SBOX4[256] = {
+BOTAN_ALIGNAS(64) const uint32_t CAST_SBOX4[256] = {
    0x9DB30420, 0x1FB6E9DE, 0xA7BE7BEF, 0xD273A298, 0x4A4F7BDB, 0x64AD8C57,
    0x85510443, 0xFA020ED1, 0x7E287AFF, 0xE60FB663, 0x095F35A1, 0x79EBF120,
    0xFD059D43, 0x6497B7B1, 0xF3641F63, 0x241E4ADF, 0x28147F5F, 0x4FA2B8CD,
@@ -3397,12 +3397,12 @@ namespace Botan {
 * ws_size >= z_size
 */
 
-void bigint_monty_redc_4(word z[], const word p[], word p_dash, word ws[]);
-void bigint_monty_redc_6(word z[], const word p[], word p_dash, word ws[]);
-void bigint_monty_redc_8(word z[], const word p[], word p_dash, word ws[]);
-void bigint_monty_redc_16(word z[], const word p[], word p_dash, word ws[]);
-void bigint_monty_redc_24(word z[], const word p[], word p_dash, word ws[]);
-void bigint_monty_redc_32(word z[], const word p[], word p_dash, word ws[]);
+void bigint_monty_redc_4(word z[], const word p[4], word p_dash, word ws[]);
+void bigint_monty_redc_6(word z[], const word p[6], word p_dash, word ws[]);
+void bigint_monty_redc_8(word z[], const word p[8], word p_dash, word ws[]);
+void bigint_monty_redc_16(word z[], const word p[16], word p_dash, word ws[]);
+void bigint_monty_redc_24(word z[], const word p[24], word p_dash, word ws[]);
+void bigint_monty_redc_32(word z[], const word p[32], word p_dash, word ws[]);
 
 
 }
@@ -3578,7 +3578,7 @@ class BOTAN_UNSTABLE_API Echo_Suppression
       * Implicitly calls reenable_echo, but swallows/ignored all
       * errors which would leave the terminal in an invalid state.
       */
-      virtual ~Echo_Suppression() = default;
+      virtual ~Echo_Suppression() {}
    };
 
 /**
@@ -5768,7 +5768,7 @@ class BOTAN_TEST_API Socket
       /**
       * The socket will be closed upon destruction
       */
-      virtual ~Socket() = default;
+      virtual ~Socket() {}
 
       /**
       * Write to the socket. Blocks until all bytes sent.
@@ -5817,7 +5817,7 @@ class BOTAN_TEST_API SocketUDP
       /**
       * The socket will be closed upon destruction
       */
-      virtual ~SocketUDP() = default;
+      virtual ~SocketUDP() {}
 
       /**
       * Write to the socket. Returns immediately.
@@ -6416,7 +6416,7 @@ class Handshake_IO
 
       Handshake_IO& operator=(const Handshake_IO&) = delete;
 
-      virtual ~Handshake_IO() = default;
+      virtual ~Handshake_IO() {}
    };
 
 /**
@@ -6672,7 +6672,7 @@ class Handshake_State
    public:
       Handshake_State(Handshake_IO* io, Callbacks& callbacks);
 
-      virtual ~Handshake_State() = default;
+      virtual ~Handshake_State() {}
 
       Handshake_State(const Handshake_State&) = delete;
       Handshake_State& operator=(const Handshake_State&) = delete;
@@ -7213,7 +7213,7 @@ namespace TLS {
 class Connection_Sequence_Numbers
    {
    public:
-      virtual ~Connection_Sequence_Numbers() = default;
+      virtual ~Connection_Sequence_Numbers() {}
 
       virtual void new_read_cipher_state() = 0;
       virtual void new_write_cipher_state() = 0;
@@ -12150,7 +12150,7 @@ namespace {
 
 namespace ARIA_F {
 
-alignas(64)
+BOTAN_ALIGNAS(64)
 const uint32_t S1[256]={
    0x00636363,0x007c7c7c,0x00777777,0x007b7b7b,0x00f2f2f2,0x006b6b6b,0x006f6f6f,0x00c5c5c5,
    0x00303030,0x00010101,0x00676767,0x002b2b2b,0x00fefefe,0x00d7d7d7,0x00ababab,0x00767676,
@@ -12186,7 +12186,7 @@ const uint32_t S1[256]={
    0x00414141,0x00999999,0x002d2d2d,0x000f0f0f,0x00b0b0b0,0x00545454,0x00bbbbbb,0x00161616
 };
 
-alignas(64)
+BOTAN_ALIGNAS(64)
 const uint32_t S2[256]={
    0xe200e2e2,0x4e004e4e,0x54005454,0xfc00fcfc,0x94009494,0xc200c2c2,0x4a004a4a,0xcc00cccc,
    0x62006262,0x0d000d0d,0x6a006a6a,0x46004646,0x3c003c3c,0x4d004d4d,0x8b008b8b,0xd100d1d1,
@@ -12222,7 +12222,7 @@ const uint32_t S2[256]={
    0x89008989,0xde00dede,0x71007171,0x1a001a1a,0xaf00afaf,0xba00baba,0xb500b5b5,0x81008181
 };
 
-alignas(64)
+BOTAN_ALIGNAS(64)
 const uint32_t X1[256]={
    0x52520052,0x09090009,0x6a6a006a,0xd5d500d5,0x30300030,0x36360036,0xa5a500a5,0x38380038,
    0xbfbf00bf,0x40400040,0xa3a300a3,0x9e9e009e,0x81810081,0xf3f300f3,0xd7d700d7,0xfbfb00fb,
@@ -12258,7 +12258,7 @@ const uint32_t X1[256]={
    0xe1e100e1,0x69690069,0x14140014,0x63630063,0x55550055,0x21210021,0x0c0c000c,0x7d7d007d
 };
 
-alignas(64)
+BOTAN_ALIGNAS(64)
 const uint32_t X2[256]={
    0x30303000,0x68686800,0x99999900,0x1b1b1b00,0x87878700,0xb9b9b900,0x21212100,0x78787800,
    0x50505000,0x39393900,0xdbdbdb00,0xe1e1e100,0x72727200,0x09090900,0x62626200,0x3c3c3c00,
@@ -12417,6 +12417,26 @@ inline void ARIA_ROL128(const uint32_t X[4], const uint32_t Y[4], uint32_t KS[4]
    KS[3] = (X[3]) ^ ((Y[(Q+3)%4])>>R) ^ ((Y[(Q+2)%4])<<(32-R));
    }
 
+void aria_ks_dk_transform(uint32_t& K0, uint32_t& K1, uint32_t& K2, uint32_t& K3)
+   {
+   K0 = rotr<8>(K0) ^ rotr<16>(K0) ^ rotr<24>(K0);
+   K1 = rotr<8>(K1) ^ rotr<16>(K1) ^ rotr<24>(K1);
+   K2 = rotr<8>(K2) ^ rotr<16>(K2) ^ rotr<24>(K2);
+   K3 = rotr<8>(K3) ^ rotr<16>(K3) ^ rotr<24>(K3);
+
+   K1 ^= K2; K2 ^= K3;
+   K0 ^= K1; K3 ^= K1;
+   K2 ^= K0; K1 ^= K2;
+
+   K1 = ((K1 << 8) & 0xFF00FF00) | ((K1 >> 8) & 0x00FF00FF);
+   K2 = rotr<16>(K2);
+   K3 = reverse_bytes(K3);
+
+   K1 ^= K2; K2 ^= K3;
+   K0 ^= K1; K3 ^= K1;
+   K2 ^= K0; K1 ^= K2;
+   }
+
 /*
 * ARIA Key Schedule
 */
@@ -12532,24 +12552,7 @@ void key_schedule(secure_vector<uint32_t>& ERK,
 
    for(size_t i = 4; i != DRK.size() - 4; i += 4)
       {
-      for(size_t j = 0; j != 4; ++j)
-         {
-         DRK[i+j] = rotr<8>(DRK[i+j]) ^
-                    rotr<16>(DRK[i+j]) ^
-                    rotr<24>(DRK[i+j]);
-         }
-
-      DRK[i+1] ^= DRK[i+2]; DRK[i+2] ^= DRK[i+3];
-      DRK[i+0] ^= DRK[i+1]; DRK[i+3] ^= DRK[i+1];
-      DRK[i+2] ^= DRK[i+0]; DRK[i+1] ^= DRK[i+2];
-
-      DRK[i+1] = ((DRK[i+1] << 8) & 0xFF00FF00) | ((DRK[i+1] >> 8) & 0x00FF00FF);
-      DRK[i+2] = rotr<16>(DRK[i+2]);
-      DRK[i+3] = reverse_bytes(DRK[i+3]);
-
-      DRK[i+1] ^= DRK[i+2]; DRK[i+2] ^= DRK[i+3];
-      DRK[i+0] ^= DRK[i+1]; DRK[i+3] ^= DRK[i+1];
-      DRK[i+2] ^= DRK[i+0]; DRK[i+1] ^= DRK[i+2];
+      aria_ks_dk_transform(DRK[i+0], DRK[i+1], DRK[i+2], DRK[i+3]);
       }
    }
 
@@ -17853,6 +17856,14 @@ BigInt::BigInt(Sign s, size_t size)
    m_signedness = s;
    }
 
+//static
+BigInt BigInt::with_capacity(size_t size)
+   {
+   BigInt bn;
+   bn.grow_to(size);
+   return bn;
+   }
+
 /*
 * Construct a BigInt from a string
 */
@@ -18279,6 +18290,40 @@ void BigInt::ct_cond_swap(bool predicate, BigInt& other)
 
    bigint_cnd_swap(predicate, this->mutable_data(), other.mutable_data(), max_words);
    }
+
+void BigInt::ct_shift_left(size_t shift) {
+   auto shl_bit = [](const BigInt& a, BigInt& result) {
+      BOTAN_DEBUG_ASSERT(a.size() + 1 == result.size());
+      bigint_shl2(result.mutable_data(), a.data(), a.size(), 0, 1);
+      // shl2 may have shifted a bit into the next word, which must be dropped
+      clear_mem(result.mutable_data() + result.size() - 1, 1);
+   };
+
+   auto shl_word = [](const BigInt& a, BigInt& result) {
+      // the most significant word is not copied, aka. shifted out
+      bigint_shl2(result.mutable_data(), a.data(), a.size() - 1 /* ignore msw */, 1, 0);
+      // we left-shifted by a full word, the least significant word must be zero'ed
+      clear_mem(result.mutable_data(), 1);
+   };
+
+   BOTAN_ASSERT_NOMSG(size() > 0);
+
+   constexpr size_t bits_in_word = sizeof(word) * 8;
+   const size_t word_shift = shift >> ceil_log2(bits_in_word);             // shift / bits_in_word
+   const size_t bit_shift = shift & ((1 << ceil_log2(bits_in_word)) - 1);  // shift % bits_in_word
+   const size_t iterations = std::max(size(), bits_in_word) - 1;           // uint64_t i; i << 64 is undefined behaviour
+
+   // In every iteration, shift one bit and one word to the left and use the
+   // shift results only when they are within the shift range.
+   BigInt tmp;
+   tmp.resize(size() + 1 /* to hold the shifted-out word */);
+   for(size_t i = 0; i < iterations; ++i) {
+      shl_bit(*this, tmp);
+      ct_cond_assign(i < bit_shift, tmp);
+      shl_word(*this, tmp);
+      ct_cond_assign(i < word_shift, tmp);
+   }
+}
 
 void BigInt::cond_flip_sign(bool predicate)
    {
@@ -19577,7 +19622,7 @@ namespace Botan {
 
 namespace {
 
-alignas(64) const uint64_t Camellia_SBOX1[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Camellia_SBOX1[256] = {
 0x7070700070000070, 0x8282820082000082, 0x2C2C2C002C00002C, 0xECECEC00EC0000EC,
 0xB3B3B300B30000B3, 0x2727270027000027, 0xC0C0C000C00000C0, 0xE5E5E500E50000E5,
 0xE4E4E400E40000E4, 0x8585850085000085, 0x5757570057000057, 0x3535350035000035,
@@ -19643,7 +19688,7 @@ alignas(64) const uint64_t Camellia_SBOX1[256] = {
 0x1515150015000015, 0xE3E3E300E30000E3, 0xADADAD00AD0000AD, 0xF4F4F400F40000F4,
 0x7777770077000077, 0xC7C7C700C70000C7, 0x8080800080000080, 0x9E9E9E009E00009E };
 
-alignas(64) const uint64_t Camellia_SBOX2[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Camellia_SBOX2[256] = {
 0x00E0E0E0E0E00000, 0x0005050505050000, 0x0058585858580000, 0x00D9D9D9D9D90000,
 0x0067676767670000, 0x004E4E4E4E4E0000, 0x0081818181810000, 0x00CBCBCBCBCB0000,
 0x00C9C9C9C9C90000, 0x000B0B0B0B0B0000, 0x00AEAEAEAEAE0000, 0x006A6A6A6A6A0000,
@@ -19709,7 +19754,7 @@ alignas(64) const uint64_t Camellia_SBOX2[256] = {
 0x002A2A2A2A2A0000, 0x00C7C7C7C7C70000, 0x005B5B5B5B5B0000, 0x00E9E9E9E9E90000,
 0x00EEEEEEEEEE0000, 0x008F8F8F8F8F0000, 0x0001010101010000, 0x003D3D3D3D3D0000 };
 
-alignas(64) const uint64_t Camellia_SBOX3[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Camellia_SBOX3[256] = {
 0x3800383800383800, 0x4100414100414100, 0x1600161600161600, 0x7600767600767600,
 0xD900D9D900D9D900, 0x9300939300939300, 0x6000606000606000, 0xF200F2F200F2F200,
 0x7200727200727200, 0xC200C2C200C2C200, 0xAB00ABAB00ABAB00, 0x9A009A9A009A9A00,
@@ -19775,7 +19820,7 @@ alignas(64) const uint64_t Camellia_SBOX3[256] = {
 0x8A008A8A008A8A00, 0xF100F1F100F1F100, 0xD600D6D600D6D600, 0x7A007A7A007A7A00,
 0xBB00BBBB00BBBB00, 0xE300E3E300E3E300, 0x4000404000404000, 0x4F004F4F004F4F00 };
 
-alignas(64) const uint64_t Camellia_SBOX4[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Camellia_SBOX4[256] = {
 0x7070007000007070, 0x2C2C002C00002C2C, 0xB3B300B30000B3B3, 0xC0C000C00000C0C0,
 0xE4E400E40000E4E4, 0x5757005700005757, 0xEAEA00EA0000EAEA, 0xAEAE00AE0000AEAE,
 0x2323002300002323, 0x6B6B006B00006B6B, 0x4545004500004545, 0xA5A500A50000A5A5,
@@ -19841,7 +19886,7 @@ alignas(64) const uint64_t Camellia_SBOX4[256] = {
 0x2828002800002828, 0x7B7B007B00007B7B, 0xC9C900C90000C9C9, 0xC1C100C10000C1C1,
 0xE3E300E30000E3E3, 0xF4F400F40000F4F4, 0xC7C700C70000C7C7, 0x9E9E009E00009E9E };
 
-alignas(64) const uint64_t Camellia_SBOX5[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Camellia_SBOX5[256] = {
 0x00E0E0E000E0E0E0, 0x0005050500050505, 0x0058585800585858, 0x00D9D9D900D9D9D9,
 0x0067676700676767, 0x004E4E4E004E4E4E, 0x0081818100818181, 0x00CBCBCB00CBCBCB,
 0x00C9C9C900C9C9C9, 0x000B0B0B000B0B0B, 0x00AEAEAE00AEAEAE, 0x006A6A6A006A6A6A,
@@ -19907,7 +19952,7 @@ alignas(64) const uint64_t Camellia_SBOX5[256] = {
 0x002A2A2A002A2A2A, 0x00C7C7C700C7C7C7, 0x005B5B5B005B5B5B, 0x00E9E9E900E9E9E9,
 0x00EEEEEE00EEEEEE, 0x008F8F8F008F8F8F, 0x0001010100010101, 0x003D3D3D003D3D3D };
 
-alignas(64) const uint64_t Camellia_SBOX6[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Camellia_SBOX6[256] = {
 0x3800383838003838, 0x4100414141004141, 0x1600161616001616, 0x7600767676007676,
 0xD900D9D9D900D9D9, 0x9300939393009393, 0x6000606060006060, 0xF200F2F2F200F2F2,
 0x7200727272007272, 0xC200C2C2C200C2C2, 0xAB00ABABAB00ABAB, 0x9A009A9A9A009A9A,
@@ -19973,7 +20018,7 @@ alignas(64) const uint64_t Camellia_SBOX6[256] = {
 0x8A008A8A8A008A8A, 0xF100F1F1F100F1F1, 0xD600D6D6D600D6D6, 0x7A007A7A7A007A7A,
 0xBB00BBBBBB00BBBB, 0xE300E3E3E300E3E3, 0x4000404040004040, 0x4F004F4F4F004F4F };
 
-alignas(64) const uint64_t Camellia_SBOX7[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Camellia_SBOX7[256] = {
 0x7070007070700070, 0x2C2C002C2C2C002C, 0xB3B300B3B3B300B3, 0xC0C000C0C0C000C0,
 0xE4E400E4E4E400E4, 0x5757005757570057, 0xEAEA00EAEAEA00EA, 0xAEAE00AEAEAE00AE,
 0x2323002323230023, 0x6B6B006B6B6B006B, 0x4545004545450045, 0xA5A500A5A5A500A5,
@@ -20039,7 +20084,7 @@ alignas(64) const uint64_t Camellia_SBOX7[256] = {
 0x2828002828280028, 0x7B7B007B7B7B007B, 0xC9C900C9C9C900C9, 0xC1C100C1C1C100C1,
 0xE3E300E3E3E300E3, 0xF4F400F4F4F400F4, 0xC7C700C7C7C700C7, 0x9E9E009E9E9E009E };
 
-alignas(64) const uint64_t Camellia_SBOX8[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Camellia_SBOX8[256] = {
 0x7070700070707000, 0x8282820082828200, 0x2C2C2C002C2C2C00, 0xECECEC00ECECEC00,
 0xB3B3B300B3B3B300, 0x2727270027272700, 0xC0C0C000C0C0C000, 0xE5E5E500E5E5E500,
 0xE4E4E400E4E4E400, 0x8585850085858500, 0x5757570057575700, 0x3535350035353500,
@@ -20114,7 +20159,7 @@ namespace Camellia_F {
 */
 uint64_t F_SLOW(uint64_t v, uint64_t K)
    {
-   alignas(64)
+   BOTAN_ALIGNAS(64)
    static const uint8_t SBOX[256] = {
       0x70, 0x82, 0x2C, 0xEC, 0xB3, 0x27, 0xC0, 0xE5, 0xE4, 0x85, 0x57,
       0x35, 0xEA, 0x0C, 0xAE, 0x41, 0x23, 0xEF, 0x6B, 0x93, 0x45, 0x19,
@@ -20814,7 +20859,7 @@ void CAST_128::clear()
 void CAST_128::cast_ks(secure_vector<uint32_t>& K,
                        secure_vector<uint32_t>& X)
    {
-   alignas(64) static const uint32_t S5[256] = {
+   BOTAN_ALIGNAS(64) static const uint32_t S5[256] = {
       0x7EC90C04, 0x2C6E74B9, 0x9B0E66DF, 0xA6337911, 0xB86A7FFF, 0x1DD358F5,
       0x44DD9D44, 0x1731167F, 0x08FBF1FA, 0xE7F511CC, 0xD2051B00, 0x735ABA00,
       0x2AB722D8, 0x386381CB, 0xACF6243A, 0x69BEFD7A, 0xE6A2E77F, 0xF0C720CD,
@@ -20859,7 +20904,7 @@ void CAST_128::cast_ks(secure_vector<uint32_t>& K,
       0x34010718, 0xBB30CAB8, 0xE822FE15, 0x88570983, 0x750E6249, 0xDA627E55,
       0x5E76FFA8, 0xB1534546, 0x6D47DE08, 0xEFE9E7D4 };
 
-   alignas(64) static const uint32_t S6[256] = {
+   BOTAN_ALIGNAS(64) static const uint32_t S6[256] = {
       0xF6FA8F9D, 0x2CAC6CE1, 0x4CA34867, 0xE2337F7C, 0x95DB08E7, 0x016843B4,
       0xECED5CBC, 0x325553AC, 0xBF9F0960, 0xDFA1E2ED, 0x83F0579D, 0x63ED86B9,
       0x1AB6A6B8, 0xDE5EBE39, 0xF38FF732, 0x8989B138, 0x33F14961, 0xC01937BD,
@@ -20904,7 +20949,7 @@ void CAST_128::cast_ks(secure_vector<uint32_t>& K,
       0xB0E93524, 0xBEBB8FBD, 0xA2D762CF, 0x49C92F54, 0x38B5F331, 0x7128A454,
       0x48392905, 0xA65B1DB8, 0x851C97BD, 0xD675CF2F };
 
-   alignas(64) static const uint32_t S7[256] = {
+   BOTAN_ALIGNAS(64) static const uint32_t S7[256] = {
       0x85E04019, 0x332BF567, 0x662DBFFF, 0xCFC65693, 0x2A8D7F6F, 0xAB9BC912,
       0xDE6008A1, 0x2028DA1F, 0x0227BCE7, 0x4D642916, 0x18FAC300, 0x50F18B82,
       0x2CB2CB11, 0xB232E75C, 0x4B3695F2, 0xB28707DE, 0xA05FBCF6, 0xCD4181E9,
@@ -20949,7 +20994,7 @@ void CAST_128::cast_ks(secure_vector<uint32_t>& K,
       0xC3C0BDAE, 0x4958C24C, 0x518F36B2, 0x84B1D370, 0x0FEDCE83, 0x878DDADA,
       0xF2A279C7, 0x94E01BE8, 0x90716F4B, 0x954B8AA3 };
 
-   alignas(64) static const uint32_t S8[256] = {
+   BOTAN_ALIGNAS(64) static const uint32_t S8[256] = {
       0xE216300D, 0xBBDDFFFC, 0xA7EBDABD, 0x35648095, 0x7789F8B7, 0xE6C1121B,
       0x0E241600, 0x052CE8B5, 0x11A9CFB0, 0xE5952F11, 0xECE7990A, 0x9386D174,
       0x2A42931C, 0x76E38111, 0xB12DEF3A, 0x37DDDDFC, 0xDE9ADEB1, 0x0A0CC32C,
@@ -22074,8 +22119,8 @@ Flatfile_Certificate_Store::Flatfile_Certificate_Store(const std::string& file, 
          {
          m_all_subjects.push_back(cert->subject_dn());
          m_dn_to_cert[cert->subject_dn()].push_back(cert);
-         m_pubkey_sha1_to_cert.emplace(cert->subject_public_key_bitstring_sha1(), cert);
-         m_subject_dn_sha256_to_cert.emplace(cert->raw_subject_dn_sha256(), cert);
+         m_pubkey_sha1_to_cert[cert->subject_public_key_bitstring_sha1()] = cert;
+         m_subject_dn_sha256_to_cert[cert->raw_subject_dn_sha256()] = cert;
          }
       else if(!ignore_non_ca)
          {
@@ -24887,7 +24932,7 @@ namespace Botan {
 
 namespace {
 
-alignas(64) const uint32_t CRC24_T0[256] = {
+BOTAN_ALIGNAS(64) const uint32_t CRC24_T0[256] = {
    0x00000000, 0x00FB4C86, 0x000DD58A, 0x00F6990C, 0x00E1E693, 0x001AAA15, 0x00EC3319,
    0x00177F9F, 0x003981A1, 0x00C2CD27, 0x0034542B, 0x00CF18AD, 0x00D86732, 0x00232BB4,
    0x00D5B2B8, 0x002EFE3E, 0x00894EC5, 0x00720243, 0x00849B4F, 0x007FD7C9, 0x0068A856,
@@ -24926,7 +24971,7 @@ alignas(64) const uint32_t CRC24_T0[256] = {
    0x000CD1F6, 0x00FA48FA, 0x0001047C, 0x002FFA42, 0x00D4B6C4, 0x00222FC8, 0x00D9634E,
    0x00CE1CD1, 0x00355057, 0x00C3C95B, 0x003885DD };
 
-alignas(64) const uint32_t CRC24_T1[256] = {
+BOTAN_ALIGNAS(64) const uint32_t CRC24_T1[256] = {
    0x00000000, 0x00488F66, 0x00901ECD, 0x00D891AB, 0x00DB711C, 0x0093FE7A, 0x004B6FD1,
    0x0003E0B7, 0x00B6E338, 0x00FE6C5E, 0x0026FDF5, 0x006E7293, 0x006D9224, 0x00251D42,
    0x00FD8CE9, 0x00B5038F, 0x006CC771, 0x00244817, 0x00FCD9BC, 0x00B456DA, 0x00B7B66D,
@@ -24965,7 +25010,7 @@ alignas(64) const uint32_t CRC24_T1[256] = {
    0x00FA442B, 0x0022D580, 0x006A5AE6, 0x00DF5969, 0x0097D60F, 0x004F47A4, 0x0007C8C2,
    0x00042875, 0x004CA713, 0x009436B8, 0x00DCB9DE };
 
-alignas(64) const uint32_t CRC24_T2[256] = {
+BOTAN_ALIGNAS(64) const uint32_t CRC24_T2[256] = {
    0x00000000, 0x00D70983, 0x00555F80, 0x00825603, 0x0051F286, 0x0086FB05, 0x0004AD06,
    0x00D3A485, 0x0059A88B, 0x008EA108, 0x000CF70B, 0x00DBFE88, 0x00085A0D, 0x00DF538E,
    0x005D058D, 0x008A0C0E, 0x00491C91, 0x009E1512, 0x001C4311, 0x00CB4A92, 0x0018EE17,
@@ -25004,7 +25049,7 @@ alignas(64) const uint32_t CRC24_T2[256] = {
    0x002633E5, 0x00A465E6, 0x00736C65, 0x00F9606B, 0x002E69E8, 0x00AC3FEB, 0x007B3668,
    0x00A892ED, 0x007F9B6E, 0x00FDCD6D, 0x002AC4EE };
 
-alignas(64) const uint32_t CRC24_T3[256] = {
+BOTAN_ALIGNAS(64) const uint32_t CRC24_T3[256] = {
    0x00000000, 0x00520936, 0x00A4126C, 0x00F61B5A, 0x004825D8, 0x001A2CEE, 0x00EC37B4,
    0x00BE3E82, 0x006B0636, 0x00390F00, 0x00CF145A, 0x009D1D6C, 0x002323EE, 0x00712AD8,
    0x00873182, 0x00D538B4, 0x00D60C6C, 0x0084055A, 0x00721E00, 0x00201736, 0x009E29B4,
@@ -26669,7 +26714,7 @@ void TripleDES::clear()
 
 namespace Botan {
 
-alignas(64) const uint32_t DES_SPBOX1[256] = {
+BOTAN_ALIGNAS(64) const uint32_t DES_SPBOX1[256] = {
    0x01010400, 0x00000000, 0x00010000, 0x01010404, 0x01010004, 0x00010404,
    0x00000004, 0x00010000, 0x00000400, 0x01010400, 0x01010404, 0x00000400,
    0x01000404, 0x01010004, 0x01000000, 0x00000004, 0x00000404, 0x01000400,
@@ -26714,7 +26759,7 @@ alignas(64) const uint32_t DES_SPBOX1[256] = {
    0x00010404, 0x01010400, 0x00000404, 0x01000400, 0x01000400, 0x00000000,
    0x00010004, 0x00010400, 0x00000000, 0x01010004 };
 
-alignas(64) const uint32_t DES_SPBOX2[256] = {
+BOTAN_ALIGNAS(64) const uint32_t DES_SPBOX2[256] = {
    0x80108020, 0x80008000, 0x00008000, 0x00108020, 0x00100000, 0x00000020,
    0x80100020, 0x80008020, 0x80000020, 0x80108020, 0x80108000, 0x80000000,
    0x80008000, 0x00100000, 0x00000020, 0x80100020, 0x00108000, 0x00100020,
@@ -26759,7 +26804,7 @@ alignas(64) const uint32_t DES_SPBOX2[256] = {
    0x80000020, 0x00100020, 0x00108000, 0x00000000, 0x80008000, 0x00008020,
    0x80000000, 0x80100020, 0x80108020, 0x00108000 };
 
-alignas(64) const uint32_t DES_SPBOX3[256] = {
+BOTAN_ALIGNAS(64) const uint32_t DES_SPBOX3[256] = {
    0x00000208, 0x08020200, 0x00000000, 0x08020008, 0x08000200, 0x00000000,
    0x00020208, 0x08000200, 0x00020008, 0x08000008, 0x08000008, 0x00020000,
    0x08020208, 0x00020008, 0x08020000, 0x00000208, 0x08000000, 0x00000008,
@@ -26804,7 +26849,7 @@ alignas(64) const uint32_t DES_SPBOX3[256] = {
    0x00020200, 0x08000008, 0x08020000, 0x08000208, 0x00000208, 0x08020000,
    0x00020208, 0x00000008, 0x08020008, 0x00020200 };
 
-alignas(64) const uint32_t DES_SPBOX4[256] = {
+BOTAN_ALIGNAS(64) const uint32_t DES_SPBOX4[256] = {
    0x00802001, 0x00002081, 0x00002081, 0x00000080, 0x00802080, 0x00800081,
    0x00800001, 0x00002001, 0x00000000, 0x00802000, 0x00802000, 0x00802081,
    0x00000081, 0x00000000, 0x00800080, 0x00800001, 0x00000001, 0x00002000,
@@ -26849,7 +26894,7 @@ alignas(64) const uint32_t DES_SPBOX4[256] = {
    0x00802080, 0x00800081, 0x00002001, 0x00002080, 0x00800000, 0x00802001,
    0x00000080, 0x00800000, 0x00002000, 0x00802080 };
 
-alignas(64) const uint32_t DES_SPBOX5[256] = {
+BOTAN_ALIGNAS(64) const uint32_t DES_SPBOX5[256] = {
    0x00000100, 0x02080100, 0x02080000, 0x42000100, 0x00080000, 0x00000100,
    0x40000000, 0x02080000, 0x40080100, 0x00080000, 0x02000100, 0x40080100,
    0x42000100, 0x42080000, 0x00080100, 0x40000000, 0x02000000, 0x40080000,
@@ -26894,7 +26939,7 @@ alignas(64) const uint32_t DES_SPBOX5[256] = {
    0x40080000, 0x42000000, 0x00080100, 0x02000100, 0x40000100, 0x00080000,
    0x00000000, 0x40080000, 0x02080100, 0x40000100 };
 
-alignas(64) const uint32_t DES_SPBOX6[256] = {
+BOTAN_ALIGNAS(64) const uint32_t DES_SPBOX6[256] = {
    0x20000010, 0x20400000, 0x00004000, 0x20404010, 0x20400000, 0x00000010,
    0x20404010, 0x00400000, 0x20004000, 0x00404010, 0x00400000, 0x20000010,
    0x00400010, 0x20004000, 0x20000000, 0x00004010, 0x00000000, 0x00400010,
@@ -26939,7 +26984,7 @@ alignas(64) const uint32_t DES_SPBOX6[256] = {
    0x20400000, 0x00404010, 0x00004000, 0x00400010, 0x20004010, 0x00000000,
    0x20404000, 0x20000000, 0x00400010, 0x20004010 };
 
-alignas(64) const uint32_t DES_SPBOX7[256] = {
+BOTAN_ALIGNAS(64) const uint32_t DES_SPBOX7[256] = {
    0x00200000, 0x04200002, 0x04000802, 0x00000000, 0x00000800, 0x04000802,
    0x00200802, 0x04200800, 0x04200802, 0x00200000, 0x00000000, 0x04000002,
    0x00000002, 0x04000000, 0x04200002, 0x00000802, 0x04000800, 0x00200802,
@@ -26984,7 +27029,7 @@ alignas(64) const uint32_t DES_SPBOX7[256] = {
    0x00000002, 0x04200802, 0x00000000, 0x00200802, 0x04200000, 0x00000800,
    0x04000002, 0x04000800, 0x00000800, 0x00200002 };
 
-alignas(64) const uint32_t DES_SPBOX8[256] = {
+BOTAN_ALIGNAS(64) const uint32_t DES_SPBOX8[256] = {
    0x10001040, 0x00001000, 0x00040000, 0x10041040, 0x10000000, 0x10001040,
    0x00000040, 0x10000000, 0x00040040, 0x10040000, 0x10041040, 0x00041000,
    0x10041000, 0x00041040, 0x00001000, 0x00000040, 0x10040000, 0x10000040,
@@ -28906,6 +28951,8 @@ void EAX_Encryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
    xor_buf(data_mac, m_ad_mac, data_mac.size());
 
    buffer += std::make_pair(data_mac.data(), tag_size());
+
+   m_nonce_mac.clear();
    }
 
 size_t EAX_Decryption::process(uint8_t buf[], size_t sz)
@@ -28944,12 +28991,14 @@ void EAX_Decryption::finish(secure_vector<uint8_t>& buffer, size_t offset)
 
    mac ^= m_ad_mac;
 
-   if(!constant_time_compare(mac.data(), included_tag, tag_size()))
-      throw Invalid_Authentication_Tag("EAX tag check failed");
+   bool accept_mac = constant_time_compare(mac.data(), included_tag, tag_size());
 
    buffer.resize(offset + remaining);
 
    m_nonce_mac.clear();
+
+   if(!accept_mac)
+      throw Invalid_Authentication_Tag("EAX tag check failed");
    }
 
 }
@@ -29842,8 +29891,11 @@ std::shared_ptr<EC_Group_Data> EC_Group::BER_decode_EC_group(const uint8_t bits[
          .end_cons()
          .verify_end();
 
-      if(p.bits() < 64 || p.is_negative() || !is_bailie_psw_probable_prime(p))
-         throw Decoding_Error("Invalid ECC p parameter");
+      if(p.bits() < 112 || p.bits() > 1024)
+         throw Decoding_Error("ECC p parameter is invalid size");
+
+      if(p.is_negative() || !is_bailie_psw_probable_prime(p))
+         throw Decoding_Error("ECC p parameter is not a prime");
 
       if(a.is_negative() || a >= p)
          throw Decoding_Error("Invalid ECC a parameter");
@@ -33127,6 +33179,32 @@ bool ed25519_verify(const uint8_t* m, size_t mlen,
    if(ge_frombytes_negate_vartime(&A, pk) != 0)
       {
       return false;
+      }
+
+   const uint64_t CURVE25519_ORDER[4] = {
+      0x1000000000000000,
+      0x0000000000000000,
+      0x14def9dea2f79cd6,
+      0x5812631a5cf5d3ed,
+   };
+
+   const uint64_t s[4] = {
+      load_le<uint64_t>(sig + 32, 3),
+      load_le<uint64_t>(sig + 32, 2),
+      load_le<uint64_t>(sig + 32, 1),
+      load_le<uint64_t>(sig + 32, 0)
+   };
+
+   // RFC 8032 adds the requirement that we verify that s < order in
+   // the signature; this did not exist in the original Ed25519 spec.
+   for(size_t i = 0; i != 4; ++i)
+      {
+      if(s[i] > CURVE25519_ORDER[i])
+         return false;
+      if(s[i] < CURVE25519_ORDER[i])
+         break;
+      if(i == 3) // here s == order
+         return false;
       }
 
    sha.update(domain_sep, domain_sep_len);
@@ -48058,7 +48136,7 @@ namespace {
 /*
 * KASUMI S-Boxes
 */
-alignas(64) const uint8_t KASUMI_SBOX_S7[128] = {
+BOTAN_ALIGNAS(64) const uint8_t KASUMI_SBOX_S7[128] = {
    0x36, 0x32, 0x3E, 0x38, 0x16, 0x22, 0x5E, 0x60, 0x26, 0x06, 0x3F, 0x5D,
    0x02, 0x12, 0x7B, 0x21, 0x37, 0x71, 0x27, 0x72, 0x15, 0x43, 0x41, 0x0C,
    0x2F, 0x49, 0x2E, 0x1B, 0x19, 0x6F, 0x7C, 0x51, 0x35, 0x09, 0x79, 0x4F,
@@ -48071,7 +48149,7 @@ alignas(64) const uint8_t KASUMI_SBOX_S7[128] = {
    0x44, 0x1D, 0x73, 0x2C, 0x40, 0x6B, 0x6C, 0x18, 0x6E, 0x53, 0x24, 0x4E,
    0x2A, 0x13, 0x0F, 0x29, 0x58, 0x77, 0x3B, 0x03 };
 
-alignas(64) const uint16_t KASUMI_SBOX_S9[512] = {
+BOTAN_ALIGNAS(64) const uint16_t KASUMI_SBOX_S9[512] = {
    0x00A7, 0x00EF, 0x00A1, 0x017B, 0x0187, 0x014E, 0x0009, 0x0152, 0x0026,
    0x00E2, 0x0030, 0x0166, 0x01C4, 0x0181, 0x005A, 0x018D, 0x00B7, 0x00FD,
    0x0093, 0x014B, 0x019F, 0x0154, 0x0033, 0x016A, 0x0132, 0x01F4, 0x0106,
@@ -52491,7 +52569,7 @@ namespace Botan {
 
 namespace {
 
-alignas(64) static const uint8_t MISTY1_SBOX_S7[128] = {
+BOTAN_ALIGNAS(64) static const uint8_t MISTY1_SBOX_S7[128] = {
    0x1B, 0x32, 0x33, 0x5A, 0x3B, 0x10, 0x17, 0x54, 0x5B, 0x1A, 0x72, 0x73,
    0x6B, 0x2C, 0x66, 0x49, 0x1F, 0x24, 0x13, 0x6C, 0x37, 0x2E, 0x3F, 0x4A,
    0x5D, 0x0F, 0x40, 0x56, 0x25, 0x51, 0x1C, 0x04, 0x0B, 0x46, 0x20, 0x0D,
@@ -52504,7 +52582,7 @@ alignas(64) static const uint8_t MISTY1_SBOX_S7[128] = {
    0x2D, 0x7A, 0x7F, 0x61, 0x50, 0x22, 0x11, 0x06, 0x47, 0x16, 0x52, 0x4E,
    0x71, 0x3E, 0x69, 0x43, 0x34, 0x5C, 0x58, 0x7D };
 
-alignas(64) static const uint16_t MISTY1_SBOX_S9[512] = {
+BOTAN_ALIGNAS(64) static const uint16_t MISTY1_SBOX_S9[512] = {
    0x01C3, 0x00CB, 0x0153, 0x019F, 0x01E3, 0x00E9, 0x00FB, 0x0035, 0x0181,
    0x00B9, 0x0117, 0x01EB, 0x0133, 0x0009, 0x002D, 0x00D3, 0x00C7, 0x014A,
    0x0037, 0x007E, 0x00EB, 0x0164, 0x0193, 0x01D8, 0x00A3, 0x011E, 0x0055,
@@ -59494,7 +59572,24 @@ nist_key_wrap(const uint8_t input[],
    if(input_len % 8 != 0)
       throw Invalid_Argument("Bad input size for NIST key wrap");
 
-   return raw_nist_key_wrap(input, input_len, bc, 0xA6A6A6A6A6A6A6A6);
+   const uint64_t ICV = 0xA6A6A6A6A6A6A6A6;
+
+   if(input_len == 8)
+      {
+      /*
+      * Special case for small inputs: if input == 8 bytes just use ECB
+      * (see RFC 3394 Section 2)
+      */
+      std::vector<uint8_t> block(16);
+      store_be(ICV, block.data());
+      copy_mem(block.data() + 8, input, input_len);
+      bc.encrypt(block);
+      return block;
+      }
+   else
+      {
+      return raw_nist_key_wrap(input, input_len, bc, ICV);
+      }
    }
 
 secure_vector<uint8_t>
@@ -59508,11 +59603,26 @@ nist_key_unwrap(const uint8_t input[],
    if(input_len < 16 || input_len % 8 != 0)
       throw Invalid_Argument("Bad input size for NIST key unwrap");
 
+   const uint64_t ICV = 0xA6A6A6A6A6A6A6A6;
+
    uint64_t ICV_out = 0;
+   secure_vector<uint8_t> R;
 
-   secure_vector<uint8_t> R = raw_nist_key_unwrap(input, input_len, bc, ICV_out);
+   if(input_len == 16)
+      {
+      secure_vector<uint8_t> block(input, input + input_len);
+      bc.decrypt(block);
 
-   if(ICV_out != 0xA6A6A6A6A6A6A6A6)
+      ICV_out = load_be<uint64_t>(block.data(), 0);
+      R.resize(8);
+      copy_mem(R.data(), block.data() + 8, 8);
+      }
+   else
+      {
+      R = raw_nist_key_unwrap(input, input_len, bc, ICV_out);
+      }
+
+   if(ICV_out != ICV)
       throw Invalid_Authentication_Tag("NIST key unwrap failed");
 
    return R;
@@ -59578,7 +59688,7 @@ nist_key_unwrap_padded(const uint8_t input[],
 
    const size_t len = (ICV_out & 0xFFFFFFFF);
 
-   if(R.size() < 8 || len > R.size() || len < R.size() - 8)
+   if(R.size() < 8 || len > R.size() || len <= R.size() - 8)
       throw Invalid_Authentication_Tag("NIST key unwrap failed");
 
    const size_t padding = R.size() - len;
@@ -62177,21 +62287,6 @@ void redc_p384(BigInt& x, secure_vector<word>& ws)
 
 namespace Botan {
 
-namespace {
-
-void sub_abs(BigInt& z, const BigInt& x, const BigInt& y)
-   {
-   const size_t x_sw = x.sig_words();
-   const size_t y_sw = y.sig_words();
-   z.resize(std::max(x_sw, y_sw));
-
-   bigint_sub_abs(z.mutable_data(),
-                  x.data(), x_sw,
-                  y.data(), y_sw);
-   }
-
-}
-
 /*
 * Return the number of 0 bits at the end of n
 */
@@ -62220,22 +62315,8 @@ size_t low_zero_bits(const BigInt& n)
    return seen_nonempty_word.if_set_return(low_zero);
    }
 
-namespace {
-
-size_t safegcd_loop_bound(size_t f_bits, size_t g_bits)
-   {
-   const size_t d = std::max(f_bits, g_bits);
-
-   if(d < 46)
-      return (49*d + 80) / 17;
-   else
-      return (49*d + 57) / 17;
-   }
-
-}
-
 /*
-* Calculate the GCD
+* Calculate the GCD in constant time
 */
 BigInt gcd(const BigInt& a, const BigInt& b)
    {
@@ -62243,58 +62324,77 @@ BigInt gcd(const BigInt& a, const BigInt& b)
       return abs(b);
    if(b.is_zero())
       return abs(a);
+
    if(a == 1 || b == 1)
       return 1;
 
-   // See https://gcd.cr.yp.to/safegcd-20190413.pdf fig 1.2
+   const size_t sz = std::max(a.sig_words(), b.sig_words());
+   auto u = BigInt::with_capacity(sz);
+   auto v = BigInt::with_capacity(sz);
+   u += a;
+   v += b;
 
-   BigInt f = a;
-   BigInt g = b;
-   f.const_time_poison();
-   g.const_time_poison();
+   u.const_time_poison();
+   v.const_time_poison();
 
-   f.set_sign(BigInt::Positive);
-   g.set_sign(BigInt::Positive);
+   u.set_sign(BigInt::Positive);
+   v.set_sign(BigInt::Positive);
 
-   const size_t common2s = std::min(low_zero_bits(f), low_zero_bits(g));
-   CT::unpoison(common2s);
+   // In the worst case we have two fully populated big ints. After right
+   // shifting so many times, we'll have reached the result for sure.
+   const size_t loop_cnt = u.bits() + v.bits();
 
-   f >>= common2s;
-   g >>= common2s;
+   using WordMask = CT::Mask<word>;
 
-   f.ct_cond_swap(f.is_even(), g);
+   // This temporary is big enough to hold all intermediate results of the
+   // algorithm. No reallocation will happen during the loop.
+   // Note however, that `ct_cond_assign()` will invalidate the 'sig_words'
+   // cache, which _does not_ shrink the capacity of the underlying buffer.
+   auto tmp = BigInt::with_capacity(sz);
+   size_t factors_of_two = 0;
+   for(size_t i = 0; i != loop_cnt; ++i) {
+      auto both_odd = WordMask::expand(u.is_odd()) & WordMask::expand(v.is_odd());
 
-   int32_t delta = 1;
+      // Subtract the smaller from the larger if both are odd
+      auto u_gt_v = WordMask::expand(bigint_cmp(u.data(), u.size(), v.data(), v.size()) > 0);
+      bigint_sub_abs(tmp.mutable_data(), u.data(), sz, v.data(), sz);
+      u.ct_cond_assign((u_gt_v & both_odd).is_set(), tmp);
+      v.ct_cond_assign((~u_gt_v & both_odd).is_set(), tmp);
 
-   const size_t loop_cnt = safegcd_loop_bound(f.bits(), g.bits());
+      const auto u_is_even = WordMask::expand(u.is_even());
+      const auto v_is_even = WordMask::expand(v.is_even());
+      BOTAN_DEBUG_ASSERT((u_is_even | v_is_even).is_set());
 
-   BigInt newg, t;
-   for(size_t i = 0; i != loop_cnt; ++i)
-      {
-      sub_abs(newg, f, g);
+      // When both are even, we're going to eliminate a factor of 2.
+      // We have to reapply this factor to the final result.
+      factors_of_two += (u_is_even & v_is_even).if_set_return(1);
 
-      const bool need_swap = (g.is_odd() && delta > 0);
+      // remove one factor of 2, if u is even
+      bigint_shr2(tmp.mutable_data(), u.data(), sz, 0, 1);
+      u.ct_cond_assign(u_is_even.is_set(), tmp);
 
-      // if(need_swap) { delta *= -1 } else { delta *= 1 }
-      delta *= CT::Mask<uint8_t>::expand(need_swap).if_not_set_return(2) - 1;
-      f.ct_cond_swap(need_swap, g);
-      g.ct_cond_swap(need_swap, newg);
-
-      delta += 1;
-
-      g.ct_cond_add(g.is_odd(), f);
-      g >>= 1;
-      }
-
-   f <<= common2s;
-
-   f.const_time_unpoison();
-   g.const_time_unpoison();
-
-   BOTAN_ASSERT_NOMSG(g.is_zero());
-
-   return f;
+      // remove one factor of 2, if v is even
+      bigint_shr2(tmp.mutable_data(), v.data(), sz, 0, 1);
+      v.ct_cond_assign(v_is_even.is_set(), tmp);
    }
+
+   // The GCD (without factors of two) is either in u or v, the other one is
+   // zero. The non-zero variable _must_ be odd, because all factors of two were
+   // removed in the loop iterations above.
+   BOTAN_DEBUG_ASSERT(u.is_zero() || v.is_zero());
+   BOTAN_DEBUG_ASSERT(u.is_odd() || v.is_odd());
+
+   // make sure that the GCD (without factors of two) is in u
+   u.ct_cond_assign(u.is_even() /* .is_zero() would not be constant time */, v);
+
+   // re-apply the factors of two
+   u.ct_shift_left(factors_of_two);
+
+   u.const_time_unpoison();
+   v.const_time_unpoison();
+
+   return u;
+}
 
 /*
 * Calculate the LCM
@@ -62447,7 +62547,7 @@ class Modular_Exponentiator
       Modular_Exponentiator() = default;
       Modular_Exponentiator(const Modular_Exponentiator&) = default;
       Modular_Exponentiator & operator=(const Modular_Exponentiator&) = default;
-      virtual ~Modular_Exponentiator() = default;
+      virtual ~Modular_Exponentiator() {}
    };
 
 namespace {
@@ -63785,6 +63885,17 @@ class L_computer final
          m_L_star.resize(m_BS);
          cipher.encrypt(m_L_star);
          m_L_dollar = poly_double(star());
+
+         // Preallocate the m_L vector to the maximum expected size to avoid
+         // re-allocations during runtime. This had caused a use-after-free in
+         // earlier versions, due to references into this buffer becoming stale
+         // in `compute_offset()`, after calling `get()` in the hot path.
+         //
+         // Note, that the list member won't be pre-allocated, so the expected
+         // memory overhead is negligible.
+         //
+         // See also https://github.com/randombit/botan/issues/3812
+         m_L.reserve(31);
          m_L.push_back(poly_double(dollar()));
 
          while(m_L.size() < 8)
@@ -67402,7 +67513,7 @@ struct MechanismData
 
    MechanismData(MechanismData const&) = default;
    MechanismData& operator=(MechanismData const&) = default;
-   virtual ~MechanismData() = default;
+   virtual ~MechanismData() {}
 
    // the mechanism to perform
    MechanismType type;
@@ -67750,21 +67861,20 @@ void AttributeContainer::add_attribute(AttributeType attribute, const uint8_t* v
       if(existing_attribute.type == static_cast< CK_ATTRIBUTE_TYPE >(attribute))
          {
          // remove old entries
-         m_strings.erase(std::remove_if(m_strings.begin(), m_strings.end(), [ &existing_attribute ](const std::string& data)
+         m_strings.remove_if([ &existing_attribute ](const std::string& data)
             {
             return data.data() == existing_attribute.pValue;
-            }), m_strings.end());
+            });
 
-         m_numerics.erase(std::remove_if(m_numerics.begin(), m_numerics.end(), [ &existing_attribute ](const uint64_t& data)
+         m_numerics.remove_if([ &existing_attribute ](const uint64_t& data)
             {
             return &data == existing_attribute.pValue;
-            }), m_numerics.end());
+            });
 
-         m_vectors.erase(std::remove_if(m_vectors.begin(),
-                                        m_vectors.end(), [ &existing_attribute ](const secure_vector<uint8_t>& data)
+         m_vectors.remove_if([ &existing_attribute ](const secure_vector<uint8_t>& data)
             {
             return data.data() == existing_attribute.pValue;
-            }), m_vectors.end());
+            });
 
          existing_attribute.pValue = const_cast< uint8_t* >(value);
          existing_attribute.ulValueLen = size;
@@ -71882,7 +71992,9 @@ std::map<std::string, std::vector<uint8_t>> unpack_roughtime_packet(T bytes)
          { throw Roughtime::Roughtime_Error("Tag offset must be more than previous tag offset"); }
       const char* label_ptr = cast_uint8_ptr_to_char(buf) + (num_tags+i)*4;
       const char label[] = {label_ptr[0], label_ptr[1], label_ptr[2], label_ptr[3], 0};
-      auto ret = tags.emplace(label, std::vector<uint8_t>(buf+start, buf+end));
+
+      std::vector<uint8_t> val(buf + start, buf + end);
+      auto ret = tags.insert(std::make_pair(std::string(label), val));
       if(!ret.second)
          { throw Roughtime::Roughtime_Error(std::string("Map has duplicated tag: ") + label); }
       start = static_cast<uint32_t>(end);
@@ -72633,6 +72745,8 @@ class RSA_Private_Operation
 
       secure_vector<uint8_t> raw_op(const uint8_t input[], size_t input_len)
          {
+         if(input_len > public_modulus_bytes())
+            throw Invalid_Argument("RSA private op - input is too long");
          const BigInt input_bn(input, input_len);
          if(input_bn >= m_public->get_n())
             throw Invalid_Argument("RSA private op - input is too large");
@@ -72835,6 +72949,8 @@ class RSA_Encryption_Operation final : public PK_Ops::Encryption_with_EME,
       secure_vector<uint8_t> raw_encrypt(const uint8_t input[], size_t input_len,
                                          RandomNumberGenerator&) override
          {
+         if(input_len > public_modulus_bytes())
+            throw Invalid_Argument("RSA encryption - input is too long");
          BigInt input_bn(input, input_len);
          return BigInt::encode_1363(public_op(input_bn), public_modulus_bytes());
          }
@@ -72857,6 +72973,8 @@ class RSA_Verify_Operation final : public PK_Ops::Verification_with_EMSA,
 
       secure_vector<uint8_t> verify_mr(const uint8_t input[], size_t input_len) override
          {
+         if(input_len > public_modulus_bytes())
+            throw Invalid_Argument("RSA verification - input is too long");
          BigInt input_bn(input, input_len);
          return BigInt::encode_locked(public_op(input_bn));
          }
@@ -72880,8 +72998,8 @@ class RSA_KEM_Encryption_Operation final : public PK_Ops::KEM_Encryption_with_KD
          const BigInt r = BigInt::random_integer(rng, 1, get_n());
          const BigInt c = public_op(r);
 
-         out_encapsulated_key = BigInt::encode_locked(c);
-         raw_shared_key = BigInt::encode_locked(r);
+         out_encapsulated_key = BigInt::encode_1363(c, public_modulus_bytes());
+         raw_shared_key = BigInt::encode_1363(r, public_modulus_bytes());
          }
    };
 
@@ -73502,7 +73620,7 @@ namespace Botan {
 
 namespace {
 
-alignas(64) const uint32_t SEED_S0[256] = {
+BOTAN_ALIGNAS(64) const uint32_t SEED_S0[256] = {
    0x2989A1A8, 0x05858184, 0x16C6D2D4, 0x13C3D3D0, 0x14445054, 0x1D0D111C,
    0x2C8CA0AC, 0x25052124, 0x1D4D515C, 0x03434340, 0x18081018, 0x1E0E121C,
    0x11415150, 0x3CCCF0FC, 0x0ACAC2C8, 0x23436360, 0x28082028, 0x04444044,
@@ -73547,7 +73665,7 @@ alignas(64) const uint32_t SEED_S0[256] = {
    0x07070304, 0x33033330, 0x28C8E0E8, 0x1B0B1318, 0x05050104, 0x39497178,
    0x10809090, 0x2A4A6268, 0x2A0A2228, 0x1A8A9298 };
 
-alignas(64) const uint32_t SEED_S1[256] = {
+BOTAN_ALIGNAS(64) const uint32_t SEED_S1[256] = {
    0x38380830, 0xE828C8E0, 0x2C2D0D21, 0xA42686A2, 0xCC0FCFC3, 0xDC1ECED2,
    0xB03383B3, 0xB83888B0, 0xAC2F8FA3, 0x60204060, 0x54154551, 0xC407C7C3,
    0x44044440, 0x6C2F4F63, 0x682B4B63, 0x581B4B53, 0xC003C3C3, 0x60224262,
@@ -73592,7 +73710,7 @@ alignas(64) const uint32_t SEED_S1[256] = {
    0x080A0A02, 0x84078783, 0xD819C9D1, 0x4C0C4C40, 0x80038383, 0x8C0F8F83,
    0xCC0ECEC2, 0x383B0B33, 0x480A4A42, 0xB43787B3 };
 
-alignas(64) const uint32_t SEED_S2[256] = {
+BOTAN_ALIGNAS(64) const uint32_t SEED_S2[256] = {
    0xA1A82989, 0x81840585, 0xD2D416C6, 0xD3D013C3, 0x50541444, 0x111C1D0D,
    0xA0AC2C8C, 0x21242505, 0x515C1D4D, 0x43400343, 0x10181808, 0x121C1E0E,
    0x51501141, 0xF0FC3CCC, 0xC2C80ACA, 0x63602343, 0x20282808, 0x40440444,
@@ -73637,7 +73755,7 @@ alignas(64) const uint32_t SEED_S2[256] = {
    0x03040707, 0x33303303, 0xE0E828C8, 0x13181B0B, 0x01040505, 0x71783949,
    0x90901080, 0x62682A4A, 0x22282A0A, 0x92981A8A };
 
-alignas(64) const uint32_t SEED_S3[256] = {
+BOTAN_ALIGNAS(64) const uint32_t SEED_S3[256] = {
    0x08303838, 0xC8E0E828, 0x0D212C2D, 0x86A2A426, 0xCFC3CC0F, 0xCED2DC1E,
    0x83B3B033, 0x88B0B838, 0x8FA3AC2F, 0x40606020, 0x45515415, 0xC7C3C407,
    0x44404404, 0x4F636C2F, 0x4B63682B, 0x4B53581B, 0xC3C3C003, 0x42626022,
@@ -77420,6 +77538,7 @@ void SHAKE_128_Cipher::key_schedule(const uint8_t key[], size_t length)
    m_state.resize(25);
    m_buffer.resize(SHAKE_128_BITRATE/8);
    zeroise(m_state);
+   m_buf_pos = 0;
 
    const size_t S_pos = SHA_3::absorb(SHAKE_128_BITRATE, m_state, 0, key, length);
    SHA_3::finish(SHAKE_128_BITRATE, m_state, S_pos, 0x1F, 0x80);
@@ -78804,7 +78923,7 @@ namespace Botan {
 
 namespace {
 
-alignas(64)
+BOTAN_ALIGNAS(64)
 const uint8_t SM4_SBOX[256] = {
 0xD6, 0x90, 0xE9, 0xFE, 0xCC, 0xE1, 0x3D, 0xB7, 0x16, 0xB6, 0x14, 0xC2, 0x28, 0xFB, 0x2C, 0x05,
 0x2B, 0x67, 0x9A, 0x76, 0x2A, 0xBE, 0x04, 0xC3, 0xAA, 0x44, 0x13, 0x26, 0x49, 0x86, 0x06, 0x99,
@@ -78827,7 +78946,7 @@ const uint8_t SM4_SBOX[256] = {
 /*
 * SM4_SBOX_T[j] == L(SM4_SBOX[j]).
 */
-alignas(64)
+BOTAN_ALIGNAS(64)
 const uint32_t SM4_SBOX_T[256] = {
    0x8ED55B5B, 0xD0924242, 0x4DEAA7A7, 0x06FDFBFB, 0xFCCF3333, 0x65E28787,
    0xC93DF4F4, 0x6BB5DEDE, 0x4E165858, 0x6EB4DADA, 0x44145050, 0xCAC10B0B,
@@ -94772,7 +94891,10 @@ void TLS_CBC_HMAC_AEAD_Encryption::finish(secure_vector<uint8_t>& buffer, size_t
 
    buffer.reserve(offset + msg_size + padding_length + tag_size());
    buffer.resize(offset + msg_size);
-   copy_mem(&buffer[offset], msg().data(), msg_size);
+   if(msg_size > 0)
+      {
+      copy_mem(&buffer[offset], msg().data(), msg_size);
+      }
 
    mac().update(assoc_data());
 
@@ -94790,7 +94912,10 @@ void TLS_CBC_HMAC_AEAD_Encryption::finish(secure_vector<uint8_t>& buffer, size_t
       }
    else
       {
-      mac().update(&buffer[offset], msg_size);
+      if(msg_size > 0)
+         {
+         mac().update(&buffer[offset], msg_size);
+         }
       buffer.resize(buffer.size() + tag_size());
       mac().final(&buffer[buffer.size() - tag_size()]);
       cbc_encrypt_record(buffer, offset, padding_length);
@@ -95726,7 +95851,7 @@ void Twofish::clear()
 
 namespace Botan {
 
-alignas(64) const uint8_t Twofish::Q0[256] = {
+BOTAN_ALIGNAS(64) const uint8_t Twofish::Q0[256] = {
    0xA9, 0x67, 0xB3, 0xE8, 0x04, 0xFD, 0xA3, 0x76, 0x9A, 0x92, 0x80, 0x78,
    0xE4, 0xDD, 0xD1, 0x38, 0x0D, 0xC6, 0x35, 0x98, 0x18, 0xF7, 0xEC, 0x6C,
    0x43, 0x75, 0x37, 0x26, 0xFA, 0x13, 0x94, 0x48, 0xF2, 0xD0, 0x8B, 0x30,
@@ -95750,7 +95875,7 @@ alignas(64) const uint8_t Twofish::Q0[256] = {
    0xCA, 0x10, 0x21, 0xF0, 0xD3, 0x5D, 0x0F, 0x00, 0x6F, 0x9D, 0x36, 0x42,
    0x4A, 0x5E, 0xC1, 0xE0 };
 
-alignas(64) const uint8_t Twofish::Q1[256] = {
+BOTAN_ALIGNAS(64) const uint8_t Twofish::Q1[256] = {
    0x75, 0xF3, 0xC6, 0xF4, 0xDB, 0x7B, 0xFB, 0xC8, 0x4A, 0xD3, 0xE6, 0x6B,
    0x45, 0x7D, 0xE8, 0x4B, 0xD6, 0x32, 0xD8, 0xFD, 0x37, 0x71, 0xF1, 0xE1,
    0x30, 0x0F, 0xF8, 0x1B, 0x87, 0xFA, 0x06, 0x3F, 0x5E, 0xBA, 0xAE, 0x5B,
@@ -95774,12 +95899,12 @@ alignas(64) const uint8_t Twofish::Q1[256] = {
    0xD7, 0x61, 0x1E, 0xB4, 0x50, 0x04, 0xF6, 0xC2, 0x16, 0x25, 0x86, 0x56,
    0x55, 0x09, 0xBE, 0x91 };
 
-alignas(64) const uint8_t Twofish::RS[32] = {
+BOTAN_ALIGNAS(64) const uint8_t Twofish::RS[32] = {
    0x01, 0xA4, 0x02, 0xA4, 0xA4, 0x56, 0xA1, 0x55, 0x55, 0x82, 0xFC, 0x87,
    0x87, 0xF3, 0xC1, 0x5A, 0x5A, 0x1E, 0x47, 0x58, 0x58, 0xC6, 0xAE, 0xDB,
    0xDB, 0x68, 0x3D, 0x9E, 0x9E, 0xE5, 0x19, 0x03 };
 
-alignas(64) const uint8_t Twofish::EXP_TO_POLY[255] = {
+BOTAN_ALIGNAS(64) const uint8_t Twofish::EXP_TO_POLY[255] = {
    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x4D, 0x9A, 0x79, 0xF2,
    0xA9, 0x1F, 0x3E, 0x7C, 0xF8, 0xBD, 0x37, 0x6E, 0xDC, 0xF5, 0xA7, 0x03,
    0x06, 0x0C, 0x18, 0x30, 0x60, 0xC0, 0xCD, 0xD7, 0xE3, 0x8B, 0x5B, 0xB6,
@@ -95803,7 +95928,7 @@ alignas(64) const uint8_t Twofish::EXP_TO_POLY[255] = {
    0x3B, 0x76, 0xEC, 0x95, 0x67, 0xCE, 0xD1, 0xEF, 0x93, 0x6B, 0xD6, 0xE1,
    0x8F, 0x53, 0xA6 };
 
-alignas(64) const uint8_t Twofish::POLY_TO_EXP[255] = {
+BOTAN_ALIGNAS(64) const uint8_t Twofish::POLY_TO_EXP[255] = {
    0x00, 0x01, 0x17, 0x02, 0x2E, 0x18, 0x53, 0x03, 0x6A, 0x2F, 0x93, 0x19,
    0x34, 0x54, 0x45, 0x04, 0x5C, 0x6B, 0xB6, 0x30, 0xA6, 0x94, 0x4B, 0x1A,
    0x8C, 0x35, 0x81, 0x55, 0xAA, 0x46, 0x0D, 0x05, 0x24, 0x5D, 0x87, 0x6C,
@@ -95827,7 +95952,7 @@ alignas(64) const uint8_t Twofish::POLY_TO_EXP[255] = {
    0xB4, 0x0B, 0x7F, 0x51, 0x15, 0x43, 0x91, 0x10, 0x71, 0xBB, 0xEE, 0xBF,
    0x85, 0xC8, 0xA1 };
 
-alignas(64) const uint32_t Twofish::MDS0[256] = {
+BOTAN_ALIGNAS(64) const uint32_t Twofish::MDS0[256] = {
    0xBCBC3275, 0xECEC21F3, 0x202043C6, 0xB3B3C9F4, 0xDADA03DB, 0x02028B7B,
    0xE2E22BFB, 0x9E9EFAC8, 0xC9C9EC4A, 0xD4D409D3, 0x18186BE6, 0x1E1E9F6B,
    0x98980E45, 0xB2B2387D, 0xA6A6D2E8, 0x2626B74B, 0x3C3C57D6, 0x93938A32,
@@ -95872,7 +95997,7 @@ alignas(64) const uint32_t Twofish::MDS0[256] = {
    0x04047FF6, 0x272746C2, 0xACACA716, 0xD0D07625, 0x50501386, 0xDCDCF756,
    0x84841A55, 0xE1E15109, 0x7A7A25BE, 0x1313EF91 };
 
-alignas(64) const uint32_t Twofish::MDS1[256] = {
+BOTAN_ALIGNAS(64) const uint32_t Twofish::MDS1[256] = {
    0xA9D93939, 0x67901717, 0xB3719C9C, 0xE8D2A6A6, 0x04050707, 0xFD985252,
    0xA3658080, 0x76DFE4E4, 0x9A084545, 0x92024B4B, 0x80A0E0E0, 0x78665A5A,
    0xE4DDAFAF, 0xDDB06A6A, 0xD1BF6363, 0x38362A2A, 0x0D54E6E6, 0xC6432020,
@@ -95917,7 +96042,7 @@ alignas(64) const uint32_t Twofish::MDS1[256] = {
    0x0FE25151, 0x00000000, 0x6F9A1919, 0x9DE01A1A, 0x368F9494, 0x42E6C7C7,
    0x4AECC9C9, 0x5EFDD2D2, 0xC1AB7F7F, 0xE0D8A8A8 };
 
-alignas(64) const uint32_t Twofish::MDS2[256] = {
+BOTAN_ALIGNAS(64) const uint32_t Twofish::MDS2[256] = {
    0xBC75BC32, 0xECF3EC21, 0x20C62043, 0xB3F4B3C9, 0xDADBDA03, 0x027B028B,
    0xE2FBE22B, 0x9EC89EFA, 0xC94AC9EC, 0xD4D3D409, 0x18E6186B, 0x1E6B1E9F,
    0x9845980E, 0xB27DB238, 0xA6E8A6D2, 0x264B26B7, 0x3CD63C57, 0x9332938A,
@@ -95962,7 +96087,7 @@ alignas(64) const uint32_t Twofish::MDS2[256] = {
    0x04F6047F, 0x27C22746, 0xAC16ACA7, 0xD025D076, 0x50865013, 0xDC56DCF7,
    0x8455841A, 0xE109E151, 0x7ABE7A25, 0x139113EF };
 
-alignas(64) const uint32_t Twofish::MDS3[256] = {
+BOTAN_ALIGNAS(64) const uint32_t Twofish::MDS3[256] = {
    0xD939A9D9, 0x90176790, 0x719CB371, 0xD2A6E8D2, 0x05070405, 0x9852FD98,
    0x6580A365, 0xDFE476DF, 0x08459A08, 0x024B9202, 0xA0E080A0, 0x665A7866,
    0xDDAFE4DD, 0xB06ADDB0, 0xBF63D1BF, 0x362A3836, 0x54E60D54, 0x4320C643,
@@ -98952,7 +99077,7 @@ void Whirlpool::clear()
 
 namespace Botan {
 
-alignas(64) const uint64_t Whirlpool::C0[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Whirlpool::C0[256] = {
 0x18186018C07830D8, 0x23238C2305AF4626, 0xC6C63FC67EF991B8, 0xE8E887E8136FCDFB,
 0x878726874CA113CB, 0xB8B8DAB8A9626D11, 0x0101040108050209, 0x4F4F214F426E9E0D,
 0x3636D836ADEE6C9B, 0xA6A6A2A6590451FF, 0xD2D26FD2DEBDB90C, 0xF5F5F3F5FB06F70E,
@@ -99018,7 +99143,7 @@ alignas(64) const uint64_t Whirlpool::C0[256] = {
 0xCCCC17CC2EDB85E2, 0x424215422A578468, 0x98985A98B4C22D2C, 0xA4A4AAA4490E55ED,
 0x2828A0285D885075, 0x5C5C6D5CDA31B886, 0xF8F8C7F8933FED6B, 0x8686228644A411C2 };
 
-alignas(64) const uint64_t Whirlpool::C1[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Whirlpool::C1[256] = {
 0xD818186018C07830, 0x2623238C2305AF46, 0xB8C6C63FC67EF991, 0xFBE8E887E8136FCD,
 0xCB878726874CA113, 0x11B8B8DAB8A9626D, 0x0901010401080502, 0x0D4F4F214F426E9E,
 0x9B3636D836ADEE6C, 0xFFA6A6A2A6590451, 0x0CD2D26FD2DEBDB9, 0x0EF5F5F3F5FB06F7,
@@ -99084,7 +99209,7 @@ alignas(64) const uint64_t Whirlpool::C1[256] = {
 0xE2CCCC17CC2EDB85, 0x68424215422A5784, 0x2C98985A98B4C22D, 0xEDA4A4AAA4490E55,
 0x752828A0285D8850, 0x865C5C6D5CDA31B8, 0x6BF8F8C7F8933FED, 0xC28686228644A411 };
 
-alignas(64) const uint64_t Whirlpool::C2[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Whirlpool::C2[256] = {
 0x30D818186018C078, 0x462623238C2305AF, 0x91B8C6C63FC67EF9, 0xCDFBE8E887E8136F,
 0x13CB878726874CA1, 0x6D11B8B8DAB8A962, 0x0209010104010805, 0x9E0D4F4F214F426E,
 0x6C9B3636D836ADEE, 0x51FFA6A6A2A65904, 0xB90CD2D26FD2DEBD, 0xF70EF5F5F3F5FB06,
@@ -99150,7 +99275,7 @@ alignas(64) const uint64_t Whirlpool::C2[256] = {
 0x85E2CCCC17CC2EDB, 0x8468424215422A57, 0x2D2C98985A98B4C2, 0x55EDA4A4AAA4490E,
 0x50752828A0285D88, 0xB8865C5C6D5CDA31, 0xED6BF8F8C7F8933F, 0x11C28686228644A4 };
 
-alignas(64) const uint64_t Whirlpool::C3[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Whirlpool::C3[256] = {
 0x7830D818186018C0, 0xAF462623238C2305, 0xF991B8C6C63FC67E, 0x6FCDFBE8E887E813,
 0xA113CB878726874C, 0x626D11B8B8DAB8A9, 0x0502090101040108, 0x6E9E0D4F4F214F42,
 0xEE6C9B3636D836AD, 0x0451FFA6A6A2A659, 0xBDB90CD2D26FD2DE, 0x06F70EF5F5F3F5FB,
@@ -99216,7 +99341,7 @@ alignas(64) const uint64_t Whirlpool::C3[256] = {
 0xDB85E2CCCC17CC2E, 0x578468424215422A, 0xC22D2C98985A98B4, 0x0E55EDA4A4AAA449,
 0x8850752828A0285D, 0x31B8865C5C6D5CDA, 0x3FED6BF8F8C7F893, 0xA411C28686228644 };
 
-alignas(64) const uint64_t Whirlpool::C4[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Whirlpool::C4[256] = {
 0xC07830D818186018, 0x05AF462623238C23, 0x7EF991B8C6C63FC6, 0x136FCDFBE8E887E8,
 0x4CA113CB87872687, 0xA9626D11B8B8DAB8, 0x0805020901010401, 0x426E9E0D4F4F214F,
 0xADEE6C9B3636D836, 0x590451FFA6A6A2A6, 0xDEBDB90CD2D26FD2, 0xFB06F70EF5F5F3F5,
@@ -99282,7 +99407,7 @@ alignas(64) const uint64_t Whirlpool::C4[256] = {
 0x2EDB85E2CCCC17CC, 0x2A57846842421542, 0xB4C22D2C98985A98, 0x490E55EDA4A4AAA4,
 0x5D8850752828A028, 0xDA31B8865C5C6D5C, 0x933FED6BF8F8C7F8, 0x44A411C286862286 };
 
-alignas(64) const uint64_t Whirlpool::C5[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Whirlpool::C5[256] = {
 0x18C07830D8181860, 0x2305AF462623238C, 0xC67EF991B8C6C63F, 0xE8136FCDFBE8E887,
 0x874CA113CB878726, 0xB8A9626D11B8B8DA, 0x0108050209010104, 0x4F426E9E0D4F4F21,
 0x36ADEE6C9B3636D8, 0xA6590451FFA6A6A2, 0xD2DEBDB90CD2D26F, 0xF5FB06F70EF5F5F3,
@@ -99348,7 +99473,7 @@ alignas(64) const uint64_t Whirlpool::C5[256] = {
 0xCC2EDB85E2CCCC17, 0x422A578468424215, 0x98B4C22D2C98985A, 0xA4490E55EDA4A4AA,
 0x285D8850752828A0, 0x5CDA31B8865C5C6D, 0xF8933FED6BF8F8C7, 0x8644A411C2868622 };
 
-alignas(64) const uint64_t Whirlpool::C6[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Whirlpool::C6[256] = {
 0x6018C07830D81818, 0x8C2305AF46262323, 0x3FC67EF991B8C6C6, 0x87E8136FCDFBE8E8,
 0x26874CA113CB8787, 0xDAB8A9626D11B8B8, 0x0401080502090101, 0x214F426E9E0D4F4F,
 0xD836ADEE6C9B3636, 0xA2A6590451FFA6A6, 0x6FD2DEBDB90CD2D2, 0xF3F5FB06F70EF5F5,
@@ -99414,7 +99539,7 @@ alignas(64) const uint64_t Whirlpool::C6[256] = {
 0x17CC2EDB85E2CCCC, 0x15422A5784684242, 0x5A98B4C22D2C9898, 0xAAA4490E55EDA4A4,
 0xA0285D8850752828, 0x6D5CDA31B8865C5C, 0xC7F8933FED6BF8F8, 0x228644A411C28686 };
 
-alignas(64) const uint64_t Whirlpool::C7[256] = {
+BOTAN_ALIGNAS(64) const uint64_t Whirlpool::C7[256] = {
 0x186018C07830D818, 0x238C2305AF462623, 0xC63FC67EF991B8C6, 0xE887E8136FCDFBE8,
 0x8726874CA113CB87, 0xB8DAB8A9626D11B8, 0x0104010805020901, 0x4F214F426E9E0D4F,
 0x36D836ADEE6C9B36, 0xA6A2A6590451FFA6, 0xD26FD2DEBDB90CD2, 0xF5F3F5FB06F70EF5,
@@ -99731,6 +99856,10 @@ void AlternativeName::decode_from(BER_Decoder& source)
             {
             const uint32_t ip = load_be<uint32_t>(obj.bits(), 0);
             add_attribute("IP", ipv4_to_string(ip));
+            }
+         else if(obj.length() != 16)
+            {
+            throw Decoding_Error("Invalid length for IP address SAN");
             }
          }
 
@@ -100686,31 +100815,48 @@ GeneralName::MatchResult GeneralName::matches(const X509_Certificate& cert) cons
 
 bool GeneralName::matches_dns(const std::string& nam) const
    {
-   if(nam.size() == name().size())
+   const std::string constraint = tolower_string(name());
+   const std::string issued = tolower_string(nam);
+
+   if(nam.size() == constraint.size())
       {
-      return tolower_string(nam) == tolower_string(name());
+      return issued == constraint;
       }
-   else if(name().size() > nam.size())
+   else if(constraint.size() > nam.size())
       {
       // The constraint is longer than the issued name: not possibly a match
       return false;
       }
-   else // name.size() < nam.size()
+   else
       {
-      // constr is suffix of nam
-      const std::string constr = name().front() == '.' ? name() : "." + name();
-      const std::string substr = nam.substr(nam.size() - constr.size(), constr.size());
-      return tolower_string(constr) == tolower_string(substr);
+      if(constraint.empty()) {
+         return true;
+      }
+
+      std::string substr = issued.substr(nam.size() - constraint.size(), constraint.size());
+
+      if(constraint.front() == '.') {
+         return substr == constraint;
+      } else if(substr[0] == '.') {
+         return substr.substr(1) == constraint;
+      } else {
+         return substr == constraint && issued[issued.size() - constraint.size() - 1] == '.';
       }
    }
+}
 
 bool GeneralName::matches_dn(const std::string& nam) const
    {
    std::stringstream ss(nam);
-   std::stringstream tt(name());
-   X509_DN nam_dn, my_dn;
-
+   X509_DN nam_dn;
    ss >> nam_dn;
+   return matches_dn_obj(nam_dn);
+   }
+
+bool GeneralName::matches_dn_obj(const X509_DN& nam_dn) const
+   {
+   std::stringstream tt(name());
+   X509_DN my_dn;
    tt >> my_dn;
 
    auto attr = nam_dn.get_attributes();
@@ -100793,7 +100939,281 @@ std::ostream& operator<<(std::ostream& os, const GeneralSubtree& gs)
    os << gs.minimum() << "," << gs.maximum() << "," << gs.base();
    return os;
    }
+
+NameConstraints::NameConstraints(std::vector<GeneralSubtree>&& permitted_subtrees,
+                                 std::vector<GeneralSubtree>&& excluded_subtrees) :
+   m_permitted_subtrees(permitted_subtrees), m_excluded_subtrees(excluded_subtrees)
+   {
+   for(const auto& c : m_permitted_subtrees)
+      {
+      m_permitted_name_types.insert(c.base().type());
+      }
+   for(const auto& c : m_excluded_subtrees)
+      {
+      m_excluded_name_types.insert(c.base().type());
+      }
+   }
+
+namespace {
+
+bool looks_like_ipv4(const std::string& s)
+   {
+   try
+     {
+     // ignores return value
+     string_to_ipv4(s);
+     return true;
+     }
+   catch(...)
+      {
+      return false;
+      }
+   }
+
 }
+
+bool NameConstraints::is_permitted(const X509_Certificate& cert, bool reject_unknown) const {
+   if(permitted().empty()) {
+      return true;
+   }
+
+   const auto& alt_name = cert.subject_alt_name();
+
+   if(reject_unknown) {
+      if(m_permitted_name_types.find("URI") != m_permitted_name_types.end() && !alt_name.get_attribute("URI").empty()) {
+         return false;
+      }
+      if(m_permitted_name_types.find("RFC822") != m_permitted_name_types.end() && !alt_name.get_attribute("RFC822").empty()) {
+         return false;
+      }
+   }
+
+   auto is_permitted_dn = [&](const X509_DN& dn) {
+      // If no restrictions, then immediate accept
+      if(m_permitted_name_types.find("DN") == m_permitted_name_types.end()) {
+         return true;
+      }
+
+      if(dn.empty()) {
+         return true;
+      }
+
+      for(const auto& c : m_permitted_subtrees) {
+         if(c.base().type() == "DN" && c.base().matches_dn_obj(dn)) {
+            return true;
+         }
+      }
+
+      // There is at least one permitted name and we didn't match
+      return false;
+   };
+
+   auto is_permitted_dns_name = [&](const std::string& name) {
+      if(name.empty() || name[0] == '.') {
+         return false;
+      }
+
+      // If no restrictions, then immediate accept
+      if(m_permitted_name_types.find("DNS") == m_permitted_name_types.end()) {
+         return true;
+      }
+
+      for(const auto& c : m_permitted_subtrees) {
+         if(c.base().type() == "DNS" && c.base().matches_dns(name)) {
+            return true;
+         }
+      }
+
+      // There is at least one permitted name and we didn't match
+      return false;
+   };
+
+   auto is_permitted_ipv4 = [&](const std::string& ipv4) {
+      // If no restrictions, then immediate accept
+      if(m_permitted_name_types.find("IP") == m_permitted_name_types.end()) {
+         return true;
+      }
+
+      for(const auto& c : m_permitted_subtrees) {
+         if(c.base().type() == "IP" && c.base().matches_ip(ipv4)) {
+            return true;
+         }
+      }
+
+      // There is at least one permitted name and we didn't match
+      return false;
+   };
+
+   if(!is_permitted_dn(cert.subject_dn())) {
+      return false;
+   }
+
+   if(!is_permitted_dn(alt_name.dn()))
+      {
+      return false;
+      }
+
+   for(const auto& alt_dns : alt_name.get_attribute("DNS")) {
+      if(!is_permitted_dns_name(alt_dns)) {
+         return false;
+      }
+   }
+
+   for(const auto& alt_ipv4 : alt_name.get_attribute("IP")) {
+      if(!is_permitted_ipv4(alt_ipv4)) {
+         return false;
+      }
+   }
+
+   if(!alt_name.has_items())
+      {
+      for(const auto& cn : cert.subject_info("Name"))
+         {
+         if(cn.find(".") != std::string::npos)
+            {
+            if(looks_like_ipv4(cn))
+               {
+               if(!is_permitted_ipv4(cn))
+                  {
+                  return false;
+                  }
+               }
+            else
+               {
+               if(!is_permitted_dns_name(cn))
+                  {
+                  return false;
+                  }
+               }
+            }
+         }
+      }
+
+   // We didn't encounter a name that doesn't have a matching constraint
+   return true;
+}
+
+bool NameConstraints::is_excluded(const X509_Certificate& cert, bool reject_unknown) const {
+   if(excluded().empty()) {
+      return false;
+   }
+
+   const auto& alt_name = cert.subject_alt_name();
+
+   if(reject_unknown) {
+      if(m_excluded_name_types.find("URI") != m_excluded_name_types.end() && !alt_name.get_attribute("URI").empty()) {
+         return false;
+      }
+      if(m_excluded_name_types.find("RFC822") != m_excluded_name_types.end() && !alt_name.get_attribute("RFC822").empty()) {
+         return false;
+      }
+   }
+
+   auto is_excluded_dn = [&](const X509_DN& dn) {
+      // If no restrictions, then immediate accept
+      if(m_excluded_name_types.find("DN") == m_excluded_name_types.end()) {
+         return false;
+      }
+
+      if(dn.empty()) {
+         return false;
+      }
+
+      for(const auto& c : m_excluded_subtrees) {
+         if(c.base().type() == "DN" && c.base().matches_dn_obj(dn)) {
+            return true;
+         }
+      }
+
+      // There is at least one excluded name and we didn't match
+      return false;
+   };
+
+   auto is_excluded_dns_name = [&](const std::string& name) {
+      if(name.empty() || name[0] == '.') {
+         return true;
+      }
+
+      // If no restrictions, then immediate accept
+      if(m_excluded_name_types.find("DNS") == m_excluded_name_types.end()) {
+         return false;
+      }
+
+      for(const auto& c : m_excluded_subtrees) {
+         if(c.base().type() == "DNS" && c.base().matches_dns(name)) {
+            return true;
+         }
+      }
+
+      // There is at least one excluded name and we didn't match
+      return false;
+   };
+
+   auto is_excluded_ipv4 = [&](const std::string& ipv4) {
+      // If no restrictions, then immediate accept
+      if(m_excluded_name_types.find("IP") == m_excluded_name_types.end()) {
+         return false;
+      }
+
+      for(const auto& c : m_excluded_subtrees) {
+         if(c.base().type() == "IP" && c.base().matches_ip(ipv4)) {
+            return true;
+         }
+      }
+
+      // There is at least one excluded name and we didn't match
+      return false;
+   };
+
+   if(is_excluded_dn(cert.subject_dn())) {
+      return true;
+   }
+
+   if(is_excluded_dn(alt_name.dn())) {
+      return true;
+   }
+
+   for(const auto& alt_dns : alt_name.get_attribute("DNS")) {
+      if(is_excluded_dns_name(alt_dns)) {
+         return true;
+      }
+   }
+
+   for(const auto& alt_ipv4 : alt_name.get_attribute("IP")) {
+      if(is_excluded_ipv4(alt_ipv4)) {
+         return true;
+      }
+   }
+
+   if(!alt_name.has_items())
+      {
+      for(const auto& cn : cert.subject_info("Name"))
+         {
+         if(cn.find(".") != std::string::npos)
+            {
+            if(looks_like_ipv4(cn))
+               {
+               if(is_excluded_ipv4(cn))
+                  {
+                  return true;
+                  }
+               }
+            else
+               {
+               if(is_excluded_dns_name(cn))
+                  {
+                  return true;
+                  }
+               }
+            }
+         }
+      }
+
+   // We didn't encounter a name that matched any prohibited name
+   return false;
+}
+
+}  // namespace Botan
 /*
 * OCSP
 * (C) 2012,2013 Jack Lloyd
@@ -102848,7 +103268,7 @@ void Extensions::add(Certificate_Extension* extn, bool critical)
    const OID oid = extn->oid_of();
    Extensions_Info info(critical, extn);
    m_extension_oids.push_back(oid);
-   m_extension_info.emplace(oid, info);
+   m_extension_info[oid] = info;
    }
 
 bool Extensions::add_new(Certificate_Extension* extn, bool critical)
@@ -102862,7 +103282,7 @@ bool Extensions::add_new(Certificate_Extension* extn, bool critical)
    const OID oid = extn->oid_of();
    Extensions_Info info(critical, extn);
    m_extension_oids.push_back(oid);
-   m_extension_info.emplace(oid, info);
+   m_extension_info[oid] = info;
    return true;
    }
 
@@ -102886,7 +103306,7 @@ void Extensions::replace(Certificate_Extension* extn, bool critical)
    const OID oid = extn->oid_of();
    Extensions_Info info(critical, extn);
    m_extension_oids.push_back(oid);
-   m_extension_info.emplace(oid, info);
+   m_extension_info[oid] = info;
    }
 
 bool Extensions::extension_set(const OID& oid) const
@@ -102948,9 +103368,10 @@ std::map<OID, std::pair<std::vector<uint8_t>, bool>> Extensions::extensions_raw(
    std::map<OID, std::pair<std::vector<uint8_t>, bool>> out;
    for(auto&& ext : m_extension_info)
       {
-      out.emplace(ext.first,
-                  std::make_pair(ext.second.bits(),
-                                 ext.second.is_critical()));
+      const auto bits = ext.second.bits();
+      const bool is_critical = ext.second.is_critical();
+
+      out[ext.first] = std::make_pair(bits, is_critical);
       }
    return out;
    }
@@ -103005,7 +103426,7 @@ void Extensions::decode_from(BER_Decoder& from_source)
       Extensions_Info info(critical, bits, obj.release());
 
       m_extension_oids.push_back(oid);
-      m_extension_info.emplace(oid, info);
+      m_extension_info[oid] = info;
       }
    sequence.verify_end();
    }
@@ -103316,27 +103737,27 @@ void Name_Constraints::decode_inner(const std::vector<uint8_t>& in)
    {
    std::vector<GeneralSubtree> permit, exclude;
    BER_Decoder ber(in);
-   BER_Decoder ext = ber.start_cons(SEQUENCE);
-   BER_Object per = ext.get_next_object();
+   BER_Decoder inner = ber.start_cons(SEQUENCE);
+   BER_Object per = inner.get_next_object();
 
-   ext.push_back(per);
+   inner.push_back(per);
    if(per.is_a(0, ASN1_Tag(CONSTRUCTED | CONTEXT_SPECIFIC)))
       {
-      ext.decode_list(permit,ASN1_Tag(0),ASN1_Tag(CONSTRUCTED | CONTEXT_SPECIFIC));
+      inner.decode_list(permit,ASN1_Tag(0),ASN1_Tag(CONSTRUCTED | CONTEXT_SPECIFIC));
       if(permit.empty())
          throw Encoding_Error("Empty Name Contraint list");
       }
 
-   BER_Object exc = ext.get_next_object();
-   ext.push_back(exc);
-   if(per.is_a(1, ASN1_Tag(CONSTRUCTED | CONTEXT_SPECIFIC)))
+   BER_Object exc = inner.get_next_object();
+   inner.push_back(exc);
+   if(exc.is_a(1, ASN1_Tag(CONSTRUCTED | CONTEXT_SPECIFIC)))
       {
-      ext.decode_list(exclude,ASN1_Tag(1),ASN1_Tag(CONSTRUCTED | CONTEXT_SPECIFIC));
+      inner.decode_list(exclude,ASN1_Tag(1),ASN1_Tag(CONSTRUCTED | CONTEXT_SPECIFIC));
       if(exclude.empty())
          throw Encoding_Error("Empty Name Contraint list");
       }
 
-   ext.end_cons();
+   inner.end_cons();
 
    if(permit.empty() && exclude.empty())
       throw Encoding_Error("Empty Name Contraint extension");
@@ -103365,11 +103786,17 @@ void Name_Constraints::contents_to(Data_Store& subject, Data_Store&) const
       }
    }
 
-void Name_Constraints::validate(const X509_Certificate& subject, const X509_Certificate& issuer,
+void Name_Constraints::validate(const X509_Certificate& subject, const X509_Certificate& /*issuer*/,
       const std::vector<std::shared_ptr<const X509_Certificate>>& cert_path,
       std::vector<std::set<Certificate_Status_Code>>& cert_status,
       size_t pos)
    {
+   // This is much smaller limit than in Botan3 because here name constraint checks
+   // are much more expensive due to optimizations which would be difficult to
+   // backport here.
+   const size_t MAX_NC_COMPARES = (1 << 12);
+   const size_t total_constraints = m_name_constraints.permitted().size() + m_name_constraints.excluded().size();
+
    if(!m_name_constraints.permitted().empty() || !m_name_constraints.excluded().empty())
       {
       if(!subject.is_CA_cert())
@@ -103378,54 +103805,34 @@ void Name_Constraints::validate(const X509_Certificate& subject, const X509_Cert
          }
 
       const bool issuer_name_constraint_critical =
-         issuer.is_critical("X509v3.NameConstraints");
+         subject.is_critical("X509v3.NameConstraints");
 
       // Check that all subordinate certs pass the name constraint
       for(size_t j = 0; j < pos; ++j)
          {
-         bool permitted = m_name_constraints.permitted().empty();
-         bool failed = false;
+         const auto& cert = cert_path.at(j);
 
-         for(auto c: m_name_constraints.permitted())
-            {
-            switch(c.base().matches(*cert_path.at(j)))
-               {
-               case GeneralName::MatchResult::NotFound:
-               case GeneralName::MatchResult::All:
-                  permitted = true;
-                  break;
-               case GeneralName::MatchResult::UnknownType:
-                  failed = issuer_name_constraint_critical;
-                  permitted = true;
-                  break;
-               default:
-                  break;
-               }
-            }
+         const size_t total_names =
+            cert->subject_dn().dn_info().size() +
+            cert->subject_alt_name().get_attributes().size();
 
-         for(auto c: m_name_constraints.excluded())
-            {
-            switch(c.base().matches(*cert_path.at(j)))
-               {
-               case GeneralName::MatchResult::All:
-               case GeneralName::MatchResult::Some:
-                  failed = true;
-                  break;
-               case GeneralName::MatchResult::UnknownType:
-                  failed = issuer_name_constraint_critical;
-                  break;
-               default:
-                  break;
-               }
-            }
-
-         if(failed || !permitted)
-            {
+         if(total_names * total_constraints >= MAX_NC_COMPARES) {
             cert_status.at(j).insert(Certificate_Status_Code::NAME_CONSTRAINT_ERROR);
-            }
+            continue;
+         }
+
+         if(!m_name_constraints.is_permitted(*cert, issuer_name_constraint_critical)) {
+            cert_status.at(j).insert(Certificate_Status_Code::NAME_CONSTRAINT_ERROR);
+            continue;
+         }
+
+         if(m_name_constraints.is_excluded(*cert, issuer_name_constraint_critical)) {
+            cert_status.at(j).insert(Certificate_Status_Code::NAME_CONSTRAINT_ERROR);
+            continue;
          }
       }
    }
+}
 
 namespace {
 
@@ -104929,16 +105336,35 @@ bool X509_Certificate::matches_dns_name(const std::string& name) const
    if(name.empty())
       return false;
 
-   std::vector<std::string> issued_names = subject_info("DNS");
+   bool is_ipv4 = false;
 
-   // Fall back to CN only if no DNS names are set (RFC 6125 sec 6.4.4)
-   if(issued_names.empty())
+   try {
+      string_to_ipv4(name);
+      is_ipv4 = true;
+      }
+   catch(...) {}
+
+   std::vector<std::string> issued_names;
+
+   if(subject_alt_name().has_items()) {
+      issued_names = subject_alt_name().get_attribute(is_ipv4 ? "IP" : "DNS");
+   } else if(is_ipv4 == false) {
+      // Use CN only if no SAN is included
       issued_names = subject_info("Name");
+   }
 
    for(size_t i = 0; i != issued_names.size(); ++i)
       {
-      if(host_wildcard_match(issued_names[i], name))
-         return true;
+      if(is_ipv4)
+         {
+         if(issued_names[i] == name)
+            return true;
+         }
+      else
+         {
+         if(host_wildcard_match(issued_names[i], name))
+            return true;
+         }
       }
 
    return false;
@@ -105233,6 +105659,70 @@ PKIX::check_chain(const std::vector<std::shared_ptr<const X509_Certificate>>& ce
    if(!cert_path[0]->allowed_usage(usage))
       cert_status[0].insert(Certificate_Status_Code::INVALID_USAGE);
 
+   for(size_t i = 0; i != cert_path.size(); ++i)
+      {
+      std::set<Certificate_Status_Code>& status = cert_status.at(i);
+
+      const bool at_self_signed_root = (i == cert_path.size() - 1);
+
+      const std::shared_ptr<const X509_Certificate>& subject = cert_path[i];
+
+      const std::shared_ptr<const X509_Certificate>& issuer = cert_path[at_self_signed_root ? (i) : (i + 1)];
+
+      std::unique_ptr<Public_Key> issuer_key(issuer->subject_public_key());
+
+      // Check the signature algorithm is known
+      if(OIDS::oid2str_or_empty(subject->signature_algorithm().get_oid()).empty())
+         {
+         status.insert(Certificate_Status_Code::SIGNATURE_ALGO_UNKNOWN);
+         }
+      else
+         {
+         // only perform the following checks if the signature algorithm is known
+         if(!issuer_key)
+            {
+            status.insert(Certificate_Status_Code::CERT_PUBKEY_INVALID);
+            }
+         else
+            {
+            const Certificate_Status_Code sig_status = subject->verify_signature(*issuer_key);
+
+            if(sig_status != Certificate_Status_Code::VERIFIED)
+               status.insert(sig_status);
+
+            if(issuer_key->estimated_strength() < min_signature_algo_strength)
+               status.insert(Certificate_Status_Code::SIGNATURE_METHOD_TOO_WEAK);
+            }
+
+         // Ignore untrusted hashes on self-signed roots
+         if(trusted_hashes.size() > 0 && !at_self_signed_root)
+            {
+            if(trusted_hashes.count(subject->hash_used_for_signature()) == 0)
+               status.insert(Certificate_Status_Code::UNTRUSTED_HASH);
+            }
+         }
+      }
+
+
+   // If any of the signatures were invalid, return immediately; we know the
+   // chain is invalid and signature failure is always considered the most
+   // critical result. This does mean other problems in the certificate (eg
+   // expired) will not be reported, but we'd have to assume any such data is
+   // anyway arbitrary considering we couldn't verify the signature chain
+
+   for(size_t i = 0; i != cert_path.size(); ++i)
+      {
+      for(auto status : cert_status.at(i))
+         {
+         // This ignores errors relating to the key or hash being weak since
+         // these are somewhat advisory
+         if(static_cast<uint32_t>(status) >= 5000)
+            {
+            return cert_status;
+            }
+         }
+      }
+
    if(cert_path[0]->is_CA_cert() == false &&
       cert_path[0]->has_constraints(KEY_CERT_SIGN))
       {
@@ -105295,39 +105785,6 @@ PKIX::check_chain(const std::vector<std::shared_ptr<const X509_Certificate>>& ce
       // Check issuer constraints
       if(!issuer->is_CA_cert() && !self_signed_ee_cert)
          status.insert(Certificate_Status_Code::CA_CERT_NOT_FOR_CERT_ISSUER);
-
-      std::unique_ptr<Public_Key> issuer_key(issuer->subject_public_key());
-
-      // Check the signature algorithm is known
-      if(OIDS::oid2str_or_empty(subject->signature_algorithm().get_oid()).empty())
-         {
-         status.insert(Certificate_Status_Code::SIGNATURE_ALGO_UNKNOWN);
-         }
-      else
-         {
-         // only perform the following checks if the signature algorithm is known
-         if(!issuer_key)
-            {
-            status.insert(Certificate_Status_Code::CERT_PUBKEY_INVALID);
-            }
-         else
-            {
-            const Certificate_Status_Code sig_status = subject->verify_signature(*issuer_key);
-
-            if(sig_status != Certificate_Status_Code::VERIFIED)
-               status.insert(sig_status);
-
-            if(issuer_key->estimated_strength() < min_signature_algo_strength)
-               status.insert(Certificate_Status_Code::SIGNATURE_METHOD_TOO_WEAK);
-            }
-
-         // Ignore untrusted hashes on self-signed roots
-         if(trusted_hashes.size() > 0 && !at_self_signed_root)
-            {
-            if(trusted_hashes.count(subject->hash_used_for_signature()) == 0)
-               status.insert(Certificate_Status_Code::UNTRUSTED_HASH);
-            }
-         }
 
       // Check cert extensions
 
@@ -105922,7 +106379,7 @@ PKIX::build_all_certificate_paths(std::vector<std::vector<std::shared_ptr<const 
 
          // push the latest certificate onto the path_so_far
          path_so_far.push_back(last);
-         certs_seen.emplace(fprint);
+         certs_seen.insert(fprint);
 
          // push a deletion marker on the stack for backtracing later
          stack.push_back({std::shared_ptr<const X509_Certificate>(nullptr),false});
@@ -108283,7 +108740,7 @@ size_t XTS_Mode::default_nonce_length() const
 
 bool XTS_Mode::valid_nonce_length(size_t n) const
    {
-   return cipher_block_size() == n;
+   return n <= cipher_block_size();
    }
 
 void XTS_Mode::key_schedule(const uint8_t key[], size_t length)
@@ -108303,6 +108760,7 @@ void XTS_Mode::start_msg(const uint8_t nonce[], size_t nonce_len)
       throw Invalid_IV_Length(name(), nonce_len);
 
    m_tweak.resize(update_granularity());
+   clear_mem(m_tweak.data(), m_tweak.size());
    copy_mem(m_tweak.data(), nonce, nonce_len);
    m_tweak_cipher->encrypt(m_tweak.data());
 
@@ -108497,7 +108955,7 @@ namespace {
 *     polynomial form -> index form    gf_log[ j = \alpha^i ] = i
 * \alpha=x is the primitive element of GF(2^m)
 */
-alignas(256) const uint8_t GF_EXP[255] = {
+BOTAN_ALIGNAS(256) const uint8_t GF_EXP[255] = {
    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1D, 0x3A, 0x74,
    0xE8, 0xCD, 0x87, 0x13, 0x26, 0x4C, 0x98, 0x2D, 0x5A, 0xB4, 0x75,
    0xEA, 0xC9, 0x8F, 0x03, 0x06, 0x0C, 0x18, 0x30, 0x60, 0xC0, 0x9D,
@@ -108524,7 +108982,7 @@ alignas(256) const uint8_t GF_EXP[255] = {
    0x47, 0x8E,
 };
 
-alignas(256) const uint8_t GF_LOG[256] = {
+BOTAN_ALIGNAS(256) const uint8_t GF_LOG[256] = {
    0xFF, 0x00, 0x01, 0x19, 0x02, 0x32, 0x1A, 0xC6, 0x03, 0xDF, 0x33,
    0xEE, 0x1B, 0x68, 0xC7, 0x4B, 0x04, 0x64, 0xE0, 0x0E, 0x34, 0x8D,
    0xEF, 0x81, 0x1C, 0xC1, 0x69, 0xF8, 0xC8, 0x08, 0x4C, 0x71, 0x05,
@@ -108550,7 +109008,7 @@ alignas(256) const uint8_t GF_LOG[256] = {
    0xD5, 0xE9, 0xE6, 0xE7, 0xAD, 0xE8, 0x74, 0xD6, 0xF4, 0xEA, 0xA8,
    0x50, 0x58, 0xAF };
 
-alignas(256) const uint8_t GF_INVERSE[256] = {
+BOTAN_ALIGNAS(256) const uint8_t GF_INVERSE[256] = {
    0x00, 0x01, 0x8E, 0xF4, 0x47, 0xA7, 0x7A, 0xBA, 0xAD, 0x9D, 0xDD,
    0x98, 0x3D, 0xAA, 0x5D, 0x96, 0xD8, 0x72, 0xC0, 0x58, 0xE0, 0x3E,
    0x4C, 0x66, 0x90, 0xDE, 0x55, 0x80, 0xA0, 0x83, 0x4B, 0x2A, 0x6C,
@@ -109201,7 +109659,7 @@ namespace {
  * b -> y(bx^4)
  * and the final output is the sum of these two outputs.
  */
-alignas(256) const uint8_t GFTBL[256*32] = {
+BOTAN_ALIGNAS(256) const uint8_t GFTBL[256*32] = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,

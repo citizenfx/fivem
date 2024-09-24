@@ -25,7 +25,7 @@ class Entropy_Sources;
 class BOTAN_PUBLIC_API(2,0) RandomNumberGenerator
    {
    public:
-      virtual ~RandomNumberGenerator() = default;
+      virtual ~RandomNumberGenerator() {}
 
       RandomNumberGenerator() = default;
 
