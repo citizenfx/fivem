@@ -1167,7 +1167,7 @@
 				</Item>
                 <Item>
                   <PoolName>InteriorProxy</PoolName>
-                  <PoolSize value="450"/>
+                  <PoolSize value="900"/>
                 </Item>
                 <Item>
                   <PoolName>IplStore</PoolName>
