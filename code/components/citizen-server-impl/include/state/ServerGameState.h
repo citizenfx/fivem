@@ -1197,7 +1197,6 @@ struct GameStateClientData
 {
 	rl::MessageBuffer ackBuffer{ 16384 };
 	std::unordered_set<int> objectIds;
-	std::unordered_set<int> reservedObjectIds;
 
 	std::mutex selfMutex;
 
