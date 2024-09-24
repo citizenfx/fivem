@@ -411,7 +411,10 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 		clientNetGameEvent.event.eventNameHash = eventIdentsToHash[ev->eventType];
 		clientNetGameEvent.event.data.SetValue(net::Span{static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength()});
 
-		g_netLibrary->SendNetPacket(clientNetGameEvent);
+		if (!g_netLibrary->SendNetPacket(clientNetGameEvent))
+		{
+			trace("Serialization of the net game event packet failed. Event target count: %d, Data length: %d\n", targetPlayersVector.size(), rlBuffer.GetDataLength());
+		}
 	}
 	else
 	{
@@ -422,7 +425,10 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 		clientNetGameEvent.event.eventType = ev->eventType;
 		clientNetGameEvent.event.data.SetValue({static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength() });
 
-		g_netLibrary->SendNetPacket(clientNetGameEvent);
+		if (!g_netLibrary->SendNetPacket(clientNetGameEvent))
+		{
+			trace("Serialization of the net game event packet failed. Event target count: %d, Data length: %d\n", targetPlayersVector.size(), rlBuffer.GetDataLength());
+		}
 	}
 }
 
@@ -941,7 +947,10 @@ static void DecideNetGameEvent(rage::netGameEvent* ev, CNetGamePlayer* player, C
 				clientNetGameEvent.event.eventNameHash = eventIdentsToHash[ev->eventType];
 				clientNetGameEvent.event.data = {static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength()};
 
-				g_netLibrary->SendNetPacket(clientNetGameEvent);
+				if (!g_netLibrary->SendNetPacket(clientNetGameEvent))
+				{
+					trace("Serialization of the net game event reply packet failed. Event target count: %d, Data length: %d\n", clientNetGameEvent.event.targetPlayers.GetValue().size(), rlBuffer.GetDataLength());
+				}
 			} else
 			{
 				net::packet::ClientNetGameEventPacket clientNetGameEvent;
@@ -959,7 +968,10 @@ static void DecideNetGameEvent(rage::netGameEvent* ev, CNetGamePlayer* player, C
 				clientNetGameEvent.event.eventType = ev->eventType;
 				clientNetGameEvent.event.data = {static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength()};
 
-				g_netLibrary->SendNetPacket(clientNetGameEvent);
+				if (!g_netLibrary->SendNetPacket(clientNetGameEvent))
+				{
+					trace("Serialization of the net game event reply packet failed. Event target count: %d, Data length: %d\n", clientNetGameEvent.event.targetPlayers.GetValue().size(), rlBuffer.GetDataLength());
+				}
 			}
 		}
 	}
