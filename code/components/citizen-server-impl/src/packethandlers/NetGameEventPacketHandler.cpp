@@ -5,7 +5,7 @@
 #include <Client.h>
 #include <state/ServerGameStatePublic.h>
 
-#include <NetGameEventV2.h>
+#include <NetGameEventPacket.h>
 #include <SerializableComponent.h>
 
 #include <ByteReader.h>

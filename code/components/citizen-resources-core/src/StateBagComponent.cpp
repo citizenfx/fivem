@@ -58,7 +58,9 @@ public:
 	void UnregisterStateBag(std::string_view id);
 
 	// #TODO: this should eventually actually queue a send to allow for throttling
-	void QueueSend(int target, std::string_view packet);
+	void QueueSend(int target, net::packet::StateBagPacket& packet);
+
+	void QueueSend(int target, net::packet::StateBagV2Packet& packet);
 
 	inline std::tuple<std::shared_lock<std::shared_mutex>, std::reference_wrapper<const std::unordered_set<int>>> GetTargets()
 	{
@@ -395,15 +397,13 @@ void StateBagImpl::SendKeyValue(int target, std::string_view key, std::string_vi
 	// new server will accept this message
 	if (m_parent->GetRole() == StateBagRole::ClientV2)
 	{
-		static thread_local std::vector<uint8_t> dataBuffer(131072);
-
 		if (!key.empty() && !value.empty())
 		{
-			net::ByteWriter writer (dataBuffer.data(), 131072);
-			net::packet::StateBagV2 stateBagMessage (m_id, key, value);
-			stateBagMessage.Process(writer);
-
-			m_parent->QueueSend(target, std::string_view{ reinterpret_cast<const char*>(dataBuffer.data()), writer.GetOffset() });
+			net::packet::StateBagV2Packet stateBagPacket;
+			stateBagPacket.data.stateBagName = m_id;
+			stateBagPacket.data.key = key;
+			stateBagPacket.data.data = value;
+			m_parent->QueueSend(target, stateBagPacket);
 		}
 	}
 	else
@@ -429,7 +429,9 @@ void StateBagImpl::SendKeyValue(int target, std::string_view key, std::string_vi
 				dataBuffer.WriteBits(value.data(), value.size() * 8);
 			}
 
-			m_parent->QueueSend(target, std::string_view{ reinterpret_cast<const char*>(dataBuffer.GetBuffer().data()), dataBuffer.GetCurrentBit() / 8 });
+			net::packet::StateBagPacket stateBagPacket;
+			stateBagPacket.data.data = std::string_view{ reinterpret_cast<const char*>(dataBuffer.GetBuffer().data()), dataBuffer.GetCurrentBit() / 8 };
+			m_parent->QueueSend(target, stateBagPacket);
 		}
 	}
 }
@@ -788,7 +790,12 @@ void StateBagComponentImpl::HandlePacketV2(int source, net::packet::StateBagV2& 
 	}
 }
 
-void StateBagComponentImpl::QueueSend(int target, std::string_view packet)
+void StateBagComponentImpl::QueueSend(int target, net::packet::StateBagPacket& packet)
+{
+	m_gameInterface->SendPacket(target, packet);
+}
+
+void StateBagComponentImpl::QueueSend(int target, net::packet::StateBagV2Packet& packet)
 {
 	m_gameInterface->SendPacket(target, packet);
 }

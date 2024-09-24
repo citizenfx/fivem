@@ -34,7 +34,10 @@
 
 #include <json.hpp>
 
+#include "IHostPacketHandler.h"
+#include "IQuit.h"
 #include "NetBitVersion.h"
+#include "NetEvent.h"
 
 #ifdef FIVEM_INTERNAL_POSTMAP
 #include "InternalServerPostmap_includes.h"
@@ -558,11 +561,11 @@ void NetLibrary::SendReliablePacket(uint32_t type, const char* buffer, size_t le
 	}
 }
 
-void NetLibrary::SendUnreliableCommand(const char* type, const char* buffer, size_t length)
+void NetLibrary::SendUnreliablePacket(uint32_t type, const char* buffer, size_t length)
 {
 	if (auto impl = GetImpl())
 	{
-		impl->SendUnreliableCommand(HashRageString(type), buffer, length);
+		impl->SendUnreliablePacket(type, buffer, length);
 	}
 }
 
@@ -2005,7 +2008,9 @@ void NetLibrary::Disconnect(const char* reason)
 	{
 		m_disconnecting = true;
 
-		SendReliableCommand("msgIQuit", g_disconnectReason.c_str(), g_disconnectReason.length() + 1);
+		net::packet::ClientIQuitPacket clientIQuit;
+		clientIQuit.data.reason = {reason, g_disconnectReason.size() + 1};
+		SendNetPacket(clientIQuit);
 
 		if (auto impl = GetImpl())
 		{
@@ -2147,34 +2152,12 @@ bool NetLibrary::ProcessPreGameTick()
 	return true;
 }
 
-void NetLibrary::SendNetEvent(const std::string& eventName, const std::string& jsonString, int i)
+void NetLibrary::SendNetEvent(const std::string& eventName, const std::string& jsonString)
 {
-	const char* cmdType = "msgNetEvent";
-
-	if (i == -1)
-	{
-		i = UINT16_MAX;
-	}
-	else if (i == -2)
-	{
-		cmdType = "msgServerEvent";
-	}
-
-	size_t eventNameLength = eventName.length();
-
-	net::Buffer buffer;
-
-	if (i >= 0)
-	{
-		buffer.Write<uint16_t>(i);
-	}
-
-	buffer.Write<uint16_t>(uint16_t(eventNameLength + 1));
-	buffer.Write(eventName.c_str(), eventNameLength + 1);
-
-	buffer.Write(jsonString.c_str(), jsonString.size());
-	
-	SendReliableCommand(cmdType, reinterpret_cast<const char*>(buffer.GetBuffer()), buffer.GetCurOffset());
+	net::packet::ClientServerEventPacket clientServerEvent;
+	clientServerEvent.data.eventName = {reinterpret_cast<uint8_t*>(const_cast<char*>(eventName.c_str())), eventName.length() + 1};
+	clientServerEvent.data.eventData = {reinterpret_cast<uint8_t*>(const_cast<char*>(jsonString.c_str())), jsonString.size()};
+	SendNetPacket(clientServerEvent);
 }
 
 /*void NetLibrary::AddReliableHandler(const char* type, ReliableHandlerType function)
@@ -2191,7 +2174,7 @@ NetLibrary::NetLibrary()
 }
 
 __declspec(dllexport) fwEvent<NetLibrary*> NetLibrary::OnNetLibraryCreate;
-__declspec(dllexport) fwEvent<const std::function<void(uint32_t, const char*, int)>&> NetLibrary::OnBuildMessage;
+__declspec(dllexport) fwEvent<> NetLibrary::OnBuildMessage;
 
 NetLibrary* NetLibrary::Create()
 {
@@ -2199,15 +2182,7 @@ NetLibrary* NetLibrary::Create()
 
 	lib->CreateResources();
 
-	lib->AddReliableHandler("msgIHost", [=] (const char* buf, size_t len)
-	{
-		net::Buffer buffer(reinterpret_cast<const uint8_t*>(buf), len);
-
-		uint16_t hostNetID = buffer.Read<uint16_t>();
-		uint32_t hostBase = buffer.Read<uint32_t>();
-
-		lib->SetHost(hostNetID, hostBase);
-	});
+	lib->AddPacketHandler<fx::IHostPacketHandler>(false, lib);
 
 	OnNetLibraryCreate(lib);
 

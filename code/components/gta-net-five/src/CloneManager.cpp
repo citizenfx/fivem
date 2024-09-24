@@ -42,6 +42,13 @@
 
 #include <ByteReader.h>
 
+#include "GameStateAck.h"
+#include "GameStateNAck.h"
+#include "PackedAcksPacketHandler.h"
+#include "PackedClonesPacketHandler.h"
+#include "StateBagPacketHandler.h"
+#include "StateBagV2PacketHandler.h"
+
 extern rage::netObject* g_curNetObjectSelection;
 rage::netObject* g_curNetObject;
 
@@ -160,6 +167,9 @@ public:
 		}
 	}
 
+	void HandleCloneSync(const char* data, size_t len) override;
+	void HandleCloneAcks(const char* data, size_t len) override;
+
 private:
 	void WriteUpdates();
 
@@ -172,10 +182,6 @@ private:
 	void AttemptFlushAckBuffer();
 
 private:
-	void HandleCloneAcks(const char* data, size_t len);
-
-	void HandleCloneSync(const char* data, size_t len);
-
 	bool HandleCloneCreate(const msgClone& msg);
 
 	AckResult HandleCloneUpdate(const msgClone& msg);
@@ -194,7 +200,9 @@ private:
 
 	void ProcessTimestampAck(uint32_t timestamp);
 
-	virtual void SendPacket(int peer, std::string_view data) override;
+	void SendPacket(int peer, net::packet::StateBagPacket& data) override;
+
+	void SendPacket(int peer, net::packet::StateBagV2Packet& data) override;
 
 private:
 	NetLibrary* m_netLibrary;
@@ -328,16 +336,14 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 	m_savedEntityVec.erase(std::remove(m_savedEntityVec.begin(), m_savedEntityVec.end(), netObject), m_savedEntityVec.end());
 }
 
-void CloneManagerLocal::SendPacket(int peer, std::string_view data)
+void CloneManagerLocal::SendPacket(int peer, net::packet::StateBagPacket& packet)
 {
-	if (m_sbac->GetRole() == fx::StateBagRole::ClientV2)
-	{
-		m_netLibrary->SendReliableCommand("msgStateBagV2", data.data(), data.size());
-	}
-	else
-	{
-		m_netLibrary->SendReliableCommand("msgStateBag", data.data(), data.size());	
-	}
+	m_netLibrary->SendNetPacket(packet);
+}
+
+void CloneManagerLocal::SendPacket(int peer, net::packet::StateBagV2Packet& packet)
+{
+	m_netLibrary->SendNetPacket(packet);
 }
 
 void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
@@ -346,19 +352,8 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	m_netLibrary = netLibrary;
 
 	// add message handlers
-	m_netLibrary->AddReliableHandler(
-	"msgPackedClones", [this](const char* data, size_t len)
-	{
-		HandleCloneSync(data, len);
-	},
-	true);
-
-	m_netLibrary->AddReliableHandler(
-	"msgPackedAcks", [this](const char* data, size_t len)
-	{
-		HandleCloneAcks(data, len);
-	},
-	true);
+	m_netLibrary->AddPacketHandler<fx::PackedClonesPacketHandler>(true);
+	m_netLibrary->AddPacketHandler<fx::PackedAcksPacketHandler>(true);
 
 	std::thread([this]()
 	{
@@ -437,22 +432,8 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 
 	m_sbac = sbac;
 
-	m_netLibrary->AddReliableHandler(
-	"msgStateBag", [this](const char* data, size_t len)
-	{
-		m_sbac->HandlePacket(0, std::string_view{ data, len });
-	},
-	true);
-
-	m_netLibrary->AddReliableHandler(
-	"msgStateBagV2", [this](const char* data, size_t len)
-	{
-		net::ByteReader reader (reinterpret_cast<const uint8_t*>(data), len);
-		net::packet::StateBagV2 stateBag;
-		stateBag.Process(reader);
-		m_sbac->HandlePacketV2(0, stateBag);
-	},
-	true);
+	m_netLibrary->AddPacketHandler<fx::StateBagPacketHandler>(true, m_sbac);
+	m_netLibrary->AddPacketHandler<fx::StateBagV2PacketHandler>(true, m_sbac);
 
 	fx::ResourceManager::OnInitializeInstance.Connect([sbac](fx::ResourceManager* rm)
 	{
@@ -1505,7 +1486,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		drillTs = 0;
 	}
 
-	static std::vector<std::tuple<uint16_t, uint64_t>> ignoreList;
+	static std::vector<net::packet::ClientGameStateNAck::IgnoreListEntry> ignoreList;
 	static std::vector<uint16_t> recreateList;
 
 	for (auto& clone : msg.GetClones())
@@ -1608,26 +1589,13 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 
 		if (isLast)
 		{
-			net::Buffer outBuffer;
-			outBuffer.Write<uint64_t>(frameIndex);
-			outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
-
-			for (auto [entry, lastFrame] : ignoreList)
-			{
-				outBuffer.Write<uint16_t>(entry);
-				outBuffer.Write<uint64_t>(lastFrame);
-			}
-
-			outBuffer.Write<uint8_t>(uint8_t(recreateList.size()));
-
-			for (uint16_t entry : recreateList)
-			{
-				outBuffer.Write<uint16_t>(entry);
-			}
-
 			Log("GSAck for frame index %d w/ %d ignore and %d rec\n", frameIndex, ignoreList.size(), recreateList.size());
 
-			m_netLibrary->SendUnreliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+			net::packet::ClientGameStateAckPacket gameStateAckPacket;
+			gameStateAckPacket.data.SetFrameIndex(frameIndex);
+			gameStateAckPacket.data.SetIgnoreList(ignoreList);
+			gameStateAckPacket.data.SetRecreateList(recreateList);
+			m_netLibrary->SendNetPacket(gameStateAckPacket, false);
 
 			ignoreList.clear();
 			recreateList.clear();
@@ -1640,53 +1608,27 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			return;
 		}
 
-		uint8_t flags = 8;
-		if (isMissingFrames)
-		{
-			flags |= 1;
-		}
-		if (!ignoreList.empty())
-		{
-			flags |= 2;
-		}
-		if (!recreateList.empty())
-		{
-			flags |= 4;
-		}
-
-		net::Buffer outBuffer;
-		outBuffer.Write<uint8_t>(flags);
-
 		FrameIndex newIndex(msg.GetFrameIndex());
 
-		outBuffer.Write<uint64_t>(newIndex.frameIndex);
+		net::packet::ClientGameStateNAckPacket gameStateNAckPacket;
+		gameStateNAckPacket.data.SetFrameIndex(newIndex.frameIndex);
 
 		if (isMissingFrames)
 		{
-			outBuffer.Write<uint64_t>(firstMissingFrame);
-			outBuffer.Write<uint64_t>(lastMissingFrame);
+			gameStateNAckPacket.data.SetIsMissingFrames(isMissingFrames, firstMissingFrame, lastMissingFrame);
 		}
 
 		if (!ignoreList.empty())
 		{
-			outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
-			for (auto [entry, lastFrame] : ignoreList)
-			{
-				outBuffer.Write<uint16_t>(entry);
-				outBuffer.Write<uint64_t>(lastFrame);
-			}
+			gameStateNAckPacket.data.SetIgnoreList(ignoreList);
 		}
 
 		if (!recreateList.empty())
 		{
-			outBuffer.Write<uint8_t>(uint8_t(recreateList.size()));
-			for (uint16_t entry : recreateList)
-			{
-				outBuffer.Write<uint16_t>(entry);
-			}
+			gameStateNAckPacket.data.SetRecreateList(recreateList);
 		}
 
-		m_netLibrary->SendReliableCommand("gameStateNAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+		m_netLibrary->SendNetPacket(gameStateNAckPacket);
 
 		ignoreList.clear();
 		recreateList.clear();

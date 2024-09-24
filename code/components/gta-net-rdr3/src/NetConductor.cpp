@@ -103,7 +103,7 @@ public:
 
 							if (g_netLibrary)
 							{
-								g_netLibrary->SendNetEvent("__cfx_internal:pbRlScSession", std::string(nameArgs.data(), nameArgs.size()), -2);
+								g_netLibrary->SendNetEvent("__cfx_internal:pbRlScSession", std::string(nameArgs.data(), nameArgs.size()));
 							}
 						});
 					}

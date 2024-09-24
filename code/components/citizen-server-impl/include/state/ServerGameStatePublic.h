@@ -19,9 +19,11 @@
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include <NetGameEventV2.h>
+#include <NetGameEventPacket.h>
 
 #include "ArrayUpdate.h"
+#include "GameStateAck.h"
+#include "GameStateNAck.h"
 
 namespace fx
 {
@@ -59,6 +61,10 @@ class ServerGameStatePublic : public fwRefCountable
 public:
 	virtual void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) = 0;
 
+	virtual void HandleGameStateNAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateNAck& buffer) = 0;
+
+	virtual void HandleGameStateAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateAck& buffer) = 0;
+	
 	virtual void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds) = 0;
 
 	virtual SyncStyle GetSyncStyle() = 0;

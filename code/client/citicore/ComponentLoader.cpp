@@ -38,13 +38,6 @@ void ComponentLoader::Initialize()
 
     g_initialized = true;
 
-	// run local initialization functions
-	InitFunctionBase::RunAll();
-
-	// set up the root component
-	m_rootComponent = FxGameComponent::Create();
-	AddComponent(m_rootComponent);
-
 	// parse and load additional components
 	fwPlatformString componentsName = _P("components.json");
 	FILE* componentCache = _pfopen(MakeRelativeCitPath(componentsName).c_str(), _P("rb"));
@@ -65,6 +58,18 @@ void ComponentLoader::Initialize()
 	cacheBuf[length] = '\0';
 
 	fclose(componentCache);
+
+	InitializeWithString({cacheBuf.data(), cacheBuf.size()});
+}
+
+void ComponentLoader::InitializeWithString(std::string_view cacheBuf)
+{
+	// run local initialization functions
+	InitFunctionBase::RunAll();
+
+	// set up the root component
+	m_rootComponent = FxGameComponent::Create();
+	AddComponent(m_rootComponent);
 
 	// parse the list
 	rapidjson::Document doc;

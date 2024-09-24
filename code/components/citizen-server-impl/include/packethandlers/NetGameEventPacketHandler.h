@@ -6,8 +6,6 @@
 
 #include <Client.h>
 
-#include <EASTL/span.h>
-
 #include "ComponentExport.h"
 
 class NetGameEventPacketHandlerV2

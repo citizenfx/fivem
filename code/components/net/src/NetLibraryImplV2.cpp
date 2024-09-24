@@ -28,7 +28,7 @@ public:
 
 	virtual void SendReliablePacket(uint32_t type, const char* buffer, size_t length) override;
 
-	virtual void SendUnreliableCommand(uint32_t type, const char* buffer, size_t length) override;
+	virtual void SendUnreliablePacket(uint32_t type, const char* buffer, size_t length) override;
 
 	virtual bool HasTimedOut() override;
 
@@ -140,15 +140,11 @@ void NetLibraryImplV2::SendReliablePacket(uint32_t type, const char* buffer, siz
 	m_base->GetMetricSink()->OnOutgoingCommand(type, length, true);
 }
 
-void NetLibraryImplV2::SendUnreliableCommand(uint32_t type, const char* buffer, size_t length)
+void NetLibraryImplV2::SendUnreliablePacket(uint32_t type, const char* buffer, size_t length)
 {
-	net::Buffer msg;
-	msg.Write(type);
-	msg.Write(buffer, length);
-
 	if (!m_timedOut && m_serverPeer)
 	{
-		ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), (ENetPacketFlag)0);
+		ENetPacket* packet = enet_packet_create(buffer, length, (ENetPacketFlag)0);
 
 		enet_peer_send(m_serverPeer, 0, packet);
 	}
@@ -318,7 +314,7 @@ void NetLibraryImplV2::RunFrame()
 			m_base->AddSendTick();
 		}
 
-		NetLibrary::OnBuildMessage(std::bind(&NetLibraryImplV2::SendReliableCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+		NetLibrary::OnBuildMessage();
 	}
 }
 

@@ -11,6 +11,7 @@
 #include "ByteReader.h"
 #include "GameServer.h"
 #include "HeHost.h"
+#include "IHost.h"
 
 namespace fx
 {
@@ -132,11 +133,13 @@ namespace fx
 					// set as host and tell everyone
 					clientRegistry->SetHost(newClient);
 
-					net::Buffer hostBroadcast;
-					hostBroadcast.Write(net::force_consteval<uint32_t, HashRageString("msgIHost")>);
-					hostBroadcast.Write<uint16_t>(newClient->GetNetId());
-					hostBroadcast.Write(newClient->GetNetBase());
-
+					net::Buffer hostBroadcast(net::SerializableComponent::GetSize<net::packet::ServerIHostPacket>());
+					net::packet::ServerIHostPacket serverIHostPacket;
+					serverIHostPacket.data.netId = newClient->GetNetId();
+					serverIHostPacket.data.baseNum = newClient->GetNetBase();
+					net::ByteWriter writer(hostBroadcast.GetBuffer(), hostBroadcast.GetLength());
+					serverIHostPacket.Process(writer);
+					hostBroadcast.Seek(writer.GetOffset());
 					gameServer->Broadcast(hostBroadcast);
 				}
 			}

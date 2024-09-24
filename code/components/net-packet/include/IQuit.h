@@ -10,7 +10,7 @@ class ClientIQuit : public SerializableComponent
 {
 public:
 	// todo: uses null terminator, in future net version remove it
-	SerializableProperty<std::string_view, storage_type::ConstrainedStreamTail<1, 1024>> reason;
+	SerializableProperty<Span<const char>, storage_type::ConstrainedStreamTail<2, 1024>> reason;
 
 	template<typename T>
 	bool Process(T& stream)

@@ -1271,8 +1271,12 @@ public:
 
 	void HandleClientDrop(const fx::ClientSharedPtr& client, uint16_t netId, uint32_t slotId);
 
-	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer);
+	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) override;
 
+	void HandleGameStateNAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateNAck& buffer) override;
+
+	void HandleGameStateAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateAck& buffer) override;
+	
 	void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds);
 
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
@@ -1464,7 +1468,9 @@ private:
 public:
 	bool MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client);
 
-	void SendPacket(int peer, std::string_view data) override;
+	void SendPacket(int peer, net::packet::StateBagPacket& packet) override;
+
+	void SendPacket(int peer, net::packet::StateBagV2Packet& packet) override;
 
 	bool IsAsynchronous() override;
 

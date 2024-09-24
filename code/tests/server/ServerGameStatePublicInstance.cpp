@@ -9,6 +9,9 @@
 
 #include <state/ServerGameStatePublic.h>
 
+#include "GameStateNAck.h"
+#include "GameStateAck.h"
+
 class ServerGameStatePublicImpl : public fx::ServerGameStatePublic
 {
 public:
@@ -17,6 +20,10 @@ public:
 	static inline std::optional<fx::ServerGameStatePublicInstance::GameEventHandler> gameEventHandlerLastCall{};
 
 	static inline std::optional<fx::ServerGameStatePublicInstance::ArrayUpdateData> arrayUpdateLastCall{};
+
+	static inline std::optional<fx::ServerGameStatePublicInstance::GameStateNAckData> gameStateNAckLastCall{};
+
+	static inline std::optional<fx::ServerGameStatePublicInstance::GameStateAckData> gameStateAckLastCall{};
 
 	static inline std::function<bool()> gameEventHandler;
 
@@ -79,6 +86,16 @@ public:
 	{
 		arrayUpdateLastCall.emplace(client, buffer.handler.GetValue(), buffer.index.GetValue(), std::vector<uint8_t>{ buffer.data.GetValue().begin(), buffer.data.GetValue().end() });
 	}
+
+	void HandleGameStateNAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateNAck& buffer) override
+	{
+		gameStateNAckLastCall.emplace(client, buffer.GetFlags(), buffer.GetFrameIndex(), buffer.GetFirstMissingFrame(), buffer.GetLastMissingFrame(), std::vector<net::packet::ClientGameStateNAck::IgnoreListEntry>{ buffer.GetIgnoreList().begin(), buffer.GetIgnoreList().end() }, std::vector<uint16_t>{ buffer.GetRecreateList().begin(), buffer.GetRecreateList().end() });
+	}
+
+	void HandleGameStateAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateAck& buffer) override
+	{
+		gameStateAckLastCall.emplace(client, buffer.GetFrameIndex(), std::vector<net::packet::ClientGameStateNAck::IgnoreListEntry>{ buffer.GetIgnoreList().begin(), buffer.GetIgnoreList().end() }, std::vector<uint16_t>{ buffer.GetRecreateList().begin(), buffer.GetRecreateList().end() });
+	}
 };
 
 fx::ServerGameStatePublic* fx::ServerGameStatePublicInstance::Create()
@@ -114,6 +131,16 @@ std::vector<uint16_t>& fx::ServerGameStatePublicInstance::GetFreeObjectIds()
 std::optional<fx::ServerGameStatePublicInstance::ArrayUpdateData>& fx::ServerGameStatePublicInstance::GetArrayUpdateLastCall()
 {
 	return ServerGameStatePublicImpl::arrayUpdateLastCall;
+}
+
+std::optional<fx::ServerGameStatePublicInstance::GameStateNAckData>& fx::ServerGameStatePublicInstance::GetGameStateNAckLastCall()
+{
+	return ServerGameStatePublicImpl::gameStateNAckLastCall;
+}
+
+std::optional<fx::ServerGameStatePublicInstance::GameStateAckData>& fx::ServerGameStatePublicInstance::GetGameStateAckLastCall()
+{
+	return ServerGameStatePublicImpl::gameStateAckLastCall;
 }
 
 std::function<bool()>& fx::ServerGameStatePublicInstance::GetGameEventHandler()

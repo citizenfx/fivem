@@ -1,12 +1,54 @@
 #pragma once
 
 #include "SerializableComponent.h"
-#include "SerializableOptional.h"
 #include "SerializableProperty.h"
 #include "SerializableStorageType.h"
 
 namespace net::packet
 {
+class ServerArrayUpdate : public SerializableComponent
+{
+public:
+	SerializableProperty<uint8_t> handler;
+	SerializableProperty<uint16_t> ownerNetId;
+	// todo: in future net version change to uint16_t like packet from client to server
+	SerializableProperty<uint32_t> index;
+	// todo: in future net version use ConstrainedStreamTail
+	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedBigBytesArray<0, 128>> data;
+
+	template<typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPropertiesInOrder<T>(
+			stream,
+			handler,
+			ownerNetId,
+			index,
+			data
+		);
+	}
+};
+
+/// <summary>
+/// Announcement from the server to the client for updating the array handler
+/// </summary>
+class ServerArrayUpdatePacket : public SerializableComponent
+{
+public:
+	SerializableProperty<uint32_t> type{ HashRageString("msgArrayUpdate") };
+	ServerArrayUpdate data;
+
+	template<typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPropertiesInOrder<T>(
+			stream,
+			type,
+			data
+		);
+	}
+};
+
 class ClientArrayUpdate : public SerializableComponent
 {
 public:

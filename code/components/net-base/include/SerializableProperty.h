@@ -97,6 +97,11 @@ namespace net
 			return m_value;
 		}
 
+		Type GetValue() const
+		{
+			return m_value;
+		}
+
 		void SetValue(const Type& value)
 		{
 			m_value = value;

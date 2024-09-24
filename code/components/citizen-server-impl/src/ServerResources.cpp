@@ -43,7 +43,10 @@
 
 #include <utf8.h>
 
+#include "ByteWriter.h"
+#include "ResourcePacket.h"
 #include "ScriptDeprecations.h"
+#include "SerializableComponent.h"
 
 // a set of resources that are system-managed and should not be stopped from script
 static std::set<std::string> g_managedResources = {
@@ -564,10 +567,12 @@ static InitFunction initFunction([]()
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 				auto trl = instance->GetComponent<fx::TokenRateLimiter>();
 
-				net::Buffer outBuffer;
-				outBuffer.Write(HashRageString("msgResStart"));
-				outBuffer.Write(resource->GetName().c_str(), resource->GetName().length());
-
+				net::Buffer outBuffer(4 + resource->GetName().size());
+				net::ByteWriter writer(outBuffer.GetBuffer(), outBuffer.GetLength());
+				net::packet::ServerResourceStartPacket serverResourceStart;
+				serverResourceStart.data.resourceName.SetValue({resource->GetName().data(), resource->GetName().size()});
+				serverResourceStart.Process(writer);
+				outBuffer.Seek(writer.GetOffset());
 				clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 				{
 					client->SendPacket(0, outBuffer, NetPacketType_Reliable);
@@ -599,9 +604,12 @@ static InitFunction initFunction([]()
 
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-				net::Buffer outBuffer;
-				outBuffer.Write(HashRageString("msgResStop"));
-				outBuffer.Write(resource->GetName().c_str(), resource->GetName().length());
+				net::Buffer outBuffer(4 + resource->GetName().size());
+				net::ByteWriter writer(outBuffer.GetBuffer(), outBuffer.GetLength());
+				net::packet::ServerResourceStopPacket serverResourceStop;
+				serverResourceStop.data.resourceName.SetValue({resource->GetName().data(), resource->GetName().size()});
+				serverResourceStop.Process(writer);
+				outBuffer.Seek(writer.GetOffset());
 
 				clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 				{

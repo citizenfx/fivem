@@ -192,6 +192,8 @@ private:
 public:
 	void Initialize();
 
+	void InitializeWithString(std::string_view cacheBuf);
+
 	void DoGameLoad(void* hModule);
 
 	void ForAllComponents(const std::function<void(fwRefContainer<ComponentData>)>& callback);

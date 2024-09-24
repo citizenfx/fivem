@@ -2,7 +2,6 @@
 #include <random>
 
 #include <catch_amalgamated.hpp>
-#include <iostream>
 #include <shared_mutex>
 #include <citizen_util/object_pool.h>
 

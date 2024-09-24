@@ -9,7 +9,7 @@
 #include "ByteWriter.h"
 #include "ClientMetricData.h"
 #include "GameServer.h"
-#include "NetGameEventV2.h"
+#include "NetGameEventPacket.h"
 #include "ServerInstance.h"
 #include "packethandlers/NetGameEventPacketHandler.h"
 
