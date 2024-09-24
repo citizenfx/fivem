@@ -55,6 +55,8 @@ namespace fx
 		std::shared_mutex m_handlersMutex;
 
 		uint16_t m_handlerConnectionTimeout { 300 };
+
+		std::shared_ptr<ConVar<bool>> m_Http2Var;
 	};
 }
 
