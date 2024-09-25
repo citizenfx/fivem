@@ -13,7 +13,7 @@ public:
 	SerializableProperty<uint16_t> eventId;
 	SerializableProperty<uint8_t> isReply;
 	SerializableProperty<uint16_t> eventType;
-	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedBytesArray<1, 1024>> data;
+	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedBytesArray<0, 1025>> data;
 
 	template<typename T>
 	bool Process(T& stream)
@@ -57,7 +57,7 @@ public:
 	SerializableProperty<uint32_t> eventNameHash;
 	SerializableProperty<uint16_t> eventId;
 	SerializableProperty<bool> isReply{ false };
-	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedStreamTail<1, 1024>> data;
+	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedStreamTail<0, 1025>> data;
 
 	template<typename T>
 	bool Process(T& stream)
@@ -108,7 +108,7 @@ public:
 	SerializableProperty<uint32_t> eventNameHash;
 	SerializableProperty<uint16_t> eventId;
 	SerializableProperty<bool> isReply{ false };
-	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedStreamTail<1, 1024>> data;
+	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedStreamTail<0, 1025>> data;
 
 	template<typename T>
 	bool Process(T& stream)
@@ -147,7 +147,7 @@ public:
 class ServerNetGameEvent : public SerializableComponent
 {
 public:
-	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedStreamTail<1, 2048>> data;
+	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedStreamTail<0, 2048>> data;
 
 	template<typename T>
 	bool Process(T& stream)

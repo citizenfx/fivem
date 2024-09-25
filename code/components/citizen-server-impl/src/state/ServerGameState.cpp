@@ -6717,7 +6717,6 @@ template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer, const std::vector<uint16_t>& targetPlayers = {}) -> std::function<bool()>
 {
 	rl::MessageBufferView msgBuf;
-
 	if (!ParseEvent(buffer, &msgBuf))
 	{
 		return []()
@@ -6727,7 +6726,10 @@ inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedP
 	}
 
 	auto ev = std::make_shared<TEvent>();
-	ev->Parse(msgBuf);
+	if (msgBuf.GetLength())
+	{
+		ev->Parse(msgBuf);
+	}
 
 	if constexpr (HasTargetPlayerSetter<TEvent>(0))
 	{
@@ -6744,10 +6746,12 @@ inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedP
 template<typename TEvent>
 inline auto GetHandlerWithEvent(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientNetGameEventV2& netGameEvent, const std::vector<uint16_t>& targetPlayers = {}) -> std::function<bool()>
 {
-	rl::MessageBufferView msgBuf { netGameEvent.data.GetValue() };
-
 	auto ev = std::make_shared<TEvent>();
-	ev->Parse(msgBuf);
+	if (!netGameEvent.data.GetValue().empty())
+	{
+		rl::MessageBufferView msgBuf { netGameEvent.data.GetValue() };
+		ev->Parse(msgBuf);
+	}
 
 	if constexpr (HasTargetPlayerSetter<TEvent>(0))
 	{
