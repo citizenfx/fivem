@@ -17,7 +17,7 @@ public:
 	SerializableProperty<uint16_t> sourceNetId{ static_cast<uint16_t>(-1) };
 	// todo: convert event name to a std::string_view in future net version after removing null terminator
 	SerializableProperty<net::Span<uint8_t>, storage_type::ConstrainedBytesArray<2, UINT16_MAX>> eventName;
-	SerializableProperty<net::Span<uint8_t>, storage_type::ConstrainedStreamTail<0, 384 * 1024>> eventData;
+	SerializableProperty<net::Span<uint8_t>, storage_type::StreamTail> eventData;
 
 	template<typename T>
 	bool Process(T& stream)
