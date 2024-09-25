@@ -140,6 +140,13 @@ namespace
 	void EnableEventReassemblyChanged(internal::ConsoleVariableEntry<bool>* variableEntry)
 	{
 		const auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// null when the convar is declared before any resource is started
+		if (!resourceManager)
+		{
+			return;
+		}
+
 		const auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 		const auto rac = resourceManager->GetComponent<fx::EventReassemblyComponent>();
 
