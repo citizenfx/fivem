@@ -195,3 +195,28 @@ TEST_CASE("Serializable component property")
 
 	REQUIRE(instanceRead.component.GetValue().value.GetValue() == random);
 }
+
+namespace SerializableComponentUnlimitedSizeTest
+{
+class Component: public net::SerializableComponent
+{
+public:
+	net::SerializableProperty<uint8_t> value1 {};
+	net::SerializableProperty<net::Span<uint8_t>, net::storage_type::StreamTail> value2 {};
+
+	template <typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPropertiesInOrder<T>(
+			stream,
+			value1,
+			value2
+		);
+	}
+};
+}
+
+TEST_CASE("Serializable component size of unlimited size")
+{
+	REQUIRE(net::SerializableComponent::GetSize<SerializableComponentUnlimitedSizeTest::Component>() == UINT64_MAX);
+}
