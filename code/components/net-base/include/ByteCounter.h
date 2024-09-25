@@ -38,7 +38,14 @@ namespace net
 		template <typename T>
 		bool Field(T& value)
 		{
-			m_counter += sizeof(value);
+			const uint64_t size = sizeof(value);
+			if (m_counter > m_counter + size)
+			{
+				m_counter = std::numeric_limits<uint64_t>::max();
+				return true;
+			}
+
+			m_counter += size;
 			return true;
 		}
 
@@ -51,6 +58,12 @@ namespace net
 		template <typename T>
 		bool Field(T& value, const size_t size)
 		{
+			if (m_counter > m_counter + size)
+			{
+				m_counter = std::numeric_limits<uint64_t>::max();
+				return true;
+			}
+
 			m_counter += size;
 			return true;
 		}
@@ -64,8 +77,14 @@ namespace net
 		template <typename T>
 		bool Field(Span<T>& value, const size_t size)
 		{
-			m_counter += size * sizeof(T);
-		
+			const uint64_t valueSize = size * sizeof(T);
+			if (m_counter > m_counter + valueSize)
+			{
+				m_counter = std::numeric_limits<uint64_t>::max();
+				return true;
+			}
+	
+			m_counter += valueSize;
 			return true;
 		}
 	};
@@ -73,13 +92,26 @@ namespace net
 	template <>
 	inline bool ByteCounter::Field<bool>(bool& value)
 	{
-		m_counter += 1;
+		const uint64_t valueSize = 1;
+		if (m_counter > m_counter + valueSize)
+		{
+			m_counter = std::numeric_limits<uint64_t>::max();
+			return true;
+		}
+
+		m_counter += valueSize;
 		return true;
 	}
 	
 	template <>
 	inline bool ByteCounter::Field<std::string_view>(std::string_view& value, const size_t size)
 	{
+		if (m_counter > m_counter + size)
+		{
+			m_counter = std::numeric_limits<uint64_t>::max();
+			return true;
+		}
+
 		m_counter += size;
 		return true;
 	}
@@ -87,6 +119,12 @@ namespace net
 	template <>
 	inline bool ByteCounter::Field<std::string>(std::string& value, const size_t size)
 	{
+		if (m_counter > m_counter + size)
+		{
+			m_counter = std::numeric_limits<uint64_t>::max();
+			return true;
+		}
+
 		m_counter += size;
 		return true;
 	}
