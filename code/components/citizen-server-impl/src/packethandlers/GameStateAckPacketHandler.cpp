@@ -12,7 +12,7 @@
 
 void fx::ServerDecorators::GameStateAckPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer)
 {
-	static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientGameStateAck>();
+	static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientGameStateAck>();
 
 	if (buffer.GetRemainingBytes() > kClientMaxPacketSize)
 	{

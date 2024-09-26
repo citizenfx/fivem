@@ -44,7 +44,7 @@ TEST_CASE("Array update test")
 		clientArrayUpdate.index = testIndex;
 		clientArrayUpdate.data = {elementData.data(), elementData.size()};
 
-		std::vector<uint8_t> packetBuffer (net::SerializableComponent::GetSize<net::packet::ClientArrayUpdate>());
+		std::vector<uint8_t> packetBuffer (net::SerializableComponent::GetMaxSize<net::packet::ClientArrayUpdate>());
 		net::ByteWriter writer {packetBuffer.data(), packetBuffer.size()};
 
 		REQUIRE(clientArrayUpdate.Process(writer) == true);

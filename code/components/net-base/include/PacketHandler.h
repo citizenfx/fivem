@@ -12,7 +12,7 @@ public:
 	template<typename T, class HandleFunc, typename ...Args>
 	bool ProcessPacket(T& stream, const HandleFunc&& handle, Args&&... args)
 	{
-		static size_t kMaxSize = SerializableComponent::GetSize<Packet>();
+		static size_t kMaxSize = SerializableComponent::GetMaxSize<Packet>();
 		if ((stream.GetCapacity() - stream.GetOffset()) > kMaxSize)
 		{
 			return false;

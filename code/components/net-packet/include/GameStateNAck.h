@@ -61,7 +61,7 @@ public:
 			return false;
 		}
 
-		if (net::force_consteval<bool, T::kType == DataStream::Type::Counter> || flags.GetValue() & static_cast<uint8_t>(Flags::IsMissingFrames))
+		if (net::force_consteval<bool, T::kType == DataStream::Type::MaxCounter> || flags.GetValue() & static_cast<uint8_t>(Flags::IsMissingFrames))
 		{
 			if (!firstMissingFrame.Process(stream))
 			{
@@ -74,7 +74,7 @@ public:
 			}
 		}
 
-		if (net::force_consteval<bool, T::kType == DataStream::Type::Counter> || flags.GetValue() & static_cast<uint8_t>(Flags::HasIgnoreList))
+		if (net::force_consteval<bool, T::kType == DataStream::Type::MaxCounter> || flags.GetValue() & static_cast<uint8_t>(Flags::HasIgnoreList))
 		{
 			if (!ignoreList.Process(stream))
 			{
@@ -82,7 +82,7 @@ public:
 			}
 		}
 
-		if (net::force_consteval<bool, T::kType == DataStream::Type::Counter> || flags.GetValue() & static_cast<uint8_t>(Flags::HasRecreateList))
+		if (net::force_consteval<bool, T::kType == DataStream::Type::MaxCounter> || flags.GetValue() & static_cast<uint8_t>(Flags::HasRecreateList))
 		{
 			if (!recreateList.Process(stream))
 			{

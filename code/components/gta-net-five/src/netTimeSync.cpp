@@ -72,7 +72,7 @@ void rage::netTimeSync<Build>::Update()
 			packet.data.requestTime = curTime;
 			packet.data.requestSequence = m_requestSequence;
 
-			static size_t kMaxTimeSyncRequestPacket = net::SerializableComponent::GetSize<net::packet::TimeSyncRequestPacket>();
+			static size_t kMaxTimeSyncRequestPacket = net::SerializableComponent::GetMaxSize<net::packet::TimeSyncRequestPacket>();
 			static std::vector<uint8_t> packetBuffer (kMaxTimeSyncRequestPacket);
 
 			net::ByteWriter writer (packetBuffer.data(), kMaxTimeSyncRequestPacket);

@@ -106,7 +106,7 @@ namespace net::storage_type
 					return size;
 				}
 			}
-			else if constexpr (T::kType == DataStream::Type::Writer)
+			else if constexpr (T::kType == DataStream::Type::Writer || T::kType == DataStream::Type::Counter)
 			{
 				if (!ValidateSize(suggestion))
 				{
@@ -126,7 +126,7 @@ namespace net::storage_type
 
 				return size;
 			}
-			else if constexpr (T::kType == DataStream::Type::Counter)
+			else if constexpr (T::kType == DataStream::Type::MaxCounter)
 			{
 				ElementType size;
 				if constexpr (Max > 0)
@@ -136,6 +136,27 @@ namespace net::storage_type
 				else
 				{
 					size = net::force_consteval<ElementType, std::numeric_limits<ElementType>::max()>;
+				}
+
+				if constexpr (!Remaining)
+				{
+					stream.Field(size);
+				}
+
+				valid = true;
+
+				return size;
+			}
+			else if constexpr (T::kType == DataStream::Type::MinCounter)
+			{
+				ElementType size;
+				if constexpr (Min > 0)
+				{
+					size = Min;
+				}
+				else
+				{
+					size = net::force_consteval<ElementType, std::numeric_limits<ElementType>::min()>;
 				}
 
 				if constexpr (!Remaining)

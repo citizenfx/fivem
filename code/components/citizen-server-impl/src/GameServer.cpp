@@ -904,7 +904,7 @@ namespace fx
 						net::packet::ServerFramePacket serverFrame;
 						serverFrame.data.lockdownMode = lockdownMode;
 						serverFrame.data.syncStyle = syncStyle;
-						static const size_t kMaxFrameSize = net::SerializableComponent::GetSize<net::packet::ServerFramePacket>();
+						static const size_t kMaxFrameSize = net::SerializableComponent::GetMaxSize<net::packet::ServerFramePacket>();
 						net::Buffer responseBuffer(kMaxFrameSize);
 						net::ByteWriter writer(responseBuffer.GetBuffer(), kMaxFrameSize);
 						serverFrame.Process(writer);

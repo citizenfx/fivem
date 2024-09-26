@@ -33,8 +33,8 @@ void NetGameEventPacketHandlerV2::RouteEvent(const fwRefContainer<fx::ServerGame
 
 void NetGameEventPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer)
 {
-	static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientNetGameEventV2>();
-	static size_t kServerMaxReplySize = net::SerializableComponent::GetSize<net::packet::ServerNetGameEventV2Packet>();
+	static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientNetGameEventV2>();
+	static size_t kServerMaxReplySize = net::SerializableComponent::GetMaxSize<net::packet::ServerNetGameEventV2Packet>();
 
 	if (buffer.GetRemainingBytes() > kClientMaxPacketSize)
 	{
