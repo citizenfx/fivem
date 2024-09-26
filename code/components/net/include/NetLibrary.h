@@ -249,7 +249,7 @@ public:
 
 		if (std::this_thread::get_id() != threadId)
 		{
-			trace("Error: SendNetPacket called from multiple threads!\n");
+			trace("Error: SendNetPacket %d called from multiple threads!\n", packet.type.GetValue());
 			return false;
 		}
 
