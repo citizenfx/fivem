@@ -36,7 +36,7 @@ void NetGameEventPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const
 	static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientNetGameEventV2>();
 	static size_t kServerMaxReplySize = net::SerializableComponent::GetSize<net::packet::ServerNetGameEventV2Packet>();
 
-	if (buffer.GetLength() > kClientMaxPacketSize)
+	if (buffer.GetRemainingBytes() > kClientMaxPacketSize)
 	{
 		// this only happens when a malicious client sends packets not created from our client code
 		return;
