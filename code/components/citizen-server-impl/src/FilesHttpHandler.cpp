@@ -14,6 +14,7 @@
 #include <filesystem>
 
 constexpr const size_t kFileSendSize = 128 * 1024;
+std::shared_ptr<ConVar<std::string>> g_httpProxyOnly;
 
 namespace fx
 {
@@ -66,6 +67,20 @@ namespace fx
 
 		auto sendFile = [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response, const std::string& resourceName, const std::string& fileName, const fx::ClientSharedPtr& client)
 		{
+
+			// Check is proxy only
+			if (!g_httpProxyOnly->GetValue().empty())
+			{
+				auto remoteAddr = request->GetRemoteAddress();
+				auto remoteHost = remoteAddr.substr(0, remoteAddr.find_last_of(':'));
+				if (remoteHost != g_httpProxyOnly->GetValue() && fileName != "resource.rpf")
+				{
+					response->SetStatusCode(403);
+					response->End(fmt::sprintf("Host %s is not allowed to access this endpoint.", remoteHost));
+					return;
+				}
+			}
+
 			// get resource manager and resource
 			auto resourceManager = instance->GetComponent<fx::ResourceManager>();
 			auto resource = resourceManager->GetResource(resourceName);
@@ -347,5 +362,6 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/files", fx::GetFilesEndpointHandler(instance));
+		g_httpProxyOnly = instance->AddVariable<std::string>("sv_httpProxyOnly", ConVar_None, "");
 	});
 });
