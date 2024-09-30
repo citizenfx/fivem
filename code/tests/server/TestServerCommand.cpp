@@ -266,7 +266,7 @@ TEST_CASE("Server command packet test")
 	std::string commandName = "testCommand test";
 
 	net::packet::ClientServerCommand clientServerCommand;
-	clientServerCommand.command = commandName;
+	clientServerCommand.command = std::string_view(commandName);
 	net::Buffer buffer (net::SerializableComponent::GetMaxSize<net::packet::ClientServerCommand>());
 	net::ByteWriter writer {buffer.GetBuffer(), net::SerializableComponent::GetMaxSize<net::packet::ClientServerCommand>()};
 	REQUIRE(clientServerCommand.Process(writer) == true);

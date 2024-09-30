@@ -102,8 +102,8 @@ TEST_CASE("array update tests")
 		net::ByteWriter writer(sendBuffer.data(), sendBuffer.size());
 		net::packet::ClientArrayUpdatePacket clientArrayUpdatePacket;
 		clientArrayUpdatePacket.data.handler = serverArrayUpdatePacket.data.handler;
-		clientArrayUpdatePacket.data.index = serverArrayUpdatePacket.data.index;
-		clientArrayUpdatePacket.data.data = serverArrayUpdatePacket.data.data;
+		clientArrayUpdatePacket.data.index = static_cast<uint16_t>(serverArrayUpdatePacket.data.index);
+		clientArrayUpdatePacket.data.data = serverArrayUpdatePacket.data.data.GetValue();
 		clientArrayUpdatePacket.Process(writer);
 		hashes[serverArrayUpdatePacket.data.index] = thisHash;
 	};
