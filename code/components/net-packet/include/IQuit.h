@@ -28,7 +28,7 @@ public:
 class ClientIQuitPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgIQuit") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgIQuit")> };
 	ClientIQuit data;
 
 	template<typename T>

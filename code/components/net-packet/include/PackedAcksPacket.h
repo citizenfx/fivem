@@ -27,7 +27,7 @@ public:
 class ServerPackedAcksPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgPackedAcks") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgPackedAcks")> };
 	ServerPackedAcks event;
 
 	template<typename T>
