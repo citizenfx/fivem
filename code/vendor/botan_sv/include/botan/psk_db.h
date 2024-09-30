@@ -75,7 +75,7 @@ class BOTAN_PUBLIC_API(2,4) PSK_Database
          set(name, psk.data(), psk.size());
          }
 
-      virtual ~PSK_Database() = default;
+      virtual ~PSK_Database() {}
    };
 
 /**

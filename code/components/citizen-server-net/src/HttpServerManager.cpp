@@ -92,6 +92,8 @@ namespace fx
 	{
 		fwRefContainer<fx::TcpListenManager> listenManager = instance->GetComponent<fx::TcpListenManager>();
 
+		m_Http2Var = instance->AddVariable<bool>("sv_netHttp2", ConVar_None, true);
+
 		listenManager->OnInitializeMultiplexServer.Connect([=](fwRefContainer<net::MultiplexTcpServer> server)
 		{
 			auto httpPatternMatcher = [](const std::vector<uint8_t>& bytes)
@@ -169,9 +171,17 @@ namespace fx
 
 			tlsServer->AddRef();
 
-			tlsServer->SetProtocolList({ "h2", "http/1.1" });
+			if (m_Http2Var->GetValue())
+			{
+				tlsServer->SetProtocolList({ "h2", "http/1.1" });
 
-			m_http2Server->AttachToServer(tlsServer->GetProtocolServer("h2"));
+				m_http2Server->AttachToServer(tlsServer->GetProtocolServer("h2"));
+			}
+			else
+			{
+				tlsServer->SetProtocolList({ "http/1.1" });
+			}
+
 			m_httpServer->AttachToServer(tlsServer->GetProtocolServer("http/1.1"));
 
 			// create a TLS multiplex for the default protocol

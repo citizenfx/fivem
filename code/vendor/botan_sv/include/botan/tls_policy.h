@@ -338,7 +338,7 @@ class BOTAN_PUBLIC_API(2,0) Policy
       */
       std::string to_string() const;
 
-      virtual ~Policy() = default;
+      virtual ~Policy() {}
    };
 
 typedef Policy Default_Policy;

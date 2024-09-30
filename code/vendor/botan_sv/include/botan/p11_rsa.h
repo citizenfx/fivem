@@ -34,7 +34,7 @@ class BOTAN_PUBLIC_API(2,0) RSA_PublicKeyGenerationProperties final : public Pub
          add_binary(AttributeType::PublicExponent, BigInt::encode(pub_exponent));
          }
 
-      virtual ~RSA_PublicKeyGenerationProperties() = default;
+      virtual ~RSA_PublicKeyGenerationProperties() {}
    };
 
 /// Properties for importing a PKCS#11 RSA public key
@@ -57,7 +57,7 @@ class BOTAN_PUBLIC_API(2,0) RSA_PublicKeyImportProperties final : public PublicK
          return m_pub_exponent;
          }
 
-      virtual ~RSA_PublicKeyImportProperties() = default;
+      virtual ~RSA_PublicKeyImportProperties() {}
    private:
       const BigInt m_modulus;
       const BigInt m_pub_exponent;
@@ -151,7 +151,7 @@ class BOTAN_PUBLIC_API(2,0) RSA_PrivateKeyImportProperties final : public Privat
          return m_priv_exponent;
          }
 
-      virtual ~RSA_PrivateKeyImportProperties() = default;
+      virtual ~RSA_PrivateKeyImportProperties() {}
 
    private:
       const BigInt m_modulus;
@@ -166,7 +166,7 @@ class BOTAN_PUBLIC_API(2,0) RSA_PrivateKeyGenerationProperties final : public Pr
          : PrivateKeyProperties(KeyType::Rsa)
          {}
 
-      virtual ~RSA_PrivateKeyGenerationProperties() = default;
+      virtual ~RSA_PrivateKeyGenerationProperties() {}
    };
 
 /// Represents a PKCS#11 RSA private key

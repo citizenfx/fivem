@@ -102,7 +102,7 @@ class BOTAN_PUBLIC_API(2,0) Key_Length_Specification final
 class BOTAN_PUBLIC_API(2,0) SymmetricAlgorithm
    {
    public:
-      virtual ~SymmetricAlgorithm() = default;
+      virtual ~SymmetricAlgorithm() {}
 
       /**
       * Reset the state.

@@ -58,7 +58,7 @@ class BOTAN_PUBLIC_API(2,0) PBKDF
       */
       virtual std::string name() const = 0;
 
-      virtual ~PBKDF() = default;
+      virtual ~PBKDF() {}
 
       /**
       * Derive a key from a passphrase for a number of iterations
