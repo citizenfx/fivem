@@ -27,9 +27,9 @@ TEST_CASE("IQuit test")
 	net::packet::ClientIQuit clientIQuit;
 	clientIQuit.reason = {quitReason.c_str(), quitReason.size() + 1};
 
-	REQUIRE(net::SerializableComponent::GetSize<net::packet::ClientIQuit>() == 1024);
+	REQUIRE(net::SerializableComponent::GetMaxSize<net::packet::ClientIQuit>() == 1024);
 
-	std::vector<uint8_t> packetBuffer (net::SerializableComponent::GetSize<net::packet::ClientIQuit>());
+	std::vector<uint8_t> packetBuffer (net::SerializableComponent::GetMaxSize<net::packet::ClientIQuit>());
 	net::ByteWriter writer {packetBuffer.data(), packetBuffer.size()};
 
 	REQUIRE(clientIQuit.Process(writer) == true);

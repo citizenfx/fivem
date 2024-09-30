@@ -30,7 +30,7 @@ TEST_CASE("IHost test")
 	net::packet::ClientIHost clientIHost;
 	clientIHost.baseNum = fx::TestUtils::u64Random(UINT32_MAX);
 
-	std::vector<uint8_t> packetBuffer (net::SerializableComponent::GetSize<net::packet::ClientIHost>());
+	std::vector<uint8_t> packetBuffer (net::SerializableComponent::GetMaxSize<net::packet::ClientIHost>());
 	net::ByteWriter writer {packetBuffer.data(), packetBuffer.size()};
 
 	REQUIRE(clientIHost.Process(writer) == true);

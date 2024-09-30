@@ -181,7 +181,7 @@ void StateBagPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const fx:
 void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
                                                     const net::Buffer& buffer)
 {
-	static size_t kMaxPacketSize = net::SerializableComponent::GetSize<net::packet::StateBagV2>();
+	static size_t kMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::StateBagV2>();
 	
 	static fx::RateLimiterStore<uint32_t, false> stateBagRateLimiterStore{
 		instance->GetComponent<console::Context>().GetRef()

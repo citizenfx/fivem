@@ -25,7 +25,7 @@ void fx::ServerDecorators::ReassembledEventPacketHandler::Handle(ServerInstanceB
 		return;
 	}
 
-	static size_t kMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ReassembledEvent>();
+	static size_t kMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ReassembledEvent>();
 
 	if (buffer.GetRemainingBytes() > kMaxPacketSize)
 	{

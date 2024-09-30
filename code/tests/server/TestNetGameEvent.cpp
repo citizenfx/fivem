@@ -21,6 +21,7 @@ TEST_CASE("NetGameEventV2 test")
 
 	REQUIRE(std::string(NetGameEventPacketHandlerV2::GetPacketId()) == std::string("msgNetGameEventV2"));
 	REQUIRE(HashRageString(NetGameEventPacketHandlerV2::GetPacketId()) == 0x2b513e19);
+	REQUIRE(net::SerializableComponent::GetMaxSize<net::packet::ClientNetGameEventV2>() == 1543);
 	// test is only implemented for onesync
 	REQUIRE(fx::IsOneSync() == true);
 
@@ -44,7 +45,7 @@ TEST_CASE("NetGameEventV2 test")
 	clientData.eventNameHash = eventNameHash;
 	clientData.data = {randomEventData.data(), randomEventData.size()};
 
-	std::vector<uint8_t> packetBuffer (net::SerializableComponent::GetSize<net::packet::ClientNetGameEventV2>());
+	std::vector<uint8_t> packetBuffer (net::SerializableComponent::GetMaxSize<net::packet::ClientNetGameEventV2>());
 	net::ByteWriter writer {packetBuffer.data(), packetBuffer.size()};
 
 	REQUIRE(clientData.Process(writer) == true);
@@ -61,6 +62,7 @@ TEST_CASE("NetGameEventV2 test")
 
 	NetGameEventPacketHandlerV2 handler(serverInstance);
 	net::Buffer buffer {packetBuffer.data(), writer.GetOffset()};
+	REQUIRE(writer.GetOffset() == 1034);
 	buffer.Reset();
 	handler.Handle(serverInstance, client, buffer);
 
@@ -72,11 +74,11 @@ TEST_CASE("NetGameEventV2 test")
 
 	REQUIRE(lastClientMetricData.size() == 1);
 	REQUIRE(lastClientMetricData[0].thisptr == client.get());
-	REQUIRE(lastClientMetricData[0].buffer.GetLength() == 13 + randomEventData.size());
+	REQUIRE(lastClientMetricData[0].buffer.GetCurOffset() == 13 + randomEventData.size());
 	REQUIRE(lastClientMetricData[0].channel == 1);
 	REQUIRE(lastClientMetricData[0].flags == NetPacketType::NetPacketType_Reliable);
 
-	net::ByteReader reader {lastClientMetricData[0].buffer.GetBuffer(), lastClientMetricData[0].buffer.GetLength()};
+	net::ByteReader reader {lastClientMetricData[0].buffer.GetBuffer(), lastClientMetricData[0].buffer.GetCurOffset()};
 	net::packet::ServerNetGameEventV2Packet serverNetGameEvent;
 	REQUIRE(serverNetGameEvent.Process(reader) == true);
 	REQUIRE(reader.GetOffset() == reader.GetCapacity());

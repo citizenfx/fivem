@@ -237,7 +237,7 @@ TEST_CASE("Server command wrong argument count test")
 TEST_CASE("Server command packet test")
 {
 	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
-	REQUIRE(net::SerializableComponent::GetSize<net::packet::ClientServerCommand>() == 4102);
+	REQUIRE(net::SerializableComponent::GetMaxSize<net::packet::ClientServerCommand>() == 4102);
 
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
@@ -267,8 +267,8 @@ TEST_CASE("Server command packet test")
 
 	net::packet::ClientServerCommand clientServerCommand;
 	clientServerCommand.command = commandName;
-	net::Buffer buffer (net::SerializableComponent::GetSize<net::packet::ClientServerCommand>());
-	net::ByteWriter writer {buffer.GetBuffer(), net::SerializableComponent::GetSize<net::packet::ClientServerCommand>()};
+	net::Buffer buffer (net::SerializableComponent::GetMaxSize<net::packet::ClientServerCommand>());
+	net::ByteWriter writer {buffer.GetBuffer(), net::SerializableComponent::GetMaxSize<net::packet::ClientServerCommand>()};
 	REQUIRE(clientServerCommand.Process(writer) == true);
 
 	fx::ServerEventComponentInstance::lastClientEvent.reset();
@@ -296,7 +296,7 @@ TEST_CASE("Server command packet test")
 TEST_CASE("Server command empty string test")
 {
 	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
-	REQUIRE(net::SerializableComponent::GetSize<net::packet::ClientServerCommand>() == 4102);
+	REQUIRE(net::SerializableComponent::GetMaxSize<net::packet::ClientServerCommand>() == 4102);
 
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
@@ -320,7 +320,7 @@ TEST_CASE("Server command empty string test")
 TEST_CASE("Server command invalid length test")
 {
 	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
-	REQUIRE(net::SerializableComponent::GetSize<net::packet::ClientServerCommand>() == 4102);
+	REQUIRE(net::SerializableComponent::GetMaxSize<net::packet::ClientServerCommand>() == 4102);
 
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());

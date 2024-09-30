@@ -21,7 +21,7 @@ void fx::ServerDecorators::ArrayUpdatePacketHandler::Handle(fx::ServerInstanceBa
 		return;
 	}
 	
-	static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientArrayUpdate>();
+	static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientArrayUpdate>();
 
 	if (buffer.GetRemainingBytes() > kClientMaxPacketSize)
 	{

@@ -249,17 +249,28 @@ public:
 
 		if (std::this_thread::get_id() != threadId)
 		{
-			trace("Error: SendNetPacket called from multiple threads!\n");
+			trace("Error: SendNetPacket %d called from multiple threads!\n", packet.type.GetValue());
 			return false;
 		}
 
-		static const size_t kMaxSize = net::SerializableComponent::GetSize<Packet>();
-		if (m_sendBuffer.size() < kMaxSize)
+		static const size_t kMaxSize = net::SerializableComponent::GetMaxSize<Packet>();
+
+		size_t packetSize;
+		if (kMaxSize > UINT16_MAX)
 		{
-			m_sendBuffer.resize(kMaxSize);
+			packetSize = net::SerializableComponent::GetSize(packet);
+		}
+		else
+		{
+			packetSize = kMaxSize;
 		}
 
-		net::ByteWriter writer(m_sendBuffer.data(), kMaxSize);
+		if (m_sendBuffer.size() < packetSize)
+		{
+			m_sendBuffer.resize(packetSize);
+		}
+
+		net::ByteWriter writer(m_sendBuffer.data(), packetSize);
 		if (!packet.Process(writer))
 		{
 			trace("Serialization of the %d packet failed. Please report this error at https://github.com/citizenfx/fivem.\n", packet.type.GetValue());

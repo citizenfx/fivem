@@ -11,7 +11,9 @@ namespace net
 		{
 			Reader,
 			Writer,
-			Counter
+			Counter,
+			MaxCounter,
+			MinCounter
 		};
 
 		uint64_t GetOffset() const

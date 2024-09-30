@@ -134,7 +134,7 @@ TEST_CASE("Components test")
 	REQUIRE(sectorComponent.someComponent.someBuffer == readSectorComponent.someComponent.someBuffer);
 	REQUIRE(sectorComponent.someComponent.someEnum == readSectorComponent.someComponent.someEnum);
 	REQUIRE(sectorComponent.someComponent.someSpan == readSectorComponent.someComponent.someSpan);
-	net::ByteCounter byteCounter;
+	net::ByteMaxCounter byteCounter;
 	if (!sectorComponent.Process(byteCounter))
 	{
 		REQUIRE(false);
@@ -218,5 +218,53 @@ public:
 
 TEST_CASE("Serializable component size of unlimited size")
 {
-	REQUIRE(net::SerializableComponent::GetSize<SerializableComponentUnlimitedSizeTest::Component>() == UINT64_MAX);
+	REQUIRE(net::SerializableComponent::GetMaxSize<SerializableComponentUnlimitedSizeTest::Component>() == UINT64_MAX);
+}
+
+namespace ByteCounterTest
+{
+class Component: public net::SerializableComponent
+{
+public:
+	net::SerializableProperty<net::Span<uint8_t>, net::storage_type::StreamTail> value1 {};
+
+	template <typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPropertiesInOrder<T>(
+			stream,
+			value1
+		);
+	}
+};
+
+class ComponentConstrained: public net::SerializableComponent
+{
+public:
+	net::SerializableProperty<net::Span<uint8_t>, net::storage_type::ConstrainedStreamTail<128, 2048>> value1 {};
+
+	template <typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPropertiesInOrder<T>(
+			stream,
+			value1
+		);
+	}
+};
+}
+
+TEST_CASE("byte counter test")
+{
+	REQUIRE(net::SerializableComponent::GetMaxSize<ByteCounterTest::Component>() == UINT64_MAX);
+	REQUIRE(net::SerializableComponent::GetMinSize<ByteCounterTest::Component>() == 0);
+	ByteCounterTest::Component component;
+	const size_t bufferSize = GENERATE(fx::TestUtils::u64Random(UINT16_MAX), 0);
+	std::vector<uint8_t> buffer(bufferSize);
+	fx::TestUtils::fillVectorU8Random(buffer);
+	component.value1.SetValue({buffer.data(), buffer.size()});
+	REQUIRE(net::SerializableComponent::GetSize<ByteCounterTest::Component>(component) == bufferSize);
+
+	REQUIRE(net::SerializableComponent::GetMaxSize<ByteCounterTest::ComponentConstrained>() == 2048);
+	REQUIRE(net::SerializableComponent::GetMinSize<ByteCounterTest::ComponentConstrained>() == 128);
 }

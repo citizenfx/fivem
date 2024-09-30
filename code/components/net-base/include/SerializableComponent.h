@@ -14,10 +14,27 @@ namespace net
 		static constexpr bool kIsComponent = true;
 
 		template<typename T>
-		static size_t GetSize()
+		static size_t GetMaxSize()
+		{
+			ByteMaxCounter counter;
+			T value;
+			value.Process(counter);
+			return counter.GetOffset();
+		}
+
+		template<typename T>
+		static size_t GetMinSize()
+		{
+			ByteMinCounter counter;
+			T value;
+			value.Process(counter);
+			return counter.GetOffset();
+		}
+
+		template<typename T>
+		static size_t GetSize(T& value)
 		{
 			ByteCounter counter;
-			T value;
 			value.Process(counter);
 			return counter.GetOffset();
 		}
