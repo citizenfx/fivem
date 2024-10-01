@@ -1179,6 +1179,24 @@ static void GetMappingCategoryInputs(uint32_t* categoryId, atArray<uint32_t>& co
 		std::vector<std::pair<std::string, std::tuple<std::string, std::string>>> sortedBindings(g_registeredBindings.begin(), g_registeredBindings.end());
 		std::sort(sortedBindings.begin(), sortedBindings.end(), [](const auto& left, const auto& right)
 		{
+
+			const std::string& leftTag = std::get<0>(std::get<1>(left));
+			const std::string& rightTag = std::get<0>(std::get<1>(right));
+			
+			// txAdmin key mappings needs to be at the top of the list.
+			bool leftIsTxAdmin = (leftTag == "monitor");
+			bool rightIsTxAdmin = (rightTag == "monitor");
+
+			if (leftIsTxAdmin && rightIsTxAdmin)
+			{
+				return true;
+			}
+
+			if (!leftIsTxAdmin && rightIsTxAdmin)
+			{
+				return false;
+			}
+
 			// #TODO: Unicode-aware comparison
 			return std::get<1>(left.second) < std::get<1>(right.second);
 		});
