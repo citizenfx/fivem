@@ -92,7 +92,7 @@ namespace fx
 	{
 		fwRefContainer<fx::TcpListenManager> listenManager = instance->GetComponent<fx::TcpListenManager>();
 
-		m_Http2Var = instance->AddVariable<bool>("sv_netHttp2", ConVar_None, true);
+		m_Http2Var = instance->AddVariable<bool>("sv_netHttp2", ConVar_None, false);
 
 		listenManager->OnInitializeMultiplexServer.Connect([=](fwRefContainer<net::MultiplexTcpServer> server)
 		{
