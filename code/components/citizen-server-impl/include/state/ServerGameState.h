@@ -788,6 +788,13 @@ public:
 	virtual bool IsEntityVisible(bool* visible) = 0;
 };
 
+enum EntityOrphanMode : uint8_t
+{
+	DeleteWhenNotRelevant = 0,
+	DeleteOnOwnerDisconnect = 1,
+	KeepEntity = 2,
+};
+
 struct SyncEntityState
 {
 	using TData = std::variant<int, float, bool, std::string>;
@@ -832,6 +839,7 @@ struct SyncEntityState
 	bool passedFilter = false;
 	bool wantsReassign = false;
 	bool firstOwnerDropped = false;
+	EntityOrphanMode orphanMode = EntityOrphanMode::DeleteWhenNotRelevant;
 
 	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
 
