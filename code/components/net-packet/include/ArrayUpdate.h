@@ -35,7 +35,7 @@ public:
 class ServerArrayUpdatePacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgArrayUpdate") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgArrayUpdate")> };
 	ServerArrayUpdate data;
 
 	template<typename T>
@@ -75,7 +75,7 @@ public:
 class ClientArrayUpdatePacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgArrayUpdate") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgArrayUpdate")> };
 	ClientArrayUpdate data;
 
 	template<typename T>

@@ -34,7 +34,7 @@ public:
 class ServerClientEventPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgNetEvent") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgNetEvent")> };
 	ServerClientEvent data;
 
 	template<typename T>
@@ -72,7 +72,7 @@ public:
 class ClientServerEventPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgServerEvent") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgServerEvent")> };
 	ClientServerEvent data;
 
 	template<typename T>

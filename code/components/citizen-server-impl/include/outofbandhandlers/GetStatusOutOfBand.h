@@ -9,17 +9,24 @@
 class GetStatusOutOfBand
 {
 	std::shared_ptr<ConVar<bool>> m_returnClientsListInGetStatus;
+	std::shared_ptr<ConVar<bool>> m_enableGetStatus;
 
 public:
 	template <typename ServerImpl>
 	GetStatusOutOfBand(const fwRefContainer<ServerImpl>& server)
 	{
 		m_returnClientsListInGetStatus = server->GetInstance()->template AddVariable<bool>("sv_returnClientsListInGetStatus", ConVar_None, true);
+		m_enableGetStatus = server->GetInstance()->template AddVariable<bool>("sv_enableGetStatus", ConVar_None, false);
 	}
 
 	template <typename ServerImpl>
 	void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from, const std::string_view& data)
 	{
+		if (!m_enableGetStatus->GetValue())
+		{
+			return;
+		}
+		
 		const auto limiter = server->GetInstance()->template GetComponent<fx::PeerAddressRateLimiterStore>()->
 		                             GetRateLimiter("getstatus", fx::RateLimiterDefaults{1.0, 5.0});
 

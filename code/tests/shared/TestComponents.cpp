@@ -89,7 +89,7 @@ TEST_CASE("Components test")
 	sectorComponent.someComponent.someBool = fx::TestUtils::u64Random(1) == 1;
 	sectorComponent.someComponent.someNumber = fx::TestUtils::u64Random(500);
 	sectorComponent.someComponent.someOptionalNumber = fx::TestUtils::u64Random(500);
-	sectorComponent.someComponent.someStringView = someString;
+	sectorComponent.someComponent.someStringView = std::string_view(someString);
 	sectorComponent.someComponent.someString = fx::TestUtils::asciiRandom(10);
 	sectorComponent.someComponent.someNumberVector.EmplaceBack(1);
 	sectorComponent.someComponent.someNumberVector.EmplaceBack(2);

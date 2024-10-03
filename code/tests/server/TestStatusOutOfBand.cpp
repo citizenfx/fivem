@@ -66,6 +66,9 @@ TEST_CASE("getstatus oob test")
 
 	auto variable = testServer->AddVariable<bool>("sv_returnClientsListInGetStatus", ConVar_None, true);
 	variable->GetHelper()->SetValue(GENERATE("false", "true"));
+
+	auto variable2 = testServer->AddVariable<bool>("sv_enableGetStatus", ConVar_None, true);
+	variable2->GetHelper()->SetValue(GENERATE("false", "true"));
 	
 	REQUIRE(std::string(GetStatusOutOfBand::GetName()) == "getstatus");
 
@@ -97,12 +100,15 @@ TEST_CASE("getstatus oob test")
 
 	const uint32_t connectedClientsCount = testServerContainer->GetInstance()->GetComponent<fx::ClientRegistry>()->
 	                                                            GetAmountOfConnectedClients();
-	REQUIRE(testServerContainer->outOfBandSendData.has_value() == true);
-	REQUIRE(testServerContainer->outOfBandSendData.value().to == from);
-	REQUIRE(
+	REQUIRE(testServerContainer->outOfBandSendData.has_value() == variable2->GetValue());
+	if (variable2->GetValue())
+	{
+		REQUIRE(testServerContainer->outOfBandSendData.value().to == from);
+		REQUIRE(
 
-		testServerContainer->outOfBandSendData.value().oob == std::string("statusResponse\n\\sv_maxclients\\" +
-			testServerContainer->maxClients + "\\clients\\" + std::to_string(connectedClientsCount) + "\n" + clientsList
-		));
-	REQUIRE(testServerContainer->outOfBandSendData.value().prefix == true);
+			testServerContainer->outOfBandSendData.value().oob == std::string("statusResponse\n\\sv_maxclients\\" +
+				testServerContainer->maxClients + "\\clients\\" + std::to_string(connectedClientsCount) + "\n" + clientsList
+			));
+		REQUIRE(testServerContainer->outOfBandSendData.value().prefix == true);
+	}
 }
