@@ -152,7 +152,7 @@ static void SerializePool(fx::ScriptContext& context)
 		TTraits::ObjectType* entry = pool->GetAt(i);
 		if (entry)
 		{
-			if (NetworkOnly)
+			if constexpr (NetworkOnly)
 			{
 				if (!entry->GetNetObject())
 				{
