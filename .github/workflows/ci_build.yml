@@ -44,6 +44,22 @@ jobs:
           git pull origin $GITHUB_REF:PR_BRANCH --depth=1
           git submodule update --jobs=$JOB_SLOTS --init --depth=1
         
+      - name: Downgrade MSVC build tools
+        if: ${{ env.PLATFORM == 'windows' }}
+        shell: pwsh
+        run: |
+          # Temporary workaround till build toolchain is updated
+          Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
+          $InstallPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"
+          
+          # Remove latest version
+          $Arguments = ('modify', '--installPath', "`"$InstallPath`"", '--remove', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '--remove', 'Microsoft.VisualStudio.Component.VC.ATL', '--quiet', '--norestart', '--nocache')
+          Start-Process -FilePath vs_installer.exe -ArgumentList $Arguments -Wait
+          
+          # Install last supported version (v14.40-17.10)
+          $Arguments = ('modify', '--installPath', "`"$InstallPath`"", '--add', 'Microsoft.VisualStudio.Component.VC.14.40.17.10.x86.x64', '--add', 'Microsoft.VisualStudio.Component.VC.14.40.17.10.ATL', '--quiet', '--norestart', '--nocache')
+          Start-Process -FilePath vs_installer.exe -ArgumentList $Arguments -Wait
+        
       - name: Dependencies
         shell: bash
         run: |
