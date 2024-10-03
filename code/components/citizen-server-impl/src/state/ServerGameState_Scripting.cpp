@@ -1095,7 +1095,7 @@ static void Init()
 			desiredType = EntityType::Ped;	
 		else if (poolName == "CVehicle")
 			desiredType = EntityType::Vehicle;
-		else if (poolName == "CObject")
+		else if (poolName == "CObject" || poolName == "CNetObject")
 			desiredType = EntityType::Object;
 
 		for (auto& entity : gameState->m_entityList)
