@@ -26,12 +26,19 @@ namespace CitizenFX.Core
 	}
 	public enum LicensePlateStyle
 	{
-		BlueOnWhite1 = 3,
-		BlueOnWhite2 = 0,
+		BlueOnWhite1 = 0,
+ 		YellowOnBlack = 1,
+   		YellowOnBlue = 2,
+		BlueOnWhite2 = 3,
 		BlueOnWhite3 = 4,
-		YellowOnBlack = 1,
-		YellowOnBlue = 2,
-		NorthYankton = 5
+		NorthYankton = 5,
+  		ECola = 6,
+		LasVenturas = 7,
+  		LibertyCity = 8,
+		LSCarMeet = 9,
+  		LSPanic = 10,
+		LSPounders = 11,
+  		Sprunk = 12
 	}
 	public enum LicensePlateType
 	{
