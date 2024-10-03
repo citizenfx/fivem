@@ -8,7 +8,6 @@ apiset: client
 bool IS_FULLSCREEN();
 ```
 This native checks if the client window is in fullscreen.
-## Parameters
 
 ## Return value
 
