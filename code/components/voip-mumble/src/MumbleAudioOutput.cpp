@@ -1469,7 +1469,7 @@ void MumbleAudioOutput::ThreadFunc()
 
 	mmcssHandle = AvSetMmThreadCharacteristics(L"Audio", &mmcssTaskIndex);
 
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+	AvSetMmThreadPriority(mmcssHandle, AVRT_PRIORITY_HIGH);
 
 	// initialize COM for the current thread
 	CoInitialize(nullptr);
