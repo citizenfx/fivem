@@ -29,7 +29,7 @@ public:
 class ServerIHostPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgIHost") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgIHost")> };
 	ServerIHost data;
 
 	template<typename T>
@@ -65,7 +65,7 @@ public:
 class ClientIHostPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgIHost") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgIHost")> };
 	ClientIHost data;
 
 	template<typename T>

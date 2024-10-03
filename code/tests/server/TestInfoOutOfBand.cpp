@@ -81,7 +81,7 @@ TEST_CASE("getinfo oob test")
 	REQUIRE(std::string(GetInfoOutOfBand::GetName()) == "getinfo");
 
 	net::PeerAddress from = net::PeerAddress::FromString("127.0.0.1").get();
-	std::string challenge = fx::TestUtils::asciiRandom(50);
+	std::string challenge = fx::TestUtils::asciiRandom(8);
 	testServerContainer->maxClients = std::to_string(fx::TestUtils::u64Random(100) + 1);
 	testServerContainer->hostname = fx::TestUtils::asciiRandom(10);
 	testServerContainer->gametype = fx::TestUtils::asciiRandom(10);
