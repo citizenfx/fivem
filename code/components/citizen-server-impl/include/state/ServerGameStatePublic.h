@@ -24,6 +24,7 @@
 #include "ArrayUpdate.h"
 #include "GameStateAck.h"
 #include "GameStateNAck.h"
+#include "Route.h"
 
 namespace fx
 {
@@ -71,7 +72,7 @@ public:
 
 	virtual EntityLockdownMode GetEntityLockdownMode(const fx::ClientSharedPtr& client) = 0;
 
-	virtual void ParseGameStatePacket(const fx::ClientSharedPtr& client, const std::vector<uint8_t>& packetData) = 0;
+	virtual void ParseGameStatePacket(const fx::ClientSharedPtr& client, const net::packet::ClientRoute& packetData) = 0;
 
 	virtual void ForAllEntities(const std::function<void(sync::Entity*)>& cb) = 0;
 

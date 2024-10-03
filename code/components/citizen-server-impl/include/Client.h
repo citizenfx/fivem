@@ -23,6 +23,7 @@
 
 #include <shared_mutex>
 
+#include "ByteReader.h"
 #include "ByteWriter.h"
 #include "SerializableComponent.h"
 
@@ -334,7 +335,7 @@ namespace fx
 			return m_clientNetworkMetricsRecvCallback;
 		}
 
-		inline void SetNetworkMetricsRecvCallback(void(*callback)(Client *thisptr, uint32_t packetId, net::Buffer& packet))
+		inline void SetNetworkMetricsRecvCallback(void(*callback)(Client *thisptr, uint32_t packetId, net::ByteReader& packet))
 		{
 			m_clientNetworkMetricsRecvCallback = callback;
 		}
@@ -464,7 +465,7 @@ namespace fx
 
 		void (*m_clientNetworkMetricsSendCallback)(Client *thisptr, int channel, const net::Buffer& buffer, NetPacketType flags);
 
-		void (*m_clientNetworkMetricsRecvCallback)(Client *thisptr, uint32_t packetId, net::Buffer& packet);
+		void (*m_clientNetworkMetricsRecvCallback)(Client *thisptr, uint32_t packetId, net::ByteReader& packet);
 	};
 
 	extern SERVER_IMPL_EXPORT object_pool<Client, 512 * MAX_CLIENTS> clientPool;

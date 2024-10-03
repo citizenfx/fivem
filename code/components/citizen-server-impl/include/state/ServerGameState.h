@@ -1331,7 +1331,7 @@ public:
 
 	void UpdateEntities();
 
-	void ParseGameStatePacket(const fx::ClientSharedPtr& client, const std::vector<uint8_t>& packetData);
+	void ParseGameStatePacket(const fx::ClientSharedPtr& client, const net::packet::ClientRoute& packetData);
 
 	virtual void AttachToObject(fx::ServerInstanceBase* instance) override;
 
@@ -1397,15 +1397,15 @@ public:
 	}
 
 private:
-	void ProcessCloneCreate(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
+	void ProcessCloneCreate(const fx::ClientSharedPtr& client, rl::MessageBufferView& inPacket, AckPacketWrapper& ackPacket);
 
-	void ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
+	void ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::MessageBufferView& inPacket, AckPacketWrapper& ackPacket);
 
-	void ProcessCloneSync(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
+	void ProcessCloneSync(const fx::ClientSharedPtr& client, rl::MessageBufferView& inPacket, AckPacketWrapper& ackPacket);
 
-	void ProcessCloneTakeover(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket);
+	void ProcessCloneTakeover(const fx::ClientSharedPtr& client, rl::MessageBufferView& inPacket);
 
-	bool ProcessClonePacket(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier);
+	bool ProcessClonePacket(const fx::ClientSharedPtr& client, rl::MessageBufferView& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier);
 
 	void OnCloneRemove(const fx::sync::SyncEntityPtr& entity, const std::function<void()>& doRemove);
 
@@ -1413,9 +1413,9 @@ private:
 
 	void FinalizeClone(const fx::ClientSharedPtr& client, const fx::sync::SyncEntityPtr& entity, uint16_t objectId, uint16_t uniqifier = 0, std::string_view finalizeReason = "");
 
-	void ParseClonePacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
+	void ParseClonePacket(const fx::ClientSharedPtr& client, net::ByteReader& buffer);
 
-	void ParseAckPacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
+	void ParseAckPacket(const fx::ClientSharedPtr& client, net::ByteReader& buffer);
 
 	bool ValidateEntity(EntityLockdownMode entityLockdownMode, const fx::sync::SyncEntityPtr& entity);
 

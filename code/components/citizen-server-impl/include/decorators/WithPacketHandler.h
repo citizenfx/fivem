@@ -14,17 +14,17 @@ namespace fx
 			// store the handler map
 			HandlerMapComponent* map = server->GetComponent<HandlerMapComponent>().GetRef();
 
-			server->SetPacketHandler([=](uint32_t packetId, const fx::ClientSharedPtr& client, net::Buffer& packet)
+			server->SetPacketHandler([=](uint32_t packetId, const fx::ClientSharedPtr& client, net::ByteReader& reader, ENetPacketPtr& packet)
 			{
 				bool handled = false;
 
 				// any fast-path handlers?
-				([&]
+				([&server, &handled, packetId, &client, &reader, &packet]
 				{
-					if (!handled && packetId == net::force_consteval<uint32_t, HashRageString(THandler::GetPacketId())>)
+					if (!handled && packetId == THandler::PacketType)
 					{
 						static THandler handler (server->GetInstance());
-						handler.Handle(server->GetInstance(), client, packet);
+						handler.Process(server->GetInstance(), client, reader, packet);
 						handled = true;
 					}
 				}(), ...);
@@ -36,11 +36,11 @@ namespace fx
 
 					if (entry)
 					{
-						auto cb = [client, entry, packet]() mutable
+						auto cb = [client, entry, &reader, packet]
 						{
 							auto scope = client->EnterPrincipalScope();
 
-							std::get<1>(*entry)(client, packet);
+							std::get<1>(*entry)(client, reader, packet);
 						};
 
 						switch (std::get<fx::ThreadIdx>(*entry))

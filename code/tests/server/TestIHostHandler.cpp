@@ -4,6 +4,7 @@
 
 #include "ByteReader.h"
 #include "ByteWriter.h"
+#include "EnetPacketInstance.h"
 #include "GameServer.h"
 #include "GameServerInstance.h"
 #include "ServerInstance.h"
@@ -18,8 +19,7 @@ TEST_CASE("IHost test")
 
 	fx::SetOneSyncGetCallback([] { return false; });
 
-	REQUIRE(std::string(fx::ServerDecorators::IHostPacketHandler::GetPacketId()) == std::string("msgIHost"));
-	REQUIRE(HashRageString(fx::ServerDecorators::IHostPacketHandler::GetPacketId()) == 0xb3ea30de);
+	REQUIRE(fx::ServerDecorators::IHostPacketHandler::PacketType == HashRageString("msgIHost"));
 	// test is only implemented for disabled onesync
 	REQUIRE(fx::IsOneSync() == false);
 
@@ -46,14 +46,18 @@ TEST_CASE("IHost test")
 
 	if (newPacketBuffer)
 	{
-		handler.Handle(serverInstance.GetRef(), client1, buffer);
+		fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+		net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+		handler.Process(serverInstance.GetRef(), client1, handlerReader, packetPtr);
 	}
 	else
 	{
 		net::Buffer oldNetBuffer;
 		oldNetBuffer.Write<uint32_t>(clientIHost.baseNum);
 		oldNetBuffer.Reset();
-		handler.Handle(serverInstance.GetRef(), client1, oldNetBuffer);
+		fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(oldNetBuffer.GetBuffer(), oldNetBuffer.GetLength());
+		net::ByteReader handlerReader(oldNetBuffer.GetBuffer(), oldNetBuffer.GetLength());
+		handler.Process(serverInstance.GetRef(), client1, handlerReader, packetPtr);
 	}
 
 	REQUIRE(fx::GameServerInstance::broadcastData.has_value() == true);

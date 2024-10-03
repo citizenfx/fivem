@@ -9,71 +9,52 @@
 
 #include "ByteReader.h"
 #include "Route.h"
+#include "PacketHandler.h"
 
-class RoutingPacketHandler
+class RoutingPacketHandler : public net::PacketHandler<net::packet::ClientRoute, HashRageString("msgRoute")>
 {
 public:
 	RoutingPacketHandler(fx::ServerInstanceBase* instance)
 	{
 	}
-	
-	void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
+
+	bool Process(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader, fx::ENetPacketPtr& packet)
 	{
-		static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientRoute>();
-
-		if (packet.GetRemainingBytes() > kClientMaxPacketSize)
+		return ProcessPacket(reader, [](net::packet::ClientRoute& clientRoute, fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, fx::ENetPacketPtr& packet)
 		{
-			// this only happens when a malicious client sends packets not created from our client code
-			return;
-		}
-
-		net::packet::ClientRoute clientRoute;
-
-		net::ByteReader reader{ packet.GetRemainingBytesPtr(), packet.GetRemainingBytes() };
-		if (!clientRoute.Process(reader))
-		{
-			// this only happens when a malicious client sends packets not created from our client code
-			return;
-		}
-
-		if (fx::IsOneSync())
-		{
-			std::vector packetDataCopy = std::vector(clientRoute.data.GetValue().begin(), clientRoute.data.GetValue().end());
-			client->SetHasRouted();
-
-			gscomms_execute_callback_on_sync_thread([instance, client, packetDataCopy = std::move(packetDataCopy)]()
+			if (fx::IsOneSync())
 			{
-				instance->GetComponent<fx::ServerGameStatePublic>()->ParseGameStatePacket(client, packetDataCopy);
-			});
+				client->SetHasRouted();
 
-			return;
-		}
+				gscomms_execute_callback_on_sync_thread([instance, client, clientRoute, packet]
+				{
+					instance->GetComponent<fx::ServerGameStatePublic>()->ParseGameStatePacket(client, clientRoute);
+					(void)packet;
+				});
+				return;
+			}
 
-		// TODO: in future net version remove targetNetId when the server is using onesync
-		const uint16_t targetNetId = clientRoute.targetNetId;
+			// TODO: in future net version remove targetNetId when the server is using onesync
+			const uint16_t targetNetId = clientRoute.targetNetId;
 
-		if (targetNetId == client->GetNetId())
-		{
-			// source can't be target
-			return;
-		}
+			if (targetNetId == client->GetNetId())
+			{
+				// source can't be target
+				return;
+			}
 
-		if (const auto targetClient = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(targetNetId))
-		{
-			net::Buffer outPacket;
-			outPacket.Write(HashRageString("msgRoute"));
-			outPacket.Write<uint16_t>(client->GetNetId());
-			outPacket.Write<uint16_t>(clientRoute.data.GetValue().size());
-			outPacket.Write(clientRoute.data.GetValue().data(), clientRoute.data.GetValue().size_bytes());
+			if (const auto targetClient = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(targetNetId))
+			{
+				net::Buffer outPacket;
+				outPacket.Write(HashRageString("msgRoute"));
+				outPacket.Write<uint16_t>(static_cast<uint16_t>(client->GetNetId()));
+				outPacket.Write<uint16_t>(static_cast<uint16_t>(clientRoute.data.GetValue().size()));
+				outPacket.Write(clientRoute.data.GetValue().data(), clientRoute.data.GetValue().size_bytes());
 
-			targetClient->SendPacket(1, outPacket, NetPacketType_Unreliable);
+				targetClient->SendPacket(1, outPacket, NetPacketType_Unreliable);
 
-			client->SetHasRouted();
-		}
-	}
-
-	static constexpr const char* GetPacketId()
-	{
-		return "msgRoute";
+				client->SetHasRouted();
+			}
+		}, instance, client, packet);
 	}
 };

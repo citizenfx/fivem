@@ -9,6 +9,7 @@
 #include "ByteWriter.h"
 #include "ClientRegistry.h"
 #include "ConsoleContextInstance.h"
+#include "EnetPacketInstance.h"
 #include "ResourceManagerInstance.h"
 #include "ServerInstance.h"
 #include "TestUtils.h"
@@ -207,7 +208,12 @@ TEST_CASE("State Bag handler v2 test")
 	buffer.Write(std::get<1>(newPacket).data(), std::get<1>(newPacket).size());
 	buffer.Reset();
 	REQUIRE(buffer.Read<uint32_t>() == HashRageString("msgStateBagV2"));
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	uint32_t packetType;
+	handlerReader.Field(packetType);
+	REQUIRE(packetType == HashRageString("msgStateBagV2"));
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 
 	REQUIRE(stateBag->HasKey(testKey) == true);
 	REQUIRE(stateBag->GetKey(testKey) == testData);
@@ -249,7 +255,12 @@ TEST_CASE("State Bag handler v1 test")
 	buffer.Write(std::get<1>(oldPacket).data(), std::get<1>(oldPacket).size());
 	buffer.Reset();
 	REQUIRE(buffer.Read<uint32_t>() == HashRageString("msgStateBag"));
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	uint32_t packetType;
+	handlerReader.Field(packetType);
+	REQUIRE(packetType == HashRageString("msgStateBag"));
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 
 	REQUIRE(stateBag->HasKey(testKey) == true);
 	REQUIRE(stateBag->GetKey(testKey) == testData);

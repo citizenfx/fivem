@@ -12,17 +12,22 @@
 
 #include <state/ServerGameStatePublic.h>
 
-void StateBagPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
-                                   net::Buffer& packet)
+bool StateBagPacketHandler::Process(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
+                                   net::ByteReader& reader, fx::ENetPacketPtr& packet)
 {
-	gscomms_execute_callback_on_sync_thread([instance, client, packet = std::move(packet)]
+	const uint64_t offset = reader.GetOffset();
+	gscomms_execute_callback_on_sync_thread([instance, client, offset, packet]
 	{
-		HandleStateBagMessage(instance, client, packet);
+		net::ByteReader movedReader (packet->data, packet->dataLength);
+		movedReader.Seek(offset);
+		HandleStateBagMessage(instance, client, movedReader);
+		(void) packet;
 	});
+
+	return true;
 }
 
-void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
-                                                  const net::Buffer& buffer)
+void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader)
 {
 	static fx::RateLimiterStore<uint32_t, false> stateBagRateLimiterStore{
 		instance->GetComponent<console::Context>().GetRef()
@@ -102,7 +107,7 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 		return;
 	}
 
-	uint32_t dataLength = buffer.GetRemainingBytes();
+	uint32_t dataLength = reader.GetRemaining();
 	if (!stateBagSizeRateLimiter->Consume(netId, double(dataLength)))
 	{
 		if (!client->IsDropping())
@@ -128,7 +133,6 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 
 	net::packet::StateBag clientStateBag;
 
-	net::ByteReader reader{ buffer.GetRemainingBytesPtr(), buffer.GetRemainingBytes() };
 	if (!clientStateBag.Process(reader))
 	{
 		// this only happens when a malicious client sends packets not created from our client code
@@ -169,17 +173,22 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 	}
 }
 
-void StateBagPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
-                                     net::Buffer& packet)
+bool StateBagPacketHandlerV2::Process(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
+                                     net::ByteReader& reader, fx::ENetPacketPtr& packet)
 {
-	gscomms_execute_callback_on_sync_thread([instance, client, packet = std::move(packet)]
+	const uint64_t offset = reader.GetOffset();
+	gscomms_execute_callback_on_sync_thread([instance, client, offset, packet]
 	{
-		HandleStateBagMessage(instance, client, packet);
+		net::ByteReader movedReader (packet->data, packet->dataLength);
+		movedReader.Seek(offset);
+		HandleStateBagMessage(instance, client, movedReader);
+		(void) packet;
 	});
+
+	return true;
 }
 
-void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
-                                                    const net::Buffer& buffer)
+void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader)
 {
 	static size_t kMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::StateBagV2>();
 	
@@ -261,7 +270,7 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 		return;
 	}
 
-	size_t dataLength = buffer.GetRemainingBytes();
+	size_t dataLength = reader.GetRemaining();
 	if (!stateBagSizeRateLimiter->Consume(netId, double(dataLength)))
 	{
 		if (!client->IsDropping())
@@ -285,14 +294,7 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 		return;
 	}
 
-	if (buffer.GetRemainingBytes() > kMaxPacketSize)
-	{
-		return;
-	}
-
 	net::packet::StateBagV2 clientStateBag;
-
-	net::ByteReader reader{ buffer.GetRemainingBytesPtr(), buffer.GetRemainingBytes() };
 	if (!clientStateBag.Process(reader))
 	{
 		// this only happens when a malicious client sends packets not created from our client code

@@ -43,6 +43,11 @@ namespace net
 			return m_offset + length <= m_capacity;
 		}
 
+		void Seek(uint64_t offset)
+		{
+			m_offset = offset;
+		}
+
 		/// <summary>
 		/// Reads a T from a byte stream
 		/// </summary>
