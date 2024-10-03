@@ -357,50 +357,109 @@ struct CObjectGameStateNodeData
 
 struct CVehicleAppearanceNodeData
 {
-	int primaryColour;
-	int secondaryColour;
-	int pearlColour;
-	int wheelColour;
-	int interiorColour;
-	int dashboardColour;
+    int primaryColour;
+    int secondaryColour;
+    int pearlColour;
+    int wheelColour;
+    int interiorColour;
+    int dashboardColour;
 
-	bool isPrimaryColourRGB;
-	bool isSecondaryColourRGB;
+    bool isPrimaryColourRGB;
+    bool isSecondaryColourRGB;
 
-	int primaryRedColour;
-	int primaryGreenColour;
-	int primaryBlueColour;
+    int primaryRedColour;
+    int primaryGreenColour;
+    int primaryBlueColour;
 
-	int secondaryRedColour;
-	int secondaryGreenColour;
-	int secondaryBlueColour;
+    int secondaryRedColour;
+    int secondaryGreenColour;
+    int secondaryBlueColour;
 
-	int dirtLevel;
-	int extras;
-	int liveryIndex;
-	int roofLiveryIndex;
+	int envEffScale;
+	bool hasExtras;
 
-	int wheelChoice;
-	int wheelType;
+    int dirtLevel;
+    int extras;
+	bool hasCustomLivery;
+	bool hasCustomLiveryIndex;
+    int liveryIndex;
+    int roofLiveryIndex;
 
-	bool hasCustomTires;
+	bool hasCustomRoofLivery;
 
-	int windowTintIndex;
+	bool hasMod;
+	int kitMods[32];
 
-	int tyreSmokeRedColour;
-	int tyreSmokeGreenColour;
-	int tyreSmokeBlueColour;
+	bool hasToggleMods;
+	int toggleMods;
 
-	char plate[9];
+    int wheelChoice;
+    int wheelType;
 
-	int numberPlateTextIndex;
+	bool hasDifferentRearWheel;
+	int rearWheelChoice;
 
-	int hornTypeHash;
+	int kitIndex;
+    bool hasCustomTires;
+	bool hasWheelVariation1;
 
-	inline CVehicleAppearanceNodeData()
-	{
-		memset(plate, 0, sizeof(plate));
-	}
+	bool hasWindowTint;
+    int windowTintIndex;
+
+	bool hasTyreSmokeColours;
+
+    int tyreSmokeRedColour;
+    int tyreSmokeGreenColour;
+    int tyreSmokeBlueColour;
+
+	bool hasPlate;
+    char plate[9];
+
+    int numberPlateTextIndex;
+
+    int hornTypeHash;
+
+
+    // Badge related fields
+    bool hasEmblems;
+	bool isEmblem;
+	int emblemType;
+    int emblemId;
+	bool isSizeModified;
+    int emblemSize;
+    int txdName;
+    int textureName;
+
+	bool hasNeonLights;
+	bool hasVehicleBadge;
+
+    bool hasBadge[4];
+    int badgeBoneIndex[4];
+    int badgeAlpha[4];
+    float badgeOffsetX[4];
+    float badgeOffsetY[4];
+    float badgeOffsetZ[4];
+    float badgeDirX[4];
+    float badgeDirY[4];
+    float badgeDirZ[4];
+    float badgeSideX[4];
+    float badgeSideY[4];
+    float badgeSideZ[4];
+    float badgeSize[4];
+	
+    int neonRedColour;
+    int neonGreenColour;
+    int neonBlueColour;
+    bool neonLeftOn;
+    bool neonRightOn;
+    bool neonFrontOn;
+    bool neonBackOn;
+    bool isNeonSuppressed;
+
+    inline CVehicleAppearanceNodeData()
+    {
+        memset(plate, 0, sizeof(plate));
+    }
 };
 
 struct CVehicleHealthNodeData
