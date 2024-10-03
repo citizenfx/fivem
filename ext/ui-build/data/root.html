@@ -105,7 +105,8 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 		frameEscapeFunctions[frameName] = () => {
 			setTimeout(() => {
 				if (document.activeElement == document.body) {
-					frame.contentWindow.focus();
+					// Added questions marks to avoid throwing error while something is null
+					frame?.contentWindow?.focus();
 				}
 			}, 32);
 		}
