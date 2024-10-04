@@ -671,7 +671,6 @@ struct CVehicleAppearanceDataNode : GenericSerializeDataNode<CVehicleAppearanceD
         s.Serialize(8, data.wheelColour);
         s.Serialize(8, data.interiorColour);
         s.Serialize(8, data.dashboardColour);
-        s.Serialize(8, data.primaryColour);
 
         s.Serialize(data.isPrimaryColourRGB);
 
