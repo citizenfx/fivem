@@ -240,9 +240,12 @@ namespace CitizenFX.Core
 		Locked,
 		LockedForPlayer,
 		StickPlayerInside,
-		CanBeBrokenInto = 7,
+		LockedInitially,
+		ForceShutDoors,
+		CanBeBrokenInto,
 		CanBeBrokenIntoPersist,
-		CannotBeTriedToEnter = 10
+		LockedNoPassengers,
+		CannotBeTriedToEnter
 	}
 	public enum VehicleNeonLight
 	{
