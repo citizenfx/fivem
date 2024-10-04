@@ -18,9 +18,11 @@ namespace CitizenFX.Core.Native
 		private static UIntPtr s_unregisterRawNuiCallback; // 0x7fb46432
 #if IS_FXSERVER
 		private static UIntPtr s_0x2f7a49e6;
+		private static UIntPtr s_triggerUnreliableClientEventInternal; // 0x8d3913f4
 		private static UIntPtr s_0x70b35890;
 #else
 		private static UIntPtr s_0x7fdd1128;
+		private static UIntPtr s_triggerUnreliableServerEventInternal; // 0x6c7a0f4d
 		private static UIntPtr s_0x128737ea;
 #endif
 
@@ -142,6 +144,16 @@ namespace CitizenFX.Core.Native
 		}
 
 		[SecuritySafeCritical]
+		internal unsafe static void TriggerUnreliableClientEventInternal(CString eventName, CString target, InPacket args)
+		{
+			fixed (byte* p_eventName = eventName?.value, p_target = target?.value, p_args = args.value)
+			{
+				ulong* __data = stackalloc ulong[] { (ulong)p_eventName, (ulong)p_target, (ulong)p_args, (ulong)args.value?.LongLength };
+				ScriptContext.InvokeNative(ref s_triggerUnreliableClientEventInternal, 0x8d3913f4, __data, 4); // TRIGGER_UNRELIABLE_CLIENT_EVENT_INTERNAL
+			}
+		}
+
+		[SecuritySafeCritical]
 		internal unsafe static void TriggerLatentClientEventInternal(CString eventName, CString target, InPacket args, int bytesPerSecond)
 		{
 			fixed (byte* p_eventName = eventName?.value, p_target = target?.value, p_args = args.value)
@@ -158,6 +170,16 @@ namespace CitizenFX.Core.Native
 			{
 				ulong* __data = stackalloc ulong[] { (ulong)p_eventName, (ulong)p_args, (ulong)args.value?.LongLength };
 				ScriptContext.InvokeNative(ref s_0x7fdd1128, 0x7fdd1128, __data, 3); // TRIGGER_SERVER_EVENT_INTERNAL
+			}
+		}
+
+		[SecuritySafeCritical]
+		internal unsafe static void TriggerUnreliableServerEventInternal(CString eventName, InPacket args)
+		{
+			fixed (byte* p_eventName = eventName?.value, p_args = args.value)
+			{
+				ulong* __data = stackalloc ulong[] { (ulong)p_eventName, (ulong)p_args, (ulong)args.value?.LongLength };
+				ScriptContext.InvokeNative(ref s_triggerUnreliableServerEventInternal, 0x6c7a0f4d, __data, 3); // TRIGGER_UNRELIABLE_SERVER_EVENT_INTERNAL
 			}
 		}
 

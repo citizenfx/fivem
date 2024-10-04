@@ -231,6 +231,14 @@ namespace CitizenFX.Core
 		}
 
 		[SecuritySafeCritical]
+		public static void TriggerUnreliableServerEvent(string eventName, params object[] args)
+		{
+			var argsSerialized = MsgPackSerializer.Serialize(args);
+
+			TriggerUnreliableServerEventInternal(eventName, argsSerialized);
+		}
+
+		[SecuritySafeCritical]
 		public static void TriggerLatentServerEvent(string eventName, int bytesPerSecond, params object[] args)
 		{
 			var argsSerialized = MsgPackSerializer.Serialize(args);
@@ -261,6 +269,29 @@ namespace CitizenFX.Core
 			}
 		}
 
+		public static void TriggerUnreliableClientEvent(Player player, string eventName, params object[] args)
+		{
+			player.TriggerUnreliableEvent(eventName, args);
+		}
+
+		/// <summary>
+		/// Broadcasts an unreliable event to all connected players.
+		/// </summary>
+		/// <param name="eventName">The name of the event.</param>
+		/// <param name="args">Arguments to pass to the event.</param>
+		public static void TriggerUnreliableClientEvent(string eventName, params object[] args)
+		{
+			var argsSerialized = MsgPackSerializer.Serialize(args);
+
+			unsafe
+			{
+				fixed (byte* serialized = &argsSerialized[0])
+				{
+					Function.Call(Hash.TRIGGER_UNRELIABLE_CLIENT_EVENT_INTERNAL, eventName, "-1", serialized, argsSerialized.Length);
+				}
+			}
+		}
+
 		public static void TriggerLatentClientEvent(Player player, string eventName, int bytesPerSecond, params object[] args)
 		{
 			player.TriggerLatentEvent(eventName, bytesPerSecond, args);
@@ -286,6 +317,20 @@ namespace CitizenFX.Core
 #endif
 
 #if !IS_FXSERVER
+		[SecurityCritical]
+		private static void TriggerUnreliableServerEventInternal(string eventName, byte[] argsSerialized)
+		{
+			var nativeHash = Hash.TRIGGER_UNRELIABLE_SERVER_EVENT_INTERNAL;
+				
+			unsafe
+			{
+				fixed (byte* serialized = &argsSerialized[0])
+				{
+					Function.Call(nativeHash, eventName, serialized, argsSerialized.Length);
+				}
+			}
+		}
+
 		[SecurityCritical]
 		private static void TriggerLatentServerEventInternal(string eventName, byte[] argsSerialized, int bytesPerSecond)
 		{
