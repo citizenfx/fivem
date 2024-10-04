@@ -65,18 +65,6 @@ private:
 public:
 	SCUIHandler()
 	{
-		std::ifstream scuiFile(MakeRelativeCitPath(L"citizen/ros/scui.html"));
-
-		m_scuiData = std::string(std::istreambuf_iterator<char>(scuiFile), std::istreambuf_iterator<char>());
-		boost::algorithm::replace_all(m_scuiData, "{{ TITLE }}",
-#if GTA_FIVE
-			"gta5"
-#elif IS_RDR3
-			"rdr2"
-#else
-			"gta4"
-#endif
-		);
 	}
 
 	bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
@@ -575,7 +563,7 @@ public:
                 appendChildElement(rockstarElement, "LanguageCode", "en");
                 appendChildElement(rockstarElement, "Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
 
-                appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22,27");
+                appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22,27,29,30");
 
 				auto privsElement = appendElement("Privs", "");
 				auto privElement = appendChildElement(privsElement, "p", "");
@@ -928,7 +916,7 @@ std::string GetRockstarTicketXml()
 	appendChildElement(rockstarElement, "LanguageCode", "en");
 	appendChildElement(rockstarElement, "Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
 
-	appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22,27");
+	appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22,27,29,30");
 
 	auto privsElement = appendElement("Privs", "");
 	auto privElement = appendChildElement(privsElement, "p", "");

@@ -13,7 +13,8 @@
 #include <filesystem>
 #include <wchar.h>
 
-#include <LaunchMode.h>
+#include <CoreConsole.h>
+#include <PureModeState.h>
 
 #include <Error.h>
 
@@ -83,6 +84,11 @@ static bool IsCLRAssembly(const std::vector<uint8_t>& libraryBuffer)
 bool ComponentInstance::DoGameLoad(void* module)
 {
 	HookFunction::RunAll();
+
+	if (fx::client::GetPureLevel() >= 2)
+	{
+		return true;
+	}
 
 	try
 	{
@@ -178,7 +184,7 @@ bool ComponentInstance::DoGameLoad(void* module)
 
 					if (bad)
 					{
-						console::Printf("script:shv", "Unable to load %s - this ASI plugin does not claim to support game build %d. If you have access to its source code, add `FX_ASI_BUILD %d dummy.txt` to the .rc file when building this plugin. If not, contact its maintainer.\n", 
+						console::Printf("script:shv", "Unable to load %s - this ASI plugin does not claim to support game build %d. If you have access to its source code, add `FX_ASI_BUILD %d BEGIN \"\\0\" END` to the .rc file when building this plugin. If not, contact its maintainer.\n",
 							ToNarrow(it->path().wstring()).c_str(),
 							xbr::GetGameBuild(),
 							xbr::GetGameBuild()
@@ -188,32 +194,29 @@ bool ComponentInstance::DoGameLoad(void* module)
 
 				if (LoadPEFile(it->path(), libraryBuffer))
 				{
-					if (!CfxIsSinglePlayer())
+					for (auto itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt)
 					{
-						for (auto itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt)
+						if (*itt != L"")
 						{
-							if (*itt != L"")
+							if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0)
 							{
-								if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0)
+								bad = true;
+								trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+								if (*itt == L"openiv.asi")
 								{
-									bad = true;
-									trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
-									if (*itt == L"openiv.asi")
-									{
-										FatalError("You cannot use OpenIV with FiveM. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with FiveM.");
-									}
+									FatalError("You cannot use OpenIV with FiveM. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with FiveM.");
 								}
 							}
 						}
+					}
 
-						if (!bad)
+					if (!bad)
+					{
+						if (IsCLRAssembly(libraryBuffer))
 						{
-							if (IsCLRAssembly(libraryBuffer))
-							{
-								trace("Skipping blacklisted CLR assembly %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+							trace("Skipping blacklisted CLR assembly %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
 
-								bad = true;
-							}
+							bad = true;
 						}
 					}
 

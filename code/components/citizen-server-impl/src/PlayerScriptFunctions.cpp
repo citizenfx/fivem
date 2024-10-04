@@ -13,6 +13,8 @@
 
 #include <MakeClientFunction.h>
 
+#include "fxScripting.h"
+
 static void CreatePlayerCommands();
 
 static InitFunction initFunction([]()
@@ -28,6 +30,13 @@ static void CreatePlayerCommands()
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_NAME", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		return client->GetName().c_str();
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("DOES_PLAYER_EXIST", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		auto matchID = atoi(context.CheckArgument<const char*>(0));
+
+		return client->GetNetId() == matchID;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_GUID", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
@@ -50,6 +59,22 @@ static void CreatePlayerCommands()
 		}
 
 		return client->GetIdentifiers()[idx].c_str();
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_IDENTIFIER_BY_TYPE", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		const std::vector<std::string>& identifiers = client->GetIdentifiers();
+		std::string_view identifierType = context.CheckArgument<const char*>(1);
+
+		for (int i = 0; i < identifiers.size(); ++i)
+		{
+			if (identifiers[i].rfind(identifierType, 0) != std::string::npos)
+			{
+				return identifiers[i].c_str();
+			}
+		}
+
+		return (const char*)nullptr;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_PLAYER_TOKENS", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
@@ -99,7 +124,7 @@ static void CreatePlayerCommands()
 	fx::ScriptEngine::RegisterNativeHandler("DROP_PLAYER", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		// don't allow dropping of a player that hasn't finished connecting/configuring
-		if (client->GetNetId() > 0xFFFF)
+		if (!client->HasConnected())
 		{
 			return false;
 		}
@@ -113,7 +138,20 @@ static void CreatePlayerCommands()
 		// get the game server
 		auto server = instance->GetComponent<fx::GameServer>();
 
-		server->DropClient(client, context.CheckArgument<const char*>(1));
+		std::string resourceName;
+		
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			if (resource)
+			{
+				resourceName = resource->GetName();
+			}
+		}
+
+		server->DropClientWithReason(client, resourceName, fx::ClientDropReason::RESOURCE, context.CheckArgument<const char*>(1));
 
 		return true;
 	}));
@@ -146,7 +184,7 @@ static void CreatePlayerCommands()
 
 		registry->ForAllClients([&](const fx::ClientSharedPtr& client)
 		{
-			if (client->GetNetId() >= 0xFFFF)
+			if (!client->HasConnected())
 			{
 				return;
 			}
@@ -216,5 +254,10 @@ static void CreatePlayerCommands()
 		{
 			return 0;
 		}
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_TIME_ONLINE", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		return client->GetSecondsOnline();
 	}));
 }

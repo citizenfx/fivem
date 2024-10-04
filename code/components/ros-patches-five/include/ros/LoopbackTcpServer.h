@@ -57,6 +57,8 @@ public:
 	}
 
 	int HandleWrite(char* buffer, size_t length);
+
+	void StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout) override;
 };
 
 class LoopbackTcpServer : public net::TcpServer
@@ -66,8 +68,10 @@ private:
 
 	LoopbackTcpServerManager* m_manager;
 
+	std::string m_hostName;
+
 public:
-	LoopbackTcpServer(LoopbackTcpServerManager* manager);
+	LoopbackTcpServer(LoopbackTcpServerManager* manager, const std::string& hostName);
 
 	inline uint16_t GetPort()
 	{

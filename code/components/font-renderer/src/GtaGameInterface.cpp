@@ -11,11 +11,11 @@
 #include <grcTexture.h>
 #include <ICoreGameInit.h>
 #include <CoreConsole.h>
-#include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
 #include <utf8.h>
 #include <Hooking.h>
 #include <CL2LaunchMode.h>
+#include <CfxReleaseInfo.h>
 
 #include "memdbgon.h"
 
@@ -279,14 +279,14 @@ FontRendererGameInterface* CreateGameInterface()
 
 #include <random>
 
-static bool IsCanary()
+static std::wstring GetUpdateChannel()
 {
 	wchar_t resultPath[1024];
 
 	static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 	GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
 
-	return (_wcsicmp(resultPath, L"canary") == 0);
+	return resultPath;
 }
 
 #if GTA_NY
@@ -295,32 +295,32 @@ static HookFunction hookFunc([]()
 static InitFunction initFunction([] ()
 #endif
 {
-	static ConVar<std::string> customBrandingEmoji("ui_customBrandingEmoji", ConVar_Archive, "");
+	static ConVar<std::string> customBrandingEmoji("ui_customBrandingEmoji", ConVar_Archive | ConVar_UserPref, "");
 
 	static std::random_device random_core;
 	static std::mt19937 random(random_core());
 
-	static bool shouldDraw = false;
+	static bool inGame = false;
 
 #ifdef GTA_NY
-	shouldDraw = true;
+	inGame = true;
 #endif
 
-	if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
+	if (!getenv("CitizenFX_ToolMode"))
 	{
 		Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
 		{
-			shouldDraw = true;
+			inGame = true;
 		});
 
 		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 		{
-			shouldDraw = false;
+			inGame = false;
 		});
 	}
 	else
 	{
-		shouldDraw = true;
+		inGame = true;
 	}
 
 #if defined(_HAVE_GRCORE_NEWSTATES) && defined(GTA_FIVE)
@@ -341,63 +341,71 @@ static InitFunction initFunction([] ()
 
 	srand(GetTickCount());
 
-	OnPostFrontendRender.Connect([=] ()
+	OnPostFrontendRender.Connect([=]()
 	{
 #if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
 		int gameWidth, gameHeight;
 		GetGameResolution(gameWidth, gameHeight);
 
-		static bool isCanary = IsCanary();
+		static auto updateChannel = GetUpdateChannel();
 
-		std::wstring brandingString = L"";
-		std::wstring brandingEmoji = L"";
-		std::wstring brandName = L"";
+		std::wstring brandingEmoji;
+		std::wstring brandName;
 
-		if (shouldDraw) {
-			SYSTEMTIME systemTime;
-			GetLocalTime(&systemTime);
+		if (inGame)
+		{
+			auto getDayEmoji = []
+			{
+				SYSTEMTIME systemTime;
+				GetLocalTime(&systemTime);
+
+				switch (systemTime.wHour)
+				{
+					case 1:
+					case 2:
+					case 3:
+					case 4:
+					case 5:
+					case 6:
+						return L"\xD83C\xDF19";
+					case 7:
+					case 8:
+					case 9:
+					case 10:
+					case 11:
+					case 12:
+						return L"\xD83C\xDF42";
+					case 13:
+					case 14:
+					case 15:
+					case 16:
+					case 17:
+					case 18:
+						return L"\xD83C\xDF50";
+					case 19:
+					case 20:
+					case 21:
+					case 22:
+					case 23:
+					case 0:
+						return L"\xD83E\xDD59";
+				}
+
+				return L"";
+			};
 
 			brandName = L"FiveM";
+			brandingEmoji = getDayEmoji();
 
-			switch (systemTime.wHour)
-			{
-				case 1:
-				case 2:
-				case 3:
-				case 4:
-				case 5:
-				case 6:
-					brandingEmoji = L"\xD83C\xDF19";
-					break;
-				case 7:
-				case 8:
-				case 9:
-				case 10:
-				case 11:
-				case 12:
-					brandingEmoji = L"\xD83C\xDF42";
-					break;
-				case 13:
-				case 14:
-				case 15:
-				case 16:
-				case 17:
-				case 18:
-					brandingEmoji = L"\xD83C\xDF50";
-					break;
-				case 19:
-				case 20:
-				case 21:
-				case 22:
-				case 23:
-				case 0:
-					brandingEmoji = L"\xD83E\xDD59";
-					break;
-			}
+#if defined(IS_RDR3)
+			brandName = L"RedM";
+#elif defined(GTA_NY)
+			brandName = L"LibertyM";
+			brandingEmoji = L"\U0001F5FD";
+#endif
 
-			if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
+			if (!getenv("CitizenFX_ToolMode"))
 			{
-#if !defined(IS_RDR3) && !defined(GTA_NY)
 				auto emoji = customBrandingEmoji.GetValue();
 
 				if (!emoji.empty())
@@ -418,7 +426,6 @@ static InitFunction initFunction([] ()
 						}
 						catch (const utf8::exception& e)
 						{
-
 						}
 					}
 				}
@@ -428,127 +435,90 @@ static InitFunction initFunction([] ()
 					brandName += L"*";
 				}
 
-				if (Is2060())
-				{
-					brandName += L" (b2060)";
-				}
-
-				if (Is2189())
-				{
-					brandName += L" (b2189)";
-				}
-
-				if (Is2372())
-				{
-					brandName += L" (b2372)";
-				}
-
-				if (Is2545())
-				{
-					brandName += L" (b2545)";
-				}
-#endif 
-
-#if defined(IS_RDR3)
-				brandName = L"RedM";
-
-				if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
-				{
-					brandName += L"*";
-				}
-
-				if (Is1355())
-				{
-					brandName += L" (b1355)";
-				}
-
-				if (Is1436())
-				{
-					brandName += L" (b1436)";
-				}
-#endif
-
-#if defined(GTA_NY)
-				brandName = L"LibertyM";
-				brandingEmoji = L"\U0001F5FD";
-#endif
+				brandName += fmt::sprintf(L" (b%d)", xbr::GetGameBuild());
 
 				if (launch::IsSDKGuest())
 				{
 					brandName += L" (SDK)";
 				}
-				else if (isCanary)
+				else if (updateChannel == L"canary")
 				{
 					brandName += L" (Canary)";
 				}
+				else if (updateChannel == L"beta")
+				{
+					brandName += L" (Beta)";
+				}
 			}
 		}
-		else
+		else // (!inGame), i.e. menu
 		{
-			static auto version = ([]()
+			static auto version = cfx::GetPlatformRelease();
+
+			static auto updateChannelTag = ([]() -> std::wstring
 			{
-				FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
-				int version = -1;
-
-				if (f)
+				if (updateChannel != L"production")
 				{
-					char ver[128];
-
-					fgets(ver, sizeof(ver), f);
-					fclose(f);
-
-					version = atoi(ver);
-				}
-				else
-				{
-					version = 0;
+					return fmt::sprintf(L"/%s", updateChannel);
 				}
 
-				return version;
+				return L"";
 			})();
 
-			brandName = fmt::sprintf(L"Ver. %d", version);
+			brandName = fmt::sprintf(L"Ver. %d%s", version, updateChannelTag);
 		}
 
-		static int anchorPosBase = ([]()
+		enum class AnchorPos
+		{
+			TopRight = 0,
+			BottomRight = 1,
+			TopLeft = 2,
+			BottomLeft = 3,
+		};
+
+		static auto anchorPosBase = ([]()
 		{
 			if (launch::IsSDKGuest())
 			{
-				return 1;
+				return AnchorPos::BottomRight;
 			}
 			else
 			{
 				std::random_device rd;
 				std::mt19937 gen(rd());
-				std::uniform_int_distribution<> dis(0, 2);
+				std::uniform_int_distribution<> dis(0, 1); // 2/3 (top-left/bottom-left) don't exist anymore
 
-				return dis(gen);
+				return static_cast<AnchorPos>(dis(gen));
 			}
 		})();
 
-		int anchorPos = anchorPosBase;
+		auto anchorPos = anchorPosBase;
 
-		if (!shouldDraw)
+		// in the menu, we want it to always be on the bottom right
+		if (!inGame)
 		{
-			anchorPos = 1;
+			anchorPos = AnchorPos::BottomRight;
 		}
 
+		std::wstring brandingString = L"";
+
 		// If anchor position is on left-side, make the emoji go on the left side.
-		if (anchorPos < 2) {
+		if (anchorPos == AnchorPos::BottomRight || anchorPos == AnchorPos::TopRight)
+		{
 			brandingString = fmt::sprintf(L"%s %s", brandName, brandingEmoji);
-		} else
+		}
+		else
 		{
 			brandingString = fmt::sprintf(L"%s %s", brandingEmoji, brandName);
 		}
 
-		
 		static CRect metrics;
 		static fwWString lastString;
 		static float lastHeight;
 
 		float gameWidthF = static_cast<float>(gameWidth);
 		float gameHeightF = static_cast<float>(gameHeight);
-		
+
 		if (metrics.Width() <= 0.1f || lastString != brandingString || lastHeight != gameHeightF)
 		{
 			g_fontRenderer.GetStringMetrics(brandingString, 22.0f * (gameHeightF / 1440.0f), 1.0f, "Segoe UI", metrics);
@@ -561,20 +531,21 @@ static InitFunction initFunction([] ()
 
 		switch (anchorPos)
 		{
-		case 0: // TR
-			drawRect = { gameWidthF - metrics.Width() - 10.0f, 10.0f, gameWidthF, gameHeightF };
-			break;
-		case 1: // BR
-			drawRect = { gameWidthF - metrics.Width() - 10.0f, gameHeightF - metrics.Height() - 10.0f, gameWidthF, gameHeightF };
-			break;
-		case 2: // TL
-			drawRect = { 10.0f, 10.0f, gameWidthF, gameHeightF };
-			break;
+			case AnchorPos::TopRight: // TR
+				drawRect = { gameWidthF - metrics.Width() - 10.0f, 10.0f, gameWidthF, gameHeightF };
+				break;
+			case AnchorPos::BottomRight: // BR
+			default:
+				drawRect = { gameWidthF - metrics.Width() - 10.0f, gameHeightF - metrics.Height() - 10.0f, gameWidthF, gameHeightF };
+				break;
+			case AnchorPos::TopLeft: // TL
+				drawRect = { 10.0f, 10.0f, gameWidthF, gameHeightF };
+				break;
 		}
 
 		CRGBA color(180, 180, 180, 120);
 
-		if (!shouldDraw)
+		if (!inGame)
 		{
 			color = CRGBA(255, 108, 0, 255);
 		}
@@ -583,5 +554,6 @@ static InitFunction initFunction([] ()
 #endif
 
 		g_fontRenderer.DrawPerFrame();
-	}, 1000);
+	},
+	1000);
 });

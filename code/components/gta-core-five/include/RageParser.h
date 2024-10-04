@@ -1,11 +1,12 @@
 #pragma once
 
+#include "ComponentExport.h"
 #include <atArray.h>
 
-#ifdef COMPILING_GTA_CORE_FIVE
-#define GTA_CORE_EXPORT DLL_EXPORT
-#else
-#define GTA_CORE_EXPORT DLL_IMPORT
+#ifdef GTA_FIVE
+#define GTA_CORE_TARGET GTA_CORE_FIVE
+#elif IS_RDR3
+#define GTA_CORE_TARGET GTA_CORE_RDR3
 #endif
 
 namespace rage
@@ -45,7 +46,12 @@ namespace rage
 		Half = 30,
 		Int64 = 31,
 		UInt64 = 32,
-		Double = 33
+		Double = 33,
+#ifdef IS_RDR3
+		Guid = 34,
+		Vec2f = 35,
+		QuatV = 36,
+#endif
 	};
 
 	struct parEnumField
@@ -126,6 +132,7 @@ namespace rage
 			parEnumDefinition* enumData;
 			uint32_t arrayElemCount;
 		};
+		uint16_t enumElemCount; // +48 for enum defs
 	};
 
 	class parMember
@@ -142,13 +149,21 @@ namespace rage
 	public:
 		virtual ~parStructure() = default;
 
+#if IS_RDR3
+		uint8_t m_critSection[0x28];
+#endif
+
 		uint32_t m_nameHash; // +8
 
 		char m_pad[4]; // +12
 
 		parStructure* m_baseClass; // +16
 
+#if IS_RDR3
+		char m_pad2[32]; // +24
+#else
 		char m_pad2[24]; // +24
+#endif
 
 		atArray<rage::parMember*> m_members; // +48
 
@@ -167,7 +182,9 @@ namespace rage
 		void(*m_delete)(void*);
 	};
 
-	GTA_CORE_EXPORT rage::parStructure* GetStructureDefinition(const char* structType);
+	COMPONENT_EXPORT(GTA_CORE_TARGET) rage::parStructure* GetStructureDefinition(const char* structType);
 
-	GTA_CORE_EXPORT rage::parStructure* GetStructureDefinition(uint32_t structHash);
+	COMPONENT_EXPORT(GTA_CORE_TARGET) rage::parStructure* GetStructureDefinition(uint32_t structHash);
 }
+
+#undef GTA_CORE_TARGET

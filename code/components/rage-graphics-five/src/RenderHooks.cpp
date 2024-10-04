@@ -1,7 +1,6 @@
 #include "StdInc.h"
 
-//#include <ETWProviders/etwprof.h>
-
+#include <array>
 #include <mutex>
 
 #include <d3d11_1.h>
@@ -18,7 +17,6 @@
 #include <Error.h>
 
 #include <CrossBuildRuntime.h>
-#include <LaunchMode.h>
 #include <CL2LaunchMode.h>
 
 #include <CoreConsole.h>
@@ -69,15 +67,6 @@ static void* g_lastBackbufTexture;
 static bool g_useFlipModel = false;
 
 static bool g_overrideVsync;
-
-static void(*g_origCreateCB)(const char*);
-
-static void InvokeCreateCB(const char* arg)
-{
-	g_origCreateCB(arg);
-
-	//OnGrcCreateDevice();
-}
 
 static void CaptureBufferOutput();
 static void CaptureInternalScreenshot();
@@ -179,6 +168,7 @@ static void InvokeRender()
 
 static IDXGISwapChain1* g_swapChain1;
 static DWORD g_swapChainFlags;
+static std::array<void*, 2> g_swapChainFlagLocations;
 static ID3D11DeviceContext* g_dc;
 
 static bool g_allowTearing;
@@ -563,7 +553,7 @@ static bool IsSafeToUseDXGI()
 
 extern HRESULT RootD3D11CreateDevice(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext);
 
-static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
+static void GoGetAdapter(IDXGIAdapter** ppAdapter)
 {
 	{
 		WRL::ComPtr<IDXGIFactory1> dxgiFactory;
@@ -575,11 +565,8 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 		if (SUCCEEDED(hr))
 		{
 			for (UINT adapterIndex = 0;
-				DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(
-					adapterIndex,
-					DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-					IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
-				adapterIndex++)
+				 DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
+				 adapterIndex++)
 			{
 				DXGI_ADAPTER_DESC1 desc;
 				adapter->GetDesc1(&desc);
@@ -590,14 +577,23 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 					continue;
 				}
 
-				AddCrashometry("gpu_name", "%s", ToNarrow(desc.Description));
-				AddCrashometry("gpu_id", "%04x:%04x", desc.VendorId, desc.DeviceId);
+				static auto _ = ([&desc]
+				{
+					AddCrashometry("gpu_name", "%s", ToNarrow(desc.Description));
+					AddCrashometry("gpu_id", "%04x:%04x", desc.VendorId, desc.DeviceId);
+					return true;
+				})();
 
-				adapter.CopyTo(&pAdapter);
+				adapter.CopyTo(ppAdapter);
 				break;
 			}
 		}
 	}
+}
+
+static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
+{
+	GoGetAdapter(&pAdapter);
 
 	SetEvent(g_gameWindowEvent);
 
@@ -703,10 +699,8 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 	}
 
 	// patch stuff here as only now do we know swapchain flags
-	auto pattern = hook::pattern("C7 44 24 28 02 00 00 00 89 44 24 20 41").count(2);
-
-	hook::put<uint32_t>(pattern.get(0).get<void>(4), g_swapChainFlags | 2);
-	hook::put<uint32_t>(pattern.get(1).get<void>(4), g_swapChainFlags | 2);
+	hook::put<uint32_t>(g_swapChainFlagLocations[0], g_swapChainFlags | 2);
+	hook::put<uint32_t>(g_swapChainFlagLocations[1], g_swapChainFlags | 2);
 
 	// we assume all users will stop using the object by the time it is dereferenced
 	if (!initState->isReverseGame)
@@ -803,77 +797,7 @@ bool WrapVideoModeChange(VideoModeInfo* info)
 
 	trace("Changing video mode success: %d.\n", success);
 
-	if (success)
-	{
-		//g_resetVideoMode(info);
-	}
-
-#if 0
-	IUnknown** g_backbuffer = (IUnknown**)0x14299D640;
-	rage::grcRenderTargetDX11** g_backBufferRT = (rage::grcRenderTargetDX11**)0x14299DC50;
-
-	//delete (*g_backBufferRT);
-
-	//ULONG refCnt = (*g_backbuffer)->Release();
-
-	ULONG refCnt = (*g_backBufferRT)->m_rtv->Release();
-	(*g_backBufferRT)->m_rtv = nullptr;
-
-	trace("refcnt %d\n", refCnt);
-
-	if ((*g_backBufferRT)->m_resource2)
-	{
-		(*g_backBufferRT)->m_resource2->Release();
-		(*g_backBufferRT)->m_resource2 = nullptr;
-	}
-
-	for (auto& srv : (*g_backBufferRT)->m_srvs)
-	{
-		srv->Release();
-	}
-
-	(*g_backBufferRT)->m_srvs.Clear();
-
-	hook::put<uint8_t>(0x141299035, 0xC3);
-	hook::put<uint8_t>(0x141298F60, 0x48);
-
-	((void(*)(void*))0x141298F60)(rage::grcTextureFactory::getInstance());
-
-	hook::put<uint8_t>(0x141298F60, 0xC3);
-
-	DXGI_SWAP_CHAIN_DESC desc = {};
-	(*g_dxgiSwapChain)->GetDesc(&desc);
-
-	trace("flags now: %d\n", desc.Flags);
-
-	HRESULT hr = (*g_dxgiSwapChain)->ResizeBuffers(0, info->width, info->height, DXGI_FORMAT_UNKNOWN, desc.Flags);// | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
-
-	if (FAILED(hr))
-	{
-		TerminateProcess(GetCurrentProcess(), 1);
-	}
-
-	if (FAILED(hr))
-	{
-		trace("Changing video mode: buffers failed. HR: %08x\n", hr);
-		// TODO: fail on D3D error
-	}
-
-	trace("Changing video mode: meheeeeeh.\n");
-
-	((void(*)(void*))0x14129D1C8)(rage::grcTextureFactory::getInstance());
-
-	trace("Woo! %016x\n", (uintptr_t)*g_backBufferRT);
-#endif
-
 	return success;
-}
-
-static bool(*g_origRunGame)();
-
-static int RunGameWrap()
-{
-	return g_origRunGame();
 }
 
 #pragma region shaders
@@ -1064,16 +988,10 @@ const BYTE quadVS[] =
 
 struct GameRenderData
 {
-	HANDLE handle;
-	int width;
-	int height;
-	bool requested;
-
-	GameRenderData()
-		: requested(false)
-	{
-
-	}
+	HANDLE handle = NULL;
+	int width = 0;
+	int height = 0;
+	bool requested = false;
 };
 
 static rage::grcRenderTargetDX11** g_backBuffer;
@@ -1083,8 +1001,40 @@ static auto GetBackbuf()
 	return *g_backBuffer;
 }
 
+static auto GetInvariantD3D11Device()
+{
+	WRL::ComPtr<IDXGIDevice> realDeviceDxgi;
+	WRL::ComPtr<ID3D11Device> realDevice = nullptr;
+
+	GetD3D11Device()->QueryInterface(IID_PPV_ARGS(&realDeviceDxgi));
+	if (realDeviceDxgi)
+	{
+		realDeviceDxgi.As(&realDevice);
+	}
+
+	return realDevice;
+}
+
+static auto GetInvariantD3D11DeviceContext()
+{
+	WRL::ComPtr<IUnknown> realDeviceContextUnk;
+	WRL::ComPtr<ID3D11DeviceContext> realDeviceContext;
+
+	GetD3D11DeviceContext()->QueryInterface(IID_PPV_ARGS(&realDeviceContextUnk));
+	realDeviceContextUnk.As(&realDeviceContext);
+
+	return realDeviceContext;
+}
+
 void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height = 0)
 {
+	static auto didCallCrashometry = ([]()
+	{
+		AddCrashometry("did_render_backbuf", "true");
+
+		return true;
+	})();
+
 	D3D11_TEXTURE2D_DESC resDesc = { 0 };
 	auto backBuf = GetBackbuf();
 
@@ -1105,17 +1055,12 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 		backBuf->m_srv2->QueryInterface(IID_PPV_ARGS(&realSrvUnk));
 		realSrvUnk.As(&realSrv);
 
-		WRL::ComPtr<IDXGIDevice> realDeviceDxgi;
-		WRL::ComPtr<ID3D11Device> realDevice;
-
-		GetD3D11Device()->QueryInterface(IID_PPV_ARGS(&realDeviceDxgi));
-		realDeviceDxgi.As(&realDevice);
-
-		WRL::ComPtr<IUnknown> realDeviceContextUnk;
-		WRL::ComPtr<ID3D11DeviceContext> realDeviceContext;
-
-		GetD3D11DeviceContext()->QueryInterface(IID_PPV_ARGS(&realDeviceContextUnk));
-		realDeviceContextUnk.As(&realDeviceContext);
+		auto realDevice = GetInvariantD3D11Device();
+		auto realDeviceContext = GetInvariantD3D11DeviceContext();
+		if (!realDevice)
+		{
+			return;
+		}
 
 		auto m_width = resDesc.Width;
 		auto m_height = resDesc.Height;
@@ -1143,8 +1088,8 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 			realDevice->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
 		});
 
-		ID3DUserDefinedAnnotation* pPerf = NULL;
-		realDeviceContext->QueryInterface(__uuidof(pPerf), reinterpret_cast<void**>(&pPerf));
+		WRL::ComPtr<ID3DUserDefinedAnnotation> pPerf = NULL;
+		realDeviceContext->QueryInterface(IID_PPV_ARGS(&pPerf));
 
 		if (pPerf)
 		{
@@ -1153,15 +1098,15 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 
 		auto deviceContext = realDeviceContext;
 		
-		ID3D11RenderTargetView* oldRtv = nullptr;
-		ID3D11DepthStencilView* oldDsv = nullptr;
+		WRL::ComPtr<ID3D11RenderTargetView> oldRtv;
+		WRL::ComPtr<ID3D11DepthStencilView> oldDsv;
 		deviceContext->OMGetRenderTargets(1, &oldRtv, &oldDsv);
 
-		ID3D11SamplerState* oldSs;
-		ID3D11BlendState* oldBs;
-		ID3D11PixelShader* oldPs;
-		ID3D11VertexShader* oldVs;
-		ID3D11ShaderResourceView* oldSrv;
+		WRL::ComPtr<ID3D11SamplerState> oldSs;
+		WRL::ComPtr<ID3D11BlendState> oldBs;
+		WRL::ComPtr<ID3D11PixelShader> oldPs;
+		WRL::ComPtr<ID3D11VertexShader> oldVs;
+		WRL::ComPtr<ID3D11ShaderResourceView> oldSrv;
 
 		D3D11_VIEWPORT oldVp;
 		UINT numVPs = 1;
@@ -1207,63 +1152,21 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 
 		deviceContext->Draw(4, 0);
 
-		deviceContext->OMSetRenderTargets(1, &oldRtv, oldDsv);
+		deviceContext->OMSetRenderTargets(1, oldRtv.GetAddressOf(), oldDsv.Get());
 
 		deviceContext->IASetPrimitiveTopology(oldTopo);
 		deviceContext->IASetInputLayout(oldLayout);
 
-		deviceContext->VSSetShader(oldVs, nullptr, 0);
-		deviceContext->PSSetShader(oldPs, nullptr, 0);
-		deviceContext->PSSetSamplers(0, 1, &oldSs);
-		deviceContext->PSSetShaderResources(0, 1, &oldSrv);
-		deviceContext->OMSetBlendState(oldBs, nullptr, 0xffffffff);
+		deviceContext->VSSetShader(oldVs.Get(), nullptr, 0);
+		deviceContext->PSSetShader(oldPs.Get(), nullptr, 0);
+		deviceContext->PSSetSamplers(0, 1, oldSs.GetAddressOf());
+		deviceContext->PSSetShaderResources(0, 1, oldSrv.GetAddressOf());
+		deviceContext->OMSetBlendState(oldBs.Get(), nullptr, 0xffffffff);
 		deviceContext->RSSetViewports(1, &oldVp);
-
-		if (oldVs)
-		{
-			oldVs->Release();
-		}
-
-		if (oldPs)
-		{
-			oldPs->Release();
-		}
-
-		if (oldBs)
-		{
-			oldBs->Release();
-		}
-
-		if (oldSs)
-		{
-			oldSs->Release();
-		}
-
-		if (oldSrv)
-		{
-			oldSrv->Release();
-		}
-
-		if (oldRtv)
-		{
-			oldRtv->Release();
-		}
-
-		if (oldDsv)
-		{
-			oldDsv->Release();
-		}
-
-		if (oldLayout)
-		{
-			oldLayout->Release();
-		}
 
 		if (pPerf)
 		{
 			pPerf->EndEvent();
-
-			pPerf->Release();
 		}
 	}
 }
@@ -1308,15 +1211,21 @@ void CaptureInternalScreenshot()
 			texDesc.CPUAccessFlags = 0;
 			texDesc.MiscFlags = 0;
 
+			WRL::ComPtr<ID3D11Device> device = GetInvariantD3D11Device();
+			if (!device)
+			{
+				return;
+			}
+
 			WRL::ComPtr<ID3D11Texture2D> d3dTex;
-			HRESULT hr = GetD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+			HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, &d3dTex);
 			if FAILED(hr)
 			{
 				return;
 			}
 
 			D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
-			GetD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
+			device->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
 
 			d3dTex.CopyTo(&myTexture);
 		}
@@ -1336,7 +1245,7 @@ void CaptureInternalScreenshot()
 			texDesc.MiscFlags = 0;
 
 			WRL::ComPtr<ID3D11Texture2D> d3dTex;
-			HRESULT hr = GetD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+			HRESULT hr = GetInvariantD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
 			if FAILED(hr)
 			{
 				return;
@@ -1360,17 +1269,17 @@ void CaptureInternalScreenshot()
 
 	RenderBufferToBuffer(rtv, resDesc.Width / 4, resDesc.Height / 4);
 
-	GetD3D11DeviceContext()->CopyResource(myStagingTexture, myTexture);
+	GetInvariantD3D11DeviceContext()->CopyResource(myStagingTexture, myTexture);
 
 	D3D11_MAPPED_SUBRESOURCE msr;
 	
-	if (SUCCEEDED(GetD3D11DeviceContext()->Map(myStagingTexture, 0, D3D11_MAP_READ, 0, &msr)))
+	if (SUCCEEDED(GetInvariantD3D11DeviceContext()->Map(myStagingTexture, 0, D3D11_MAP_READ, 0, &msr)))
 	{
-		size_t blen = (resDesc.Height / 4) * msr.RowPitch;
+		size_t blen = (static_cast<size_t>(resDesc.Height / 4)) * msr.RowPitch;
 		std::unique_ptr<uint8_t[]> data(new uint8_t[blen]);
 		memcpy(data.get(), msr.pData, blen);
 
-		GetD3D11DeviceContext()->Unmap(myStagingTexture, 0);
+		GetInvariantD3D11DeviceContext()->Unmap(myStagingTexture, 0);
 
 		// convert RGBA to RGB
 		int w = (resDesc.Width / 4);
@@ -1419,6 +1328,10 @@ void CaptureBufferOutput()
 			handleData->height = resDesc.Height;
 		}
 	}
+	else
+	{
+		return;
+	}
 
 	bool change = false;
 	static ID3D11Texture2D* myTexture;
@@ -1460,16 +1373,21 @@ void CaptureBufferOutput()
 		texDesc.CPUAccessFlags = 0;
 		texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
-		WRL::ComPtr<ID3D11Texture2D> d3dTex;
-		HRESULT hr = GetD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
-		if FAILED(hr)
+		WRL::ComPtr<ID3D11Device> device = GetInvariantD3D11Device();
+		if (!device)
 		{
 			return;
-			// error handling code
+		}
+
+		WRL::ComPtr<ID3D11Texture2D> d3dTex;
+		HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+		if (FAILED(hr))
+		{
+			return;
 		}
 
 		D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
-		GetD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
+		device->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
 
 		d3dTex.CopyTo(&myTexture);
 
@@ -1478,14 +1396,13 @@ void CaptureBufferOutput()
 		hr = d3dTex.As(&dxgiResource);
 		if (FAILED(hr))
 		{
-			// error handling code
 			return;
 		}
 
 		hr = dxgiResource->GetSharedHandle(&sharedHandle);
-		if FAILED(hr)
+		if (FAILED(hr))
 		{
-			// error handling code
+			// no error handling for safety
 		}
 
 		handleData->handle = sharedHandle;
@@ -1560,7 +1477,7 @@ void D3DPresent(int syncInterval, int flags)
 	if (icgi->HasVariable("gameMinimized"))
 	{
 		static WaitableTimer fpsTimer{NULL, TRUE, NULL};
-		LimitFrameTime(fpsTimer, 20);
+		LimitFrameTime(fpsTimer, 30);
 	}
 
 	RootSetPresented();
@@ -1580,10 +1497,96 @@ static int Return1()
 
 #include "dxerr.h"
 
-static void DisplayD3DCrashMessage(HRESULT hr)
+static void __declspec(noinline) DisplayD3DCrashMessageGeneric(const std::string& errorBody)
 {
-	wchar_t errorBuffer[8192] = { 0 };
-	DXGetErrorDescriptionW(hr, errorBuffer, _countof(errorBuffer));
+	FatalError("DirectX encountered an unrecoverable error: %s", errorBody);
+}
+
+static void __declspec(noinline) DisplayD3DCrashMessageReShadeENBSeries(const std::string& errorBody)
+{
+	FatalError("DirectX encountered an unrecoverable error (R+E): %s", errorBody);
+}
+
+static void __declspec(noinline) DisplayD3DCrashMessageReShade(const std::string& errorBody)
+{
+	FatalError("DirectX encountered an unrecoverable error (R): %s", errorBody);
+}
+
+static void __declspec(noinline) DisplayD3DCrashMessageENBSeries(const std::string& errorBody)
+{
+	FatalError("DirectX encountered an unrecoverable error (E): %s", errorBody);
+}
+
+static void __declspec(noinline) DisplayD3DCrashMessageGraphicsMods(const std::string& errorBody)
+{
+	FatalError("DirectX encountered an unrecoverable error (M): %s", errorBody);
+}
+
+static std::string GetGraphicsModDetails(const std::string& fileName)
+{
+	std::wstring path = MakeRelativeGamePath(ToWide(fileName));
+	DWORD versionInfoSize = GetFileVersionInfoSize(path.c_str(), nullptr);
+
+	if (versionInfoSize)
+	{
+		std::vector<uint8_t> versionInfo(versionInfoSize);
+
+		if (GetFileVersionInfo(path.c_str(), 0, versionInfo.size(), &versionInfo[0]))
+		{
+			struct LANGANDCODEPAGE
+			{
+				WORD wLanguage;
+				WORD wCodePage;
+			} * lpTranslate;
+
+			UINT cbTranslate = 0;
+
+			// Read the list of languages and code pages.
+
+			VerQueryValue(&versionInfo[0],
+			TEXT("\\VarFileInfo\\Translation"),
+			(LPVOID*)&lpTranslate,
+			&cbTranslate);
+
+			if (cbTranslate > 0)
+			{
+				void* productNameBuffer;
+				UINT productNameSize = 0;
+
+				VerQueryValue(&versionInfo[0],
+				va(L"\\StringFileInfo\\%04x%04x\\ProductName", lpTranslate[0].wLanguage, lpTranslate[0].wCodePage),
+				&productNameBuffer,
+				&productNameSize);
+
+				void* fixedInfoBuffer;
+				UINT fixedInfoSize = 0;
+
+				VerQueryValue(&versionInfo[0], L"\\", &fixedInfoBuffer, &fixedInfoSize);
+
+				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
+
+				if (productNameSize > 0 && fixedInfoSize > 0)
+				{
+					return fmt::sprintf("%s %d.%d.%d.%d",
+						ToNarrow((wchar_t*)productNameBuffer),
+						fixedInfo->dwProductVersionMS >> 16,
+						fixedInfo->dwProductVersionMS & 0xFFFF,
+						fixedInfo->dwProductVersionLS >> 16,
+						fixedInfo->dwProductVersionLS & 0xFFFF);
+				}
+			}
+		}
+	}
+
+	return "";
+}
+
+static void DisplayD3DCrashMessageWrap(HRESULT hr)
+{
+	constexpr auto errorBufferCount = 8192;
+	auto errorBuffer = std::unique_ptr<wchar_t[]>(new wchar_t[errorBufferCount]);
+	memset(errorBuffer.get(), 0, errorBufferCount * sizeof(wchar_t));
+	DXGetErrorDescriptionW(hr, errorBuffer.get(), errorBufferCount);
 
 	auto errorString = DXGetErrorStringW(hr);
 
@@ -1598,8 +1601,9 @@ static void DisplayD3DCrashMessage(HRESULT hr)
 	{
 		HRESULT removedReason = GetD3D11Device()->GetDeviceRemovedReason();
 
-		wchar_t errorBuffer[8192] = { 0 };
-		DXGetErrorDescriptionW(removedReason, errorBuffer, _countof(errorBuffer));
+		auto errorBuffer = std::unique_ptr<wchar_t[]>(new wchar_t[errorBufferCount]);
+		memset(errorBuffer.get(), 0, errorBufferCount * sizeof(wchar_t));
+		DXGetErrorDescriptionW(removedReason, errorBuffer.get(), errorBufferCount);
 
 		auto removedString = DXGetErrorStringW(removedReason);
 
@@ -1608,19 +1612,68 @@ static void DisplayD3DCrashMessage(HRESULT hr)
 			removedString = va(L"0x%08x", hr);
 		}
 
-		removedError = ToNarrow(fmt::sprintf(L"\nGetDeviceRemovedReason returned %s - %s", removedString, errorBuffer));
+		removedError = ToNarrow(fmt::sprintf(L"\nGetDeviceRemovedReason returned %s - %s", removedString, errorBuffer.get()));
 	}
 
-	FatalError("DirectX encountered an unrecoverable error: %s - %s%s", ToNarrow(errorString), ToNarrow(errorBuffer), removedError);
-}
+	auto errorBody = fmt::sprintf("%s - %s%s", ToNarrow(errorString), ToNarrow(errorBuffer.get()), removedError);
 
-static HRESULT D3DGetData(ID3D11DeviceContext* dc, ID3D11Asynchronous* async, void* data, UINT dataSize, UINT flags)
-{
-	dc->GetData(async, data, dataSize, flags);
+	std::set<std::string> mods;
+	auto getMod = [&mods](const std::string& filename)
+	{
+		if (auto details = GetGraphicsModDetails(filename); !details.empty())
+		{
+			mods.insert(details);
+		}
+	};
 
-	*(int*)data = 1;
+	getMod("d3d11.dll");
+	getMod("dxgi.dll");
+	getMod("d3d10.dll");
 
-	return S_OK;
+	if (!mods.empty())
+	{
+		errorBody += "\n\nThe following graphics mods were found in your GTA V installation:\n";
+
+		for (const auto& mod : mods)
+		{
+			errorBody += fmt::sprintf("- %s\n", mod);
+		}
+
+		errorBody += "\nPlease contact the author of these mods to see if the issue may be related to them.";
+
+		bool reshade = std::find_if(mods.begin(), mods.end(), [](const auto& str)
+					   {
+						   return str.find("ReShade") == 0;
+					   })
+					   != mods.end();
+
+		bool enbseries = std::find_if(mods.begin(), mods.end(), [](const auto& str)
+						 {
+							 return str.find("ENBSeries") == 0;
+						 })
+						 != mods.end();
+
+		if (reshade && enbseries)
+		{
+			DisplayD3DCrashMessageReShadeENBSeries(errorBody);
+		}
+		else if (reshade)
+		{
+			DisplayD3DCrashMessageReShade(errorBody);
+		}
+		else if (enbseries)
+		{
+			DisplayD3DCrashMessageENBSeries(errorBody);
+		}
+		else
+		{
+			DisplayD3DCrashMessageGraphicsMods(errorBody);
+		}
+	}
+	else
+	{
+		DisplayD3DCrashMessageGeneric(errorBody);
+	}
 }
 
 static void(*g_origPresent)();
@@ -1695,7 +1748,7 @@ static HWND WINAPI HookCreateWindowExW(_In_ DWORD dwExStyle, _In_opt_ LPCWSTR lp
 	static HostSharedData<CfxState> initState("CfxInitState");
 	HWND w;
 
-	auto wndName = (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"FiveM";
+	const auto wndName = L"FiveM® by Cfx.re";
 
 	if (initState->isReverseGame)
 	{
@@ -1788,13 +1841,27 @@ static LONG_PTR SetWindowLongPtrAHook(HWND hWnd,
 #include <concurrent_unordered_map.h>
 
 static concurrency::concurrent_unordered_map<void*, bool> g_queriesSetUp;
-static void(*g_origWaitForQuery)(void*);
+static bool (*g_isQueryPending)(void*);
+
+static std::atomic<int> g_isInRenderQuery;
+
+DLL_EXPORT bool IsInRenderQuery()
+{
+	return g_isInRenderQuery > 0;
+}
 
 static void WaitForQueryHook(void* query)
 {
 	if (g_queriesSetUp[query])
 	{
-		g_origWaitForQuery(query);
+		++g_isInRenderQuery;
+
+		while (g_isQueryPending(query))
+		{
+			Sleep(1);
+		}
+
+		--g_isInRenderQuery;
 	}
 
 	g_queriesSetUp[query] = false;
@@ -1909,12 +1976,6 @@ static HookFunction hookFunction([] ()
 
 	g_backBuffer = hook::get_address<decltype(g_backBuffer)>(hook::get_pattern("48 8B D0 48 89 05 ? ? ? ? EB 07 48 8B 15", 6));
 
-	// device creation
-	void* ptrFunc = hook::pattern("E8 ? ? ? ? 84 C0 75 ? B2 01 B9 2F A9 C2 F4").count(1).get(0).get<void>(33);
-
-	hook::set_call(&g_origCreateCB, ptrFunc);
-	hook::call(ptrFunc, InvokeCreateCB);
-
 	// end scene
 	{
 		auto location = hook::get_pattern("48 0F 45 C8 48 83 C4 40 5B E9 00 00 00 00", 9);
@@ -1922,34 +1983,34 @@ static HookFunction hookFunction([] ()
 		hook::jump(location, RagePresentWrap);
 	}
 
-	//ptrFunc = hook::pattern("83 64 24 28 00 41 B0 01 C6 44 24 20 01 41 8A C8").count(1).get(0).get<void>(-30);
-	//hook::set_call(&g_origEndScene, ptrFunc);
-	//hook::call(ptrFunc, EndSceneWrap);
-
-	ptrFunc = hook::get_pattern("41 83 F9 01 75 34 48 83 C4 28 E9", 10);
-	hook::set_call(&g_origRunGame, ptrFunc);
-	hook::jump(ptrFunc, RunGameWrap);
-
 	// present hook function
 	hook::put(hook::get_address<void*>(hook::get_pattern("48 8B 05 ? ? ? ? 48 85 C0 74 0C 8B 4D 50 8B", 3)), D3DPresent);
 
-	char* fnStart = hook::get_pattern<char>("8B 03 41 BE 01 00 00 00 89 05", -0x47);	
-	g_dxgiSwapChain = hook::get_address<IDXGISwapChain**>(fnStart + 0x127);
+	if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		char* fnStart = hook::get_pattern<char>("8B 03 41 BE 01 00 00 00 89 05", -0x43);
+		g_dxgiSwapChain = hook::get_address<IDXGISwapChain**>(fnStart + 0x120);
 
-	MH_CreateHook(fnStart, WrapVideoModeChange, (void**)&g_origVideoModeChange);
+		MH_CreateHook(fnStart, WrapVideoModeChange, (void**)&g_origVideoModeChange);	
+	}
+	else
+	{
+		char* fnStart = hook::get_pattern<char>("8B 03 41 BE 01 00 00 00 89 05", -0x47);
+		g_dxgiSwapChain = hook::get_address<IDXGISwapChain**>(fnStart + 0x127);
+
+		MH_CreateHook(fnStart, WrapVideoModeChange, (void**)&g_origVideoModeChange);	
+	}
+
+	{
+		auto pattern = hook::pattern("C7 44 24 28 02 00 00 00 89 44 24 20 41").count(2);
+		g_swapChainFlagLocations[0] = pattern.get(0).get<void>(4);
+		g_swapChainFlagLocations[1] = pattern.get(1).get<void>(4);
+	}
 
 	g_resetVideoMode = hook::get_pattern<std::remove_pointer_t<decltype(g_resetVideoMode)>>("8B 44 24 50 4C 8B 17 44 8B 4E 04 44 8B 06", -0x61);
 
-	// set the present hook
-	if (IsWindows10OrGreater())
-	{
-		// wrap video mode changing
-		MH_CreateHook(hook::get_pattern("57 48 83 EC 20 49 83 63 08 00", -0xB), WrapCreateBackbuffer, (void**)&g_origCreateBackbuffer);
-
-		// remove render thread semaphore checks from buffer resizing
-		/*hook::nop((char*)g_resetVideoMode + 0x48, 5);
-		hook::nop((char*)g_resetVideoMode + 0x163, 5);*/
-	}
+	// wrap video mode changing
+	MH_CreateHook(hook::get_pattern("57 48 83 EC 20 49 83 63 08 00", -0xB), WrapCreateBackbuffer, (void**)&g_origCreateBackbuffer);
 
 	MH_EnableHook(MH_ALL_HOOKS);
 
@@ -1962,34 +2023,32 @@ static HookFunction hookFunction([] ()
 	if (g_disableRendering)
 	{
 		uint8_t mov[] = { 0x4C, 0x8D, 0x44, 0x24, 0x40 };
-		auto location = hook::get_pattern<char>("8B D6 48 8B 01 4C 8D 44 24 40 FF 50", 2);
+		auto location = hook::get_pattern<char>("8B D6 48 8B 01 4C 8D 44 24 ? FF", 2);
 
 		hook::nop(location, 11);
 		memcpy(location, mov, 5);
 		hook::call(location + 5, FakeOutput);
 	}
 
-	// ignore frozen render device (for PIX and such)
-	//hook::put<uint32_t>(hook::pattern("8B 8E C0 0F 00 00 68 88 13 00 00 51 E8").count(2).get(0).get<void>(7), INFINITE);
-
-	/*ptrFunc = hook::pattern("8B 8E F0 09 00 00 E8 ? ? ? ? 68").count(1).get(0).get<void>(12);
-
-	hook::put(ptrFunc, InvokePostFrontendRender);*/
-
-	// frontend render phase
-	//hook::put(0xE9F1AC, InvokeFrontendCBStub);
-
-	// in-menu check for renderphasefrontend
-	//*(BYTE*)0x43AF21 = 0xEB;
-
-	// temp: d3d debug layer
-	//static void* gFunc = D3D11CreateDeviceAndSwapChain2;
-	//hook::put(0xF107CE, &gFunc);
-
 	// add D3D11_CREATE_DEVICE_BGRA_SUPPORT flag
-	void* createDeviceLoc = hook::pattern("48 8D 45 90 C7 44 24 30 07 00 00 00").count(1).get(0).get<void>(21);
-	hook::nop(createDeviceLoc, 6);
-	hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+	if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		void* createDeviceLoc = hook::get_pattern("FF 15 ? ? ? ? 48 8B 15 ? ? ? ? 48 8D 0D ? ? ? ? 8B D8");
+		hook::nop(createDeviceLoc, 6);
+		hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+	}
+	else if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		void* createDeviceLoc = hook::pattern("48 8D 44 24 78 89 74 24 30 89 7C 24 28").count(1).get(0).get<void>(18);
+		hook::nop(createDeviceLoc, 6);
+		hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+	}
+	else
+	{
+		void* createDeviceLoc = hook::pattern("48 8D 45 90 C7 44 24 30 07 00 00 00").count(1).get(0).get<void>(21);
+		hook::nop(createDeviceLoc, 6);
+		hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+	}
 
 	// don't crash on ID3D11DeviceContext::GetData call failures
 	// these somehow are caused by NVIDIA driver settings?
@@ -1998,7 +2057,7 @@ static HookFunction hookFunction([] ()
 	// ERR_GFX_D3D_INIT: display valid reasons
 	auto loc = hook::get_pattern<char>("75 0A B9 06 BD F7 9C E8");
 	hook::nop(loc + 2, 5);
-	hook::call(loc + 7, DisplayD3DCrashMessage);
+	hook::call(loc + 7, DisplayD3DCrashMessageWrap);
 
 	// remove infinite loop before grcResourceCache D3D failure
 	{
@@ -2039,7 +2098,13 @@ static HookFunction hookFunction([] ()
 
 	// disable render queries if in load screen thread
 	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("84 C0 75 E8 48 83 C4 20 5B C3", -0x1F), WaitForQueryHook, (void**)&g_origWaitForQuery);
+
+	{
+		auto location = hook::get_pattern<char>("84 C0 75 E8 48 83 C4 20 5B C3", -0x1F);
+		hook::set_call(&g_isQueryPending, location + 0x1A);
+		MH_CreateHook(location, WaitForQueryHook, NULL);
+	}
+
 	MH_CreateHook(hook::get_pattern("41 3B C3 74 30 4C 63 CB 44", -0x1F), SetupQueryHook, (void**)&g_origSetupQuery);
 	MH_EnableHook(MH_ALL_HOOKS);
 
@@ -2074,4 +2139,33 @@ static HookFunction hookFunction([] ()
 
 	// and when minimized
 	hook::nop(hook::get_pattern("74 0C 84 C9 75 08 84 C0 0F", 8), 6);
+});
+
+// load the UMD early by having a 'dummy' D3D11 device so this won't slow down due to scanning
+static InitFunction initFunctionEarlyUMD([]
+{
+	{
+		auto state = CfxState::Get();
+		if (!state->IsGameProcess())
+		{
+			return;
+		}
+	}
+
+	std::thread([]()
+	{
+		IDXGIAdapter* adapter = nullptr;
+		GoGetAdapter(&adapter);
+
+		WRL::ComPtr<ID3D11Device> device;
+		HRESULT hr = D3D11CreateDevice(adapter, D3D_DRIVER_TYPE_UNKNOWN, NULL, 0, NULL, 0, D3D11_SDK_VERSION, &device, NULL, NULL);
+
+		// release
+		if (adapter)
+		{
+			adapter->Release();
+		}
+
+		Sleep(20000);
+	}).detach();
 });

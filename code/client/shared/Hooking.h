@@ -24,6 +24,15 @@ namespace hook
 // for link /DYNAMICBASE executables
 extern ptrdiff_t baseAddressDifference;
 
+inline constexpr uintptr_t exe_end()
+{
+#if defined(IS_RDR3)
+	return 0x148000000;
+#endif
+
+	return 0x146000000;
+}
+
 // sets the base address difference based on an obtained pointer
 inline void set_base(uintptr_t address)
 {
@@ -47,7 +56,7 @@ inline void set_base()
 template<typename T>
 inline void adjust_base(T& address)
 {
-	if ((uintptr_t)address >= 0x140000000 && (uintptr_t)address <= 0x146000000)
+	if ((uintptr_t)address >= 0x140000000 && (uintptr_t)address <= exe_end())
 	{
 		*(uintptr_t*)& address += baseAddressDifference;
 	}
@@ -57,7 +66,7 @@ inline void adjust_base(T& address)
 template<typename T>
 inline uintptr_t get_adjusted(T address)
 {
-	if ((uintptr_t)address >= 0x140000000 && (uintptr_t)address <= 0x146000000)
+	if ((uintptr_t)address >= 0x140000000 && (uintptr_t)address <= exe_end())
 	{
 		return (uintptr_t)address + baseAddressDifference;
 	}
@@ -70,7 +79,7 @@ template<typename T>
 inline uintptr_t get_unadjusted(T address)
 {
 #ifdef _M_AMD64
-	if ((uintptr_t)address >= hook::get_adjusted(0x140000000) && (uintptr_t)address <= hook::get_adjusted(0x146000000))
+	if ((uintptr_t)address >= hook::get_adjusted(0x140000000) && (uintptr_t)address <= hook::get_adjusted(exe_end()))
 	{
 		return (uintptr_t)address - baseAddressDifference;
 	}
@@ -141,12 +150,7 @@ inline void put(AddressType address, ValueType value)
 {
 	adjust_base(address);
 
-	DWORD oldProtect;
-	VirtualProtect((void*)address, sizeof(value), PAGE_EXECUTE_READWRITE, &oldProtect);
-
 	memcpy((void*)address, &value, sizeof(value));
-
-	VirtualProtect((void*)address, sizeof(value), oldProtect, &oldProtect);
 }
 
 template<typename ValueType, typename AddressType>
@@ -745,6 +749,15 @@ inline T get_call(T address)
 	return (T)target;
 }
 
+template<typename T, typename OffsetType>
+inline T* get_by_offset(uint8_t* address, OffsetType offset)
+{
+	intptr_t base_address = get_adjusted(address);
+	intptr_t target = *(OffsetType*)(base_address + offset);
+	target += (base_address + offset + sizeof(OffsetType));
+	return reinterpret_cast<T*>(target);
+}
+
 template<typename TTarget, typename T>
 inline void set_call(TTarget* target, T address)
 {
@@ -814,4 +827,5 @@ inline T get_address(TAddr address, size_t offsetTo4ByteAddr, size_t numBytesInL
 
 #include "Hooking.Invoke.h"
 #include "Hooking.Patterns.h"
+#include "Hooking.FlexStruct.h"
 #endif

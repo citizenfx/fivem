@@ -3,6 +3,7 @@
 #include <MinHook.h>
 
 #include <CrossBuildRuntime.h>
+#include <USKeyboardMapping.h>
 
 enum KeyboardKeys
 {
@@ -227,6 +228,24 @@ struct ControlClass2060
 	uint32_t numKeys;
 };
 
+struct ControlClass2699
+{
+	// 2699 (+24)
+	uint8_t pad[2544 + 24];
+
+	KeyLayoutMap keys[255];
+	uint32_t numKeys;
+};
+
+struct ControlClass3095
+{
+	// 3095 (+32)
+	uint8_t pad[2544 + 32];
+
+	KeyLayoutMap keys[255];
+	uint32_t numKeys;
+};
+
 static void(*g_origLoadLayout)(void*);
 
 static void* g_controlData;
@@ -234,12 +253,10 @@ static void* g_controlData;
 template<typename TClass>
 static void UpdateControlData(TClass* a1)
 {
-	auto hkl = LoadKeyboardLayoutW(L"00000409", 0);
-
 	for (auto& key : mappedKeys)
 	{
 		// first, map the US VK to a scan code
-		auto scanCode = MapVirtualKeyExW(key, MAPVK_VK_TO_VSC, hkl);
+		auto scanCode = MapVirtualKeyInternal(key, MAPVK_VK_TO_VSC);
 
 		// then, map the scan code to a localized vkey
 		auto vk = MapVirtualKey(scanCode, MAPVK_VSC_TO_VK);
@@ -256,9 +273,6 @@ static void UpdateControlData(TClass* a1)
 		// finally, copy to the output
 		strcpy_s(a1->keys[key].text, text.c_str());
 	}
-
-	// HKL isn't reference counted, this would unload the US keyboard layout for any non-US system, leading to mapping breaking!
-	//UnloadKeyboardLayout(hkl);
 }
 
 template<typename TClass>
@@ -279,7 +293,15 @@ static void OnInputLanguageChange()
 
 	if (g_controlData)
 	{
-		if (xbr::IsGameBuildOrGreater<2060>())
+		if (xbr::IsGameBuildOrGreater<3095>())
+		{
+			UpdateControlData((ControlClass3095*)g_controlData);
+		}
+		else if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			UpdateControlData((ControlClass2699*)g_controlData);
+		}
+		else if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			UpdateControlData((ControlClass2060*)g_controlData);
 		}
@@ -292,15 +314,21 @@ static void OnInputLanguageChange()
 
 static HookFunction hookFunction([]()
 {
-	if (Is372())
 	{
-		return;
+		// Disable loading of en-US layout in _initKeyboard, we tap into kbdus directly
+		auto enKeyboardInitBlock = hook::get_pattern<uint8_t>("40 8A C6 48 39 35 ? ? ? ? 75 08 84 C0 0F 84 ? ? ? ? 33 D2 33 C9", 3);
+		hook::nop(enKeyboardInitBlock, 12);
+		hook::put<uint8_t>(enKeyboardInitBlock + 12, 0xE9);
+
+		// Ditch built-in MapGameKey impl for our reimplementation so graceful handling of non-QWERTY layouts is kept (game's depends on layout skipped above)
+		auto mapGameKeyFunc = hook::get_pattern("48 89 5C 24 08 57 48 83 EC 20 41 8A D8 8B FA 83 F9 13");
+		hook::jump(mapGameKeyFunc, MapGameKey);
 	}
 
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? 48 8D 45 88 48 3B D8 74 1E");
 		hook::set_call(&g_origLoadLayout, location);
-		hook::call(location, (xbr::IsGameBuildOrGreater<2060>() ? (void*)&LoadKeyboardLayoutWrap<ControlClass2060> : (void*)&LoadKeyboardLayoutWrap<ControlClass1604>));
+		hook::call(location, (xbr::IsGameBuildOrGreater<3095>() ? (void*)&LoadKeyboardLayoutWrap<ControlClass3095> : xbr::IsGameBuildOrGreater<2699>() ? (void*)&LoadKeyboardLayoutWrap<ControlClass2699> : xbr::IsGameBuildOrGreater<2060>() ? (void*)&LoadKeyboardLayoutWrap<ControlClass2060> : (void*)&LoadKeyboardLayoutWrap<ControlClass1604>));
 	}
 
 	{

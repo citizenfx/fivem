@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 aliases: ["SET_VEHICLE_WHEEL_XROT"]
 ---
 ## SET_VEHICLE_WHEEL_Y_ROTATION

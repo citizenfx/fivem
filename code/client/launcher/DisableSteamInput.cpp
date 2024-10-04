@@ -46,7 +46,18 @@ bool IsSteamRunning()
 
 static void ForceInputAppId(int appId)
 {
-	ShellExecute(nullptr, L"open", va(L"steam://forceinputappid/%d", appId), nullptr, nullptr, SW_HIDE);
+	SHELLEXECUTEINFOW shinfo = { 0 };
+	shinfo.cbSize = sizeof(SHELLEXECUTEINFO);
+	shinfo.fMask = SEE_MASK_ASYNCOK;
+	shinfo.hwnd = NULL;
+	shinfo.lpVerb = NULL;
+	shinfo.lpFile = va(L"steam://forceinputappid/%d", appId);
+	shinfo.lpParameters = NULL;
+	shinfo.lpDirectory = NULL;
+	shinfo.nShow = SW_HIDE;
+	shinfo.hInstApp = NULL;
+
+	ShellExecuteEx(&shinfo);
 }
 
 void SteamInput_Initialize()

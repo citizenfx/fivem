@@ -15,6 +15,8 @@
 
 #include <Error.h>
 
+#include "CnlEndpoint.h"
+
 __declspec(dllexport) void IDidntDoNothing()
 {
 
@@ -103,6 +105,16 @@ std::string GetMachineGuid()
 
 std::string g_entitlementSource;
 
+__declspec(noinline) static void SetEntitlementSource(const std::string& entitlementSource)
+{
+	g_entitlementSource = entitlementSource;
+}
+
+__declspec(noinline) static bool HasEntitlementSource()
+{
+	return !g_entitlementSource.empty();
+}
+
 bool LoadOwnershipTicket()
 {
     std::string filePath = GetOwnershipPath();
@@ -153,9 +165,9 @@ bool LoadOwnershipTicket()
 		{
 			if (doc.IsObject())
 			{
-				g_entitlementSource = doc["guid"].GetString();
+				SetEntitlementSource(doc["guid"].GetString());
 
-				if (!g_entitlementSource.empty())
+				if (HasEntitlementSource())
 				{
 					return true;
 				}
@@ -228,6 +240,17 @@ void tohex(unsigned char* in, size_t insz, char* out, size_t outsz)
 
 std::string GetAuthSessionTicket(uint32_t appID)
 {
+	static uint32_t lastAppID;
+
+	if (appID != 0)
+	{
+		lastAppID = appID;
+	}
+	else
+	{
+		appID = lastAppID;
+	}
+
 	// init Steam
 	SetEnvironmentVariable(L"SteamAppId", fmt::sprintf(L"%d", appID).c_str());
 
@@ -786,7 +809,7 @@ bool VerifyRetailOwnershipInternal(int pass)
 									{
 										trace(__FUNCTION__ ": Found matching entitlement for %s - creating token.\n", match);
 
-										auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/rosfive" },
+										auto r = cpr::Post(cpr::Url{ CNL_ENDPOINT "api/validate/entitlement/rosfive" },
 											cpr::Payload{
 												{ "rosData", b.text },
 												{
@@ -812,7 +835,8 @@ bool VerifyRetailOwnershipInternal(int pass)
 										{
 											trace(__FUNCTION__ ": Got a token and saved it.\n");
 
-											g_entitlementSource = r.text;
+											SetEntitlementSource(r.text);
+
 											return true;
 										}
 									}
@@ -851,7 +875,7 @@ bool VerifyRetailOwnershipInternal(int pass)
 		}).join();
 	}
 #else
-	auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/ros2" },
+	auto r = cpr::Post(cpr::Url{ CNL_ENDPOINT "api/validate/entitlement/ros2" },
 		cpr::Payload{
 			{ "ticket", ticket },
 			{ "gameName",
@@ -882,8 +906,20 @@ bool VerifyRetailOwnershipInternal(int pass)
 	{
 		trace(__FUNCTION__ ": Got a token and saved it.\n");
 
-		g_entitlementSource = r.text;
+		SetEntitlementSource(r.text);
+
 		return true;
+	}
+
+	if (r.status_code == 403)
+	{
+		FatalError(
+			"Unable to verify ownership of Red Dead Redemption 2/Red Dead Online\n"
+			"- Try launching the game through Steam/Epic Games Launcher first.\n"
+			"- Wait until the game is fully running and close it.\n"
+			"- Try launching RedM again."
+		);
+		return false;
 	}
 #endif
 
@@ -910,7 +946,7 @@ static ConVar<std::string>* tokenVar;
 
 bool LegitimateCopy()
 {
-    return LoadOwnershipTicket() || (VerifySteamOwnership() && SaveOwnershipTicket(g_entitlementSource)) || (VerifyRetailOwnership() && SaveOwnershipTicket(g_entitlementSource));
+    return LoadOwnershipTicket() || (VerifySteamOwnership() && SaveOwnershipTicket(ros::GetEntitlementSource())) || (VerifyRetailOwnership() && SaveOwnershipTicket(ros::GetEntitlementSource()));
 }
 
 void VerifyOwnership(int parentPid)
@@ -925,7 +961,7 @@ void VerifyOwnership(int parentPid)
 
 namespace ros
 {
-	std::string GetEntitlementSource()
+	__declspec(noinline) std::string GetEntitlementSource()
 	{
 		return g_entitlementSource;
 	}
@@ -933,7 +969,8 @@ namespace ros
 
 void LoadOwnershipEarly()
 {
-	tokenVar = new ConVar<std::string>("cl_ownershipTicket", ConVar_None, "");
+	// ConVar_ScriptRestricted because ownership ticket is sensitive information. Should never be exposed to 3rd party
+	tokenVar = new ConVar<std::string>("cl_ownershipTicket", ConVar_ScriptRestricted, "");
 
 	if (!tokenVar->GetValue().empty())
 	{
@@ -950,5 +987,5 @@ static HookFunction hookFunction([]()
 {
 	LoadOwnershipTicket();
 
-	tokenVar->GetHelper()->SetValue(g_entitlementSource);
+	tokenVar->GetHelper()->SetValue(ros::GetEntitlementSource());
 });

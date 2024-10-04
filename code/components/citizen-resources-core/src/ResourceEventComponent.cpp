@@ -14,6 +14,7 @@
 #include <msgpack.hpp>
 
 #include <DebugAlias.h>
+#include <IteratorView.h>
 
 static inline bool IsServer()
 {
@@ -164,6 +165,20 @@ void ResourceEventManagerComponent::Tick()
 static thread_local bool g_wasLastEventCanceled;
 static thread_local std::stack<bool*> g_eventCancelationStack;
 
+void ResourceEventManagerComponent::AddResourceHandledEvent(const std::string& resourceName, const std::string& eventName)
+{
+	// try checking if this pair already exists
+	for (const auto& pair : fx::GetIteratorView(m_eventResources.equal_range(eventName)))
+	{
+		if (pair.second == resourceName)
+		{
+			return;
+		}
+	}
+
+	m_eventResources.emplace(eventName, resourceName);
+}
+
 bool ResourceEventManagerComponent::TriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource /* = std::string() */, ResourceEventComponent* filter /* = nullptr*/)
 {
 	// add a value to signify event cancelation
@@ -172,32 +187,51 @@ bool ResourceEventManagerComponent::TriggerEvent(const std::string& eventName, c
 	g_eventCancelationStack.push(&eventCanceled);
 
 	// trigger global handlers for the event
-	OnTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
-
-	// trigger local handlers
-	m_manager->ForAllResources([&] (const fwRefContainer<Resource>& resource)
+	if (OnTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled))
 	{
-		// get the event component
-		const fwRefContainer<ResourceEventComponent>& eventComponent = resource->GetComponent<ResourceEventComponent>();
-
-		if (filter)
+		// trigger local handlers
+		auto forResource = [&](const fwRefContainer<Resource>& resource)
 		{
-			if (eventComponent.GetRef() != filter)
+			// get the event component
+			const fwRefContainer<ResourceEventComponent>& eventComponent = resource->GetComponent<ResourceEventComponent>();
+
+			// if there's none, return
+			if (!eventComponent.GetRef())
 			{
+				trace("no event component for resource %s\n", resource->GetName().c_str());
 				return;
 			}
-		}
 
-		// if there's none, return
-		if (!eventComponent.GetRef())
+			// continue on
+			eventComponent->HandleTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
+		};
+
+		// No known resource origin
+		if (!filter)
 		{
-			trace("no event component for resource %s\n", resource->GetName().c_str());
-			return;
-		}
+			// Don't process manually emitted __cfx_nui: events
+			if (eventName.find("__cfx_nui:") != 0)
+			{
+				for (const auto& eventKey : { std::string{ "*" }, eventName })
+				{
+					for (const auto& resourcePair : fx::GetIteratorView(m_eventResources.equal_range(eventKey)))
+					{
+						auto resource = m_manager->GetResource(resourcePair.second, false);
 
-		// continue on
-		eventComponent->HandleTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
-	});
+						if (resource.GetRef())
+						{
+							forResource(resource);
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			// By the time we arrive here the Strict Mode check from ResourceUI.cpp had taken place, no need for extra filtering
+			filter->HandleTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
+		}
+	}
 
 	// pop the stack entry
 	g_eventCancelationStack.pop();

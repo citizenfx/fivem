@@ -8,7 +8,14 @@ namespace CitizenFX.Core.Native
     {
         public static T Call<T>(Hash hash, params InputArgument[] arguments)
         {
-            return (T)InvokeInternal(hash, typeof(T), arguments);
+			object obj = InvokeInternal(hash, typeof(T), arguments);
+
+			if (PointerArgumentSafety.ShouldClean((ulong)hash, typeof(T)))
+			{
+				return default;
+			}
+
+			return (T)obj;
         }
 
         public static void Call(Hash hash, params InputArgument[] arguments)
@@ -16,7 +23,7 @@ namespace CitizenFX.Core.Native
             InvokeInternal(hash, typeof(void), arguments);
         }
 
-		private static object InvokeInternal(Hash nativeHash, Type returnType, InputArgument[] args)
+		private static unsafe object InvokeInternal(Hash nativeHash, Type returnType, InputArgument[] args)
 		{
 			ScriptContext.Reset();
 
@@ -25,16 +32,97 @@ namespace CitizenFX.Core.Native
 				ScriptContext.Push(arg.Value);
 			}
 
-			ScriptContext.Invoke((ulong)nativeHash, InternalManager.ScriptHost);
+#if !IS_FXSERVER
+			const int bufferCount = 32;
 
-			if (returnType != typeof(void))
+			// Note: direct access to argument buffer
+			fixed (byte* p_functionData = ScriptContext.m_extContext.functionData)
 			{
+				ulong* argumentBuffer = (ulong*)p_functionData;
+				ulong* initialValues = stackalloc ulong[bufferCount];
+				// Buffer.MemoryCopy not available on client
+				for (uint i = 0; i < bufferCount; ++i)
+				{
+					initialValues[i] = argumentBuffer[i];
+				}
+#else
+			{
+#endif
+
+				ScriptContext.Invoke((ulong)nativeHash, InternalManager.ScriptHost);
+
+				if (returnType == typeof(void))
+				{
+					return null;
+				}
+
+#if !IS_FXSERVER
+				if (returnType == typeof(string) && argumentBuffer[0] != 0)
+				{
+					NativeStringResultSanitization(nativeHash, args, argumentBuffer, ScriptContext.m_extContext.numArguments, initialValues);
+				}
+#endif
 				return ScriptContext.GetResult(returnType);
 			}
-
-			return null;
 		}
-    }
+
+		/// <summary>
+		/// Sanitization for string result types
+		/// Loops through all values given by the ScRT and deny any that equals the result value which isn't of the string type
+		/// </summary>
+		/// <returns>Result from <see cref="ScriptContext.GetResult(Type)"/> or null if sanitized</returns>
+		private static unsafe void NativeStringResultSanitization(Hash hash, InputArgument[] inputArguments, ulong* arguments, int numArguments, ulong* initialArguments)
+		{
+			var resultValue = arguments[0];
+
+			// Step 1: quick compare all values until we found a hit
+			// By not switching between all the buffers (incl. input arguments) we'll not introduce unnecessary cache misses.
+			for (int a = 0; a < numArguments; ++a)
+			{
+				if (initialArguments[a] == resultValue)
+				{
+					// Step 2: loop our input list for as many times as `a` was increased
+					int inputSize = inputArguments.Length;
+					for (int i = 0; i < inputSize; ++i)
+					{
+						var csArg = inputArguments[i];
+
+						// `a` can be reused by simply decrementing it, we'll go negative when we hit our goal as we decrement before checking (e.g.: `0 - 1 = -1` or `0 - 4 = -4`)
+						switch (csArg?.Value)
+						{
+							case Vector2 v2:
+								a -= 2;
+								break;
+							case Vector3 v3:
+								a -= 3;
+								break;
+							case Vector4 v4:
+							case Quaternion q:
+								a -= 4;
+								break;
+							default:
+								a--;
+								break;
+						}
+
+						// string type is allowed
+						if (a < 0)
+						{
+							if (csArg?.Value?.GetType() != typeof(string))
+							{
+								Debug.WriteLine($"Warning: Sanitized coerced string result for native {hash}");
+								arguments[0] = 0;
+							}
+
+							return; // we found our arg, no more to check
+						}
+					}
+
+					return; // found our value, no more to check
+				}
+			}
+		}
+	}
 
 	[StructLayout(LayoutKind.Explicit)]
     internal struct NativeVector3
@@ -430,6 +518,15 @@ namespace CitizenFX.Core.Native
 		{
 			var data = new byte[24];
 			Marshal.Copy(m_dataPtr, data, 0, 24);
+
+			// no native commands include `char**` or `scrObject**` arguments, so these are invalid here
+			// see https://github.com/citizenfx/fivem/issues/1855
+			//
+			// this *might* break struct workarounds but these aren't considered as supported anyway
+			if (typeof(T) == typeof(string) || typeof(T) == typeof(object))
+			{
+				return default(T);
+			}
 
 			fixed (byte* dataPtr = data)
 			{

@@ -13,7 +13,7 @@
 using fx::Resource;
 
 typedef std::function<void(int statusCode, const std::multimap<std::string, std::string>& headers, const std::string& body)> ResUIResultCallback;
-typedef std::function<void(const std::string& path, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& body, ResUIResultCallback)> ResUICallback;
+typedef std::function<void(const std::string& path, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& body, const std::optional<std::string>& originResource, ResUIResultCallback)> ResUICallback;
 
 class
 #ifdef COMPILING_NUI_RESOURCES
@@ -28,7 +28,11 @@ private:
 
 	bool m_hasFrame;
 
+	bool m_isDead = false;
+
 	bool m_hasCallbacks;
+
+	bool m_strictModeOptedIn;
 
 	std::map<std::string, ResUICallback> m_callbacks;
 
@@ -50,6 +54,11 @@ public:
 	inline void SetHasCallbacks(bool value)
 	{
 		m_hasCallbacks = value;
+	}
+
+	inline bool IsDead() const
+	{
+		return m_isDead;
 	}
 
 	bool Create();

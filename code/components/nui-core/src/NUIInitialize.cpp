@@ -45,8 +45,10 @@
 #include <VFSManager.h>
 #include <VFSZipFile.h>
 
+#include <include/cef_api_hash.h>
 #include <include/cef_version.h>
 
+#include "DeferredInitializer.h"
 #include <Error.h>
 
 namespace nui
@@ -57,6 +59,7 @@ fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName);
 std::wstring GetNUIStoragePath();
 
 nui::GameInterface* g_nuiGi;
+extern bool shouldHaveRootWindow;
 
 struct GameRenderData
 {
@@ -541,15 +544,87 @@ static std::mutex g_textureLock;
 static std::map<HANDLE, WRL::ComPtr<ID3D11Texture2D>> g_textureHacks;
 concurrency::concurrent_queue<std::tuple<uint64_t, HANDLE>> Texture2DWrap::deletionQueue;
 
+struct TextureRefQueue
+{
+	struct TextureRef
+	{
+		uint64_t handle = 0;
+		long refcount = 0;
+	};
+
+	TextureRef textures[32];
+};
+
+auto GetWakeEvent()
+{
+	static HANDLE wakeEvent = CreateEventW(NULL, FALSE, FALSE, ToWide(fmt::sprintf("CFX_%s_%s_NUITextureWake", launch::GetLaunchModeKey(), launch::GetProductKey())).c_str());
+	return wakeEvent;
+}
+
+void NUI_AcceptTexture(uint64_t handle)
+{
+	HostSharedData<TextureRefQueue> refQueue("NUITextureRefs");
+	for (auto& texture : refQueue->textures)
+	{
+		if (texture.handle == handle)
+		{
+			InterlockedDecrement(&texture.refcount);
+			break;
+		}
+	}
+
+	SetEvent(GetWakeEvent());
+}
+
+void NUI_AddTexture(HANDLE handleH)
+{
+	auto handle = (uint64_t)handleH;
+
+	HostSharedData<TextureRefQueue> refQueue("NUITextureRefs");
+	for (auto& texture : refQueue->textures)
+	{
+		if (texture.handle == handle)
+		{
+			InterlockedIncrement(&texture.refcount);
+			return;
+		}
+	}
+
+	// not found
+	for (auto& texture : refQueue->textures)
+	{
+		if (!texture.handle)
+		{
+			texture.handle = handle;
+			texture.refcount = 1;
+			break;
+		}
+	}
+}
+
 void Texture2DWrap::InitializeDeleter()
 {
 	static std::thread* deletionThread = new std::thread([]()
 	{
 		SetThreadName(-1, "GPU Deletion Workaround");
 
+		auto wakeEvent = GetWakeEvent();
+
+		HostSharedData<TextureRefQueue> refQueue("NUITextureRefs");
+
 		while (true)
 		{
-			Sleep(2500);
+			WaitForSingleObject(wakeEvent, 2500);
+
+			for (auto& entry : refQueue->textures)
+			{
+				if (entry.handle && entry.refcount <= 0)
+				{
+					g_textureHacks.erase(HANDLE(entry.handle));
+
+					entry.handle = 0;
+				}
+			}
 
 			decltype(deletionQueue)::value_type item;
 			std::vector<decltype(item)> toAdd;
@@ -558,6 +633,14 @@ void Texture2DWrap::InitializeDeleter()
 			{
 				if (GetTickCount64() > (std::get<0>(item) + 7500))
 				{
+					for (auto& entry : refQueue->textures)
+					{
+						if (entry.handle == uint64_t(std::get<1>(item)))
+						{
+							entry.handle = 0;
+						}
+					}
+
 					std::lock_guard<std::mutex> _(g_textureLock);
 					g_textureHacks.erase(std::get<1>(item));
 				}
@@ -599,6 +682,7 @@ HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
 
 		m_handle = *pSharedHandle;
 		g_textureHacks.insert({ *pSharedHandle, m_texture });
+		NUI_AddTexture(m_handle);
 	}
 
 	return hr;
@@ -609,6 +693,7 @@ HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
 	{
 		*pSharedHandle = m_handle;
 		g_textureHacks.insert({ m_handle, m_texture });
+		NUI_AddTexture(m_handle);
 	}
 
 	return hr;
@@ -694,6 +779,62 @@ static HRESULT OpenSharedResourceHook(ID3D11Device* device, HANDLE hRes, REFIID 
 	}
 
 	return g_origOpenSharedResourceHook(device, hRes, iid, ppRes);
+}
+
+static HRESULT (*g_origCreateShaderResourceView)(ID3D11Device* device, ID3D11Resource* resource, const D3D11_SHADER_RESOURCE_VIEW_DESC* desc, ID3D11ShaderResourceView** out);
+
+static HRESULT CreateShaderResourceViewHook(ID3D11Device* device, ID3D11Resource* resource, const D3D11_SHADER_RESOURCE_VIEW_DESC* desc, ID3D11ShaderResourceView** out)
+{
+	WRL::ComPtr<ID3D11Resource> resourceRef(resource);
+	WRL::ComPtr<IMyTexture> mt;
+
+	if (SUCCEEDED(resourceRef.As(&mt)))
+	{
+		mt->GetOriginal(&resource);
+	}
+
+	return g_origCreateShaderResourceView(device, resource, desc, out);
+}
+
+static HRESULT (*g_origCreateRenderTargetView)(ID3D11Device* device, ID3D11Resource* resource, const D3D11_RENDER_TARGET_VIEW_DESC* desc, ID3D11RenderTargetView** out);
+
+static HRESULT CreateRenderTargetViewHook(ID3D11Device* device, ID3D11Resource* resource, const D3D11_RENDER_TARGET_VIEW_DESC* desc, ID3D11RenderTargetView** out)
+{
+	WRL::ComPtr<ID3D11Resource> resourceRef(resource);
+	WRL::ComPtr<IMyTexture> mt;
+
+	if (SUCCEEDED(resourceRef.As(&mt)))
+	{
+		mt->GetOriginal(&resource);
+	}
+
+	return g_origCreateRenderTargetView(device, resource, desc, out);
+}
+
+static HRESULT (*g_origCopySubresourceRegion)(ID3D11DeviceContext* cxt, ID3D11Resource* pDstResource,
+	UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ,
+	ID3D11Resource* pSrcResource, UINT SrcSubresource, const D3D11_BOX* pSrcBox);
+
+static HRESULT CopySubresourceRegionHook(ID3D11DeviceContext* cxt, ID3D11Resource* dst,
+	UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ,
+	ID3D11Resource* src, UINT SrcSubresource, const D3D11_BOX* pSrcBox)
+{
+	WRL::ComPtr<ID3D11Resource> dstRef(dst);
+	WRL::ComPtr<IMyTexture> mt;
+
+	if (SUCCEEDED(dstRef.As(&mt)))
+	{
+		mt->GetOriginal(&dst);
+	}
+
+	WRL::ComPtr<ID3D11Resource> srcRef(src);
+
+	if (SUCCEEDED(srcRef.As(&mt)))
+	{
+		mt->GetOriginal(&src);
+	}
+
+	return g_origCopySubresourceRegion(cxt, dst, DstSubresource, DstX, DstY, DstZ, src, SrcSubresource, pSrcBox);
 }
 
 static HRESULT(*g_origCopyResource)(ID3D11DeviceContext* cxt, ID3D11Resource* dst, ID3D11Resource* src);
@@ -784,7 +925,8 @@ void VHook(intptr_t& ref, TFnLeft fn, TFnRight out)
 	ref = (intptr_t)fn;
 }
 
-static std::recursive_mutex g_d3d11Mutex;
+// primarily to prevent Flush() calls while another thread is creating a device
+static std::shared_mutex g_d3d11Mutex;
 static void (__stdcall *g_origFlush)(void*);
 
 static void __stdcall FlushHook(void* cxt)
@@ -809,12 +951,15 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 		auto ourVtbl = new intptr_t[640];
 		memcpy(ourVtbl, vtbl, 640 * sizeof(intptr_t));
 		VHook(ourVtbl[5], &CreateTexture2DHook, &g_origCreateTexture2D);
+		VHook(ourVtbl[7], &CreateShaderResourceViewHook, &g_origCreateShaderResourceView);
+		VHook(ourVtbl[9], &CreateRenderTargetViewHook, &g_origCreateRenderTargetView);
 		VHook(ourVtbl[28], &OpenSharedResourceHook, &g_origOpenSharedResourceHook);
 
 		auto ourVtblCxt = new intptr_t[640];
 		memcpy(ourVtblCxt, vtblCxt, 640 * sizeof(intptr_t));
 
 		VHook(ourVtblCxt[111], &FlushHook, &g_origFlush);
+		VHook(ourVtblCxt[46], &CopySubresourceRegionHook, &g_origCopySubresourceRegion);
 		VHook(ourVtblCxt[47], &CopyResourceHook, &g_origCopyResource);
 
 		**(intptr_t***)ppDevice = ourVtbl;
@@ -919,9 +1064,38 @@ static std::unique_ptr<ModuleData> g_libgl;
 static std::unique_ptr<ModuleData> g_d3d11;
 static HMODULE g_sysD3D11;
 
+// helper to prevent recursive shared acquiring of the lock
+static thread_local bool inDeviceCreation;
+
+struct DeviceLock
+{
+	DeviceLock()
+	{
+		if (!inDeviceCreation)
+		{
+			inDeviceCreation = true;
+
+			hadLock = true;
+			lock = std::move(std::shared_lock(g_d3d11Mutex));
+		}
+	}
+
+	~DeviceLock()
+	{
+		if (hadLock)
+		{
+			inDeviceCreation = false;
+		}
+	}
+
+private:
+	bool hadLock = false;
+	std::shared_lock<std::shared_mutex> lock;
+};
+
 static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	std::unique_lock _(g_d3d11Mutex);
+	DeviceLock _;
 
 	PatchAdapter(&pAdapter);
 
@@ -940,7 +1114,7 @@ static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter
 
 static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	std::unique_lock _(g_d3d11Mutex);
+	DeviceLock _;
 
 	// if this is the OS calling us, we need to be special and *somehow* convince any hook to give up their true colors
 	// since D3D11CoreCreateDevice is super obscure, we'll use *that*
@@ -1129,30 +1303,22 @@ void Component_RunPreInit()
 		FatalError("Could not load bin/libcef.dll.\nLoadLibraryW failed for reason %d.", gle);
 	}
 
-	if (wcsstr(GetCommandLineW(), L"type=gpu"))
-	{
-		auto mojo__Connector__RaiseError = (uint8_t*)((char*)libcef + 0x2d12f4a);
-
-		if (*mojo__Connector__RaiseError == 0xB2)
-		{
-			hook::putVP<uint8_t>(mojo__Connector__RaiseError, 0xCC);
-		}
-	}
-
-	{
-		// echo network::SetFetchMetadataHeaders | pdbdump -r libcef.dll.pdb:0x180000000
-		auto network__SetFetchMetadataHeaders = (uint8_t*)((char*)libcef + 0x3d36e0c);
-
-		if (*network__SetFetchMetadataHeaders == 0x41)
-		{
-			hook::putVP<uint8_t>(network__SetFetchMetadataHeaders, 0xC3);
-
-			// GL robust error handling
-			hook::putVP<uint32_t>((char*)libcef + 0x26C818A, 0x90C3C033);
-		}
-	}
-
 	__HrLoadAllImportsForDll("libcef.dll");
+
+	// verify if the CEF API hash is screwed
+	{
+		const char* apiHash = cef_api_hash(0);
+		const char* apiHashUniversal = cef_api_hash(1);
+		if (strcmp(apiHash, CEF_API_HASH_PLATFORM) != 0 || strcmp(apiHashUniversal, CEF_API_HASH_UNIVERSAL) != 0)
+		{
+			_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
+			FatalError("CEF API hash mismatch\nA mismatch was detected between `nui-core.dll` and `bin/libcef.dll`. Please restart the game and try again.\n\nPlatform hash:\n%s\n%s\n\nUniversal hash:\n%s\n%s",
+			apiHash,
+			CEF_API_HASH_PLATFORM,
+			apiHashUniversal,
+			CEF_API_HASH_UNIVERSAL);
+		}
+	}
 
 	Instance<NUIApp>::Set(new NUIApp());
 
@@ -1179,7 +1345,6 @@ void Component_RunPreInit()
 	}
 }
 
-#ifndef USE_NUI_ROOTLESS
 namespace nui
 {
 std::string GetContext();
@@ -1200,13 +1365,11 @@ void CreateRootWindow()
 }
 
 bool g_shouldCreateRootWindow;
-#else
-std::shared_mutex g_recreateBrowsersMutex;
-std::set<std::string> g_recreateBrowsers;
-#endif
 
 namespace nui
 {
+fwEvent<> OnInitialize;
+
 static std::mutex g_rcHandlerMutex;
 static std::vector<std::tuple<CefString, CefString, CefRefPtr<CefSchemeHandlerFactory>>> g_schemeHandlers;
 static std::set<CefRefPtr<CefRequestContext>> g_requestContexts;
@@ -1271,10 +1434,31 @@ void SwitchContext(const std::string& contextId)
 			{
 				Instance<NUIWindowManager>::Get()->RemoveWindow(rw);
 				Instance<NUIWindowManager>::Get()->SetRootWindow({});
+				shouldHaveRootWindow = false;
 			}
 		}
 
-		CreateRootWindow();
+		// clear any leftover (DUI-type?) windows if moving to empty context
+		if (contextId.empty())
+		{
+			std::set<std::string> windows;
+			auto nuiWM = Instance<NUIWindowManager>::Get();
+
+			nuiWM->ForAllWindows([&windows](fwRefContainer<NUIWindow> window)
+			{
+				windows.insert(window->GetName());
+			});
+
+			for (const auto& window : windows)
+			{
+				nui::DestroyNUIWindow(window);
+			}
+		}
+
+		if (!contextId.empty())
+		{
+			CreateRootWindow();
+		}
 	}
 }
 
@@ -1287,91 +1471,122 @@ void Initialize(nui::GameInterface* gi)
         return;
     }
 
-	std::wstring cachePath = GetNUIStoragePath();
-	CreateDirectory(cachePath.c_str(), nullptr);
+	static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
 
-	// delete any old CEF logs
-	DeleteFile(MakeRelativeCitPath(L"cef.log").c_str());
-	DeleteFile(MakeRelativeCitPath(L"cef_console.txt").c_str());
-
-	auto selfApp = Instance<NUIApp>::Get();
-
-	CefMainArgs args(GetModuleHandle(NULL));
-	CefRefPtr<CefApp> app(selfApp);
-
-	CefSettings cSettings;
-		
-	cSettings.multi_threaded_message_loop = true;
-	cSettings.remote_debugging_port = 13172;
-	cSettings.windowless_rendering_enabled = true;
-	cSettings.log_severity = LOGSEVERITY_DEFAULT;
-	cSettings.background_color = 0;
-
-	// read the platform version
-	FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
-	int version = 0;
-
-	if (f)
+	auto deferredInitializer = DeferredInitializer::Create([]()
 	{
-		char ver[128];
+		std::wstring cachePath = GetNUIStoragePath();
+		CreateDirectory(cachePath.c_str(), nullptr);
 
-		fgets(ver, sizeof(ver), f);
-		fclose(f);
+		// delete any old CEF logs
+		DeleteFile(MakeRelativeCitPath(L"cef.log").c_str());
+		DeleteFile(MakeRelativeCitPath(L"cef_console.txt").c_str());
 
-		version = atoi(ver);
-	}
+		auto selfApp = Instance<NUIApp>::Get();
 
-	// #TODONY: why is this missing from official CEF?
-#ifndef GTA_NY
-	CefString(&cSettings.user_agent_product).FromWString(fmt::sprintf(L"Chrome/%d.%d.%d.%d CitizenFX/1.0.0.%d", cef_version_info(4), cef_version_info(5), cef_version_info(6), cef_version_info(7), version));
-#endif
-	
-	CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef_console.txt"));
-	
-	CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser", L"chrome"));
+		CefMainArgs args(GetModuleHandle(NULL));
+		CefRefPtr<CefApp> app(selfApp);
 
-	CefString(&cSettings.locale).FromASCII("en-US");
+		CefSettings cSettings;
 
-	CefString(&cSettings.cookieable_schemes_list).FromString("nui");
+		cSettings.multi_threaded_message_loop = true;
+		cSettings.remote_debugging_port = 13172;
+		cSettings.windowless_rendering_enabled = true;
+		cSettings.log_severity = LOGSEVERITY_DEFAULT;
+		cSettings.background_color = 0;
 
-	std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");
+		// read the platform version
+		FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
+		int version = 0;
 
-	CefString(&cSettings.resources_dir_path).FromWString(resPath);
-	CefString(&cSettings.locales_dir_path).FromWString(resPath);
-	CefString(&cSettings.cache_path).FromWString(cachePath);
-
-	// 2014-06-30: sandbox disabled as it breaks scheme handler factories (results in blank page being loaded)
-	CefInitialize(args, cSettings, app.get(), /*cefSandbox*/ nullptr);
-	nui::RegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
-	CefAddCrossOriginWhitelistEntry("nui://game", "https", "", true);
-	CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
-	CefAddCrossOriginWhitelistEntry("nui://game", "nui", "", true);
-
-	nui::RegisterSchemeHandlerFactory("https", "nui-game-internal", Instance<NUISchemeHandlerFactory>::Get());
-	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "https", "", true);
-	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "http", "", true);
-	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "nui", "", true);
-
-	nui::RegisterSchemeHandlerFactory("ws", "", Instance<NUISchemeHandlerFactory>::Get());
-	nui::RegisterSchemeHandlerFactory("wss", "", Instance<NUISchemeHandlerFactory>::Get());
-
-    HookFunctionBase::RunAll();
-
-#if defined(GTA_NY)
-
-	// #TODOLIBERTY:
-	/*OnGrcBeginScene.Connect([] ()
-	{
-		Instance<NUIWindowManager>::Get()->ForAllWindows([] (fwRefContainer<NUIWindow> window)
+		if (f)
 		{
-			window->UpdateFrame();
-		});
-	});*/
-#else
+			char ver[128];
 
+			fgets(ver, sizeof(ver), f);
+			fclose(f);
+
+			version = atoi(ver);
+		}
+
+		// #TODONY: why is this missing from official CEF?
+#ifndef GTA_NY
+		CefString(&cSettings.user_agent_product).FromWString(fmt::sprintf(L"Chrome/%d.%d.%d.%d CitizenFX/1.0.0.%d", cef_version_info(4), cef_version_info(5), cef_version_info(6), cef_version_info(7), version));
 #endif
 
-#ifndef USE_NUI_ROOTLESS
+		CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef_console.txt"));
+
+		CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser", L"chrome"));
+
+		CefString(&cSettings.locale).FromASCII("en-US");
+
+		CefString(&cSettings.cookieable_schemes_list).FromString("nui");
+
+		std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");
+
+		CefString(&cSettings.resources_dir_path).FromWString(resPath);
+		CefString(&cSettings.locales_dir_path).FromWString(resPath);
+		CefString(&cSettings.cache_path).FromWString(cachePath);
+
+		// 2014-06-30: sandbox disabled as it breaks scheme handler factories (results in blank page being loaded)
+		CefInitialize(args, cSettings, app.get(), /*cefSandbox*/ nullptr);
+		nui::RegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
+		CefAddCrossOriginWhitelistEntry("nui://game", "https", "", true);
+		CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
+		CefAddCrossOriginWhitelistEntry("nui://game", "nui", "", true);
+
+		nui::RegisterSchemeHandlerFactory("https", "nui-game-internal", Instance<NUISchemeHandlerFactory>::Get());
+		CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "https", "", true);
+		CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "http", "", true);
+		CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "nui", "", true);
+
+		nui::RegisterSchemeHandlerFactory("ws", "", Instance<NUISchemeHandlerFactory>::Get());
+		nui::RegisterSchemeHandlerFactory("wss", "", Instance<NUISchemeHandlerFactory>::Get());
+
+		HookFunctionBase::RunAll();
+
+		{
+			auto zips = { "citizen:/ui.zip", "citizen:/ui-big.zip" };
+
+			for (auto zip : zips)
+			{
+				static std::map<std::string, std::vector<uint8_t>> storedFiles;
+
+				const void* thisData = nullptr;
+				size_t thisDataSize = 0;
+
+				{
+					auto stream = vfs::OpenRead(zip);
+
+					if (stream.GetRef())
+					{
+						storedFiles[zip] = stream->ReadToEnd();
+
+						thisData = storedFiles[zip].data();
+						thisDataSize = storedFiles[zip].size();
+					}
+				}
+
+				if (thisData)
+				{
+					fwRefContainer<vfs::ZipFile> file = new vfs::ZipFile();
+
+					if (file->OpenArchive(fmt::sprintf("memory:$%016llx,%d,0:%s", (uintptr_t)thisData, thisDataSize, "ui")))
+					{
+						vfs::Mount(file, "citizen:/ui/");
+					}
+				}
+			}
+		}
+
+		if (nui::HasMainUI())
+		{
+			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
+		}
+
+		nui::OnInitialize();
+	});
+	
 	static ConsoleCommand devtoolsCmd("nui_devtools", []()
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
@@ -1391,26 +1606,6 @@ void Initialize(nui::GameInterface* gi)
 			}
 		}
 	});
-#else
-	static ConsoleCommand devtoolsListCmd("nui_devtools", []()
-	{
-		trace("Active NUI windows:\n");
-
-		std::shared_lock<std::shared_mutex> _(windowListMutex);
-		
-		for (const auto& [ windowName, window ] : windowList)
-		{
-			std::string_view name = windowName;
-
-			if (name.find("nui_") == 0)
-			{
-				name = name.substr(4);
-			}
-
-			trace("  nui_devtools %s\n", name);
-		}
-	});
-#endif
 
 	static ConsoleCommand devtoolsWindowCmd("nui_devtools", [](const std::string& windowName)
 	{
@@ -1436,53 +1631,10 @@ void Initialize(nui::GameInterface* gi)
 		}
 	});
 
+	g_nuiGi->OnInitRenderer.Connect([deferredInitializer]()
 	{
-		auto zips = { "citizen:/ui.zip", "citizen:/ui-big.zip" };
+		deferredInitializer->Wait();
 
-		for (auto zip : zips)
-		{
-			static std::map<std::string, std::vector<uint8_t>> storedFiles;
-
-			const void* thisData = nullptr;
-			size_t thisDataSize = 0;
-
-			{
-				auto stream = vfs::OpenRead(zip);
-
-				if (stream.GetRef())
-				{
-					storedFiles[zip] = stream->ReadToEnd();
-
-					thisData = storedFiles[zip].data();
-					thisDataSize = storedFiles[zip].size();
-				}
-			}
-
-			if (thisData)
-			{
-				fwRefContainer<vfs::ZipFile> file = new vfs::ZipFile();
-
-				if (file->OpenArchive(fmt::sprintf("memory:$%016llx,%d,0:%s", (uintptr_t)thisData, thisDataSize, "ui")))
-				{
-					vfs::Mount(file, "citizen:/ui/");
-				}
-			}
-		}
-	}
-
-#ifndef USE_NUI_ROOTLESS
-	CreateRootWindow();
-#else
-	static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
-
-	if (nui::HasMainUI())
-	{
-		nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
-	}
-#endif
-
-	g_nuiGi->OnInitRenderer.Connect([]()
-	{
 		g_rendererInit = true;
 		Instance<NUIWindowManager>::Get()->ForAllWindows([](auto window)
 		{
@@ -1490,57 +1642,36 @@ void Initialize(nui::GameInterface* gi)
 		});
 	});
 
-	g_nuiGi->OnRender.Connect([]()
+	g_nuiGi->OnRender.Connect([deferredInitializer]()
 	{
-#ifndef USE_NUI_ROOTLESS
+		deferredInitializer->Wait();
+
 		if (g_shouldCreateRootWindow)
 		{
+			if (!nui::HasMainUI())
 			{
-				auto rw = Instance<NUIWindowManager>::Get()->GetRootWindow().GetRef();
-
-				if (rw)
 				{
-					Instance<NUIWindowManager>::Get()->RemoveWindow(rw);
-					Instance<NUIWindowManager>::Get()->SetRootWindow({});
-				}
-			}
+					auto rw = Instance<NUIWindowManager>::Get()->GetRootWindow().GetRef();
 
-			CreateRootWindow();
+					if (rw)
+					{
+						Instance<NUIWindowManager>::Get()->RemoveWindow(rw);
+						Instance<NUIWindowManager>::Get()->SetRootWindow({});
+					}
+				}
+
+				CreateRootWindow();
+			}
+			else
+			{
+				nui::DestroyFrame("mpMenu");
+
+				static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
+				nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
+			}
 
 			g_shouldCreateRootWindow = false;
 		}
-#else
-		std::shared_lock<std::shared_mutex> _(g_recreateBrowsersMutex);
-
-		if (!g_recreateBrowsers.empty())
-		{
-			_.unlock();
-
-			std::unique_lock<std::shared_mutex> __(g_recreateBrowsersMutex);
-			for (auto& browser : g_recreateBrowsers)
-			{
-				auto window = nui::FindNUIWindow(browser);
-
-				if (window.GetRef() && window->GetBrowser() && window->GetBrowser()->GetMainFrame())
-				{
-					auto url = window->GetBrowser()->GetMainFrame()->GetURL();
-					auto width = window->GetWidth();
-					auto height = window->GetHeight();
-					auto renderType = window->GetPaintType();
-					auto name = window->GetName();
-					auto primary = window->IsPrimary();
-
-					nui::DestroyNUIWindow(browser);
-
-					auto win2 = nui::CreateNUIWindow(name, width, height, url, primary);
-					win2->SetPaintType(renderType);
-					win2->SetName(name);
-				}
-			}
-
-			g_recreateBrowsers.clear();
-		}
-#endif
 	});
 }
 }

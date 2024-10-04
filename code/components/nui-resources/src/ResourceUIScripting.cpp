@@ -29,7 +29,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
-static bool ValidateURL(std::string url)
+static std::string CleanURL(const std::string& url)
 {
 	auto lowerURL = boost::algorithm::to_lower_copy(url);
 
@@ -39,7 +39,15 @@ static bool ValidateURL(std::string url)
 		FatalError("file:// URI requests in DUI are not supported.\nRequested URL: %s", url);
 	}
 
-	return (lowerURL.find("http://") == 0 || lowerURL.find("https://") == 0 || lowerURL.find("nui://") == 0 || lowerURL.find("about:") == 0);
+	if (lowerURL.find("http://") == 0 || lowerURL.find("https://") == 0 || lowerURL.find("nui://") == 0 || lowerURL.find("about:") == 0)
+	{
+		return url;
+	}
+	else
+	{
+		// unknown-ish url, prefix with https://
+		return fmt::sprintf("https://%s", url);
+	}
 }
 
 static InitFunction initFunction([] ()
@@ -157,7 +165,7 @@ static InitFunction initFunction([] ()
 	class NUIWindowWrapper
 	{
 	public:
-		NUIWindowWrapper(const char* url, int width, int height)
+		NUIWindowWrapper(const char* urlArg, int width, int height)
 			: m_mouseX(0), m_mouseY(0)
 		{
 			fx::OMPtr<IScriptRuntime> runtime;
@@ -167,11 +175,12 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
-			if (!url || !ValidateURL(url))
+			if (!urlArg)
 			{
 				return;
 			}
 
+			auto url = CleanURL(urlArg);
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
 			++nuiWindowIdx;
@@ -184,24 +193,32 @@ static InitFunction initFunction([] ()
 			resourcesToNuiWindows.insert({ resource->GetName(), m_autogenHandle });
 		}
 
+		~NUIWindowWrapper()
+		{
+			Destroy();
+		}
+
 		void SetURL(const char* url)
 		{
-			if (!url || !ValidateURL(url))
+			if (!url)
 			{
 				return;
 			}
 
-			nui::SetNUIWindowURL(m_autogenHandle, url);
+			nui::SetNUIWindowURL(m_autogenHandle, CleanURL(url));
 		}
 
 		void Destroy()
 		{
-			nui::DestroyNUIWindow(m_autogenHandle);
+			if (m_autogenHandle.empty())
+			{
+				return;
+			}
 
 			nuiWindows.erase(m_autogenHandle);
 
-			// delet this!
-			delete this;
+			nui::DestroyNUIWindow(m_autogenHandle);
+			m_autogenHandle.clear();
 		}
 
 		const char* GetHandle()
@@ -313,14 +330,15 @@ static InitFunction initFunction([] ()
 		}
 
 	private:
-		std::string m_autogenHandle;
-
 		int m_mouseX;
 		int m_mouseY;
+
+		std::string m_autogenHandle;
 	};
 
 	scrBindClass<NUIWindowWrapper>()
-		.AddConstructor<void(*)(const char*, int, int)>("CREATE_DUI")
+		.AddConstructor<const char*, int, int>("CREATE_DUI")
+		.AddDestructor("DESTROY_DUI")
 		.AddMethod("SET_DUI_URL", &NUIWindowWrapper::SetURL)
 		.AddMethod("SEND_DUI_MESSAGE", &NUIWindowWrapper::SendMessage)
 		.AddMethod("GET_DUI_HANDLE", &NUIWindowWrapper::GetHandle)
@@ -328,8 +346,7 @@ static InitFunction initFunction([] ()
 		.AddMethod("SEND_DUI_MOUSE_MOVE", &NUIWindowWrapper::InjectMouseMove)
 		.AddMethod("SEND_DUI_MOUSE_DOWN", &NUIWindowWrapper::InjectMouseDown)
 		.AddMethod("SEND_DUI_MOUSE_UP", &NUIWindowWrapper::InjectMouseUp)
-		.AddMethod("SEND_DUI_MOUSE_WHEEL", &NUIWindowWrapper::InjectMouseWheel)
-		.AddMethod("DESTROY_DUI", &NUIWindowWrapper::Destroy);		
+		.AddMethod("SEND_DUI_MOUSE_WHEEL", &NUIWindowWrapper::InjectMouseWheel);
 
 	// this *was* a multiset before but some resources would not correctly pair set/unset and then be stuck in 'set' state
 	static std::unordered_set<std::string> focusVotes;
@@ -384,12 +401,9 @@ static InitFunction initFunction([] ()
 
 			for (auto dui : fx::GetIteratorView(resourcesToNuiWindows.equal_range(resourceName)))
 			{
-				auto it = nuiWindows.find(dui.second);
-
-				if (it != nuiWindows.end())
+				if (auto it = nuiWindows.find(dui.second); it != nuiWindows.end())
 				{
 					it->second->Destroy();
-					nuiWindows.erase(dui.second);
 				}
 			}
 
@@ -432,10 +446,8 @@ static InitFunction initFunction([] ()
 							bool hasFocus = context.GetArgument<bool>(0);
 							bool hasCursor = context.GetArgument<bool>(1);
 
-#ifndef USE_NUI_ROOTLESS
 							const char* functionName = (hasFocus) ? "focusFrame" : "blurFrame";
 							nui::PostRootMessage(fmt::sprintf(R"({ "type": "%s", "frameName": "%s" } )", functionName, resource->GetName()));
-#endif
 
 							if (hasFocus)
 							{

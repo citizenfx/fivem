@@ -9,6 +9,10 @@
 #include <CrossBuildRuntime.h>
 #include <Error.h>
 
+#include "FramePacketHandler.h"
+#include "IHost.h"
+#include "netTimeSync.h"
+
 NetLibrary* g_netLibrary;
 
 // shared relay functions (from early rev. gta:net:five; do update!)
@@ -200,7 +204,7 @@ static HookFunction initFunction([]()
 
 	ObjectIds_BindNetLibrary(g_netLibrary);
 
-	g_netLibrary->OnBuildMessage.Connect([](const std::function<void(uint32_t, const char*, int)>& writeReliable)
+	g_netLibrary->OnBuildMessage.Connect([]()
 	{
 		static bool lastHostState;
 
@@ -210,8 +214,9 @@ static HookFunction initFunction([]()
 		{
 			if (isHost)
 			{
-				auto base = g_netLibrary->GetServerBase();
-				writeReliable(HashRageString("msgIHost"), (char*)&base, sizeof(base));
+				net::packet::ClientIHostPacket iHostPacket;
+				iHostPacket.data.baseNum = g_netLibrary->GetServerBase();
+				g_netLibrary->SendNetPacket(iHostPacket);
 			}
 
 			lastHostState = isHost;
@@ -226,36 +231,7 @@ static HookFunction initFunction([]()
 		}
 	});
 
-	g_netLibrary->AddReliableHandler("msgFrame", [](const char* data, size_t len)
-	{
-		net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
-		auto idx = buffer.Read<uint32_t>();
-
-		auto icgi = Instance<ICoreGameInit>::Get();
-
-		uint8_t strictLockdown = 0;
-
-		if (icgi->NetProtoVersion >= 0x202002271209)
-		{
-			strictLockdown = buffer.Read<uint8_t>();
-		}
-
-		static uint8_t lastStrictLockdown;
-
-		if (strictLockdown != lastStrictLockdown)
-		{
-			if (!strictLockdown)
-			{
-				icgi->ClearVariable("strict_entity_lockdown");
-			}
-			else
-			{
-				icgi->SetVariable("strict_entity_lockdown");
-			}
-
-			lastStrictLockdown = strictLockdown;
-		}
-	}, true);
+	g_netLibrary->AddPacketHandler<fx::FramePacketHandler>(true);
 
 	OnMainGameFrame.Connect([]()
 	{
@@ -283,7 +259,7 @@ static HookFunction initFunction([]()
 
 static hook::cdecl_stub<void(int, void*, void*)> joinOrHost([]()
 {
-	return hook::get_pattern("48 8D 55 30 49 83 60 10 00 44 8B F1", -32);
+	return hook::get_call(hook::get_pattern("45 33 C9 41 8D 51 04 E8", 26));
 });
 
 // 
@@ -711,8 +687,6 @@ struct LoggedInt
 	int value;
 };
 
-bool IsWaitingForTimeSync();
-
 static int ReturnTrue()
 {
 	return true;
@@ -722,7 +696,7 @@ static HookFunction hookFunction([]()
 {
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
 	{
-		g_quitMsg = message;
+		g_quitMsg = "Quit: " + message;
 		ExitProcess(-1);
 	});
 
@@ -757,23 +731,40 @@ static HookFunction hookFunction([]()
 		auto getLocalPeerAddress = hook::get_pattern<char>("48 8B D0 80 78 ? 02 75", -0x32);
 		hook::jump(getLocalPeerAddress, GetLocalPeerAddress);
 		hook::jump(hook::get_call(getLocalPeerAddress + 0x28), GetLocalPeerId);
-		//hook::jump(hook::get_call(getLocalPeerAddress + 0x2D), GetMyRelayAddress);
-		//hook::jump(hook::get_call(getLocalPeerAddress + 0x62), GetPublicIpAddress);
-		hook::jump(hook::get_call(getLocalPeerAddress + 0xF5), GetGamerHandle);
-		hook::jump(hook::get_call(getLocalPeerAddress + 0x116), InitP2PCryptKey);
-		//hook::call(0x14266F66C, InitP2PCryptKey);
-		//hook::call(0x14267B5A0, InitP2PCryptKey);
+
+		if (xbr::IsGameBuildOrGreater<1491>())
+		{
+			hook::jump(hook::get_call(getLocalPeerAddress + 0x103), GetGamerHandle);
+			hook::jump(hook::get_call(hook::get_call(getLocalPeerAddress + 0x114) + 0x14), InitP2PCryptKey);
+		}
+		else if (xbr::IsGameBuildOrGreater<1436>())
+		{
+			hook::jump(hook::get_call(getLocalPeerAddress + 0xF1), GetGamerHandle);
+			hook::jump(hook::get_call(hook::get_call(getLocalPeerAddress + 0x102) + 0x14), InitP2PCryptKey);
+		}
+		else
+		{
+			hook::jump(hook::get_call(getLocalPeerAddress + 0xF5), GetGamerHandle);
+			hook::jump(hook::get_call(getLocalPeerAddress + 0x116), InitP2PCryptKey);
+		}
 	}
 
 	//
 	//hook::call(0x1426E100B, ParseAddGamer);
 
 	// all uwuids be 2
-	hook::call(hook::get_pattern("B9 03 00 00 00 B8 01 00 00 00 87 83", (xbr::IsGameBuildOrGreater<1436>()) ? -89 : -85), ZeroUUID);
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		hook::call(hook::get_pattern("48 83 A4 24 E0 00 00 00 00 48 8D 8C 24 E0", 17), ZeroUUID);
+	}
+	else
+	{
+		hook::call(hook::get_pattern("B9 03 00 00 00 B8 01 00 00 00 87 83", -85), ZeroUUID);
+	}
 
 	// get session for find result
 	// 1207.58
-	hook::jump(hook::get_pattern("48 85 C0 74 31 80 38 00 74 2C 45", -0x1B), ReadSession);
+	hook::jump(hook::get_pattern("48 85 C0 74 ? 80 38 00 74 ? 45", -0x1B), ReadSession);
 
 	seamlessOff = hook::get_address<uint8_t*>(hook::get_pattern("33 DB 38 1D ? ? ? ? 75 1B 38 1D", 4));
 
@@ -875,7 +866,7 @@ static HookFunction hookFunction([]()
 		case 5:
 			if (cgi->OneSyncEnabled)
 			{
-				if (IsWaitingForTimeSync())
+				if (sync::IsWaitingForTimeSync())
 				{
 					return;
 				}
@@ -927,13 +918,7 @@ static HookFunction hookFunction([]()
 	// rlSession::InformPeersOfJoiner bugfix: reintroduce loop (as in, remove break; statement)
 	// (by handling the _called function_ and adding the loop in a wrapper there)
 	{
-		auto location = hook::get_pattern<char>("4C 63 83 ? ? 00 00 4D 85 C0 7E 4F 33");
-
-		playerCountOffset = *(uint32_t*)(location + 3);
-		playerListOffset = *(uint32_t*)(location + 14 + 3);
-		backwardsOffset = *(uint32_t*)(location + 62 + 3);
-
-		hook::set_call(&origSendGamer, location + 86);
+		auto location = hook::get_pattern<char>("48 8D 8B ? ? ? ? 48 8B 11 ? 3B D6 75 0E");
 
 		static struct : jitasm::Frontend
 		{
@@ -947,7 +932,24 @@ static HookFunction hookFunction([]()
 			}
 		} stub;
 
-		hook::call(location + 86, stub.GetCode());
+		if (xbr::IsGameBuildOrGreater<1436>())
+		{
+			playerCountOffset = *(uint32_t*)(location - 15 + 3);
+			playerListOffset = *(uint32_t*)(location + 3);
+			backwardsOffset = *(uint32_t*)(location + 45 + 3);
+
+			hook::set_call(&origSendGamer, location + 70);
+			hook::call(location + 70, stub.GetCode());
+		}
+		else
+		{
+			playerCountOffset = *(uint32_t*)(location - 14 + 3);
+			playerListOffset = *(uint32_t*)(location + 3);
+			backwardsOffset = *(uint32_t*)(location + 48 + 3);
+
+			hook::set_call(&origSendGamer, location + 72);
+			hook::call(location + 72, stub.GetCode());
+		}
 	}
 
 #if 0
@@ -973,7 +975,7 @@ static HookFunction hookFunction([]()
 #endif
 
 	// don't allow tunable download requests to be considered pending
-	hook::jump(hook::get_pattern("44 8B C1 44 0F B7 50 40 45 85 D2 74 18", -0x15), Return<int, 0>);
+	hook::jump(hook::get_call(hook::get_pattern("75 59 48 8B C8 E8 ? ? ? ? 84 C0 75", 5)), Return<int, 0>);
 
 	// test: don't allow setting odd seamless mode
 	//hook::jump(hook::get_call(hook::get_pattern("B1 01 E8 ? ? ? ? 80 3D", 2)), SetSeamlessOn);
@@ -1038,10 +1040,17 @@ static HookFunction hookFunction([]()
 	// unusual script check before allowing session to continue
 	if (xbr::IsGameBuildOrGreater<1436>())
 	{
-		hook::nop(hook::get_pattern("84 C0 0F 85 90 00 00 00 44 39 6B 20 75", 2), 6);
+		hook::nop(hook::get_pattern("84 C0 0F 85 ? 00 00 00 ? ? ? ? 75 ? BA 02 00 00 00", 2), 6);
 	}
 	else
 	{
 		hook::nop(hook::get_pattern("84 C0 75 6C 44 39 7B 20 75", 2), 2);
+	}
+
+	// ignore tunable (0xE3AFC5BD/0x7CEC5CDA) which intentionally breaking some certain
+	// ped models appearance from syncing between clients, initially added in 1436.31
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		hook::jump(hook::get_pattern("B9 BD C5 AF E3 BA DA 5C EC 7C E8", -19), Return<bool, false>);
 	}
 });

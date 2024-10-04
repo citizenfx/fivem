@@ -17,6 +17,15 @@
 
 namespace rage
 {
+	struct GFXSPEC_EXPORT dlDrawCommandBuffer
+	{
+		void AlignBuffer(uint32_t alignment);
+
+		static void* AllocateDrawCommand(size_t size);
+
+		static dlDrawCommandBuffer* GetInstance();
+	};
+
 	class grmShaderParameter
 	{
 	public:

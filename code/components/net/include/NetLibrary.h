@@ -18,8 +18,10 @@
 #include "INetMetricSink.h"
 
 #include "NetLibraryImplBase.h"
+#include "ComponentHolder.h"
 
 #include <NetAddress.h>
+#include <shared_mutex>
 
 // hacky include path to not conflict with our own NetBuffer.h
 #include <../../components/net-base/include/NetBuffer.h>
@@ -29,6 +31,10 @@
 #endif
 
 #include <concurrent_queue.h>
+
+#include "ByteReader.h"
+#include "ByteWriter.h"
+#include "SerializableComponent.h"
 
 #define NETWORK_PROTOCOL 12
 
@@ -95,9 +101,10 @@ class
 #ifdef COMPILING_NET
 	__declspec(dllexport)
 #endif
-	NetLibrary : public INetLibrary, public INetLibraryInherit
+	NetLibrary : public INetLibrary, public INetLibraryInherit, public fx::ComponentHolderImpl<NetLibrary>
 {
 public:
+
 	enum ConnectionState
 	{
 		CS_IDLE,
@@ -112,7 +119,15 @@ public:
 	};
 
 private:
-	std::unique_ptr<NetLibraryImplBase> m_impl;
+	inline std::shared_ptr<NetLibraryImplBase> GetImpl()
+	{
+		std::shared_lock _(m_implMutex);
+		return m_impl;
+	}
+
+private:
+	std::shared_ptr<NetLibraryImplBase> m_impl;
+	std::shared_mutex m_implMutex;
 
 	uint16_t m_serverNetID;
 
@@ -166,9 +181,13 @@ private:
 
 	HANDLE m_receiveEvent;
 
+	bool m_disconnecting = false;
+
 	concurrency::concurrent_queue<std::function<void()>> m_mainFrameQueue;
 
 	std::function<void(const std::string&, const std::string&)> m_cardResponseHandler;
+
+	std::vector<uint8_t> m_sendBuffer;
 
 private:
 	typedef std::function<void(const char* buf, size_t len)> ReliableHandlerType;
@@ -219,7 +238,56 @@ public:
 
 	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length) override;
 
-	void SendUnreliableCommand(const char* type, const char* buffer, size_t length);
+	void SendReliablePacket(uint32_t type, const char* buffer, size_t length);
+
+	void SendUnreliablePacket(uint32_t type, const char* buffer, size_t length);
+
+	template<typename Packet>
+	bool SendNetPacket(Packet& packet, bool reliable = true)
+	{
+		static std::thread::id threadId = std::this_thread::get_id();
+
+		if (std::this_thread::get_id() != threadId)
+		{
+			trace("Error: SendNetPacket %d called from multiple threads!\n", packet.type.GetValue());
+			return false;
+		}
+
+		static const size_t kMaxSize = net::SerializableComponent::GetMaxSize<Packet>();
+
+		size_t packetSize;
+		if (kMaxSize > UINT16_MAX)
+		{
+			packetSize = net::SerializableComponent::GetSize(packet);
+		}
+		else
+		{
+			packetSize = kMaxSize;
+		}
+
+		if (m_sendBuffer.size() < packetSize)
+		{
+			m_sendBuffer.resize(packetSize);
+		}
+
+		net::ByteWriter writer(m_sendBuffer.data(), packetSize);
+		if (!packet.Process(writer))
+		{
+			trace("Serialization of the %d packet failed. Please report this error at https://github.com/citizenfx/fivem.\n", packet.type.GetValue());
+			return false;
+		}
+
+		if (reliable)
+		{
+			SendReliablePacket(packet.type, reinterpret_cast<const char*>(m_sendBuffer.data()), writer.GetOffset());
+		}
+		else
+		{
+			SendUnreliablePacket(packet.type, reinterpret_cast<const char*>(m_sendBuffer.data()), writer.GetOffset());
+		}
+
+		return true;
+	}
 
 	void RunMainFrame();
 
@@ -248,6 +316,17 @@ public:
 
 	void AddReliableHandler(const char* type, const ReliableHandlerType& function, bool runOnMainThreadOnly = false);
 
+	template<typename PacketHandler, typename ...Args>
+	void AddPacketHandler(bool runOnMainThreadOnly, Args&... args)
+	{
+		static PacketHandler handler {std::forward<Args>(args)...};
+		m_reliableHandlers.insert({ PacketHandler::PacketType, { [](const char* buf, const size_t len)
+		{
+			net::ByteReader reader(reinterpret_cast<const uint8_t*>(buf), len);
+			handler.Process(reader);
+		}, runOnMainThreadOnly } });
+	}
+
 	void Death();
 
 	void Resurrection();
@@ -258,7 +337,7 @@ public:
 
 	uint64_t GetGUID();
 
-	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized, int target);
+	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized);
 
 	void SetRichError(const std::string& data = "{}");
 
@@ -331,7 +410,7 @@ public:
 #endif
 		fwEvent<NetLibrary*> OnNetLibraryCreate;
 
-	fwEvent<int> OnRequestBuildSwitch;
+	fwEvent<int /* build */, int /* pure level */, std::wstring /* pool sizes increase request settings */> OnRequestBuildSwitch;
 
 	fwEvent<const char*> OnAttemptDisconnect;
 
@@ -377,13 +456,13 @@ public:
 	// event to intercept server events for debugging
 	// a1: event name
 	// a2: event payload
-	fwEvent<const std::string&, const std::string&> OnTriggerServerEvent;
+	fwEvent<const std::string_view&, const std::string_view&> OnTriggerServerEvent;
 
 	static
 #ifndef COMPILING_NET
 		__declspec(dllimport)
 #endif
-		fwEvent<const std::function<void(uint32_t, const char*, int)>&> OnBuildMessage;
+		fwEvent<> OnBuildMessage;
 
 	fwEvent<> OnConnectionTimedOut;
 

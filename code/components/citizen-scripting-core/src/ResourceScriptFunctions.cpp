@@ -26,14 +26,15 @@
 struct CommandObject
 {
 	std::string name;
+	int32_t arity;
 
-	CommandObject(const std::string& name)
-		: name(name)
+	CommandObject(const std::string& name, size_t arity)
+		: name(name), arity(arity)
 	{
 
 	}
 
-	MSGPACK_DEFINE_MAP(name);
+	MSGPACK_DEFINE_MAP(name, arity);
 };
 
 static InitFunction initFunction([] ()
@@ -178,9 +179,9 @@ static InitFunction initFunction([] ()
 				auto resourceManager = resource->GetManager();
 				auto consoleCxt = resourceManager->GetComponent<console::Context>();
 
-				consoleCxt->GetCommandManager()->ForAllCommands([&](const std::string& commandName)
+				consoleCxt->GetCommandManager()->ForAllCommands2([&commandList](const console::CommandMetadata& command)
 				{
-					commandList.emplace_back(commandName);
+					commandList.emplace_back(command.GetName(), (command.GetArity() == -1) ? -1 : int32_t(command.GetArity()));
 				});
 
 				context.SetResult(fx::SerializeObject(commandList));
@@ -394,5 +395,41 @@ static InitFunction initFunction([] ()
 		auto sbac = rm->GetComponent<fx::StateBagComponent>();
 
 		sbac->OnStateBagChange.Disconnect(size_t(cookie));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("STATE_BAG_HAS_KEY", [](fx::ScriptContext& context)
+	{
+		auto bagName = context.CheckArgument<const char*>(0);
+		auto keyName = context.CheckArgument<const char*>(1);
+
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		auto bag = sbac->GetStateBag(bagName);
+
+		if (!bag)
+		{
+			context.SetResult(false);
+			return;
+		}
+
+		context.SetResult(bag->HasKey(keyName));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_STATE_BAG_KEYS", [](fx::ScriptContext& context)
+	{
+		auto bagName = context.CheckArgument<const char*>(0);
+
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		std::vector<std::string> keys;
+
+		if (auto bag = sbac->GetStateBag(bagName))
+		{
+			keys = bag->GetKeys();
+		}
+
+		context.SetResult(fx::SerializeObject(keys));
 	});
 });

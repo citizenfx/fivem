@@ -173,7 +173,7 @@ public:
 	}
 };
 
-class CORE_EXPORT ComponentLoader : public fwSingleton<ComponentLoader>
+class CORE_EXPORT ComponentLoader : public fwRefCountable
 {
 private:
 	typedef std::unordered_map<std::string, fwRefContainer<ComponentData>> TComponentList;
@@ -192,6 +192,8 @@ private:
 public:
 	void Initialize();
 
+	void InitializeWithString(std::string_view cacheBuf);
+
 	void DoGameLoad(void* hModule);
 
 	void ForAllComponents(const std::function<void(fwRefContainer<ComponentData>)>& callback);
@@ -202,7 +204,22 @@ public:
 	{
 		return m_knownComponents;
 	}
+
+	static auto GetInstance()
+	{
+		auto instance = Instance<ComponentLoader>::GetOptional();
+
+		if (!instance)
+		{
+			Instance<ComponentLoader>::Set(new ComponentLoader());
+			instance = Instance<ComponentLoader>::Get();
+		}
+
+		return instance;
+	}
 };
+
+DECLARE_INSTANCE_TYPE(ComponentLoader);
 
 #include <queue>
 

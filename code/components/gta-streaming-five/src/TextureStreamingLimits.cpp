@@ -9,8 +9,6 @@ extern std::string GetCurrentStreamingName();
 
 static int(*g_origCalculateMipLevel)(uint8_t type, uint16_t width, uint16_t height, uint8_t levels, uint32_t format);
 
-fwArchetype* GetArchetypeSafe(uint32_t archetypeHash, uint64_t* archetypeUnk);
-
 static ConVar<int>* g_maxVehicleTextureRes;
 static ConVar<int>* g_maxVehicleTextureResRgba;
 static uintptr_t g_vtbl_CVehicleModelInfo;
@@ -26,8 +24,8 @@ static int CalculateMipLevelHook(uint8_t type, uint16_t width, uint16_t height, 
 		auto baseName = strName.substr(0, strName.find('.'));
 
 		// try getting the relevant archetype, and see if it's a vehicle
-		uint64_t archetypeUnk = 0xFFFFFFF;
-		auto archetype = GetArchetypeSafe(HashString(baseName.c_str()), &archetypeUnk);
+		rage::fwModelId idx;
+		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(HashString(baseName.c_str()), idx);
 
 		if (archetype)
 		{

@@ -1,8 +1,18 @@
 using System;
-using CitizenFX.Core.Native;
 using System.Security;
 
+#if MONO_V2
+using API = CitizenFX.FiveM.Native.Natives;
+using Function = CitizenFX.FiveM.Native.Natives;
+using compat_i32_u32 = System.UInt32;
+
+namespace CitizenFX.FiveM
+#else
+using CitizenFX.Core.Native;
+using compat_i32_u32 = System.Int32;
+
 namespace CitizenFX.Core
+#endif
 {
 	public enum WeaponTint
 	{
@@ -205,7 +215,7 @@ namespace CitizenFX.Core
 
 				if (!IsPresent)
 				{
-					return API.GetPedAmmoByType(_owner.Handle, (int)AmmoType);
+					return API.GetPedAmmoByType(_owner.Handle, (compat_i32_u32)AmmoType);
 				}
 
 				return API.GetAmmoInPedWeapon(_owner.Handle, (uint)Hash);
@@ -355,7 +365,7 @@ namespace CitizenFX.Core
 			{
 				WeaponComponent comp = Components.GetMk2CamoComponent((int)liveryID);
 				comp.Active = true;
-				API.N_0x9fe5633880ecd8ed(Game.PlayerPed.Handle, (int)Hash, (int)comp.ComponentHash, (int)colorID);
+				API.N_0x9fe5633880ecd8ed(Game.PlayerPed.Handle, (compat_i32_u32)Hash, (compat_i32_u32)comp.ComponentHash, (int)colorID);
 			}
 			else
 			{

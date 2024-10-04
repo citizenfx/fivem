@@ -18,8 +18,6 @@
 
 #include <CoreConsole.h>
 
-#include <LaunchMode.h>
-
 static std::thread g_consoleThread;
 static std::once_flag g_consoleInitialized;
 bool g_consoleFlag;
@@ -69,14 +67,7 @@ static InitFunction initFunction([] ()
 	static ConsoleCommand quitCommand("quit", []()
 	{
 		// NetHook will replace ExitProcess with a version that terminates NetLibrary as well as calling TerminateProcess
-		if (!CfxIsSinglePlayer())
-		{
-			ExitProcess(-1);
-		}
-		else
-		{
-			TerminateProcess(GetCurrentProcess(), -1);
-		}
+		ExitProcess(-1);
 	});
 
 #if __has_include("InputHook.h")

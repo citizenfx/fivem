@@ -21,16 +21,21 @@
 static int(*g_origInsertModule)(void*, void*);
 
 static thread_local std::string g_currentStreamingName;
+static thread_local uint32_t g_currentStreamingIndex;
 
 std::string GetCurrentStreamingName()
 {
 	return g_currentStreamingName;
 }
 
+uint32_t GetCurrentStreamingIndex()
+{
+	return g_currentStreamingIndex;
+}
+
 class strStreamingModule
 {
-public:
-	virtual ~strStreamingModule() {}
+	void* vtbl;
 
 public:
 	uint32_t baseIdx;
@@ -39,16 +44,22 @@ public:
 	atArray<char> name;
 };
 
-static void CallBeforeStreamingLoad(strStreamingModule* strModule, uint32_t index, void* data)
-{
-	uint32_t moduleBase = strModule->baseIdx;
+static thread_local void* g_currentStreamingModuleCallback;
 
-	g_currentStreamingName = streaming::GetStreamingNameForIndex(moduleBase + index);
+static void SetCurrentStreamingModuleCallback(void* func)
+{
+	g_currentStreamingModuleCallback = func;
 }
 
-static void CallAfterStreamingLoad(strStreamingModule* strModule, uint32_t index, void* data)
+static void WrapStreamingLoad(strStreamingModule* strModule, uint32_t index, void* data, void* a4)
 {
+	uint32_t moduleBase = strModule->baseIdx;
+	g_currentStreamingName = streaming::GetStreamingNameForIndex(moduleBase + index);
+	g_currentStreamingIndex = moduleBase + index;
+
+	((decltype(&WrapStreamingLoad))g_currentStreamingModuleCallback)(strModule, index, data, a4);
 	g_currentStreamingName = "";
+	g_currentStreamingIndex = 0;
 }
 
 static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
@@ -74,28 +85,23 @@ static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
 
 			sub(rsp, 0x28);
 
+			// save arguments
 			mov(rbx, rcx); // streaming module
 			mov(rsi, rdx); // index in module
 			mov(rbp, r8);  // data pointer
 			mov(rdi, r9);  // unknown
 
-			mov(rax, (uintptr_t)CallBeforeStreamingLoad);
+			// save the current callback
+			mov(rcx, (uintptr_t)m_origFunc);
+
+			mov(rax, (uintptr_t)SetCurrentStreamingModuleCallback);
 			call(rax);
 
+			// return original arguments
 			mov(rcx, rbx);
 			mov(rdx, rsi);
 			mov(r8, rbp);
 			mov(r9, rdi);
-
-			mov(rax, (uintptr_t)m_origFunc);
-			call(rax);
-
-			mov(rcx, rbx);
-			mov(rdx, rsi);
-			mov(r8, rbp);
-
-			mov(rax, (uintptr_t)CallAfterStreamingLoad);
-			call(rax);
 
 			add(rsp, 0x28);
 
@@ -104,12 +110,14 @@ static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
 			pop(rsi);
 			pop(rbx);
 
-			ret();
+			mov(rax, (uintptr_t)WrapStreamingLoad);
+			jmp(rax);
 		}
 	};
 
-	auto stub = new StreamingOnLoadStub(vt[6]);
-	hook::put(&vt[6], stub->GetCode());
+	int index = (xbr::IsGameBuildOrGreater<2802>()) ? 12 : 6;
+	auto stub = new StreamingOnLoadStub(vt[index]);
+	hook::put(&vt[index], stub->GetCode());
 
 	return g_origInsertModule(moduleMgr, strModule);
 }
@@ -147,13 +155,6 @@ static void ValidateGeometry(void* geomPtr)
 	auto polys = geom->GetPolygons();
 	auto numPolys = geom->GetNumPolygons();
 	auto numVerts = geom->GetNumVertices();
-
-	// Some exporter exports broken octant maps, which at this time (2020-11-23) is a #9 top crasher.
-	// Therefore, remove octant maps for any custom assets (pending research on what exactly is broken).
-	if (g_customStreamingFileRefs.find(g_currentStreamingName) != g_customStreamingFileRefs.end())
-	{
-		geom->ClearOctantMap();
-	}
 
 	bool error = false;
 

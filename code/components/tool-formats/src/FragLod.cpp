@@ -93,7 +93,7 @@ static void RunFragment(const boost::filesystem::path& path)
 		outputSize += s;
 	}, &flags);
 
-	printf("written successfully - out size %d\n", outputSize);
+	printf("written successfully - out size %zu\n", outputSize);
 
 	fclose(f);
 

@@ -15,36 +15,14 @@
 #include <HostSharedData.h>
 
 #include <Error.h>
-
-namespace
-{
-static fwPlatformString g_citizenPath;
-}
+#include <shared_mutex>
 
 fwPlatformString GetAbsoluteCitPath()
 {
-	auto& citizenPath = g_citizenPath;
-
-	bool installStateChanged = false;
-
-#ifndef IS_FXSERVER
-	static bool lastInstallState;
-
-	if (!lastInstallState)
+	auto getCitizenPath = []()
 	{
-		HostSharedData<CfxState> initState("CfxInitState");
+		fwPlatformString citizenPath;
 
-		if (initState->ranPastInstaller != lastInstallState)
-		{
-			lastInstallState = initState->ranPastInstaller;
-
-			installStateChanged = true;
-		}
-	}
-#endif
-
-	if (!citizenPath.size() || installStateChanged)
-	{
 #ifndef IS_FXSERVER
 		HostSharedData<CfxState> initState("CfxInitState");
 
@@ -72,20 +50,18 @@ fwPlatformString GetAbsoluteCitPath()
 		}
 
 		// is this subdirectory-based Citizen? if so, append the subdirectory
+		if (GetFileAttributes((citizenPath + L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 		{
 			std::wstring subPath = citizenPath +
 #ifdef IS_RDR3
-				L"RedM.app";
+								   L"RedM.app";
 #else
-				L"FiveM.app";
+								   L"FiveM.app";
 #endif
 
-			if (GetFileAttributes(subPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+			if (GetFileAttributes(subPath.c_str()) != INVALID_FILE_ATTRIBUTES && (GetFileAttributes(subPath.c_str()) & FILE_ATTRIBUTE_DIRECTORY) != 0)
 			{
-				if (GetFileAttributes(subPath.c_str()) & FILE_ATTRIBUTE_DIRECTORY)
-				{
-					citizenPath = subPath + L"\\";
-				}
+				citizenPath = subPath + L"\\";
 			}
 		}
 #else
@@ -103,9 +79,40 @@ fwPlatformString GetAbsoluteCitPath()
 
 		citizenPath = realModulePath;
 #endif
-	}
 
-	return citizenPath;
+		return citizenPath;
+	};
+
+	static fwPlatformString citizenPaths[2] =
+	{
+		getCitizenPath(),
+		L"",
+	};
+
+	static int curCitizenPath = 0;
+
+#ifndef IS_FXSERVER
+	static DWORD ranPastInstaller;
+
+	// if we haven't run yet
+	if (InterlockedCompareExchange(&ranPastInstaller, 0, 0) == 0)
+	{
+		// grab the ranPastInstaller state from here
+		HostSharedData<CfxState> initState("CfxInitState");
+
+		if (initState->ranPastInstaller)
+		{
+			// if this is the thread trying to update
+			if (InterlockedCompareExchange(&ranPastInstaller, 1, 0) == 0)
+			{
+				citizenPaths[1] = getCitizenPath();
+				curCitizenPath = 1;
+			}
+		}
+	}
+#endif
+
+	return citizenPaths[curCitizenPath];
 }
 
 fwPlatformString GetAbsoluteGamePath()
@@ -276,7 +283,7 @@ void __cdecl _wwassert(
 	_In_   unsigned       _Line
 )
 {
-	FatalErrorNoExcept("Assertion failure: %s (%s:%d)", ToNarrow(_Message), ToNarrow(_File), _Line);
+	FatalErrorNoExcept("Assertion failure: %s\nFile: %s, Line: %d", ToNarrow(_Message), ToNarrow(_File), _Line);
 
 #if defined(_M_AMD64)
 	__writegsqword(0x38, (uintptr_t)_ReturnAddress());

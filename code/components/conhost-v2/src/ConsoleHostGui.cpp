@@ -8,6 +8,8 @@
 #include "StdInc.h"
 
 #include <imgui.h>
+
+#define GImGui ImGui::GetCurrentContext()
 #include <imgui_internal.h>
 #include <ConsoleHost.h>
 
@@ -43,7 +45,6 @@ console::Context* GetConsoleContext()
 }
 
 extern ImFont* consoleFontSmall;
-extern ImFont* consoleFontTiny;
 
 // following 2 functions based on https://www.programmingalgorithms.com/algorithm/hsl-to-rgb/cpp/
 static float HueToRGB(float v1, float v2, float vH) {
@@ -104,6 +105,10 @@ struct FiveMConsoleBase
 
 	std::recursive_mutex ItemsMutex;
 
+	virtual void RunCommandQueue()
+	{
+	}
+
 	// Portable helpers
 	static int Stricmp(const char* str1, const char* str2) { int d; while ((d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; } return d; }
 	static int Strnicmp(const char* str1, const char* str2, int n) { int d = 0; while (n > 0 && (d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; n--; } return d; }
@@ -151,8 +156,6 @@ struct FiveMConsoleBase
 
 		if (strlen(key.c_str()) > 0 && strlen(item.c_str()) > 0)
 		{
-			ImGui::PushFont(consoleFontSmall);
-
 			auto hue = int{ HashRageString(key.c_str()) % 360 };
 			auto color = HSLToRGB(HSL{ hue, 0.8f, 0.4f });
 			color.alpha = alpha * 255.0f;
@@ -179,14 +182,12 @@ struct FiveMConsoleBase
 				color.alpha *= 0.8f;
 			}
 
-			dl->AddRectFilled(ImVec2(startPos.x, startPos.y + 1.0f), ImVec2(startPos.x + textSize.x + itemSize.x + 8.0f, startPos.y + 22.f - 1.0f), color.AsARGB(), fullBg ? 10.0f : 6.0f);
+			dl->AddRectFilled(ImVec2(startPos.x, startPos.y + 1.0f), ImVec2(startPos.x + textSize.x + itemSize.x + 8.0f, startPos.y + textSize.y - 1.0f), color.AsARGB(), fullBg ? 10.0f : 6.0f);
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.0f);
 
 			//ImGui::PushStyleColor(ImGuiCol_Text, col);
 			ImGui::TextUnformatted(key.c_str());
 			//ImGui::PopStyleColor();
-
-			ImGui::PopFont();
 
 			ImGui::SameLine(textSize.x + 16.0f);
 		}
@@ -212,6 +213,30 @@ struct FiveMConsoleBase
 };
 
 extern float g_menuHeight;
+
+#ifndef IS_FXSERVER
+#include <HostSharedData.h>
+#include <../launcher/TickCountData.h>
+
+#include <shellapi.h>
+
+static void OpenLogFile()
+{
+	static TickCountData initTickCount = ([]()
+	{
+		HostSharedData<TickCountData> initTickCountRef("CFX_SharedTickCount");
+		return *initTickCountRef;
+	})();
+
+	static fwPlatformString dateStamp = fmt::sprintf(L"%04d-%02d-%02dT%02d%02d%02d", initTickCount.initTime.wYear, initTickCount.initTime.wMonth,
+	initTickCount.initTime.wDay, initTickCount.initTime.wHour, initTickCount.initTime.wMinute, initTickCount.initTime.wSecond);
+
+	auto fileName = MakeRelativeCitPath(fmt::sprintf(L"logs/CitizenFX_log_%s.log", dateStamp));
+
+	ShellExecuteW(NULL, L"open", fileName.c_str(), NULL, NULL, SW_SHOWNORMAL);
+}
+
+#endif
 
 struct CfxBigConsole : FiveMConsoleBase
 {
@@ -258,37 +283,53 @@ struct CfxBigConsole : FiveMConsoleBase
 		ScrollToBottom = true;
 	}
 
-	void Draw(const char* title, bool* p_open) override
+	virtual bool PreStartWindow()
 	{
 #ifndef IS_FXSERVER
 		if (GetKeyState(VK_CONTROL) & 0x8000 && GetKeyState(VK_MENU) & 0x8000)
 		{
-			return;
+			return false;
 		}
 #endif
 
+		return true;
+	}
+
+	virtual bool StartWindow(const char* title, bool* p_open)
+	{
 		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + g_menuHeight));
-		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, 
+		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x,
 #ifndef IS_FXSERVER
-							     ImGui::GetFrameHeightWithSpacing() * 12.0f
+								 ImGui::GetFrameHeightWithSpacing() * 12.0f
 #else
 								 ImGui::GetIO().DisplaySize.y - g_menuHeight
 #endif
-		), ImGuiCond_Always);
+								 ),
+		ImGuiCond_Always);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoScrollbar |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoSavedSettings | 
-			ImGuiWindowFlags_NoBringToFrontOnFocus;
+		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-		if (!ImGui::Begin(title, nullptr, flags))
+		return ImGui::Begin(title, nullptr, flags);
+	}
+
+	virtual void EndWindow()
+	{
+		ImGui::End();
+		ImGui::PopStyleVar();
+	}
+
+	void Draw(const char* title, bool* p_open) override
+	{
+		if (!PreStartWindow())
 		{
-			ImGui::End();
-			ImGui::PopStyleVar();
+			return;
+		}
+
+		if (!StartWindow(title, p_open))
+		{
+			EndWindow();
 			return;
 		}
 
@@ -337,7 +378,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		}
 
 		if (ScrollToBottom)
-			ImGui::SetScrollHere();
+			ImGui::SetScrollHereY();
 
 		ScrollToBottom = false;
 		ImGui::PopStyleVar();
@@ -345,24 +386,57 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::Separator();
 
 		// Command-line
-		ImGui::PushItemWidth(-1.0f);
-		if (ImGui::InputText("_", InputBuf, _countof(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
+		float w = 0.0f;
+		
+#ifndef IS_FXSERVER
+		w = (ImGui::CalcTextSize("Open log").x + (ImGui::GetStyle().ItemSpacing.x * 4));
+#endif
+
+		ImGui::PushItemWidth(ImGui::GetWindowWidth() - w);
+
+		bool reclaim_focus = false;
+		if (ImGui::InputText("##_Input", InputBuf, _countof(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
 		{
 			char* input_end = InputBuf + strlen(InputBuf);
 			while (input_end > InputBuf && input_end[-1] == ' ') input_end--; *input_end = 0;
 			if (InputBuf[0])
 				ExecCommand(InputBuf);
 			strcpy(InputBuf, "");
+			reclaim_focus = true;
 		}
 		ImGui::PopItemWidth();
 
-		// Demonstrate keeping auto focus on the input box
-		if (ImGui::IsItemHovered() || (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)))
+		// Auto-focus on window apparition
+		ImGui::SetItemDefaultFocus();
+		if (ImGui::IsWindowAppearing())
+		{
+			ImGui::ActivateItem(ImGui::GetItemID());
+			GImGui->NavNextActivateFlags = ImGuiActivateFlags_PreferInput;
+		}
+
+		if (reclaim_focus)
+		{
 			ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
+		}
 
-		ImGui::End();
+#ifndef IS_FXSERVER
+		ImGui::SameLine();
 
-		ImGui::PopStyleVar();
+		static bool shouldOpenLog;
+
+		if (shouldOpenLog)
+		{
+			OpenLogFile();
+			shouldOpenLog = false;
+		}
+
+		if (ImGui::Button("Open log"))
+		{
+			shouldOpenLog = true;
+		}
+#endif
+
+		EndWindow();
 	}
 
 	void ExecCommand(const char* command_line)
@@ -397,13 +471,13 @@ struct CfxBigConsole : FiveMConsoleBase
 		}
 	}
 
-	static int TextEditCallbackStub(ImGuiTextEditCallbackData* data) // In C++11 you are better off using lambdas for this sort of forwarding callbacks
+	static int TextEditCallbackStub(ImGuiInputTextCallbackData* data) // In C++11 you are better off using lambdas for this sort of forwarding callbacks
 	{
 		CfxBigConsole* console = (CfxBigConsole*)data->UserData;
 		return console->TextEditCallback(data);
 	}
 
-	int TextEditCallback(ImGuiTextEditCallbackData* data)
+	int TextEditCallback(ImGuiInputTextCallbackData* data)
 	{
 		//AddLog("cursor: %d, selection: %d-%d", data->CursorPos, data->SelectionStart, data->SelectionEnd);
 		switch (data->EventFlag)
@@ -541,7 +615,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		return 0;
 	}
 
-	void RunCommandQueue()
+	virtual void RunCommandQueue() override
 	{
 		std::string command_line;
 
@@ -567,12 +641,35 @@ struct CfxBigConsole : FiveMConsoleBase
 			return false;
 		}
 
-		if (channel == "cmd")
+		if (channel == "cmd" || channel == "IO")
 		{
 			return true;
 		}
 
 		return channel.find("script:") == 0;
+	}
+};
+
+// WinConsole is a midway point between minicon and the f8 console
+struct CfxWinConsole : CfxBigConsole
+{
+	virtual bool PreStartWindow() override
+	{
+		return true;
+	}
+
+	virtual bool StartWindow(const char* title, bool* p_open) override
+	{
+		ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar;
+
+		ImGui::SetNextWindowSize(ImVec2(800, 480), ImGuiCond_FirstUseEver);
+
+		return ImGui::Begin(title, p_open, flags);
+	}
+
+	virtual void EndWindow() override
+	{
+		ImGui::End();
 	}
 };
 
@@ -587,7 +684,7 @@ auto msec()
 
 struct MiniConsole : CfxBigConsole
 {
-	ImVector<std::chrono::milliseconds> ItemTimes;
+	boost::circular_buffer<std::chrono::milliseconds> ItemTimes{ 2500 };
 
 	ConVar<std::string>* m_miniconChannels;
 	std::string m_miniconLastValue;
@@ -595,7 +692,7 @@ struct MiniConsole : CfxBigConsole
 
 	MiniConsole()
 	{
-		m_miniconChannels = new ConVar<std::string>("con_miniconChannels", ConVar_Archive, "minicon:*");
+		m_miniconChannels = new ConVar<std::string>("con_miniconChannels", ConVar_Archive | ConVar_UserPref, "minicon:*");
 		m_miniconLastValue = m_miniconChannels->GetValue();
 
 		try
@@ -621,7 +718,7 @@ struct MiniConsole : CfxBigConsole
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4)); // Tighten spacing
 
-		if (ImGui::Begin("MiniCon", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar))
+		if (ImGui::Begin("MiniCon", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoFocusOnAppearing))
 		{
 			auto t = msec();
 
@@ -666,7 +763,7 @@ struct MiniConsole : CfxBigConsole
 				}
 			}
 
-			ImGui::SetScrollHere();
+			ImGui::SetScrollHereY();
 		}
 
 		ImGui::PopStyleVar();
@@ -732,7 +829,7 @@ struct MiniConsole : CfxBigConsole
 	}
 };
 
-static std::unique_ptr<FiveMConsoleBase> g_consoles[2];
+static std::unique_ptr<FiveMConsoleBase> g_consoles[3];
 static std::recursive_mutex g_consolesMutex;
 
 static void EnsureConsoles()
@@ -743,6 +840,7 @@ static void EnsureConsoles()
 	{
 		g_consoles[0] = std::make_unique<CfxBigConsole>();
 		g_consoles[1] = std::make_unique<MiniConsole>();
+		g_consoles[2] = std::make_unique<CfxWinConsole>();
 	}
 }
 
@@ -771,7 +869,7 @@ void DrawConsole()
 	EnsureConsoles();
 
 	static bool pOpen = true;
-	g_consoles[0]->Draw("", &pOpen);
+	g_consoles[0]->Draw("##_BigConsole", &pOpen);
 }
 
 void DrawMiniConsole()
@@ -779,7 +877,14 @@ void DrawMiniConsole()
 	EnsureConsoles();
 
 	static bool pOpen = true;
-	g_consoles[1]->Draw("", &pOpen);
+	g_consoles[1]->Draw("##_MiniConsole", &pOpen);
+}
+
+void DrawWinConsole(bool* pOpen)
+{
+	EnsureConsoles();
+
+	g_consoles[2]->Draw("WinConsole", pOpen);
 }
 
 #include <sstream>
@@ -862,9 +967,9 @@ void SendPrintMessage(const std::string& channel, const std::string& message)
 
 DLL_EXPORT void RunConsoleGameFrame()
 {
-	if (g_consoles[0])
+	for (auto& console : g_consoles)
 	{
-		((CfxBigConsole*)g_consoles[0].get())->RunCommandQueue();
+		console->RunCommandQueue();
 	}
 }
 
@@ -885,9 +990,22 @@ static InitFunction initFunction([]()
 });
 #endif
 
+#include "ProductionWhitelist.h"
+
 static InitFunction initFunctionCon([]()
 {
-	for (auto& command : { "connect", "quit", "cl_drawFPS", "bind", "rbind", "unbind", "disconnect", "storymode", "loadlevel", "cl_drawPerf", "profile_reticuleSize", "profile_musicVolumeInMp", "profile_musicVolume", "profile_sfxVolume" })
+	console::GetDefaultContext()->GetCommandManager()->AccessDeniedEvent.Connect([](std::string_view commandName)
+	{
+		if (!IsNonProduction())
+		{
+			console::Printf("cmd", "Command %s is disabled in production mode. See ^2https://aka.cfx.re/prod-console^7 for further information.\n", commandName);
+			return false;
+		}
+
+		return true;
+	});
+
+	for (auto& command : g_prodCommandsWhitelist)
 	{
 		seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.extConsole" }, se::Object{ fmt::sprintf("command.%s", command) }, se::AccessType::Allow);
 	}

@@ -135,7 +135,7 @@ static void SetResourceKvp(fx::ScriptContext& context)
 template<bool sync = true>
 static void SetResourceKvpRaw(fx::ScriptContext& context)
 {
-	PutResourceKvp<sync>(context, context.GetArgument<const char*>(1), context.GetArgument<size_t>(2));
+	PutResourceKvp<sync>(context, context.CheckArgument<const char*>(1), context.GetArgument<size_t>(2));
 }
 
 struct AnyType
@@ -207,7 +207,7 @@ template<typename T>
 static void GetResourceKvp(fx::ScriptContext& context)
 {
 	auto db = EnsureDatabase();
-	auto key = FormatKey(context.GetArgument<const char*>(0));
+	auto key = FormatKey(context.CheckArgument<const char*>(0));
 
 	std::string value;
 	if (db->Get(rocksdb::ReadOptions{}, key, &value).IsNotFound())
@@ -245,7 +245,7 @@ static FindHandle* GetFindHandle()
 static void StartFindKvp(fx::ScriptContext& context)
 {
 	auto db = EnsureDatabase();
-	auto key = FormatKey(context.GetArgument<const char*>(0));
+	auto key = FormatKey(context.CheckArgument<const char*>(0));
 
 	auto handle = GetFindHandle();
 
@@ -310,7 +310,7 @@ template<bool sync = true>
 static void DeleteResourceKvp(fx::ScriptContext& context)
 {
 	auto db = EnsureDatabase();
-	auto key = FormatKey(context.GetArgument<const char*>(0));
+	auto key = FormatKey(context.CheckArgument<const char*>(0));
 
 	rocksdb::WriteOptions options;
 	options.sync = sync;

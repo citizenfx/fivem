@@ -46,6 +46,7 @@ namespace CitizenFX.Core
 				string resourceName = Marshal.PtrToStringAnsi(nameString);
 
 				bool useTaskScheduler = true;
+				bool useSyncContext = false;
 
 #if IS_FXSERVER
 				string basePath = "";
@@ -56,6 +57,7 @@ namespace CitizenFX.Core
 
 					basePath = Native.API.GetResourcePath(resourceName);
 					useTaskScheduler = Native.API.GetNumResourceMetadata(resourceName, "clr_disable_task_scheduler") == 0;
+					useSyncContext = Native.API.GetNumResourceMetadata(resourceName, "clr_experimental_2021_12_31_use_sync_context") > 0;
 
 					if (host is IScriptHostWithManifest manifestHost)
 					{
@@ -82,6 +84,8 @@ namespace CitizenFX.Core
 				{
 					m_intManager.CreateTaskScheduler();
 				}
+
+				m_intManager.SetConfiguration(useSyncContext: useSyncContext);
 
 				m_intManager.SetResourceName(resourceName);
 
@@ -136,7 +140,9 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		public int HandlesFile(string filename, IScriptHostWithResourceData metadata)
 		{
-			return (filename.EndsWith(".net.dll") ? 1 : 0);
+			metadata.GetNumResourceMetaData("mono_rt2", out IntPtr enableV2);
+			// enableV2 should be null to be v1, i.e.: this runtime
+			return enableV2 == IntPtr.Zero && filename.EndsWith(".net.dll") ? 1 : 0;
 		}
 
 		[SecuritySafeCritical]
@@ -210,16 +216,15 @@ namespace CitizenFX.Core
 			}
 		}
 
-		public void CallRef(int refIndex, byte[] argsSerialized, int argsSize, out IntPtr retvalSerialized, out int retvalSize)
+		public void CallRef(int refIndex, byte[] argsSerialized, int argsSize, out IntPtr retval)
 		{
-			retvalSerialized = IntPtr.Zero;
-			retvalSize = 0;
+			retval = IntPtr.Zero;
 
 			try
 			{
 				using (GetPushRuntime())
 				{
-					m_intManager?.CallRef(refIndex, argsSerialized, out retvalSerialized, out retvalSize);
+					m_intManager?.CallRef(refIndex, argsSerialized, out retval);
 				}
 			}
 			catch (Exception e)
@@ -403,6 +408,11 @@ namespace CitizenFX.Core
 			public IntPtr GetLastErrorText()
 			{
 				return m_realHost.GetLastErrorText();
+			}
+
+			public int InvokeFunctionReference(string refId, byte[] args, int argsSize, IntPtr ret)
+			{
+				return m_realHost.InvokeFunctionReference(refId, args, argsSize, ret);
 			}
 
 			[SecurityCritical]

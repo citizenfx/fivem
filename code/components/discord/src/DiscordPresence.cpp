@@ -8,7 +8,10 @@
 #include <NetLibrary.h>
 
 #include <ScriptEngine.h>
-#include <scrEngine.h>
+
+#include <CoreConsole.h>
+
+#include <CfxState.h>
 
 #ifdef GTA_FIVE
 #define DEFAULT_APP_ID "382624125287399424"
@@ -55,6 +58,12 @@ static std::string g_discordAppAssetSmallText;
 
 static std::optional<std::tuple<std::pair<std::string, std::string>, std::pair<std::string, std::string>>> g_buttons;
 
+static std::shared_ptr<ConVar<std::string>> g_richPresenceState;
+
+static std::string g_lastRichPresenceState = "disabled";
+
+static size_t g_onGameFrameCookie = -1;
+
 static void UpdatePresence()
 {
 	if (g_richPresenceChanged)
@@ -70,12 +79,19 @@ static void UpdatePresence()
 			g_richPresenceValues[7]
 		);
 
-		std::string line1 = formattedRichPresence.substr(formattedRichPresence.find_first_of("\n") + 1);
-		std::string line2 = formattedRichPresence.substr(0, formattedRichPresence.find_first_of("\n"));
-
 		if (!g_richPresenceOverride.empty())
 		{
-			line1 = g_richPresenceOverride;
+			formattedRichPresence = g_richPresenceOverride;
+		}
+
+		auto lineOff = formattedRichPresence.find_first_of("\n");
+
+		std::string line1 = formattedRichPresence.substr(0, lineOff);
+		std::string line2;
+
+		if (lineOff != std::string::npos)
+		{
+			line2 = formattedRichPresence.substr(lineOff + 1);
 		}
 
 		if (g_discordAppId != g_lastDiscordAppId) 
@@ -147,44 +163,107 @@ static void UpdatePresence()
 	}
 }
 
+static void OnRichPresenceStateChange(internal::ConsoleVariableEntry<std::string>* richPresenceState)
+{
+	std::string state = richPresenceState->GetValue();
+
+	if (state != "disabled" && state != "restricted" && state != "enabled")
+	{
+		richPresenceState->SetValue("enabled");
+		return;
+	}
+
+	if (state == g_lastRichPresenceState)
+	{
+		return;
+	}
+
+	if (g_lastRichPresenceState == "enabled")
+	{
+		OnGameFrame.Disconnect(g_onGameFrameCookie);
+		g_onGameFrameCookie = -1;
+	}
+
+	if (g_lastRichPresenceState == "disabled" || (state == "restricted" && g_lastDiscordAppId != DEFAULT_APP_ID))
+	{
+		if (state == "restricted" && g_lastDiscordAppId != DEFAULT_APP_ID)
+		{
+			g_lastDiscordAppId = DEFAULT_APP_ID;
+			Discord_Shutdown();
+		}
+		DiscordEventHandlers handlers;
+		memset(&handlers, 0, sizeof(handlers));
+		Discord_Initialize(g_lastDiscordAppId.c_str(), &handlers, 1, nullptr);
+	}
+
+	if (state == "enabled" && g_onGameFrameCookie == -1)
+	{
+		g_richPresenceChanged = true;
+		g_onGameFrameCookie = OnGameFrame.Connect([]()
+		{
+			Discord_RunCallbacks();
+
+			UpdatePresence();
+		});
+	}
+	else if (state == "restricted")
+	{
+		DiscordRichPresence discordPresence;
+		memset(&discordPresence, 0, sizeof(discordPresence));
+		discordPresence.largeImageKey = g_discordAppAsset.c_str();
+		discordPresence.smallImageKey = g_discordAppAssetSmall.c_str();
+		discordPresence.largeImageText = g_discordAppAssetText.c_str();
+		discordPresence.smallImageText = g_discordAppAssetSmallText.c_str();
+
+		Discord_UpdatePresence(&discordPresence);
+	}
+	else if (state == "disabled")
+	{
+		Discord_Shutdown();
+	}
+
+	g_lastRichPresenceState = state;
+};
+
 static InitFunction initFunction([]()
 {
-	DiscordEventHandlers handlers;
-	memset(&handlers, 0, sizeof(handlers));
 	g_discordAppId = DEFAULT_APP_ID;
 	g_discordAppAsset = DEFAULT_APP_ASSET;
 	g_discordAppAssetSmall = DEFAULT_APP_ASSET_SMALL;
 	g_discordAppAssetText = DEFAULT_APP_ASSET_TEXT;
 	g_discordAppAssetSmallText = DEFAULT_APP_ASSET_SMALL_TEXT;
-	
-	Discord_Initialize(g_discordAppId.c_str(), &handlers, 1, nullptr);
+	g_richPresenceState = std::make_shared<ConVar<std::string>>("cl_discordRichPresence", ConVar_Archive | ConVar_UserPref | ConVar_ScriptRestricted, "", OnRichPresenceStateChange);
+
+	if (g_richPresenceState->GetValue() == "")
+	{
+		g_richPresenceState->GetHelper()->SetValue("enabled");
+	}
 
 	OnRichPresenceSetTemplate.Connect([](const std::string& text)
 	{
 		g_startTime = time(nullptr);
 
-		g_richPresenceTemplate = text;
+		if (g_richPresenceTemplate != text)
+		{
+			g_richPresenceTemplate = text;
 
-		g_richPresenceChanged = true;
+			g_richPresenceChanged = true;
+		}
 	});
 
 	OnRichPresenceSetValue.Connect([](int idx, const std::string& value)
 	{
 		assert(idx >= 0 && idx < _countof(g_richPresenceValues));
 
-		g_richPresenceValues[idx] = value;
+		if (g_richPresenceValues[idx] != value)
+		{
+			g_richPresenceValues[idx] = value;
 
-		g_richPresenceChanged = true;
+			g_richPresenceChanged = true;
+		}
 	});
 
 	OnRichPresenceSetTemplate("In the menus\n");
-
-	OnGameFrame.Connect([]()
-	{
-		Discord_RunCallbacks();
-
-		UpdatePresence();
-	});
 
 	OnKillNetworkDone.Connect([]()
 	{
@@ -202,22 +281,25 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_RICH_PRESENCE", [](fx::ScriptContext& context)
 	{
-		const char* str = context.GetArgument<const char*>(0);
+		std::string newValue;
 
-		if (str)
+		if (const char* str = context.GetArgument<const char*>(0))
 		{
-			g_richPresenceOverride = str;
-		}
-		else
-		{
-			g_richPresenceOverride = "";
+			newValue = str;
 		}
 
-		g_richPresenceChanged = true;
+		if (g_richPresenceOverride != newValue)
+		{
+			g_richPresenceOverride = newValue;
+			g_richPresenceChanged = true;
+		}
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_DISCORD_RICH_PRESENCE_ACTION", [](fx::ScriptContext& context)
 	{
+		static HostSharedData<CfxState> hostData("CfxInitState");
+		static auto linkProtocolConnect = ToNarrow(hostData->GetLinkProtocol(L"://connect/"));
+
 		int idx = context.GetArgument<int>(0);
 		std::string label = context.CheckArgument<const char*>(1);
 		std::string url = context.CheckArgument<const char*>(2);
@@ -227,7 +309,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		if (url.find("https://") != 0 && url.find("fivem://connect/") != 0)
+		if (url.find("https://") != 0 && url.find(linkProtocolConnect) != 0)
 		{
 			return;
 		}

@@ -184,15 +184,15 @@ std::optional<int> EnsureGamePath()
 	FILEOPENDIALOGOPTIONS opts;
 	fileDialog->GetOptions(&opts);
 
-	opts |= FOS_FORCEFILESYSTEM | FOS_PICKFOLDERS;
+	opts |= FOS_FORCEFILESYSTEM;
 
 	fileDialog->SetOptions(opts);
-
-#ifndef GTA_FIVE
-	fileDialog->SetTitle(L"Select the folder containing " GAME_EXECUTABLE);
-#else
-	fileDialog->SetTitle(gettext(L"Select the folder containing Grand Theft Auto V").c_str());
-#endif
+	fileDialog->SetTitle(L"Go to your game directory and select " GAME_EXECUTABLE L" to be able to launch " PRODUCT_NAME);
+	
+	COMDLG_FILTERSPEC filter = { 0 };
+	filter.pszName = L"Game executables";
+	filter.pszSpec = GAME_EXECUTABLE;
+	fileDialog->SetFileTypes(1, &filter);
 
 #if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
 	// set the default folder, if we can find one
@@ -205,6 +205,7 @@ std::optional<int> EnsureGamePath()
 #if defined(GTA_FIVE)
 			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV", 5 },
 			{ L"InstallFolderEpic", L"SOFTWARE\\Rockstar Games\\Grand Theft Auto V", 0 },
+			{ L"InstallFolderEpic", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", 0 },
 #elif defined(IS_RDR3)
 			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Red Dead Redemption 2", strlen("Red Dead Redemption 2") },
 #elif defined(GTA_NY)
@@ -227,9 +228,9 @@ std::optional<int> EnsureGamePath()
 
 #ifdef GTA_FIVE
 				if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") && checkFile(L"x64g.rpf") && checkFile(L"common.rpf") && checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") && checkFile(L"GTA5.exe") && checkFile(L"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf") &&
-					checkFile(L"update\\x64\\dlcpacks\\mptuner\\dlc.rpf"))
+					checkFile(L"update\\x64\\dlcpacks\\mptuner\\dlc.rpf") && checkFile(L"update\\x64\\dlcpacks\\mpsum2\\dlc.rpf"))
 #elif defined(IS_RDR3)
-				if (checkFile(L"common.rpf") && checkFile(L"appdata0_update.rpf") && checkFile(L"levels_7.rpf") && checkFile(L"RDR2.exe") && checkFile(L"x64\\dlcpacks\\mp007\\dlc.rpf"))
+				if (checkFile(L"common_0.rpf") && checkFile(L"appdata0_update.rpf") && checkFile(L"levels_7.rpf") && checkFile(L"RDR2.exe") && checkFile(L"x64\\dlcpacks\\mp007\\dlc.rpf"))
 #elif defined(GTA_NY)
 				if (checkFile(L"pc/audio/sfx/general.rpf"))
 #endif
@@ -312,7 +313,14 @@ std::optional<int> EnsureGamePath()
 	}
 
 	// check if there's a game EXE in the path
-	std::wstring gamePath = std::wstring(resultPath) + L"\\" GAME_EXECUTABLE;
+	std::wstring gamePath = resultPath;
+	auto exeNameLength = std::size(GAME_EXECUTABLE); // counts null terminator, but here we use that for a backslash
+
+	if (gamePath.rfind(L"\\" GAME_EXECUTABLE) != (gamePath.length() - exeNameLength))
+	{
+		MessageBox(nullptr, va(gettext(L"The selected path does not contain a %s file."), GAME_EXECUTABLE), PRODUCT_NAME, MB_OK | MB_ICONWARNING);
+		return 0;
+	}
 
 	if (GetFileAttributes(gamePath.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
@@ -332,7 +340,7 @@ std::optional<int> EnsureGamePath()
 		return 0;
 	}
 
-	WritePrivateProfileString(L"Game", pathKey, resultPath, fpath.c_str());
+	WritePrivateProfileString(L"Game", pathKey, gamePath.substr(0, gamePath.length() - exeNameLength).c_str(), fpath.c_str());
 
 	{
 		static HostSharedData<CfxState> initState("CfxInitState");

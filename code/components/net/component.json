@@ -4,10 +4,11 @@
 	"dependencies": [
 		"fx[2]",
 		"http-client",
+		"pool-sizes-state",
 		"profiles",
-		"vendor:yaml-cpp",
 		"vendor:cpp-url",
-		"net:base"
+		"net:base",
+		"net:packet"
 	],
 	"provides": []
 }

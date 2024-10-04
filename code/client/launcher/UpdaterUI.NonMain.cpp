@@ -45,4 +45,6 @@ std::optional<int> EnsureGamePath()
 }
 
 #pragma comment(lib, "delayimp.lib")
+
+//
 #endif

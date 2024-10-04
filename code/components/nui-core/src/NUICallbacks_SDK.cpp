@@ -44,6 +44,11 @@ public:
 
 static InitFunction initFunction([]()
 {
+	if (!launch::IsSDK() && !launch::IsSDKGuest())
+	{
+		return;
+	}
+
 	auto nuiApp = Instance<NUIApp>::Get();
 
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
@@ -298,7 +303,7 @@ static InitFunction initFunction([]()
 		CefV8ValueList args;
 		args.push_back(CefV8Value::CreateString(path));
 
-		callback->ExecuteFunction(NULL, args);
+		callback->ExecuteFunction(nullptr, args);
 
 		context->Exit();
 

@@ -14,7 +14,7 @@ typedef SOCKET PlatformSocketType;
 
 #define GetLastNetError() WSAGetLastError()
 
-#define EAGAIN WSAEWOULDBLOCK
+#define FX_EAGAIN WSAEWOULDBLOCK
 #else
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -26,6 +26,8 @@ typedef int PlatformSocketType;
 #define GetLastNetError() errno
 
 #define closesocket close
+
+#define FX_EAGAIN EAGAIN
 #endif
 
 namespace net

@@ -80,6 +80,8 @@ void MumbleUser::UpdateUser(MumbleProto::UserState& state)
 
 void MumbleClientState::ProcessUserState(MumbleProto::UserState& userState)
 {
+	std::shared_ptr<MumbleUser> createdUser;
+
 	if (userState.has_session())
 	{
 		// is this an update to a channel we know?
@@ -91,32 +93,43 @@ void MumbleClientState::ProcessUserState(MumbleProto::UserState& userState)
 		if (userIt == m_users.end())
 		{
 			auto user = std::make_shared<MumbleUser>(m_client, userState);
+			m_users.emplace(id, user);
 
-			m_users.insert(std::make_pair(id, user));
+			createdUser = user;
 
-			m_client->GetOutput().HandleClientConnect(*user);
-
-			auto name = user->GetName();
-
-			console::DPrintf("Mumble", "New user: %s\n", std::string(name.begin(), name.end()).c_str());
+			console::DPrintf("Mumble", "New user: %s\n", ToNarrow(user->GetName()));
 		}
 		else
 		{
 			userIt->second->UpdateUser(userState);
 		}
 	}
+
+	if (createdUser)
+	{
+		m_client->GetOutput().HandleClientConnect(*createdUser);
+	}
 }
 
 void MumbleClientState::ProcessRemoveUser(uint32_t id)
 {
-	std::unique_lock<std::shared_mutex> lock(m_usersMutex);
+	std::shared_ptr<MumbleUser> removedUser;
 
-	auto it = m_users.find(id);
-
-	if (it != m_users.end())
 	{
-		m_client->GetOutput().HandleClientDisconnect(*it->second);
+		std::unique_lock<std::shared_mutex> lock(m_usersMutex);
+
+		auto it = m_users.find(id);
+
+		if (it != m_users.end())
+		{
+			removedUser = it->second;
+		}
+
+		m_users.erase(id);
 	}
 
-	m_users.erase(id);
+	if (removedUser)
+	{
+		m_client->GetOutput().HandleClientDisconnect(*removedUser);
+	}
 }

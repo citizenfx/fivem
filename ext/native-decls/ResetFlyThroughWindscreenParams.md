@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## RESET_FLY_THROUGH_WINDSCREEN_PARAMS
 

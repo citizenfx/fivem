@@ -13,42 +13,68 @@
 #include <fxScripting.h>
 
 #include <CustomText.h>
+#include <deque>
 
 #if defined(GTA_FIVE)
 #include <sfFontStuff.h>
 #endif
 
-static bool AddTextEntryForResource(fx::Resource* resource, uint32_t hashKey, const char* textValue)
+static bool AddTextEntryForResource(fx::Resource* resource, uint32_t hashKey, const char* textValueRaw)
 {
-	static std::unordered_map<uint32_t, std::string> g_owners;
+	std::string textValue = textValueRaw;
+	static std::unordered_map<uint32_t, std::deque<std::tuple<std::string /* resource */, std::string /* str */>>> g_hashStack;
+	const auto& resourceName = resource->GetName();
+	auto& selfStack = g_hashStack[hashKey];
 
-	std::string resourceName = resource->GetName();
-
-	auto it = g_owners.find(hashKey);
-
-	if (it == g_owners.end())
+	static auto find = [](auto& selfStack, std::string_view resourceName)
 	{
-		g_owners.insert({ hashKey, resource->GetName() });
-
-		game::AddCustomText(hashKey, textValue);
-
-		// on-stop handler, as well, to remove from the list when the resource stops
-		resource->OnStop.Connect([=] ()
+		return std::find_if(selfStack.begin(), selfStack.end(), [resourceName](const auto& pair)
 		{
-			if (g_owners[hashKey] == resource->GetName())
+			return std::get<0>(pair) == resourceName;
+		});
+	};
+
+	// find the resource
+	auto resourceIt = find(selfStack, resourceName);
+
+	if (resourceIt == selfStack.end())
+	{
+		resource->OnStop.Connect([resource, hashKey]()
+		{
+			auto& selfStack = g_hashStack[hashKey];
+			bool matched = false;
+
+			do
+			{
+				matched = false;
+
+				if (auto it = find(selfStack, resource->GetName()); it != selfStack.end())
+				{
+					selfStack.erase(it);
+					matched = true;
+				}
+			} while (matched);
+
+			if (!selfStack.empty())
+			{
+				game::AddCustomText(hashKey, std::get<1>(selfStack.front()));
+			}
+			else
 			{
 				game::RemoveCustomText(hashKey);
-				g_owners.erase(hashKey);
 			}
 		});
 
-		return true;
+		selfStack.emplace_front(resourceName, textValue);
+	}
+	else
+	{
+		*resourceIt = { std::get<0>(*resourceIt), textValue };
+		std::iter_swap(selfStack.begin(), resourceIt);
 	}
 
-	if (it->second == resource->GetName())
-	{
-		game::AddCustomText(hashKey, textValue);
-	}
+	game::AddCustomText(hashKey, textValue);
+	return true;
 }
 
 static InitFunction initFunction([] ()
@@ -61,8 +87,8 @@ static InitFunction initFunction([] ()
 		{
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
-			const char* textKey = context.GetArgument<const char*>(0);
-			const char* textValue = context.GetArgument<const char*>(1);
+			const char* textKey = context.CheckArgument<const char*>(0);
+			const char* textValue = context.CheckArgument<const char*>(1);
 
 			uint32_t hashKey = HashString(textKey);
 
@@ -87,7 +113,7 @@ static InitFunction initFunction([] ()
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
 			uint32_t textKey = context.GetArgument<uint32_t>(0);
-			const char* textValue = context.GetArgument<const char*>(1);
+			const char* textValue = context.CheckArgument<const char*>(1);
 
 			context.SetResult<bool>(AddTextEntryForResource(resource, textKey, textValue));
 			return;
@@ -99,12 +125,12 @@ static InitFunction initFunction([] ()
 #if defined(GTA_FIVE)
 	fx::ScriptEngine::RegisterNativeHandler("REGISTER_FONT_ID", [](fx::ScriptContext& context)
 	{
-		context.SetResult(sf::RegisterFontIndex(context.GetArgument<const char*>(0)));
+		context.SetResult(sf::RegisterFontIndex(context.CheckArgument<const char*>(0)));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("REGISTER_FONT_FILE", [](fx::ScriptContext& context)
 	{
-		sf::RegisterFontLib(context.GetArgument<const char*>(0));
+		sf::RegisterFontLib(context.CheckArgument<const char*>(0));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("ADD_MINIMAP_OVERLAY", [](fx::ScriptContext& context)
@@ -114,7 +140,7 @@ static InitFunction initFunction([] ()
 		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
 		{
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
-			int overlayIdx = sf::AddMinimapOverlay(resource->GetPath() + "/" + context.GetArgument<const char*>(0));
+			int overlayIdx = sf::AddMinimapOverlay(resource->GetPath() + "/" + context.CheckArgument<const char*>(0), -1);
 
 			resource->OnStop.Connect([=]()
 			{
@@ -126,6 +152,31 @@ static InitFunction initFunction([] ()
 		}
 
 		context.SetResult(-1);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("ADD_MINIMAP_OVERLAY_WITH_DEPTH", [](fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_FAILED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			context.SetResult(-1);
+			return;
+		}
+
+		fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+		auto gfxFileName = context.CheckArgument<const char*>(0);
+		auto depth = context.GetArgument<int>(1);
+
+		int overlayIdx = sf::AddMinimapOverlay(resource->GetPath() + "/" + gfxFileName, depth);
+
+		resource->OnStop.Connect([=]()
+		{
+			sf::RemoveMinimapOverlay(overlayIdx);
+		});
+
+		context.SetResult(overlayIdx);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("HAS_MINIMAP_OVERLAY_LOADED", [](fx::ScriptContext& context)

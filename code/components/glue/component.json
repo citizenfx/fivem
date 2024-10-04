@@ -7,6 +7,7 @@
 		"nui:core",
 		"nui:resources",
 		"gta:core",
+		"pool-sizes-state",
 		"scripting:gta",
 		"rage:device",
 		"rage:input",

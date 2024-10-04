@@ -1,0 +1,58 @@
+.root {
+  position: fixed;
+  inset: 0;
+
+  background-color: transparent;
+
+  opacity: 0;
+  pointer-events: none;
+
+  transition: background-color .2s linear;
+
+  z-index: 1000;
+
+  &.active {
+    background-color: ui.color-token('backdrop');
+
+    opacity: 1;
+    pointer-events: all;
+
+    .media {
+      transform: translate(calc((100vw - ui.use('tw'))/2), calc((100vh - ui.use('th'))/2)) scale(1);
+      transform-origin: 0 0;
+
+      width: ui.use('tw');
+      height: ui.use('th');
+
+      @keyframes unshrink {
+        from {
+          transform: translate(ui.use('x'), ui.use('y')) scale(ui.use('s'));
+        }
+      }
+
+      animation: unshrink .4s cubic-bezier(.64,-0.01,0,1);
+    }
+  }
+
+  .media {
+    max-width: ui.viewport-width();
+    max-height: ui.viewport-height();
+    border-radius: ui.border-radius('small');
+    background-color: ui.color-token('backdrop');
+    background-image: url(assets/images/media-placeholder.png), ui.use('checkered-pattern');
+    background-position: center center, top left;
+    background-repeat: no-repeat, repeat;
+    background-size: 10%, auto;
+  }
+
+  // Video element does not naturally grow - stretch it
+  video.media, iframe.media {
+    height: 90%;
+    aspect-ratio: ui.use('ar');
+  }
+
+  // iframes have a border
+  iframe.media {
+    border: none;
+  }
+}

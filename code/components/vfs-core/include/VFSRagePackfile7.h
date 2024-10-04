@@ -63,7 +63,9 @@ namespace vfs
 
 		Header7 m_header;
 
-		HandleData m_handles[32];
+		std::vector<HandleData> m_handles;
+
+		std::mutex m_handlesMutex;
 
 		std::vector<Entry> m_entries;
 
@@ -80,6 +82,8 @@ namespace vfs
 
 	public:
 		RagePackfile7();
+
+		static void SetValidationCallback(const std::function<bool(const std::vector<uint8_t>& sig, const std::vector<uint8_t>& data)>& func);
 
 		virtual ~RagePackfile7() override;
 

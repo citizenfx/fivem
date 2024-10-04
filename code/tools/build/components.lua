@@ -224,6 +224,12 @@ local do_component = function(name, comp)
 		groupName = groupName .. '/' .. val
 	end
 
+	-- replace '/common/citizen/server' prefix with '/server'
+	local serverMatch = '/common/citizen/server'
+	if groupName:sub(1, #serverMatch) == serverMatch then
+		groupName = '/server' .. groupName:sub(#serverMatch + 1)
+	end
+
 	-- hack: `net` breaks premake/.vs group generator
 	if comp.name == 'net' then
 		groupName = groupName .. '/net'
@@ -283,7 +289,7 @@ local do_component = function(name, comp)
 	links { "Shared", "fmtlib" }
 
 	-- HACKHACK: premake doesn't allow unsetting these
-	if name ~= 'adhesive' and name ~= 'legacy-game-re3' and name ~= 'fxdk-main' then
+	if name ~= 'adhesive' and name ~= 'fxdk-main' then
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
 	end

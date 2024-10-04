@@ -339,33 +339,6 @@ void AAD_Initialize()
 
 	// set GlobalFlags
 	*(DWORD*)((char*)peb + 0xBC) &= ~0x70;
-
-	if (CoreIsDebuggerPresent())
-	{
-		/*HANDLE hdl;
-		DWORD len = 0;
-		NtQueryInformationProcess(GetCurrentProcess(), (PROCESSINFOCLASS)0x1E, &hdl, sizeof(hdl), &len);
-
-		PSECURITY_DESCRIPTOR sd;
-		ULONG cb;
-
-		ConvertStringSecurityDescriptorToSecurityDescriptor(TEXT("D:(A;;0;;;OW)"),
-			SDDL_REVISION_1, &sd, &cb);
-
-		SetKernelObjectSecurity(hdl, DACL_SECURITY_INFORMATION, sd);
-
-		LocalFree(sd);
-
-		// NOP OutputDebugStringA; the debugger doesn't like multiple async exceptions
-		uint8_t* func = (uint8_t*)OutputDebugStringA;
-
-		DWORD oldProtect;
-		VirtualProtect(func, 1, PAGE_EXECUTE_READWRITE, &oldProtect);
-
-		//*func = 0xC3;
-
-		VirtualProtect(func, 1, oldProtect, &oldProtect);*/
-	}
 #elif defined(GTA_NY)
 	// set BeingDebugged
 	PPEB peb = (PPEB)__readfsdword(0x30);
@@ -376,20 +349,6 @@ void AAD_Initialize()
 #endif
 
 	AddVectoredExceptionHandler(0, HandleVariant);
-}
-
-#include <psapi.h>
-
-BOOL EnumProcessModulesHook(
-	HANDLE  hProcess,
-	HMODULE* lphModule,
-	DWORD   cb,
-	LPDWORD lpcbNeeded
-)
-{
-	trace("enum modules\n");
-
-	return EnumProcessModules(hProcess, lphModule, cb, lpcbNeeded);
 }
 
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
@@ -413,6 +372,8 @@ inline void CoreSetMinModeManifest(const char* str)
 	(func) ? func(str) : (void)0;
 }
 
+extern void DLLError(DWORD errorCode, std::string_view dllName);
+
 void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 {
 	// initialize the CEF sandbox
@@ -423,7 +384,8 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 
 	if (!gameLibrary)
 	{
-		FatalError("Could not load CitizenGame.dll.");
+		DWORD errorCode = GetLastError();
+		DLLError(errorCode, "CitizenGame.dll");
 		return;
 	}
 
@@ -539,7 +501,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 			}
 		}
 
-		if (!_stricmp(libName, "xinput1_3.dll"))
+		if (!_stricmp(libName, "xinput1_3.dll") || !_stricmp(libName, "xinput1_2.dll") || !stricmp(libName, "xinput1_1.dll"))
 		{
 			HMODULE hm = LoadLibrary(L"xinput1_4.dll");
 			
@@ -607,10 +569,6 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 		else if (!_stricmp(functionName, "GetFileAttributesW"))
 		{
 			return GetFileAttributesWHook;
-		}
-		else if (!_stricmp(functionName, "K32EnumProcessModules"))
-		{
-			return EnumProcessModulesHook;
 		}
 #endif
 

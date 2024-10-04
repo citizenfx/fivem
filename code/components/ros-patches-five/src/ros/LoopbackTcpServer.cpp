@@ -18,16 +18,13 @@
 #include <HostSharedData.h>
 #include <CrossBuildRuntime.h>
 
+#include <ROSSuffix.h>
+
 #include <Error.h>
 
 struct LauncherState
 {
-	volatile DWORD pid;
-
-	LauncherState()
-		: pid(0)
-	{
-	}
+	volatile DWORD pid = 0;
 };
 
 #ifdef GTA_FIVE
@@ -112,8 +109,13 @@ void LoopbackTcpServerStream::Close()
 	}
 }
 
-LoopbackTcpServer::LoopbackTcpServer(LoopbackTcpServerManager* manager)
-	: m_port(0), m_manager(manager)
+void LoopbackTcpServerStream::StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout)
+{
+	// a connection timeout is not required for the loopback tcp server stream, because its only on the client and not exposed to the network
+}
+
+LoopbackTcpServer::LoopbackTcpServer(LoopbackTcpServerManager* manager, const std::string& hostName)
+	: m_port(0), m_manager(manager), m_hostName(hostName)
 {
 
 }
@@ -608,7 +610,7 @@ fwRefContainer<LoopbackTcpServer> LoopbackTcpServerManager::RegisterTcpServer(co
 {
 	scoped_write_lock lock(m_loopbackLock);
 
-	fwRefContainer<LoopbackTcpServer> server = new LoopbackTcpServer(this);
+	fwRefContainer<LoopbackTcpServer> server = new LoopbackTcpServer(this, hostName);
 	m_tcpServers.insert({ HashString(hostName.c_str()) & 0xFFFFFF, server });
 
 	return server;
@@ -1187,99 +1189,61 @@ std::vector<int> g_subProcessHandles;
 
 extern void SubprocessPipe(const std::wstring& s);
 
-// hack to ensure MTL service pipe is *consistently* encrypted on Intel ADL+ hybrid CPUs, as the key depends on some CPU-incoherent property
-// weird part: it breaks intermittently even across hyperthreads or E-core clusters, L1 cache coherence? -> needs to be pinned to one CPU only
-static void SetupAffinity(const PROCESS_INFORMATION* information)
+static std::set<HANDLE> g_foregroundProcesses;
+static std::mutex g_foregroundProcessesMutex;
+
+extern "C" BOOL WINAPI __SetAdditionalForegroundBoostProcesses(
+HWND topLevelWindow,
+DWORD processHandleCount,
+HANDLE* processHandleArray);
+
+static void SetForegroundProcesses()
 {
-	auto _GetSystemCpuSetInformation = (decltype(&GetSystemCpuSetInformation))GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "GetSystemCpuSetInformation");
+	static auto _SetAdditionalForegroundBoostProcesses = (decltype(&__SetAdditionalForegroundBoostProcesses))GetProcAddress(GetModuleHandleW(L"user32.dll"), "SetAdditionalForegroundBoostProcesses");
 
-	if (_GetSystemCpuSetInformation)
+	if (!_SetAdditionalForegroundBoostProcesses)
 	{
-		auto curProc = GetCurrentProcess();
-		ULONG size = 0;
-		_GetSystemCpuSetInformation(nullptr, 0, &size, curProc, 0);
+		return;
+	}
 
-		std::unique_ptr<uint8_t[]> buffer(new uint8_t[size]);
-		PSYSTEM_CPU_SET_INFORMATION cpuSets = reinterpret_cast<PSYSTEM_CPU_SET_INFORMATION>(buffer.get());
-		PSYSTEM_CPU_SET_INFORMATION nextCPUSet = cpuSets;
+	auto window = CoreGetGameWindow();
 
-		if (_GetSystemCpuSetInformation(cpuSets, size, &size, curProc, 0))
+	if (!window)
+	{
+		return;
+	}
+
+	HANDLE processes[32] = { 0 };
+	DWORD numProcesses = 0;
+
+	{
+		std::unique_lock _(g_foregroundProcessesMutex);
+		for (auto process : g_foregroundProcesses)
 		{
-			// we're not using multimap since we want to get amount of unique keys + get data from each
-			std::map<BYTE /* efficiency class */, std::vector<ULONG /* CPU set ID */>> cpusByEfficiency;
-			std::map<ULONG /* CPU set ID */, BYTE /* core index */> coresByCPU;
-			std::map<BYTE /* core index */, std::vector<BYTE /* logical processor index (for affinity) */>> affinitiesByCore;
-
-			for (DWORD offset = 0;
-				 offset + sizeof(SYSTEM_CPU_SET_INFORMATION) <= size;
-				 offset += sizeof(SYSTEM_CPU_SET_INFORMATION), nextCPUSet++)
-			{
-				if (nextCPUSet->Type == CPU_SET_INFORMATION_TYPE::CpuSetInformation && nextCPUSet->CpuSet.Group == 0)
-				{
-					cpusByEfficiency[nextCPUSet->CpuSet.EfficiencyClass].push_back(nextCPUSet->CpuSet.Id);
-					affinitiesByCore[nextCPUSet->CpuSet.CoreIndex].push_back(nextCPUSet->CpuSet.LogicalProcessorIndex);
-					coresByCPU[nextCPUSet->CpuSet.Id] = nextCPUSet->CpuSet.CoreIndex;
-				}
-			}
-
-			// if this is a heterogeneous system
-			if (cpusByEfficiency.size() > 1)
-			{
-				trace("Hybrid CPU detected: setting CPU affinity to work around MTL DRM issue.\n");
-
-				std::vector<BYTE> targetCPUs;
-
-				// set the process to a single *core*, from highest performance down
-				for (auto it = cpusByEfficiency.rbegin(); it != cpusByEfficiency.rend(); it++)
-				{
-					for (ULONG cpu : it->second)
-					{
-						// find this in the by-core list
-						if (auto cit = coresByCPU.find(cpu); cit != coresByCPU.end())
-						{
-							targetCPUs = affinitiesByCore[cit->second];
-							break;
-						}
-					}
-
-					if (!targetCPUs.empty())
-					{
-						break;
-					}
-				}
-
-				if (!targetCPUs.empty())
-				{
-					trace("Setting logical CPUs: ");
-
-					DWORD_PTR affinity = 0;
-
-					for (auto cpuy : targetCPUs)
-					{
-						trace("%d ", cpuy);
-						affinity |= DWORD_PTR(1) << DWORD_PTR(cpuy);
-
-						// ?! even HT is potentially broken
-						break;
-					}
-
-					trace("\n");
-
-					SetProcessAffinityMask(information->hProcess, affinity);
-					SetThreadAffinityMask(information->hThread, affinity);
-				}
-			}
+			processes[numProcesses++] = process;
 		}
 	}
 
-	ResumeThread(information->hThread);
-	CloseHandle(information->hThread);
+	// TEMP: needed as long as this is a LAF: set AppModelFeatureState flag 1 so we pass win32kfull!EditionCanSetAdditionalForegroundBoostProcesses
+	uint8_t* peb = (uint8_t*)__readgsqword(0x60);
+	peb[0x340] |= 1;
+
+	_SetAdditionalForegroundBoostProcesses(window, numProcesses, processes);
 }
 
 static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t* commandLine, SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
 										BOOL inheritHandles, DWORD creationFlags, void* environment, const wchar_t* currentDirectory, STARTUPINFOW* startupInfo,
 										PROCESS_INFORMATION* information)
 {
+	// Technically unrelated to this file but it already has a CreateProcessW hook: CEF GPU bits
+	bool gpuProcess = false;
+
+	if (wcsstr(commandLine, L"type=gpu"))
+	{
+		gpuProcess = true;
+	}
+	// END GPU bits
+
 	// compare the first part of the command line with the Social Club subprocess name
 	HMODULE socialClubLib = GetModuleHandle(L"socialclub.dll");
 
@@ -1344,7 +1308,7 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 			const wchar_t* newCommandLine = va(L"\"%s\" ros:service", fxApplicationName);
 
 			// and go create the new fake process
-			retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), processAttributes, threadAttributes, inheritHandles, creationFlags | CREATE_UNICODE_ENVIRONMENT | CREATE_SUSPENDED, &newEnvironment[0], currentDirectory, startupInfo, information);
+			retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), processAttributes, threadAttributes, inheritHandles, (creationFlags | CREATE_UNICODE_ENVIRONMENT) & ~CREATE_SUSPENDED, &newEnvironment[0], MakeRelativeCitPath(L"data\\game-storage\\launcher").c_str(), startupInfo, information);
 
 			if (!retval)
 			{
@@ -1355,9 +1319,12 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 			else
 			{
 				trace("Got ROS service - pid %d\n", information->dwProcessId);
-
-				SetupAffinity(information);
 			}
+
+			static HostSharedData<LauncherState> hsd("CFX_ServicePid");
+			hsd->pid = information->dwProcessId;
+
+			SetPriorityClass(information->hProcess, ABOVE_NORMAL_PRIORITY_CLASS);
 
 			information->hThread = NULL;
 			information->hProcess = CreateEventW(NULL, TRUE, FALSE, va(L"Cfx_ROSServiceEvent_%s", ToWide(launch::GetLaunchModeKey())));
@@ -1392,6 +1359,8 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 				hProcess = GetCurrentProcess();
 			}
 
+			SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
+
 			// disable D3D present function
 			// TODO for MTL
 			//hook::return_function(hook::get_pattern("89 74 24 20 44 8D 4E 01 45 33 C0 33 D2 FF", -0x6C));
@@ -1412,7 +1381,22 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 		}
 	}
 
-	return g_oldCreateProcessW(applicationName, commandLine, processAttributes, threadAttributes, inheritHandles, creationFlags, environment, currentDirectory, startupInfo, information);
+	auto rv = g_oldCreateProcessW(applicationName, commandLine, processAttributes, threadAttributes, inheritHandles, creationFlags, environment, currentDirectory, startupInfo, information);
+
+	if (gpuProcess)
+	{
+		{
+			HANDLE newHandle = 0;
+			DuplicateHandle(GetCurrentProcess(), information->hProcess, GetCurrentProcess(), &newHandle, 0, FALSE, DUPLICATE_SAME_ACCESS);
+
+			std::unique_lock _(g_foregroundProcessesMutex);
+			g_foregroundProcesses.insert(newHandle);
+		}
+
+		SetForegroundProcesses();
+	}
+
+	return rv;
 }
 
 // TODO: factor out
@@ -1480,11 +1464,46 @@ static const void* GetRemoteProcAddress(HANDLE hProcess, const void* function)
 	return nullptr;
 }
 
-static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWORD timeout = INFINITE)
+void BackOffMtl()
 {
+	SetCanSafelySkipLauncher(false);
+
+	auto backOffSuffix = fmt::sprintf(L"%d", GetTickCount64());
+
+	auto backOffFile = [backOffSuffix](const std::wstring& fileName)
+	{
+		MoveFileW(MakeRelativeCitPath(fileName).c_str(), MakeRelativeCitPath(fileName + L".old" + backOffSuffix).c_str());
+	};
+
+	backOffFile(L"data\\game-storage\\ros_documents" ROS_SUFFIX_W);
+	backOffFile(L"data\\game-storage\\ros_launcher_appdata" ROS_SUFFIX_W);
+	backOffFile(L"data\\game-storage\\ros_launcher_data" ROS_SUFFIX_W);
+	backOffFile(L"data\\game-storage\\ros_launcher_documents" ROS_SUFFIX_W);
+	backOffFile(L"data\\game-storage\\ros_launcher_game" ROS_SUFFIX_W);
+	backOffFile(L"data\\game-storage\\ros_profiles");
+}
+
+void RunLauncher(const wchar_t* toolName, bool instantWait);
+extern bool InLegitimacyUI();
+
+static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcessIn, BOOL doBreak, DWORD timeout = INFINITE)
+{
+	static bool inWait = false;
+	static HANDLE hProcess;
+
+	hProcess = hProcessIn;
+
+	if (inWait)
+	{
+		return;
+	}
+
 	g_waitForLauncherCB = [=]()
 	{
+		inWait = true;
+
 		bool done = false;
+		static int retries = 1;
 		static uint64_t startTime = GetTickCount64();
 		uint64_t endTime = GetTickCount64() + timeout;
 
@@ -1492,6 +1511,12 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWOR
 		{
 			HANDLE waitHandles[] = { hEvent, hProcess };
 			DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, 5000);
+
+			// if we've currently got the LegitimacyNui bits opened, bump the timeout
+			if (InLegitimacyUI())
+			{
+				endTime = GetTickCount64() + timeout;
+			}
 
 			if (waitResult == WAIT_OBJECT_0 + 1)
 			{
@@ -1514,30 +1539,36 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWOR
 
 					if (waitedFor >= 45)
 					{
-						SetCanSafelySkipLauncher(false);
-
-						auto backOffSuffix = fmt::sprintf(L"%d", GetTickCount64());
-						
-						auto backOffFile = [backOffSuffix](const std::wstring& fileName)
+						if (retries >= 3)
 						{
-							MoveFileW(MakeRelativeCitPath(fileName).c_str(), MakeRelativeCitPath(fileName + L".old" + backOffSuffix).c_str());
-						};
+							BackOffMtl();
 
-						backOffFile(L"data\\game-storage\\ros_documents");
-						backOffFile(L"data\\game-storage\\ros_launcher_appdata3");
-						backOffFile(L"data\\game-storage\\ros_launcher_data3");
-						backOffFile(L"data\\game-storage\\ros_launcher_documents2");
-						backOffFile(L"data\\game-storage\\ros_launcher_game2");
-						backOffFile(L"data\\game-storage\\ros_profiles");
+							auto threadStart = GetRemoteProcAddress(hProcess, &ROSFailure);
 
-						auto threadStart = GetRemoteProcAddress(hProcess, &ROSFailure);
+							DWORD tid;
+							CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)threadStart, NULL, 0, &tid);
 
-						DWORD tid;
-						CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)threadStart, NULL, 0, &tid);
+							WaitForSingleObject(GetCurrentProcess(), 30000);
 
-						WaitForSingleObject(GetCurrentProcess(), 30000);
+							ROSFailure(nullptr);
+							__debugbreak();
+						}
 
-						__debugbreak();
+						++retries;
+						trace("^3Retrying ROS launch (attempt %d/%d)\n", retries, 3);
+
+						HostSharedData<LauncherState> hsd("CFX_ServicePid");
+
+						auto service = OpenProcess(PROCESS_TERMINATE, FALSE, hsd->pid);
+						TerminateProcess(service, 0);
+						TerminateProcess(hProcess, 0);
+
+						Sleep(1500);
+
+						startTime = GetTickCount64();
+						RunLauncher(L"ros:launcher", false);
+
+						continue;
 					}
 
 					trace("^3ROS/MTL still hasn't cleared launch (waited %d seconds) - if this ends up timing out, please solve this!\n", waitedFor);
@@ -1553,6 +1584,8 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWOR
 				}
 			}
 		}
+
+		inWait = false;
 	};
 }
 
@@ -1646,7 +1679,7 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
-	BOOL retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), nullptr, nullptr, FALSE, CREATE_UNICODE_ENVIRONMENT | (isLauncher ? CREATE_SUSPENDED : 0), &newEnvironment[0], MakeRelativeCitPath(L"").c_str(), &si, &pi);
+	BOOL retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), nullptr, nullptr, FALSE, CREATE_UNICODE_ENVIRONMENT, &newEnvironment[0], MakeRelativeCitPath(L"data\\game-storage\\launcher").c_str(), &si, &pi);
 
 	if (!retval)
 	{
@@ -1660,7 +1693,6 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 
 		if (isLauncher)
 		{
-			SetupAffinity(&pi);
 			launcherState->pid = pi.dwProcessId;
 		}
 
@@ -1670,6 +1702,8 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 		{
 			timeout = 30000;
 		}
+
+		SetPriorityClass(pi.hProcess, ABOVE_NORMAL_PRIORITY_CLASS);
 
 		SetLauncherWaitCB(hEvent, pi.hProcess, isLauncher, timeout);
 
@@ -1759,12 +1793,6 @@ static HANDLE(__stdcall* g_oldCreateFileA)(LPCSTR, DWORD, DWORD, LPSECURITY_ATTR
 static hook::cdecl_stub<void(int, int)> setupLoadingScreens([]()
 {
 #if defined(GTA_FIVE)
-	// trailing byte differs between 323 and 505
-	if (Is372())
-	{
-		return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? 40", 5));
-	}
-
 	return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? C6", 5));
 #else
 	return (void*)0;
@@ -1798,7 +1826,10 @@ static HANDLE __stdcall CreateFileAStub(
 	{
 		lpFileName = va("\\\\.\\pipe\\MTLService_Pipe_CFX%s", IsCL2() ? "_CL2" : "");
 	}
-
+	else if (strcmp(lpFileName, "\\\\.\\pipe\\MTLLauncher_Pipe") == 0)
+	{
+		lpFileName = va("\\\\.\\pipe\\MTLLauncher_Pipe_CFX%s", IsCL2() ? "_CL2" : "");
+	}
 	
 	return g_oldCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
@@ -1808,6 +1839,10 @@ HANDLE _stdcall CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode,
 	if (strcmp(lpName, PIPE_NAME_NARROW) == 0)
 	{
 		lpName = va("%s%s", lpName, IsCL2() ? "_CL2" : "");
+	}
+	else if (strstr(lpName, "MTLLauncher"))
+	{
+		lpName = va("\\\\.\\pipe\\MTLLauncher_Pipe_CFX%s", IsCL2() ? "_CL2" : "");
 	}
 
 	return CreateNamedPipeA(lpName, dwOpenMode, dwPipeMode, nMaxInstances, nOutBufferSize, nInBufferSize, nDefaultTimeOut, lpSecurityAttributes);

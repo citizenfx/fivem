@@ -15,7 +15,7 @@
 #if defined(BOTAN_HAS_ECC_PUBLIC_KEY_CRYPTO)
 #include <botan/ecc_key.h>
 #include <botan/ec_group.h>
-#include <botan/alg_id.h>
+#include <botan/asn1_obj.h>
 #include <vector>
 
 namespace Botan {

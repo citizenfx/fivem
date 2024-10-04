@@ -36,6 +36,28 @@
 #include "ROSErrors.h"
 #include <boost/algorithm/string/replace.hpp>
 
+#include "CfxReleaseInfo.h"
+
+constexpr const auto kROSBlobEmailOffset = 8;
+constexpr const auto kROSBlobTicketOffset = 2800;
+constexpr const auto kROSBlobSessionTicketOffset = 3312;
+constexpr const auto kROSBlobAccountIdOffset = 3824;
+constexpr const auto kROSBlobUsernameOffset = 3751;
+constexpr const auto kROSBlobSessionKeyOffset = 4368;
+
+template<typename... Ts>
+static auto PostAutoLogin(Ts&&... args)
+{
+	return cpr::Post(
+		cpr::Header{
+			{ "Content-Type", "application/json; charset=utf-8" },
+			{ "Accept", "application/json" },
+			{ "X-Requested-With", "XMLHttpRequest" } },
+		cpr::UserAgent{ fmt::sprintf("CitizenFX/1 (rel. %d)", cfx::GetPlatformRelease()) },
+		std::forward<Ts>(args)...
+	);
+}
+
 static bool TryFindError(const std::string& errorString, std::string* outMessage)
 {
 	if (auto it = g_rosErrors.find("Errors_" + errorString); it != g_rosErrors.end())
@@ -77,17 +99,23 @@ static std::string MapMessage(const nlohmann::json& j)
 	return message;
 }
 
+// this structure is passed via HostSharedData so should have a linear layout
 struct ExternalROSBlob
 {
 	uint8_t data[16384];
 	uint8_t steamData[64 * 1024];
 	size_t steamSize;
-	uint8_t epicData[64 * 1024];
+
+	// epicData is a copy of GetCommandLine result, so can't exceed the maximum length of a command line
+	// (https://devblogs.microsoft.com/oldnewthing/20031210-00/?p=41553, https://archive.today/nab64)
+	wchar_t epicData[UNICODE_STRING_MAX_CHARS];
 	size_t epicSize;
+
 	uint32_t steamAppId;
 	bool valid;
 	bool tried;
 	bool triedEpic;
+	bool inUI = false;
 
 	ExternalROSBlob()
 	{
@@ -131,21 +159,23 @@ std::string GetROSEmail()
 	}
 
 	auto accountBlob = blob->data;
-	return (const char*)&accountBlob[8];
+	return (const char*)&accountBlob[kROSBlobEmailOffset];
 }
 
 #if defined(IS_RDR3) || defined(GTA_FIVE) || defined(GTA_NY)
 static uint8_t* accountBlob;
 
-static DWORD GetMTLPid()
+static std::vector<DWORD> GetMTLPids()
 {
 	static DWORD pids[16384];
 
 	DWORD len;
 	if (!EnumProcesses(pids, sizeof(pids), &len))
 	{
-		return -1;
+		return {};
 	}
+
+	std::vector<DWORD> rv;
 
 	auto numProcs = len / sizeof(DWORD);
 
@@ -170,8 +200,7 @@ static DWORD GetMTLPid()
 
 						if (GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES)
 						{*/
-							CloseHandle(hProcess);
-							return pids[i];
+							rv.push_back(pids[i]);
 						//}
 					}
 				}
@@ -181,7 +210,7 @@ static DWORD GetMTLPid()
 		}
 	}
 
-	return -1;
+	return rv;
 }
 
 static bool InitAccountRemote();
@@ -204,10 +233,10 @@ bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::arr
 		}
 	}
 
-	ticket = std::string((const char*)&accountBlob[2800]);
-	sessionTicket = std::string((const char*)&accountBlob[3312]);
-	memcpy(sessionKey.data(), &accountBlob[0x10D8], sessionKey.size());
-	accountId = *(uint64_t*)&accountBlob[3816];
+	ticket = std::string((const char*)&accountBlob[kROSBlobTicketOffset]);
+	sessionTicket = std::string((const char*)&accountBlob[kROSBlobSessionTicketOffset]);
+	memcpy(sessionKey.data(), &accountBlob[kROSBlobSessionKeyOffset], sessionKey.size());
+	accountId = *(uint64_t*)&accountBlob[kROSBlobAccountIdOffset];
 
 	return true;
 }
@@ -239,7 +268,7 @@ static bool InitAccountSteam()
 	if (blob->valid)
 	{
 		accountBlob = blob->data;
-		trace("External ROS says it's signed in: %s\n", (const char*)&accountBlob[8]);
+		trace("External ROS says it's signed in: %s\n", (const char*)&accountBlob[kROSBlobEmailOffset]);
 	}
 
 	return blob->valid;
@@ -275,7 +304,7 @@ static bool InitAccountEOS()
 	if (blob->valid)
 	{
 		accountBlob = blob->data;
-		trace("Epic ROS says it's signed in: %s\n", (const char*)&accountBlob[8]);
+		trace("Epic ROS says it's signed in: %s\n", (const char*)&accountBlob[kROSBlobEmailOffset]);
 	}
 
 	return blob->valid;
@@ -317,6 +346,151 @@ HANDLE OpenProcessByName(const std::wstring& name, DWORD desiredAccess)
 #include <winternl.h>
 
 #pragma comment(lib, "ntdll.lib")
+
+extern bool RunSteamAuthUi(const nlohmann::json& json);
+extern bool RunEpicAuthUi(const nlohmann::json& json);
+std::string g_tpaId;
+std::string g_tpaToken;
+std::string g_rosData2;
+
+bool LoadOwnershipTicket();
+
+static nlohmann::json LoadStoredTpaData()
+{
+	nlohmann::json j;
+
+	PWSTR appDataPath;
+	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
+	{
+		// create the directory if not existent
+		std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+		CreateDirectory(cfxPath.c_str(), nullptr);
+
+		// open and read the profile file
+		std::wstring profilePath = cfxPath + L"\\ros_auth.json";
+
+		if (!LoadOwnershipTicket())
+		{
+			std::error_code err;
+			std::filesystem::remove(profilePath, err);
+
+			return j;
+		}
+
+		if (FILE* profileFile = _wfopen(profilePath.c_str(), L"rb"))
+		{
+			std::vector<uint8_t> profileFileData;
+			int pos;
+
+			// get the file length
+			fseek(profileFile, 0, SEEK_END);
+			pos = ftell(profileFile);
+			fseek(profileFile, 0, SEEK_SET);
+
+			// resize the buffer
+			profileFileData.resize(pos);
+
+			// read the file and close it
+			fread(&profileFileData[0], 1, pos, profileFile);
+
+			fclose(profileFile);
+
+			// decrypt the stored data - setup blob
+			DATA_BLOB cryptBlob;
+			cryptBlob.pbData = &profileFileData[0];
+			cryptBlob.cbData = profileFileData.size();
+
+			DATA_BLOB outBlob;
+
+			// call DPAPI
+			if (CryptUnprotectData(&cryptBlob, nullptr, nullptr, nullptr, nullptr, 0, &outBlob))
+			{
+				// parse the profile list
+				try
+				{
+					j = nlohmann::json::parse(std::string(reinterpret_cast<char*>(outBlob.pbData), outBlob.cbData));
+				}
+				catch (std::exception& e)
+				{
+				}
+
+				// free the out data
+				LocalFree(outBlob.pbData);
+			}
+		}
+
+		CoTaskMemFree(appDataPath);
+	}
+
+	return j;
+}
+
+static void SaveTpaData(const nlohmann::json& list)
+{
+	auto savedList = list.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
+
+	// encrypt the actual string
+	DATA_BLOB cryptBlob;
+	cryptBlob.pbData = reinterpret_cast<uint8_t*>(const_cast<char*>(savedList.c_str()));
+	cryptBlob.cbData = savedList.size();
+
+	DATA_BLOB outBlob;
+
+	if (CryptProtectData(&cryptBlob, nullptr, nullptr, nullptr, nullptr, 0, &outBlob))
+	{
+		PWSTR appDataPath;
+		if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
+		{
+			// create the directory if not existent
+			std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+			CreateDirectory(cfxPath.c_str(), nullptr);
+
+			// open and read the profile file
+			std::wstring profilePath = cfxPath + L"\\ros_auth.json";
+
+			if (FILE* profileFile = _wfopen(profilePath.c_str(), L"wb"))
+			{
+				fwrite(outBlob.pbData, 1, outBlob.cbData, profileFile);
+				fclose(profileFile);
+			}
+
+			CoTaskMemFree(appDataPath);
+		}
+
+		LocalFree(outBlob.pbData);
+	}
+}
+
+static nlohmann::json GetTpaTokens()
+{
+	auto doc = LoadStoredTpaData();
+
+	if (doc.is_object() && doc["tpaTokens"].is_object())
+	{
+		return doc["tpaTokens"];
+	}
+
+	return nlohmann::json::object();
+}
+
+static void AddTpaToken(const std::string& rockstarId, const std::string& token)
+{
+	auto doc = LoadStoredTpaData();
+
+	if (!doc.is_object())
+	{
+		doc = nlohmann::json::object();
+	}
+
+	if (!doc["tpaTokens"].is_object())
+	{
+		doc["tpaTokens"] = nlohmann::json::object();
+	}
+
+	doc["tpaTokens"][rockstarId] = token;
+
+	SaveTpaData(doc);
+}
 
 #include <eos-sdk/eos_sdk.h>
 #include <eos-sdk/eos_auth.h>
@@ -397,7 +571,11 @@ void ValidateEpic(int parentPid)
 
 	if (!mtl)
 	{
+#ifdef IS_RDR3
 		FatalError("Epic Games Launcher launched the Rockstar Games Launcher in a way we couldn't access. Aborting! If you are running it as administrator, please launch it as regular user.");
+#endif
+
+		return;
 	}
 
 	// halt!
@@ -519,7 +697,14 @@ void ValidateEpic(int parentPid)
 	static EOS_Auth_Token* eosToken;
 
 	static auto _EOS_Auth_CopyUserAuthToken = (decltype(&EOS_Auth_CopyUserAuthToken))GetProcAddress(eosDll, "EOS_Auth_CopyUserAuthToken");
+	static auto _EOS_EpicAccountId_ToString = (decltype(&EOS_EpicAccountId_ToString))GetProcAddress(eosDll, "EOS_EpicAccountId_ToString");
+
+	std::string s;
+	nlohmann::json j;
+	cpr::Response r;
+
 	auto _EOS_Auth_Login = (decltype(&EOS_Auth_Login))GetProcAddress(eosDll, "EOS_Auth_Login");
+	static std::string accountId;
 	_EOS_Auth_Login(epicAuth, &eao, &hWait, [](const EOS_Auth_LoginCallbackInfo* info)
 	{
 		if (info->ResultCode != EOS_EResult::EOS_Success)
@@ -533,53 +718,45 @@ void ValidateEpic(int parentPid)
 		_EOS_Auth_CopyUserAuthToken(epicAuth, &cao, info->LocalUserId, &eosToken);
 
 		SetEvent(hWait);
+
+		char accountIdBuf[128];
+		int32_t accountIdLength = std::size(accountIdBuf);
+
+		_EOS_EpicAccountId_ToString(info->LocalUserId, accountIdBuf, &accountIdLength);
+
+		accountId = accountIdBuf;
 	});
 
 	auto _EOS_Platform_Tick = (decltype(&EOS_Platform_Tick))GetProcAddress(eosDll, "EOS_Platform_Tick");
 
-	while (WaitForSingleObject(hWait, 500) == WAIT_TIMEOUT)
+	while (WaitForSingleObject(hWait, 50) == WAIT_TIMEOUT)
 	{
 		_EOS_Platform_Tick(epicPlatform);
- 	}
+	}
 
-	std::string s = eosToken->AccessToken;
+	s = eosToken->AccessToken;
 
-	auto j = nlohmann::json::object({{ "platform", "pcros" },
-	{ "authTicket", s } });
+	blob->inUI = true;
 
-	auto r = cpr::Post(
-		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinepic" },
-		cpr::Header{
-			{ { "Content-Type", "application/json; charset=utf-8" },
-			{ "Accept", "application/json" },
-			{ "X-Requested-With", "XMLHttpRequest" } } },
-		cpr::Body{
-		j.dump() },
-		cpr::VerifySsl{ false });
-
-	if (r.error)
+	if (!RunEpicAuthUi(nlohmann::json::object({ { "EpicAccountId", accountId },
+		{ "EpicPlayerName", "uhh" },
+		{ "epicAccessToken", s }, { "TpaTokens", GetTpaTokens() } })))
 	{
+		blob->inUI = false;
 		bye();
 
 #ifdef IS_RDR3
-		FatalError("Error during auto-signin with ROS using Epic: %s", r.error.message);
+		FatalError("Error during Epic ROS signin\n");
 #endif
 
 		return;
 	}
 
-	j = nlohmann::json::parse(r.text);
+	blob->inUI = false;
 
-	if (!j["Status"].get<bool>())
-	{
-		bye();
-
-#ifdef IS_RDR3
-		FatalError("Error during Epic ROS signin (%s)\n%s", j["Error"].value("Code", ""), MapMessage(j));
-#endif
-
-		return;
-	}
+	AddTpaToken(g_tpaId, g_tpaToken);
+	
+	j = nlohmann::json::parse(g_rosData2);
 
 	auto sessionKey = Botan::base64_decode(j.value("SessionKey", ""));
 
@@ -590,11 +767,12 @@ void ValidateEpic(int parentPid)
 
 	auto tick = j.value("Ticket", "");
 
-	*(uint64_t*)&blob->data[3816] = j.value("RockstarId", uint64_t(0));
-	strcpy((char*)&blob->data[2800], j.value("Ticket", "").c_str());
-	strcpy((char*)&blob->data[3312], tree.get<std::string>("Response.SessionTicket").c_str());
-	memcpy(&blob->data[0x10D8], sessionKey.data(), sessionKey.size());
-	strcpy((char*)&blob->data[8], j.value("Email", "").c_str());
+	*(uint64_t*)&blob->data[kROSBlobAccountIdOffset] = j.value("RockstarId", uint64_t(0));
+	strcpy((char*)&blob->data[kROSBlobTicketOffset], tick.c_str());
+	strcpy((char*)&blob->data[kROSBlobSessionTicketOffset], j.value("SessionTicket", "").c_str());
+	memcpy(&blob->data[kROSBlobSessionKeyOffset], sessionKey.data(), sessionKey.size());
+	strcpy((char*)&blob->data[kROSBlobEmailOffset], j.value("Email", "").c_str());
+	strcpy((char*)&blob->data[kROSBlobUsernameOffset], j.value("Nickname", "").c_str());
 
 	j = nlohmann::json::object({
 #ifdef IS_RDR3
@@ -608,18 +786,14 @@ void ValidateEpic(int parentPid)
 		{ "version", 11 },
 	});
 
-	r = cpr::Post(
+	r = PostAutoLogin(
 	cpr::Url{ "https://rgl.rockstargames.com/api/launcher/bindepicaccount" },
 	cpr::Header{
 	{
-	{ "Content-Type", "application/json; charset=utf-8" },
-	{ "Accept", "application/json" },
-	{ "X-Requested-With", "XMLHttpRequest" },
-	{ "Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
+		{ "Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
 	} },
 	cpr::Body{
-	j.dump() },
-	cpr::VerifySsl{ false });
+	j.dump() });
 
 	if (r.error)
 	{
@@ -631,7 +805,7 @@ void ValidateEpic(int parentPid)
 		return;
 	}
 
-	memcpy(blob->epicData, commandLineString.c_str(), commandLineString.size());
+	StringCbCopyW(blob->epicData, sizeof(blob->epicData), commandLineString.c_str());
 	blob->epicSize = commandLineString.size();
 	blob->valid = true;
 
@@ -680,8 +854,11 @@ void ValidateSteam(int parentPid)
 #endif
 	;
 
+	nlohmann::json j;
+	cpr::Response r;
+	std::string s;
 
-	std::string s = GetAuthSessionTicket(appId);
+	s = GetAuthSessionTicket(appId);
 
 	if (s.empty())
 	{
@@ -697,58 +874,34 @@ void ValidateSteam(int parentPid)
 		}
 	}
 
-	auto j = nlohmann::json::object({
-		{ "appId", appId },
-		{ "platform", "pcros" },
-		{ "authTicket", s }
-	});
+	blob->inUI = true;
 
-	auto r = cpr::Post(
-		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinsteam" },
-		cpr::Header{
-			{"Content-Type", "application/json; charset=utf-8"},
-			{"Accept", "application/json"},
-			{"X-Requested-With", "XMLHttpRequest"}
-		},
-		cpr::Body{
-			j.dump()
-		},
-		cpr::VerifySsl{ false });
-
-	if (r.error)
+	if (!RunSteamAuthUi(nlohmann::json::object({ { "SteamAppId", int32_t(appId) },
+		{ "SteamAuthTicket", s }, { "TpaTokens", GetTpaTokens() } })))
 	{
 #ifdef IS_RDR3
-		FatalError("Error during auto-signin with ROS using Steam: %s", r.error.message);
+		FatalError("Error during Steam ROS signin\n");
 #endif
 
+		blob->inUI = false;
 		return;
 	}
 
-	j = nlohmann::json::parse(r.text);
+	blob->inUI = false;
 
-	if (!j["Status"].get<bool>())
-	{
-#ifdef IS_RDR3
-		FatalError("Error during Steam ROS signin (%s)\n%s", j["Error"].value("Code", ""), MapMessage(j));
-#endif
+	AddTpaToken(g_tpaId, g_tpaToken);
 
-		return;
-	}
+	j = nlohmann::json::parse(g_rosData2);
 
 	auto sessionKey = Botan::base64_decode(j.value("SessionKey", ""));
-
-	std::istringstream stream(j.value("Xml", ""));
-
-	boost::property_tree::ptree tree;
-	boost::property_tree::read_xml(stream, tree);
-
 	auto tick = j.value("Ticket", "");
 
-	*(uint64_t*)&blob->data[3816] = j.value("RockstarId", uint64_t(0));
-	strcpy((char*)&blob->data[2800], j.value("Ticket", "").c_str());
-	strcpy((char*)&blob->data[3312], tree.get<std::string>("Response.SessionTicket").c_str());
-	memcpy(&blob->data[0x10D8], sessionKey.data(), sessionKey.size());
-	strcpy((char*)&blob->data[8], j.value("Email", "").c_str());
+	*(uint64_t*)&blob->data[kROSBlobAccountIdOffset] = j.value("RockstarId", uint64_t(0));
+	strcpy((char*)&blob->data[kROSBlobTicketOffset], tick.c_str());
+	strcpy((char*)&blob->data[kROSBlobSessionTicketOffset], j.value("SessionTicket", "").c_str());
+	memcpy(&blob->data[kROSBlobSessionKeyOffset], sessionKey.data(), sessionKey.size());
+	strcpy((char*)&blob->data[kROSBlobEmailOffset], j.value("Email", "").c_str());
+	strcpy((char*)&blob->data[kROSBlobUsernameOffset], j.value("Nickname", "").c_str());
 
 	j = nlohmann::json::object({
 		{ "title", appName },
@@ -759,18 +912,14 @@ void ValidateSteam(int parentPid)
 		{ "version", 11 },
 	});
 
-	r = cpr::Post(
+	r = PostAutoLogin(
 		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/bindsteamaccount" },
 		cpr::Header{
-			{"Content-Type", "application/json; charset=utf-8"},
-			{"Accept", "application/json"},
-			{"X-Requested-With", "XMLHttpRequest"},
 			{"Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
 		},
 		cpr::Body{
 			j.dump()
-		},
-		cpr::VerifySsl{ false });
+		});
 
 	if (r.error)
 	{
@@ -793,18 +942,64 @@ void ValidateSteam(int parentPid)
 static bool InitAccountMTL()
 {
 #if defined(_M_AMD64)
-	auto pid = GetMTLPid();
+	auto pids = GetMTLPids();
 
-	if (pid == -1)
+	if (pids.empty())
 	{
 #if defined(IS_RDR3)
-		MessageBoxW(NULL, L"Currently, you have to run the Rockstar Games Launcher, Steam, or the Epic Games Launcher (depending on where you purchased the game) to be able to run RedM.", L"RedM", MB_OK | MB_ICONSTOP);
+		MessageBoxW(NULL, L"You have to run the Rockstar Games Launcher, Steam, or the Epic Games Launcher (depending on where you purchased the game) to be able to run RedM.", L"RedM", MB_OK | MB_ICONSTOP);
 #endif
 
 		return false;
 	}
 
-	auto hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+	HANDLE hProcess = NULL;
+	HMODULE scModule = NULL;
+
+	for (DWORD pid : pids)
+	{
+		hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+
+		if (!hProcess)
+		{
+			continue;
+		}
+
+		HMODULE hMods[1024];
+		DWORD cbNeeded;
+
+		if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded))
+		{
+			for (int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++)
+			{
+				wchar_t szModName[MAX_PATH];
+
+				// Get the full path to the module's file.
+
+				if (GetModuleFileNameExW(hProcess, hMods[i], szModName,
+					std::size(szModName)))
+				{
+					auto lastEnd = wcsrchr(szModName, L'\\');
+
+					if (lastEnd)
+					{
+						if (_wcsicmp(lastEnd, L"\\socialclub.dll") == 0)
+						{
+							scModule = hMods[i];
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		if (scModule)
+		{
+			break;
+		}
+
+		CloseHandle(hProcess);
+	}
 
 	if (!hProcess)
 	{
@@ -814,42 +1009,13 @@ static bool InitAccountMTL()
 
 		return false;
 	}
-
-	HMODULE hMods[1024];
-	DWORD cbNeeded;
-
-	HMODULE scModule = NULL;
-
-	if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded))
-	{
-		for (int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++)
-		{
-			wchar_t szModName[MAX_PATH];
-
-			// Get the full path to the module's file.
-
-			if (GetModuleFileNameExW(hProcess, hMods[i], szModName,
-				std::size(szModName)))
-			{
-				auto lastEnd = wcsrchr(szModName, L'\\');
-
-				if (lastEnd)
-				{
-					if (_wcsicmp(lastEnd, L"\\socialclub.dll") == 0)
-					{
-						scModule = hMods[i];
-						break;
-					}
-				}
-			}
-		}
-	}
-
+	
 	if (!scModule)
 	{
 #if defined(IS_RDR3)
 		FatalError("MTL didn't have SC SDK loaded.");
 #endif
+
 		return false;
 	}
 
@@ -892,7 +1058,7 @@ static bool InitAccountMTL()
 		return false;
 	}
 
-	trace("MTL says it's signed in: %s\n", (const char*)&accountBlob[8]);
+	trace("MTL says it's signed in: %s\n", (const char*)&accountBlob[kROSBlobEmailOffset]);
 
 	return true;
 #else
@@ -913,7 +1079,7 @@ void PreInitGameSpec()
 
 	accountSetUp = true;
 
-	if (wcsstr(GetCommandLineW(), L"ros:steam") != nullptr || wcsstr(GetCommandLineW(), L"ros:epic") != nullptr)
+	if (wcsstr(GetCommandLineW(), L"ros:steam") != nullptr || wcsstr(GetCommandLineW(), L"ros:epic") != nullptr || wcsstr(GetCommandLineW(), L"--type=") != nullptr)
 	{
 		return;
 	}
@@ -935,7 +1101,8 @@ static bool InitAccountRemote()
 
 static HookFunction hookFunction([]()
 {
-	Instance<ICoreGameInit>::Get()->SetData("rosUserName", (const char*)&accountBlob[8]);
+	Instance<ICoreGameInit>::Get()->SetData("rosUserName", (const char*)&accountBlob[kROSBlobUsernameOffset]);
+	Instance<ICoreGameInit>::Get()->SetData("rosUserEmail", (const char*)&accountBlob[kROSBlobEmailOffset]);
 });
 #endif
 #else
@@ -955,7 +1122,7 @@ void PreInitGameSpec()
 uint64_t ROSGetDummyAccountID()
 {
 #if defined(IS_RDR3)
-	return *(uint64_t*)&accountBlob[3816];
+	return *(uint64_t*)&accountBlob[kROSBlobAccountIdOffset];
 #else
 	static std::once_flag gotAccountId;
 	static uint32_t accountId;
@@ -1164,17 +1331,13 @@ DWORD dwFlags)
 
 static LPSTR GetCommandLineAStub()
 {
-	static char cli[65536];
-	
-	if (!cli[0])
+	static std::string cli = ([]
 	{
-		static HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
-		strcpy(cli, GetCommandLineA());
-		strcat(cli, " -useEpic ");
-		strcat(cli, ToNarrow((wchar_t*)blob->epicData).c_str());
-	}
+		HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
+		return fmt::sprintf("%s -useEpic %s", GetCommandLineA(), ToNarrow(blob->epicData));
+	})();
 
-	return cli;
+	return cli.data();
 }
 
 static HookFunction hookFunctionSteamBlob([]()
@@ -1196,6 +1359,10 @@ static HookFunction hookFunctionSteamBlob([]()
 
 			*useSteam = 1;
 			*steamAppId = strdup(va("%d", blob->steamAppId));
+
+			// Steam language takes precedence over the -rglLanguage CLI argument (if the Steam API returned a known language)
+			// This is inconsistent so we'll treat this like any other platform, ignoring the Steam language.
+			hook::put<uint8_t>(hook::get_pattern("44 38 25 ? ? ? ? 74 15 48 8B", 7), 0xEB);
 		}
 		else if (blob->epicSize)
 		{
@@ -1205,3 +1372,9 @@ static HookFunction hookFunctionSteamBlob([]()
 	}
 #endif
 });
+
+bool InLegitimacyUI()
+{
+	HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
+	return blob->inUI;
+}

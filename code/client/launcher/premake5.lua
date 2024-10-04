@@ -1,3 +1,12 @@
+-- This env var is originating from and must be kept in sync with cfx-build-toolkit/setupEnv.ps1
+local gameDumpsRoot = os.getenv("CFX_BUILD_TOOLKIT_GAME_DUMPS_ROOT")
+
+if not gameDumpsRoot or not os.isdir(gameDumpsRoot) then
+	gameDumpsRoot = "C:\\f"
+end
+
+local gameBuilds = require("../../premake5_builds")
+
 local delayDLLs = {
 }
 
@@ -44,40 +53,58 @@ local function isLauncherPersonality(name)
 end
 
 -- is game host?
-local function isGamePersonality(name)
-	if _OPTIONS['game'] ~= 'five' and _OPTIONS['game'] ~= 'rdr3' and _OPTIONS['game'] ~= 'ny' then
+local function isGamePersonality(name, strict)
+	if strict == nil then
+		strict = false
+	end
+
+	if _OPTIONS['game'] ~= 'five' and _OPTIONS['game'] ~= 'rdr3' and _OPTIONS['game'] ~= 'ny' and strict == false then
 		return isLauncherPersonality(name)
 	end
 
 	if name == 'game_mtl' then
 		return true
 	end
-
-	if name == 'game_1604' or name == 'game_2060' or name == 'game_372' or name == 'game_2189' or name == 'game_2372' or name == 'game_2545' then
-		return true
-	end
 	
-	if name == 'game_1311' or name == 'game_1355' or name == 'game_1436' then
-		return true
-	end
-	
-	if name == 'game_43' then
-		return true
-	end
-	
-	if isLauncherPersonality(name) then
+	if isLauncherPersonality(name) and strict == false then
 		filter { "configurations:Debug" }
 		return true
 	end
 	
-	return false
+	return gameBuilds[_OPTIONS['game']][name] ~= nil
 end
 
-local function launcherpersonality_inner(name, aslr)
-	local projectName = name == 'main' and 'CitiLaunch' or ('CitiLaunch_' .. name)
+local function getGameBuild(name)
+	if name == 'game_mtl' then
+        return 'mtl'
+    end
+	return gameBuilds[_OPTIONS['game']][name]
+end
 
-	if aslr then
+local function getGameDump(name, gameBuild)
+    local gameDump
+
+    if _OPTIONS['game'] == 'five' then
+        gameDump = ("%s\\GTA5_%s_dump.exe"):format(gameDumpsRoot, gameBuild)
+    elseif _OPTIONS['game'] == 'rdr3' then
+        gameDump = ("%s\\RDR2_%s_dump.exe"):format(gameDumpsRoot, gameBuild)
+    end
+
+    if name == 'game_mtl' then
+        gameDump = ("%s\\Launcher.exe"):format(gameDumpsRoot)
+    end
+
+    return gameDump
+end
+
+local function launcherpersonality_inner(name)
+	local projectName = name == 'main' and 'CitiLaunch' or ('CitiLaunch_' .. name)
+	local subprocessName = name
+
+	-- suffix '_aslr' for game processes so these match older binaries
+	if name:sub(1, 5) == 'game_' and _OPTIONS['game'] ~= 'ny' and name ~= 'game_mtl' then
 		projectName = projectName .. '_aslr'
+		subprocessName = subprocessName .. '_aslr'
 	end
 
 	if not isLauncherPersonality(name) then
@@ -91,6 +118,10 @@ local function launcherpersonality_inner(name, aslr)
 		defines { "COMPILING_LAUNCH", "COMPILING_LAUNCHER" }
 		
 		defines("LAUNCHER_PERSONALITY_" .. name:upper())
+
+		if name:match('^game_') then
+			defines "LAUNCHER_PERSONALITY_ANY_GAME"
+		end
 
 		flags { "NoManifest", "NoImportLib" }
 		
@@ -126,58 +157,33 @@ local function launcherpersonality_inner(name, aslr)
 				"Installer.cpp",
 				"Updater.cpp",
 				"UpdaterUI.cpp",
+				"MiniDump.cpp",
+				"Minidump.Symbolication.cpp",
 			}
 		end
 		
 		if isGamePersonality(name) then
-			if _OPTIONS['game'] == 'five' then
-				local gameBuild = '1604'
+			local gameBuild = getGameBuild(name)
+			local gameDump = getGameDump(name, gameBuild)
 
-				if name == 'game_2545' then gameBuild = '2545_0' end
-				if name == 'game_2372' then gameBuild = '2372_0' end
-				if name == 'game_2189' then gameBuild = '2189_0' end
-				if name == 'game_2060' then gameBuild = '2060_2' end
-				if name == 'game_372' then gameBuild = '372' end
-
-				local gameDump = ("C:\\f\\GTA5_%s_dump.exe"):format(gameBuild)
-
-				if name == 'game_mtl' then
-					gameDump = "C:\\f\\Launcher.exe"
-					gameBuild = 'mtl'
-				end
-			
+			if gameDump then
 				postbuildcommands {
 					("if exist %s ( %%{cfg.buildtarget.directory}\\retarget_pe \"%%{cfg.buildtarget.abspath}\" %s )"):format(
 						gameDump, gameDump
-					),
+					)
+				}
+			end
+
+			if gameBuild then
+				postbuildcommands {
 					("if exist \"%s\" ( %%{cfg.buildtarget.directory}\\pe_debug \"%%{cfg.buildtarget.abspath}\" \"%s\" )"):format(
 						path.getabsolute(('../../tools/dbg/dump_%s.txt'):format(gameBuild)),
 						path.getabsolute(('../../tools/dbg/dump_%s.txt'):format(gameBuild))
 					)
 				}
-
-				resign()
-			elseif _OPTIONS['game'] == 'rdr3' then
-				local gameBuild = '1311'
-				
-				if name == 'game_1355' then gameBuild = '1355_18' end
-				if name == 'game_1436' then gameBuild = '1436_26' end
-
-				local gameDump = ("C:\\f\\RDR2_%s.exe"):format(gameBuild)
-
-				if name == 'game_mtl' then
-					gameDump = "C:\\f\\Launcher.exe"
-					gameBuild = 'mtl'
-				end
-			
-				postbuildcommands {
-					("if exist %s ( %%{cfg.buildtarget.directory}\\retarget_pe \"%%{cfg.buildtarget.abspath}\" %s )"):format(
-						gameDump, gameDump
-					),
-				}
-
-				resign()
 			end
+
+			resign()
 		end
 		
 		filter {}
@@ -218,26 +224,30 @@ local function launcherpersonality_inner(name, aslr)
 		filter {}
 			
 		if name ~= 'main' then
-			targetname("CitizenFX_SubProcess_" .. name .. (aslr and "_aslr" or ""))
+			targetname("CitizenFX_SubProcess_" .. subprocessName)
 		end
 		
 		linkoptions "/IGNORE:4254 /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
 		
+		if isGamePersonality(name, true) then
+			defines("LAUNCHER_PERSONALITY_GAME")
+		end
+
 		if isGamePersonality(name) then
-			if not aslr and not isLauncherPersonality(name) then
-				linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
-			else
-				filter { "configurations:Debug" }
-					linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
-
-				filter {}
-			end
-
 			-- VS14 linker behavior change causes the usual workaround to no longer work, use an undocumented linker switch instead
 			-- note that pragma linker directives ignore these (among other juicy arguments like /WBRDDLL, /WBRDTESTENCRYPT and other
 			-- Microsoft Warbird-specific DRM functions... third-party vendors have to handle their own way of integrating
 			-- PE parsing and writing, yet Microsoft has their feature hidden in the exact linker those vendors use...)
 			linkoptions "/LAST:.zdata"
+
+			-- V8 requires a 1.5 MB stack at minimum (default is 1 MB stack space for V8 only, so 512 kB safety)
+			linkoptions "/STACK:0x180000"
+
+			-- for debug builds, we will load at the default base to allow easier copy/paste of addresses from disassembly
+			filter { "configurations:Debug" }
+				linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
+
+			-- add NOTHING below here (`filter` from `isGamePersonality` would break, otherwise)
 		end
 		
 		-- reset isGamePersonality bit
@@ -248,6 +258,7 @@ local function launcherpersonality_inner(name, aslr)
 			linkoptions "/STACK:0x800000"
 		end
 			
+
 		for _, dll in ipairs(delayDLLs) do
 			linkoptions("/DELAYLOAD:" .. dll)
 		end
@@ -256,31 +267,23 @@ local function launcherpersonality_inner(name, aslr)
 end
 
 local function launcherpersonality(name)
-	launcherpersonality_inner(name, false)
-
-	if name:sub(1, 5) == 'game_' and _OPTIONS['game'] ~= 'ny' and name ~= 'game_mtl' then
-		launcherpersonality_inner(name, true)
-	end
+	launcherpersonality_inner(name)
 end
 
 launcherpersonality 'main'
 launcherpersonality 'chrome'
 
+local builds = gameBuilds[_OPTIONS["game"]]
+if builds ~= nil then
+	for key, _ in pairs(builds) do
+		launcherpersonality(key)
+	end
+end
+
 if _OPTIONS['game'] == 'five' then
-	launcherpersonality 'game_1604'
-	--launcherpersonality 'game_372'
-	launcherpersonality 'game_2060'
-	launcherpersonality 'game_2189'
-	launcherpersonality 'game_2372'
-	launcherpersonality 'game_2545'
 	launcherpersonality 'game_mtl'
 elseif _OPTIONS['game'] == 'rdr3' then
-	launcherpersonality 'game_1311'
-	launcherpersonality 'game_1355'
-	launcherpersonality 'game_1436'
 	launcherpersonality 'game_mtl'
-elseif _OPTIONS['game'] == 'ny' then
-	launcherpersonality 'game_43'
 end
 
 group 'subprocess'

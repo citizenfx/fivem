@@ -35,6 +35,8 @@ public:
 
 	virtual void ScheduleCallback(TScheduledCallback&& callback, bool performInline) override;
 
+	void StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout) override;
+
 protected:
 	void ConsumeData(const void* data, size_t length);
 
@@ -70,8 +72,6 @@ private:
 	void ReconnectWithPeer(const net::PeerAddress& peer);
 
 private:
-	TcpServerManager* m_manager;
-
 	std::shared_ptr<uvw::TimerHandle> m_reconnectTimer;
 
 	std::shared_ptr<uvw::TCPHandle> m_control;

@@ -17,6 +17,7 @@
 #include <enet/enet.h>
 
 #include <FixedBuffer.h>
+#include <net/PacketNames.h>
 
 namespace fx
 {
@@ -314,6 +315,17 @@ namespace fx
 					{
 						info.eventName = std::string{ (const char*)packet->data + 8 };
 					}
+					else
+					{
+						for (const auto hash : net::PacketNames)
+						{
+							if (hash.first == info.type)
+							{
+								info.eventName = std::string{ hash.second };
+								break;
+							}
+						}
+					}
 
 					if (auto outIt = outgoingCommandsMap.find(packet); outIt != outgoingCommandsMap.end())
 					{
@@ -499,7 +511,7 @@ namespace fx
 		{
 			// create an ENet host
 			ENetAddress addr = GetENetAddress(address);
-			ENetHost* host = enet_host_create(&addr, 1024, 2, 0, 0);
+			ENetHost* host = enet_host_create(&addr, std::min(MAX_CLIENTS + 32, int(ENET_PROTOCOL_MAXIMUM_PEER_ID)), 2, 0, 0);
 
 			// ensure the host exists
 			if (!host)

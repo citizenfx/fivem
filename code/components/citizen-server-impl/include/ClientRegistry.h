@@ -7,16 +7,16 @@
 
 #include <tbb/concurrent_unordered_map.h>
 
-namespace tbb
+namespace std
 {
-	namespace interface5
+template<>
+struct hash<net::PeerAddress>
+{
+	inline size_t operator()(const net::PeerAddress& addr) const
 	{
-		template<>
-		inline size_t tbb_hasher(const net::PeerAddress& addr)
-		{
-			return std::hash<std::string_view>()(std::string_view{ (const char*)addr.GetSocketAddress(), (size_t)addr.GetSocketAddressLength() });
-		}
+		return std::hash<std::string_view>()(std::string_view{ (const char*)addr.GetSocketAddress(), (size_t)addr.GetSocketAddressLength() });
 	}
+};
 }
 
 namespace fx
@@ -97,6 +97,11 @@ namespace fx
 
 			m_clientsByPeer[client->GetPeer()].reset();
 			m_clientsByNetId[client->GetNetId()].reset();
+			if (client->HasPreviousNetId())
+			{
+				m_clientsByNetId[client->GetPreviousNetId()].reset();
+			}
+
 			m_clientsByConnectionToken[client->GetConnectionToken()].reset();
 			m_clientsByConnectionTokenHash[HashString(client->GetConnectionToken().c_str())].reset();
 
@@ -113,6 +118,12 @@ namespace fx
 
 			// unassign slot ID
 			client->SetSlotId(-1);
+
+			// decrement amount of connected clients if the client was connected
+			if (client->HasConnected())
+			{
+				--m_amountConnectedClients;
+			}
 		}
 
 		inline fx::ClientSharedPtr GetClientByGuid(const std::string& guid)
@@ -209,7 +220,7 @@ namespace fx
 		{
 			if (auto it = m_clientsByConnectionTokenHash.find(hash); it != m_clientsByConnectionTokenHash.end())
 			{
-				return it->second.lock();
+				return bool(it->second.lock());
 			}
 
 			return false;
@@ -266,6 +277,8 @@ namespace fx
 
 		fwEvent<Client*> OnConnectedClient;
 
+		uint32_t GetAmountOfConnectedClients() { return m_amountConnectedClients; }
+
 	private:
 		uint16_t m_hostNetId;
 
@@ -287,6 +300,8 @@ namespace fx
 		uint16_t m_curNetId;
 
 		ServerInstanceBase* m_instance;
+
+		std::atomic<uint32_t> m_amountConnectedClients {0};
 	};
 }
 

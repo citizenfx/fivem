@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#define REPLXX_STATIC
 #include <replxx.hxx>
 
 #ifdef _WIN32
@@ -91,7 +93,7 @@ static InitFunction initFunction([]()
 
 			static auto disableTTYVariable = instance->AddVariable<bool>("con_disableNonTTYReads", ConVar_None, false);
 
-			auto getCmdsForContext = [](const std::string& input, int& contextLen)
+			auto getCmdsForContext = [](const std::string& input, int& contextLen) -> replxx::Replxx::completions_t
 			{
 				static std::set<std::string> cmds;
 
@@ -200,11 +202,6 @@ static InitFunction initFunction([]()
 					{
 						auto cmd = resource->GetName();
 
-						if (cmd == "_cfx_internal")
-						{
-							return;
-						}
-
 						if (strncmp(cmd.c_str(), inputCopy.c_str(), inputCopy.length()) == 0)
 						{
 							cmds.insert(cmd);
@@ -218,7 +215,13 @@ static InitFunction initFunction([]()
 					break;
 				}
 
-				return std::vector<std::string>{cmds.begin(), cmds.end()};
+				replxx::Replxx::completions_t completions;
+				for (const auto& cmd : cmds)
+				{
+					completions.push_back(replxx::Replxx::Completion{ cmd });
+				}
+
+				return completions;
 			};
 
 			using cl = replxx::Replxx::Color;
@@ -245,12 +248,12 @@ static InitFunction initFunction([]()
 
 			};
 
-			rxx.set_completion_callback([=](const std::string& input, int& contextLen)
+			rxx.set_completion_callback([getCmdsForContext](const std::string& input, int& contextLen)
 			{
 				return getCmdsForContext(input, contextLen);
 			});
 
-			rxx.set_hint_callback([=](const std::string& input, int& contextLen, replxx::Replxx::Color& color) -> replxx::Replxx::hints_t
+			rxx.set_hint_callback([getCmdsForContext](const std::string& input, int& contextLen, replxx::Replxx::Color& color) -> replxx::Replxx::hints_t
 			{
 				if (input.length() > 0)
 				{
@@ -258,7 +261,7 @@ static InitFunction initFunction([]()
 
 					if (!cmds.empty())
 					{
-						return { cmds[0] };
+						return { cmds[0].text() };
 					}
 				}
 
@@ -273,8 +276,19 @@ static InitFunction initFunction([]()
 			rxx.set_complete_on_empty(true);
 			rxx.set_beep_on_ambiguous_completion(true);
 
+			static bool ctrlC = false;
+
+			rxx.bind_key(replxx::Replxx::KEY::control('C'), [](char32_t code)
+			{
+				ctrlC = true;
+
+				return rxx.invoke(replxx::Replxx::ACTION::COMMIT_LINE, code);
+			});
+
 			std::thread([=]()
 			{
+				int numLineAbort = 0;
+
 				while (true)
 				{
 					if (disableTTYVariable->GetValue() && !isatty(fileno(stdin)))
@@ -296,14 +310,75 @@ static InitFunction initFunction([]()
 					fcntl(0, F_SETFL, flags);
 #endif
 
+					auto historyFile = instance->GetRootPath() + "/.replxx_history";
+					rxx.history_sync(historyFile);
+
+					// mark file as hidden on Windows, too
+#ifdef _WIN32
+					{
+						HANDLE hFile = CreateFileW(ToWide(historyFile).c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+
+						if (hFile != INVALID_HANDLE_VALUE)
+						{
+							FILE_BASIC_INFO info = { 0 };
+							if (GetFileInformationByHandleEx(hFile, FileBasicInfo, &info, sizeof(info)))
+							{
+								info.FileAttributes |= FILE_ATTRIBUTE_HIDDEN;
+								SetFileInformationByHandle(hFile, FileBasicInfo, &info, sizeof(info));
+							}
+
+							CloseHandle(hFile);
+						}
+					}
+#endif
+
 					const char* result = rxx.input("cfx> ");
 
+					bool exit = false;
+
+					if (ctrlC)
+					{
+						ctrlC = false;
+
+						if (!result || result[0] == '\0')
+						{
+							// ctrl-c (line abort)
+							numLineAbort++;
+
+							if (numLineAbort < 2)
+							{
+								rxx.print("Press Ctrl-C again (or type `quit`) to exit.\n");
+							}
+							else
+							{
+								exit = true;
+							}
+						}
+						else
+						{
+							rxx.print("^C\r\n");
+						}
+
+						result = nullptr;
+					}
+					else if (!result)
+					{
+						// EOF or similar
+						exit = true;
+					}
+
 					// null result?
-					if (result == nullptr)
+					if (exit)
 					{
 						con->AddToBuffer(fmt::sprintf("quit \"Ctrl-C pressed in server console.\"\n"));
 						break;
 					}
+					else if (!result)
+					{
+						continue;
+					}
+
+					numLineAbort = 0;
 
 					// make a string and free
 					std::string resultStr = result;

@@ -189,6 +189,14 @@
 			</MenuDisplayOptions>
 		</Item>
     
+		<Item>
+			<MenuOption>MENU_OPTION_CONTROLS_HOLD_SPRINT</MenuOption>
+			<MenuDisplayOptions>
+				<Item> <cTextId>MO_TAP_SPRINT</cTextId> </Item>
+				<Item> <cTextId>MO_HOLD_SPRINT</cTextId> </Item>
+			</MenuDisplayOptions>
+		</Item>
+
     <Item>
 			<MenuOption>MENU_OPTION_DISPLAY_MEASUREMENT</MenuOption>
 			
@@ -1213,7 +1221,8 @@
 				<ButtonPrompts>
 				
 					<CMenuButton> <hButtonHash>IB_MS_WARP</hButtonHash>		<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*ALL*,MAP_CanWarp, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
-					<CMenuButton> <hButtonHash>IB_WAYPOINT</hButtonHash>	<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*ALL*,MAP_Waypoint, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
+					<CMenuButton> <hButtonHash>IB_WAYPOINT</hButtonHash>	<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*ALL*,MAP_Waypoint, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM, MAP_Destination</Contexts></CMenuButton>
+          <CMenuButton> <hButtonHash>IB_SETDEST</hButtonHash>	<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*ALL*,MAP_Destination, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_ZOOM</hButtonHash>		<ButtonInputGroup>INPUTGROUP_FRONTEND_TRIGGERS</ButtonInputGroup> <Contexts>*ALL*,MAP_CanZoom</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_POI</hButtonHash>		<ButtonInput>INPUT_FRONTEND_Y</ButtonInput> <Contexts>*ALL*,MAP_CanDropPOI, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 				<!--	<CMenuButton> <hButtonHash>IB_CRIMINAL</hButtonHash>	<ButtonInput>INPUT_FRONTEND_CANCEL</ButtonInput> <Contexts>*ALL*,MAP_Criminal</Contexts></CMenuButton> -->
@@ -1225,6 +1234,7 @@
 					<CMenuButton> <hButtonHash>IB_BLIPVIS1</hButtonHash>		<ButtonInput>INPUT_FRONTEND_RS</ButtonInput> <Contexts>*ALL*,MAP_VisHigh, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_BLIPVIS0</hButtonHash>		<ButtonInput>INPUT_FRONTEND_RS</ButtonInput> <Contexts>*ALL*,MAP_VisLow, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_SRTMISS</hButtonHash>		<ButtonInput>INPUT_FRONTEND_X</ButtonInput> <Contexts>*ALL*,MAP_CanStartMiss, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
+          <CMenuButton> <hButtonHash>BLIP_CONT</hButtonHash>		<ButtonInput>INPUT_FRONTEND_X</ButtonInput> <Contexts>*ALL*,MAP_CanContact, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_BACK</hButtonHash> 		<ButtonInput>INPUT_FRONTEND_CANCEL</ButtonInput> <Contexts>*NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts> </CMenuButton>
 					
 					<CMenuButton> <hButtonHash>FM_COR_HIDE_BIGMAP</hButtonHash>		<ButtonInput>INPUT_FRONTEND_Y</ButtonInput>			<Contexts>*ALL*, CORONA_BIGMAP_CLOSE, *NONE*</Contexts> </CMenuButton>
@@ -1966,7 +1976,13 @@
 				<Item> <cTextId>PM_REPEATRC</cTextId>	<MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_REPLAY_RANDOM</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> <!--<Contexts>HAS_DONE_MISSIONS</Contexts>--></Item>
 				<Item> <cTextId>PM_PANE_LOA</cTextId>	<MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_LOAD_GAME</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> </Item>
 				<Item> <cTextId>PM_PANE_NEW</cTextId>	<MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_NEW_GAME</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> </Item>
+				<Item> <cTextId>PM_PANE_PROC</cTextId>	<MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_PROCESS_SAVEGAME</MenuUniqueId> <Contexts>*ALL*, ALLOW_PROCESS_SAVEGAME</Contexts> </Item>
+				<Item> <cTextId>PM_PANE_IMP</cTextId>	<MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_IMPORT_SAVEGAME</MenuUniqueId> <Contexts>*ALL*, ALLOW_IMPORT_SAVEGAME</Contexts> </Item>
 				<Item> <cTextId>PM_PANE_LEAVE</cTextId> <MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SHOW_ACCOUNT_PICKER</MenuUniqueId> <Contexts>*ALL*, x64</Contexts></Item>
+				<Item> <cTextId>UI_FLOW_SP_L_M</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_LEGAL</MenuUniqueId> <Contexts>*ALL*, LEGAL_ENABLED, *NONE*,Creator,CREDITS_ENABLED</Contexts> </Item>
+				
+				<Item> <cTextId>UI_FLOW_SP_C_M</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_CREDITS</MenuUniqueId> <Contexts>*ALL*, CREDITS_ENABLED, *NONE*,Creator,LEGAL_ENABLED</Contexts> </Item>
+				<!--<Item> <cTextId>UI_FLOW_SP_CL_M</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_CREDITS_LEGAL</MenuUniqueId> <Contexts>*ALL*, CREDITS_ENABLED, LEGAL_ENABLED, *NONE*,Creator</Contexts> </Item>-->
 				<Item> <cTextId>PM_PANE_QUIT</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_EXIT_TO_WINDOWS</MenuUniqueId> <Contexts>*ALL*, x64</Contexts></Item>
 				<Item> <MenuAction>MENU_OPTION_ACTION_FILL_CONTENT</MenuAction> </Item>
 			</MenuItems>
@@ -2140,6 +2156,7 @@
 				<Item> <cTextId>MO_DISPGPS</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_DISPLAY_GPS</MenuPref> 		<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>PM_SETTING_11</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_BIG_RADAR</MenuPref> 		<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId>  <Contexts>*ALL*,InMP</Contexts> </Item>
 				<Item> <cTextId>PM_SETTING_12</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_BIG_RADAR_NAMES</MenuPref> 	<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId>  <Contexts>*ALL*,InMP</Contexts> </Item>
+				<Item> <cTextId>MO_TEXT_CHAT</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_SHOW_TEXT_CHAT</MenuPref> 	<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId>  <Contexts>*ALL*,InMP,b2699</Contexts> </Item>
 				<Item> <cTextId>MO_BRI</cTextId>		<MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction>			<MenuPref>PREF_GAMMA</MenuPref>				<MenuUniqueId>MENU_UNIQUE_ID_BRIGHTNESS_CALIBRATION</MenuUniqueId> </Item>
 				<Item platform="!ps4"> <cTextId>MO_SAFEZONE</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_SAFEZONE_SIZE</MenuPref> 	<MenuOption>MENU_OPTION_SLIDER</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item platform="ps4"> <cTextId>MO_SAFEZONE</cTextId>	<MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction>		<MenuUniqueIdHash>PREF_SAFEZONE_SIZE</MenuUniqueIdHash> </Item>
@@ -2287,6 +2304,7 @@
 				<Item> <cTextId>MO_CTRL_CONTEXT</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_CONTROLS_CONTEXT</MenuPref> 		<MenuOption>MENU_OPTION_CONTROLS_CONTEXT</MenuOption>	 <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>MO_TAR</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_TARGET_CONFIG</MenuPref> 		<MenuOption>MENU_OPTION_DISPLAY_TARGET_CONFIG</MenuOption>	 <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Flags>InitiallyDisabled</Flags> <Contexts>*ALL*,InMP</Contexts></Item>
 				<Item> <cTextId>MO_TAR</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_TARGET_CONFIG</MenuPref> 		<MenuOption>MENU_OPTION_DISPLAY_TARGET_CONFIG</MenuOption>	 <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*NONE*,InMP</Contexts></Item>
+				<Item> <cTextId>MO_SPRINT</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_HOLD_SPRINT</MenuPref> 		<MenuOption>MENU_OPTION_CONTROLS_HOLD_SPRINT</MenuOption>	 <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*NONE*,InSP,*ALL*,b2944</Contexts></Item>
 				<Item> <cTextId>MO_VIB</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VIBRATION</MenuPref> 			<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>MO_INV</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_INVERT_LOOK</MenuPref> 			<MenuOption>MENU_OPTION_DISPLAY_INVERT_LOOK</MenuOption>   <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>MO_CTY</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_CONTROL_CONFIG</MenuPref>		<MenuOption>MENU_OPTION_DISPLAY_CONTROL_CONFIG</MenuOption>	<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*NONE*,RemotePlay</Contexts></Item>
@@ -3475,11 +3493,30 @@
 				<Item> <cTextId>PM_PANE_KEYS_UC</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_KEYMAP</MenuUniqueId> </Item>
 			</MenuItems>
 		</Item>
+		
+		<Item>
+			<MenuScreen>MENU_UNIQUE_ID_PROCESS_SAVEGAME</MenuScreen>
+			<depth>2</depth>
+			<MenuItems>
+				<Item> <MenuAction>MENU_OPTION_ACTION_FILL_CONTENT</MenuAction> </Item>
+			</MenuItems>
+			<Flags>SF_NoClearRootColumns</Flags>
+		</Item>
+
+		<Item>
+			<MenuScreen>MENU_UNIQUE_ID_IMPORT_SAVEGAME</MenuScreen>
+			<depth>2</depth>
+			<MenuItems>
+				<ScrollBarFlags>Width_1 ManualUpdate Align_Right InitiallyInvisible</ScrollBarFlags>
+			</MenuItems>
+			<Flags>SF_NoClearRootColumns</Flags>
+		</Item>
 
 		<!-- These are here to replace the metadata lost in the Great Scaleform Emigration -->
 		<!-- these need to have everything as TRUE-->
 		<Item>	<MenuScreen>MENU_UNIQUE_ID_CREWS_CARD</MenuScreen>				<Flags>NeverGenerateMenuData </Flags>		</Item>
 		<Item>	<MenuScreen>MENU_UNIQUE_ID_SAVE_GAME_LIST</MenuScreen>			<Flags>NeverGenerateMenuData </Flags>		</Item>
+		<Item>	<MenuScreen>MENU_UNIQUE_ID_PROCESS_SAVEGAME_LIST</MenuScreen>	<Flags>NeverGenerateMenuData </Flags>		</Item>
 		<Item>	<MenuScreen>MENU_UNIQUE_ID_HOME</MenuScreen>					<Flags>NeverGenerateMenuData </Flags>		</Item>
 		<Item>	<MenuScreen>MENU_UNIQUE_ID_HEADER_MY_MP</MenuScreen>			<Flags>NeverGenerateMenuData </Flags>		</Item>
 		<Item>	<MenuScreen>MENU_UNIQUE_ID_FREEMODE</MenuScreen>				<Flags>NeverGenerateMenuData </Flags>		</Item>

@@ -115,6 +115,7 @@ void MumbleClient::Initialize()
 
 					m_tcp->read();
 
+					std::unique_lock lock(m_clientMutex);
 					m_tlsClient = std::make_shared<Botan::TLS::Client>(*this,
 						*(m_sessionManager.get()),
 						*(m_credentials.get()),
@@ -160,7 +161,7 @@ void MumbleClient::Initialize()
 				{
 					if (ev.length > 0)
 					{
-						std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
+						std::unique_lock lock(m_clientMutex);
 						m_tlsClient->received_data(reinterpret_cast<uint8_t*>(ev.data.get()), ev.length);
 					}
 				}
@@ -210,10 +211,16 @@ void MumbleClient::Initialize()
 				recreateUDP();
 			}
 
-			if (m_tlsClient && m_tlsClient->is_active() && m_connectionInfo.isConnected)
+			auto lockedIsActive = [this]()
 			{
-				std::lock_guard<std::recursive_mutex> l(m_clientMutex);
+				std::unique_lock _(m_clientMutex);
+				bool active = m_tlsClient && m_tlsClient->is_active() && m_connectionInfo.isConnected;
 
+				return std::make_tuple(std::move(_), active);
+			};
+
+			if (auto [lock, active] = lockedIsActive(); active)
+			{
 				if (m_curManualChannel != m_lastManualChannel && !m_state.GetChannels().empty())
 				{
 					// check if the channel already exists
@@ -342,9 +349,10 @@ void MumbleClient::Initialize()
 
 							if (!t.channel.empty())
 							{
+								std::wstring wname = ToWide(t.channel);
 								for (auto& channelPair : m_state.GetChannels())
 								{
-									if (channelPair.second.GetName() == ToWide(t.channel))
+									if (channelPair.second.GetName() == wname)
 									{
 										vt->set_channel_id(channelPair.first);
 									}
@@ -463,9 +471,13 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::P
 
 concurrency::task<void> MumbleClient::DisconnectAsync()
 {
-	if (m_tlsClient)
 	{
-		m_tlsClient->close();
+		std::unique_lock lock(m_clientMutex);
+
+		if (m_tlsClient)
+		{
+			m_tlsClient->close();
+		}
 	}
 
 	auto tcs = concurrency::task_completion_event<void>{};
@@ -677,6 +689,21 @@ std::string MumbleClient::GetVoiceChannelFromServerId(uint32_t serverId)
 	});
 
 	return retString;
+}
+
+bool MumbleClient::DoesChannelExist(const std::string& channelName)
+{
+	std::wstring wname = ToWide(channelName);
+
+	for (const auto& channel : m_state.GetChannels())
+	{
+		if (channel.second.GetName() == wname)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
@@ -1017,7 +1044,7 @@ void MumbleClient::Send(const char* buf, size_t size)
 		return;
 	}
 
-	std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
+	std::unique_lock lock(m_clientMutex);
 
 	if (m_tlsClient->is_active())
 	{

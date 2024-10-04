@@ -1,0 +1,88 @@
+.root {
+  @include ui.border-radius('normal');
+
+  @include ui.def('backdrop-color', ui.color-token('backdrop-300'));
+  @include ui.fake-backdrop-blur();
+
+  cursor: pointer;
+
+  overflow: hidden;
+
+  .showOnHover {
+    display: none;
+  }
+  .visibleOnHover {
+    opacity: 0;
+  }
+  .hideOnHover {
+    display: block;
+  }
+  &:hover {
+    .showOnHover {
+      display: block;
+    }
+    .visibleOnHover {
+      opacity: 1;
+    }
+    .hideOnHover {
+      display: none;
+    }
+  }
+
+  @include ui.animated('box-shadow');
+
+  box-shadow: 0 0 0 2px transparent inset;
+  &:hover {
+    box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
+  }
+
+  &.placeControlsBelow {
+    padding: 0 ui.offset('small');
+    height: 100%;
+
+    .content {
+      height: 100%;
+    }
+  }
+
+  &.withBanner {
+    @include ui.animated('opacity', '.banner');
+    &:hover {
+      .banner {
+        opacity: 1;
+      }
+    }
+
+    .banner {
+      display: block;
+
+      width: 100%;
+      aspect-ratio: 19.2;
+
+      background-color: ui.color-token('text-a25');
+      background-image: ui.use('banner');
+      background-size: cover;
+      background-position: center center;
+
+      opacity: .75;
+
+      will-change: filter, opacity;
+    }
+
+    .content {
+      padding-top: ui.offset();
+    }
+  }
+
+  .banner {
+    display: none;
+  }
+
+  .content {
+    padding: ui.offset();
+
+    .players {
+      color: ui.color-token('text-a50');
+    }
+  }
+}

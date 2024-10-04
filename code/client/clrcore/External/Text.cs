@@ -7,7 +7,18 @@ using CitizenFX.Core.Native;
 
 using System.Security;
 
+#if MONO_V2
+using CitizenFX.Core;
+using PointF = CitizenFX.Core.Vector2;
+using SizeF = CitizenFX.Core.Vector2;
+using API = CitizenFX.FiveM.Native.Natives;
+using String = CitizenFX.Core.CString;
+using UI = CitizenFX.FiveM.GUI;
+
+namespace CitizenFX.FiveM.GUI
+#else
 namespace CitizenFX.Core.UI
+#endif
 {
 	public enum Alignment
 	{
@@ -18,7 +29,11 @@ namespace CitizenFX.Core.UI
 
 	public class Text : IElement
 	{
+#if MONO_V2
+		private String[] _captions;
+#else
 		private string _caption;
+#endif
 
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Text" /> will be drawn.
@@ -58,15 +73,30 @@ namespace CitizenFX.Core.UI
 		/// The GTA Font use when drawing.
 		/// </value>
 		public Font Font { get; set; }
+
 		/// <summary>
 		/// Gets or sets the text to draw in this <see cref="Text"/>.
 		/// </summary>
-		/// <value>
-		/// The caption.
-		/// </value>
+		/// <value>The caption.</value>
+#if MONO_V2
+		/// <remarks>This property is slow as it merges or splits the value from/to 99 chararacter length strings, use <see cref="SplitCaption"/> to access the split string directly.</remarks>
+		public CString Caption
+		{
+			get => _captions != null ? CString.Concat(_captions) : CString.Empty;
+			set => _captions = SplitString(value);
+		}
+
+		/// <value>The internally split captions</value>
+		/// <inheritdoc cref="Caption"/>
+		public CString[] SplitCaption
+		{
+			get => _captions;
+			set => _captions = value;
+		}
+#else
 		public string Caption
 		{
-			get { return _caption ?? ""; }
+			get { return _caption ?? String.Empty; }
 			set
 			{
 				//const int maxStringLength = 99;
@@ -79,6 +109,7 @@ namespace CitizenFX.Core.UI
 				_caption = value;
 			}
 		}
+#endif
 
 		/// <summary>
 		/// Gets or sets the alignment of this <see cref="Text"/>.
@@ -131,21 +162,24 @@ namespace CitizenFX.Core.UI
 		}
 
 		/// <summary>
-		/// Measures how many pixels in the horizontal axis this <see cref="Text"/> will use when drawn	against a 1280 pixel base
+		/// Measures how many pixels on the horizontal axis this <see cref="Text"/> will use when drawn	against a 1280 pixel base
 		/// </summary>
 		public float Width
 		{
 			get
 			{
-				string[] strings = Screen.StringToArray(Caption);
-
 				API.BeginTextCommandWidth("CELL_EMAIL_BCON");
-
-				foreach (string s in strings)
+#if MONO_V2
+				for (int i = 0; i < _captions?.Length; ++i)
+				{
+					API.AddTextComponentSubstringPlayerName(_captions[i]);
+				}
+#else
+				foreach (var s in Screen.StringToArray(Caption))
 				{
 					API.AddTextComponentSubstringPlayerName(s);
 				}
-
+#endif
 				API.SetTextFont((int)Font);
 				API.SetTextScale(Scale, Scale);
 
@@ -160,15 +194,18 @@ namespace CitizenFX.Core.UI
 		{
 			get
 			{
-				string[] strings = Screen.StringToArray(Caption);
-
 				API.BeginTextCommandWidth("CELL_EMAIL_BCON");
-
-				foreach (string s in strings)
+#if MONO_V2
+				for (int i = 0; i < _captions?.Length; ++i)
+				{
+					API.AddTextComponentSubstringPlayerName(_captions[i]);
+				}
+#else
+				foreach (var s in Screen.StringToArray(Caption))
 				{
 					API.AddTextComponentSubstringPlayerName(s);
 				}
-
+#endif
 				API.SetTextFont((int)Font);
 				API.SetTextScale(Scale, Scale);
 
@@ -176,6 +213,7 @@ namespace CitizenFX.Core.UI
 			}
 		}
 
+#if !MONO_V2
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Text"/> class used for drawing text on the screen.
 		/// </summary>
@@ -232,6 +270,7 @@ namespace CitizenFX.Core.UI
 		public Text(string caption, PointF position, float scale, Color color, Font font, Alignment alignment, bool shadow, bool outline) : this(caption, position, scale, color, font, alignment, shadow, outline, 0.0f)
 		{
 		}
+#endif
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Text"/> class used for drawing text on the screen.
@@ -245,7 +284,10 @@ namespace CitizenFX.Core.UI
 		/// <param name="shadow">Sets whether or not to draw the <see cref="Text"/> with a <see cref="Shadow"/> effect.</param>
 		/// <param name="outline">Sets whether or not to draw the <see cref="Text"/> with an <see cref="Outline"/> around the letters.</param>
 		/// <param name="wrapWidth">Sets how many horizontal pixel to draw before wrapping the <see cref="Text"/> on the next line down.</param>											 																	  
-		public Text(string caption, PointF position, float scale, Color color, Font font, Alignment alignment, bool shadow, bool outline, float wrapWidth)
+		/// <remarks><paramref name="caption"/> will be divided in multiple strings of 99 or less characters.<br />Any <paramref name="caption"/> that is 396+ characters long (5+ divisions) is known to <i>not</i> be rendered by GTA V.</remarks>
+
+		public Text(string caption, PointF position, float scale, Color color, Font font = Font.ChaletLondon, Alignment alignment = Alignment.Left, bool shadow = false, bool outline = false, float wrapWidth = 0.0f)
+#if !MONO_V2
 		{
 			Enabled = true;
 			Caption = caption;
@@ -258,6 +300,34 @@ namespace CitizenFX.Core.UI
 			Outline = outline;
 			WrapWidth = wrapWidth;
 		}
+#else
+			: this(SplitString(caption), position, scale, color, font, alignment, shadow, outline, wrapWidth)
+		{ }
+
+		/// <inheritdoc cref="Text(string, PointF, float, Color, Font, Alignment, bool, bool, float)"/>
+		public Text(string caption, PointF position, float scale = 1.0f) : this(caption, position, scale, Color.White)
+		{ }
+
+		/// <remarks><paramref name="caption"/> needs to contain strings of 99 or less characters.<br />Any <paramref name="caption"/> that is 396+ characters long (5+ divisions) is known to <i>not</i> be rendered by GTA V.</remarks>
+		/// <inheritdoc cref="Text(string, PointF, float, Color, Font, Alignment, bool, bool, float)"/>
+		public Text(CString[] caption, PointF position, float scale, Color color, Font font = Font.ChaletLondon, Alignment alignment = Alignment.Left, bool shadow = false, bool outline = false, float wrapWidth = 0.0f)
+		{
+			Enabled = true;
+			SplitCaption = caption;
+			Position = position;
+			Scale = scale;
+			Color = color;
+			Font = font;
+			Alignment = alignment;
+			Shadow = shadow;
+			Outline = outline;
+			WrapWidth = wrapWidth;
+		}
+
+		/// <inheritdoc cref="Text(CString[], PointF, float, Color, Font, Alignment, bool, bool, float)"/>
+		public Text(CString[] caption, PointF position, float scale = 1.0f) : this(caption, position, scale, Color.White)
+		{ }
+#endif
 
 		~Text()
 		{
@@ -267,20 +337,23 @@ namespace CitizenFX.Core.UI
 		/// Measures how many pixels in the horizontal axis the string will use when drawn
 		/// </summary>
 		/// <param name="text">The string of text to measure.</param>
-		/// <param name="font">The <see cref="UI.Font"/> of the textu to measure.</param>
+		/// <param name="font">The <see cref="UI.Font"/> to use when measuring the text's width.</param>
 		/// <param name="scale">Sets a sclae value for increasing or decreasing the size of the text, default value 1.0f - no scaling.</param>
 		/// <returns>
 		/// The amount of pixels scaled on a 1280 pixel width base
 		/// </returns>
-		public static float GetStringWidth(string text, Font font = Font.ChaletLondon, float scale = 1.0f)
-		{
-			string[] strings = Screen.StringToArray(text);
+		public static float GetStringWidth(String text, Font font = Font.ChaletLondon, float scale = 1.0f)
+			=> GetStringWidth(SplitString(text), font, scale);
 
+		/// <inheritdoc cref="GetStringWidth(String, Font, float)"/>
+		/// <param name="texts">The series of strings of texts to measure, each string should not be bigger than 99 characters.</param>
+		public static float GetStringWidth(String[] texts, Font font = Font.ChaletLondon, float scale = 1.0f)
+		{
 			API.BeginTextCommandWidth("CELL_EMAIL_BCON");
 
-			foreach (string s in strings)
+			for (var i = 0; i < texts?.Length; ++i)
 			{
-				API.AddTextComponentSubstringPlayerName(s);
+				API.AddTextComponentSubstringPlayerName(texts[i]);
 			}
 
 			API.SetTextFont((int)font);
@@ -288,6 +361,8 @@ namespace CitizenFX.Core.UI
 
 			return Screen.Width * API.EndTextCommandGetWidth(true);
 		}
+
+
 		/// <summary>
 		/// Measures how many pixels in the horizontal axis the string will use when drawn
 		/// </summary>
@@ -297,15 +372,18 @@ namespace CitizenFX.Core.UI
 		/// <returns>
 		/// The amount of pixels scaled by the pixel width base return in <see cref="Screen.ScaledWidth"/>
 		/// </returns>
-		public static float GetScaledStringWidth(string text, Font font = Font.ChaletLondon, float scale = 1.0f)
-		{
-			string[] strings = Screen.StringToArray(text);
+		public static float GetScaledStringWidth(String text, Font font = Font.ChaletLondon, float scale = 1.0f)
+			=> GetScaledStringWidth(SplitString(text), font, scale);
 
+		/// <inheritdoc cref="GetStringWidth(String, Font, float)"/>
+		/// <param name="texts">The series of strings of texts to measure, each string should not be bigger than 99 characters.</param>
+		public static float GetScaledStringWidth(String[] texts, Font font = Font.ChaletLondon, float scale = 1.0f)
+		{
 			API.BeginTextCommandWidth("CELL_EMAIL_BCON");
 
-			foreach (string s in strings)
+			for (var i = 0; i < texts?.Length; ++i)
 			{
-				API.AddTextComponentSubstringPlayerName(s);
+				API.AddTextComponentSubstringPlayerName(texts[i]);
 			}
 
 			API.SetTextFont((int)font);
@@ -313,7 +391,6 @@ namespace CitizenFX.Core.UI
 
 			return Screen.ScaledWidth * API.EndTextCommandGetWidth(true);
 		}
-
 
 		/// <summary>
 		/// Draws the <see cref="Text" /> this frame.
@@ -329,7 +406,7 @@ namespace CitizenFX.Core.UI
 		/// <param name="offset">The offset to shift the draw position of this <see cref="Text" /> using a 1280*720 pixel base.</param>
 		public virtual void Draw(SizeF offset)
 		{
-			InternalDraw(offset, Screen.Width, Screen.Height);
+			InternalDraw(offset, 1.0f / Screen.Width, 1.0f / Screen.Height);
 		}
 
 		/// <summary>
@@ -346,24 +423,30 @@ namespace CitizenFX.Core.UI
 		/// <param name="offset">The offset to shift the draw position of this <see cref="Text" /> using a <see cref="Screen.ScaledWidth" />*720 pixel base.</param>
 		public virtual void ScaledDraw(SizeF offset)
 		{
-			InternalDraw(offset, Screen.ScaledWidth, Screen.Height);
+			InternalDraw(offset, 1.0f / Screen.ScaledWidth, 1.0f / Screen.Height);
 		}
 
-		void InternalDraw(SizeF offset, float screenWidth, float screenHeight)
+		void InternalDraw(SizeF offset, float inverseScreenWidth, float inverseScreenHeight)
 		{
 			if (!Enabled)
 			{
 				return;
 			}
 
-			float x = (Position.X + offset.Width) / screenWidth;
-			float y = (Position.Y + offset.Height) / screenHeight;
-			float w = WrapWidth / screenWidth;
+#if MONO_V2
+			float x = (Position.X + offset.X) * inverseScreenWidth;
+			float y = (Position.Y + offset.Y) * inverseScreenWidth;
+#else
+			float x = (Position.X + offset.Width) * inverseScreenWidth;
+			float y = (Position.Y + offset.Height) * inverseScreenHeight;
+#endif
+			float w = WrapWidth * inverseScreenWidth;
 
 			if (Shadow)
 			{
 				API.SetTextDropShadow();
 			}
+
 			if (Outline)
 			{
 				API.SetTextOutline();
@@ -379,7 +462,7 @@ namespace CitizenFX.Core.UI
 				switch (Alignment)
 				{
 					case Alignment.Center:
-						API.SetTextWrap(x - (w / 2), x + (w / 2));
+						API.SetTextWrap(x - (w * 0.5f), x + (w * 0.5f));
 						break;
 					case Alignment.Left:
 						API.SetTextWrap(x, x + w);
@@ -394,16 +477,45 @@ namespace CitizenFX.Core.UI
 				API.SetTextWrap(0.0f, x);
 			}
 
-			string[] strings = Screen.StringToArray(Caption);
-
 			API.BeginTextCommandDisplayText("CELL_EMAIL_BCON");
 
-			foreach (string s in strings)
+#if MONO_V2
+			for (int i = 0; i < _captions?.Length; ++i)
+			{
+				API.AddTextComponentSubstringPlayerName(_captions[i]);
+			}
+#else
+			foreach (var s in Screen.StringToArray(Caption))
 			{
 				API.AddTextComponentSubstringPlayerName(s);
 			}
+#endif
 
 			API.EndTextCommandDisplayText(x, y);
+		}
+
+		/// <summary>
+		/// Splits the <paramref name="inputString"/> into an array with each string having 99 characters or less<br />
+		/// This is needed as characters beyond 99 aren't rendered by GTA V, e.g.: with <see cref="Text"/>
+		/// </summary>
+		/// <remarks>arrays of 5 and higher (396+ characters) are known to <i>not</i> being rendered by GTA V</remarks>
+		/// <param name="inputString">The string to convert.</param>
+		/// <returns>array containing strings each 99 characters or less.</returns>
+		public static String[] SplitString(String inputString)
+		{
+			int stringsNeeded = (inputString.Length - 1) / 99 + 1; // division with round up
+
+			String[] outputString = new String[stringsNeeded];
+			for (int i = 0; i < stringsNeeded; i++)
+			{
+#if MONO_V2
+				outputString[i] = inputString.Substring(i * 99, 99);
+#else
+				outputString[i] = inputString.Substring(i * 99, MathUtil.Clamp(inputString.Substring(i * 99).Length, 0, 99));
+#endif
+			}
+
+			return outputString;
 		}
 	}
 }

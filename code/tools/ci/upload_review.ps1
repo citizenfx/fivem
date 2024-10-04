@@ -4,9 +4,9 @@ $WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
 $WorkRootDir = "$WorkDir\code"
 $CacheDir = "$WorkDir\caches"
 
-$TempDir = "$env:TEMP\FxUpload"
+$TempDir = "$env:TEMP\FxUpload-${env:CI_PIPELINE_ID}-${env:CI_JOB_NAME}"
 
-$OutName = "FxUpload-${env:CI_PIPELINE_ID}.zip"
+$OutName = "FxUpload-${env:CI_PIPELINE_ID}-${env:CI_JOB_NAME}.zip"
 $OutZip = "$TempDir\..\$OutName"
 
 if (Test-Path $TempDir) {
@@ -33,7 +33,16 @@ foreach ($item in $items) {
 }
 
 & "$WorkRootDir\tools\ci\7z.exe" a -mx=5 $OutZip $TempDir
-& "curl.exe" -T $OutZip "${env:REVIEW_UPLOAD_URL}/$OutName"
+
+if ($env:CFX_DRY_RUN -eq "true") {
+	Write-Output "DRY RUN: Would upload review"
+} else {
+	& "curl.exe" -T $OutZip "${env:REVIEW_UPLOAD_URL}/$OutName"
+	if ($LASTEXITCODE -ne 0) {
+		Write-Host "Failed to upload review"
+		Exit 1
+	}
+}
 
 Remove-Item -Force -Recurse $TempDir
 Remove-Item -Force $OutZip

@@ -8,6 +8,8 @@ namespace CitizenFX.Core
 
 		void CreateTaskScheduler();
 
+		void SetConfiguration(bool syncContext = false);
+
 		void Destroy();
 
 		void SetScriptHost(IScriptHost host, int instanceId);
@@ -20,7 +22,7 @@ namespace CitizenFX.Core
 
 		void TriggerEvent(string eventName, byte[] argsSerialized, string sourceString);
 
-		void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retvalSerialized, out int retvalSize);
+		void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retval);
 
 		int DuplicateRef(int refIndex);
 

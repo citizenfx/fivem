@@ -7,6 +7,8 @@
 
 #include "StdInc.h"
 
+#include "NetBitVersion.h"
+
 #ifndef GTA_NY
 #include <scrEngine.h>
 
@@ -69,14 +71,28 @@ public:
 #ifdef GTA_FIVE
 		if (!m_attached)
 		{
-			CGameScriptHandlerMgr::GetInstance()->AttachScript(this);
+			auto instance = CGameScriptHandlerMgr::GetInstance();
+
+			if (!instance)
+			{
+				return;
+			}
+
+			instance->AttachScript(this);
 			m_attached = true;
 		}
 
 		// TEMP: force-disable population for 1s big using script
 		// should be done natively someday
 		static auto icgi = Instance<ICoreGameInit>::Get();
-		bool currentOff = (icgi->HasVariable("onesync_big") && !icgi->OneSyncBigIdEnabled) || icgi->HasVariable("strict_entity_lockdown");
+		bool currentOff = []()
+		{
+			if (icgi->IsNetVersionOrHigher(net::NetBitVersion::netVersion3))
+			{
+				return !icgi->HasVariable("onesync_population") || icgi->HasVariable("strict_entity_lockdown");
+			}
+			return (icgi->HasVariable("onesync_big") && !icgi->OneSyncBigIdEnabled) || icgi->HasVariable("strict_entity_lockdown");
+		}();
 
 		auto setDispatch = [](bool enable)
 		{
@@ -146,7 +162,48 @@ public:
 #elif defined(IS_RDR3)
 		uint32_t playerPedId = NativeInvoke::Invoke<0x096275889B8E0EE0, uint32_t>();
 #endif
-		
+
+		auto setPresenceTemplate = [](std::string_view value)
+		{
+			static auto steam = GetSteam();
+			std::string valueStr{ value };
+
+			if (steam)
+			{
+				steam->SetRichPresenceTemplate(valueStr);
+			}
+
+			OnRichPresenceSetTemplate(valueStr);
+		};
+
+		auto setPresenceValue = [](int idx, std::string_view value)
+		{
+			static auto steam = GetSteam();
+			std::string valueStr{ value };
+
+			if (steam)
+			{
+				steam->SetRichPresenceValue(idx, valueStr);
+			}
+
+			OnRichPresenceSetValue(idx, valueStr);
+		};
+
+		static auto icgi = Instance<ICoreGameInit>::Get();
+
+		if (icgi->HasVariable("localMode"))
+		{
+			std::string localName = "None?!";
+			icgi->GetData("localResource", &localName);
+
+			setPresenceTemplate("Playing a localGame: {0}");
+			setPresenceValue(0, localName);
+		}
+		else if (icgi->HasVariable("storyMode"))
+		{
+			// #TODO: find a way to fake out scripts' IS_XBOX360_VERSION/.. calls for NETWORK_SET_RICH_PRESENCE et al.
+			setPresenceTemplate("Playing Story Mode");
+		}
 
 		if (playerPedId != -1 && playerPedId != 0)
 		{
@@ -159,7 +216,7 @@ public:
 
 				static auto icgi = Instance<ICoreGameInit>::Get();
 
-				if (!icgi->HasVariable("storyMode"))
+				if (!icgi->HasVariable("storyMode") && !icgi->HasVariable("localMode"))
 				{
 					color = CRGBA(200, 0, 0, 180);
 					TheFonts->DrawRectangle(rect, color);
@@ -170,8 +227,6 @@ public:
 			if (NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>())
 #endif
 			{
-				auto steam = GetSteam();
-
 				int playerCount = 0;
 
 				for (int i = 0; i < 256; i++)
@@ -187,12 +242,7 @@ public:
 
 				if (playerCount != lastPlayerCount)
 				{
-					if (steam)
-					{
-						steam->SetRichPresenceValue(1, fmt::sprintf("%d player%s", playerCount, (playerCount != 1) ? "s" : ""));
-					}
-
-					OnRichPresenceSetValue(1, fmt::sprintf("%d player%s", playerCount, (playerCount != 1) ? "s" : ""));
+					setPresenceValue(1, fmt::sprintf("%d player%s", playerCount, (playerCount != 1) ? "s" : ""));
 					lastPlayerCount = playerCount;
 				}
 			}

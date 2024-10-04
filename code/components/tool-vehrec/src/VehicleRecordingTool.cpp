@@ -96,7 +96,7 @@ static void DoFile(const boost::filesystem::path& path)
 		outputSize += s;
 	});
 
-	printf("written successfully - compressed size %d\n", outputSize);
+	printf("written successfully - compressed size %zu\n", outputSize);
 
 	fclose(f);
 

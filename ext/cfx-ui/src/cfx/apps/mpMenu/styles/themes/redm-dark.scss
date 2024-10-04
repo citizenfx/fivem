@@ -1,0 +1,32 @@
+@use "~@cfx-dev/ui-components/dist/styles-scss/ui" as ui;
+
+$fg: hsl(60, 100%, 97%);
+$bg: hsl(45, 7%, 11%);
+
+.cfxui-theme-rdr3-dark {
+  @include ui.define-main-colors($bg, $fg, (
+    'primary': #d80d0d
+  ));
+
+  // Asset overrides
+  @include ui.def('backdrop-image', url(assets/images/bg2-redm.jpg));
+  @include ui.def('backdrop-image-blur', url(assets/images/bg2-redm-blur.png));
+
+  // Color overrides
+  @include ui.define-color-token('play-button-background-1', rgb(228, 0, 0));
+  @include ui.define-color-token('play-button-background-2', rgb(206, 75, 0));
+
+  .color-1 { color: lighten(#F44336, 30%);	}
+	.color-2 { color: lighten(#4CAF50, 30%);	}
+	.color-3 { color: lighten(#FFEB3B, 30%);	}
+	.color-4 { color: lighten(#42A5F5, 30%);	}
+	.color-5 { color: lighten(#03A9F4, 30%);	}
+	.color-6 { color: lighten(#9C27B0, 30%);	}
+	.color-8 { color: lighten(#FF5722, 30%);	}
+	.color-9 { color: lighten(#9E9E9E, 30%);	}
+
+  // Invert black indicators for date/time inputs
+  ::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}

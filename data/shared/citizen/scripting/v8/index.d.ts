@@ -71,10 +71,10 @@ interface CitizenInterface {
 }
 
 interface CitizenTimer {
-    ref(): void,
-    unref(): void,
+    ref(): CitizenTimer,
+    unref(): CitizenTimer,
     hasRef(): boolean,
-    refresh(): void,
+    refresh(): CitizenTimer,
     [Symbol.toPrimitive](): number,
 }
 
@@ -83,10 +83,12 @@ type CitizenImmediate = Omit<CitizenTimer, 'refresh'>;
 declare var Citizen: CitizenInterface;
 
 declare function addRawEventListener(eventName: string, callback: Function): void
+declare function setMaxRawEventListeners(max: number): void
 
 declare function addEventListener(eventName: string, callback: Function, netSafe?: boolean): void
 declare function on(eventName: string, callback: Function): void
 declare function AddEventHandler(eventName: string, callback: Function): void
+declare function setMaxEventListeners(max: number): void
 
 declare function addNetEventListener(eventName: string, callback: Function): void
 declare function onNet(eventName: string, callback: Function): void
@@ -128,6 +130,39 @@ declare var GlobalState : StateBagInterface
 declare function Player(entity: number|string): EntityInterface
 declare var LocalPlayer : EntityInterface
 
-declare var exports: any;
+interface CitizenExports {
+    (exportKey: string | number, exportFunction: Function): void;
+    [resourceName: string] : {
+        [exportKey: string | number]: Function
+    };
+}
+
+declare var exports: CitizenExports;
 
 declare var source: number;
+
+// Commented methods are not implemented yet
+interface Console {
+    assert(condition?: boolean, ...data: any[]): void;
+    // clear(): void;
+    count(label?: string): void;
+    countReset(label?: string): void;
+    debug(...data: any[]): void;
+    dir(item?: any, options?: any): void;
+    // dirxml(...data: any[]): void;
+    error(...data: any[]): void;
+    // group(...data: any[]): void;
+    // groupCollapsed(...data: any[]): void;
+    // groupEnd(): void;
+    info(...data: any[]): void;
+    log(...data: any[]): void;
+    // table(tabularData?: any, properties?: string[]): void;
+    time(label?: string): void;
+    timeEnd(label?: string): void;
+    // timeLog(label?: string, ...data: any[]): void;
+    // timeStamp(label?: string): void;
+    trace(...data: any[]): void;
+    warn(...data: any[]): void;
+}
+
+declare var console: Console;

@@ -4,6 +4,8 @@
 
 #include <HttpServer.h>
 
+#include <shared_mutex>
+
 #ifdef COMPILING_CITIZEN_SERVER_NET
 #define CSNET_EXPORT DLL_EXPORT
 #else
@@ -28,6 +30,11 @@ namespace fx
 
 		virtual void AttachToObject(ServerInstanceBase* instance);
 
+		uint16_t* GetHandlerConnectionTimeoutSeconds()
+		{
+			return &m_handlerConnectionTimeout;
+		}
+
 	private:
 		struct Handler : public net::HttpHandler
 		{
@@ -45,7 +52,11 @@ namespace fx
 
 		std::map<std::string, TEndpointHandler> m_handlers;
 
-		std::mutex m_handlersMutex;
+		std::shared_mutex m_handlersMutex;
+
+		uint16_t m_handlerConnectionTimeout { 300 };
+
+		std::shared_ptr<ConVar<bool>> m_Http2Var;
 	};
 }
 

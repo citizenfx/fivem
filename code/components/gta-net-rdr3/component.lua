@@ -9,6 +9,7 @@ return function()
 
 	files {
 		'components/gta-net-five/include/CloneManager.h',
+		'components/gta-net-five/include/FramePacketHandler.h',
 		'components/gta-net-five/src/ClientRPC.cpp',
 		'components/gta-net-five/src/CloneDebug.cpp',
 		'components/gta-net-five/src/CloneExperiments.cpp',
@@ -17,6 +18,9 @@ return function()
 		'components/gta-net-five/src/CloneObjectManager.cpp',
 		'components/gta-net-five/src/ObjectIdManager.cpp',
 		'components/gta-net-five/src/rlNetBuffer.cpp',
+		'components/gta-net-five/src/netGameEvent.cpp',
+		'components/gta-net-five/src/netPlayerManager.cpp',
+		'components/gta-net-five/src/netTimeSync.cpp',
 		'components/gta-net-five/src/MumbleVoice.cpp',
 	}
 end

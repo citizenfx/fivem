@@ -26,11 +26,22 @@
 #include <ppltasks.h>
 
 #include <CrossBuildRuntime.h>
+#include <PureModeState.h>
+#include <PoolSizesState.h>
 #include <CoreConsole.h>
 
 #include <CfxLocale.h>
 
 #include <json.hpp>
+
+#include "IHostPacketHandler.h"
+#include "IQuit.h"
+#include "NetBitVersion.h"
+#include "NetEvent.h"
+
+#ifdef FIVEM_INTERNAL_POSTMAP
+#include "InternalServerPostmap_includes.h"
+#endif
 
 using json = nlohmann::json;
 
@@ -370,11 +381,9 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 #if defined(GTA_FIVE) || defined(GTA_NY)
 				SetWindowText(CoreGetGameWindow(), va(
 #ifdef GTA_FIVE
-					L"FiveM"
-#elif defined(IS_RDR3)
-					L"RedM"
+					L"FiveM® by Cfx.re"
 #elif defined(GTA_NY)
-					L"LibertyM"
+					L"LibertyM™ by Cfx.re"
 #endif
 					L" - %s", ToWide(cleaned)));
 #endif
@@ -438,6 +447,11 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 		}
 		else if (!_strnicmp(oob, "error", 5))
 		{
+			if (m_disconnecting)
+			{
+				return;
+			}
+
 			if (from != m_currentServer)
 			{
 				trace("Received 'error' request was not from the host\n");
@@ -533,17 +547,25 @@ RoutingPacket::RoutingPacket()
 
 void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_t length)
 {
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		m_impl->SendReliableCommand(HashRageString(type), buffer, length);
+		impl->SendReliableCommand(HashRageString(type), buffer, length);
 	}
 }
 
-void NetLibrary::SendUnreliableCommand(const char* type, const char* buffer, size_t length)
+void NetLibrary::SendReliablePacket(uint32_t type, const char* buffer, size_t length)
 {
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		m_impl->SendUnreliableCommand(HashRageString(type), buffer, length);
+		impl->SendReliablePacket(type, buffer, length);
+	}
+}
+
+void NetLibrary::SendUnreliablePacket(uint32_t type, const char* buffer, size_t length)
+{
+	if (auto impl = GetImpl())
+	{
+		impl->SendUnreliablePacket(type, buffer, length);
 	}
 }
 
@@ -587,9 +609,9 @@ void NetLibrary::RunFrame()
 		m_lastConnectionState = m_connectionState;
 	}
 
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		m_impl->RunFrame();
+		impl->RunFrame();
 	}
 
 	switch (m_connectionState)
@@ -639,9 +661,9 @@ void NetLibrary::RunFrame()
 			break;
 
 		case CS_CONNECTING:
-			if ((GetTickCount() - m_lastConnect) > 5000 && m_impl->IsDisconnected())
+			if ((GetTickCount() - m_lastConnect) > 5000 && GetImpl()->IsDisconnected())
 			{
-				m_impl->SendConnect(m_token, fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
+				GetImpl()->SendConnect(m_token, fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
 
 				m_lastConnect = GetTickCount();
 
@@ -665,7 +687,7 @@ void NetLibrary::RunFrame()
 			break;
 
 		case CS_ACTIVE:
-			if (m_impl->HasTimedOut())
+			if (GetImpl()->HasTimedOut())
 			{
 				g_disconnectReason = "Connection timed out.";
 
@@ -726,13 +748,15 @@ struct GetAuthSessionTicketResponse_t
 
 static concurrency::task<std::optional<std::string>> ResolveUrl(const std::string& rootUrl)
 {
+	static HostSharedData<CfxState> hostData("CfxInitState");
+
 	try
 	{
 		auto uri = skyr::make_url(rootUrl);
 
 		if (uri && !uri->protocol().empty())
 		{
-			if (uri->protocol() == "fivem:")
+			if (uri->protocol() == ToNarrow(hostData->GetLinkProtocol(L":")))
 			{
 				// this whatwg url spec is very 'special' and doesn't allow you to ever make a new url and set protocol to any 'special' scheme
 				// such as 'http' or 'https' or 'file'
@@ -843,6 +867,8 @@ int g_serverVersion;
 
 concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 {
+	m_disconnecting = false;
+
 	std::string ruRef = rootUrl;
 
 	// increment the GUID so servers won't race to remove us
@@ -914,9 +940,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	AddCrashometry("last_server_url", "%s", url);
 
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		m_impl->Reset();
+		impl->Reset();
 	}
 
 	m_outSequence = 0;
@@ -925,15 +951,33 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	postMap["method"] = "initConnect";
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
-	postMap["gameBuild"] = fmt::sprintf("%d", xbr::GetGameBuild());
 
 #if defined(IS_RDR3)
-	postMap["gameName"] = "rdr3";
+	std::string gameName = "rdr3";
 #elif defined(GTA_FIVE)
-	postMap["gameName"] = "gta5";
+	std::string gameName = "gta5";
 #elif defined(GTA_NY)
-	postMap["gameName"] = "gta4";
+	std::string gameName = "gta4";
+#else
+	std::string gameName = "unk";
 #endif
+
+	auto gameBuild = xbr::GetGameBuild();
+	const auto identifier = xbr::GetGameBuildUniquifier(gameName, gameBuild);
+
+	// Revision "0" shouldn't be included for backward compatibility.
+	if (identifier && identifier->m_revision > 0)
+	{
+		// Now we're providing major build number and our own revision number to the server.
+		postMap["gameBuild"] = fmt::sprintf("%d_%d", gameBuild, identifier->m_revision);
+	}
+	else
+	{
+		// The old way, to keep backward compatibility.
+		postMap["gameBuild"] = fmt::sprintf("%d", gameBuild);	
+	}
+
+	postMap["gameName"] = gameName;
 
 	static std::function<void()> performRequest;
 
@@ -1044,6 +1088,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	g_serverVersion = 0;
 
+#ifdef FIVEM_INTERNAL_POSTMAP
+#include "InternalServerPostmap.h"
+#endif
+
 	static std::function<bool(const std::string&)> handleAuthResultData;
 	handleAuthResultData = [=](const std::string& chunk)
 	{
@@ -1152,6 +1200,13 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #endif
 
 				auto bitVersion = (!node["bitVersion"].is_null() ? node["bitVersion"].get<uint64_t>() : 0);
+				if (bitVersion != 0 && bitVersion < 0x202103292050)
+				{
+					OnConnectionError(fmt::sprintf("Server is outdated. Please update the server or contact the server owner."));
+					m_connectionState = CS_IDLE;
+					return true;
+				}
+				
 				auto rawEndpoints = (node.find("endpoints") != node.end()) ? node["endpoints"] : json{};
 
 				auto continueAfterEndpoints = [=, capNode = node](const json& capEndpointsJson)
@@ -1164,6 +1219,14 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						// gather endpoints
 						std::vector<std::string> endpoints;
+
+						if (!node["handover"].is_null())
+						{
+							if (!node["handover"]["endpoints"].is_null())
+							{
+								endpointsJson = node["handover"]["endpoints"];
+							}
+						}
 
 						if (!endpointsJson.is_null() && !endpointsJson.is_boolean())
 						{
@@ -1236,8 +1299,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (!node["enhancedHostSupport"].is_null() && node.value("enhancedHostSupport", false));
 						Instance<ICoreGameInit>::Get()->OneSyncEnabled = (!node["onesync"].is_null() && node["onesync"].get<bool>());
 						Instance<ICoreGameInit>::Get()->OneSyncBigIdEnabled = (!node["onesync_lh"].is_null() && node["onesync_lh"].get<bool>());
-						Instance<ICoreGameInit>::Get()->NetProtoVersion = bitVersion;
 
+						Instance<ICoreGameInit>::Get()->BitVersion = bitVersion;
+						
 						bool big1s = (!node["onesync_big"].is_null() && node["onesync_big"].get<bool>());
 
 						if (big1s)
@@ -1249,6 +1313,21 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						{
 							AddCrashometry("onesync_big", "false");
 							Instance<ICoreGameInit>::Get()->ClearVariable("onesync_big");
+						}
+
+						if (Instance<ICoreGameInit>::Get()->IsNetVersionOrHigher(net::NetBitVersion::netVersion3))
+						{
+							const bool oneSyncPopulation = (!node["onesync_population"].is_null() && node["onesync_population"].get<bool>());
+							if (oneSyncPopulation)
+							{
+								AddCrashometry("onesync_population", "true");
+								Instance<ICoreGameInit>::Get()->SetVariable("onesync_population");
+							}
+							else
+							{
+								AddCrashometry("onesync_population", "false");
+								Instance<ICoreGameInit>::Get()->ClearVariable("onesync_population");
+							}
 						}
 
 						auto maxClients = (!node["maxClients"].is_null()) ? node["maxClients"].get<int>() : 64;
@@ -1275,7 +1354,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								onesyncType = "onesync_medium";
 							}
 						}
-						else if (maxClients <= 1024)
+						else if (maxClients <= 2048)
 						{
 							onesyncType = "onesync_big";
 						}
@@ -1328,6 +1407,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 										auto oneSyncPolicyFailure = [this, onesyncType, maxClients, big1s]()
 										{
 											int maxSlots = 48;
+											std::string extraText;
 
 											if (policies.find("onesync") != policies.end())
 											{
@@ -1340,6 +1420,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 												{
 													maxSlots = 128;
 												}
+												else if (maxSlots >= 64 && maxClients > 64)
+												{
+													extraText = "\nUsing 128 slots with 'Element Club Aurum' requires you to enable OneSync 'on' (formerly named 'Infinity'), not 'legacy'. Check your server configuration.";
+												}
 											}
 											else
 											{
@@ -1351,23 +1435,55 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 											if (policies.find("onesync_big") != policies.end())
 											{
-												maxSlots = 1024;
+												maxSlots = 2048;
 											}
 
-											OnConnectionError(fmt::sprintf("This server uses more slots than allowed by policy. The allowed slot count is %d, but the server has a maximum slot count of %d.",
+											OnConnectionError(fmt::sprintf("This server uses more slots than allowed by the current subscription. The allowed slot count is %d, but the server has a maximum slot count of %d.%s",
 												maxSlots,
-												maxClients),
+												maxClients,
+												extraText),
 												json::object({
-													{ "fault", "either" },
+													{ "fault", "server" },
 													{ "status", true },
-													{ "action", "#ErrorAction_TryAgainCheckStatus" },
+													{ "action", "#ErrorAction_TryAgainContactOwner" },
 												}).dump());
 
 											m_connectionState = CS_IDLE;
 										};
 
-										auto policySuccess = [this]()
+										auto policySuccess = [this, maxClients]()
 										{
+											// add forced policies
+											if (maxClients <= 10)
+											{
+												// development/testing servers (<= 10 clients max - see ZAP defaults) get subdir_file_mapping granted
+												policies.insert("subdir_file_mapping");
+											}
+
+											// dev server
+											if (maxClients <= 8)
+											{
+												policies.insert("local_evaluation");
+											}
+
+											// format policy string and store it
+											std::stringstream policyStr;
+
+											for (const auto& line : policies)
+											{
+												policyStr << "[" << line << "]";
+											}
+
+											std::string policy = policyStr.str();
+
+											if (!policy.empty())
+											{
+												trace("Server feature policy is %s\n", policy);
+											}
+
+											Instance<ICoreGameInit>::Get()->SetData("policy", policy);
+
+											// continue connection
 											m_connectionState = CS_INITRECEIVED;
 										};
 
@@ -1427,36 +1543,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 														trace("Policy request failed. %s\n", std::string{ data, size });
 														fact = "Requesting policy failed.";
 													}
-
-													// add forced policies
-													if (maxClients <= 10)
-													{
-														// development/testing servers (<= 10 clients max - see ZAP defaults) get subdir_file_mapping granted
-														policies.insert("subdir_file_mapping");
-													}
-
-													// dev server
-													if (maxClients <= 8)
-													{
-														policies.insert("local_evaluation");
-													}
-
-													// format policy string and store it
-													std::stringstream policyStr;
-
-													for (const auto& line : policies)
-													{
-														policyStr << "[" << line << "]";
-													}
-
-													std::string policy = policyStr.str();
-
-													if (!policy.empty())
-													{
-														trace("Server feature policy is %s\n", policy);
-													}
-
-													Instance<ICoreGameInit>::Get()->SetData("policy", policy);
 
 													// check 1s policy
 													if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
@@ -1566,6 +1652,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						if (node.value("netlibVersion", 1) == 2)
 						{
+							std::unique_lock _(m_implMutex);
 							m_impl = CreateNetLibraryImplV2(this);
 						}
 						else if (node.value("netlibVersion", 1) == 3 || node.value("netlibVersion", 1) == 4)
@@ -1589,40 +1676,33 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 					return false;
 				};
+				
+				// to not complain about 'closed connection while deferring'
+				isLegacyDeferral = true;
 
-				if (bitVersion >= 0x202004201223)
+				fwMap<fwString, fwString> epMap;
+				epMap["method"] = "getEndpoints";
+				epMap["token"] = m_token;
+
+				OnConnectionProgress("Requesting server endpoints...", 0, 100, false);
+
+				m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(epMap), [rawEndpoints, continueAfterEndpoints](bool success, const char* data, size_t size)
 				{
-					// to not complain about 'closed connection while deferring'
-					isLegacyDeferral = true;
-
-					fwMap<fwString, fwString> epMap;
-					epMap["method"] = "getEndpoints";
-					epMap["token"] = m_token;
-
-					OnConnectionProgress("Requesting server endpoints...", 0, 100, false);
-
-					m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(epMap), [rawEndpoints, continueAfterEndpoints](bool success, const char* data, size_t size)
+					if (success)
 					{
-						if (success)
+						try
 						{
-							try
-							{
-								continueAfterEndpoints(nlohmann::json::parse(data, data + size));
-								return;
-							}
-							catch (std::exception& e)
-							{
-
-							}
+							continueAfterEndpoints(nlohmann::json::parse(data, data + size));
+							return;
 						}
+						catch (std::exception& e)
+						{
 
-						continueAfterEndpoints(rawEndpoints);
-					});
-				}
-				else
-				{
+						}
+					}
+
 					continueAfterEndpoints(rawEndpoints);
-				}
+				});
 			}
 			catch (std::exception & e)
 			{
@@ -1660,11 +1740,13 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 		}), handleCardResult);
 	};
 
+	static std::string requestSteamTicket = "on";
+
 	continueRequest = [=]()
 	{
 		auto steamComponent = GetSteam();
 
-		if (steamComponent)
+		if (steamComponent && requestSteamTicket == "on")
 		{
 			static uint32_t ticketLength;
 			static uint8_t ticketBuffer[4096];
@@ -1731,8 +1813,12 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	auto initiateRequest = [=]()
 	{
 		OnConnectionProgress("Requesting server variables...", 0, 100, true);
+
+		HttpRequestOptions options;
+		options.addRawBody = true;
 		
-		m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
+		auto request = m_httpClient->Get(fmt::sprintf("%sinfo.json", url));
+		request->OnCompletion([=](bool success, std::string_view data)
 		{
 			using json = nlohmann::json;
 
@@ -1756,10 +1842,11 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				}
 				else
 				{
-					OnConnectionError(fmt::sprintf("Failed to fetch server variables. %s", std::string{ data, size }), json::object({
+					OnConnectionError(fmt::sprintf("Failed to fetch server variables. %s", std::string(data)), json::object({
 								{ "fault", "server" },
 								{ "action", "#ErrorAction_TryAgainContactOwner" },
-					}).dump());
+								{ "responseBody", request->GetRawBody() },
+					}).dump(-1, ' ', false, nlohmann::json::error_handler_t::replace));
 				}
 				m_connectionState = CS_IDLE;
 				return;
@@ -1767,10 +1854,24 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 			try
 			{
-				json info = json::parse(data, data + size);
+				json info = json::parse(data);
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 				if (info.is_object() && info["vars"].is_object())
 				{
+					int pureLevel = 0;
+
+					if (auto pureVal = info["vars"].value("sv_pureLevel", "0"); !pureVal.empty())
+					{
+						pureLevel = std::stoi(pureVal);
+					}
+
+					std::string poolSizesIncreaseRaw = info["vars"].value("sv_poolSizesIncrease", "");
+					std::unordered_map<std::string, uint32_t> poolSizesIncrease;
+					if (!poolSizesIncreaseRaw.empty())
+					{
+						poolSizesIncrease = nlohmann::json::parse(poolSizesIncreaseRaw);
+					}
+
 					auto val = info["vars"].value("sv_enforceGameBuild", "");
 					int buildRef = 0;
 
@@ -1778,13 +1879,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						buildRef = std::stoi(val);
 
-						if (buildRef != 0 && buildRef != xbr::GetGameBuild())
+						if ((buildRef != 0 && buildRef != xbr::GetGameBuild()) || (pureLevel != fx::client::GetPureLevel()) || (poolSizesIncrease != fx::PoolSizeManager::GetIncreaseRequest()))
 						{
-#if defined(GTA_FIVE)
-							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372 && buildRef != 2545)
-#else
-							if (buildRef != 1311 && buildRef != 1355 && buildRef != 1436)
-#endif
+							if (!xbr::IsSupportedGameBuild(buildRef))
 							{
 								OnConnectionError(va("Server specified an invalid game build enforcement (%d).", buildRef), json::object({
 									{ "fault", "server" },
@@ -1795,7 +1892,19 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 
-							OnRequestBuildSwitch(buildRef);
+							std::optional<std::string> validationError = fx::PoolSizeManager::Validate(poolSizesIncrease);
+							if (validationError.has_value())
+							{
+								OnConnectionError(va("Server requested invalid change to pool sizes: %s.", validationError.value()), json::object({
+									{ "fault", "either" },
+									{ "action", "#ErrorAction_TryAgainContactOwner" },
+								})
+								.dump());
+								m_connectionState = CS_IDLE;
+								return;
+							}
+
+							OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw));
 							m_connectionState = CS_IDLE;
 							return;
 						}
@@ -1804,7 +1913,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #if defined(GTA_FIVE)
 					if (xbr::GetGameBuild() != 1604 && buildRef == 0)
 					{
-						OnRequestBuildSwitch(1604);
+						OnRequestBuildSwitch(1604, 0, L"");
 						m_connectionState = CS_IDLE;
 						return;
 					}
@@ -1816,6 +1925,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						licenseKeyToken = ival;
 					}
+
+					requestSteamTicket = info.value("requestSteamTicket", "on");
 				}
 #endif
 			}
@@ -1843,6 +1954,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				continueRequest();
 			}
 		});
+
+		request->Start();
 	};
 
 	if (OnInterceptConnection(url, initiateRequest))
@@ -1893,16 +2006,20 @@ void NetLibrary::Disconnect(const char* reason)
 
 	if (m_connectionState == CS_CONNECTING || m_connectionState == CS_ACTIVE || m_connectionState == CS_FETCHING)
 	{
-		SendReliableCommand("msgIQuit", g_disconnectReason.c_str(), g_disconnectReason.length() + 1);
+		m_disconnecting = true;
 
-		if (m_impl)
+		net::packet::ClientIQuitPacket clientIQuit;
+		clientIQuit.data.reason = {reason, g_disconnectReason.size() + 1};
+		SendNetPacket(clientIQuit);
+
+		if (auto impl = GetImpl())
 		{
-			m_impl->Flush();
+			impl->Flush();
 
 			// this is *somewhat* needed to ensure the server gets our msgIQuit first
-			Sleep(std::min(750, m_impl->GetPing() + abs(m_impl->GetVariance())));
+			Sleep(std::min(750, impl->GetPing() + abs(impl->GetVariance())));
 
-			m_impl->Reset();
+			impl->Reset();
 		}
 
 		OnFinalizeDisconnect(m_currentServer);
@@ -1910,11 +2027,15 @@ void NetLibrary::Disconnect(const char* reason)
 		m_connectionState = CS_IDLE;
 		m_currentServer = NetAddress();
 
-		auto steam = GetSteam();
-
-		if (steam)
+		// we don't want to tell Steam to launch a new child as we're exiting
+		if (reason != std::string_view{ "Exiting" })
 		{
-			steam->SetRichPresenceValue(0, "");
+			auto steam = GetSteam();
+
+			if (steam)
+			{
+				steam->SetRichPresenceValue(0, "");
+			}
 		}
 	}
 }
@@ -1947,7 +2068,7 @@ void NetLibrary::SendOutOfBand(const NetAddress& address, const char* format, ..
 
 bool NetLibrary::IsPendingInGameReconnect()
 {
-	return (m_connectionState == CS_ACTIVE && m_impl->IsDisconnected());
+	return (m_connectionState == CS_ACTIVE && GetImpl()->IsDisconnected());
 }
 
 static std::string g_steamPersonaName;
@@ -2001,7 +2122,7 @@ void NetLibrary::SetPlayerName(const char* name)
 
 void NetLibrary::SendData(const NetAddress& address, const char* data, size_t length)
 {
-	m_impl->SendData(address, data, length);
+	GetImpl()->SendData(address, data, length);
 }
 
 void NetLibrary::AddReliableHandler(const char* type, const ReliableHandlerType& function, bool runOnMainThreadOnly /* = false */)
@@ -2031,34 +2152,12 @@ bool NetLibrary::ProcessPreGameTick()
 	return true;
 }
 
-void NetLibrary::SendNetEvent(const std::string& eventName, const std::string& jsonString, int i)
+void NetLibrary::SendNetEvent(const std::string& eventName, const std::string& jsonString)
 {
-	const char* cmdType = "msgNetEvent";
-
-	if (i == -1)
-	{
-		i = UINT16_MAX;
-	}
-	else if (i == -2)
-	{
-		cmdType = "msgServerEvent";
-	}
-
-	size_t eventNameLength = eventName.length();
-
-	net::Buffer buffer;
-
-	if (i >= 0)
-	{
-		buffer.Write<uint16_t>(i);
-	}
-
-	buffer.Write<uint16_t>(uint16_t(eventNameLength + 1));
-	buffer.Write(eventName.c_str(), eventNameLength + 1);
-
-	buffer.Write(jsonString.c_str(), jsonString.size());
-	
-	SendReliableCommand(cmdType, reinterpret_cast<const char*>(buffer.GetBuffer()), buffer.GetCurOffset());
+	net::packet::ClientServerEventPacket clientServerEvent;
+	clientServerEvent.data.eventName = {reinterpret_cast<uint8_t*>(const_cast<char*>(eventName.c_str())), eventName.length() + 1};
+	clientServerEvent.data.eventData = {reinterpret_cast<uint8_t*>(const_cast<char*>(jsonString.c_str())), jsonString.size()};
+	SendNetPacket(clientServerEvent);
 }
 
 /*void NetLibrary::AddReliableHandler(const char* type, ReliableHandlerType function)
@@ -2075,7 +2174,7 @@ NetLibrary::NetLibrary()
 }
 
 __declspec(dllexport) fwEvent<NetLibrary*> NetLibrary::OnNetLibraryCreate;
-__declspec(dllexport) fwEvent<const std::function<void(uint32_t, const char*, int)>&> NetLibrary::OnBuildMessage;
+__declspec(dllexport) fwEvent<> NetLibrary::OnBuildMessage;
 
 NetLibrary* NetLibrary::Create()
 {
@@ -2083,15 +2182,7 @@ NetLibrary* NetLibrary::Create()
 
 	lib->CreateResources();
 
-	lib->AddReliableHandler("msgIHost", [=] (const char* buf, size_t len)
-	{
-		net::Buffer buffer(reinterpret_cast<const uint8_t*>(buf), len);
-
-		uint16_t hostNetID = buffer.Read<uint16_t>();
-		uint32_t hostBase = buffer.Read<uint32_t>();
-
-		lib->SetHost(hostNetID, hostBase);
-	});
+	lib->AddPacketHandler<fx::IHostPacketHandler>(false, lib);
 
 	OnNetLibraryCreate(lib);
 
@@ -2127,9 +2218,9 @@ NetLibrary* NetLibrary::Create()
 
 int32_t NetLibrary::GetPing()
 {
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		return m_impl->GetPing();
+		return impl->GetPing();
 	}
 
 	return -1;
@@ -2137,9 +2228,9 @@ int32_t NetLibrary::GetPing()
 
 int32_t NetLibrary::GetVariance()
 {
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		return m_impl->GetVariance();
+		return impl->GetVariance();
 	}
 
 	return -1;

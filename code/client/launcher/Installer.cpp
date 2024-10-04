@@ -18,6 +18,8 @@
 
 #include <CfxLocale.h>
 
+#include "launcher.rc.h"
+
 #pragma comment(lib, "shlwapi.lib")
 
 namespace WRL = Microsoft::WRL;
@@ -165,8 +167,8 @@ void Install_Uninstall(const wchar_t* directory)
 	addDelete(directory);
 	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L".lnk");
 	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L".lnk");
-	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" Singleplayer.lnk");
-	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" Singleplayer.lnk");
+	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" - Cfx.re Development Kit (FxDK).lnk");
+	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" - Cfx.re Development Kit (FxDK).lnk");
 
 	hr = ifo->PerformOperations();
 
@@ -274,30 +276,6 @@ bool Install_PerformInstallation()
 			}
 		}
 
-#if 0
-		// make the SP shortcut
-		hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (void**)shellLink.ReleaseAndGetAddressOf());
-
-		if (SUCCEEDED(hr))
-		{
-			shellLink->SetPath(targetExePath.c_str());
-			shellLink->SetArguments(L"-sp");
-			shellLink->SetDescription(PRODUCT_NAME L" is a modification framework for Grand Theft Auto V");
-			shellLink->SetIconLocation(targetExePath.c_str(), -202);
-
-			SetAumid(shellLink);
-
-			WRL::ComPtr<IPersistFile> persist;
-			hr = shellLink.As(&persist);
-
-			if (SUCCEEDED(hr))
-			{
-				persist->Save((GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" Singleplayer.lnk").c_str(), TRUE);
-				persist->Save((GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" Singleplayer.lnk").c_str(), TRUE);
-			}
-		}
-#endif
-
 		CoUninitialize();
 	}
 
@@ -374,88 +352,117 @@ static void WriteVisualElementsManifest()
 #endif
 }
 
+void Install_RunPostInstall()
+{
+	// if this isn't the main process, don't run install mode (https://github.com/citizenfx/fivem/issues/1825)
+	{
+		auto state = CfxState::Get();
+
+		if (!state->IsMasterProcess())
+		{
+			return;
+		}
+	}
+
+	using namespace std::string_literals;
+
+	wchar_t exePath[260];
+	GetModuleFileName(GetModuleHandle(nullptr), exePath, _countof(exePath));
+
+	std::wstring exeName = exePath;
+
+	wcsrchr(exePath, L'\\')[0] = L'\0';
+
+	std::initializer_list<std::tuple<std::wstring, std::wstring, int, std::wstring>> links = {
+#ifdef GTA_FIVE
+		{ L" - Cfx.re Development Kit (FxDK)", L"-fxdk", -203, L"CitizenFX.FiveM.SDK" },
+#endif
+	};
+
+	for (auto& link : links)
+	{
+		std::wstring linkPath = fmt::sprintf(L"%s\\%s%s.lnk", exePath, PRODUCT_NAME, std::get<0>(link));
+
+		if (GetFileAttributes(linkPath.c_str()) == INVALID_FILE_ATTRIBUTES)
+		{
+			CoInitialize(NULL);
+
+			WRL::ComPtr<IShellLink> shellLink;
+			HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (void**)shellLink.ReleaseAndGetAddressOf());
+
+			if (SUCCEEDED(hr))
+			{
+				shellLink->SetPath(exeName.c_str());
+				shellLink->SetArguments(std::get<1>(link).c_str());
+				shellLink->SetDescription(PRODUCT_NAME L" is a modification framework for Grand Theft Auto V");
+				shellLink->SetIconLocation(exeName.c_str(), std::get<2>(link));
+
+				SetAumid(shellLink, std::get<3>(link));
+
+				WRL::ComPtr<IPersistFile> persist;
+				hr = shellLink.As(&persist);
+
+				if (SUCCEEDED(hr))
+				{
+					persist->Save(linkPath.c_str(), TRUE);
+
+					if (GetFileAttributes(MakeRelativeCitPath(PRODUCT_NAME L".installroot").c_str()) != INVALID_FILE_ATTRIBUTES)
+					{
+						persist->Save(fmt::sprintf(L"%s\\%s%s.lnk", GetFolderPath(FOLDERID_Programs), PRODUCT_NAME, std::get<0>(link)).c_str(), TRUE);
+					}
+				}
+			}
+
+			CoUninitialize();
+		}
+	}
+
+	auto removeLinks = {
+		fmt::sprintf(L"%s\\%s%s.lnk", exePath, PRODUCT_NAME, L" Singleplayer"),
+		fmt::sprintf(L"%s\\%s%s.lnk", exePath, PRODUCT_NAME, L" Singleplayer (patch 1.27)"),
+		GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" Singleplayer.lnk",
+		GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" Singleplayer.lnk"
+	};
+
+	for (const auto& link : removeLinks)
+	{
+		if (GetFileAttributesW(link.c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			DeleteFileW(link.c_str());
+		}
+	}
+
+	CreateUninstallEntryIfNeeded();
+	WriteVisualElementsManifest();
+
+	// set the 'application data' name/path
+	if (MakeRelativeCitPath(L"").find(L".app") != std::string::npos)
+	{
+		wchar_t thisFileName[512];
+		GetModuleFileName(GetModuleHandle(NULL), thisFileName, sizeof(thisFileName) / 2);
+
+		SHFOLDERCUSTOMSETTINGS fcs = { 0 };
+		fcs.dwSize = sizeof(SHFOLDERCUSTOMSETTINGS);
+		fcs.dwMask = FCSM_ICONFILE;
+		fcs.pszIconFile = thisFileName;
+		fcs.cchIconFile = 0;
+		fcs.iIconIndex = -IDI_SNAIL;
+
+		SHGetSetFolderCustomSettings(&fcs, MakeRelativeCitPath(L"").c_str(), FCS_FORCEWRITE);
+
+		SHSetLocalizedName(MakeRelativeCitPath(L"").c_str(), thisFileName, IDS_FOLDER_NAME);
+	}
+}
+
 bool Install_RunInstallMode()
 {
-	// if we're already installed 'sufficiently', this isn't a new install
+	// if we're already installed 'sufficiently', this isn't a new install, but we *should* update external links
 	if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) != INVALID_FILE_ATTRIBUTES ||
 		GetFileAttributes(MakeRelativeCitPath(L"citizen-resources-client.dll").c_str()) != INVALID_FILE_ATTRIBUTES ||
 		GetFileAttributes(MakeRelativeCitPath(L"CitizenFX.ini").c_str()) != INVALID_FILE_ATTRIBUTES ||
 		GetFileAttributes(MakeRelativeCitPath(PRODUCT_NAME L".installroot").c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
-		using namespace std::string_literals;
-
-		wchar_t exePath[260];
-		GetModuleFileName(GetModuleHandle(nullptr), exePath, _countof(exePath));
-
-		std::wstring exeName = exePath;
-
-		wcsrchr(exePath, L'\\')[0] = L'\0';
-
-		std::vector<std::tuple<std::wstring, std::wstring, int, std::wstring>> links;
-
-#ifdef GTA_FIVE
-#if 0
-		links.push_back({ L" Singleplayer", L"-sp", -202, L"" });
-		links.push_back({ L" Singleplayer (patch 1.27)", L"-b372", -202, L"" });
-#endif
-		links.push_back({ L" - Cfx.re Development Kit (FxDK)", L"-fxdk", -203, L"CitizenFX.FiveM.SDK" });
-#endif
-
-		for (auto& link : links)
-		{
-			std::wstring linkPath = fmt::sprintf(L"%s\\%s%s.lnk", exePath, PRODUCT_NAME, std::get<0>(link));
-
-			if (GetFileAttributes(linkPath.c_str()) == INVALID_FILE_ATTRIBUTES)
-			{
-				CoInitialize(NULL);
-
-				WRL::ComPtr<IShellLink> shellLink;
-				HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (void**)shellLink.ReleaseAndGetAddressOf());
-
-				if (SUCCEEDED(hr))
-				{
-					shellLink->SetPath(exeName.c_str());
-					shellLink->SetArguments(std::get<1>(link).c_str());
-					shellLink->SetDescription(PRODUCT_NAME L" is a modification framework for Grand Theft Auto V");
-					shellLink->SetIconLocation(exeName.c_str(), std::get<2>(link));
-
-					SetAumid(shellLink, std::get<3>(link));
-
-					WRL::ComPtr<IPersistFile> persist;
-					hr = shellLink.As(&persist);
-
-					if (SUCCEEDED(hr))
-					{
-						persist->Save(linkPath.c_str(), TRUE);
-
-						if (GetFileAttributes(MakeRelativeCitPath(PRODUCT_NAME L".installroot").c_str()) != INVALID_FILE_ATTRIBUTES)
-						{
-							persist->Save(fmt::sprintf(L"%s\\%s%s.lnk", GetFolderPath(FOLDERID_Programs), PRODUCT_NAME, std::get<0>(link)).c_str(), TRUE);
-						}
-					}
-				}
-
-				CoUninitialize();
-			}
-		}
-
-		auto removeLinks = {
-			fmt::sprintf(L"%s\\%s%s.lnk", exePath, PRODUCT_NAME, L" Singleplayer"),
-			fmt::sprintf(L"%s\\%s%s.lnk", exePath, PRODUCT_NAME, L" Singleplayer (patch 1.27)"),
-			GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" Singleplayer.lnk",
-			GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" Singleplayer.lnk"
-		};
-
-		for (const auto& link : removeLinks)
-		{
-			if (GetFileAttributesW(link.c_str()) != INVALID_FILE_ATTRIBUTES)
-			{
-				DeleteFileW(link.c_str());
-			}
-		}
-
-		CreateUninstallEntryIfNeeded();
-		WriteVisualElementsManifest();
+		Install_RunPostInstall();
 
 		return false;
 	}

@@ -9,9 +9,25 @@ return {
 		kind "SharedLib"
 		
 		defines { "NNG_HAVE_PULL0", "NNG_HAVE_PUSH0", "NNG_HAVE_REQ0", "NNG_HAVE_REP0", "NNG_TRANSPORT_INPROC", "NNG_TRANSPORT_IPC", "NNG_SHARED_LIB", "NNG_LITTLE_ENDIAN", "NNG_ENABLE_STATS" }
+
+		if not os.istarget('windows') then
+			defines { 'NNG_HIDDEN_VISIBILITY' }
+		end
 		
 		if _OPTIONS['game'] ~= 'server' then
-			defines { "NNG_NUM_TASKQ_THREADS=2" }
+			defines "NNG_NUM_TASKQ_THREADS=2"
+
+			filter { "files:**/win_resolv.c"}
+				defines "NNG_RESOLV_CONCURRENCY=1"
+
+			filter { "files:**/win_thread.c"}
+				defines "GetSystemInfo=GetSystemInfoFake"
+
+			filter {}
+
+			files {
+				"vendor/nng/dummy_systeminfo.cpp"
+			}
 		end
 		
 		includedirs { "../vendor/nng/src/" }

@@ -16,6 +16,7 @@
 #include <optional>
 #include <sstream>
 
+#include "ErrorFormat.Win32.h"
 #include <Hooking.Aux.h>
 
 #include <MinHook.h>
@@ -152,7 +153,7 @@ Component* DllGameComponent::CreateComponent()
 			addtlInfo = fmt::sprintf("\n\nAdditional information:\n%s", errors);
 		}
 
-		FatalError("Could not load component %s - Windows error code %d.%s", converter.to_bytes(m_path).c_str(), errorCode, addtlInfo);
+		FatalError("Could not load component %s - Windows error code %d. %s%s", converter.to_bytes(m_path).c_str(), errorCode, win32::FormatMessage(errorCode), addtlInfo);
 
 		return nullptr;
 	}
@@ -196,7 +197,7 @@ void DllGameComponent::ReadManifest()
 		// delete caches.xml so the game will be verified
 		_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
 
-		FatalError("Could not load component manifest %s - Windows error code %d.", converter.to_bytes(m_path).c_str(), errorCode);
+		FatalError("Could not load component manifest %s - Windows error code %d. %s", converter.to_bytes(m_path).c_str(), errorCode, win32::FormatMessage(errorCode));
 
 		return;
 	}

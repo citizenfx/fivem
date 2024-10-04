@@ -1,6 +1,8 @@
 #pragma once
 
+#include <HostSharedData.h>
 #include <windows.h>
+#include <cassert>
 
 struct CfxState
 {
@@ -20,12 +22,19 @@ struct CfxState
 
 	wchar_t gameExePath[1024];
 
+	wchar_t initCommandLine[2048];
+
+	// Link protocol name is used in app links like `fivem://connect/asdfgh`
+	wchar_t linkProtocol[32];
+
 	CfxState()
 	{
 		memset(initPathGame, 0, sizeof(initPathGame));
 		memset(initPathLauncher, 0, sizeof(initPathLauncher));
 		memset(gameExePath, 0, sizeof(gameExePath));
 		memset(gameDirectory, 0, sizeof(gameDirectory));
+		memset(initCommandLine, 0, sizeof(initCommandLine));
+		memset(linkProtocol, 0, sizeof(linkProtocol));
 
 		initialGamePid = 0;
 		initialLauncherPid = 0;
@@ -38,6 +47,22 @@ struct CfxState
 
 		// initialize the game PID
 		gamePid = 0;
+	}
+
+	inline void SetLinkProtocol(const wchar_t* protocol)
+	{
+		wcsncpy(linkProtocol, protocol, std::size(linkProtocol) - 1);
+	}
+
+	inline const wchar_t* GetLinkProtocol()
+	{
+		assert(wcslen(linkProtocol));
+
+		return linkProtocol;
+	}
+	inline const wchar_t* GetLinkProtocol(const wchar_t* appendix)
+	{
+		return va(L"%s%s", GetLinkProtocol(), appendix);
 	}
 
 	inline std::wstring GetInitPath()
@@ -126,5 +151,10 @@ struct CfxState
 	inline bool IsGameProcess()
 	{
 		return (gamePid == GetCurrentProcessId());
+	}
+
+	inline static auto Get()
+	{
+		return HostSharedData<CfxState>{ "CfxInitState" };
 	}
 };

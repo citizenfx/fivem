@@ -1,9 +1,16 @@
 using System;
 using System.Runtime.InteropServices;
-using CitizenFX.Core.Native;
 using System.Security;
 
+#if MONO_V2
+using API = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM
+#else
+using CitizenFX.Core.Native;
+
 namespace CitizenFX.Core
+#endif
 {
 	[StructLayout(LayoutKind.Explicit, Size = 0x138)]
 	[SecurityCritical]
@@ -31,7 +38,11 @@ namespace CitizenFX.Core
 
 		public bool IsValid
 		{
+#if MONO_V2
+			get { return !API.IsDlcDataEmpty(unchecked((uint)validCheck)); }			
+#else
 			get { return !API.IsDlcDataEmpty(ref validCheck); }
+#endif
 		}
 
 		public WeaponHash Hash

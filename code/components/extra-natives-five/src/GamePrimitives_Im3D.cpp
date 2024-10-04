@@ -232,7 +232,7 @@ void gz::Draw(const RemoteDrawLists* lists)
 		SetBlendState(GetStockStateIdentifier(BlendStateDefault));
 
 		shader->SetParameter(uViewport, viewportSize, 8, 1);
-		shader->SetParameter(uViewProjMatrix, viewport.m_viewProjection, 16, 4);
+		shader->SetParameter(uViewProjMatrix, viewport.m_worldViewProj, 16, 4);
 
 		rage::grcDrawMode mode;
 
@@ -296,7 +296,7 @@ void gz::End()
 
 	Im3d::EndFrame();
 
-	if (!shader)
+	if (!shader || Im3d::GetDrawListCount() == 0)
 	{
 		return;
 	}

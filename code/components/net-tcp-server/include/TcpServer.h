@@ -74,6 +74,7 @@ public:
 
 	virtual void ScheduleCallback(TScheduledCallback&& callback, bool performInline = true);
 
+	virtual void StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout) = 0;
 protected:
 	TcpServerStream() { }
 };

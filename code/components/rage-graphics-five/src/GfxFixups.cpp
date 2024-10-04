@@ -6,6 +6,8 @@
 
 #include <CoreConsole.h>
 
+extern bool IsValidGraphicsLibrary(const std::wstring& path);
+
 namespace hook
 {
 template<typename T>
@@ -290,7 +292,7 @@ static HRESULT D3D11CreateDeviceWoo(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_
 
 static FARPROC GetProcAddressStub(HMODULE hModule, LPCSTR name)
 {
-	if (strcmp(name, "D3D11CreateDevice") == 0)
+	if (!IS_INTRESOURCE(name) && strcmp(name, "D3D11CreateDevice") == 0)
 	{
 		return (FARPROC)&D3D11CreateDeviceWoo;
 	}
@@ -368,9 +370,9 @@ static HMODULE LoadLibraryAStub(LPCSTR modName)
 
 HRESULT RootD3D11CreateDevice(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	auto hookDll = MakeRelativeGamePath(L"d3d11.dll");
+	auto hookDll = MakeRelativeCitPath(L"plugins/d3d11.dll");
 
-	if (GetFileAttributesW(hookDll.c_str()) == INVALID_FILE_ATTRIBUTES)
+	if (GetFileAttributesW(hookDll.c_str()) == INVALID_FILE_ATTRIBUTES || !IsValidGraphicsLibrary(hookDll))
 	{
 		return D3D11CreateDevice(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 	}

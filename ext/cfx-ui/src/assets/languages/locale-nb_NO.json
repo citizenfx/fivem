@@ -84,5 +84,6 @@
     "#ServerList_Browse": "Bla",
     "#ServerList_Filter": "Filter",
     "#ServerList_Ping": "Ping",
-    "#ServerList_Players": "Spillere"
+    "#ServerList_Players": "Spillere",
+    "#ServerList_SearchHint": "Søk etter eller skriv inn en IP addresse"
 }

@@ -53,6 +53,8 @@ enum class ErrorType {
    HttpError,
    /** A message with an invalid authentication tag was detected */
    InvalidTag,
+   /** An error during Roughtime validation */
+   RoughtimeError,
 
    /** An error when calling OpenSSL */
    OpenSSLError = 200,

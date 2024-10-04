@@ -9,9 +9,9 @@
 
 #include <botan/pwdhash.h>
 
-namespace Botan {
+//BOTAN_FUTURE_INTERNAL_HEADER(argon2.h)
 
-BOTAN_FUTURE_INTERNAL_HEADER(argon2.h)
+namespace Botan {
 
 class RandomNumberGenerator;
 
@@ -79,8 +79,13 @@ class BOTAN_PUBLIC_API(2,11) Argon2_Family final : public PasswordHashFamily
 * @param output the output will be placed here
 * @param output_len length of output
 * @param password the user password
+* @param password_len the length of password
 * @param salt the salt
 * @param salt_len length of salt
+* @param key an optional secret key
+* @param key_len the length of key
+* @param ad an optional additional input
+* @param ad_len the length of ad
 * @param y the Argon2 variant (0 = Argon2d, 1 = Argon2i, 2 = Argon2id)
 * @param p the parallelization parameter
 * @param M the amount of memory to use in Kb
@@ -102,6 +107,7 @@ std::string BOTAN_PUBLIC_API(2,11)
 /**
 * Check a previously created password hash
 * @param password the password to check against
+* @param password_len the length of password
 * @param hash the stored hash to check against
 */
 bool BOTAN_PUBLIC_API(2,11) argon2_check_pwhash(const char* password, size_t password_len,

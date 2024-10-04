@@ -7,10 +7,14 @@
 
 #include <stdint.h>
 
-#include <datBase.h>
+#include "datBase.h"
+
+#ifdef RAGE_FORMATS_IN_GAME
+#include "sysAllocator.h"
+#endif
 
 #define RAGE_FORMATS_FILE pgBase
-#include <formats-header.h>
+#include "formats-header.h"
 
 #ifdef RAGE_FORMATS_OK
 #if defined(RAGE_FORMATS_GAME_NY)
@@ -84,12 +88,17 @@ public:
 };
 
 class FORMATS_EXPORT pgStreamableBase
+#ifdef RAGE_FORMATS_IN_GAME
+	: public rage::sysUseAllocator
+#endif
 {
 public:
+#ifndef RAGE_FORMATS_IN_GAME
 	inline void* operator new(size_t size)
 	{
 		return malloc(size);
 	}
+#endif
 
 	inline void* operator new(size_t size, bool isPhysical)
 	{
@@ -403,4 +412,4 @@ struct ResourceFlags
 };
 #endif
 
-#include <formats-footer.h>
+#include "formats-footer.h"

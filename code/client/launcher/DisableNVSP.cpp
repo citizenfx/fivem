@@ -20,8 +20,58 @@ struct NvidiaConnectionInfo
 	}
 };
 
+template<typename TContainer>
+static std::optional<NvidiaConnectionInfo> ParseNvidiaState(const TContainer& data)
+{
+	rapidjson::Document doc;
+	doc.Parse(data.data(), data.size());
+
+	if (!doc.HasParseError() && doc.IsObject())
+	{
+		if (doc.HasMember("port") && doc["port"].IsInt() && doc.HasMember("secret") && doc["secret"].IsString())
+		{
+			return NvidiaConnectionInfo{ doc["port"].GetInt(), doc["secret"].GetString() };
+		}
+	}
+
+	return {};
+}
+
+static std::optional<NvidiaConnectionInfo> GetNvidiaStateNew()
+{
+	std::optional<NvidiaConnectionInfo> rv;
+	auto fileMapping = OpenFileMappingW(FILE_MAP_READ, FALSE, L"{8BA1E16C-FC54-4595-9782-E370A5FBE8DA}");
+
+	if (fileMapping != 0 && fileMapping != INVALID_HANDLE_VALUE)
+	{
+		const void* data = MapViewOfFile(fileMapping, FILE_MAP_READ, 0, 0, 0);
+
+		if (data)
+		{
+			MEMORY_BASIC_INFORMATION mbi = { 0 };
+			VirtualQuery(data, &mbi, sizeof(mbi));
+
+			if (mbi.RegionSize > 0)
+			{
+				rv = ParseNvidiaState(std::string{ (const char*)data, mbi.RegionSize });
+			}
+
+			UnmapViewOfFile(data);
+		}
+
+		CloseHandle(fileMapping);
+	}
+
+	return rv;
+}
+
 static std::optional<NvidiaConnectionInfo> GetNvidiaState()
 {
+	if (auto result = GetNvidiaStateNew())
+	{
+		return result;
+	}
+
 	// we shouldn't even bother with systems that somehow broke core environment variables
 	auto lad = _wgetenv(L"localappdata");
 
@@ -44,17 +94,7 @@ static std::optional<NvidiaConnectionInfo> GetNvidiaState()
 		fread(&data[0], 1, data.size(), f);
 		fclose(f);
 
-		rapidjson::Document doc;
-		doc.Parse(data.data(), data.size());
-
-		if (!doc.HasParseError() && doc.IsObject())
-		{
-			if (doc.HasMember("port") && doc["port"].IsInt() &&
-				doc.HasMember("secret") && doc["secret"].IsString())
-			{
-				return NvidiaConnectionInfo{ doc["port"].GetInt(), doc["secret"].GetString() };
-			}
-		}
+		return ParseNvidiaState(data);
 	}
 
 	return {};

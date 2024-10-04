@@ -9,7 +9,7 @@
 #define BOTAN_ANSI_X942_PRF_H_
 
 #include <botan/kdf.h>
-#include <botan/asn1_oid.h>
+#include <botan/asn1_obj.h>
 
 BOTAN_FUTURE_INTERNAL_HEADER(prf_x942.h)
 

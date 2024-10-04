@@ -1,9 +1,17 @@
 using System;
+
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+using Task = CitizenFX.Core.Coroutine;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
-using System.Security;
 using System.Threading.Tasks;
 
 namespace CitizenFX.Core
+#endif
 {
 	public enum FiringPattern : uint
 	{
@@ -202,7 +210,7 @@ namespace CitizenFX.Core
 			}
 			else
 			{
-				API.TaskFollowNavMeshToCoord(_ped.Handle, position.X, position.Y, position.Z, 1f, timeout, 0f, false, 0f);
+				API.TaskFollowNavMeshToCoord(_ped.Handle, position.X, position.Y, position.Z, 1f, timeout, 0f, default, 0f);
 			}
 		}
 
@@ -340,7 +348,7 @@ namespace CitizenFX.Core
 			}
 			else
 			{
-				API.TaskFollowNavMeshToCoord(_ped.Handle, position.X, position.Y, position.Z, 4f, timeout, 0f, false, 0f);
+				API.TaskFollowNavMeshToCoord(_ped.Handle, position.X, position.Y, position.Z, 4f, timeout, 0f, default, 0f);
 			}
 		}
 

@@ -8,8 +8,12 @@
 #include "StdInc.h"
 #include "ToolComponentHelpers.h"
 
+#include "ErrorFormat.Win32.h"
+
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/range/iterator_range_core.hpp>
 
 #include <botan/auto_rng.h>
 #include <botan/rsa.h>
@@ -25,10 +29,16 @@
 #include <LaunchMode.h>
 #include <MinHook.h>
 
+#include <ROSSuffix.h>
 #include <CrossBuildRuntime.h>
 
 #include "Hooking.h"
 #include "Hooking.Aux.h"
+
+#include <wrl.h>
+#include <d2d1.h>
+
+namespace WRL = Microsoft::WRL;
 
 bool CanSafelySkipLauncher()
 {
@@ -111,14 +121,7 @@ static HICON hIcon;
 
 static InitFunction iconFunction([] ()
 {
-	if (!CfxIsSinglePlayer())
-	{
-		hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(1));
-	}
-	else
-	{
-		hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(202));
-	}
+	hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(1));
 });
 
 static HICON WINAPI LoadIconStub(HINSTANCE, LPCSTR)
@@ -224,17 +227,13 @@ static DWORD WINAPI CertGetNameStringStubA(_In_ PCCERT_CONTEXT pCertContext, _In
 	const char* newName = nullptr;
 
 	auto certString = std::string{ data.data() };
-	if (certString == "DigiCert SHA2 Assured ID Code Signing CA")
+	if (certString == "DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1")
 	{
 		newName = "Entrust Code Signing CA - OVCS1";
 	}
-	else if (xbr::IsGameBuild<372>() && certString == "Entrust Code Signing CA - OVCS1")
+	else if (certString == "DigiCert SHA2 Assured ID Code Signing CA")
 	{
-		newName = "Entrust Code Signing Certification Authority - L1D";
-	}
-	else if (xbr::IsGameBuild<372>() && certString == "Rockstar Games, Inc.")
-	{
-		newName = "Take-Two Interactive Software, Inc.";
+		newName = "Entrust Code Signing CA - OVCS1";
 	}
 
 	// return if no such name
@@ -387,6 +386,96 @@ static BOOL WINAPI SetForegroundWindowStub(_In_ HWND hWnd)
 	return TRUE;
 }
 
+static std::vector<std::tuple<const char*, void*, const char*>>* g_refLauncherHooks;
+
+class MyFactory : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, ID2D1Factory>
+{
+	WRL::ComPtr<ID2D1Factory> m_orig;
+
+public:
+	MyFactory(WRL::ComPtr<ID2D1Factory> orig)
+		: m_orig(orig)
+	{
+	}
+
+	virtual HRESULT __stdcall ReloadSystemMetrics() override
+	{
+		return m_orig->ReloadSystemMetrics();
+	}
+	virtual void __stdcall GetDesktopDpi(FLOAT* dpiX, FLOAT* dpiY) override
+	{
+		return m_orig->GetDesktopDpi(dpiX, dpiY);
+	}
+	virtual HRESULT __stdcall CreateRectangleGeometry(const D2D1_RECT_F* rectangle, ID2D1RectangleGeometry** rectangleGeometry) override
+	{
+		return m_orig->CreateRectangleGeometry(rectangle, rectangleGeometry);
+	}
+	virtual HRESULT __stdcall CreateRoundedRectangleGeometry(const D2D1_ROUNDED_RECT* roundedRectangle, ID2D1RoundedRectangleGeometry** roundedRectangleGeometry) override
+	{
+		return m_orig->CreateRoundedRectangleGeometry(roundedRectangle, roundedRectangleGeometry);
+	}
+	virtual HRESULT __stdcall CreateEllipseGeometry(const D2D1_ELLIPSE* ellipse, ID2D1EllipseGeometry** ellipseGeometry) override
+	{
+		return m_orig->CreateEllipseGeometry(ellipse, ellipseGeometry);
+	}
+	virtual HRESULT __stdcall CreateGeometryGroup(D2D1_FILL_MODE fillMode, ID2D1Geometry** geometries, UINT32 geometriesCount, ID2D1GeometryGroup** geometryGroup) override
+	{
+		return m_orig->CreateGeometryGroup(fillMode, geometries, geometriesCount, geometryGroup);
+	}
+	virtual HRESULT __stdcall CreateTransformedGeometry(ID2D1Geometry* sourceGeometry, const D2D1_MATRIX_3X2_F* transform, ID2D1TransformedGeometry** transformedGeometry) override
+	{
+		return m_orig->CreateTransformedGeometry(sourceGeometry, transform, transformedGeometry);
+	}
+	virtual HRESULT __stdcall CreatePathGeometry(ID2D1PathGeometry** pathGeometry) override
+	{
+		return m_orig->CreatePathGeometry(pathGeometry);
+	}
+	virtual HRESULT __stdcall CreateStrokeStyle(const D2D1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, const FLOAT* dashes, UINT32 dashesCount, ID2D1StrokeStyle** strokeStyle) override
+	{
+		return m_orig->CreateStrokeStyle(strokeStyleProperties, dashes, dashesCount, strokeStyle);
+	}
+	virtual HRESULT __stdcall CreateDrawingStateBlock(const D2D1_DRAWING_STATE_DESCRIPTION* drawingStateDescription, IDWriteRenderingParams* textRenderingParams, ID2D1DrawingStateBlock** drawingStateBlock) override
+	{
+		return m_orig->CreateDrawingStateBlock(drawingStateDescription, textRenderingParams, drawingStateBlock);
+	}
+	virtual HRESULT __stdcall CreateWicBitmapRenderTarget(IWICBitmap* target, const D2D1_RENDER_TARGET_PROPERTIES* renderTargetProperties, ID2D1RenderTarget** renderTarget) override
+	{
+		return m_orig->CreateWicBitmapRenderTarget(target, renderTargetProperties, renderTarget);
+	}
+	virtual HRESULT __stdcall CreateHwndRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES* renderTargetProperties, const D2D1_HWND_RENDER_TARGET_PROPERTIES* hwndRenderTargetProperties, ID2D1HwndRenderTarget** hwndRenderTarget) override
+	{
+		return m_orig->CreateHwndRenderTarget(renderTargetProperties, hwndRenderTargetProperties, hwndRenderTarget);
+	}
+	virtual HRESULT __stdcall CreateDxgiSurfaceRenderTarget(IDXGISurface* dxgiSurface, const D2D1_RENDER_TARGET_PROPERTIES* renderTargetProperties, ID2D1RenderTarget** renderTarget) override
+	{
+		return m_orig->CreateDxgiSurfaceRenderTarget(dxgiSurface, renderTargetProperties, renderTarget);
+	}
+	virtual HRESULT __stdcall CreateDCRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES* renderTargetProperties, ID2D1DCRenderTarget** dcRenderTarget) override
+	{
+		auto myRenderTargetProperties = *renderTargetProperties;
+		myRenderTargetProperties.type = D2D1_RENDER_TARGET_TYPE_SOFTWARE;
+		return m_orig->CreateDCRenderTarget(&myRenderTargetProperties, dcRenderTarget);
+	}
+};
+
+static HRESULT WINAPI D2D1CreateFactoryWrap(D2D1_FACTORY_TYPE factoryType, REFIID riid, const D2D1_FACTORY_OPTIONS* fo, ID2D1Factory** factory)
+{
+	HRESULT hr = E_FAIL;
+	
+	if (auto d2d1 = GetModuleHandleW(L"d2d1.dll"))
+	{
+		hr = ((decltype(&D2D1CreateFactoryWrap))GetProcAddress(d2d1, "D2D1CreateFactory"))(factoryType, riid, fo, factory);
+	}
+
+	if (SUCCEEDED(hr))
+	{
+		auto myFactory = WRL::Make<MyFactory>(*factory);
+		hr = myFactory.CopyTo(factory);
+	}
+
+	return hr;
+}
+
 void DoLauncherUiSkip()
 {
 	DisableToolHelpScope scope;
@@ -400,11 +489,13 @@ void DoLauncherUiSkip()
 
 	if (CanSafelySkipLauncher())
 	{
-		hook::iat("user32.dll", AnimateWindowStub, "AnimateWindow");
-		hook::iat("user32.dll", ShowWindowStub, "ShowWindow");
-		hook::iat("user32.dll", SetWindowPosStub, "SetWindowPos");
-		hook::iat("shell32.dll", Shell_NotifyIconWStub, "Shell_NotifyIconW");
+		g_refLauncherHooks->emplace_back("user32.dll", AnimateWindowStub, "AnimateWindow");
+		g_refLauncherHooks->emplace_back("user32.dll", ShowWindowStub, "ShowWindow");
+		g_refLauncherHooks->emplace_back("user32.dll", SetWindowPosStub, "SetWindowPos");
+		g_refLauncherHooks->emplace_back("shell32.dll", Shell_NotifyIconWStub, "Shell_NotifyIconW");
 	}
+
+	g_refLauncherHooks->emplace_back("d2d1.dll", D2D1CreateFactoryWrap, "d2d1.dll#1");
 
 	MH_EnableHook(MH_ALL_HOOKS);
 }
@@ -556,12 +647,160 @@ extern BOOL WINAPI __stdcall CreateProcessAStub(_In_opt_ LPCSTR lpApplicationNam
 extern BOOL WINAPI __stdcall CreateProcessWStub(_In_opt_ LPCWSTR lpApplicationName, _Inout_opt_ LPWSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCWSTR lpCurrentDirectory, _In_ LPSTARTUPINFOW lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation);
 HANDLE WINAPI __stdcall CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWORD dwPipeMode, _In_ DWORD nMaxInstances, _In_ DWORD nOutBufferSize, _In_ DWORD nInBufferSize, _In_ DWORD nDefaultTimeOut, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
+static std::vector<std::tuple<const char*, void*, const char*>> g_launcherHooks = {
+	{ "version.dll", GetFileVersionInfoAStub, "GetFileVersionInfoA" },
+
+	{ "user32.dll", LoadIconStub, "LoadIconA" },
+	{ "user32.dll", LoadIconStub, "LoadIconW" },
+
+	{ "kernel32.dll", CreateMutexWStub, "CreateMutexW" },
+	{ "kernel32.dll", CreateNamedPipeAHookL, "CreateNamedPipeA" },
+
+	{ "kernel32.dll", Process32NextWHook, "Process32NextW" },
+
+	{ "shell32.dll", ShellExecuteExWStub, "ShellExecuteExW" },
+	{ "shell32.dll", ShellExecuteWStub, "ShellExecuteW" },
+
+	{ "kernel32.dll", GetExitCodeProcessStub, "GetExitCodeProcess" },
+
+	{ "crypt32.dll", CertGetNameStringStubW, "CertGetNameStringW" },
+	{ "crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA" },
+	{ "wintrust.dll", WinVerifyTrustStub, "WinVerifyTrust" },
+
+	{ "kernel32.dll", GetModuleFileNameWStub, "GetModuleFileNameW" },
+
+	{ "ole32.dll", CoCreateInstanceStub, "CoCreateInstance" },
+	{ "kernel32.dll", CreateProcessAStub, "CreateProcessA" },
+	{ "kernel32.dll", CreateProcessWStub, "CreateProcessW" },
+};
+
+static FARPROC GetProcAddressHook(HMODULE hModule, LPCSTR funcName)
+{
+	auto testFuncName = funcName;
+
+	if (IS_INTRESOURCE(funcName))
+	{
+		char fileName[MAX_PATH];
+		GetModuleFileNameA(hModule, fileName, std::size(fileName));
+		auto fn = strrchr(fileName, L'\\');
+
+		if (fn)
+		{
+			testFuncName = va("%s#%d", &fn[1], (DWORD_PTR)funcName);
+		}
+	}
+
+	for (const auto& h : g_launcherHooks)
+	{
+		if (_stricmp(std::get<2>(h), testFuncName) == 0)
+		{
+			return (FARPROC)std::get<1>(h);
+		}
+	}
+
+	return GetProcAddressStub(hModule, funcName);
+}
+
+static void* (*g_origMemAlloc)(void*, intptr_t size, intptr_t align, int subAlloc);
+static intptr_t (*g_origMemFree)(void*, void*);
+static bool (*g_origIsMine)(void*, void*);
+static bool (*g_origRealloc)(void*, void*, size_t);
+
+static bool isMine(void* allocator, void* mem)
+{
+	return (*(uint32_t*)((DWORD_PTR)mem - 4) & 0xFFFFFFF0) == 0xDEADC0C0;
+}
+
+static bool isMineHook(void* allocator, void* mem)
+{
+	return isMine(allocator, mem) || g_origIsMine(allocator, mem);
+}
+
+template<bool Try>
+static void* AllocEntry(void* allocator, size_t size, int align, int subAlloc)
+{
+	DWORD_PTR ptr = (DWORD_PTR)malloc(size + 32);
+
+	if constexpr (!Try)
+	{
+		if (!ptr)
+		{
+			FatalError("Failed allocating %d bytes in RGL code", size);
+		}
+	}
+
+	ptr += 4;
+
+	void* mem = (void*)(((uintptr_t)ptr + 15) & ~(uintptr_t)0xF);
+
+	*(uint32_t*)((uintptr_t)mem - 4) = 0xDEADC0C0 | (((uintptr_t)ptr + 15) & 0xF);
+
+	return mem;
+}
+
+static void FreeEntry(void* allocator, void* ptr)
+{
+	if (!ptr)
+	{
+		return;
+	}
+
+	if (!isMine(allocator, ptr))
+	{
+		g_origMemFree(allocator, ptr);
+		return;
+	}
+
+	void* memReal = ((char*)ptr - (16 - (*(uint32_t*)((uintptr_t)ptr - 4) & 0xF)) - 3);
+	free(memReal);
+}
+
+static void ReallocEntry(void* allocator, void* ptr, size_t size)
+{
+	if (g_origIsMine(allocator, ptr))
+	{
+		g_origRealloc(allocator, ptr, size);
+		return;
+	}
+
+	// Resize can only go to a smaller size, so we treat this as a no-op
+	return;
+}
+
+static void* smpaCtor1;
+static void* smpaCtor2;
+
+template<void** orig>
+static void* CreateSimpleAllocatorHook(void* a1, void* a2, void* a3, int a4, int a5)
+{
+	void* smpa = ((void* (*)(void*, void*, void*, int, int))*orig)(a1, a2, a3, a4, a5);
+
+	void** vt = new void*[48];
+	memcpy(vt, *(void**)smpa, 48 * 8);
+	*(void**)smpa = vt;
+
+	g_origMemAlloc = (decltype(g_origMemAlloc))vt[3];
+	vt[3] = AllocEntry<false>;
+	vt[4] = AllocEntry<true>;
+
+	g_origMemFree = (decltype(g_origMemFree))vt[5];
+	vt[5] = FreeEntry;
+
+	g_origRealloc = (decltype(g_origRealloc))vt[6];
+	vt[6] = ReallocEntry;
+
+	g_origIsMine = (decltype(g_origIsMine))vt[29];
+	vt[29] = isMineHook;
+
+	return smpa;
+}
+
 static void Launcher_Run(const boost::program_options::variables_map& map)
 {
-	// make firstrun.dat so the launcher won't whine/crash
+	// make firstrun.dat so the launcher won't error out/crash
 	{
-		CreateDirectoryW(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata3").c_str(), NULL);
-		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata3\\firstrun.dat").c_str(), L"wb");
+		CreateDirectoryW(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata" ROS_SUFFIX_W).c_str(), NULL);
+		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata" ROS_SUFFIX_W L"\\firstrun.dat").c_str(), L"wb");
 
 		if (f)
 		{
@@ -590,7 +829,9 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
 		if (!scDll)
 		{
-			FatalError("Couldn't load SC SDK: Windows error code %d", GetLastError());
+			auto errorCode = GetLastError();
+
+			FatalError("Couldn't load Social Club SDK (socialclub.dll): Error code 0x%08x - %s", HRESULT_FROM_WIN32(errorCode), win32::FormatMessage(errorCode));
 		}
 
 #if !GTA_NY
@@ -602,39 +843,18 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			((void(*)(const wchar_t*))GetProcAddress(rosDll, "run"))(MakeRelativeCitPath(L"").c_str());
 		}
 
-#ifdef _DEBUG
-		hook::jump(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 48 83 EC 28 48 8D"), LogStuff);
-#endif
-
-		hook::iat("version.dll", GetFileVersionInfoAStub, "GetFileVersionInfoA");
-
-        hook::iat("user32.dll", LoadIconStub, "LoadIconA");
-        hook::iat("user32.dll", LoadIconStub, "LoadIconW");
-
-		hook::iat("kernel32.dll", CreateMutexWStub, "CreateMutexW");
-		hook::iat("kernel32.dll", CreateNamedPipeAHookL, "CreateNamedPipeA");
-
-		hook::iat("kernel32.dll", Process32NextWHook, "Process32NextW");
-
-		hook::iat("shell32.dll", ShellExecuteExWStub, "ShellExecuteExW");
-		hook::iat("shell32.dll", ShellExecuteWStub, "ShellExecuteW");
-
-		hook::iat("kernel32.dll", GetExitCodeProcessStub, "GetExitCodeProcess");
-
+		g_refLauncherHooks = &g_launcherHooks;
 		DoLauncherUiSkip();
 
-		hook::iat("crypt32.dll", CertGetNameStringStubW, "CertGetNameStringW");
-		hook::iat("crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA");
-		hook::iat("wintrust.dll", WinVerifyTrustStub, "WinVerifyTrust");
+		hook::iat("kernel32.dll", GetProcAddressHook, "GetProcAddress");
 
-		hook::iat("kernel32.dll", GetProcAddressStub, "GetProcAddress");
-		hook::iat("kernel32.dll", GetModuleFileNameWStub, "GetModuleFileNameW");
+		for (const auto& h : g_launcherHooks)
+		{
+			hook::iat(std::get<0>(h), std::get<1>(h), std::get<2>(h));
+		}
 
-		hook::iat("ole32.dll", CoCreateInstanceStub, "CoCreateInstance");
-		hook::iat("kernel32.dll", CreateProcessAStub, "CreateProcessA");
-		hook::iat("kernel32.dll", CreateProcessWStub, "CreateProcessW");
-
-		HMODULE hSteam = LoadLibrary(L"C:\\Program Files\\Rockstar Games\\Launcher\\steam_api64.dll");
+		// we want to patch the steam_api64.dll that'll be used by MTL
+		HMODULE hSteam = LoadLibrary(MakeRelativeCitPath(L"\\data\\game-storage\\launcher\\ThirdParty\\Steam\\steam_api64.dll").c_str());
 
 		if (hSteam)
 		{
@@ -643,6 +863,10 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			MH_CreateHook(GetProcAddress(hSteam, "SteamAPI_Init"), ReturnFalse, NULL);
 			MH_EnableHook(MH_ALL_HOOKS);
 		}
+		else
+		{
+			trace("MTL steam_api64.dll faled to load: %d\n", GetLastError());
+		}
 
 		{
 			DisableToolHelpScope scope;
@@ -650,6 +874,14 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			MH_CreateHookApi(L"kernel32.dll", "GetComputerNameExW", GetComputerNameExWStub, NULL);
 			MH_CreateHookApi(L"kernel32.dll", "GetLogicalDriveStringsW", GetLogicalDriveStringsWStub, NULL);
 			MH_CreateHookApi(L"kernel32.dll", "GetLogicalDrives", GetLogicalDrivesStub, NULL);
+
+#ifdef _DEBUG
+			MH_CreateHook(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 48 83 EC 28 48 8D"), LogStuff, NULL);
+#endif
+
+			MH_CreateHook(hook::get_pattern("48 8D B9 78 0A 00 00 45 8A F1 45 8B F8", -0x25), CreateSimpleAllocatorHook<&smpaCtor1>, (void**)&smpaCtor1);
+			MH_CreateHook(hook::get_pattern("48 8D B9 78 0A 00 00 45 8B F1 4C", -0x25), CreateSimpleAllocatorHook<&smpaCtor2>, (void**)&smpaCtor2);
+
 			MH_EnableHook(MH_ALL_HOOKS);
 		}
 #endif
@@ -667,9 +899,9 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
 		if (boost::filesystem::exists(appDataPath, ec))
 		{
-			for (boost::filesystem::directory_iterator it(appDataPath); it != boost::filesystem::directory_iterator(); it++)
+			for(auto& entry : boost::make_iterator_range(boost::filesystem::directory_iterator(appDataPath), {}))
 			{
-				auto path = it->path();
+				auto path = entry.path();
 
 				if (path.filename().string().find("in-", 0) == 0 || path.filename().string().find("out-", 0) == 0)
 				{
@@ -794,21 +1026,11 @@ static InitFunction initFunctionF([]()
 	MH_EnableHook(MH_ALL_HOOKS);
 });
 
-#include <CrossBuildRuntime.h>
-
 static HookFunction hookFunction([] ()
 {
 	if (!IsWindows7SP1OrGreater())
 	{
 		FatalError("Windows 7 SP1 or higher is required to run the FiveM ros:five component.");
-	}
-
-	
-	if (xbr::IsGameBuild<372>())
-	{
-		hook::iat("crypt32.dll", CertGetNameStringStubW, "CertGetNameStringW");
-		hook::iat("crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA");
-		hook::iat("wintrust.dll", WinVerifyTrustStub, "WinVerifyTrust");
 	}
 
 	// newer SC SDK will otherwise overflow in cert name

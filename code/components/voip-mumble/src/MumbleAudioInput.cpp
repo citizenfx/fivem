@@ -20,6 +20,10 @@
 
 extern "C"
 {
+#if __has_include(<rnnoise.h>)
+#include <rnnoise.h>
+#endif
+
 #include <libswresample/swresample.h>
 };
 
@@ -27,7 +31,9 @@ MumbleAudioInput::MumbleAudioInput()
 	: m_likelihood(MumbleVoiceLikelihood::ModerateLikelihood), m_ptt(false), m_mode(MumbleActivationMode::VoiceActivity), m_deviceId(""), m_audioLevel(0.0f),
 	  m_avr(nullptr), m_opus(nullptr), m_apm(nullptr), m_isTalking(false), m_lastBitrate(48000), m_curBitrate(48000)
 {
-
+#if __has_include(<rnnoise.h>)
+	m_denoiseState = rnnoise_create(NULL);
+#endif
 }
 
 enum class InputIntentMode {
@@ -42,6 +48,8 @@ void MumbleAudioInput::Initialize()
 {
 	m_bitrateVar = std::make_shared<ConVar<int>>("voice_inBitrate", ConVar_None, m_curBitrate, &m_curBitrate);
 	m_bitrateVar->GetHelper()->SetConstraints(16000, 128000);
+
+	m_denoiseVar = std::make_shared<ConVar<bool>>("voice_enableNoiseSuppression", ConVar_Archive, m_denoise, &m_denoise);
 
 	m_startEvent = CreateEvent(0, 0, 0, 0);
 
@@ -88,15 +96,15 @@ void MumbleAudioInput::ThreadFunc()
 {
 	SetThreadName(-1, "[Mumble] Audio Input Thread");
 
+	HANDLE mmcssHandle;
+	DWORD mmcssTaskIndex;
+
+	mmcssHandle = AvSetMmThreadCharacteristics(L"Capture", &mmcssTaskIndex);
+
+	AvSetMmThreadPriority(mmcssHandle, AVRT_PRIORITY_HIGH);
+
 	// initialize COM for the current thread
 	CoInitialize(nullptr);
-
-	HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_INPROC_SERVER, IID_IMMDeviceEnumerator, (void**)m_mmDeviceEnumerator.GetAddressOf());
-
-	if (FAILED(hr))
-	{
-		return;
-	}
 
 	InitializeAudioDevice();
 
@@ -113,7 +121,7 @@ void MumbleAudioInput::ThreadFunc()
 		m_audioClient->Start();
 	}
 
-	m_audioBuffer.resize((m_waveFormat.nSamplesPerSec / 100) * m_waveFormat.nBlockAlign);
+	m_audioBuffer.resize((static_cast<std::vector<uint8_t>::size_type>(m_waveFormat.nSamplesPerSec / 100)) * m_waveFormat.nBlockAlign);
 
 	bool recreateDevice = false;
 
@@ -161,7 +169,10 @@ void MumbleAudioInput::ThreadFunc()
 		{
 			InitializeAudioDevice();
 
-			if (m_audioCaptureClient.Get())
+			// @FIX(pasta-wolfram-mockingbird): Ensure the audio client has been
+			// created. If m_audioCaptureClient is null then HandleIncomingAudio
+			// will return E_NOT_VALID_STATE and force another recreation cycle.
+			if (m_audioCaptureClient.Get() && m_audioClient.Get())
 			{
 				m_audioClient->Start();
 			}
@@ -259,6 +270,35 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 		for (int off = 0; off < frameSize; off += 10)
 		{
 			int frameStart = (off * 48 * sizeof(int16_t)); // 1ms = 48 samples
+
+#if __has_include(<rnnoise.h>)
+			if (m_denoise && g_curInputIntentMode == InputIntentMode::SPEECH)
+			{
+				// mirroring https://github.com/mumble-voip/mumble/blob/16a495430054e2c8e059715a57406b373b2d7ef2/src/mumble/AudioInput.cpp#L916
+
+				/// Clip the given float value to a range that can be safely converted into a short (without causing integer overflow)
+				auto clampFloatSample = [](float v) -> short
+				{
+					return static_cast<short>(std::min(std::max(v, static_cast<float>(std::numeric_limits<short>::min())),
+					static_cast<float>(std::numeric_limits<short>::max())));
+				};
+
+				int16_t* psSource = reinterpret_cast<int16_t*>(&m_resampledBytes[frameStart]);
+
+				float denoiseFrames[480];
+				for (int i = 0; i < 480; i++)
+				{
+					denoiseFrames[i] = psSource[i];
+				}
+
+				rnnoise_process_frame(m_denoiseState, denoiseFrames, denoiseFrames);
+
+				for (int i = 0; i < 480; i++)
+				{
+					psSource[i] = clampFloatSample(denoiseFrames[i]);
+				}
+			}
+#endif
 
 			// is this voice?
 			webrtc::AudioFrame frame;
@@ -477,6 +517,8 @@ WRL::ComPtr<IMMDevice> GetMMDeviceFromGUID(bool input, const std::string& guid);
 
 void DuckingOptOut(WRL::ComPtr<IMMDevice> device);
 
+extern std::mutex g_mmDeviceMutex;
+
 void MumbleAudioInput::InitializeAudioDevice()
 {
 	// destroy
@@ -501,43 +543,68 @@ void MumbleAudioInput::InitializeAudioDevice()
 	HRESULT hr = 0;
 	ComPtr<IMMDevice> device;
 
-	std::string lastDeviceId;
-
-	while (!device.Get())
+	// same Steam race condition workaround as in MumbleAudioOutput.cpp
 	{
-		if (m_deviceId.empty())
+		if (!m_mmDeviceEnumerator)
 		{
-			if (FAILED(hr = m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, device.ReleaseAndGetAddressOf())))
+			std::unique_lock _(g_mmDeviceMutex);
+			HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_INPROC_SERVER, IID_IMMDeviceEnumerator, (void**)m_mmDeviceEnumerator.GetAddressOf());
+
+			if (FAILED(hr))
 			{
-				console::DPrintf("voip:mumble", __FUNCTION__ ": Obtaining default audio endpoint failed. HR = 0x%08x\n", hr);
-
-				// retry with the last device in case the only device was intermittently unplugged
-				// #TODO: retry default device on change/preferred device on return
-				Sleep(5000);
-
-				m_deviceId = lastDeviceId;
+				return;
 			}
 		}
-		else
+
+		std::string lastDeviceId;
+
+		while (!device.Get())
 		{
-			device = GetMMDeviceFromGUID(true, m_deviceId);
-
-			if (!device)
+			if (m_deviceId.empty())
 			{
-				lastDeviceId = m_deviceId;
+				{
+					std::unique_lock _(g_mmDeviceMutex);
+					hr = m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, device.ReleaseAndGetAddressOf());
+				}
 
-				trace(__FUNCTION__ ": Obtaining audio device for %s failed.\n", m_deviceId);
-				m_deviceId = "";
+				if (FAILED(hr))
+				{
+					console::DPrintf("voip:mumble", __FUNCTION__ ": Obtaining default audio endpoint failed. HR = 0x%08x\n", hr);
+
+					// retry with the last device in case the only device was intermittently unplugged
+					// #TODO: retry default device on change/preferred device on return
+					Sleep(5000);
+
+					m_deviceId = lastDeviceId;
+				}
+			}
+			else
+			{
+				{
+					std::unique_lock _(g_mmDeviceMutex);
+					device = GetMMDeviceFromGUID(true, m_deviceId);
+				}
+
+				if (!device)
+				{
+					lastDeviceId = m_deviceId;
+
+					trace(__FUNCTION__ ": Obtaining audio device for %s failed.\n", m_deviceId);
+					m_deviceId = "";
+				}
 			}
 		}
-	}
 
-	DuckingOptOut(device);
+		{
+			std::unique_lock _(g_mmDeviceMutex);
+			DuckingOptOut(device);
 
-	if (FAILED(hr = device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER, nullptr, (void**)m_audioClient.ReleaseAndGetAddressOf())))
-	{
-		trace(__FUNCTION__ ": Activating IAudioClient for capture device failed. HR = %08x\n", hr);
-		return;
+			if (FAILED(hr = device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER, nullptr, (void**)m_audioClient.ReleaseAndGetAddressOf())))
+			{
+				trace(__FUNCTION__ ": Activating IAudioClient for capture device failed. HR = %08x\n", hr);
+				return;
+			}
+		}
 	}
 
 	WAVEFORMATEX* waveFormat;
@@ -665,7 +732,7 @@ void MumbleAudioInput::Enable()
 void MumbleAudioInput::ThreadStart(MumbleAudioInput* instance)
 {
 	HANDLE mmcssHandle;
-	DWORD mmcssTaskIndex;
+	DWORD mmcssTaskIndex = 0;
 
 	mmcssHandle = AvSetMmThreadCharacteristics(L"Pro Audio", &mmcssTaskIndex);
 	instance->ThreadFunc();

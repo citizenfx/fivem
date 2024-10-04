@@ -15,8 +15,9 @@ import { GameServerMode } from "./game-server-interface";
 import { GameServerIPC } from './game-server-ipc';
 import { GameServerManagerService } from './game-server-manager-service';
 import { GameServerResourcesReconciler } from './game-server-resources-reconciler';
-import { GameServerRuntime, ServerResourceDescriptor, ServerStartRequest } from './game-server-runtime';
+import { GameServerRuntime, ServerResourceDescriptor, ServerStartRequest, ServerVariableDescriptor } from './game-server-runtime';
 import { getResourceNames, getResourceUrl, getResourceUrls } from './game-server-utils';
+import { ScopedLogService } from 'backend/logger/scoped-logger';
 
 @injectable()
 export class GameServerFxdkMode implements GameServerMode {
@@ -35,8 +36,7 @@ export class GameServerFxdkMode implements GameServerMode {
   @inject(ApiClient)
   protected readonly apiClient: ApiClient;
 
-  @inject(LogService)
-  protected readonly logService: LogService;
+  protected readonly logService = new ScopedLogService('GameServerFxdkMode');
 
   @inject(FsService)
   protected readonly fsService: FsService;
@@ -130,6 +130,18 @@ export class GameServerFxdkMode implements GameServerMode {
     }
   }
 
+  setVariables(variables: ServerVariableDescriptor[]) {
+    const reconciled = this.reconciler.setVariables(variables);
+
+    if (reconciled.unset.length) {
+      reconciled.unset.forEach((variable) => this.unsetVariable(variable));
+    }
+
+    if (reconciled.set.length) {
+      reconciled.set.forEach((variable) => this.setVariable(variable));
+    }
+  }
+
   async startResource(resourceName: string) {
     try {
       const started = await this.ipc.rpc('start', resourceName);
@@ -220,6 +232,13 @@ export class GameServerFxdkMode implements GameServerMode {
     this.resourcesStateTicker.whenTickEnds(() => this.apiClient.emit(serverApi.resourcesState, this.resourcesState));
   }
 
+  setVariable(variable: ServerVariableDescriptor) {
+    this.acceptCommand(`${variable.setter} ${JSON.stringify(variable.name)} ${JSON.stringify(variable.value)}`);
+  }
+  unsetVariable(variable: ServerVariableDescriptor) {
+    this.acceptCommand(`${variable.setter} ${JSON.stringify(variable.name)} ""`);
+  }
+
   private loadResources(resources: ServerResourceDescriptor[]): Promise<void> {
     return this.loadResourcesByUrls(getResourceUrls(resources));
   }
@@ -256,6 +275,7 @@ export class GameServerFxdkMode implements GameServerMode {
     this.disposableContainer.add(
       this.gameServerRuntime.onSendCommand((cmd: string) => this.acceptCommand(cmd)),
       this.gameServerRuntime.onSetResources((resources: ServerResourceDescriptor[]) => this.setResources(resources)),
+      this.gameServerRuntime.onSetVariables((variables: ServerVariableDescriptor[]) => this.setVariables(variables)),
       this.gameServerRuntime.onStartResource((resourceName: string) => this.startResource(resourceName)),
       this.gameServerRuntime.onStopResource((resourceName: string) => this.stopResource(resourceName)),
       this.gameServerRuntime.onRestartResource((resourceName: string) => this.restartResource(resourceName)),
@@ -285,6 +305,8 @@ export class GameServerFxdkMode implements GameServerMode {
         this.onCloseEvent.emit(error);
       }
     };
+
+    this.shellCommand.onStdout((data) => this.logService.log(`[FXSERVER STDOUT] ${data}`));
 
     this.shellCommand.onClose(() => closeErrorHandler());
     this.shellCommand.onError(closeErrorHandler);
@@ -367,10 +389,14 @@ export class GameServerFxdkMode implements GameServerMode {
       ],
     };
 
+    const variableDescriptors = this.gameServerRuntime.getVariables();
+    this.reconciler.setInitialVariables(variableDescriptors);
+    variableDescriptors.forEach((variable) => {
+      this.setVariable(variable);
+    });
+
     const resourceDescriptors = this.gameServerRuntime.getResources();
-
     this.reconciler.setInitialResources(resourceDescriptors);
-
     resourceDescriptors.forEach((descriptor) => {
       resources.names.push(descriptor.name);
       resources.urls.push(getResourceUrl(descriptor));

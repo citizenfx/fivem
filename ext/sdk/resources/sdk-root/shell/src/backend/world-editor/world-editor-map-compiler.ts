@@ -86,7 +86,7 @@ export class WorldEditorMapCompiler {
 
       Object.entries(data.map.patches).forEach(([mapdata, entities]) => {
         loaders.push(
-          `case ${mapdata}:`,
+          `case ${mapdata}:{`,
           'const m=GetMapdataFromHashKey(md);',
         );
 
@@ -112,7 +112,7 @@ export class WorldEditorMapCompiler {
         });
 
         loaders.push(
-          'break',
+          'break}',
         );
       });
 

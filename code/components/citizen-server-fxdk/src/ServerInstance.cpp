@@ -10,7 +10,7 @@
 
 #include <OptionParser.h>
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <ComponentLoader.h>
 
@@ -38,12 +38,12 @@ namespace fx
 		timeBeginPeriod(1);
 #endif
 
-		boost::filesystem::path rootPath;
+		std::filesystem::path rootPath;
 		try
 		{
-			rootPath = boost::filesystem::canonical(".");
+			rootPath = std::filesystem::canonical(".");
 
-			m_rootPath = rootPath.string();
+			m_rootPath = rootPath.u8string();
 		}
 		catch (std::exception&)
 		{

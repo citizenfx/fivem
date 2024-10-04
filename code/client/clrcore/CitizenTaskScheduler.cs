@@ -26,24 +26,31 @@ namespace CitizenFX.Core
 		{
 			var flowBlock = CitizenTaskScheduler.SuppressFlow();
 
-			Action[] tasks;
-
-			lock (m_scheduledTasks)
+			try
 			{
-				tasks = m_scheduledTasks.ToArray();
-				m_scheduledTasks.Clear();
+				Action[] tasks;
+
+				lock (m_scheduledTasks)
+				{
+					tasks = m_scheduledTasks.ToArray();
+					m_scheduledTasks.Clear();
+				}
+
+				foreach (var task in tasks)
+				{
+					try
+					{
+						task();
+					}
+					catch (Exception e)
+					{
+						InternalManager.PrintErrorInternal($"task continuation", e);
+					}
+				}
 			}
-
-			foreach (var task in tasks)
+			finally
 			{
-				try
-				{
-					task();
-				}
-				catch (Exception e)
-				{
-					Debug.WriteLine($"Exception during executing Post callback: {e}");
-				}
+
 			}
 
 			flowBlock?.Undo();

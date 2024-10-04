@@ -353,7 +353,9 @@ export class ProjectBuilder implements ApiContribution {
         `set steam_webApiKey "${buildInfo.steamWebApiKey}"`,
         `sv_tebexSecret "${buildInfo.tebexSecret}"`,
         ``,
-        ...this.projectAccess.getInstance().getAssetsConvarCommands(),
+        [...this.projectAccess.getInstance().getAssetsConvarDescriptors()].map((variable) => (
+          `${variable.setter} ${JSON.stringify(variable.name)} ${JSON.stringify(variable.value)}`
+        )),
         ``
       ];
 

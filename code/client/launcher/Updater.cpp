@@ -23,6 +23,8 @@
 #include <openssl/sha.h>
 #include <boost/algorithm/string.hpp>
 
+#include "launcher_version.h"
+
 struct cache_t
 {
 	std::string name;
@@ -273,7 +275,7 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 
 		if (result != 0 && !success)
 		{
-			MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the game version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			UI_DisplayError(va(L"An error (%i, %s) occurred while checking the game version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())));
 			return false;
 		}
 
@@ -309,13 +311,44 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	cacheFile_t localCacheFile;
 	std::list<std::tuple<std::optional<cache_ptr>, cache_ptr>> needsUpdate;
 
-	// workaround: if the user removed citizen/, make sure we re-verify, as that's just silly
+	// workaround: if the user removed citizen/ (or its contents), make sure we re-verify, as that's just silly
 	bool shouldVerify = false;
 
-	if (GetFileAttributesW(MakeRelativeCitPath(L"citizen/").c_str()) == INVALID_FILE_ATTRIBUTES)
+	if (GetFileAttributesW(MakeRelativeCitPath(L"citizen/").c_str()) == INVALID_FILE_ATTRIBUTES ||
+		GetFileAttributesW(MakeRelativeCitPath(L"citizen/version.txt").c_str()) == INVALID_FILE_ATTRIBUTES ||
+		GetFileAttributesW(MakeRelativeCitPath(L"citizen/release.txt").c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 		shouldVerify = true;
 	}
+
+	// if citizen/ got overwritten with a 'weird' incompatible/way too old version, also verify
+#if defined(EXE_VERSION) && EXE_VERSION > 1
+	{
+		FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
+
+		if (f)
+		{
+			char ver[128];
+
+			fgets(ver, sizeof(ver), f);
+			fclose(f);
+
+			int version = atoi(ver);
+			if (version < EXE_VERSION)
+			{
+				shouldVerify = true;
+			}
+		}
+	}
+#endif
+
+	// additional check for Five/RDR
+#if defined(GTA_FIVE) || defined(IS_RDR3)
+	if (GetFileAttributesW(MakeRelativeCitPath(L"citizen/ros/ros.crt").c_str()) == INVALID_FILE_ATTRIBUTES)
+	{
+		shouldVerify = true;
+	}
+#endif
 
 	FILE* cachesReader = NULL;
 	
@@ -583,7 +616,6 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 	bool fileOutdated = true;
 
 	HANDLE hFile = CreateFile(fileName, GENERIC_READ | SYNCHRONIZE, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
-	HANDLE hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 	if (hFile != INVALID_HANDLE_VALUE)
 	{
@@ -642,13 +674,13 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 				overlapped.OffsetHigh = fileOffset >> 32;
 				overlapped.Offset = fileOffset;
 
-				char buffer[131072];
-				if (ReadFile(hFile, buffer, sizeof(buffer), NULL, &overlapped) == FALSE)
+				std::vector<char> buffer(131072);
+				if (ReadFile(hFile, buffer.data(), buffer.size(), NULL, &overlapped) == FALSE)
 				{
 					if (GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_HANDLE_EOF)
 					{
 						UI_DisplayError(va(L"Reading of %s failed with error %i.", fileName, GetLastError()));
-						return false;
+						return true;
 					}
 
 					if (GetLastError() == ERROR_HANDLE_EOF)
@@ -686,9 +718,9 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 				BOOL olResult = GetOverlappedResult(hFile, &overlapped, &bytesRead, FALSE);
 				DWORD err = GetLastError();
 
-				SHA1_Update(&ctx, (uint8_t*)buffer, bytesRead);
+				SHA1_Update(&ctx, (uint8_t*)buffer.data(), bytesRead);
 
-				if (bytesRead < sizeof(buffer) || (!olResult && err == ERROR_HANDLE_EOF))
+				if (bytesRead < buffer.size() || (!olResult && err == ERROR_HANDLE_EOF))
 				{
 					doneReading = true;
 				}
@@ -713,17 +745,17 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 
 			*fileStart += fileOffset;
 
-			uint8_t outHash[20];
-			SHA1_Final(outHash, &ctx);
+			std::array<uint8_t, 20> outHash;
+			SHA1_Final(outHash.data(), &ctx);
 
 			if (foundHash)
 			{
-				memcpy(foundHash->data(), outHash, foundHash->size());
+				*foundHash = outHash;
 			}
 
 			for (auto& hash : validHashes)
 			{
-				if (memcmp(hash.data(), outHash, 20) == 0)
+				if (hash == outHash)
 				{
 					fileOutdated = false;
 				}
@@ -733,15 +765,25 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 		CloseHandle(hFile);
 	}
 
-	CloseHandle(hEvent);
-
 	return fileOutdated;
+}
+
+static std::string updateChannel;
+
+void ResetUpdateChannel()
+{
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		WritePrivateProfileString(L"Game", L"UpdateChannel", L"production", fpath.c_str());
+	}
+
+	updateChannel = "";
 }
 
 const char* GetUpdateChannel()
 {
-	static std::string updateChannel;
-
 	if (!updateChannel.size())
 	{
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
@@ -764,6 +806,21 @@ const char* GetUpdateChannel()
 		if (updateChannel == "prod")
 		{
 			updateChannel = "production";
+		}
+
+		// check file age, and revert to 'beta' if it's old
+		if (updateChannel == "canary")
+		{
+			struct _stati64 st;
+			if (_wstati64(fpath.c_str(), &st) >= 0)
+			{
+				// Mon Jan 03 2022 12:00:00 GMT+0000
+				if (st.st_mtime < 1641211200)
+				{
+					updateChannel = "beta";
+					WritePrivateProfileString(L"Game", L"UpdateChannel", L"beta", fpath.c_str());
+				}
+			}
 		}
 	}
 

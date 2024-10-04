@@ -16,6 +16,8 @@
 
 #include <ConsoleHost.h>
 
+#include <net/PacketNames.h>
+
 #include <imgui.h>
 #include <imguivariouscontrols.h>
 
@@ -32,12 +34,11 @@ const int g_netOverlaySampleCount = 150;
 class RageHashList
 {
 public:
-	template<int Size>
-	RageHashList(const char* (&list)[Size])
+	RageHashList()
 	{
-		for (int i = 0; i < Size; i++)
+		for (const auto packet : net::PacketNames)
 		{
-			m_lookupList.insert({ HashRageString(list[i]), list[i] });
+			m_lookupList.emplace(packet);
 		}
 	}
 
@@ -57,36 +58,7 @@ private:
 	std::map<uint32_t, std::string_view> m_lookupList;
 };
 
-static const char* g_knownPackets[]
-{
-	"msgConVars",
-	"msgEnd",
-	"msgEntityCreate",
-	"msgNetGameEvent",
-	"msgObjectIds",
-	"msgPackedAcks",
-	"msgPackedClones",
-	"msgPaymentRequest",
-	"msgRequestObjectIds",
-	"msgResStart",
-	"msgResStop",
-	"msgRoute",
-	"msgRpcEntityCreation",
-	"msgRpcNative",
-	"msgServerCommand",
-	"msgServerEvent",
-	"msgTimeSync",
-	"msgTimeSyncReq",
-	"msgWorldGrid",
-	"msgFrame",
-	"msgIHost",
-	"gameStateAck",
-	"gameStateNAck",
-	"msgNetEvent",
-	"msgServerEvent",
-};
-
-static RageHashList g_hashes{ g_knownPackets };
+static RageHashList g_hashes;
 
 class NetOverlayMetricSink : public INetMetricSink
 {
@@ -243,14 +215,15 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 			return;
 		}
 
-		auto& io = ImGui::GetIO();
+		int x, y;
+		GetGameResolution(x, y);
 
 		ImGui::SetNextWindowBgAlpha(0.0f);
-		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + io.DisplaySize.x + g_netOverlayOffsetX, ImGui::GetMainViewport()->Pos.y + io.DisplaySize.y + g_netOverlayOffsetY), ImGuiCond_Once, ImVec2(1.0f, 1.0f));
+		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + x + g_netOverlayOffsetX, ImGui::GetMainViewport()->Pos.y + y + g_netOverlayOffsetY), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
 		ImGui::SetNextWindowSize(ImVec2(g_netOverlayWidth, g_netOverlayHeight));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-		if (ImGui::Begin("NetGraph", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize))
+		if (ImGui::Begin("NetGraph", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoScrollbar))
 		{
 			// draw the graph
 			DrawGraph();
@@ -269,7 +242,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 		UpdateMetrics();
 	}, 50);
 
-	static ConVar<bool> commandVar("net_showCommands", ConVar_Archive, false, &m_enabledCommands);
+	static ConVar<bool> commandVar("net_showCommands", ConVar_Archive | ConVar_UserPref, false, &m_enabledCommands);
 
 	ConHost::OnShouldDrawGui.Connect([this](bool* should)
 	{
@@ -300,7 +273,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 					ImGui::Text("%s", (reliable.find(entry.first)->second ? "R" : "U"));
 					ImGui::NextColumn();
 
-					ImGui::Text("%s", g_hashes.LookupHash(entry.first));
+					ImGui::Text("%s", g_hashes.LookupHash(entry.first).c_str());
 					ImGui::NextColumn();
 
 					ImGui::Text("%d B", entry.second);
@@ -328,7 +301,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 				{
 					if (i < m_lastIncomingData.size())
 					{
-						ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastIncomingData[i])), std::get<1>(m_lastIncomingData[i]));
+						ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastIncomingData[i])).c_str(), std::get<1>(m_lastIncomingData[i]));
 					}
 					else
 					{
@@ -339,7 +312,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 
 					if (i < m_lastOutgoingData.size())
 					{
-						ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastOutgoingData[i])), std::get<1>(m_lastOutgoingData[i]));
+						ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastOutgoingData[i])).c_str(), std::get<1>(m_lastOutgoingData[i]));
 					}
 					else
 					{
@@ -610,13 +583,6 @@ ImColor NetOverlayMetricSink::GetColorIndex(int index)
 
 void NetOverlayMetricSink::DrawBaseMetrics()
 {
-	// positioning
-	int x = GetOverlayLeft();
-	int y = GetOverlayTop() + (g_netOverlayHeight - 100) + 10;
-
-	CRGBA color(255, 255, 255);
-	CRect rect(x, y, x + (g_netOverlayWidth / 2), y + 100);
-
 	// collecting
 	int ping = m_ping;
 	int inPackets = m_lastInPackets;
@@ -632,9 +598,6 @@ void NetOverlayMetricSink::DrawBaseMetrics()
 	//
 	// second column
 	//
-
-	// positioning
-	rect.SetRect(rect.fX2, rect.fY1, rect.fX2 + (g_netOverlayWidth / 2), rect.fY2);
 
 	// collecting
 	int inBytes = m_lastInBytes;

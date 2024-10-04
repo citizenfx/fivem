@@ -4,6 +4,7 @@
 #include <StdInc.h>
 #include <GlobalInput.h>
 #include <CL2LaunchMode.h>
+#include <USKeyboardMapping.h>
 
 #include <hidsdi.h>
 #include <hidpi.h>
@@ -125,7 +126,7 @@ LRESULT GlobalInputHandlerLocal::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam
 				case RIM_TYPEHID:
 				{
 					const RAWHID& hid = input->data.hid;
-					std::vector<char> reports(hid.dwSizeHid * hid.dwCount);
+					std::vector<char> reports(static_cast<std::vector<char>::size_type>(hid.dwSizeHid) * hid.dwCount);
 					memcpy(reports.data(), hid.bRawData, reports.size());
 
 					// no-op
@@ -140,12 +141,6 @@ LRESULT GlobalInputHandlerLocal::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam
 	}
 
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
-}
-
-static auto GetUSKeyboard()
-{
-	static HKL usKeyboard = LoadKeyboardLayoutW(L"00000409", 0);
-	return usKeyboard;
 }
 
 static uint16_t MapGameE1(const uint16_t virtualKey)
@@ -181,114 +176,6 @@ static uint16_t MapGameE1(const uint16_t virtualKey)
 	}
 
 	return MapVirtualKey(virtualKey, MAPVK_VK_TO_VSC) | extFlag;
-}
-
-static uint16_t MapGameKey(const uint16_t virtualKey, const uint16_t scanCode, bool isE0)
-{
-	if (virtualKey == VK_PAUSE)
-	{
-		return VK_PAUSE;
-	}
-
-	auto newVk = MapVirtualKeyExW(scanCode, MAPVK_VSC_TO_VK, GetUSKeyboard());
-
-	switch (newVk)
-	{
-		// numpad distinction
-		case VK_HOME:
-			if (!isE0)
-			{
-				newVk = VK_NUMPAD7;
-			}
-			break;
-		case VK_PRIOR:
-			if (!isE0)
-			{
-				newVk = VK_NUMPAD9;
-			}
-			break;
-		case VK_CLEAR:
-			if (!isE0)
-			{
-				newVk = VK_NUMPAD5;
-			}
-			break;
-		case VK_NEXT:
-			if (!isE0)
-			{
-				newVk = VK_NUMPAD3;
-			}
-			break;
-		case VK_END:
-			if (!isE0)
-			{
-				newVk = VK_NUMPAD1;
-			}
-			break;
-		case VK_LEFT:
-			if (!isE0)
-			{
-				newVk = VK_NUMPAD4;
-			}
-			break;
-		case VK_RIGHT:
-			if (!isE0)
-			{
-				newVk = VK_NUMPAD6;
-			}
-			break;
-		case VK_UP:
-			if (!isE0)
-			{
-				newVk = VK_NUMPAD8;
-			}
-			break;
-		case VK_DOWN:
-			if (!isE0)
-			{
-				newVk = VK_NUMPAD2;
-			}
-			break;
-		case VK_INSERT:
-			if (!isE0)
-			{
-				newVk = VK_NUMPAD0;
-			}
-			break;
-		case VK_DELETE:
-			if (!isE0)
-			{
-				newVk = VK_DECIMAL;
-			}
-			break;
-		case VK_MULTIPLY:
-			if (isE0)
-			{
-				newVk = VK_SNAPSHOT;
-			}
-			break;
-		case VK_NUMLOCK:
-			if (!isE0)
-			{
-				newVk = VK_PAUSE;
-			}
-			break;
-		case VK_RETURN:
-			newVk = (isE0) ? VK_PA1 : VK_RETURN;
-			break;
-		// left/right keys
-		case VK_SHIFT:
-			newVk = MapVirtualKeyW(scanCode, MAPVK_VSC_TO_VK_EX);
-			break;
-		case VK_CONTROL:
-			newVk = (isE0) ? VK_RCONTROL : VK_LCONTROL;
-			break;
-		case VK_MENU:
-			newVk = (isE0) ? VK_RMENU : VK_LMENU;
-			break;
-	}
-
-	return newVk;
 }
 
 void GlobalInputHandlerLocal::KeyboardMessage(const uint16_t flags, uint16_t scanCode, const uint16_t virtualKey)

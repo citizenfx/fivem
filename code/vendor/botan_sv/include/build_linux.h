@@ -2,23 +2,26 @@
 #define BOTAN_BUILD_CONFIG_H_
 
 /*
-* This file was automatically generated running
-* 'configure.py --disable-modules=win32_stats,proc_walk --amalgamation --os=linux'
+* Build configuration for Botan 2.19.5
+*
+* Automatically generated from
+* 'configure.py --disable-modules=win32_stats,proc_walk --amalgamation --cc=clang --os=linux --cc-min-version=11.0'
 *
 * Target
-*  - Compiler: g++ -fstack-protector -pthread -std=c++11 -D_REENTRANT -O3
+*  - Compiler: clang++ -fstack-protector -pthread -std=c++11 -D_REENTRANT -O3
 *  - Arch: x86_64
 *  - OS: linux
 */
 
 #define BOTAN_VERSION_MAJOR 2
-#define BOTAN_VERSION_MINOR 12
-#define BOTAN_VERSION_PATCH 1
-#define BOTAN_VERSION_DATESTAMP 0
+#define BOTAN_VERSION_MINOR 19
+#define BOTAN_VERSION_PATCH 5
+#define BOTAN_VERSION_DATESTAMP 20240708
 
-#define BOTAN_VERSION_RELEASE_TYPE "unreleased"
 
-#define BOTAN_VERSION_VC_REVISION "git:1a6ad661ce64287ccbe26460ccc3aa4247d86ba8"
+#define BOTAN_VERSION_RELEASE_TYPE "release"
+
+#define BOTAN_VERSION_VC_REVISION "git:935055e839794a076d209c9e9a1e9cd2255aae01"
 
 #define BOTAN_DISTRIBUTION_INFO "unspecified"
 
@@ -27,8 +30,8 @@
 
 
 #define BOTAN_INSTALL_PREFIX R"(/usr/local)"
-#define BOTAN_INSTALL_HEADER_DIR "include/botan-2"
-#define BOTAN_INSTALL_LIB_DIR "/usr/local/lib"
+#define BOTAN_INSTALL_HEADER_DIR R"(include/botan-2)"
+#define BOTAN_INSTALL_LIB_DIR R"(/usr/local\lib)"
 #define BOTAN_LIB_LINK "-ldl -lrt"
 #define BOTAN_LINK_FLAGS "-fstack-protector -pthread"
 
@@ -41,6 +44,7 @@
 
 #define BOTAN_TARGET_OS_IS_LINUX
 
+#define BOTAN_TARGET_OS_HAS_ATOMICS
 #define BOTAN_TARGET_OS_HAS_CLOCK_GETTIME
 #define BOTAN_TARGET_OS_HAS_DEV_RANDOM
 #define BOTAN_TARGET_OS_HAS_FILESYSTEM
@@ -53,7 +57,7 @@
 #define BOTAN_TARGET_OS_HAS_THREADS
 
 
-#define BOTAN_BUILD_COMPILER_IS_GCC
+#define BOTAN_BUILD_COMPILER_IS_CLANG
 
 
 
@@ -94,7 +98,8 @@
 #define BOTAN_HAS_AES_NI 20131128
 #define BOTAN_HAS_AES_VPERM 20190901
 #define BOTAN_HAS_ANSI_X919_MAC 20131128
-#define BOTAN_HAS_ARGON2 20190824
+#define BOTAN_HAS_ARGON2 20210407
+#define BOTAN_HAS_ARGON2_SSSE3 20220303
 #define BOTAN_HAS_ARIA 20170415
 #define BOTAN_HAS_ASN1 20171109
 #define BOTAN_HAS_AUTO_RNG 20161126
@@ -162,13 +167,13 @@
 #define BOTAN_HAS_EMSA_X931 20140118
 #define BOTAN_HAS_ENTROPY_SOURCE 20151120
 #define BOTAN_HAS_ENTROPY_SRC_DEV_RANDOM 20131128
-#define BOTAN_HAS_ENTROPY_SRC_RDRAND 20131128
 #define BOTAN_HAS_ENTROPY_SRC_RDSEED 20151218
-#define BOTAN_HAS_FFI 20180713
+#define BOTAN_HAS_FFI 20210220
 #define BOTAN_HAS_FILTERS 20160415
 #define BOTAN_HAS_FPE_FE1 20131128
-#define BOTAN_HAS_GCM_CLMUL_CPU 20131227
-#define BOTAN_HAS_GCM_CLMUL_SSSE3 20171020
+#define BOTAN_HAS_GHASH 20201002
+#define BOTAN_HAS_GHASH_CLMUL_CPU 20201002
+#define BOTAN_HAS_GHASH_CLMUL_VPERM 20201002
 #define BOTAN_HAS_GMAC 20160207
 #define BOTAN_HAS_GOST_28147_89 20131128
 #define BOTAN_HAS_GOST_34_10_2001 20131128
@@ -229,6 +234,7 @@
 #define BOTAN_HAS_PK_PADDING 20131128
 #define BOTAN_HAS_POLY1305 20141227
 #define BOTAN_HAS_POLY_DBL 20170927
+#define BOTAN_HAS_PROCESSOR_RNG 20200508
 #define BOTAN_HAS_PSK_DB 20171119
 #define BOTAN_HAS_PUBLIC_KEY_CRYPTO 20131128
 #define BOTAN_HAS_RC4 20131128
@@ -236,6 +242,7 @@
 #define BOTAN_HAS_RFC3394_KEYWRAP 20131128
 #define BOTAN_HAS_RFC6979_GENERATOR 20140321
 #define BOTAN_HAS_RIPEMD_160 20131128
+#define BOTAN_HAS_ROUGHTIME 20190220
 #define BOTAN_HAS_RSA 20160730
 #define BOTAN_HAS_SALSA20 20171114
 #define BOTAN_HAS_SCRYPT 20180902
@@ -254,6 +261,7 @@
 #define BOTAN_HAS_SHA3 20161018
 #define BOTAN_HAS_SHA3_BMI2 20190117
 #define BOTAN_HAS_SHACAL2 20170813
+#define BOTAN_HAS_SHACAL2_AVX2 20180826
 #define BOTAN_HAS_SHACAL2_SIMD 20170813
 #define BOTAN_HAS_SHACAL2_X86 20170814
 #define BOTAN_HAS_SHAKE 20161009
@@ -280,9 +288,10 @@
 #define BOTAN_HAS_THREEFISH_512_AVX2 20160903
 #define BOTAN_HAS_THRESHOLD_SECRET_SHARING 20131128
 #define BOTAN_HAS_TIGER 20131128
-#define BOTAN_HAS_TLS 20150319
+#define BOTAN_HAS_TLS 20191210
 #define BOTAN_HAS_TLS_CBC 20161008
 #define BOTAN_HAS_TLS_SESSION_MANAGER_SQL_DB 20141219
+#define BOTAN_HAS_TLS_V10 20191109
 #define BOTAN_HAS_TLS_V10_PRF 20131128
 #define BOTAN_HAS_TLS_V12_PRF 20131128
 #define BOTAN_HAS_TOTP 20180816
@@ -294,8 +303,11 @@
 #define BOTAN_HAS_X509 20180911
 #define BOTAN_HAS_X509_CERTIFICATES 20151023
 #define BOTAN_HAS_X942_PRF 20131128
-#define BOTAN_HAS_XMSS_RFC8391 20190623
+#define BOTAN_HAS_XMSS_RFC8391 20201101
 #define BOTAN_HAS_XTEA 20131128
+#define BOTAN_HAS_ZFEC 20211211
+#define BOTAN_HAS_ZFEC_SSE2 20211211
+#define BOTAN_HAS_ZFEC_VPERM 20211211
 
 
 /*
@@ -371,13 +383,10 @@
 
 /*
 * Specifies (in order) the list of entropy sources that will be used
-* to seed an in-memory RNG. The first in the default list: "rdseed"
-* and "rdrand" do not count as contributing any entropy but are
-* included as they are fast and help protect against a seriously
-* broken system RNG.
+* to seed an in-memory RNG.
 */
 #define BOTAN_ENTROPY_DEFAULT_SOURCES \
-   { "rdseed", "rdrand", "p9_darn", "getentropy", "dev_random", \
+   { "rdseed", "hwrng", "p9_darn", "getentropy", "dev_random", \
      "system_rng", "proc_walk", "system_stats" }
 
 /* Multiplier on a block cipher's native parallelism */

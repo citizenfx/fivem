@@ -1,7 +1,11 @@
 using System;
 using CitizenFX.Core;
 
+#if MONO_V2
+namespace CitizenFX.FiveM.NaturalMotion
+#else
 namespace CitizenFX.Core.NaturalMotion
+#endif
 {
 	public enum ArmDirection
 	{

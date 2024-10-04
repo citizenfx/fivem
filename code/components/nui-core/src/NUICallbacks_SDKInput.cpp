@@ -116,6 +116,11 @@ static void ExecOrQueueOp(const QueueOp& op)
 
 static InitFunction initFunction([]()
 {
+	if (!launch::IsSDK() && !launch::IsSDKGuest())
+	{
+		return;
+	}
+
 	auto nuiApp = Instance<NUIApp>::Get();
 
 	nuiApp->AddV8Handler("initRGDInput", [](const CefV8ValueList& arguments, CefString& exception)
@@ -143,6 +148,8 @@ static InitFunction initFunction([]()
 			trace("Failed to duplicate input mutex handle\n");
 			return CefV8Value::CreateBool(false);
 		}
+
+		rgd->skipKeyboardStateCopyback = true;
 
 		g_rgdInputInited = true;
 		g_runner = std::thread(QueueRunner);

@@ -103,6 +103,8 @@ constexpr const int ViewHostMsg_OnJavascriptCallbackSync = 0x2000D;
 constexpr const int ViewHostMsg_CreateIpcChannel = 0x20020;
 #endif
 
+extern void BackOffMtl();
+
 struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 {
 	HANDLE hPipe;
@@ -183,90 +185,169 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 #endif
 						;
 
-					static bool verified;
 					static bool launched;
-					static bool verifying;
+					static bool installing;
+					static bool launching;
+					static bool didUpdate;
+					static bool signInComplete;
+					static bool signInComplete2;
 					static bool launchDone;
+					static std::string updateState;
+					static HANDLE updateStateEvent = CreateEventW(NULL, TRUE, FALSE, NULL);
+
+					auto checkInstall = [this, targetTitle]()
+					{
+						if (signInComplete && installing)
+						{
+							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																						{ "Data", json::object({ { "Action", "Install" },
+																								{ "Parameter", json::object({ { "titleName", targetTitle },
+																												{ "location", "C:\\Program Files\\Rockstar Games\\Games" },
+																												{ "desktopShortcut", false },
+																												{ "startMenuShortcut", false } }) } }) } })
+																			.dump());
+
+							signInComplete = false;
+						}
+					};
+
+					auto checkLaunch = [this, targetTitle]()
+					{
+						if (updateState != "notUpdating")
+						{
+							return;
+						}
+
+						if (signInComplete2 && !launched && launching)
+						{
+							launched = true;
+
+							std::thread([this, targetTitle]()
+							{
+								// this timer *should* never actually get hit, but it's a safeguard from 'eternal stuckness'
+								WaitForSingleObject(updateStateEvent, 12500);
+
+								for (int i = 0; i < 4; i++)
+								{
+									if (launchDone || g_launchDone)
+									{
+										break;
+									}
+
+									if (updateState != "notUpdating")
+									{
+										i--;
+										Sleep(500);
+										continue;
+									}
+
+									child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({ { "Enabled", false },
+																									  { "RosTitleName", targetTitle } })
+																						 .dump());
+
+									child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																							  { "Data", json::object({ { "Action", "Launch" },
+																										{ "Parameter", json::object({ { "titleName", targetTitle },
+																													   { "args", "" } }) } }) } })
+																				 .dump());
+
+									Sleep(10000);
+								}
+							})
+							.detach();
+						}
+					};
 
 					for (json& cmd : j["Commands"])
 					{
 						auto c = cmd.value("Command", "");
 						const json& p = cmd["Parameter"];
 
-						trace("SC JS message: %s -> %s\n", c, p.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
+						// additional suffix info
+						std::string pinfo;
 
+						if (c == "SetTitleInfo")
+						{
+							pinfo = fmt::sprintf(" (%s)", p.value("titleName", ""));
+						}
+
+						trace("SC JS message: %s%s -> %s\n", c, pinfo, p.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
+
+						// main command loop
 						if (c == "SetGameLaunchState")
 						{
 							if (p.value("launchState", "") == "failed")
 							{
+								BackOffMtl();
+
 								FatalError("Failed to launch through MTL.");
 							}
 
 							launchDone = true;
 						}
-
-						if (c == "SignInComplete")
+						else if (c == "SignInComplete")
 						{
+#if 0
+							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																					  {
+																					  "Data", json::object({ { "Action", "UpdateSetting" },
+																							  { "Parameter", json::object({ { "titles", json::object({ { std::string{ targetTitle }, json::object({ { "autoUpdate", false } }) } }) } }) } }) } })
+																		 .dump());
+#endif
+
 							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
 
 																					  { "Data", json::object({ { "Action", "EnableDownloading" } }) } })
 																		 .dump());
 
-							if (verifying)
-							{
-								child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+							signInComplete = true;
+							checkInstall();
 
-													{ "Data", json::object({ { "Action", "Install" },
-															{ "Parameter", json::object({ { "titleName", targetTitle },
-																			{ "location", "C:\\Program Files\\Rockstar Games\\Games" },
-																			{ "desktopShortcut", false },
-																			{ "startMenuShortcut", false } }) } }) } })
-										.dump());
-							}
+							signInComplete2 = true;
+							checkLaunch();
 						}
 						else if (c == "SetTitleInfo") {
 							if (p.value("titleName", "") == targetTitle) {
-								if (p["status"].value("entitlement", false) && !p["status"].value("install", false) && !verified) {
-									if (!verifying) {
-										verifying = true;
+								updateState = p["status"].value("updateState", "");
+
+								if (signInComplete2)
+								{
+									if (p["status"].value("updateState", "") == "updateQueued" ||
+										p["status"].value("updateState", "") == "starting")
+									{
+										didUpdate = true;
 									}
+									else if (didUpdate && p["status"].value("updateState", "") == "notUpdating")
+									{
+										SetEvent(updateStateEvent);
+									}
+								}
+
+								if (p["status"].value("entitlement", false) && !p["status"].value("install", false) &&
+									p["status"].value("releaseState", "preload") == "available") {
+									installing = true;
+									checkInstall();
 								}
 								else if (p["status"].value("install", false) &&
 									(p["status"].value("updateState", "") == "notUpdating" ||
 										p["status"].value("updateState", "") == "updateQueued" ||
 										p["status"].value("updateState", "") == "verifyQueued"))
 								{
-									if (!launched)
-									{
-										launched = true;
+									launching = true;
+									checkLaunch();
+								}
+								else if (p["status"].value("install", false) && p["status"].value("updateState", "") == "updatePaused")
+								{
+									Sleep(150);
 
-										for (int i = 0; i < 3; i++)
-										{
-											if (launchDone || g_launchDone)
-											{
-												break;
-											}
+									child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
 
-											child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({
-												{ "Enabled", false },
-												{ "RosTitleName", targetTitle }
-												}).dump());
-
-											child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({
-												{ "EventId", 2 }, // LauncherV3UiEvent
-
-												{"Data", json::object({
-													{"Action", "Launch"},
-													{"Parameter", json::object({
-														{ "titleName", targetTitle },
-														{"args", ""}
-													})}
-												})}
-												}).dump());
-
-											Sleep(10000);
-										}
-									}
+																							  { "Data", json::object({ { "Action", "Update" },
+																										{ "Parameter", json::object({ { "titleName", targetTitle } }) } }) } })
+																				 .dump());
 								}
 							}
 						}

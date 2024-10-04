@@ -89,7 +89,7 @@ print("const _rf = Citizen.resultAsFloat();")
 print("const _rl = Citizen.resultAsLong();")
 print("const _s = Citizen.resultAsString();")
 print("const _rv = Citizen.resultAsVector();")
-print("const _ro = Citizen.resultAsObject();")
+print("const _ro = Citizen.resultAsObject2();")
 print("const _in = Citizen.invokeNativeByHash;")
 print("const _ii = Citizen.pointerValueIntInitialized;")
 print("const _fi = Citizen.pointerValueFloatInitialized;")
@@ -292,11 +292,6 @@ local function printNative(native)
 
 	local preCall = ''
 	local postCall = ''
-
-	if native.returns and native.returns.nativeType == 'object' then
-		preCall = 'global.msgpack_unpack('
-		postCall = ')'
-	end
 
 	str = str .. string.format("\treturn %s_in(%s)%s;\n", preCall, printInvocationArguments(native), postCall)
 

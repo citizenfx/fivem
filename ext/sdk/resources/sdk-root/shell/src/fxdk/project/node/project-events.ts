@@ -3,6 +3,7 @@ import { AsyncSingleEventEmitter } from "utils/singleEventEmitter";
 import { ProjectRuntime } from "./runtime/project-runtime";
 import { ProjectStateRuntime } from "./runtime/project-state-runtime";
 import { IFsEntry } from "../common/project.types";
+import { IAssetRuntime } from "./asset/asset-runtime";
 
 export namespace ProjectEvents {
   export const Created = new AsyncSingleEventEmitter<ProjectStateRuntime>();
@@ -17,6 +18,8 @@ export namespace ProjectEvents {
   export const BeforeUnload = new AsyncSingleEventEmitter<ProjectRuntime>();
 
   export const ManifestUpdated = new AsyncSingleEventEmitter<ProjectManifest>();
+
+  export const AssetSpawned = new AsyncSingleEventEmitter<IAssetRuntime>();
 
   export const AssetConfigChanged = new AsyncSingleEventEmitter<AssetConfigChangedEvent>();
   export type AssetConfigChangedEvent = { assetPath: string, config: ProjectAssetBaseConfig };

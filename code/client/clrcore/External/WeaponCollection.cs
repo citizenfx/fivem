@@ -1,9 +1,14 @@
-using CitizenFX.Core.Native;
-using System;
 using System.Collections.Generic;
-using System.Security;
+
+#if MONO_V2
+using API = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM
+#else
+using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
+#endif
 {
 	public sealed class WeaponCollection
 	{

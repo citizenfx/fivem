@@ -18,109 +18,24 @@
 
 #include <StructuredTrace.h>
 
-#include <json.hpp>
+#include <NoticeLogicProcessor.h>
 
-#if __has_include(<jexl_eval.h>)
-#include <jexl_eval.h>
+// 100KiB cap, conditional notices should fit more than comfortably under this limit
+#define MAX_NOTICE_FILESIZE 102400
 
-#ifdef _WIN32
-#pragma comment(lib, "userenv")
-#endif
-
-using json = nlohmann::json;
-
-static json EvaluateJexl(const std::string& in, const json& context)
+static void DownloadAndProcessNotices(fx::ServerInstanceBase* server, HttpClient* httpClient)
 {
-	char* out = jexl_eval(in.c_str(), context.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace).c_str());
-	json rv;
-
-	if (out)
+	HttpRequestOptions options;
+	options.maxFilesize = MAX_NOTICE_FILESIZE;
+	httpClient->DoGetRequest("https://runtime.fivem.net/promotions_targeting.json", options, [server, httpClient](bool success, const char* data, size_t length)
 	{
-		std::string outStr = out;
-		jexl_free(out);
-
-		rv = json::parse(outStr);
-	}
-
-	return rv;
-}
-
-static void DisplayNotices(fx::ServerInstanceBase* server, HttpClient* httpClient)
-{
-	httpClient->DoGetRequest("https://runtime.fivem.net/promotions_targeting.json", [server](bool success, const char* data, size_t length)
-	{
-		if (success)
+		// Double checking received size because CURL will let bigger files through if the server doesn't specify Content-Length outright
+		if (success && length <= MAX_NOTICE_FILESIZE)
 		{
-			json convarList = json::object();
-			json resourceList = json::array();
-
-			auto conCtx = server->GetComponent<console::Context>();
-			conCtx->GetVariableManager()->ForAllVariables([&convarList](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& variable)
-			{
-				convarList[name] = variable->GetValue();
-			});
-
-			auto resman = server->GetComponent<fx::ResourceManager>();
-			resman->ForAllResources([&resourceList](const fwRefContainer<fx::Resource>& resource)
-			{
-				if (resource->GetState() == fx::ResourceState::Started)
-				{
-					resourceList.push_back(json::object({ { "name", resource->GetName() } }));
-				}
-			});
-
-			json contextBlob = json::object();
-			contextBlob["convar"] = convarList;
-			contextBlob["resource"] = resourceList;
-
 			try
 			{
-				json noticeBlob = json::parse(data, data + length);
-
-				for (auto& [ noticeType, data ] : noticeBlob.get<json::object_t>())
-				{
-					auto& conditions = data["conditions"];
-					auto& actions = data["actions"];
-
-					if (conditions.is_array())
-					{
-						for (auto& condition : conditions)
-						{
-							auto cond = condition.get<std::string>();
-							auto rv = EvaluateJexl(cond, contextBlob);
-
-							if (rv.is_boolean() && rv.get<bool>())
-							{
-								// evaluate actions
-								if (actions.is_array())
-								{
-									auto noticeTypeStr = noticeType;
-
-									gscomms_execute_callback_on_main_thread([actions, conCtx, noticeTypeStr]()
-									{
-										trace("^1-- [server notice: %s]^7\n", noticeTypeStr);
-
-										se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
-										
-										try
-										{
-											for (auto& action : actions)
-											{
-												conCtx->ExecuteSingleCommand(action.get<std::string>());
-											}
-										}
-										catch (std::exception& e)
-										{
-										
-										}
-
-										trace("\n");
-									});
-								}
-							}
-						}
-					}
-				}
+				auto noticesBlob = nlohmann::json::parse(data, data + length);
+				fx::NoticeLogicProcessor::BeginProcessingNotices(server, noticesBlob);
 			}
 			catch (std::exception& e)
 			{
@@ -129,12 +44,6 @@ static void DisplayNotices(fx::ServerInstanceBase* server, HttpClient* httpClien
 		}
 	});
 }
-#else
-static void DisplayNotices(fx::ServerInstanceBase* server, HttpClient* httpClient)
-{
-
-}
-#endif
 
 static InitFunction initFunction([]()
 {
@@ -219,7 +128,7 @@ static InitFunction initFunction([]()
 								setNucleusSuccess = true;
 							}
 
-							DisplayNotices(instance, httpClient);
+							DownloadAndProcessNotices(instance, httpClient);
 						});
 					}
 

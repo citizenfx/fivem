@@ -17,7 +17,6 @@
 #endif
 
 #include <DebugAlias.h>
-#include <ETWProviders/etwprof.h>
 
 #include <Error.h>
 
@@ -93,13 +92,13 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			auto sharedScripts = metaData->GlobEntriesVector("shared_script");
 			auto clientScripts = metaData->GlobEntriesVector(
 #ifdef IS_FXSERVER
-				"server_script"
+			"server_script"
 #else
-				"client_script"
+			"client_script"
 #endif
 			);
 
-			for (auto it = environments.begin(); it != environments.end(); )
+			for (auto it = environments.begin(); it != environments.end();)
 			{
 				auto metaComponent = MakeNew<ScriptMetaDataComponent>(resource);
 
@@ -143,7 +142,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 		OnCreatedRuntimes();
 
-		if (!m_scriptRuntimes.empty() || m_resource->GetName() == "_cfx_internal")
+		if (!m_scriptRuntimes.empty())
 		{
 			m_scriptHost = GetScriptHostForResource(m_resource);
 
@@ -197,11 +196,6 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 	resource->OnStop.Connect([=] ()
 	{
-		if (m_resource->GetName() == "_cfx_internal")
-		{
-			return;
-		}
-
 		for (auto& environmentPair : m_scriptRuntimes)
 		{
 			environmentPair.second->Destroy();
@@ -214,11 +208,6 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 void ResourceScriptingComponent::Tick()
 {
-	// #TODO: 32 bit
-#ifdef _M_AMD64
-	CETWScope etwScope(fmt::format("{} tick", m_resource->GetName()).c_str());
-#endif
-
 	m_resource->Run([this]()
 	{
 		for (const auto& [id, tickRuntime] : m_tickRuntimes)
@@ -412,8 +401,8 @@ bool DLL_EXPORT UpdateScriptInitialization()
 
 			wasExecuting = true;
 
-			// break and yield after 2 seconds of script initialization so the game gets a chance to breathe
-			if ((std::chrono::high_resolution_clock::now().time_since_epoch() - startTime) > 5ms)
+			// break and yield after 15ms of script initialization (basically a frame) so the game won't be 'stuck'
+			if ((std::chrono::high_resolution_clock::now().time_since_epoch() - startTime) > 15ms)
 			{
 				trace("Still executing script initialization routines...\n");
 

@@ -152,7 +152,7 @@ static bool OutputFile(T&& callback, int fileVersion, const std::wstring& fileNa
 		outputSize += s;
 	});
 
-	wprintf(L"written %s successfully - compressed size %d\n", boost::filesystem::path(fileName).filename().c_str(), outputSize);
+	wprintf(L"written %s successfully - compressed size %zu\n", boost::filesystem::path(fileName).filename().c_str(), outputSize);
 
 	fclose(f);
 

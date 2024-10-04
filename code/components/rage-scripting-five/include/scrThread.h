@@ -38,6 +38,8 @@ misrepresented as being the original software.
 #define RAGE_SCRIPTING_EXPORT DLL_IMPORT
 #endif
 
+#include <CrossBuildRuntime.h>
+
 namespace rage
 {
 class scriptHandler;
@@ -86,7 +88,7 @@ protected:
 
 public:
 	template<typename T>
-	inline T GetArgument(int idx)
+	inline T& GetArgument(int idx)
 	{
 		intptr_t* arguments = (intptr_t*)m_pArgs;
 
@@ -98,7 +100,10 @@ public:
 	{
 		intptr_t* returnValues = (intptr_t*)m_pReturn;
 
-		*(T*)&returnValues[idx] = value;
+		if (returnValues)
+		{
+			*(T*)&returnValues[idx] = value;
+		}
 	}
 
 	inline int GetArgumentCount()
@@ -111,7 +116,12 @@ public:
 	{
 		intptr_t* returnValues = (intptr_t*)m_pReturn;
 
-		return *(T*)&returnValues[idx];
+		if (returnValues)
+		{
+			return *(T*)&returnValues[idx];
+		}
+
+		return T{};
 	}
 
 	inline void* GetArgumentBuffer()
@@ -209,18 +219,20 @@ class
 		public rage::scrThread
 {
 protected:
-	char scriptName[64];                        // 208
-	rage::scriptHandler* m_pScriptHandler;      // 272
-	void* m_pNetcomponent;                      // 280
-	char gta_pad2[24];                          // 288
-	uint32_t m_networkId;                       // 312
-	uint32_t gta_padInt;                        // 316
-	char flag1;                                 // 320
-	char m_networkFlag;                         // 321
-	uint16_t gta_pad3;                          // 322
-	char gta_pad4[12];                          // 324
-	uint8_t m_canRemoveBlipsFromOtherScripts;   // 336
-	char gta_pad5[7];                           // 337
+//[2699] - GtaThread layout was changed, but not rage::scrThread
+	char scriptName[64];                        // 208 0xD0 
+	rage::scriptHandler* m_pScriptHandler;      // 272 0x110
+	void* m_pNetcomponent;                      // 280 0x118
+	char gta_pad2[24];                          // 288 0x120
+	uint32_t m_networkId;                       // 312 0x138
+	uint32_t gta_padInt;                        // 316 0x13C
+	char flag1;                                 // 320 0x140
+	char m_networkFlag;                         // 321 0x141
+	uint16_t gta_pad3;                          // 322 0x142
+	char gta_pad4[12];                          // 324 0x144
+	uint8_t m_canRemoveBlipsFromOtherScripts;   // 336 0x150
+	char gta_pad5[7];                           // 337 0x151
+	char pad_b2699[8];
 
 public:
 	virtual void					DoRun() = 0;
@@ -232,17 +244,79 @@ public:
 
 	inline void SetScriptName(const char* name)
 	{
-		strncpy(scriptName, name, sizeof(scriptName) - 1);
-		scriptName[sizeof(scriptName) - 1] = '\0';
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			auto scriptHashPtr = reinterpret_cast<uint32_t*>((uint64_t)this + 0xD0);
+			auto scriptNamePtr = reinterpret_cast<char*>((uint64_t)this + 0xD4);
+
+			strncpy(scriptNamePtr, name, sizeof(scriptName) - 1);
+			scriptNamePtr[sizeof(scriptName) - 1] = '\0';
+
+			*scriptHashPtr = HashString(name);
+		}
+		else
+		{
+			strncpy(scriptName, name, sizeof(scriptName) - 1);
+			scriptName[sizeof(scriptName) - 1] = '\0';
+		}
 	}
 
-	inline rage::scriptHandler* GetScriptHandler() { return m_pScriptHandler; }
+	inline void SetNetworkFlag(char state)
+	{
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			bool* thisNetFlag = (bool*)((uintptr_t)this + 0x149); // See GtaThreadInit function in GtaThread::GtaThread() (and extrapolate)
+			*thisNetFlag = state;
+		}
+		else
+		{
+			m_networkFlag = state;
+		}
+	}
 
-	inline void SetScriptHandler(void* scriptHandler) { m_pScriptHandler = reinterpret_cast<rage::scriptHandler*>(scriptHandler); }
+	inline void SetCanRemoveBlipsFromOtherScripts(uint8_t state)
+	{
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			bool* thisCanRemoveBlips = (bool*)((uintptr_t)this + 0x150); // See GtaThreadInit function in GtaThread::GtaThread()
+			*thisCanRemoveBlips = state;
+		}
+		else
+		{
+			m_canRemoveBlipsFromOtherScripts = state;
+		}
+	}
 
-	inline void SetScriptHandler(rage::scriptHandler* scriptHandler) { m_pScriptHandler = scriptHandler; }
+	inline rage::scriptHandler* GetScriptHandler() 
+	{
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			return *(rage::scriptHandler**)((uintptr_t)this + 0x118);
+		}
+
+		return m_pScriptHandler;
+	}
+
+	inline void SetScriptHandler(rage::scriptHandler* scriptHandler) 
+	{ 
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			rage::scriptHandler** thisHandler = *(rage::scriptHandler***)((uintptr_t)this + 0x118); // See GtaThread constructor
+			*thisHandler = scriptHandler;
+		}
+		else
+		{
+			m_pScriptHandler = scriptHandler; 
+		}
+	}
+
+	inline void SetScriptHandler(void* scriptHandler)
+	{
+		SetScriptHandler(reinterpret_cast<rage::scriptHandler*>(scriptHandler));
+	}
 
 	inline void RemoveCleanupFlag() {  }
 };
 
-static_assert(sizeof(GtaThread) == 344, "GtaThread has wrong size!");
+//static_assert(sizeof(GtaThread) == 344, "GtaThread has wrong size!");
+static_assert(sizeof(GtaThread) == 352, "GtaThread has wrong size!"); // [2699]

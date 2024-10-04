@@ -12,6 +12,8 @@ namespace rage
 {
 GTA_CORE_EXPORT atPoolBase* GetPoolBase(uint32_t hash);
 
+GTA_CORE_EXPORT const std::unordered_map<std::string, atPoolBase*>& GetPools();
+
 GTA_CORE_EXPORT void* PoolAllocate(atPoolBase* pool);
 
 GTA_CORE_EXPORT void PoolRelease(atPoolBase* pool, void* entry);

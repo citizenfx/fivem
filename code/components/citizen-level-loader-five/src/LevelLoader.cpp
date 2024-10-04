@@ -20,6 +20,10 @@
 #include <VFSManager.h>
 #include <boost/algorithm/string.hpp>
 
+#include <concurrent_queue.h>
+
+#include "atArray.h"
+
 void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
 
 namespace streaming
@@ -30,6 +34,7 @@ void AddDataFileToLoadList(const std::string& type, const std::string& path);
 #include <skyr/url.hpp>
 
 #include "Hooking.h"
+#include "Hooking.Stubs.h"
 
 static std::string g_overrideNextLoadedLevel;
 static std::string g_nextLevelPath;
@@ -186,6 +191,31 @@ static bool DoesLevelHashMatch(void* evaluator, uint32_t* hash)
 	return (!g_wasLastLevelCustom);
 }
 
+struct CDataFileMgr__ContentChangeSet
+{
+	// technically, some atString?
+	atArray<char> changeSetName;
+	// ...
+};
+
+static void (*g_orig_CFileLoader__BuildContentChangeSetActionList)(const CDataFileMgr__ContentChangeSet& changeset, void* outArray, int a3, int a4, int a5);
+
+static void CFileLoader__BuildContentChangeSetActionList_Hook(const CDataFileMgr__ContentChangeSet& changeset, void* outArray, int a3, int a4, int a5)
+{
+	if (g_wasLastLevelCustom)
+	{
+		// CCS_PATCHDAY27_NG_STREAMING_MAP lacks a level condition and breaks custom levels
+		const char* str = (changeset.changeSetName.m_size > 0) ? changeset.changeSetName.m_offset : "";
+
+		if (HashString(str) == HashString("CCS_PATCHDAY27_NG_STREAMING_MAP"))
+		{
+			return;
+		}
+	}
+
+	return g_orig_CFileLoader__BuildContentChangeSetActionList(changeset, outArray, a3, a4, a5);
+}
+
 static HookFunction hookFunction([] ()
 {
 	char* levelCaller = xbr::IsGameBuildOrGreater<2060>() ? hook::pattern("33 D0 81 E2 FF 00 FF 00 33 D1 48").count(1).get(0).get<char>(0x33) : hook::pattern("0F 94 C2 C1 C1 10 33 CB 03 D3 89 0D").count(1).get(0).get<char>(46);
@@ -195,6 +225,8 @@ static HookFunction hookFunction([] ()
 	hook::call(levelCaller, DoLoadLevel);
 
 	hook::set_call(&g_loadLevel, levelByIndex + 0x1F);
+
+	g_orig_CFileLoader__BuildContentChangeSetActionList = hook::trampoline(hook::get_pattern("E8 ? ? ? ? 44 8A A4 24 80 00 00 00 33 ED 8B F5 66", -0x30), CFileLoader__BuildContentChangeSetActionList_Hook);
 
 	// change set applicability
 	hook::jump(hook::pattern("40 8A EA 48 8B F9 B0 01 76 43 E8").count(1).get(0).get<void>(-0x19), IsLevelApplicable);
@@ -207,15 +239,42 @@ static HookFunction hookFunction([] ()
 	}
 });
 
-static SpawnThread spawnThread;
+enum class Mode : uint8_t
+{
+	LOCAL_MODE,
+	STORY_MODE,
+	EDITOR_MODE,
+	LEVEL_LOAD,
+};
 
-#include <concurrent_queue.h>
+static SpawnThread spawnThread;
 
 static concurrency::concurrent_queue<std::function<void()>> g_onShutdownQueue;
 
-static void LoadLevel(const char* levelName)
+/// Does the game mode require resetting the SpawnThread.
+static inline bool DoesModeRequiresReset(Mode mode)
 {
-	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
+	return mode == Mode::LEVEL_LOAD || mode == Mode::EDITOR_MODE;
+}
+
+/// Initialize correct ICoreGameInit variables for the given level mode.
+static void SetCoreGameMode(Mode mode)
+{
+	auto setVariable = [](const std::string& variable, bool enabled)
+	{
+		enabled ? Instance<ICoreGameInit>::Get()->SetVariable(variable)
+				: Instance<ICoreGameInit>::Get()->ClearVariable(variable);
+	};
+
+	// editorMode implies localMode; editorMode is cleared after _ACTIVATE_ROCKSTAR_EDITOR.
+	setVariable("storyMode", mode == Mode::STORY_MODE);
+	setVariable("localMode", mode == Mode::LOCAL_MODE || mode == Mode::EDITOR_MODE);
+	setVariable("editorMode", mode == Mode::EDITOR_MODE);
+}
+
+static void LoadLevel(const char* levelName, Mode mode)
+{
+	static auto gameInit = Instance<ICoreGameInit>::Get();
 
 	gameInit->SetVariable("networkInited");
 
@@ -223,7 +282,8 @@ static void LoadLevel(const char* levelName)
 
 	if (!gameInit->GetGameLoaded())
 	{
-		if ((!gameInit->HasVariable("storyMode") && !gameInit->HasVariable("localMode")) || gameInit->HasVariable("editorMode"))
+		SetCoreGameMode(mode);
+		if (DoesModeRequiresReset(mode))
 		{
 			spawnThread.ResetInityThings();
 		}
@@ -237,31 +297,15 @@ static void LoadLevel(const char* levelName)
 	}
 	else
 	{
-		bool sm = gameInit->HasVariable("storyMode");
-		bool lm = gameInit->HasVariable("localMode");
-		bool em = gameInit->HasVariable("editorMode");
+		gameInit->KillNetwork((wchar_t*)1);
 
-		// This function should probably be cognizant of 'g_isNetworkKilled' in BlockLoadSetters.
-		//gameInit->KillNetwork((wchar_t*)1);
-
-		auto fEvent = ([gameInit, sm, lm, em]()
+		auto fEvent = ([mode]()
 		{
 			gameInit->ReloadGame();
 
-			if (sm)
+			SetCoreGameMode(mode);
+			if (DoesModeRequiresReset(mode))
 			{
-				gameInit->SetVariable("storyMode");
-			}
-
-			if (lm)
-			{
-				gameInit->SetVariable("localMode");
-			}
-
-			if (em)
-			{
-				gameInit->SetVariable("localMode"); // see editorModeCommand. 'ShouldSkipLoading' will return false otherwise.
-				gameInit->SetVariable("editorMode");
 				spawnThread.ResetInityThings();
 			}
 
@@ -347,25 +391,22 @@ static InitFunction initFunction([] ()
 
 	static ConsoleCommand loadLevelCommand("loadlevel", [](const std::string& level)
 	{
-		LoadLevel(level.c_str());
+		LoadLevel(level.c_str(), Mode::LEVEL_LOAD);
 	});
 
 	static ConsoleCommand storyModeyCommand("storymode", []()
 	{
-		Instance<ICoreGameInit>::Get()->SetVariable("storyMode");
-		LoadLevel("gta5");
+		LoadLevel("gta5", Mode::STORY_MODE);
 	});
 
 	static ConsoleCommand editorModeCommand("replayEditor", []()
 	{
-		Instance<ICoreGameInit>::Get()->SetVariable("localMode");
-		Instance<ICoreGameInit>::Get()->SetVariable("editorMode");
-		LoadLevel("gta5");
+		LoadLevel("gta5", Mode::EDITOR_MODE);
 	});
 
 	static ConsoleCommand localGameCommand("localGame", [](const std::string& resourceDir)
 	{
-		Instance<ICoreGameInit>::Get()->SetVariable("localMode");
+		Instance<ICoreGameInit>::Get()->SetData("localResource", resourceDir);
 
 		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
 		resourceManager->AddMounter(new SPResourceMounter(resourceManager));
@@ -450,12 +491,12 @@ static InitFunction initFunction([] ()
 			res->Start();
 		});
 
-		LoadLevel("gta5");
+		LoadLevel("gta5", Mode::LOCAL_MODE);
 	});
 
 	static ConsoleCommand loadLevelCommand2("invoke-levelload", [](const std::string& level)
 	{
-		LoadLevel(level.c_str());
+		LoadLevel(level.c_str(), Mode::LEVEL_LOAD);
 	});
 
 	rage::scrEngine::OnScriptInit.Connect([] ()

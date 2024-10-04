@@ -4,6 +4,24 @@ local function printFunctionName(native)
 	end)
 end
 
+function table.shallow_copy(t)
+	local t2 = {}
+	for k, v in pairs(t) do
+		t2[k] = v
+	end
+	return t2
+end
+
+function table.slice(tbl, first, last, step)
+	local sliced = {}
+
+	for i = first or 1, last or #tbl, step or 1 do
+		sliced[#sliced + 1] = tbl[i]
+	end
+	return sliced
+end
+
+
 -- C# language words
 local langWords = {
 	['abstract'] = '_abstract',
@@ -204,12 +222,37 @@ local function formatDocString(native)
 	return l
 end
 
+local function getCodeSplits(native)
+	local splits = {}
+	if native.arguments then
+		for i, argument in ipairs(native.arguments) do
+			if argument.annotations and argument.annotations['cs_split'] then
+				-- mark it as a split native so we can ignore collisions
+				-- for the native later
+				native.is_split = true
+				local native_clone = table.shallow_copy(native)
+				-- get the argument before this
+				native_clone.arguments = table.slice(native.arguments, 1, i - 1, 1)
+				splits[#splits + 1] = native_clone
+			end
+		end
+	end
+	splits[#splits + 1] = native
+
+	return splits
+end
+
 local function parseArgument(argument, native)
 	local argType
 
-	-- Check if the cs_type annotation references a codegen type. Note, pointer
-	-- arguments must use the "${Type}Ptr" naming convention.
+	-- Check if the cs_type annotation references a codegen type.
 	local cs_type = (argument.annotations and argument.annotations['cs_type']) or nil
+
+	if cs_type then
+		-- doc authors may assume `cs_type(T*)` works, so we try to correct them here
+		cs_type = cs_type:gsub("%*$", "Ptr")
+	end
+
 	if cs_type and codeEnvironment[cs_type] then
 		argument = codeEnvironment[cs_type](argument.name)
 	end
@@ -460,7 +503,7 @@ local function formatImpl(native, baseAppendix)
 		body = body .. t .. '\tcxt->functionDataPtr = _fnPtr;\n'
 		body = body .. t .. '\tcxt->retDataPtr = _fnPtr;\n'
 		body = body .. t .. ("\tvar invv = m_invoker%s;\n"):format(nativeName)
-		body = body .. t .. ("\tbyte* error = null;\n"):format(nativeName)
+		body = body .. t .. "\tbyte* error = null;\n"
 		body = body .. t .. ("\tif (invv == null) m_invoker%s = invv = ScriptContext.DoGetNative(%s);\n"):format(nativeName, native.hash)
 		body = body .. t .. ("\tif (!invv(cxt, (void**)&error)) { throw new System.InvalidOperationException(ScriptContext.ErrorHandler(error)); }\n")
 		body = body .. "#endif\n"
@@ -507,7 +550,7 @@ local function printNative(native)
 	local retType, def, hyperDriveSafe = formatImpl(native, baseAppendix)
 	local wrapper = formatWrapper(native, 'Internal' .. nativeName .. baseAppendix)
 
-	local str = string.format("%s\t\t[System.Security.SecuritySafeCritical]\n\t\tpublic static %s %s%s", doc, retType, nativeName .. appendix, wrapper)
+	local str = string.format("%s\t\t[System.Security.SecuritySafeCritical]\n\t\tpublic static %s %s%s", doc, retType, nativeName .. (native.is_split and '' or appendix), wrapper)
 
 	for _, alias in ipairs(native.aliases) do
 		local aliasName = printFunctionName({ name = alias })
@@ -540,9 +583,48 @@ print('\tpublic static class API\n\t{')
 
 for _, v in pairs(_natives) do
 	if matchApiSet(v) then
-		print(printNative(v))
+		local splits = getCodeSplits(v)
+		for _i, native_split in ipairs(splits) do
+			print(printNative(native_split))
+		end
 	end
 end
 
 print('\t}')
 -- print('}')
+
+-- PAS bits
+print('\tinternal static partial class PointerArgumentSafety\n\t{')
+print('\t\tstatic PointerArgumentSafety()\n\t\t{')
+
+for _, v in pairs(_natives) do
+    if matchApiSet(v) and v.returns then
+        local returnType = ''
+
+        if v.returns.nativeType == 'string' then
+            returnType = 'string'
+        elseif v.returns.nativeType == 'float' then
+            returnType = 'float'
+        elseif v.returns.nativeType == 'bool' then
+            returnType = 'bool'
+        elseif v.returns.nativeType == 'int' then
+            returnType = 'int'
+        elseif v.returns.nativeType == 'Any' and not v.returns.pointer then
+            returnType = 'int'
+        elseif v.returns.nativeType == 'Vector3' then
+            returnType = 'int'
+        end
+
+        if returnType ~= '' then
+            print(("\t\t\t// %s"):format((v.ns or '') .. '/' .. v.name))
+
+			if v.name == 'INVOKE_FUNCTION_REFERENCE' then
+				returnType = 'FuncRef'
+			end
+			
+			print(("\t\t\tAddResultCleaner(%s, ResultCleaner_%s);\n"):format(v.hash, returnType))
+        end
+    end
+end
+
+print('\t\t}\n\t}')

@@ -94,6 +94,36 @@ struct ConsoleArgumentType<fx::GameBuild>
 			*out = "2545";
 			return true;
 		}
+		else if (_stricmp(inputStr.c_str(), "mpg9ec") == 0)
+		{
+			*out = "2612";
+			return true;
+		}
+		else if (_stricmp(inputStr.c_str(), "mpsum2") == 0)
+		{
+			*out = "2699";
+			return true;
+		}
+		else if (_stricmp(inputStr.c_str(), "mpchristmas3") == 0)
+		{
+			*out = "2802";
+			return true;
+		}
+		else if (_stricmp(inputStr.c_str(), "mp2023_01") == 0)
+		{
+			*out = "2944";
+			return true;
+		}
+		else if (_stricmp(inputStr.c_str(), "mp2023_02") == 0)
+		{
+			*out = "3095";
+			return true;
+		}
+		else if (_stricmp(inputStr.c_str(), "mp2024_01") == 0)
+		{
+			*out = "3258";
+			return true;
+		}
 
 		// not an int or a known alias
 		return false;

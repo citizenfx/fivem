@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { BsDiamond } from "react-icons/bs";
 import { ResourceTemplateDescriptor } from "../types";
 

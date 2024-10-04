@@ -68,8 +68,11 @@ static bool Bootstrap_UpdateEXE(int exeSize, const std::string& objectHash)
 }
 
 bool Install_RunInstallMode();
+void Install_RunPostInstall();
 
 bool VerifyViability();
+
+extern void ResetUpdateChannel();
 
 bool Bootstrap_DoBootstrap()
 {
@@ -77,36 +80,66 @@ bool Bootstrap_DoBootstrap()
 	char bootstrapVersion[256];
 
 	auto contentHeaders = std::make_shared<HttpHeaderList>();
-	int result = DL_RequestURL(va(CONTENT_URL "/heads/" CONTENT_NAME "/%s?time=%lld", GetUpdateChannel(), _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
+
+	auto fetchContent = [&contentHeaders, &bootstrapVersion](const std::string& updateChannel)
+	{
+		return DL_RequestURL(va(CONTENT_URL "/heads/" CONTENT_NAME "/%s?time=%lld", updateChannel, _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
+	};
+
+	int result = fetchContent(GetUpdateChannel());
+	bool updateDataValid = true;
 
 	if (result != 0)
 	{
-		if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
+		bool recovered = false;
+
+		// if not production, try to recover
+		if (GetUpdateChannel() != "production")
 		{
-			MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
-			return false;
+			int newResult = fetchContent("production");
+
+			if (newResult == 0)
+			{
+				ResetUpdateChannel();
+				recovered = true;
+			}
 		}
 
-		return true;
+		if (!recovered)
+		{
+			if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
+			{
+				UI_DisplayError(va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())));
+				return false;
+			}
+
+			updateDataValid = false;
+		}
 	}
 
-	int version = std::stoi((*contentHeaders)["x-amz-meta-bootstrap-version"]);
-	int exeSize = std::stoi((*contentHeaders)["x-amz-meta-bootstrap-size"]);
-
-	if (version == 0 || exeSize == 0)
+	if (updateDataValid)
 	{
-		if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
+		int version = std::stoi((*contentHeaders)["x-amz-meta-bootstrap-version"]);
+		int exeSize = std::stoi((*contentHeaders)["x-amz-meta-bootstrap-size"]);
+
+		if (version == 0 || exeSize == 0)
 		{
-			MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
-			return false;
+			if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
+			{
+				UI_DisplayError(va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())));
+				return false;
+			}
+
+			updateDataValid = false;
 		}
 
-		return true;
-	}
-
-	if (version != BASE_EXE_VERSION && GetFileAttributes(MakeRelativeCitPath(L"nobootstrap.txt").c_str()) == INVALID_FILE_ATTRIBUTES)
-	{
-		return Bootstrap_UpdateEXE(exeSize, (*contentHeaders)["x-amz-meta-bootstrap-object"]);
+		if (updateDataValid)
+		{
+			if (version != BASE_EXE_VERSION && GetFileAttributes(MakeRelativeCitPath(L"nobootstrap.txt").c_str()) == INVALID_FILE_ATTRIBUTES)
+			{
+				return Bootstrap_UpdateEXE(exeSize, (*contentHeaders)["x-amz-meta-bootstrap-object"]);
+			}
+		}
 	}
 
 	// after self-updating, attempt to run install mode if needed
@@ -132,14 +165,30 @@ bool Bootstrap_DoBootstrap()
         return false;
     }
 
-#ifdef GTA_FIVE
-	if (launch::IsSDK())
+	if (updateDataValid)
 	{
-		return Updater_RunUpdate({ CONTENT_NAME, "fxdk-five" });
-	}
-#endif
+		bool rv = false;
 
-	return Updater_RunUpdate({ CONTENT_NAME });
+#ifdef GTA_FIVE
+		if (launch::IsSDK())
+		{
+			rv = Updater_RunUpdate({ CONTENT_NAME, "fxdk-five" });
+		}
+		else
+#endif
+		{
+			rv = Updater_RunUpdate({ CONTENT_NAME });
+		}
+
+		if (rv)
+		{
+			Install_RunPostInstall();
+		}
+
+		return rv;
+	}
+
+	return true;
 }
 
 void Bootstrap_ReplaceExecutable(const wchar_t* fileName, const std::wstring& passThrough)
@@ -166,7 +215,7 @@ void Bootstrap_ReplaceExecutable(const wchar_t* fileName, const std::wstring& pa
 		{
 			if (!Install_RunInstallMode())
 			{
-				MessageBox(NULL, L"An 'access denied' error was encountered when updating " PRODUCT_NAME L". Please try to run the game as an administrator, or contact support.", L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+				UI_DisplayError(L"An 'access denied' error was encountered when updating " PRODUCT_NAME L".");
 			}
 			else
 			{
@@ -177,7 +226,7 @@ void Bootstrap_ReplaceExecutable(const wchar_t* fileName, const std::wstring& pa
 		}
 		else if (error != ERROR_SHARING_VIOLATION)
 		{
-			MessageBox(NULL, va(L"Win32 error %i was encountered when updating " PRODUCT_NAME L".", error), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			UI_DisplayError(va(L"Win32 error %i was encountered when updating " PRODUCT_NAME L".", error));
 			return;
 		}
 
@@ -194,12 +243,12 @@ void Bootstrap_ReplaceExecutable(const wchar_t* fileName, const std::wstring& pa
 
 		if (error == ERROR_ACCESS_DENIED)
 		{
-			MessageBox(NULL, L"An 'access denied' error was encountered when updating " PRODUCT_NAME L" (moving to .old). Please try to run the game as an administrator, or contact support.", L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			UI_DisplayError(L"An 'access denied' error was encountered when updating " PRODUCT_NAME L" (moving to .old).");
 			return;
 		}
 		else
 		{
-			MessageBox(NULL, va(L"Win32 error %i was encountered when updating " PRODUCT_NAME L" (moving to .old).", error), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			UI_DisplayError(va(L"Win32 error %i was encountered when updating " PRODUCT_NAME L" (moving to .old).", error));
 			return;
 		}
 	}
@@ -211,12 +260,12 @@ void Bootstrap_ReplaceExecutable(const wchar_t* fileName, const std::wstring& pa
 
 		if (error == ERROR_ACCESS_DENIED)
 		{
-			MessageBox(NULL, L"An 'access denied' error was encountered when updating " PRODUCT_NAME L" (copying game executable). Please try to run the game as an administrator, or contact support.", L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			UI_DisplayError(L"An 'access denied' error was encountered when updating " PRODUCT_NAME L" (copying game executable).");
 			return;
 		}
 		else
 		{
-			MessageBox(NULL, va(L"Win32 error %i was encountered when updating " PRODUCT_NAME L" (copying game executable).", error), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			UI_DisplayError(va(L"Win32 error %i was encountered when updating " PRODUCT_NAME L" (copying game executable).", error));
 			return;
 		}
 	}

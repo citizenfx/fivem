@@ -7,6 +7,7 @@
 #include <mutex>
 #include <optional>
 #include <variant>
+#include <charconv>
 
 #include <tbb/concurrent_unordered_map.h>
 
@@ -23,6 +24,7 @@
 #include <VFSError.h>
 
 #include <pplawait.h>
+#include <agents.h>
 #include <experimental/resumable>
 
 #include <concurrent_queue.h>
@@ -51,6 +53,11 @@ bool RcdBaseStream::EnsureRead(const std::function<void(bool, const std::string&
 		try
 		{
 			auto task = m_fetcher->FetchEntry(m_fileName);
+
+			if (task == concurrency::task<RcdFetchResult>{ })
+			{
+				throw RcdFetchFailedException(fmt::sprintf("Failed to get entry for %s\n", m_fileName));
+			}
 
 			if (cb)
 			{
@@ -186,6 +193,18 @@ RcdBulkStream::~RcdBulkStream()
 
 size_t RcdBulkStream::ReadBulk(uint64_t ptr, void* outBuffer, size_t size)
 {
+	// if this is a read request for 'real' size data, satisfy it with such
+	if (ptr == 0 && size == 16 && m_realSize > 0)
+	{
+		uint8_t* data = (uint8_t*)outBuffer;
+		memset(data, 0, size);
+		data[7] = ((m_realSize >> 0) & 0xFF);
+		data[14] = ((m_realSize >> 8) & 0xFF);
+		data[5] = ((m_realSize >> 16) & 0xFF);
+		data[2] = ((m_realSize >> 24) & 0xFF);
+		return 16;
+	}
+
 	if (size == 0xFFFFFFFC)
 	{
 		return m_fetcher->ExistsOnDisk(m_fileName) ? 2048 : 0;
@@ -247,14 +266,38 @@ std::shared_ptr<RcdStream> ResourceCacheDeviceV2::CreateStream(const std::string
 
 std::shared_ptr<RcdBulkStream> ResourceCacheDeviceV2::OpenBulkStream(const std::string& fileName, uint64_t* ptr)
 {
-	if (!GetEntryForFileName(fileName))
+	auto entry = GetEntryForFileName(fileName);
+
+	if (!entry)
 	{
 		return {};
 	}
 
 	*ptr = 0;
 
-	return std::make_shared<RcdBulkStream>(static_cast<RcdFetcher*>(this), fileName);
+	return std::make_shared<RcdBulkStream>(static_cast<RcdFetcher*>(this), fileName, GetRealSize(entry->get()));
+}
+
+size_t ResourceCacheDeviceV2::GetRealSize(const ResourceCacheEntryList::Entry& entry)
+{
+	size_t realSize = 0;
+
+	if (entry.size == 0xFFFFFF)
+	{
+		const auto& extData = entry.extData;
+
+		if (auto it = extData.find("rawSize"); it != extData.end())
+		{
+			auto& str = it->second;
+			if (std::from_chars(str.data(), str.data() + str.size(), realSize).ec != std::errc())
+			{
+				trace(__FUNCTION__ ": could not parse rawSize: %s\n", str);
+				realSize = 0;
+			}
+		}
+	}
+
+	return realSize;
 }
 
 bool ResourceCacheDeviceV2::ExistsOnDisk(const std::string& fileName)
@@ -342,6 +385,38 @@ void ResourceCacheDeviceV2::UnfetchEntry(const std::string& fileName)
 			it->second = {};
 		}
 	}
+}
+
+static ConVar<int>* g_downloadBackoff;
+
+// from https://learn.microsoft.com/en-us/cpp/parallel/concrt/how-to-create-a-task-that-completes-after-a-delay?view=msvc-170
+concurrency::task<void> complete_after(unsigned int timeout)
+{
+	using namespace concurrency;
+
+	// A task completion event that is set when a timer fires.
+	task_completion_event<void> tce;
+
+	// Create a non-repeating timer.
+	auto fire_once = std::make_shared<timer<int>>(timeout, 0, nullptr, false);
+	// Create a call object that sets the completion event after the timer fires.
+	auto callback = std::make_shared<call<int>>([tce](int)
+	{
+		tce.set();
+	});
+
+	// Connect the timer to the callback and start the timer.
+	fire_once->link_target(callback.get());
+	fire_once->start();
+
+	// Create a task that completes after the completion event is set.
+	task<void> event_set(tce);
+
+	// Create a continuation task that cleans up resources and
+	// and return that continuation task.
+	return event_set.then([callback = std::move(callback), fire_once = std::move(fire_once)]()
+	{
+	});
 }
 
 concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceCacheEntryList::Entry& entryRef)
@@ -463,8 +538,12 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 
 			options.addErrorBody = true;
 
-			auto req = Instance<HttpClient>::Get()->DoFileGetRequest(entry.remoteUrl, vfs::GetDevice(outFileName), outFileName, options, [tce, outFileName](bool result, const char* errorData, size_t outSize)
+			std::string referenceHash = entry.referenceHash;
+
+			auto req = Instance<HttpClient>::Get()->DoFileGetRequest(entry.remoteUrl, vfs::GetDevice(outFileName), outFileName, options, [this, referenceHash, tce, outFileName](bool result, const char* errorData, size_t outSize)
 			{
+				RemoveHttpRequest(referenceHash);
+
 				if (result)
 				{
 					auto device = vfs::GetDevice(outFileName);
@@ -477,6 +556,8 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 					tce.set({ false, std::string(errorData, outSize) });
 				}
 			});
+
+			StoreHttpRequest(referenceHash, req);
 
 			auto fetchResult = co_await concurrency::task<FetchResultT>{tce};
 			
@@ -503,6 +584,8 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 
 				lastError = fmt::sprintf("Failure downloading %s: %s", entry.basename, error);
 				trace("^3ResourceCacheDevice reporting failure downloading %s: %s\n", entry.basename, error);
+
+				co_await complete_after(g_downloadBackoff->GetValue() * pow(2, tries + 1));
 			}
 		}
 
@@ -525,6 +608,66 @@ fwRefContainer<vfs::Stream> ResourceCacheDeviceV2::GetVerificationStream(const R
 void ResourceCacheDeviceV2::AddEntryToCache(const std::string& outFileName, std::map<std::string, std::string>& metaData, const ResourceCacheEntryList::Entry& entry)
 {
 	m_cache->AddEntry(outFileName, metaData);
+}
+
+void ResourceCacheDeviceV2::StoreHttpRequest(const std::string& hash, const HttpRequestPtr& request)
+{
+	int changeWeight = -1;
+
+	{
+		std::shared_lock _(m_pendingRequestWeightsMutex);
+		if (auto it = m_pendingRequestWeights.find(hash); it != m_pendingRequestWeights.end())
+		{
+			changeWeight = it->second;
+		}
+	}
+
+	if (changeWeight != -1)
+	{
+		request->SetRequestWeight(changeWeight);
+
+		std::unique_lock _(m_pendingRequestWeightsMutex);
+		m_pendingRequestWeights.erase(hash);
+	}
+
+	{
+		std::unique_lock _(m_requestMapMutex);
+		m_requestMap[hash] = request;
+	}
+}
+
+void ResourceCacheDeviceV2::RemoveHttpRequest(const std::string& hash)
+{
+	std::unique_lock _(m_requestMapMutex);
+	m_requestMap.erase(hash);
+}
+
+void ResourceCacheDeviceV2::SetRequestWeight(const std::string& hash, int newWeight)
+{
+	HttpRequestPtr requestPtr;
+
+	{
+		std::shared_lock _(m_requestMapMutex);
+		if (auto it = m_requestMap.find(hash); it != m_requestMap.end())
+		{
+			requestPtr = it->second;
+		}
+	}
+
+	if (requestPtr)
+	{
+		requestPtr->SetRequestWeight(newWeight);
+	}
+	else if (newWeight != -1)
+	{
+		std::unique_lock _(m_pendingRequestWeightsMutex);
+		m_pendingRequestWeights[hash] = newWeight;
+	}
+	else // if !requestPtr && newWeight == -1
+	{
+		std::unique_lock _(m_pendingRequestWeightsMutex);
+		m_pendingRequestWeights.erase(hash);
+	}
 }
 
 std::optional<std::reference_wrapper<const ResourceCacheEntryList::Entry>> ResourceCacheDeviceV2::GetEntryForFileName(std::string_view fileName)
@@ -602,6 +745,14 @@ struct RequestHandleExtension
 {
 	vfs::Device::THandle handle;
 	std::function<void(bool success, const std::string& error)> onRead;
+};
+
+#define VFS_RCD_SET_WEIGHT 0x30004
+
+struct SetWeightExtension
+{
+	const char* fileName;
+	int newWeight;
 };
 
 struct tp_work
@@ -743,6 +894,18 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 
 		return true;
 	}
+	else if (controlIdx == VFS_RCD_SET_WEIGHT)
+	{
+		auto data = (SetWeightExtension*)controlData;
+		auto entry = GetEntryForFileName(data->fileName);
+
+		if (entry)
+		{
+			SetRequestWeight(entry->get().referenceHash, data->newWeight);
+		}
+
+		return true;
+	}
 	else if (controlIdx == VFS_GET_RCD_DEBUG_INFO)
 	{
 		GetRcdDebugInfoExtension* data = (GetRcdDebugInfoExtension*)controlData;
@@ -841,3 +1004,8 @@ void MountResourceCacheDeviceV2(std::shared_ptr<ResourceCache> cache)
 	vfs::Mount(new resources::ResourceCacheDeviceV2(cache, true), "cache:/");
 	vfs::Mount(new resources::ResourceCacheDeviceV2(cache, false), "cache_nb:/");
 }
+
+static InitFunction initFunction([]
+{
+	resources::g_downloadBackoff = new ConVar<int>("cl_rcdFailureBackoff", ConVar_None, 500);
+});

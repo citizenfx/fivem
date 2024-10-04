@@ -5,31 +5,34 @@ namespace fx::sync
 template<int Id1, int Id2, int Id3, bool CanSendOnFirst = true>
 struct NodeIds
 {
-	inline static std::tuple<int, int, int> GetIds()
+	inline static constexpr std::tuple<int, int, int> GetIds()
 	{
 		return { Id1, Id2, Id3 };
 	}
 
-	inline static bool CanSendOnFirstUpdate()
+	inline static constexpr bool CanSendOnFirstUpdate()
 	{
 		return CanSendOnFirst;
 	}
 };
 
-inline bool shouldRead(SyncParseState& state, const std::tuple<int, int, int>& ids)
+template<int syncType, int objType, typename Ids>
+inline bool shouldRead(SyncParseState& state)
 {
-	if ((std::get<0>(ids) & state.syncType) == 0)
+	constexpr auto ids = Ids::GetIds();
+
+	if constexpr ((std::get<0>(ids) & syncType) == 0)
 	{
 		return false;
 	}
 
 	// because we hardcode this sync type to 0 (mA0), we can assume it's not used
-	if (std::get<2>(ids) && !(state.objType & std::get<2>(ids)))
+	if constexpr (std::get<2>(ids) && !(objType & std::get<2>(ids)))
 	{
 		return false;
 	}
 
-	if ((std::get<1>(ids) & state.syncType) != 0)
+	if constexpr ((std::get<1>(ids) & syncType) != 0)
 	{
 		if (!state.buffer.ReadBit())
 		{
@@ -232,13 +235,28 @@ struct ParentNode : public NodeBase
 		return LoopChildrenNode<TData, I + 1>();
 	}
 
+private:
+	template<int syncType, int objType, typename TChild>
+	inline static auto ParseChild(TChild& child, SyncParseState& state) -> decltype(child.Parse(state))
+	{
+		return child.Parse(state);
+	}
+
+	template<int syncType, int objType, typename TChild>
+	inline static auto ParseChild(TChild& child, SyncParseState& state) -> decltype(child.template Parse<syncType, objType>(state))
+	{
+		return child.template Parse<syncType, objType>(state);
+	}
+
+public:
+	template<int syncType, int objType>
 	bool Parse(SyncParseState& state)
 	{
-		if (shouldRead(state, TIds::GetIds()))
+		if (shouldRead<syncType, objType, TIds>(state))
 		{
-			Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
+			Foreacher<decltype(children)>::for_each_in_tuple(children, [&state](auto& child)
 			{
-				child.Parse(state);
+				ParseChild<syncType, objType>(child, state);
 			});
 		}
 
@@ -319,18 +337,38 @@ struct NodeWrapper : public NodeBase
 		return 0;
 	}
 
+	// template disambiguation hack: `int` will be preferred to `char`
+	// if the `int` overload fails (as Parse() is not available), it'll use `char`.
+	//
+	// other than that, this is plain SFINAE
+	template<typename TNode2>
+	static constexpr auto ShouldParseNode(char)
+	{
+		return false;
+	}
+
+	template<typename TNode2>
+	static constexpr auto ShouldParseNode(int) -> decltype(std::declval<TNode2>().Parse(std::declval<SyncParseState&>()))
+	{
+		return true;
+	}
+
+	template<int syncType, int objType>
 	bool Parse(SyncParseState& state)
 	{
-		auto curBit = state.buffer.GetCurrentBit();
-
-		if (shouldRead(state, TIds::GetIds()))
+		if (shouldRead<syncType, objType, TIds>(state))
 		{
 			// read into data array
 			auto length = state.buffer.Read<uint32_t>(13);
-			auto endBit = state.buffer.GetCurrentBit();
+			uint32_t endBit = 0;
+
+			if constexpr (ShouldParseNode<TNode>(0))
+			{
+				endBit = state.buffer.GetCurrentBit();
+			}
 
 			auto leftoverLength = length;
-			auto leftoverByteLength = std::min(uint32_t(1024), (leftoverLength / 8) + ((leftoverLength % 8) ? 1 : 0));
+			auto leftoverByteLength = std::min<size_t>(size_t(leftoverLength / 8) + 1, 1024);
 
 			if (data.size() < leftoverByteLength)
 			{
@@ -338,26 +376,24 @@ struct NodeWrapper : public NodeBase
 			}
 
 			this->length = leftoverLength;
-			state.buffer.ReadBits(data.data(), std::min(uint32_t(data.size() * 8), leftoverLength));
+			state.buffer.ReadBits(data.data(), std::min(int(data.size() * 8), int(leftoverLength)));
 
 			// hac
 			timestamp = state.timestamp;
 
-			state.buffer.SetCurrentBit(endBit);
-
-			// parse
-			node.Parse(state);
-
-			frameIndex = state.frameIndex;
-
-			if (frameIndex > state.entity->lastFrameIndex)
+			// parse manual data
+			if constexpr (ShouldParseNode<TNode>(0))
 			{
-				state.entity->lastFrameIndex = frameIndex;
+				state.buffer.SetCurrentBit(endBit);
+				node.Parse(state);
+
+				state.buffer.SetCurrentBit(endBit + length);
 			}
 
-			ackedPlayers.reset();
+			frameIndex = state.frameIndex;
+			state.entity->lastFrameIndex = std::max(state.entity->lastFrameIndex, frameIndex);
 
-			state.buffer.SetCurrentBit(endBit + length);
+			ackedPlayers.reset();
 		}
 
 		return true;
@@ -515,6 +551,116 @@ struct GenericSerializeDataNode
 		auto self = static_cast<TNode*>(this);
 		auto serializer = UnparseSerializer{ &state };
 		return self->Serialize(serializer);
+	}
+};
+
+template<typename TNode, bool IsRDR>
+struct SyncTreeBaseImpl : SyncTreeBase
+{
+	TNode root;
+	std::mutex mutex;
+
+	template<typename TData>
+	inline static constexpr size_t GetOffsetOf()
+	{
+		auto doff = TNode::template GetOffsetOf<TData>();
+
+		return (doff) ? offsetof(SyncTreeBaseImpl, root) + doff : 0;
+	}
+
+	template<typename TData>
+	inline std::tuple<bool, TData*> GetData()
+	{
+		constexpr auto offset = GetOffsetOf<TData>();
+
+		if constexpr (offset != 0)
+		{
+			return { true, (TData*)((uintptr_t)this + offset) };
+		}
+
+		return { false, nullptr };
+	}
+
+	template<typename TData>
+	inline static constexpr size_t GetOffsetOfNode()
+	{
+		auto doff = TNode::template GetOffsetOfNode<TData>();
+
+		return (doff) ? offsetof(SyncTreeBaseImpl, root) + doff : 0;
+	}
+
+	template<typename TData>
+	inline NodeWrapper<NodeIds<0, 0, 0>, TData>* GetNode()
+	{
+		constexpr auto offset = GetOffsetOfNode<TData>();
+
+		if constexpr (offset != 0)
+		{
+			return (NodeWrapper<NodeIds<0, 0, 0>, TData>*)((uintptr_t)this + offset - 8);
+		}
+
+		return nullptr;
+	}
+
+	virtual void ParseSync(SyncParseStateDynamic& state) final override
+	{
+		std::unique_lock<std::mutex> lock(mutex);
+
+		// mA0 flag
+		state.objType = state.buffer.ReadBit();
+
+		if constexpr (IsRDR)
+		{
+			state.buffer.ReadBit();
+		}
+
+		if (state.objType == 1)
+		{
+			root.template Parse<2, 1>(state);
+		}
+		else
+		{
+			root.template Parse<2, 0>(state);
+		}
+	}
+
+	virtual void ParseCreate(SyncParseStateDynamic& state) final override
+	{
+		if constexpr (IsRDR)
+		{
+			state.buffer.ReadBit();
+		}
+
+		std::unique_lock<std::mutex> lock(mutex);
+		root.template Parse<1, 0>(state);
+	}
+
+	virtual bool Unparse(SyncUnparseState& state) final override
+	{
+		std::unique_lock<std::mutex> lock(mutex);
+
+		state.objType = 0;
+
+		if (state.syncType == 2 || state.syncType == 4)
+		{
+			state.objType = 1;
+
+			state.buffer.WriteBit(1);
+		}
+
+		if constexpr (IsRDR)
+		{
+			state.buffer.WriteBit(0);
+		}
+
+		return root.Unparse(state);
+	}
+
+	virtual void Visit(const SyncTreeVisitor& visitor) final override
+	{
+		std::unique_lock<std::mutex> lock(mutex);
+
+		root.Visit(visitor);
 	}
 };
 }

@@ -19,6 +19,7 @@ namespace CitizenFX.Core
 		private static readonly List<BaseScript> ms_definedScripts = new List<BaseScript>();
 		private static readonly List<Tuple<DateTime, AsyncCallback, string>> ms_delays = new List<Tuple<DateTime, AsyncCallback, string>>();
 		private static int ms_instanceId;
+		private static bool ms_useSyncContext;
 
 		private string m_resourceName;
 
@@ -68,6 +69,11 @@ namespace CitizenFX.Core
 		public void SetResourceName(string resourceName)
 		{
 			m_resourceName = resourceName;
+		}
+
+		public void SetConfiguration(bool useSyncContext)
+		{
+			ms_useSyncContext = useSyncContext;
 		}
 
 		[SecuritySafeCritical]
@@ -278,7 +284,8 @@ namespace CitizenFX.Core
 
 		public static void AddDelay(int delay, AsyncCallback callback, string name = null)
 		{
-			ms_delays.Add(Tuple.Create(DateTime.UtcNow.AddMilliseconds(delay), callback, name));
+			lock (ms_delays)
+				ms_delays.Add(Tuple.Create(DateTime.UtcNow.AddMilliseconds(delay), callback, name));
 		}
 
 		public static void TickGlobal()
@@ -306,30 +313,33 @@ namespace CitizenFX.Core
 				using (var scope = new ProfilerScope(() => "c# deferredDelay"))
 				{
 					var now = DateTime.UtcNow;
-					var count = ms_delays.Count;
-
-					for (int delayIdx = 0; delayIdx < count; delayIdx++)
+					lock (ms_delays)
 					{
-						var delay = ms_delays[delayIdx];
+						var count = ms_delays.Count;
 
-						if (now >= delay.Item1)
+						for (int delayIdx = 0; delayIdx < count; delayIdx++)
 						{
-							using (var inScope = new ProfilerScope(() => delay.Item3))
-							{
-								try
-								{
-									BaseScript.CurrentName = delay.Item3;
-									delay.Item2(new DummyAsyncResult());
-								}
-								finally
-								{
-									BaseScript.CurrentName = null;
-								}
-							}
+							var delay = ms_delays[delayIdx];
 
-							ms_delays.RemoveAt(delayIdx);
-							delayIdx--;
-							count--;
+							if (now >= delay.Item1)
+							{
+								using (var inScope = new ProfilerScope(() => delay.Item3))
+								{
+									try
+									{
+										BaseScript.CurrentName = delay.Item3;
+										delay.Item2(new DummyAsyncResult());
+									}
+									finally
+									{
+										BaseScript.CurrentName = null;
+									}
+								}
+
+								ms_delays.RemoveAt(delayIdx);
+								delayIdx--;
+								count--;
+							}
 						}
 					}
 				}
@@ -366,60 +376,89 @@ namespace CitizenFX.Core
 			}
 		}
 
+		private class SyncContextScope : IDisposable
+		{
+			private static SynchronizationContext citizenContext = new CitizenSynchronizationContext();
+			private SynchronizationContext oldContext;
+
+			public SyncContextScope()
+			{
+				if (ms_useSyncContext)
+				{
+					oldContext = SynchronizationContext.Current;
+					SynchronizationContext.SetSynchronizationContext(citizenContext);
+				}
+			}
+
+			public void Dispose()
+			{
+				if (oldContext != null)
+				{
+					SynchronizationContext.SetSynchronizationContext(oldContext);
+				}
+			}
+		}
+
 		[SecuritySafeCritical]
 		public void TriggerEvent(string eventName, byte[] argsSerialized, string sourceString)
 		{
-			if (GameInterface.SnapshotStackBoundary(out var bo))
-			{
-				ScriptHost.SubmitBoundaryStart(bo, bo.Length);
-			}
-
-			try
-			{
+			// not using using statements here as old Mono on Linux build doesn't know of these
 #if IS_FXSERVER
-				var netSource = (sourceString.StartsWith("net") || sourceString.StartsWith("internal-net")) ? sourceString : null;
-#else
-				var netSource = sourceString.StartsWith("net") ? sourceString : null;
+			using (var syncContext = new SyncContextScope())
 #endif
-
-				var obj = MsgPackDeserializer.Deserialize(argsSerialized, netSource) as List<object> ?? (IEnumerable<object>)new object[0];
-
-				var scripts = ms_definedScripts.ToArray();
-
-				var objArray = obj.ToArray();
-
-				NetworkFunctionManager.HandleEventTrigger(eventName, objArray, sourceString);
-
-				foreach (var script in scripts)
+			{
+				if (GameInterface.SnapshotStackBoundary(out var bo))
 				{
-					Task.Factory.StartNew(() =>
-					{
-						BaseScript.CurrentName = $"eventHandler {script.GetType().Name} -> {eventName}";
-						var t = script.EventHandlers.Invoke(eventName, sourceString, objArray);
-						BaseScript.CurrentName = null;
-
-						return t;
-					}, CancellationToken.None, TaskCreationOptions.None, CitizenTaskScheduler.Instance).Unwrap().ContinueWith(a =>
-					{
-						if (a.IsFaulted)
-						{
-							Debug.WriteLine($"Error invoking event handlers for {eventName}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
-						}
-					});
+					ScriptHost.SubmitBoundaryStart(bo, bo.Length);
 				}
 
-				ExportDictionary.Invoke(eventName, objArray);
+				try
+				{
+#if IS_FXSERVER
+					var netSource = (sourceString.StartsWith("net") || sourceString.StartsWith("internal-net")) ? sourceString : null;
+#else
+					var netSource = sourceString.StartsWith("net") ? sourceString : null;
+#endif
 
-				// invoke a single task tick
-				CitizenTaskScheduler.Instance.Tick();
-			}
-			catch (Exception e)
-			{
-				PrintError($"event ({eventName})", e);
-			}
-			finally
-			{
-				ScriptHost.SubmitBoundaryStart(null, 0);
+					var obj = MsgPackDeserializer.Deserialize(argsSerialized, netSource) as List<object> ?? (IEnumerable<object>)new object[0];
+
+					var scripts = ms_definedScripts.ToArray();
+
+					var objArray = obj.ToArray();
+
+					NetworkFunctionManager.HandleEventTrigger(eventName, objArray, sourceString);
+
+					foreach (var script in scripts)
+					{
+						Task.Factory.StartNew(() =>
+						{
+							BaseScript.CurrentName = $"eventHandler {script.GetType().Name} -> {eventName}";
+							var t = script.EventHandlers.Invoke(eventName, sourceString, objArray);
+							BaseScript.CurrentName = null;
+
+							return t;
+						}, CancellationToken.None, TaskCreationOptions.None, CitizenTaskScheduler.Instance).Unwrap().ContinueWith(a =>
+						{
+							if (a.IsFaulted)
+							{
+								Debug.WriteLine($"Error invoking event handlers for {eventName}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
+							}
+						});
+					}
+
+					ExportDictionary.Invoke(eventName, objArray);
+
+					// invoke a single task tick
+					CitizenTaskScheduler.Instance.Tick();
+				}
+				catch (Exception e)
+				{
+					PrintError($"event ({eventName})", e);
+				}
+				finally
+				{
+					ScriptHost.SubmitBoundaryStart(null, 0);
+				}
 			}
 		}
 
@@ -438,48 +477,38 @@ namespace CitizenFX.Core
 		private int m_retvalBufferSize;
 
 		[SecuritySafeCritical]
-		public void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retvalSerialized, out int retvalSize)
+		public void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retval)
 		{
-			if (GameInterface.SnapshotStackBoundary(out var b))
+			// not using using statements here as old Mono on Linux build doesn't know of these
+#if IS_FXSERVER
+			using (var syncContext = new SyncContextScope())
+#endif
 			{
-				ScriptHost.SubmitBoundaryStart(b, b.Length);
-			}
 
-			try
-			{
-				var retvalData = FunctionReference.Invoke(refIndex, argsSerialized);
-
-				if (retvalData != null)
+				if (GameInterface.SnapshotStackBoundary(out var b))
 				{
-					if (m_retvalBuffer == IntPtr.Zero)
-					{
-						m_retvalBuffer = Marshal.AllocHGlobal(32768);
-						m_retvalBufferSize = 32768;
-					}
-
-					if (m_retvalBufferSize < retvalData.Length)
-					{
-						m_retvalBuffer = Marshal.ReAllocHGlobal(m_retvalBuffer, new IntPtr(retvalData.Length));
-						m_retvalBufferSize = retvalData.Length;
-					}
-
-					Marshal.Copy(retvalData, 0, m_retvalBuffer, retvalData.Length);
-
-					retvalSerialized = m_retvalBuffer;
-					retvalSize = retvalData.Length;
+					ScriptHost.SubmitBoundaryStart(b, b.Length);
 				}
-				else
+
+				try
 				{
-					retvalSerialized = IntPtr.Zero;
-					retvalSize = 0;
-				}
-			}
-			catch (Exception e)
-			{
-				retvalSerialized = IntPtr.Zero;
-				retvalSize = 0;
+					var retvalData = FunctionReference.Invoke(refIndex, argsSerialized);
 
-				PrintError($"reference call", e.InnerException ?? e);
+					if (retvalData != null)
+					{
+						retval = GameInterface.MakeMemoryBuffer(retvalData);
+					}
+					else
+					{
+						retval = IntPtr.Zero;
+					}
+				}
+				catch (Exception e)
+				{
+					retval = IntPtr.Zero;
+
+					PrintError($"reference call", e.InnerException ?? e);
+				}
 			}
 		}
 
@@ -521,13 +550,47 @@ namespace CitizenFX.Core
 			return null;
 		}
 
+		internal static void PrintErrorInternal(string where, Exception what)
+		{
+			GlobalManager?.PrintError(where, what);
+		}
+
 		[SecuritySafeCritical]
 		private void PrintError(string where, Exception what)
 		{
 			ScriptHost.SubmitBoundaryEnd(null, 0);
 
 			var stackTrace = new StackTrace(what, true);
-			var frames = stackTrace.GetFrames()
+
+#if IS_FXSERVER
+			var stackFrames = stackTrace.GetFrames();
+#else
+			IEnumerable<StackFrame> stackFrames;
+
+			// HACK: workaround to iterate inner traces ourselves.
+			// TODO: remove this once we've updated libraries
+			var fieldCapturedTraces = typeof(StackTrace).GetField("captured_traces", BindingFlags.NonPublic | BindingFlags.Instance);
+			if (fieldCapturedTraces != null)
+			{
+				var captured_traces = (StackTrace[])fieldCapturedTraces.GetValue(stackTrace);
+
+				// client's mscorlib is missing this piece of code, copied from https://github.com/mono/mono/blob/ef848cfa83ea16b8afbd5b933968b1838df19505/mcs/class/corlib/System.Diagnostics/StackTrace.cs#L181
+				var accum = new List<StackFrame>();
+				foreach (var t in captured_traces ?? Array.Empty<StackTrace>())
+				{
+					for (int i = 0; i < t.FrameCount; i++)
+						accum.Add(t.GetFrame(i));
+				}
+
+				accum.AddRange(stackTrace.GetFrames());
+
+				stackFrames = accum;
+			}
+			else
+				stackFrames = stackTrace.GetFrames();
+#endif
+
+			var frames = stackFrames
 				.Select(a => new
 				{
 					Frame = a,
@@ -574,6 +637,7 @@ namespace CitizenFX.Core
 			private FastMethod<Action<IntPtr, IntPtr, int>> submitBoundaryStartMethod;
 			private FastMethod<Action<IntPtr, IntPtr, int>> submitBoundaryEndMethod;
 			private FastMethod<Func<IntPtr, IntPtr, int>> getLastErrorTextMethod;
+			private FastMethod<Func<IntPtr, IntPtr, IntPtr, int, IntPtr, int>> invokeFunctionReference;
 
 			[SecuritySafeCritical]
 			public DirectScriptHost(IntPtr hostPtr)
@@ -588,6 +652,7 @@ namespace CitizenFX.Core
 				submitBoundaryStartMethod = new FastMethod<Action<IntPtr, IntPtr, int>>(nameof(submitBoundaryStartMethod), hostPtr, 5);
 				submitBoundaryEndMethod = new FastMethod<Action<IntPtr, IntPtr, int>>(nameof(submitBoundaryEndMethod), hostPtr, 6);
 				getLastErrorTextMethod = new FastMethod<Func<IntPtr, IntPtr, int>>(nameof(getLastErrorTextMethod), hostPtr, 7);
+				invokeFunctionReference = new FastMethod<Func<IntPtr, IntPtr, IntPtr, int, IntPtr, int>>(nameof(invokeFunctionReference), hostPtr, 8);
 			}
 
 			[SecuritySafeCritical]
@@ -743,6 +808,19 @@ namespace CitizenFX.Core
 				}
 
 				return retVal;
+			}
+
+			public unsafe int InvokeFunctionReference(string refId, byte[] argsSerialized, int argsSize, IntPtr ret)
+			{
+				var refIdBytes = Encoding.UTF8.GetBytes(refId);
+
+				fixed (byte* refIdBytesFixed = refIdBytes)
+				{
+					fixed (byte* argsSerializedStart = argsSerialized)
+					{
+						return invokeFunctionReference.method(hostPtr, new IntPtr(refIdBytesFixed), new IntPtr(argsSerializedStart), argsSize, ret);
+					}
+				}
 			}
 		}
 

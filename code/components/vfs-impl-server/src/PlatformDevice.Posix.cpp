@@ -208,6 +208,23 @@ void LocalDevice::FindClose(THandle handle)
 	delete data;
 }
 
+uint32_t LocalDevice::GetAttributes(const std::string& filename)
+{
+	struct stat stbuf;
+	if (stat(filename.c_str(), &stbuf) < 0)
+	{
+		return -1;
+	}
+
+	uint32_t attributes = 0;
+	if (S_ISDIR(stbuf.st_mode))
+	{
+		attributes |= FILE_ATTRIBUTE_DIRECTORY;
+	}
+
+	return attributes;
+}
+
 bool LocalDevice::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
 {
 	if (controlIdx == VFS_GET_FILE_ID && controlSize == sizeof(GetFileIdExtension))

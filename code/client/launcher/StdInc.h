@@ -42,9 +42,14 @@ enum class compressionAlgo_e
 	Zstd,
 };
 
+struct baseDownload
+{
+	int count = 1;
+};
+
 void CL_InitDownloadQueue();
-void CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo);
-void CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo, int segments);
+std::shared_ptr<baseDownload> CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo);
+std::shared_ptr<baseDownload> CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo, int segments);
 
 bool DL_Process();
 
@@ -73,6 +78,9 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 // cppwinrt is slow, add it to pch
 #include <unknwn.h>
 
+// compiler warning (error with new preprocessor)
+#undef GetCurrentTime
+
 // needed in newer cppwinrt
 #define WINRT_NO_MAKE_DETECTION
 
@@ -93,39 +101,6 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 
 #if defined(_DEBUG) && !defined(LAUNCHER_PERSONALITY_CHROME)
 #define LAUNCHER_PERSONALITY_GAME
-#endif
-
-#ifdef LAUNCHER_PERSONALITY_GAME_MTL
-#define LAUNCHER_PERSONALITY_GAME
-#endif
-
-// game personality aliases
-#ifdef GTA_FIVE
-#ifdef LAUNCHER_PERSONALITY_GAME_2060
-#define LAUNCHER_PERSONALITY_GAME
-#elif defined(LAUNCHER_PERSONALITY_GAME_2189)
-#define LAUNCHER_PERSONALITY_GAME
-#elif defined(LAUNCHER_PERSONALITY_GAME_2372)
-#define LAUNCHER_PERSONALITY_GAME
-#elif defined(LAUNCHER_PERSONALITY_GAME_2545)
-#define LAUNCHER_PERSONALITY_GAME
-#elif defined(LAUNCHER_PERSONALITY_GAME_372)
-#define LAUNCHER_PERSONALITY_GAME
-#elif defined(LAUNCHER_PERSONALITY_GAME_1604)
-#define LAUNCHER_PERSONALITY_GAME
-#endif
-#elif defined(IS_RDR3)
-#ifdef LAUNCHER_PERSONALITY_GAME_1311
-#define LAUNCHER_PERSONALITY_GAME
-#elif defined(LAUNCHER_PERSONALITY_GAME_1355)
-#define LAUNCHER_PERSONALITY_GAME
-#elif defined(LAUNCHER_PERSONALITY_GAME_1436)
-#define LAUNCHER_PERSONALITY_GAME
-#endif
-#elif defined(GTA_NY)
-#ifdef LAUNCHER_PERSONALITY_GAME_43
-#define LAUNCHER_PERSONALITY_GAME
-#endif
 #endif
 
 struct TenUIBase

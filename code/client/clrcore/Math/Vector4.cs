@@ -1144,7 +1144,7 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Multiplies a vector with another by performing component-wise multiplication equivalent to <see cref="Multiply(ref SharpDX.Vector4,ref SharpDX.Vector4,out SharpDX.Vector4)"/>.
+		/// Multiplies a vector with another by performing component-wise multiplication equivalent to <see cref="Multiply(ref Vector4, ref Vector4, out Vector4)"/>.
 		/// </summary>
 		/// <param name="left">The first vector to multiply.</param>
 		/// <param name="right">The second vector to multiply.</param>
@@ -1292,7 +1292,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if <paramref name="left"/> has the same value as <paramref name="right"/>; otherwise, <c>false</c>.</returns>
 		public static bool operator ==(Vector4 left, Vector4 right)
 		{
-			return left.Equals(ref right);
+			return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.Equals(ref right);
 		}
 
 		/// <summary>
@@ -1303,7 +1303,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if <paramref name="left"/> has a different value than <paramref name="right"/>; otherwise, <c>false</c>.</returns>
 		public static bool operator !=(Vector4 left, Vector4 right)
 		{
-			return !left.Equals(ref right);
+			return !(left==right);
 		}
 
 		/// <summary>

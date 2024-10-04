@@ -2,12 +2,12 @@
 
 ## Building prerequisites
 
- - [Node.JS v12.18.x](https://nodejs.org/), **use of v12 is important!**
+ - [Node.JS v16.13.x](https://nodejs.org/)
  - [`Yarn package manager`](https://classic.yarnpkg.com/en/docs/install#windows-stable)
 
 
 ## Development flow
-
+ - `git submodule update --init` **Must be done from the FiveM source code root**
  - `yarn install`
  - `yarn start`
  - Run FxDK:
@@ -18,7 +18,8 @@
   - `%SDK_ROOT_PATH%` - path to `sdk-root` resource, for example: `C:/dev/fivem/ext/sdk/resources/sdk-root`,
     note that it expects `sdk-game` resource to be near `sdk-root`, as in the original source tree.
 
-    It also should use slashes, not backslashes.
+    **Use of slashes (`/`) in place of `%SDK_ROOT_PATH%` is important, don't use backslashes (`\`) there.**
+
 
 ## Building
 

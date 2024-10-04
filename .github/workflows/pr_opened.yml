@@ -1,0 +1,259 @@
+name: Validate PR
+on:
+  pull_request_target:
+    types: [ reopened, opened, edited, synchronize, ready_for_review ]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+  
+jobs:
+  input_validation:
+    name: Validate PR details
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    env:
+      COMMITS_URL: ${{ github.event.pull_request.commits_url }}
+      FILES_URL: ${{ github.event.pull_request.url }}/files
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_DESCR: ${{ github.event.pull_request.body }}
+    outputs:
+      requires_compilation: ${{ steps.check_changed_files.outputs.requires_compilation }}
+    steps:
+      - name: Check PR's changed files
+        id: check_changed_files
+        run: |
+          # Include or exclude files, no greedy matching so use [^.]* to go up to the first dot '.'
+          # Later inclusions override previous exclusions, following same logic as GitHub's paths checking
+          filterFiles=(
+                '^code/*'
+                '!^.github/*'
+                '!^code/tools/*'
+                '!^ext/*'
+                '^ext/native-decls/[^.]*\.md' # do include native declarations
+                '!.bat$'
+                '!.cmd$'
+                '!.ps1$'
+                '!.psm1$'
+                '!.sh$'
+          )
+          
+          # check changed files
+          readarray -t changedFiles < <(curl -ks "$FILES_URL" | jq '.[].filename')
+          
+          shouldCompile=false
+          
+          for (( i=0; i < ${#changedFiles[@]}; i++ )); do
+              echo ${changedFiles[$i]}
+          done
+          
+          # file path matching
+          for (( i=0; i < ${#changedFiles[@]}; i++ )); do
+              # remove first and last " (quotes)
+              path=${changedFiles[$i]:1:-1}
+              exclude=0
+              
+              for regex in ${filterFiles[@]}; do
+                  if [[ ${regex:0:1} = '!' ]]; then
+                      if [[ "$path" =~ ${regex:1} ]]; then
+                          exclude=1
+                      fi
+                  else
+                      if [[ "$path" =~ $regex ]]; then
+                          exclude=0
+                          shouldCompile=true
+                      fi
+                  fi
+              done
+              
+              if [[ $exclude -ne 0 ]]; then
+                  shouldCompile=false
+                  break
+              fi
+          done
+          
+          echo "requires_compilation=$shouldCompile" >> "$GITHUB_OUTPUT"
+      
+      - name: Check PR details
+        run: |          
+          valid=true
+          
+          if [[ ${#PR_TITLE} -lt 10 ]]; then
+            echo "::error::PR title is too small to convey any real meaning."
+            valid=false
+          fi
+          
+          if [[ ${#PR_DESCR} -lt 10 ]]; then
+            echo "::error::PR body is too small to convey any real meaning."
+            valid=false
+          fi
+          
+          if [[ $valid = false ]]; then
+            exit 1
+          fi
+      
+      - name: Check commit titles
+        run: |
+          # get commits json and make an array of commit messages
+          readarray -t commitMessages < <(curl -ks "$COMMITS_URL" | jq '.[].commit.message' )
+          
+          # requires at least 8 characters in description
+          commitTitleRegex="^(tweak|fix|feat)\([a-zA-Z0-9\/-]+\): .{8,}"
+          valid=true
+          
+          for (( i=0; i < ${#commitMessages[@]}; i++ )); do
+            # remove first and last " (quotes) and get title from message (ends at the first '\n' or the end of the string)
+            title=${commitMessages[$i]:1:-1}
+            title=${title%%\\n*}
+            
+            if [[ "$title" =~ $commitTitleRegex ]]; then
+              echo "         valid title: $title"
+            else
+              echo "::error::Invalid title: $title"
+              valid=false
+            fi
+          done
+          
+          if [[ $valid = false ]]; then
+            echo '::error::One or more of your commit titles do not conform to our title rules'
+            echo 
+            echo 'Titles need to:'
+            echo '- Start with: fix, tweak, or feat,'
+            echo '- Within parenthesis contain the area the change is applying,'
+            echo '- Colon + space, i.e: ": " (without quotes)'
+            echo '- Description longer than 8 characters".'
+            echo 
+            echo 'Examples of correct commit titles:'
+            echo '- fix(clrcore): something I fixed'
+            echo '- feat(scripting/lua): new feature for lua'
+            echo '- tweak(scripting/v8): some tweaks'
+            exit 1
+          fi
+      
+      - name: Label it
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = {
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo
+            };
+            
+            var addLabels = [ ];
+              
+            const issueBody = process.env.PR_DESCR;
+            
+            const areasStringRegex = /### This PR applies to the following area\(s\)\s*(?:<!--.*?-->\s*)*(.*?)(?=\n#)/s;
+            const areasLabels = [ "FxDK", "RedM", "ScRT: Lua", "ScRT: C#", "ScRT: JS" ];
+              
+            var areasString = areasStringRegex.exec(issueBody);            
+            if (areasString && areasString.length > 1)
+            {
+              var areas = areasString[1].split(/\s*[,\n]\s*/);
+              for (var i = 0; i < areas.length; ++i)
+              {
+                const area = areas[i];
+                if (areasLabels.includes(area))
+                {
+                  addLabels.push(area);
+                }
+              }
+            }
+            
+            if (addLabels.length > 0)
+            {
+              // triage label
+              github.rest.issues.addLabels({
+                ...issue,
+                labels: addLabels
+              });
+            }
+  
+  build_all:
+    name: Build
+    needs: input_validation
+    if: ${{ needs.input_validation.outputs.requires_compilation == 'true' }}
+    uses: ./.github/workflows/ci_build.yml
+  
+  post_build:
+    name: Post Build PR actions
+    if: always()
+    needs: [ build_all, input_validation ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark PR as valid
+        if: ${{ !contains(needs.*.result, 'failure') }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = {
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo
+            };
+            
+            // triage label
+            github.rest.issues.addLabels({
+                ...issue,
+                labels: ["triage"]
+            });
+            
+            // remove invalid
+            try
+            {
+                await github.rest.issues.removeLabel({
+                    ...issue,
+                    name: ["invalid"]
+                });
+            }
+            catch (exception)
+            {
+                // we don't care if the label wasn't present, as long as it's gone now
+                if (exception.status !== 404)
+                {
+                    console.log(exception);
+                }
+            }
+      
+      - name: Mark PR as invalid
+        if: ${{ contains(needs.*.result, 'failure') }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = {
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo
+            };
+            
+            /*github.rest.issues.createComment({
+                ...issue,
+                body: "One or more of your commit titles do not conform to our title rules, make sure they all follow the following pattern: `type(component): description`. Allowed types are: `fix`, `tweak`, or `feat` and description must at least be 10 characters long to convey any meaning."
+            });*/
+            
+            // invalid label
+            github.rest.issues.addLabels({
+                ...issue,
+                labels: ["invalid"]
+            });
+            
+            // remove triage
+            try
+            {
+                await github.rest.issues.removeLabel({
+                    ...issue,
+                    name: ["triage"]
+                });
+            }
+            catch (exception)
+            {
+                // we don't care if the label wasn't present, as long as it's gone now
+                if (exception.status !== 404)
+                {
+                    console.log(exception);
+                }
+            }

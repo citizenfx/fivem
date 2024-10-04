@@ -1,55 +1,10 @@
 #include <StdInc.h>
 
 #if defined(LAUNCHER_PERSONALITY_MAIN)
-#include <MinHook.h>
-#include <Hooking.Aux.h>
+#include <CfxState.h>
 
-static decltype(&GetCommandLineW) g_origGetCommandLineWBase;
-static decltype(&GetCommandLineW) g_origGetCommandLineW32;
-static decltype(&GetCommandLineA) g_origGetCommandLineABase;
-static decltype(&GetCommandLineA) g_origGetCommandLineA32;
-
-static uint32_t g_intendedBuild;
-
-template<decltype(&g_origGetCommandLineWBase) TFn>
-static LPWSTR GetCommandLineWStub()
-{
-	static LPWSTR cli = ([]()
-	{
-		auto lastCli = (*TFn)();
-
-		static WCHAR cli[65536];
-		WCHAR buf[128];
-		swprintf(buf, L" -b%d", g_intendedBuild);
-
-		wcscpy(cli, lastCli);
-		wcscat(cli, buf);
-
-		return cli;
-	})();
-
-	return cli;
-}
-
-template<decltype(&g_origGetCommandLineABase) TFn>
-static LPSTR GetCommandLineAStub()
-{
-	static LPSTR cli = ([]()
-	{
-		auto lastCli = (*TFn)();
-
-		static CHAR cli[65536];
-		CHAR buf[128];
-		sprintf(buf, " -b%d", g_intendedBuild);
-
-		strcpy(cli, lastCli);
-		strcat(cli, buf);
-
-		return cli;
-	})();
-
-	return cli;
-}
+#define XBR_BUILDS_ONLY
+#include <CrossBuildRuntime.h>
 
 void XBR_EarlySelect()
 {
@@ -70,18 +25,23 @@ void XBR_EarlySelect()
 
 #ifndef _DEBUG
 #ifdef GTA_FIVE
-	initialBuild = 2372;
+	initialBuild = 2699;
 #elif defined(IS_RDR3)
-	// RDR3 1311 has a few odd DRM issues so isn't suited for first launch
-	initialBuild = 1355;
+	initialBuild = 1491;
 #endif
 #endif
 
 	// we *can't* call xbr:: APIs here since they'll `static`-initialize and break GameCache later
-	uint32_t builds[] = { 372, 1604, 2060, 2189, 2372, 2545, 1311, 1355, 1436, 43 };
+	uint32_t builds[] = {
+#define EXPAND(_, __, x) x,
+		BOOST_PP_SEQ_FOR_EACH(EXPAND, , GAME_BUILDS)
+#undef EXPAND
+	};
+
 	uint32_t requestedBuild = defaultBuild;
 
-	auto realCli = GetCommandLineW();
+	auto state = CfxState::Get();
+	const auto realCli = (state->initCommandLine[0]) ? state->initCommandLine : GetCommandLineW();
 
 	for (uint32_t build : builds)
 	{
@@ -92,25 +52,16 @@ void XBR_EarlySelect()
 		}
 	}
 
-	if (requestedBuild == defaultBuild)
+	if (requestedBuild == defaultBuild && state->IsMasterProcess())
 	{
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
 		auto retainedBuild = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", initialBuild, fpath.c_str());
 
 		// wcsstr is in case we have a `b1604` argument e.g. and we therefore want to ignore the saved build
-		if (retainedBuild != defaultBuild && !wcsstr(GetCommandLineW(), va(L"b%d", defaultBuild)))
+		if (retainedBuild != defaultBuild && !wcsstr(realCli, va(L"b%d", defaultBuild)))
 		{
-			g_intendedBuild = retainedBuild;
-
-			DisableToolHelpScope scope;
-
-			MH_Initialize();
-			MH_CreateHookApi(L"kernelbase.dll", "GetCommandLineW", GetCommandLineWStub<&g_origGetCommandLineWBase>, (void**)&g_origGetCommandLineWBase);
-			MH_CreateHookApi(L"kernel32.dll", "GetCommandLineW", GetCommandLineWStub<&g_origGetCommandLineW32>, (void**)&g_origGetCommandLineW32);
-			MH_CreateHookApi(L"kernelbase.dll", "GetCommandLineA", GetCommandLineAStub<&g_origGetCommandLineABase>, (void**)&g_origGetCommandLineABase);
-			MH_CreateHookApi(L"kernel32.dll", "GetCommandLineA", GetCommandLineAStub<&g_origGetCommandLineA32>, (void**)&g_origGetCommandLineA32);
-			MH_EnableHook(MH_ALL_HOOKS);
+			wcscat(state->initCommandLine, va(L" -b%d", retainedBuild));
 		}
 	}
 }

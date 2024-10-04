@@ -1,12 +1,23 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using CitizenFX.Core.Native;
 using System.Security;
-using System.Threading.Tasks;
+
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+using TaskPed = CitizenFX.Core.Coroutine<CitizenFX.FiveM.Ped>;
+using compat_i32_i64 = System.Int64;
+
+namespace CitizenFX.FiveM
+#else
+using System.Drawing;
+using TaskPed = System.Threading.Tasks.Task<CitizenFX.Core.Ped>;
+using compat_i32_i64 = System.Int32;
 
 namespace CitizenFX.Core
+#endif
 {
 	public enum CargobobHook
 	{
@@ -15,12 +26,19 @@ namespace CitizenFX.Core
 	}
 	public enum LicensePlateStyle
 	{
-		BlueOnWhite1 = 3,
-		BlueOnWhite2 = 0,
+		BlueOnWhite1 = 0,
+ 		YellowOnBlack = 1,
+   		YellowOnBlue = 2,
+		BlueOnWhite2 = 3,
 		BlueOnWhite3 = 4,
-		YellowOnBlack = 1,
-		YellowOnBlue = 2,
-		NorthYankton = 5
+		NorthYankton = 5,
+  		ECola = 6,
+		LasVenturas = 7,
+  		LibertyCity = 8,
+		LSCarMeet = 9,
+  		LSPanic = 10,
+		LSPounders = 11,
+  		Sprunk = 12
 	}
 	public enum LicensePlateType
 	{
@@ -282,6 +300,9 @@ namespace CitizenFX.Core
 	}
 
 	public sealed class Vehicle : Entity
+#if MONO_V2
+		, Shared.IVehicle
+#endif
 	{
 		#region Fields
 		VehicleDoorCollection _doors;
@@ -736,6 +757,9 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool ProvidesCover
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, 0x8D4, 2, false);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -748,6 +772,7 @@ namespace CitizenFX.Core
 
 				return MemoryAccess.IsBitSet(MemoryAddress + offset, 2);
 			}
+#endif
 			set
 			{
 				API.SetVehicleProvidesCover(Handle, value);
@@ -762,6 +787,19 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool DropsMoneyOnExplosion
 		{
+#if MONO_V2
+			[SecuritySafeCritical]
+			get
+			{
+				IntPtr address = MemoryAddress;
+				if (address != IntPtr.Zero && MemoryAccess.Read<int>(address, 0xB58) <= 8)
+				{
+					return MemoryAccess.IsBitSet(address, 0x1409, 1);
+				}
+
+				return false;
+			}
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -776,6 +814,7 @@ namespace CitizenFX.Core
 				}
 				return false;
 			}
+#endif
 			set
 			{
 				API.SetVehicleCreatesMoneyPickupsWhenExploded(Handle, value);
@@ -1034,6 +1073,9 @@ namespace CitizenFX.Core
 			{
 				return API.GetIsLeftVehicleHeadlightDamaged(Handle);
 			}
+#if MONO_V2
+			[SecuritySafeCritical] set => MemoryAccess.WriteBitIfNotNull(MemoryAddress, 1916, 0, value);
+#else
 			set
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -1052,6 +1094,7 @@ namespace CitizenFX.Core
 					MemoryAccess.ClearBit(address, 0);
 				}
 			}
+#endif
 		}
 		public bool IsRightHeadLightBroken
 		{
@@ -1059,6 +1102,9 @@ namespace CitizenFX.Core
 			{
 				return API.GetIsRightVehicleHeadlightDamaged(Handle);
 			}
+#if MONO_V2
+			[SecuritySafeCritical] set => MemoryAccess.WriteBitIfNotNull(MemoryAddress, 1916, 1, value);
+#else
 			set
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -1077,6 +1123,7 @@ namespace CitizenFX.Core
 					MemoryAccess.ClearBit(address, 1);
 				}
 			}
+#endif
 		}
 		public bool IsRearBumperBrokenOff
 		{
@@ -1430,7 +1477,7 @@ namespace CitizenFX.Core
 			Vector3 currentPosition = Position;
 			Vector3 newPosition = new Vector3();
 			float heading = 0f;
-			int unkn = 0;
+			compat_i32_i64 unkn = 0;
 
 			for (int i = 1; i < 40; i++)
 			{
@@ -1604,7 +1651,7 @@ namespace CitizenFX.Core
 			API.SetVehicleDamage(Handle, position.X, position.Y, position.Z, damageAmount, radius, false);
 		}
 
-		public async Task<Ped> CreatePedOnSeat(VehicleSeat seat, Model model)
+		public async TaskPed CreatePedOnSeat(VehicleSeat seat, Model model)
 		{
 			if (!IsSeatFree(seat))
 			{
@@ -1653,17 +1700,25 @@ namespace CitizenFX.Core
 
 		public static VehicleHash[] GetAllModelsOfClass(VehicleClass vehicleClass)
 		{
+#if MONO_V2
+			throw new NotImplementedException();
+#else
 			return Array.ConvertAll<int, VehicleHash>(MemoryAccess.VehicleModels[(int)vehicleClass].ToArray(), item => (VehicleHash)item);
+#endif
 		}
 
 		public static VehicleHash[] GetAllModels()
 		{
+#if MONO_V2
+			throw new NotImplementedException();
+#else
 			List<VehicleHash> allModels = new List<VehicleHash>();
 			for (int i = 0; i < 0x20; i++)
 			{
 				allModels.AddRange(Array.ConvertAll<int, VehicleHash>(MemoryAccess.VehicleModels[i].ToArray(), item => (VehicleHash)item));
 			}
 			return allModels.ToArray();
+#endif
 		}
 
 		/// <summary>

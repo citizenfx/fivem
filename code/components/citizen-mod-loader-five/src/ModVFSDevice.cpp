@@ -14,6 +14,8 @@
 #include <FontRenderer.h>
 #include <DrawCommands.h>
 
+#include <PureModeState.h>
+
 #include <CrossBuildRuntime.h>
 #include <Error.h>
 
@@ -258,6 +260,11 @@ int modCount;
 
 bool ModsNeedEncryption()
 {
+	if (fx::client::GetPureLevel() >= 1)
+	{
+		return true;
+	}
+
 	// they don't currently
 	return false;
 }

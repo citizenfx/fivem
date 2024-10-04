@@ -1,9 +1,18 @@
 using System;
 using CitizenFX.Core.Native;
-using CitizenFX.Core.NaturalMotion;
 using System.Security;
 
+#if MONO_V2
+using CitizenFX.Core;
+using CitizenFX.FiveM.Native;
+using CitizenFX.FiveM.NaturalMotion;
+using API = CitizenFX.FiveM.Native.Natives;
+using Function = CitizenFX.FiveM.Native.Natives;
+namespace CitizenFX.FiveM
+#else
+using CitizenFX.Core.NaturalMotion;
 namespace CitizenFX.Core
+#endif
 {
 	public enum Gender
 	{
@@ -117,6 +126,9 @@ namespace CitizenFX.Core
 	}
 
 	public sealed class Ped : Entity
+#if MONO_V2
+		, Shared.IPed
+#endif
 	{
 		#region Fields
 		Tasks _tasks;
@@ -190,7 +202,7 @@ namespace CitizenFX.Core
 			UnsafePedHeadBlendData data;
 			unsafe
 			{
-				Function.Call(Hash._GET_PED_HEAD_BLEND_DATA, API.PlayerPedId(), &data);
+				Function.Call(Hash._GET_PED_HEAD_BLEND_DATA, Handle, &data);
 			}
 			return data.GetData();
 		}
@@ -239,6 +251,10 @@ namespace CitizenFX.Core
 		/// </summary>
 		public float ArmorFloat
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1474 : 0x1464, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1474 : 0x1464, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -261,6 +277,7 @@ namespace CitizenFX.Core
 
 				MemoryAccess.WriteFloat(MemoryAddress + offset, value);
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets or sets how accurate this <see cref="Ped"/>s shooting ability is.
@@ -427,6 +444,9 @@ namespace CitizenFX.Core
 		/// </value>
 		public float Sweat
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 4464, 0.0f);
+#else
 			[SecuritySafeCritical]
 			get
 			{
@@ -436,6 +456,7 @@ namespace CitizenFX.Core
 				}
 				return MemoryAccess.ReadInt(MemoryAddress + 4464);
 			}
+#endif
 			set
 			{
 				if (value < 0)
@@ -594,6 +615,10 @@ namespace CitizenFX.Core
 		/// </value>
 		public float InjuryHealthThreshold
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1480 : 0x1470, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1480 : 0x1470, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -616,6 +641,7 @@ namespace CitizenFX.Core
 
 				MemoryAccess.WriteFloat(MemoryAddress + offset, value);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -630,6 +656,10 @@ namespace CitizenFX.Core
 		/// </remarks>
 		public float FatalInjuryHealthThreshold
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1484 : 0x1474, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1484 : 0x1474, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -652,6 +682,7 @@ namespace CitizenFX.Core
 
 				MemoryAccess.WriteFloat(MemoryAddress + offset, value);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -1171,6 +1202,9 @@ namespace CitizenFX.Core
 
 		public bool DropsWeaponsOnDeath
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_877_1_Steam ? 0x13E5 : 0x13BD, 6, false);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -1182,6 +1216,7 @@ namespace CitizenFX.Core
 
 				return (MemoryAccess.ReadByte(MemoryAddress + offset) & (1 << 6)) == 0;
 			}
+#endif
 			set
 			{
 				API.SetPedDropsWeaponsWhenDead(Handle, value);
@@ -1283,6 +1318,14 @@ namespace CitizenFX.Core
 		}
 		public bool CanSufferCriticalHits
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get
+			{
+				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x13BC : 0x13AC;
+				offset = Game.Version >= GameVersion.v1_0_877_1_Steam ? 0x13E4 : offset;
+				return MemoryAccess.ReadIfNotNull(MemoryAddress, offset, false);
+			}
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -1295,6 +1338,7 @@ namespace CitizenFX.Core
 
 				return (MemoryAccess.ReadByte(MemoryAddress + offset) & (1 << 2)) == 0;
 			}
+#endif
 			set
 			{
 				API.SetPedSuffersCriticalHits(Handle, value);
@@ -1528,6 +1572,120 @@ namespace CitizenFX.Core
 			}
 		}
 
+		/// <summary>
+		/// Sets the status of the vision cone of the AI Blip
+		/// </summary>
+		public bool AIBlipConeEnabled
+		{
+			set
+			{
+				API.SetPedAiBlipHasCone(Handle, value);
+			}
+		}
+
+		/// <summary>
+		/// Sets the status if the AI Blip is forced on the map
+		/// </summary>
+		public bool AIBlipForcedOn
+		{
+			set
+			{
+				API.SetPedAiBlipForcedOn(Handle, value);
+			}
+		}
+
+		/// <summary>
+		/// Sets the gang id of the AI Blip
+		/// </summary>
+		public int AIBlipGangId
+		{
+			set
+			{
+				API.SetPedAiBlipGangId(Handle, value);
+			}
+		}
+
+		/// <summary>
+		/// Sets the sprite of the AI Blip
+		/// </summary>
+		public int AIBlipSprite
+		{
+			set
+			{
+				API.SetPedAiBlipSprite(Handle, value);
+			}
+		}
+
+		/// <summary>
+		/// Sets the range of the AI Blip
+		/// </summary>
+		public float AIBlipRange
+		{
+			set
+			{
+				API.SetPedAiBlipNoticeRange(Handle, value);
+			}
+		}
+
+		/// <summary>
+		/// Enables an AI Blip for this <see cref="Ped"/>
+		/// </summary>
+		/// <param name="sprite">Blip sprite for the AI Blip</param>
+		public void AIBlipEnable(int sprite)
+		{
+			API.SetPedHasAiBlip(Handle, true);
+			API.SetPedAiBlipSprite(Handle, sprite);
+		}
+
+		/// <summary>
+		///  Enables an AI Blip for this <see cref="Ped"/> with color
+		/// </summary>
+		/// <param name="sprite">Blip sprite for the AI Blip</param>
+		/// <param name="color">Color for the AI Blip (see <see href="https://docs.fivem.net/docs/game-references/blips/#blip-colors">the docs</see> (blip colors))</param>
+		public void AIBlipEnable(int sprite, int color)
+		{
+			API.SetPedHasAiBlipWithColor(Handle, true, color);
+			API.SetPedAiBlipSprite(Handle, sprite);
+		}
+
+		/// <summary>
+		/// Disables the AI Blip of this <see cref="Ped"/>
+		/// </summary>
+		public void AIBlipDisable()
+		{
+			if (AIBlipIsEnabled())
+			{
+				API.SetPedHasAiBlip(Handle, false);
+			}
+		}
+
+		/// <summary>
+		/// Checks if this <see cref="Ped"/> has an AI Blip
+		/// </summary>
+		/// <returns>True if the ped has an AI Blip</returns>
+		public bool AIBlipIsEnabled()
+		{
+			return API.DoesPedHaveAiBlip(Handle);
+		}
+
+		/// <summary>
+		/// Returns the blip handle of this AI Blip
+		/// </summary>
+		/// <returns>Blip Handle</returns>
+		public int AIBlipGetBlipHandle()
+		{
+			return API.GetAiBlip(Handle);
+		}
+
+		/// <summary>
+		/// Returns the AI Blip as a <see cref="Blip"/>
+		/// </summary>
+		/// <returns>A <see cref="Blip"/> object</returns>
+		public Blip AIBlipGetBlipObject()
+		{
+			return new Blip(API.GetAiBlip(Handle));
+		}
+
 		public Vector3 GetLastWeaponImpactPosition()
 		{
 			Vector3 position = new Vector3();
@@ -1578,10 +1736,18 @@ namespace CitizenFX.Core
 			API.SetPedResetFlag(Handle, flagID, true);
 		}
 
-		public Ped Clone(float heading = 0.0f)
+		[Obsolete("Parameter `float heading` is not used, use the parameter-less Clone() method instead")]
+		public Ped Clone(float heading = 0.0f) => Clone();
+
+		public Ped Clone()
 		{
-			return new Ped(API.ClonePed(Handle, heading, false, false));
+#if MONO_V2
+			return new Ped(API.ClonePed(Handle, API.NetworkGetEntityIsNetworked(Handle), false, false));
+#else
+			return new Ped(API.ClonePed(Handle, Convert.ToSingle(API.NetworkGetEntityIsNetworked(Handle)), false, false));
+#endif
 		}
+
 		/// <summary>
 		/// Determines whether this <see cref="Ped"/> exists.
 		/// </summary>

@@ -4,6 +4,23 @@
 #include <ComponentLoader.h>
 #include <ResumeComponent.h>
 
+static bool (*g_crashLogHandler)(const char* path);
+
+extern "C" DLL_EXPORT void SetCrashLogHandler(bool (*handler)(const char*))
+{
+	g_crashLogHandler = handler;
+}
+
+extern "C" DLL_EXPORT bool CoreCollectCrashLog(const char* path)
+{
+	if (g_crashLogHandler)
+	{
+		return g_crashLogHandler(path);
+	}
+
+	return false;
+}
+
 extern "C" DLL_EXPORT void CoreOnProcessAbnormalTermination(void* reason)
 {
 	ComponentLoader* loader = ComponentLoader::GetInstance();

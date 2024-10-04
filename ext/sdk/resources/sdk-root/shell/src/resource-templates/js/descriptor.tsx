@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { SiJavascript } from "react-icons/si";
 import { ResourceTemplateDescriptor } from '../types';
 

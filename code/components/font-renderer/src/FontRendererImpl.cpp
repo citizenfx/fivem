@@ -269,3 +269,8 @@ void FontRendererImpl::DrawPerFrame()
 
 FontRendererImpl g_fontRenderer;
 FontRenderer* TheFonts = &g_fontRenderer;
+
+static HookFunction hookFunction([]()
+{
+	TheFonts->Initialize();
+});

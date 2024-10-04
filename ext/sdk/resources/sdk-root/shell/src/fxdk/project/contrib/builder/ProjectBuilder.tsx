@@ -4,7 +4,7 @@ import { Button } from 'fxdk/ui/controls/Button/Button';
 import { Modal } from 'fxdk/ui/Modal/Modal';
 import { BsExclamationCircle } from 'react-icons/bs';
 import { projectBuildingTaskName, ProjectBuildTaskStage } from 'shared/task.names';
-import { useApiMessage, useOpenFolderSelectDialog, UseOpenFolderSelectDialogOptions } from 'utils/hooks';
+import { useApiMessage } from 'utils/hooks';
 import { Stepper } from 'fxdk/ui/controls/Stepper/Stepper';
 import { Checkbox } from 'fxdk/ui/controls/Checkbox/Checkbox';
 import { openInExplorerIcon, projectBuildIcon } from 'fxdk/ui/icons';
@@ -67,16 +67,6 @@ export const ProjectBuilder = observer(function ProjectBuilder() {
 
   const buildPath = getBuildPath();
 
-  const folderSelectOptions: UseOpenFolderSelectDialogOptions = React.useMemo(() => ({
-    startPath: Project.path,
-    dialogTitle: 'Select Project Build Folder...',
-  }), [Project.path]);
-  const openFolderSelectDialog = useOpenFolderSelectDialog(folderSelectOptions, (folderPath) => {
-    if (folderPath) {
-      Project.localStorage.buildPath = folderPath;
-    }
-  });
-
   const openBuildPath = React.useCallback(() => {
     openInExplorerAndSelect(buildPath + '\\resources');
   }, [buildPath]);
@@ -93,10 +83,15 @@ export const ProjectBuilder = observer(function ProjectBuilder() {
     setBuildTriggered(false);
     setBuildError(null);
 
+    if (!Project.localStorage.buildPath && buildPath) {
+      Project.localStorage.buildPath = buildPath;
+    }
+
     Project.buildProject();
   }, [
     setBuildTriggered,
     setBuildError,
+    buildPath,
   ]);
 
   const buildAllowed = !buildInProgress && !!buildPath;

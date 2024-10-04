@@ -69,6 +69,8 @@ public:
 	virtual void Close() override;
 
 	virtual void ScheduleCallback(TScheduledCallback&& callback, bool performInline) override;
+
+	void StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout) override;
 };
 
 enum class MultiplexPatternMatchResult

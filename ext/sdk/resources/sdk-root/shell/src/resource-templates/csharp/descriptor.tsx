@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { SiCsharp } from "react-icons/si";
 import { Feature } from 'shared/api.types';
 import { StatusState } from 'store/StatusState';

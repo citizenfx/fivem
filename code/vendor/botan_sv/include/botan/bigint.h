@@ -58,6 +58,12 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      BigInt(uint64_t n);
 
      /**
+     * Create BigInt of specified size, all zeros
+     * @param n size of the internal register in words
+     */
+     static BigInt with_capacity(size_t n);
+
+     /**
      * Copy Constructor
      * @param other the BigInt to copy
      */
@@ -135,6 +141,8 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
         {
         this->swap(other);
         }
+
+     ~BigInt() { const_time_unpoison(); }
 
      /**
      * Move assignment
@@ -637,7 +645,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * Resize the vector to the minimum word size to hold the integer, or
      * min_size words, whichever is larger
      */
-     void shrink_to_fit(size_t min_size = 0)
+     void BOTAN_DEPRECATED("Use resize if required") shrink_to_fit(size_t min_size = 0)
         {
         m_data.shrink_to_fit(min_size);
         }
@@ -719,6 +727,17 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * Uses a masked operation to avoid side channels
      */
      void ct_cond_swap(bool predicate, BigInt& other);
+
+     /**
+     * If predicate is true add value to *this
+     */
+     void ct_cond_add(bool predicate, const BigInt& value);
+
+     /**
+     * Shift @p shift bits to the left, runtime is independent of
+     * the value of @p shift.
+     */
+     void ct_shift_left(size_t shift);
 
      /**
      * If predicate is true flip the sign of *this
@@ -982,7 +1001,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
                  {
                  const word mask = (static_cast<word>(1) << (n % BOTAN_MP_WORD_BITS)) - 1;
                  const size_t len = size() - (top_word + 1);
-                 if (len > 0)
+                 if(len > 0)
                     {
                     clear_mem(&m_reg[top_word+1], len);
                     }
@@ -1090,6 +1109,7 @@ BigInt BOTAN_PUBLIC_API(2,8) operator*(const BigInt& x, word y);
 inline BigInt operator*(word x, const BigInt& y) { return y*x; }
 
 BigInt BOTAN_PUBLIC_API(2,0) operator/(const BigInt& x, const BigInt& d);
+BigInt BOTAN_PUBLIC_API(2,0) operator/(const BigInt& x, word m);
 BigInt BOTAN_PUBLIC_API(2,0) operator%(const BigInt& x, const BigInt& m);
 word   BOTAN_PUBLIC_API(2,0) operator%(const BigInt& x, word m);
 BigInt BOTAN_PUBLIC_API(2,0) operator<<(const BigInt& x, size_t n);

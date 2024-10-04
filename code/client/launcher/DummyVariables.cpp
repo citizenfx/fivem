@@ -46,7 +46,7 @@ void InitializeDummies()
 // dummy game memory to overwrite with, well, the game
 #if defined(LAUNCHER_PERSONALITY_GAME_MTL)
 #pragma bss_seg(".cdummy")
-char dummy_seg[0x02E22600];
+char dummy_seg[0x0339A600];
 
 char stub_seg[0x100000];
 #elif defined(GTA_NY)

@@ -57,7 +57,7 @@ static HookFunction hookFunction([] ()
 
 	// increase non-DLC fiDevice mount limit
 	{
-		auto location = hook::get_pattern<int>("B9 ? ? 00 00 C7 05 ? ? ? ? 64 00 00 00", 11);
+		auto location = hook::get_pattern<int>("8B ? ? ? ? ? ? ? ? 00 00 C7 05 ? ? ? ? 64 00 00 00", 17);
 		hook::put<int>(location, *location * 15); // '1500' mount limit now, instead of '500'
 	}
 

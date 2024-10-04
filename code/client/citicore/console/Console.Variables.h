@@ -55,11 +55,27 @@ struct Constraints<T, std::enable_if_t<std::is_arithmetic<T>::value>>
 enum ConsoleVariableFlags
 {
 	ConVar_None       = 0,
+	// will be saved in user configuration
 	ConVar_Archive    = 0x1,
+
+	// has been modified and should be saved
 	ConVar_Modified   = 0x2,
+
+	// public server information
 	ConVar_ServerInfo = 0x4,
+
+	// client won't allow setting it
 	ConVar_Replicated = 0x8,
 	ConVar_ReadOnly   = 0x10,
+
+	// can't be 'setr'd from server->client
+	ConVar_UserPref   = 0x20,
+
+	// blocks any modifications to the convar via set(s|a|r) commands
+	ConVar_Internal = 0x40,
+
+	// can't be read by script API
+	ConVar_ScriptRestricted = 0x80,
 };
 
 inline std::string ConsoleFlagsToString(ConsoleVariableFlags flags)
@@ -77,6 +93,10 @@ inline std::string ConsoleFlagsToString(ConsoleVariableFlags flags)
 		value += "Replicated ";
 	if (flags & ConVar_ReadOnly)
 		value += "ReadOnly ";
+	if (flags & ConVar_Internal)
+		value += "Internal ";
+	if (flags & ConVar_ScriptRestricted)
+		value += "ScriptRestricted ";
 	
 	return value;
 }
@@ -111,6 +131,8 @@ public:
 
 	virtual int GetEntryFlags(const std::string& name);
 
+	virtual int GetEntryDefaultFlags(const std::string& name);
+
 	virtual void ForAllVariables(const TVariableCB& callback, int flagMask = 0xFFFFFFFF);
 
 	virtual void RemoveVariablesWithFlag(int flags);
@@ -137,6 +159,8 @@ private:
 	{
 		std::string name;
 
+		int defaultFlags;
+
 		int flags;
 
 		THandlerPtr variable;
@@ -144,7 +168,7 @@ private:
 		int token;
 
 		inline Entry(const std::string& name, int flags, const THandlerPtr& variable, int token)
-		    : name(name), flags(flags), variable(variable), token(token)
+			: name(name), flags(flags), variable(variable), token(token), defaultFlags(flags)
 		{
 		}
 	};
@@ -193,7 +217,7 @@ class ConsoleVariableEntry : public ConsoleVariableEntryBase
 {
 public:
 	ConsoleVariableEntry(ConsoleVariableManager* manager, const std::string& name, const T& defaultValue)
-		: m_manager(manager), m_name(name), m_trackingVar(nullptr), m_defaultValue(defaultValue), m_curValue(defaultValue), m_hasConstraints(false), m_onChangeCallback(nullptr)
+		: m_manager(manager), m_name(name), m_trackingVar(nullptr), m_defaultValue(defaultValue), m_curValue(defaultValue), m_offlineValue(defaultValue), m_hasConstraints(false), m_onChangeCallback(nullptr)
 	{
 		m_getCommand = std::make_unique<ConsoleCommand>(manager->GetParentContext(), name, [=] ()
 		{
@@ -202,7 +226,14 @@ public:
 
 		m_setCommand = std::make_unique<ConsoleCommand>(manager->GetParentContext(), name, [=] (const T& newValue)
 		{
-			if (m_manager->GetEntryFlags(m_name) & ConVar_ReadOnly)
+			auto convarFlags = m_manager->GetEntryFlags(m_name);
+			if (convarFlags & ConVar_Internal)
+			{
+				console::PrintWarning("cmd", "'%s' is an internal ConVar and cannot be changed.\n", m_name);
+				return;
+			}
+
+			if (convarFlags & ConVar_ReadOnly)
 			{
 				if (!m_manager->ShouldSuppressReadOnlyWarning() || !(typename ConsoleArgumentTraits<T>::Equal()(GetRawValue(), m_curValue)))
 				{
@@ -255,7 +286,15 @@ public:
 
 	virtual bool SetValue(const std::string& value) override
 	{
-		if (m_manager->GetEntryFlags(m_name) & ConVar_ReadOnly)
+		auto convarFlags = m_manager->GetEntryFlags(m_name);
+		if (convarFlags & ConVar_Internal)
+		{
+			console::PrintWarning("cmd", "'%s' is an internal ConVar and cannot be changed.\n", m_name);
+
+			return false;
+		}
+
+		if (convarFlags & ConVar_ReadOnly)
 		{
 			if (!m_manager->ShouldSuppressReadOnlyWarning())
 			{

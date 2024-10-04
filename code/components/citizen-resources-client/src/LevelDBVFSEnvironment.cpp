@@ -6,6 +6,7 @@
  */
 
 #include "StdInc.h"
+#include "ErrorFormat.Win32.h"
 
 #undef DeleteFile
 #include <leveldb/env.h>
@@ -489,7 +490,18 @@ namespace leveldb
 		auto vfsLock = new VFSFileLock(fname);
 		*lock = vfsLock;
 
-		return vfsLock->IsValid() ? Status() : Status::IOError("Could not lock file.");
+		if (vfsLock->IsValid())
+		{
+			return Status();
+		}
+		else
+		{
+			// GH-1197: If vfsLock wraps rage::fiDeviceLocal then Create calls
+			// CreateFileW. Trace the last error message as ErrorCode is often
+			// 0x0 in a minidump's TIB at the time of dumping.
+			trace(__FUNCTION__ ": Failed to create lock file: %s\n", win32::FormatMessage(GetLastError()));
+			return Status::IOError("Could not lock file.");
+		}
 #endif
 	}
 

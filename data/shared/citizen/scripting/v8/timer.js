@@ -32,8 +32,12 @@
 
         return {
             id,
-            unref() {},
-            ref() {},
+            unref() {
+                return this;
+            },
+            ref() {
+                return this;
+            },
             hasRef() {
                 return true;
             },
@@ -42,6 +46,7 @@
                 if (timer) {
                     timer.lastRun = gameTime;
                 }
+                return this;
             },
             [Symbol.toPrimitive]() {
                 return id;

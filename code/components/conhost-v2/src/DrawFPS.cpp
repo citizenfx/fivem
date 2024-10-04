@@ -5,7 +5,7 @@
 
 #include <CoreConsole.h>
 
-#include <mmsystem.h>
+#include "FpsTracker.h"
 
 static InitFunction initFunction([]()
 {
@@ -29,16 +29,8 @@ static InitFunction initFunction([]()
 
 		auto& io = ImGui::GetIO();
 
-		static std::chrono::high_resolution_clock::duration previous;
-		static uint32_t index;
-		static std::chrono::microseconds previousTimes[6];
-
-		auto t = std::chrono::high_resolution_clock::now().time_since_epoch();
-		auto frameTime = std::chrono::duration_cast<std::chrono::microseconds>(t - previous);
-		previous = t;
-
-		previousTimes[index % std::size(previousTimes)] = frameTime;
-		index++;
+		static FpsTracker fpsTracker;
+		fpsTracker.Tick();
 
 		ImGui::SetNextWindowBgAlpha(0.0f);
 		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 10, ImGui::GetMainViewport()->Pos.y + 10), 0, ImVec2(0.0f, 0.0f));
@@ -46,24 +38,9 @@ static InitFunction initFunction([]()
 
 		if (ImGui::Begin("DrawFps", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			if (index > 6)
+			if (fpsTracker.CanGet())
 			{
-				std::chrono::microseconds total{ 0 };
-
-				for (int i = 0; i < std::size(previousTimes); i++)
-				{
-					total += previousTimes[i];
-				}
-
-				if (total.count() == 0)
-				{
-					total = { 1 };
-				}
-
-				uint64_t fps = ((uint64_t)1000000 * 1000) * std::size(previousTimes) / total.count();
-				fps = (fps + 500) / 1000;
-
-				ImGui::Text("%llufps", fps);
+				ImGui::Text("%llufps", fpsTracker.Get());
 			}
 		}
 

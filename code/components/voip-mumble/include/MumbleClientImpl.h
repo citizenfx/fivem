@@ -104,6 +104,8 @@ public:
 
 	virtual void RemoveListenChannel(const std::string& channelName) override;
 
+	virtual bool DoesChannelExist(const std::string& channelName) override;
+
 	virtual std::shared_ptr<lab::AudioContext> GetAudioContext(const std::string& name) override;
 
 	virtual void SetClientVolumeOverride(const std::wstring& clientName, float volume) override;

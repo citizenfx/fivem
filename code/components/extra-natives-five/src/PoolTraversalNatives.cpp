@@ -141,7 +141,7 @@ struct PickupPoolTraits
 	}
 };
 
-template<typename TTraits>
+template<typename TTraits, bool NetworkOnly = false>
 static void SerializePool(fx::ScriptContext& context)
 {
 	std::vector<uint32_t> guids;
@@ -152,6 +152,14 @@ static void SerializePool(fx::ScriptContext& context)
 		TTraits::ObjectType* entry = pool->GetAt(i);
 		if (entry)
 		{
+			if constexpr (NetworkOnly)
+			{
+				if (!entry->GetNetObject())
+				{
+					continue;
+				}
+			}
+
 			uint32_t guid = TTraits::getScriptGuid(entry);
 			if (guid != 0)
 			{
@@ -282,6 +290,8 @@ static InitFunction initFunction([]()
 			SerializePool<PedPoolTraits>(context);
 		else if (pool.compare("CObject") == 0)
 			SerializePool<ObjectPoolTraits>(context);
+		else if (pool.compare("CNetObject") == 0)
+			SerializePool<ObjectPoolTraits, true>(context);
 		else if (pool.compare("CPickup") == 0)
 			SerializePool<PickupPoolTraits>(context);
 		else if (pool.compare("CVehicle") == 0)

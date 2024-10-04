@@ -3164,7 +3164,7 @@ void TreeViewNode::render(void* ptr,int numIndents)   {
         tvhs.window->DC.CursorPos.x+= tvhs.arrowOffset*(numIndents-(isLeafNode ? 0 : 1))+(tvhs.hasArrowGlyphs?(ImGui::GetCurrentContext()->Style.FramePadding.x*2):0.f);
         if (!isLeafNode) {
             if (!tvhs.hasArrowGlyphs)  {
-                ImGui::SetNextTreeNodeOpen(stateopen,ImGuiCond_Always);
+                ImGui::SetNextItemOpen(stateopen,ImGuiCond_Always);
                 mustTreePop = ImGui::TreeNode("","%s","");
             }
             else {

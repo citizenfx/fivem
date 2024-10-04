@@ -8,7 +8,7 @@
 #ifndef BOTAN_PBE_PKCS_v20_H_
 #define BOTAN_PBE_PKCS_v20_H_
 
-#include <botan/alg_id.h>
+#include <botan/asn1_obj.h>
 #include <chrono>
 
 BOTAN_FUTURE_INTERNAL_HEADER(pbes2.h)

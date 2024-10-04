@@ -100,7 +100,7 @@ void MakeBrowser(const std::string& url)
 
 	// Create the BrowserView.
 	CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
-	handler, url, browser_settings, {}, NULL, new SDKSubViewDelegate());
+	handler, url, browser_settings, {}, nullptr, new SDKSubViewDelegate());
 
 	// Create the Window. It will show itself after creation.
 	CefRefPtr<CefWindow> wnd = CefWindow::CreateTopLevelWindow(new SDKWindowDelegate(browser_view, L"Last Window Placement"));
@@ -267,7 +267,7 @@ void SdkMain()
 			msgpack::object obj = msg.get();
 			std::string url = obj.as<std::vector<std::string>>()[0];
 
-			CefPostTask(TID_UI, base::Bind(&MakeBrowser, url));
+			CefPostTask(TID_UI, base::BindOnce(&MakeBrowser, url));
 		}
 		else if (eventName == "sdk:requestResourceMetaData")
 		{
@@ -388,16 +388,7 @@ void SdkMain()
 		}
 		else if (eventName == "sdk:getBuildNumber")
 		{
-			uint32_t buildNumber = 0;
-
-			std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
-
-			if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
-			{
-				buildNumber = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", buildNumber, fpath.c_str());
-			}
-
-			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:setBuildNumber", {}, buildNumber);
+			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:setBuildNumber", {}, xbr::GetGameBuild());
 		}
 		else if (eventName == "sdk:startFileWatcher")
 		{

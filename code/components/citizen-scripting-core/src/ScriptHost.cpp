@@ -34,6 +34,8 @@ inline std::chrono::microseconds usec()
 	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
+extern fx::OMPtr<IScriptRefRuntime> ValidateAndLookUpRef(const std::string& refString, int32_t* refIdx);
+
 struct Bookmark
 {
 	fx::Resource* resource;
@@ -65,6 +67,7 @@ static struct
 	std::unordered_map<IScriptTickRuntimeWithBookmarks*, std::list<Bookmark>::iterator> resourceInsertionIterators;
 
 	bool executing = false;
+	std::list<Bookmark>::iterator* executingIt = nullptr;
 } bookmarkRefs;
 
 static void QueueBookmark(fx::Resource* resource, IScriptTickRuntimeWithBookmarks* scRT, uint64_t bookmark, std::chrono::microseconds deadline)
@@ -79,15 +82,25 @@ static void CreateBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 	bookmarkRefs.resourceInsertionIterators.emplace(scRT, bookmarkRefs.list.insert(bookmarkRefs.list.end(), Bookmark{ scRT, nullptr }));
 }
 
-static void DoRemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
+static void RemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 {
-	for (auto list : { &bookmarkRefs.list })
+	auto exIt = (bookmarkRefs.executing) ? bookmarkRefs.executingIt : nullptr;
+
+	auto list = &bookmarkRefs.list;
+
 	{
 		for (auto it = list->begin(); it != list->end();)
 		{
 			if (it->scRT == scRT)
 			{
-				it = list->erase(it);
+				if (exIt && *exIt == it)
+				{
+					*exIt = it = list->erase(it);
+				}
+				else
+				{
+					it = list->erase(it);
+				}
 			}
 			else
 			{
@@ -97,17 +110,6 @@ static void DoRemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 	}
 
 	bookmarkRefs.resourceInsertionIterators.erase(scRT);
-}
-
-static void RemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
-{
-	if (bookmarkRefs.executing)
-	{
-		bookmarkRefs.removeList.push_back(scRT);
-		return;
-	}
-
-	DoRemoveBookmarks(scRT);
 }
 
 static void RunBookmarks()
@@ -144,7 +146,21 @@ static void RunBookmarks()
 
 			if (lastScRT != scRT)
 			{
+				auto saveIt = it;
+				bookmarkRefs.executingIt = &it;
 				deq();
+
+				bookmarkRefs.executingIt = nullptr;
+
+				// if deq() has been changing the executingIt, we should skip the next execution outright
+				// as it was a removed resource
+				if (it != saveIt)
+				{
+					lastScRT = nullptr;
+					lastResource = nullptr;
+					continue;
+				}
+
 				lastScRT = scRT;
 				lastResource = entry.resource;
 			}
@@ -404,6 +420,19 @@ result_t TestScriptHost::CanonicalizeRef(int32_t refIdx, int32_t instanceId, cha
 	return FX_S_OK;
 }
 
+result_t TestScriptHost::InvokeFunctionReference(char* refId, char* argsSerialized, uint32_t argsSize, IScriptBuffer** ret)
+{
+	int32_t refIdx;
+	fx::OMPtr<IScriptRefRuntime> refRuntime = ValidateAndLookUpRef(refId, &refIdx);
+
+	if (refRuntime.GetRef())
+	{
+		return refRuntime->CallRef(refIdx, argsSerialized, argsSize, ret);
+	}
+
+	return FX_E_INVALIDARG;
+}
+
 result_t TestScriptHost::GetResourceName(char** outResourceName)
 {
 	return meta.GetResourceName(outResourceName);
@@ -656,16 +685,16 @@ static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("FORMAT_STACK_TRACE", [](fx::ScriptContext& context)
 	{
-		if (fx::g_suppressErrors)
+		auto topLevelStackBlob = context.GetArgument<char*>(0);
+		auto topLevelStackSize = context.GetArgument<uint32_t>(1);
+
+		if (fx::g_suppressErrors && topLevelStackBlob != nullptr)
 		{
 			context.SetResult(nullptr);
 			return;
 		}
 
 		fx::g_suppressErrors = true;
-
-		auto topLevelStackBlob = context.GetArgument<char*>(0);
-		auto topLevelStackSize = context.GetArgument<uint32_t>(1);
 
 		auto vis = fx::MakeNew<StringifyingStackVisitor>();
 
@@ -702,7 +731,7 @@ static InitFunction initFunction([]()
 				auto& b = bit->first;
 				auto& e = bit->second;
 
-				srt->WalkStack(e ? (char*)e->data() : NULL, e ? e->size() : 0, b ? (char*)b->data() : NULL, b ? b->size() : NULL, vis.GetRef());
+				srt->WalkStack(e ? (char*)e->data() : NULL, e ? e->size() : 0, b ? (char*)b->data() : NULL, b ? b->size() : 0, vis.GetRef());
 			}
 		}
 

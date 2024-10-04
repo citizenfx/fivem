@@ -23,7 +23,10 @@
 
 #include <shared_mutex>
 
-#define MAX_CLIENTS (1024 + 1) // don't change this past 256 ever, also needs to be synced with client code
+#include "ByteWriter.h"
+#include "SerializableComponent.h"
+
+constexpr auto MAX_CLIENTS = (2048 + 1);
 
 namespace {
 	using namespace std::literals::chrono_literals;
@@ -101,15 +104,6 @@ namespace fx
 		return entry->GetData();
 	}
 
-	namespace sync
-	{
-		class ClientSyncDataBase
-		{
-		public:
-			virtual ~ClientSyncDataBase() = default;
-		};
-	}
-
 	struct gs_peer_deleter
 	{
 		inline void operator()(int* data)
@@ -122,6 +116,7 @@ namespace fx
 		}
 	};
 
+	class GameStateClientData;
 
 	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>, public se::PrincipalSource
 	{
@@ -132,16 +127,44 @@ namespace fx
 
 		void SetNetId(uint32_t netId);
 
-		void SetNetBase(uint32_t netBase);
+		inline void SetNetBase(uint32_t netBase)
+		{
+			m_netBase = netBase;
+		}
 
 		// updates the last-seen timer
 		void Touch();
 
 		bool IsDead();
 
+		inline bool HasNetId() const
+		{
+			return m_netId != 0xFFFF;
+		}
+
+		inline bool HasConnected() const
+		{
+			return m_netId < 0xFFFF;
+		}
+
 		inline uint32_t GetNetId()
 		{
 			return m_netId;
+		}
+
+		inline bool HasPreviousNetId() const
+		{
+			return m_previousNetId != 0xFFFF;
+		}
+
+		inline uint32_t GetPreviousNetId()
+		{
+			return m_previousNetId;
+		}
+
+		inline bool HasSlotId() const
+		{
+			return m_slotId != 0xFFFFFFFF;
 		}
 
 		inline uint32_t GetSlotId()
@@ -213,6 +236,11 @@ namespace fx
 			return m_lastSeen;
 		}
 
+		inline unsigned int GetSecondsOnline()
+		{
+			return std::chrono::duration_cast<std::chrono::seconds>(m_lastSeen - m_firstSeen).count();
+		}
+
 		inline const std::vector<std::string>& GetIdentifiers()
 		{
 			return m_identifiers;
@@ -263,14 +291,22 @@ namespace fx
 			}
 		}
 
-		inline std::shared_ptr<sync::ClientSyncDataBase> GetSyncData()
+		inline std::shared_ptr<GameStateClientData> GetSyncData()
 		{
+			std::shared_lock _(m_syncDataMutex);
 			return m_syncData;
 		}
 
-		inline void SetSyncData(const std::shared_ptr<sync::ClientSyncDataBase>& ptr)
+		inline void SetSyncData(const std::shared_ptr<GameStateClientData>& ptr)
 		{
+			std::unique_lock _(m_syncDataMutex);
 			m_syncData = ptr;
+		}
+
+		// to be called from CreateSyncData
+		inline auto AcquireSyncDataCreationLock()
+		{
+			return std::unique_lock(m_syncDataCreationMutex);
 		}
 
 		inline bool IsDropping() const
@@ -323,7 +359,26 @@ namespace fx
 
 		void SendPacket(int channel, const net::Buffer& buffer, NetPacketType flags = NetPacketType_Unreliable);
 
-		fwEvent<> OnAssignNetId;
+		template<typename TSerializable>
+		void SendSerializable(int channel, TSerializable& serializable, NetPacketType flags = NetPacketType_Unreliable)
+		{
+			// todo: add a size method and split max and min size
+			static size_t maxSize = net::SerializableComponent::GetMaxSize<TSerializable>();
+
+			net::Buffer netBuffer(maxSize);
+			net::ByteWriter writer(netBuffer.GetBuffer(), netBuffer.GetLength());
+
+			if (!serializable.Process(writer))
+			{
+				return;
+			}
+
+			netBuffer.Seek(writer.GetOffset());
+
+			SendPacket(channel, netBuffer, flags);
+		}
+
+		fwEvent<uint32_t> OnAssignNetId;
 		fwEvent<> OnAssignPeer;
 		fwEvent<> OnAssignTcpEndPoint;
 		fwEvent<> OnAssignConnectionToken;
@@ -370,6 +425,10 @@ namespace fx
 		// the client's netid
 		uint32_t m_netId;
 
+		// the client's previous netid
+		// needs to be stored, because scripts can still have access to it after playerConnecting and playerJoining event
+		uint32_t m_previousNetId;
+
 		// the client's slot ID
 		uint32_t m_slotId;
 
@@ -386,7 +445,9 @@ namespace fx
 		std::unique_ptr<int, gs_peer_deleter> m_peer;
 
 		// sync data
-		std::shared_ptr<sync::ClientSyncDataBase> m_syncData;
+		std::shared_ptr<GameStateClientData> m_syncData;
+		std::shared_mutex m_syncDataMutex;
+		std::mutex m_syncDataCreationMutex;
 
 		// whether the client has sent a routing msg once
 		bool m_hasRouted;
@@ -406,7 +467,7 @@ namespace fx
 		void (*m_clientNetworkMetricsRecvCallback)(Client *thisptr, uint32_t packetId, net::Buffer& packet);
 	};
 
-	extern SERVER_IMPL_EXPORT object_pool<Client, 512 * 1024> clientPool;
+	extern SERVER_IMPL_EXPORT object_pool<Client, 512 * MAX_CLIENTS> clientPool;
 
 	using ClientSharedPtr = shared_reference<Client, &clientPool>;
 	using ClientWeakPtr = weak_reference<ClientSharedPtr>;

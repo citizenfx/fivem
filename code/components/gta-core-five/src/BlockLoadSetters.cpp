@@ -9,6 +9,7 @@
 
 #include <jitasm.h>
 #include "Hooking.h"
+#include "Hooking.Stubs.h"
 
 #include <atArray.h>
 #include <Pool.h>
@@ -26,7 +27,6 @@
 
 #include <Error.h>
 
-#include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
 
 static hook::cdecl_stub<void()> lookAlive([] ()
@@ -52,6 +52,10 @@ static inline int MapInitState(int initState)
 		}
 	}
 
+	if (initState >= 2 && xbr::IsGameBuildOrGreater<3323>())
+	{
+		initState += 1;
+	}
 	return initState;
 }
 
@@ -61,9 +65,10 @@ bool g_shouldSetState;
 bool g_isInInitLoop; // to avoid some GFx crash?
 static bool g_shouldReloadGame;
 
+// Obfuscated in 2944, weak pattern
 static hook::cdecl_stub<void()> runCriticalSystemServicing([]()
 {
-	return hook::get_call(hook::get_pattern("48 8D 0D ? ? ? ? BA 32 00 00 00 E8", 17));
+	return (xbr::IsGameBuildOrGreater<2944>()) ? hook::get_pattern("B1 01 E8 ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? 48 83 C4 28 E9", -9) : hook::get_call(hook::get_pattern("48 8D 0D ? ? ? ? BA 32 00 00 00 E8", 17));
 });
 
 static std::vector<ProgramArguments> g_argumentList;
@@ -97,18 +102,36 @@ static void WaitForInitLoopWrap()
 	WaitForInitLoop();
 }
 
-static volatile bool g_isNetworkKilled;
+volatile bool g_isNetworkKilled;
 
-static hook::cdecl_stub<void(int, int)> setupLoadingScreens([]()
+enum LoadingScreenContext
 {
-	// trailing byte differs between 323 and 505
-	if (Is372())
-	{
-		return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? 40", 5));
-	}
+	LOADINGSCREEN_CONTEXT_NONE = 0,
+	LOADINGSCREEN_CONTEXT_INTRO_MOVIE = 1,
+	LOADINGSCREEN_CONTEXT_LEGALSPLASH = 2,
+	LOADINGSCREEN_CONTEXT_LEGALMAIN = 3,
+	LOADINGSCREEN_CONTEXT_SWAP = 4,
+	LOADINGSCREEN_CONTEXT_PC_LANDING = 5,
+	LOADINGSCREEN_CONTEXT_LOADGAME = 6,
+	LOADINGSCREEN_CONTEXT_INSTALL = 7,
+	LOADINGSCREEN_CONTEXT_LOADLEVEL = 8,
+	LOADINGSCREEN_CONTEXT_MAPCHANGE = 9,
+	LOADINGSCREEN_CONTEXT_LAST_FRAME = 10,
+};
 
+static hook::cdecl_stub<void(LoadingScreenContext, int)> setupLoadingScreens([]()
+{
 	return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? C6", 5));
 });
+
+class CLoadingScreens
+{
+public:
+	static void Init(LoadingScreenContext context, int a2)
+	{
+		return setupLoadingScreens(context, a2);
+	}
+};
 
 static bool g_setLoadingScreens;
 static bool g_shouldKillNetwork;
@@ -259,15 +282,14 @@ struct InitFunctionStub : public jitasm::Frontend
 
 		mov(rax, (uintptr_t)LogStub);
 		call(rax);
-		
-		mov(ecx, r14d);
-		call(rax);
 
+		// unwind
 		add(rsp, 0x20);
 
+		mov(ecx, r14d);
 		pop(r14);
 
-		ret();
+		jmp(rax);
 	}
 };
 
@@ -286,10 +308,7 @@ static void RunInitFunctionsWrap(void* skel, int type)
 	{
 		while (!g_callBeforeLoad())
 		{
-			g_lookAlive();
-
-			OnGameFrame();
-			OnMainGameFrame();
+			RunRlInitServicing();
 		}
 	}
 	
@@ -310,15 +329,28 @@ int BlipAsIndex(int blip)
 
 static hook::cdecl_stub<void()> g_runWarning([]()
 {
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		return hook::get_pattern("48 89 5C 24 ? 48 89 7C 24 ? 55 48 8D 6C 24 ? 48 81 EC ? ? ? ? 33 FF 83 CB");
+	}
 	return hook::get_pattern("83 F9 FF 74 0E E8 ? ? ? ? 84 C0 0F 94", -0x22);
 });
+
+DLL_EXPORT fwEvent<> PreSetupLoadingScreens;
 
 static void(*g_origRunInitState)();
 static void WrapRunInitState()
 {
 	if (g_setLoadingScreens)
 	{
-		setupLoadingScreens(10, 0);
+		PreSetupLoadingScreens();
+		
+		// code here used to use LOADINGSCREEN_CONTEXT_LAST_FRAME, but this also
+		// triggered the loading spinner and/or some other render thread hang.
+		//
+		// LOADINGSCREEN_CONTEXT_INSTALL seems to be relatively neutral as it
+		// would normally be used when copying disc content.
+		CLoadingScreens::Init(LOADINGSCREEN_CONTEXT_INSTALL, 0);
 
 		g_setLoadingScreens = false;
 	}
@@ -387,47 +419,7 @@ void ShutdownSessionWrap()
 	while (g_isNetworkKilled)
 	{
 		// warning screens apparently need to run on main thread
-		OnGameFrame();
-		OnMainGameFrame();
-
-		// 1604 (same as nethook)
-		// 1868
-		// 2060
-		if (Is2545())
-		{
-			((void (*)())hook::get_adjusted(0x140006A28))();
-			((void (*)())hook::get_adjusted(0x1407FB28C))();
-			((void (*)())hook::get_adjusted(0x1400275C8))();
-			((void (*)(void*))hook::get_adjusted(0x141612950))((void*)hook::get_adjusted(0x142E6F960));
-		}
-		else if (Is2372())
-		{
-			((void (*)())hook::get_adjusted(0x140006718))();
-			((void (*)())hook::get_adjusted(0x1407F6050))();
-			((void (*)())hook::get_adjusted(0x1400263CC))();
-			((void (*)(void*))hook::get_adjusted(0x14160104C))((void*)hook::get_adjusted(0x142E34900));
-		}
-		else if (Is2189())
-		{
-			((void (*)())hook::get_adjusted(0x140006748))();
-			((void (*)())hook::get_adjusted(0x1407F4150))();
-			((void (*)())hook::get_adjusted(0x140026120))();
-			((void (*)(void*))hook::get_adjusted(0x1415E4AC8))((void*)hook::get_adjusted(0x142E5C2D0));
-		}
-		else if (!Is2060())
-		{
-			((void(*)())hook::get_adjusted(0x1400067E8))();
-			((void(*)())hook::get_adjusted(0x1407D1960))();
-			((void(*)())hook::get_adjusted(0x140025F7C))();
-			((void(*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
-		}
-		else
-		{
-			((void (*)())hook::get_adjusted(0x140006A80))();
-			((void (*)())hook::get_adjusted(0x1407EB39C))();
-			((void (*)())hook::get_adjusted(0x1400263A4))();
-			((void (*)(void*))hook::get_adjusted(0x1415CF268))((void*)hook::get_adjusted(0x142D3DCC0));
-		}
+		RunRlInitServicing();
 
 		g_runWarning();
 	}
@@ -514,42 +506,40 @@ static hook::cdecl_stub<void(void*, bool)> _kickRender([]
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 45 33 FF 44 38 7B 0D 74 0E"));
 });
 
-static void (*g_origCtrlInit)();
+static void (*g_origCtrlInit)(bool, bool);
 
-static void OnCtrlInit()
+static uint8_t* ctrlInit_location1 = nullptr;
+static uint8_t* ctrlInit_location3 = nullptr;
+static void* ctrlInit_rti = nullptr;
+
+static void OnCtrlInit(bool isWindowed, bool isExclusive)
 {
 	uint8_t orig1, orig2, orig3;
 
-	static auto location1 = hook::get_pattern<uint8_t>("E8 ? ? ? ? 84 C0 74 1F 48 8B 05 ? ? ? ? 48 8B 40", 7);
-
 	{
-		orig1 = location1[0];
-		orig2 = location1[-0x5F];
-		hook::put<uint8_t>(location1, 0xEB);
-		hook::put<uint8_t>(location1 - 0x5F, 0xEB);
+		orig1 = ctrlInit_location1[0];
+		orig2 = ctrlInit_location1[-0x5F];
+		hook::put<uint8_t>(ctrlInit_location1, 0xEB);
+		hook::put<uint8_t>(ctrlInit_location1 - 0x5F, 0xEB);
 	}
 
-	static auto location3 = hook::get_pattern<uint8_t>("33 D2 89 7C 24 44 66 C7", -0x37);
-
 	{
-		orig3 = *location3;
-		hook::return_function(location3);
+		orig3 = *ctrlInit_location3;
+		hook::return_function(ctrlInit_location3);
 	}
-
-	static auto rti = hook::get_address<void*>(hook::get_pattern("E8 ? ? ? ? 45 33 FF 44 38 7B 0D 74 0E", -6));
 
 	_setRenderDeleg();
-	_kickRender(rti, true);
+	_kickRender(ctrlInit_rti, true);
 
 	OnMainGameFrame.Connect([orig1, orig2, orig3]
 	{
-		hook::put<uint8_t>(location1, orig1);
-		hook::put<uint8_t>(location1 - 0x5F, orig2);
-		hook::put<uint8_t>(location3, orig3);
+		hook::put<uint8_t>(ctrlInit_location1, orig1);
+		hook::put<uint8_t>(ctrlInit_location1 - 0x5F, orig2);
+		hook::put<uint8_t>(ctrlInit_location3, orig3);
 	});
 
 	// orig
-	g_origCtrlInit();
+	g_origCtrlInit(isWindowed, isExclusive);
 }
 
 static bool (*g_origParamToInt)(void* param, int* value);
@@ -566,13 +556,25 @@ static bool ParamToInt_Threads(void* param, int* value)
 	return rv;
 }
 
+static void (*g_origPhotoSize)(int* w, int* h, int down);
+
+static void PhotoSizeStub(int* w, int* h, int down)
+{
+	// story mode may lead to more advanced photo requests, which will crash in JPEG serialization
+	if (!Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		down = 1;
+	}
+
+	return g_origPhotoSize(w, h, down);
+}
+
 static HookFunction hookFunction([] ()
 {
 	// continue on
 	_wunlink(MakeRelativeCitPath(L"data\\cache\\error_out").c_str());
 
 	// fwApp 2:1 state handler (loaded game), before running init state machine
-	if (!CfxIsSinglePlayer())
 	{
 		auto loc = hook::get_pattern<char>("32 DB EB 02 B3 01 E8 ? ? ? ? 48 8B", 6);
 
@@ -587,22 +589,22 @@ static HookFunction hookFunction([] ()
 	}
 
 	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'), UNLESS it's digital distribution with standalone auth...
-	char* p = (Is2060()) ? hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14) : hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
+	// Since game build 2699.16 executables now shared.
+	char* p = (xbr::IsGameBuild<2060>() || xbr::IsGameBuildOrGreater<2802>()) ? hook::pattern("48 83 EC ? E8 ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? E8").count(1).get(0).get<char>(55) : hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
 
 	char* varPtr = p + 2;
 	g_initState = (int*)(varPtr + *(int32_t*)varPtr + 4);
 
 	// check the pointer to see if it's digital distribution
-	g_isDigitalDistrib = (p[-26] == 3);
+	g_isDigitalDistrib = xbr::IsGameBuildOrGreater<2802>() || (p[-26] == 3);
 
 	// this is also a comparison point to find digital distribution type... this function will also set '3' if it's digital distrib with standalone auth
 	// and if this *is* digital distribution, we want to find a completely different place that sets the value to 8 (i.e. BA 08 ...)
 	if (g_isDigitalDistrib)
 	{
-		p = hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
+		p = hook::pattern("48 83 EC ? E8 ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? E8").count(1).get(0).get<char>(55);
 	}
 
-	if (!CfxIsSinglePlayer())
 	{
 		// nop the right pointer
 		hook::nop(p, 6);
@@ -635,7 +637,6 @@ static HookFunction hookFunction([] ()
 		}
 	}
 
-	if (!CfxIsSinglePlayer())
 	{
 		// init function bit #1
 		static InitFunctionStub initFunctionStub;
@@ -671,7 +672,6 @@ static HookFunction hookFunction([] ()
 	// use 0.0f to uncap entirely
 	hook::put<float>(hook::get_address<float*>(hook::get_pattern("0F 2F 05 ? ? ? ? 0F 82 ? ? ? ? E8 ? ? ? ? 48 89", 3)), 4.0f);
 
-	if (!CfxIsSinglePlayer())
 	{
 		// bypass the state 20 calibration screen loop (which might be wrong; it doesn't seem to exist in my IDA dumps of 323/331 Steam)
 		auto matches = hook::pattern("E8 ? ? ? ? 8A D8 84 C0 74 0E C6 05");
@@ -691,18 +691,19 @@ static HookFunction hookFunction([] ()
 	char* loadStarter = hook::pattern("BA 02 00 00 00 E8 ? ? ? ? E8 ? ? ? ? 8B").count(1).get(0).get<char>(5);
 	hook::set_call(&g_runInitFunctions, loadStarter);
 	hook::set_call(&g_lookAlive, loadStarter + 5);
-
-	if (!CfxIsSinglePlayer())
-	{
-		hook::call(loadStarter, RunInitFunctionsWrap);
-	}
+	hook::call(loadStarter, RunInitFunctionsWrap);
 
 	// don't conditionally check player blip handle
 	hook::call(hook::get_pattern("C8 89 05 ? ? ? ? E8 ? ? ? ? 89 05", 7), BlipAsIndex);
 
-	if (!CfxIsSinglePlayer())
+	// don't load commandline.txt
+	if (xbr::IsGameBuildOrGreater<3323>())
 	{
-		// don't load commandline.txt
+		// force return 0 here, with xor eax, eax
+		hook::put<uint64_t>(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 45 33 ED 83 39"), 0x90C3C031);
+	}
+	else
+	{
 		hook::return_function(hook::get_pattern("45 33 E4 83 39 02 4C 8B FA 45 8D 6C", -0x1C));
 	}
 
@@ -716,13 +717,9 @@ static HookFunction hookFunction([] ()
 	// disable eventschedule.json refetching on failure
 	//hook::nop(hook::get_pattern("80 7F 2C 00 75 09 48 8D 4F F8 E8", 10), 5);
 	// 1493+:
-	if (!Is372())
-	{
-		hook::nop(hook::get_pattern("38 4B 2C 75 60 48 8D 4B F8 E8", 9), 5);
-	}
+	hook::nop(hook::get_pattern("38 4B 2C 75 60 48 8D 4B F8 E8", 9), 5);
 
 	// don't set pause on focus loss, force it to 0
-	if (!Is372())
 	{
 		auto location = hook::get_pattern<char>("0F 95 05 ? ? ? ? E8 ? ? ? ? 48 85 C0");
 		auto addy = hook::get_address<char*>(location + 3);
@@ -766,7 +763,7 @@ static HookFunction hookFunction([] ()
 	hook::put<uint32_t>(hook::get_pattern("84 C0 74 36 48 8B 0D ? ? ? ? 48 85 C9", -13), 0x90C301B0);
 
 	// don't downscale photos a lot
-	hook::put<uint8_t>(hook::get_pattern("41 3B D9 72 09", 3), 0xEB);
+	g_origPhotoSize = hook::trampoline(hook::get_pattern("41 3B D9 72 09", -0x3A), PhotoSizeStub);
 
 	// don't do 500ms waits for renderer
 	{
@@ -777,18 +774,27 @@ static HookFunction hookFunction([] ()
 
 	// kick renderer before slow dinput code
 	{
+		ctrlInit_location1 = hook::get_pattern<uint8_t>("E8 ? ? ? ? 84 C0 74 1F 48 8B 05 ? ? ? ? 48 8B 40", 7);
+		ctrlInit_location3 = hook::get_pattern<uint8_t>("33 D2 89 7C 24 44 66 C7", -0x37);
+		ctrlInit_rti = hook::get_address<void*>(hook::get_pattern("E8 ? ? ? ? 45 33 FF 44 38 7B 0D 74 0E", -6));
+
 		auto location = hook::get_pattern("74 0B E8 ? ? ? ? 8A 0D ? ? ? ? 80", 2);
 		hook::set_call(&g_origCtrlInit, location);
 		hook::call(location, OnCtrlInit);
 	}
 
 	// no showwindow early
-	if (!CfxIsSinglePlayer())
 	{
 		auto location = hook::get_pattern<char>("41 8B D4 48 8B C8 48 8B D8 FF 15", 9);
 		hook::nop(location, 6);
 		hook::nop(location + 9, 6);
 		hook::nop(location + 18, 6);
+	}
+
+	// b2699 fix: force `-nodpiadjust` as it's broken
+	if (xbr::IsGameBuild<2699>())
+	{
+		hook::put<uint16_t>(hook::get_pattern("48 83 3D ? ? ? ? 00 0F 85 A3 00 00 00 48 8B 4B", 8), 0xE990);
 	}
 
 	// limit max worker threads to 4 (since on high-core-count systems this leads

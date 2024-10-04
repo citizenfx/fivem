@@ -14,8 +14,11 @@
 #include "StdInc.h"
 
 #include <deque>
+#include <unordered_set>
 
 #include <fxScripting.h>
+
+#include <ScriptInvoker.h>
 
 #include <Resource.h>
 #include <ManifestVersion.h>
@@ -62,41 +65,10 @@ enum class LuaProfilingMode : uint8_t
 	Shutdown,
 };
 
-enum class LuaMetaFields : uint8_t
-{
-	PointerValueInt,
-	PointerValueFloat,
-	PointerValueVector,
-	ReturnResultAnyway,
-	ResultAsInteger,
-	ResultAsLong,
-	ResultAsFloat,
-	ResultAsString,
-	ResultAsVector,
-	ResultAsObject,
-	AwaitSentinel,
-	Max
-};
-
 /// <summary>
 /// </summary>
 namespace fx
 {
-struct PointerFieldEntry
-{
-	bool empty;
-	uintptr_t value;
-	PointerFieldEntry()
-		: empty(true), value(0)
-	{
-	}
-};
-
-struct PointerField
-{
-	PointerFieldEntry data[64];
-};
-
 #if LUA_VERSION_NUM >= 504 && defined(_WIN32)
 #define LUA_USE_RPMALLOC
 #endif
@@ -167,18 +139,20 @@ public:
 	}
 };
 
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntimeWithBookmarks, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime, IScriptDebugRuntime, IScriptProfiler>
+class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntimeWithBookmarks, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime, IScriptDebugRuntime, IScriptProfiler, IScriptWarningRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
 
-	typedef std::function<void(int32_t, const char*, size_t, char**, size_t*)> TCallRefRoutine;
+	typedef std::function<fx::OMPtr<IScriptBuffer>(int32_t, const char*, size_t)> TCallRefRoutine;
 
 	typedef std::function<int32_t(int32_t)> TDuplicateRefRoutine;
 
 	typedef std::function<void(int32_t)> TDeleteRefRoutine;
 
 	typedef std::function<void(void*, void*, char**, size_t*)> TStackTraceRoutine;
+
+	using TResultAsObjectRoutine = std::function<void(lua_State*, std::string_view)>;
 
 private:
 	LuaStateHolder m_state;
@@ -207,11 +181,13 @@ private:
 
 	TStackTraceRoutine m_stackTraceRoutine;
 
+	TResultAsObjectRoutine m_resultAsObjectRoutine;
+
 	int m_boundaryRoutine = 0;
 
 	void* m_parentObject = nullptr;
 
-	PointerField m_pointerFields[3];
+	invoker::PointerField m_pointerFields[3];
 
 	int m_instanceId;
 
@@ -224,6 +200,10 @@ private:
 	LuaProfilingMode m_profilingMode = LuaProfilingMode::None; // Current fx::ProfilerComponent state.
 
 	std::deque<lua_State*> m_runningThreads;
+
+	std::unordered_set<uint32_t> m_nonExistentNatives;
+
+	std::list<std::tuple<uint64_t, int>> m_pendingBookmarks;
 
 public:
 	LuaScriptRuntime()
@@ -277,11 +257,36 @@ public:
 		return m_boundaryRoutine;
 	}
 
+	LUA_INLINE auto& GetNonExistentNativesList()
+	{
+		return m_nonExistentNatives;
+	}
+
 	LUA_INLINE void SetBoundaryRoutine(int routine)
 	{
 		if (!m_boundaryRoutine)
 		{
 			m_boundaryRoutine = routine;
+		}
+	}
+
+	LUA_INLINE void SetResultAsObjectRoutine(const TResultAsObjectRoutine& routine)
+	{
+		if (!m_resultAsObjectRoutine)
+		{
+			m_resultAsObjectRoutine = routine;
+		}
+	}
+
+	LUA_INLINE void ResultAsObject(lua_State* L, std::string_view object)
+	{
+		if (m_resultAsObjectRoutine)
+		{
+			m_resultAsObjectRoutine(L, object);
+		}
+		else
+		{
+			lua_pushnil(L);
 		}
 	}
 
@@ -300,7 +305,7 @@ public:
 		return m_bookmarkHost;
 	}
 
-	LUA_INLINE PointerField* GetPointerFields()
+	LUA_INLINE invoker::PointerField* GetPointerFields()
 	{
 		return m_pointerFields;
 	}
@@ -351,6 +356,10 @@ private:
 public:
 	bool RunBookmark(uint64_t bookmark);
 
+	void ScheduleBookmarkSoon(uint64_t bookmark, int timeout);
+
+	void SchedulePendingBookmarks();
+
 public:
 	NS_DECL_ISCRIPTRUNTIME;
 
@@ -369,6 +378,16 @@ public:
 	NS_DECL_ISCRIPTDEBUGRUNTIME;
 
 	NS_DECL_ISCRIPTPROFILER;
+
+	NS_DECL_ISCRIPTWARNINGRUNTIME;
 };
+
+void ScriptTraceV(const char* string, fmt::printf_args formatList);
+
+template<typename... TArgs>
+LUA_INLINE void ScriptTrace(const char* string, const TArgs&... args)
+{
+	ScriptTraceV(string, fmt::make_printf_args(args...));
+}
 }
 #endif

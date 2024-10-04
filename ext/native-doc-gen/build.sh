@@ -4,12 +4,25 @@ set -xe
 
 ROOT=$(pwd)
 LUA53=lua5.3
+NODE=node
+YARN=yarn
 
-[ "x$OS" == "xWindows_NT" ] && LUA53=./lua53
+[ "$OS" == "Windows_NT" ] && LUA53=./lua53
+[ "$OS" == "Windows_NT" ] && NODE=$ROOT/node
+[ "$OS" != "Windows_NT" ] && NODE=/tmp/node/node/bin/node
+YARN="$NODE $ROOT/yarn_cli.js --mutex network"
+
+[ "$OS" == "Windows_NT" ] && curl -z node.exe -Lo node.exe https://content.cfx.re/mirrors/vendor/node/v12.22.12/node.exe --http1.1
+[ "$OS" != "Windows_NT" ] && mkdir /tmp/node && \
+	curl -Lo /tmp/node/node.tar.gz https://content.cfx.re/mirrors/vendor/node/v12.22.12/node-v12.22.12-linux-x64-musl.tar.gz && \
+	tar -C /tmp/node -xf /tmp/node/node.tar.gz && \
+	mv /tmp/node/node-* /tmp/node/node
 
 # install yarn deps
 cd $ROOT/../native-doc-tooling/
-yarn
+
+$YARN global add node-gyp@9.3.1
+$YARN
 
 cd $ROOT/../natives/
 
@@ -23,12 +36,12 @@ mkdir out || true
 cd out
 
 # setup clang and build
-[ "x$OS" == "xWindows_NT" ] && cp -a $ROOT/libclang.dll $PWD/libclang.dll || true
-node $ROOT/../native-doc-tooling/index.js $ROOT/../native-decls/
+[ "$OS" == "Windows_NT" ] && cp -a $ROOT/libclang.dll $PWD/libclang.dll || true
+$NODE $ROOT/../native-doc-tooling/index.js $ROOT/../native-decls/
 
 mkdir -p $ROOT/../natives/inp/ || true
 
-NODE_PATH=$ROOT/../native-doc-tooling/node_modules/ node $ROOT/../native-doc-tooling/build-template.js lua CFX > $ROOT/../natives/inp/natives_cfx_new.lua
+NODE_PATH=$ROOT/../native-doc-tooling/node_modules/ $NODE $ROOT/../native-doc-tooling/build-template.js lua CFX > $ROOT/../natives/inp/natives_cfx_new.lua
 rm $PWD/libclang.dll || true
 
 # copy outputs
@@ -43,3 +56,5 @@ if [ -e $ROOT/../natives/inp/natives_cfx.lua ]; then
 else
     cp -a $ROOT/../natives/inp/natives_cfx_new.lua $ROOT/../natives/inp/natives_cfx.lua
 fi
+
+[ "$OS" != "Windows_NT" ] && rm -rf /tmp/node || true

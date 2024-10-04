@@ -11,7 +11,6 @@
 
 #include <botan/secmem.h>
 #include <botan/exceptn.h>
-#include <botan/dyn_load.h>
 
 #include <vector>
 #include <string>
@@ -56,6 +55,9 @@ static_assert(CRYPTOKI_VERSION_MAJOR == 2 && CRYPTOKI_VERSION_MINOR == 40,
               "The Botan PKCS#11 module was implemented against PKCS#11 v2.40. Please use the correct PKCS#11 headers.");
 
 namespace Botan {
+
+class Dynamically_Loaded_Library;
+
 namespace PKCS11 {
 
 using secure_string = secure_vector<uint8_t>;

@@ -14,6 +14,7 @@
 #endif
 
 #include <boost/optional.hpp>
+#include "DebugAlias.h"
 
 #define SCRT_HAS_CALLNATIVEHANDLER 1
 
@@ -69,6 +70,12 @@ namespace fx
 			if (argument == T())
 			{
 				throw std::runtime_error(va("Argument at index %d was null.", index));
+			}
+
+			if constexpr (std::is_pointer_v<T>)
+			{
+				uint8_t probe = *(uint8_t*)argument;
+				debug::Alias(&probe);
 			}
 
 			return argument;

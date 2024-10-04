@@ -1,9 +1,19 @@
 using System;
+
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+using INativeValue = CitizenFX.Core.Native.Input.Primitive;
+using TaskBool = CitizenFX.Core.Coroutine<bool>;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
 using System.Threading.Tasks;
-using CitizenFX.Core;
+using TaskBool = System.Threading.Tasks.Task<bool>;
 
 namespace CitizenFX.Core
+#endif
 {
 	public class WeaponAsset : INativeValue, IEquatable<WeaponAsset>
 	{
@@ -48,7 +58,7 @@ namespace CitizenFX.Core
 		{
 			API.RequestWeaponAsset((uint)Hash, 31, 0);
 		}
-		public async Task<bool> Request(int timeout)
+		public async TaskBool Request(int timeout)
 		{
 			Request();
 
@@ -115,11 +125,11 @@ namespace CitizenFX.Core
 
 		public static bool operator ==(WeaponAsset left, WeaponAsset right)
 		{
-			return left.Equals(right);
+			return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.Equals(right);
 		}
 		public static bool operator !=(WeaponAsset left, WeaponAsset right)
 		{
-			return !left.Equals(right);
+			return !(left==right);
 		}
 	}
 }

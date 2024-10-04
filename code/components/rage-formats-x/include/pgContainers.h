@@ -8,7 +8,7 @@
 #include <algorithm>
 
 #define RAGE_FORMATS_FILE pgContainers
-#include <formats-header.h>
+#include "formats-header.h"
 
 #ifdef RAGE_FORMATS_OK
 #if defined(RAGE_FORMATS_GAME_NY)
@@ -41,7 +41,11 @@ public:
 
 	pgArray(int capacity)
 	{
+#ifndef RAGE_FORMATS_IN_GAME
 		m_offset = new TValue[capacity];
+#else
+		m_offset = (TValue*)rage::GetAllocator()->Allocate(sizeof(TValue) * capacity, 16, 0);
+#endif
 		m_count = 0;
 		m_size = capacity;
 	}
@@ -65,6 +69,11 @@ public:
 		return (*m_offset)[offset];
 	}
 
+	inline auto& operator[](TIndex offset)
+	{
+		return Get(offset);
+	}
+
 	void Expand(TIndex newSize)
 	{
 		if (m_size >= newSize)
@@ -72,11 +81,19 @@ public:
 			return;
 		}
 
+#ifndef RAGE_FORMATS_IN_GAME
 		TValue* newOffset = new TValue[newSize];
 		std::copy((*m_offset), (*m_offset) + m_count, newOffset);
 
 		delete[] *m_offset;
+#else
+		auto newOffset = (TValue*)rage::GetAllocator()->Allocate(sizeof(TValue) * newSize, 16, 0);
+		std::copy((*m_offset), (*m_offset) + m_count, newOffset);
+
+		rage::GetAllocator()->Free(*m_offset);
+#endif
 		m_offset = newOffset;
+		m_size = newSize;
 	}
 
 	pgArray* MakeSaveable()
@@ -127,6 +144,11 @@ private:
 	uint16_t m_count;
 	uint16_t m_size;
 
+	// ensure 8-byte padding
+#if defined(RAGE_FORMATS_GAME_FIVE)
+	uint32_t m_padding;
+#endif
+
 public:
 	pgObjectArray()
 	{
@@ -137,7 +159,11 @@ public:
 
 	pgObjectArray(int capacity)
 	{
+#ifndef RAGE_FORMATS_IN_GAME
 		m_objects = new pgPtr<TValue>[capacity];
+#else
+		m_objects = (pgPtr<TValue>*)rage::GetAllocator()->Allocate(sizeof(pgPtr<TValue>) * capacity, 16, 0);
+#endif
 		m_count = 0;
 		m_size = capacity;
 	}
@@ -182,11 +208,20 @@ public:
 			return;
 		}
 
+#ifndef RAGE_FORMATS_IN_GAME
 		pgPtr<TValue>* newObjects = new pgPtr<TValue>[newSize];
 		std::copy((*m_objects), (*m_objects) + m_count, newObjects);
 
 		delete[] *m_objects;
+#else
+		auto newObjects = (pgPtr<TValue>*)rage::GetAllocator()->Allocate(sizeof(pgPtr<TValue>) * newSize, 16, 0);
+		std::copy((*m_objects), (*m_objects) + m_count, newObjects);
+
+		rage::GetAllocator()->Free(*m_objects);
+#endif
+
 		m_objects = newObjects;
+		m_size = newSize;
 	}
 
 	TValue* Get(uint16_t offset)
@@ -197,6 +232,11 @@ public:
 		}
 
 		return *((*m_objects)[offset]);
+	}
+
+	inline auto& operator[](uint16_t offset)
+	{
+		return ((*m_objects)[offset]);
 	}
 
 	pgObjectArray* MakeSaveable()
@@ -327,6 +367,33 @@ public:
 
 	inline void Add(uint32_t keyHash, TValue* value)
 	{
+		for (size_t idx = 0; idx < m_hashes.GetCount(); idx++)
+		{
+			if (m_hashes[idx] == keyHash)
+			{
+				// dupe
+				return;
+			}
+			else if (m_hashes[idx] > keyHash)
+			{
+				// expand array
+				auto lastCount = m_hashes.GetCount();
+
+				m_hashes.Set(m_hashes.GetCount(), 0);
+				m_values.Set(m_values.GetCount(), nullptr);
+
+				// move
+				std::move_backward(&m_hashes[idx], &m_hashes[lastCount], &m_hashes[lastCount + 1]);
+				std::move_backward(&m_values[idx], &m_values[lastCount], &m_values[lastCount + 1]);
+
+				// insert
+				m_hashes.Set(idx, keyHash);
+				m_values.Set(idx, value);
+
+				return;
+			}
+		}
+
 		m_hashes.Set(m_hashes.GetCount(), keyHash);
 		m_values.Set(m_values.GetCount(), value);
 	}
@@ -406,4 +473,4 @@ public:
 };
 #endif
 
-#include <formats-footer.h>
+#include "formats-footer.h"

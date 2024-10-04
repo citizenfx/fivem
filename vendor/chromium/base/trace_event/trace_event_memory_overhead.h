@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <string>
 #include <unordered_map>
 
 #include "base/base_export.h"

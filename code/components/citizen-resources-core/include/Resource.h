@@ -109,6 +109,11 @@ public:
 
 public:
 	//
+	// An event to handle tasks to be performed after a resource is first loaded.
+	//
+	fwEvent<> OnLoad;
+
+	//
 	// An event to handle tasks to be performed before starting a resource.
 	//
 	fwEvent<> OnBeforeStart;

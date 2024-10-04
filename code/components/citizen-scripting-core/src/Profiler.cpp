@@ -436,6 +436,7 @@ namespace profilerCommand {
 		{"record", " start | <frames> | stop"},
 		{"resource", " <resource, frames> | stop"},
 		{"save",   " <filename>"},
+		{"saveJSON", " <filename>"},
 		{"load",   " <filename>"},
 		{"view",   " [filename]" }
 	};
@@ -572,10 +573,8 @@ namespace profilerCommand {
 			console::Printf("cmd", "Started recording\n");
 		}));
 
-		static ConsoleCommand saveCmd(profilerCtx.GetRef(), "save", ExecuteOffThread<std::string>([](std::string path)
+		static auto makeVfsStream = [](const std::string& path) -> fwRefContainer<vfs::Stream>
 		{
-			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
-
 			std::string outFn = path;
 
 #ifndef IS_FXSERVER
@@ -583,9 +582,34 @@ namespace profilerCommand {
 #endif
 
 			auto vfsDevice = vfs::GetDevice(outFn);
+
+			if (!vfsDevice.GetRef())
+			{
+				console::PrintError("cmd", "Invalid path %s.\n", path);
+				return nullptr;
+			}
+
 			auto handle = vfsDevice->Create(outFn);
 
-			vfs::Stream writeStream(vfsDevice, handle);
+			if (handle == vfs::Device::InvalidHandle)
+			{
+				console::PrintError("cmd", "Invalid path %s.\n", path);
+				return nullptr;
+			}
+
+			return new vfs::Stream(vfsDevice, handle);
+		};
+
+		static ConsoleCommand saveCmd(profilerCtx.GetRef(), "save", ExecuteOffThread<std::string>([](std::string path)
+		{
+			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+
+			auto writeStream = makeVfsStream(path);
+
+			if (!writeStream.GetRef())
+			{
+				return;
+			}
 
 			struct WriteWrapper
 			{
@@ -600,10 +624,30 @@ namespace profilerCommand {
 				}
 
 				vfs::Stream& stream;
-			} writeWrapper(writeStream);
+			} writeWrapper(*writeStream.GetRef());
 
 			console::Printf("cmd", "Saving the recording to: %s.\n", path);
 			msgpack::pack(writeWrapper, ConvertToStorage(profiler));
+			console::Printf("cmd", "Save complete\n");
+		}));
+
+		static ConsoleCommand saveJSONCmd(profilerCtx.GetRef(), "saveJSON", ExecuteOffThread<std::string>([](std::string path)
+		{
+			auto writeStream = makeVfsStream(path);
+
+			if (!writeStream.GetRef())
+			{
+				return;
+			}
+
+			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+
+			console::Printf("cmd", "Saving the recording as JSON to: %s.\n", path);
+
+			auto json = ConvertToJSON(ConvertToStorage(profiler));
+			auto jsonStr = json.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
+			writeStream->Write(reinterpret_cast<const uint8_t*>(jsonStr.data()), jsonStr.size());
+
 			console::Printf("cmd", "Save complete\n");
 		}));
 
@@ -647,11 +691,19 @@ namespace profilerCommand {
 			}
 
 			auto data = stream->ReadToEnd();
-			auto unpacked = msgpack::unpack(reinterpret_cast<char*>(data.data()), data.size());
-			auto recording = unpacked.get().as<ProfilerRecording>();
-			auto jsonData = ConvertToJSON(recording);
 
-			ViewProfile(jsonData);
+			try
+			{
+				auto unpacked = msgpack::unpack(reinterpret_cast<char*>(data.data()), data.size());
+				auto recording = unpacked.get().as<ProfilerRecording>();
+				auto jsonData = ConvertToJSON(recording);
+
+				ViewProfile(jsonData);
+			}
+			catch (std::exception& e)
+			{
+				console::Printf("cmd", "profiler view failed: %s\n", e.what());
+			}
 		}, false));
 	}
 	
@@ -797,6 +849,11 @@ namespace fx {
 		return m_frames;
 	}
 
+	std::string ProfilerComponent::GetDevToolsURL()
+	{
+		return "https://chrome-devtools-frontend.appspot.com/serve_rev/@901bcc219d9204748f9c256ceca0f2cd68061006/inspector.html";
+	}
+
 	bool ProfilerComponent::IsScriptRecording()
 	{
 		return IsRecording() && m_script;
@@ -812,7 +869,7 @@ namespace fx {
 		return IsScriptRecording() && m_shutdown_next;
 	}
 
-	const tbb::concurrent_unordered_map<const std::string, std::tuple<fx::ProfilerEvent::thread_t, bool>>& ProfilerComponent::Threads()
+	const tbb::concurrent_unordered_map<std::string, std::tuple<fx::ProfilerEvent::thread_t, bool>>& ProfilerComponent::Threads()
 	{
 		return m_resources;
 	}

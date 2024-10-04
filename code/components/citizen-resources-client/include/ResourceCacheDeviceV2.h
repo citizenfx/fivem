@@ -10,6 +10,9 @@
 #include <VFSManager.h>
 #include <VFSStreamDevice.h>
 
+struct HttpRequestHandle;
+using HttpRequestPtr = std::shared_ptr<HttpRequestHandle>;
+
 namespace resources
 {
 class RcdFetcher;
@@ -101,8 +104,8 @@ class
 	RcdBulkStream : public RcdBaseStream
 {
 public:
-	inline RcdBulkStream(RcdFetcher* fetcher, const std::string& fileName)
-		: RcdBaseStream(fetcher, fileName)
+	inline RcdBulkStream(RcdFetcher* fetcher, const std::string& fileName, size_t realSize = 0)
+		: RcdBaseStream(fetcher, fileName), m_realSize(realSize)
 	{
 
 	}
@@ -116,8 +119,11 @@ protected:
 
 	virtual void CloseFile() override;
 
+protected:
+	size_t m_realSize;
+
 private:
-	uint64_t m_parentPtr;
+	uint64_t m_parentPtr = 0;
 };
 
 struct RcdFetchResult
@@ -197,8 +203,24 @@ protected:
 
 	virtual void AddEntryToCache(const std::string& outFileName, std::map<std::string, std::string>& metaData, const ResourceCacheEntryList::Entry& entry);
 
+	virtual size_t GetRealSize(const ResourceCacheEntryList::Entry& entry);
+
 private:
 	concurrency::task<RcdFetchResult> DoFetch(const ResourceCacheEntryList::Entry& entry);
+
+private:
+	void StoreHttpRequest(const std::string& hash, const HttpRequestPtr& request);
+
+	void RemoveHttpRequest(const std::string& hash);
+
+	void SetRequestWeight(const std::string& hash, int newWeight);
+
+private:
+	std::shared_mutex m_pendingRequestWeightsMutex;
+	std::unordered_map<std::string, int> m_pendingRequestWeights;
+
+	std::shared_mutex m_requestMapMutex;
+	std::unordered_map<std::string, HttpRequestPtr> m_requestMap;
 
 protected:
 	static tbb::concurrent_unordered_map<std::string, std::optional<concurrency::task<RcdFetchResult>>> ms_entries;

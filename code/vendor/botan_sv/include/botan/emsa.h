@@ -9,7 +9,7 @@
 #define BOTAN_PUBKEY_EMSA_H_
 
 #include <botan/secmem.h>
-#include <botan/alg_id.h>
+#include <botan/asn1_obj.h>
 #include <string>
 
 BOTAN_FUTURE_INTERNAL_HEADER(emsa.h)
@@ -27,7 +27,7 @@ class RandomNumberGenerator;
 class BOTAN_PUBLIC_API(2,0) EMSA
    {
    public:
-      virtual ~EMSA() = default;
+      virtual ~EMSA() {}
 
       /**
       * Add more data to the signature computation

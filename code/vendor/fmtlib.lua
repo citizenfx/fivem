@@ -18,6 +18,10 @@ return {
 		if static then
 			staticruntime "On"
 		end
+
+		if os.istarget('linux') then
+			defines { 'FMT_EXPORT' }
+		end
 		
 		files
 		{

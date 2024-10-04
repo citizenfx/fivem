@@ -36,11 +36,13 @@ bool ResourceImpl::LoadFrom(const std::string& rootPath, std::string* errorState
 
 	if (retval)
 	{
-		trace("Resource loading for %s failed:\n%s\n", m_name.c_str(), retval->c_str());
-
 		if (errorState)
 		{
 			*errorState = *retval;
+		}
+		else
+		{
+			trace("Resource loading for %s failed:\n%s\n", m_name.c_str(), retval->c_str());
 		}
 	}
 
@@ -48,7 +50,12 @@ bool ResourceImpl::LoadFrom(const std::string& rootPath, std::string* errorState
 
 	m_state = ResourceState::Stopped;
 
-	return !retval.is_initialized();
+	if (!retval)
+	{
+		OnLoad();
+	}
+
+	return !retval;
 }
 
 const std::string& ResourceImpl::GetName()

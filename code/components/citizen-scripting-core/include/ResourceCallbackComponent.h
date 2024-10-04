@@ -27,10 +27,6 @@ namespace fx
 			}
 		};
 
-		fx::Resource* m_resource;
-
-		IScriptHost* m_scriptHost;
-
 		std::map<int32_t, std::unique_ptr<RefData>> m_refs;
 
 		std::recursive_mutex m_refMutex;
@@ -38,7 +34,7 @@ namespace fx
 		int32_t m_refIdx;
 
 	public:
-		ResourceCallbackScriptRuntime(fx::Resource* resource, IScriptHost* scriptHost);
+		ResourceCallbackScriptRuntime();
 
 		NS_DECL_ISCRIPTRUNTIME;
 
@@ -50,11 +46,9 @@ namespace fx
 	class ResourceCallbackComponent : public fwRefCountable
 	{
 	private:
-		fwRefContainer<Resource> m_resource;
-
 		ResourceManager* m_manager;
 
-		ResourceCallbackScriptRuntime* m_scriptRuntime;
+		fx::OMPtr<ResourceCallbackScriptRuntime> m_scriptRuntime;
 
 	public:
 		struct CallbackRef
@@ -78,9 +72,9 @@ namespace fx
 	public:
 		ResourceCallbackComponent(ResourceManager* resource);
 
-		inline ResourceCallbackScriptRuntime* GetScriptRuntime()
+		inline auto GetScriptRuntime()
 		{
-			return m_scriptRuntime;
+			return m_scriptRuntime.GetRef();
 		}
 
 		virtual CallbackRef CreateCallback(const std::function<void(const msgpack::unpacked&)>&);

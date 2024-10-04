@@ -15,12 +15,12 @@ ConsoleCommandManager::~ConsoleCommandManager()
 {
 }
 
-int ConsoleCommandManager::Register(const std::string& name, const THandler& handler)
+int ConsoleCommandManager::Register(const std::string& name, const THandler& handler, size_t arity)
 {
 	std::unique_lock<std::shared_mutex> lock(m_mutex);
 
 	int token = m_curToken.fetch_add(1);
-	m_entries.insert({name, Entry{name, handler, token}});
+	m_entries.insert({name, Entry{name, handler, token, arity}});
 
 	return token;
 }
@@ -98,7 +98,7 @@ void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const P
 			// Don't print to the console if a remote client tried to execute an unknown command.
 			if (executionContext.empty())
 			{
-				console::Printf("cmdsys", "No such command %s.\n", commandName.c_str());	
+				console::Printf("cmd", "No such command %s.\n", commandName.c_str());	
 			}
 			return;
 		}
@@ -113,7 +113,11 @@ void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const P
 	// check privilege
 	if (!seCheckPrivilege(fmt::sprintf("command.%s", commandName)))
 	{
-		console::Printf("cmd", "Access denied for command %s.\n", commandName);
+		if (AccessDeniedEvent(commandName))
+		{
+			console::Printf("cmd", "Access denied for command %s.\n", commandName);
+		}
+
 		return;
 	}
 
@@ -150,6 +154,21 @@ void ConsoleCommandManager::ForAllCommands(const std::function<void(const std::s
 		for (auto& command : m_entries)
 		{
 			callback(command.first);
+		}
+	}
+}
+
+void ConsoleCommandManager::ForAllCommands2(const std::function<void(const console::CommandMetadata&)>& callback)
+{
+	{
+		// lock the mutex
+		std::shared_lock lock(m_mutex);
+
+		// loop through the commands
+		for (auto& command : m_entries)
+		{
+			console::CommandMetadata md{ command.first, command.second.arity };
+			callback(md);
 		}
 	}
 }

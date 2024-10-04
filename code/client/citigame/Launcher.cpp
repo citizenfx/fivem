@@ -21,6 +21,8 @@
 
 #include <UUIState.h>
 
+extern void DisableNvCache();
+
 IGameSpecToHooks* g_hooksDLL;
 
 __declspec(dllexport) void SetHooksDll(IGameSpecToHooks* dll);
@@ -95,39 +97,13 @@ bool LauncherInterface::PreResumeGame()
 	return true;
 }
 
-#include <commctrl.h>
-
-#pragma comment(lib, "comctl32.lib")
-
-static void WarnOSVersion()
-{
-	static TASKDIALOGCONFIG taskDialogConfig = { 0 };
-	taskDialogConfig.cbSize = sizeof(taskDialogConfig);
-	taskDialogConfig.hInstance = GetModuleHandle(nullptr);
-	taskDialogConfig.dwFlags = TDF_ENABLE_HYPERLINKS;
-	taskDialogConfig.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-	taskDialogConfig.pszWindowTitle = L"Your Windows 7 PC is out of support";
-	taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
-	taskDialogConfig.pszMainInstruction = L"Your Windows 7 PC is out of support";
-	taskDialogConfig.pszContent = L"As of January 14, 2020, support for Windows 7 has come to an end. Your PC is more vulnerable to viruses and malware due to:\n\n- No security updates\n- No software updates\n- No tech support\n\nPlease upgrade to Windows 8.1 or higher as soon as possible. The game will continue to start now.";
-
-	TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
-}
-
-#include <HostSharedData.h>
-#include <CfxState.h>
-
 bool LauncherInterface::PreInitializeGame()
 {
-	if (!IsWindows8OrGreater())
+	std::thread([]()
 	{
-		static HostSharedData<CfxState> initState("CfxInitState");
-
-		if (initState->IsMasterProcess())
-		{
-			WarnOSVersion();
-		}
-	}
+		DisableNvCache();
+	})
+	.detach();
 
 	// make the component loader initialize
 	ComponentLoader::GetInstance()->Initialize();

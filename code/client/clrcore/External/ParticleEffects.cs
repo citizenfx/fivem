@@ -1,10 +1,20 @@
 using System;
 using System.Drawing;
 using CitizenFX.Core.Native;
-using Hash = CitizenFX.Core.Native.Hash;
-using System.Threading.Tasks;
+using System.Security;
+
+#if MONO_V2
+using CitizenFX.Core;
+using InputArgument = CitizenFX.Core.Native.Input.Primitive;
+using API = CitizenFX.FiveM.Native.Natives;
+using TaskBool = CitizenFX.Core.Coroutine<bool>;
+
+namespace CitizenFX.FiveM
+#else
+using TaskBool = System.Threading.Tasks.Task<bool>;
 
 namespace CitizenFX.Core
+#endif
 {
 	[Flags]
 	public enum InvertAxis
@@ -223,7 +233,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="timeout">How long in milli-seconds should the game wait while the model hasnt been loaded before giving up</param>
 		/// <returns><c>true</c> if the <see cref="ParticleEffectsAsset"/> is Loaded; otherwise, <c>false</c></returns>
-		public async Task<bool> Request(int timeout)
+		public async TaskBool Request(int timeout)
 		{
 			if (!IsLoaded)
 			{
@@ -279,7 +289,7 @@ namespace CitizenFX.Core
 
 		public static implicit operator InputArgument(ParticleEffectsAsset asset)
 		{
-			return new InputArgument(asset._assetName);
+			return (InputArgument)asset._assetName;
 		}
 	}
 
@@ -290,11 +300,16 @@ namespace CitizenFX.Core
 		protected readonly string _effectName;
 		protected Vector3 _offset;
 		protected Vector3 _rotation;
+#if MONO_V2
+		protected Vector4 _color;
+#else
 		protected Color _color;
+#endif
 		protected float _scale;
 		protected float _range;
 		protected InvertAxis _InvertAxis;
 		#endregion
+
 		internal ParticleEffect(ParticleEffectsAsset asset, string effectName)
 		{
 			Handle = -1;
@@ -352,6 +367,10 @@ namespace CitizenFX.Core
 		/// </summary>
 		public Vector3 Offset
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 144, ref _offset);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 144, _offset = value);
+#else
 			get
 			{
 				IntPtr address = MemoryAddress;
@@ -378,6 +397,7 @@ namespace CitizenFX.Core
 					}
 				}
 			}
+#endif
 		}
 
 		/// <summary>
@@ -404,6 +424,13 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Gets or sets the <see cref="Color"/> of this <see cref="ParticleEffect"/>.
 		/// </summary>
+#if MONO_V2
+		public Vector4 Color
+		{
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 320, ref _color);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 320, _color = value);
+		}
+#else
 		public Color Color
 		{
 			get
@@ -434,6 +461,7 @@ namespace CitizenFX.Core
 				}
 			}
 		}
+#endif
 
 		/// <summary>
 		/// Gets or sets the size scaling factor of this <see cref="ParticleEffect"/>
@@ -445,6 +473,10 @@ namespace CitizenFX.Core
 		/// </value>
 		public float Scale
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 336, ref _scale);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 336, _scale = value);
+#else
 			get
 			{
 				IntPtr address = MemoryAddress;
@@ -463,10 +495,15 @@ namespace CitizenFX.Core
 					MemoryAccess.WriteFloat(MemoryAccess.ReadPtr(address + 32) + 336, value);
 				}
 			}
+#endif
 		}
 
 		public float Range
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 384, ref _range);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAccess.DerefIfNotNull(MemoryAddress, 32), 384, _range = value);
+#else
 			get
 			{
 				IntPtr address = MemoryAddress;
@@ -481,6 +518,7 @@ namespace CitizenFX.Core
 				_range = value;
 				API.SetParticleFxLoopedRange(Handle, value);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -538,7 +576,7 @@ namespace CitizenFX.Core
 		public static implicit operator InputArgument(ParticleEffect effect)
 		{
 			//we only need to worry about supplying a particle effect to a native, never returning one
-			return new InputArgument(effect.Handle);
+			return (InputArgument)effect.Handle;
 		}
 	}
 
@@ -633,6 +671,7 @@ namespace CitizenFX.Core
 			var result = new EntityParticleEffect(_asset, _effectName, entity)
 			{
 				Bone = entity.Bones[_entityBone.Index],
+
 				Offset = _offset,
 				Rotation = _rotation,
 				Color = _color,
@@ -707,6 +746,7 @@ namespace CitizenFX.Core
 		{
 			var result = new CoordinateParticleEffect(_asset, _effectName, position)
 			{
+
 				Rotation = _rotation,
 				Color = _color,
 				Scale = _scale,

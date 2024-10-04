@@ -93,6 +93,10 @@ public:
 		// pass to the registered handler for the resource
 		if (!m_handlerRef)
 		{
+			response->SetStatusCode(404);
+			response->SetHeader("Content-Type", "text/plain; charset=utf-8");
+			response->End("Not found.");
+
 			return;
 		}
 
@@ -252,12 +256,6 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 
 	object->OnStart.Connect([this]()
 	{
-		// workaround
-		if (m_resource->GetName() == "_cfx_internal")
-		{
-			return;
-		}
-
 		// get the server from the resource
 		fx::ServerInstanceBase* server = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 
@@ -281,12 +279,6 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 
 	object->OnStop.Connect([this]()
 	{
-		// workaround
-		if (m_resource->GetName() == "_cfx_internal")
-		{
-			return;
-		}
-
 		// get the server from the resource
 		fx::ServerInstanceBase* server = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 
@@ -329,19 +321,8 @@ static InitFunction initFunction([]()
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
-		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/", [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 		{
-			auto resource = instance->GetComponent<fx::ResourceManager>()->GetResource("webadmin");
-
-			if (resource.GetRef() && resource->GetState() == fx::ResourceState::Started)
-			{
-				response->SetStatusCode(302);
-				response->SetHeader("Location", "/webadmin/");
-
-				response->End("Redirecting...");
-				return;
-			}
-
 			auto webVar = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("web_baseUrl");
 
 			if (webVar)

@@ -9,6 +9,8 @@
 
 #include <CoreConsole.h>
 
+#include <CustomRtti.h>
+
 #include <netBlender.h>
 #include <netObjectMgr.h>
 #include <CloneManager.h>
@@ -192,6 +194,9 @@ namespace rage
 		{
 			FORWARD_FUNC(LogObject, 0xF0, object, stub);
 		}
+
+#undef FORWARD_FUNC
+
 #elif IS_RDR3
 		virtual void m_18() = 0; // InitialiseNode
 		virtual void m_20() = 0; // ShutdownNode
@@ -269,29 +274,9 @@ namespace rage
 rage::netObject* g_curNetObjectSelection;
 static rage::netSyncNodeBase* g_curSyncNodeSelection;
 
-// tripping typeid(..) to use RTTI
-struct VirtualBase
-{
-	virtual ~VirtualBase() = 0;
-};
-
-static std::string GetClassTypeName(void* ptr)
-{
-	std::string name;
-
-#ifdef GTA_FIVE
-	name = typeid(*(VirtualBase*)ptr).name();
-	name = name.substr(6);
-#elif IS_RDR3
-	name = fmt::sprintf("%016llx", *(uint64_t*)ptr);
-#endif
-
-	return name;
-}
-
 static void RenderSyncNode(rage::netObject* object, rage::netSyncNodeBase* node)
 {
-	std::string objectName = GetClassTypeName(node);
+	std::string objectName = SearchTypeName(node);
 
 	if (node->IsParentNode())
 	{
@@ -343,11 +328,7 @@ static void RenderNetObjectTree()
 				{
 					try
 					{
-#ifdef GTA_FIVE
-						std::string objectName = GetClassTypeName(object);
-#elif IS_RDR3
-						std::string objectName = GetNetObjEntityName(object->GetObjectType());
-#endif
+						std::string objectName = fx::sync::GetNetObjEntityName(object->GetObjectType());
 
 						if (ImGui::TreeNodeEx(object,
 							ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ((g_curNetObjectSelection == object) ? ImGuiTreeNodeFlags_Selected : 0),
@@ -735,10 +716,6 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 	if (icgi->OneSyncBigIdEnabled)
 	{
 		sizeLength = 16;
-	}
-	else if (icgi->NetProtoVersion < 0x201812271741)
-	{
-		sizeLength = 11;
 	}
 
 	eastl::bitset<200> processedNodes;
@@ -1130,13 +1107,11 @@ void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, st
 }
 }
 
-void RenderNetDrilldownWindow()
+void RenderNetDrilldownWindow(bool* open)
 {
-	static bool open = true;
-
 	ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_Appearing);
 
-	if (ImGui::Begin("Network Drilldown", &open))
+	if (ImGui::Begin("Network Drilldown", open))
 	{
 		if (!g_recordingDrilldown && ImGui::Button("Record"))
 		{
@@ -1152,7 +1127,9 @@ void RenderNetDrilldownWindow()
 
 		if (g_recordingDrilldown)
 		{
-			ImGui::ButtonEx("Recording", {}, ImGuiButtonFlags_Disabled);
+			ImGui::BeginDisabled();
+			ImGui::Button("Recording");
+			ImGui::EndDisabled();
 		}
 
 		if (g_recordedDrilldown)
@@ -1163,7 +1140,7 @@ void RenderNetDrilldownWindow()
 				{
 					sync::FrameIndex fi{ node.frameIdx };
 
-					if (ImGui::TreeNode(va("Packet %d @+%d (%d:%d)", id, node.ts, fi.frameIndex, fi.currentFragment)))
+					if (ImGui::TreeNodeEx(va("Packet %d @+%d (%d:%d)", id, node.ts, fi.frameIndex, fi.currentFragment), (node.messages.empty() ? ImGuiTreeNodeFlags_Leaf : 0)))
 					{
 						for (auto& message : node.messages)
 						{
@@ -1181,7 +1158,7 @@ void RenderNetDrilldownWindow()
 			{
 				for (auto& [id, node] : g_drilldownDataOut)
 				{
-					if (ImGui::TreeNode(va("Tick %d @+%d (%d)", id, node.ts, node.frameIdx)))
+					if (ImGui::TreeNodeEx(va("Tick %d @+%d (%d)", id, node.ts, node.frameIdx), (node.messages.empty() ? ImGuiTreeNodeFlags_Leaf : 0)))
 					{
 						for (auto& message : node.messages)
 						{
@@ -1234,14 +1211,7 @@ void AssociateSyncTree(int objectId, rage::netSyncTree* syncTree)
 
 static const char* DescribeGameObject(void* object)
 {
-	struct VirtualBase
-	{
-		virtual ~VirtualBase() = default;
-	};
-
-	auto vObject = (VirtualBase*)object;
-
-	static std::string objectName = GetClassTypeName(vObject);
+	static std::string objectName = SearchTypeName(object);
 
 	return objectName.c_str();
 }
@@ -1348,18 +1318,40 @@ static InitFunction initFunction([]()
 	static ConVar<bool> netViewerVar("netobjviewer", ConVar_Archive, false, &netViewerEnabled);
 	static ConVar<bool> syncLogVar("netobjviewer_syncLog", ConVar_Archive, false, &g_captureSyncLog);
 	static ConVar<bool> timeVar("net_showTime", ConVar_Archive, false, &timeWindowEnabled);
-	static ConVar<bool> cloneDrilldownVar("net_showDrilldown", ConVar_Archive, false, &drilldownWindowEnabled);
+	static ConVar<bool> cloneDrilldownVar("net_showDrilldown", ConVar_Archive | ConVar_UserPref, false, &drilldownWindowEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
-		*should = *should || netViewerEnabled || timeWindowEnabled || drilldownWindowEnabled;
+		*should = *should || netViewerEnabled || timeWindowEnabled || drilldownWindowEnabled || g_captureSyncLog;
 	});
 
 	ConHost::OnDrawGui.Connect([]()
 	{
+		if (g_captureSyncLog)
+		{
+			const float DISTANCE = 10.0f;
+			ImVec2 window_pos = ImVec2(ImGui::GetMainViewport()->Pos.x + ImGui::GetIO().DisplaySize.x - DISTANCE, ImGui::GetMainViewport()->Pos.y + ImGui::GetIO().DisplaySize.y - DISTANCE);
+			ImVec2 window_pos_pivot = ImVec2(1.0f, 1.0f);
+			ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+
+			ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
+			if (ImGui::Begin("Net Warning", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+			{
+				ImGui::Text("/!\\ Performance warning");
+				ImGui::Separator();
+				ImGui::Text("The 'netobjviewer_syncLog' setting is enabled, which may lead to reduced performance\n"
+					        "in busy parts of the game world."
+					        "\n\n"
+					        "Disable it by using `netobjviewer_syncLog 0` in the F8 console, or by using F8 -> Tools\n"
+					        "-> Network -> OneSync -> Network SyncLog.");
+			}
+
+			ImGui::End();
+		}
+
 		if (drilldownWindowEnabled)
 		{
-			RenderNetDrilldownWindow();
+			RenderNetDrilldownWindow(&drilldownWindowEnabled);
 		}
 
 		if (timeWindowEnabled)
@@ -1425,7 +1417,7 @@ static InitFunction initFunction([]()
 #if _DEBUG
 static void DumpSyncNode(rage::netSyncNodeBase* node, std::string indent = "\t", bool last = true)
 {
-	std::string objectName = GetClassTypeName(node);
+	std::string objectName = SearchTypeName(node);
 
 	if (node->IsParentNode())
 	{
@@ -1453,7 +1445,7 @@ static void DumpSyncNode(rage::netSyncNodeBase* node, std::string indent = "\t",
 
 static void DumpSyncTree(rage::netSyncTree* syncTree)
 {
-	std::string objectName = GetClassTypeName(syncTree);
+	std::string objectName = SearchTypeName(syncTree);
 
 	trace("using %s = SyncTree<\n", objectName);
 
@@ -1514,7 +1506,7 @@ static HookFunction hookFunction([]()
 	// CPlayerAppearanceDataNode decorations uninitialized value
 	{
 		g_vtbl_playerAppearanceDataNode = hook::get_address<uintptr_t>(hook::pattern("48 89 BB B8 00 00 00 48 89 83 B0 00 00 00").count(2).get(1).get<void*>(-0xE));
-		g_offset_playerAppearanceDataNode_hasDecorations = *hook::get_pattern<uint32_t>("88 83 ? ? ? ? 84 C0 75 0D 44 8B C5 33", 2);
+		g_offset_playerAppearanceDataNode_hasDecorations = *hook::get_pattern<uint32_t>("88 ? ? ? ? ? 84 C0 75 0D 44 8B C5 33", 2);
 	}
 
 	// allow CSyncDataLogger even without label string
@@ -1542,7 +1534,7 @@ static HookFunction hookFunction([]()
 	hook::nop(hook::get_pattern("4D 85 C9 74 14 44 0F BE 0A", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C9 74 14 44 0F B7 0A", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C9 74 14 44 0F B6 0A", 3), 2);
-	hook::nop(hook::get_pattern("50 48 85 D2 74 1A", 4), 2);
+	hook::nop(hook::get_pattern("50 48 85 D2 74 1A F3", 4), 2);
 	hook::nop(hook::get_pattern("48 85 DB 74 2D 44 0F B7 0A", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C0 74 38 F3 0F 10", 3), 2);
 	hook::nop(hook::get_pattern("48 85 DB 74 5C 83 64 24", 3), 2);

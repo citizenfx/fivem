@@ -73,7 +73,7 @@ void ParseSymbolicCrash(nlohmann::json& crash, std::string* signature, std::stri
 					
 					if (!appPath.empty())
 					{
-						lineDetail = fmt::sprintf(" (<A HREF=\"https://github.com/citizenfx/fivem/blob/master/%s#L%d\">%s:%d</A>)",
+						lineDetail = fmt::sprintf(" (<A HREF=\"https://sourcegraph.com/github.com/citizenfx/fivem/-/blob/%s?L%d\">%s:%d</A>)",
 						appPath,
 						frame.value("lineno", 0),
 						fn,
@@ -128,8 +128,33 @@ void ParseSymbolicCrash(nlohmann::json& crash, std::string* signature, std::stri
 	}
 }
 
-nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx)
+static std::mutex dbgHelpMutex;
+
+static nlohmann::json SymbolicateCrashRequest(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx)
 {
+	std::lock_guard _(dbgHelpMutex);
+
+	auto dbgHelpLib = LoadLibraryW(MakeRelativeCitPath(L"bin\\dbghelp.dll").c_str());
+
+	if (!dbgHelpLib)
+	{
+		dbgHelpLib = LoadLibraryW(L"dbghelp.dll");
+	}
+
+#define GET_FN(X) \
+	auto _##X = (decltype(&X))GetProcAddress(dbgHelpLib, #X);
+
+	GET_FN(SymInitializeW);
+	GET_FN(SymCleanup);
+	GET_FN(SymGetModuleInfoW64);
+	GET_FN(SymLoadModuleExW);
+	GET_FN(SymUnloadModule64);
+	GET_FN(StackWalk64);
+	GET_FN(SymFunctionTableAccess64);
+	GET_FN(SymGetModuleBase64);
+
+#undef GET_FN
+
 	auto threads = nlohmann::json::array();
 	auto modules = nlohmann::json::array();
 
@@ -137,7 +162,7 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 	DWORD cbNeeded;
 	EnumProcessModules(hProcess, &moduleHandles[0], 4096 * sizeof(HMODULE), &cbNeeded);
 
-	SymInitializeW(hProcess, L"", TRUE);
+	_SymInitializeW(hProcess, L"", TRUE);
 
 	for (int i = 0; i < cbNeeded / sizeof(HMODULE); i++)
 	{
@@ -146,7 +171,7 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 		IMAGEHLP_MODULEW64 moduleInfo;
 		moduleInfo.SizeOfStruct = sizeof(moduleInfo);
 
-		if (!SymGetModuleInfoW64(hProcess, (DWORD64)moduleHandle, &moduleInfo))
+		if (!_SymGetModuleInfoW64(hProcess, (DWORD64)moduleHandle, &moduleInfo))
 		{
 			continue;
 		}
@@ -155,19 +180,19 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 		if (moduleInfo.CVData[0] == L'\0')
 		{
 			HANDLE hFile = CreateFile(moduleInfo.ImageName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-			auto hLoad = SymLoadModuleExW(hProcess, hFile, L"game.exe", L"game.exe", 0x280000000, 0, NULL, 0);
+			auto hLoad = _SymLoadModuleExW(hProcess, hFile, L"game.exe", L"game.exe", 0x280000000, 0, NULL, 0);
 
 			IMAGEHLP_MODULEW64 moduleInfo2;
 			moduleInfo2.SizeOfStruct = sizeof(moduleInfo2);
 
-			if (SymGetModuleInfoW64(hProcess, (DWORD64)hLoad, &moduleInfo2))
+			if (_SymGetModuleInfoW64(hProcess, (DWORD64)hLoad, &moduleInfo2))
 			{
 				memcpy(&moduleInfo.CVData, &moduleInfo2.CVData, sizeof(moduleInfo.CVData));
 				memcpy(&moduleInfo.PdbAge, &moduleInfo2.PdbAge, sizeof(moduleInfo.PdbAge));
 				memcpy(&moduleInfo.PdbSig70, &moduleInfo2.PdbSig70, sizeof(moduleInfo.PdbSig70));
 			}
 
-			SymUnloadModule64(hProcess, hLoad);
+			_SymUnloadModule64(hProcess, hLoad);
 		}
 
 		wchar_t uuid[256];
@@ -213,7 +238,7 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 	auto frames = nlohmann::json::array();
 	auto ctx2 = *ctx;
 
-	while (StackWalk64(IMAGE_FILE_MACHINE_AMD64, hProcess, hThread, &frame, &ctx2, NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL))
+	while (_StackWalk64(IMAGE_FILE_MACHINE_AMD64, hProcess, hThread, &frame, &ctx2, NULL, _SymFunctionTableAccess64, _SymGetModuleBase64, NULL))
 	{
 		frames.push_back(nlohmann::json::object({ 
 			{ "instruction_addr", fmt::sprintf("0x%x", frame.AddrPC.Offset) }
@@ -253,6 +278,15 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 		{ "stacktraces", threads },
 		{ "modules", modules }
 	});
+
+	_SymCleanup(hProcess);
+
+	return std::move(symb);
+}
+
+nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx)
+{
+	auto symb = SymbolicateCrashRequest(hProcess, hThread, er, ctx);
 
 	auto r = cpr::Post(cpr::Url{ "https://crash-ingress.fivem.net/symbolicate?timeout=5" }, cpr::Body{ symb.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) },
 	cpr::Timeout{ std::chrono::seconds(10) }, cpr::Header{ { "content-type", "application/json" } }, cpr::VerifySsl{ false });

@@ -43,7 +43,14 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 
 		if (!module)
 		{
-			FatalError("Could not load dependent module %s. Error code was %i.\n", name, GetLastError());
+			auto errorCode = GetLastError();
+
+			wchar_t errorText[512];
+			errorText[0] = L'\0';
+
+			FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorText, std::size(errorText), nullptr);
+
+			FatalError("Could not load dependent module %s. Error code %i -> %s\n", name, errorCode, ToNarrow(errorText));
 		}
 
 		// "don't load"
@@ -313,11 +320,9 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 
 	IMAGE_NT_HEADERS* ntHeader = (IMAGE_NT_HEADERS*)(m_origBinary + header->e_lfanew);
 
-	LoadSections(ntHeader);
-
-	//if (getenv("CitizenFX_ToolMode") == nullptr)
+	if (!LoadSnapshot(ntHeader))
 	{
-		LoadSnapshot(ntHeader);
+		LoadSections(ntHeader);
 	}
 
 	DWORD oldProtect;
@@ -445,8 +450,6 @@ bool ExecutableLoader::ApplyRelocations()
 			uint32_t rva = (relocStart[i] & 0xFFF) + relocation->VirtualAddress;
 
 			void* addr = GetTargetRVA<void>(rva);
-			DWORD oldProtect;
-			VirtualProtect(addr, 4, PAGE_EXECUTE_READWRITE, &oldProtect);
 
 			if (type == IMAGE_REL_BASED_HIGHLOW)
 			{
@@ -460,8 +463,6 @@ bool ExecutableLoader::ApplyRelocations()
 			{
 				return false;
 			}
-
-			VirtualProtect(addr, 4, oldProtect, &oldProtect);
 		}
 
 		// on to the next one!

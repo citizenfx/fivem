@@ -11,31 +11,15 @@
 #include <Error.h>
 #include <CrossBuildRuntime.h>
 
+#include <CustomRtti.h>
+
 #include <typeinfo>
 
-struct VirtualBase
-{
-	virtual ~VirtualBase() {}
-};
 
-struct VirtualDerivative : public VirtualBase
-{
-	virtual ~VirtualDerivative() override {}
-};
-
-static void PurecallHandler(VirtualBase* self)
+static void PurecallHandler(void* self)
 {
 	// get the type name of the object
-	const char* typeName = va("unknown (vtable %p)", *(void**)self);
-
-	try
-	{
-		typeName = typeid(*self).name();
-	}
-	catch (std::__non_rtti_object&)
-	{
-		
-	}
+	const std::string typeName = SearchTypeName(self, true);
 
 	// get the module base
 	const char* moduleBaseString = "";

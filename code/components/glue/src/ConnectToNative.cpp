@@ -53,10 +53,26 @@
 #include <MinMode.h>
 
 #include "GameInit.h"
+#include "CnlEndpoint.h"
+#include "PacketHandler.h"
+#include "PaymentRequest.h"
 
 #ifdef GTA_FIVE
 #include <ArchetypesCollector.h>
 #endif
+
+inline auto& GetEarlyGameFrame()
+{
+	auto& earlyGameFrame =
+#if defined(HAS_EARLY_GAME_FRAME)
+	OnEarlyGameFrame
+#else
+	OnGameFrame
+#endif
+	;
+
+	return earlyGameFrame;
+}
 
 std::string g_lastConn;
 static std::string g_connectNonce;
@@ -84,28 +100,34 @@ static void SaveBuildNumber(uint32_t build)
 	}
 }
 
-void RestartGameToOtherBuild(int build = 0)
+static void SavePoolSizesIncreaseRequest(const std::wstring& setting)
+{
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		WritePrivateProfileString(L"Game", L"PoolSizesIncrease", setting.c_str(), fpath.c_str());
+	}
+}
+
+void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesIncreaseSetting)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
+	SECURITY_ATTRIBUTES securityAttributes = { 0 };
+	securityAttributes.bInheritHandle = TRUE;
+
+	HANDLE switchEvent = CreateEventW(&securityAttributes, TRUE, FALSE, NULL);
+
 	static HostSharedData<CfxState> hostData("CfxInitState");
-	const wchar_t* cli;
 
-	if (!build)
-	{
-		cli = va(L"\"%s\" %s -switchcl \"fivem://connect/%s\"",
-		hostData->gameExePath,
-		xbr::IsGameBuild<2060>() ? L"" : L"-b2060",
-		ToWide(g_lastConn));
-
-		build = (xbr::IsGameBuild<2060>()) ? 1604 : 2060;
-	}
-	else
-	{
-		cli = va(L"\"%s\" %s -switchcl \"fivem://connect/%s\"",
-		hostData->gameExePath,
-		build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
-		ToWide(g_lastConn));
-	}
+	auto cli = fmt::sprintf(L"\"%s\" %s %s %s -switchcl:%d \"%s://connect/%s\"",
+	hostData->gameExePath,
+	build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
+	IsCL2() ? L"-cl2" : L"",
+	pureLevel == 0 ? L"" : fmt::sprintf(L"-pure_%d", pureLevel),
+	(uintptr_t)switchEvent,
+	hostData->GetLinkProtocol(),
+	ToWide(g_lastConn));
 
 	uint32_t defaultBuild =
 #ifdef GTA_FIVE
@@ -123,21 +145,43 @@ void RestartGameToOtherBuild(int build = 0)
 		SaveBuildNumber(defaultBuild);
 	}
 
-	STARTUPINFOW si = { 0 };
-	si.cb = sizeof(si);
+	SavePoolSizesIncreaseRequest(poolSizesIncreaseSetting);
+
+	trace("Switching from build %d to build %d...\n", xbr::GetGameBuild(), build);
+
+	SIZE_T size = 0;
+	InitializeProcThreadAttributeList(NULL, 1, 0, &size);
+
+	std::vector<uint8_t> attListData(size);
+	auto attList = (LPPROC_THREAD_ATTRIBUTE_LIST)attListData.data();
+
+	assert(attList);
+
+	InitializeProcThreadAttributeList(attList, 1, 0, &size);
+	UpdateProcThreadAttribute(attList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, &switchEvent, sizeof(HANDLE), NULL, NULL);
+
+	STARTUPINFOEXW si = { 0 };
+	si.StartupInfo.cb = sizeof(si);
+	si.lpAttributeList = attList;
 
 	PROCESS_INFORMATION pi;
 
-	if (!CreateProcessW(NULL, const_cast<wchar_t*>(cli), NULL, NULL, FALSE, CREATE_BREAKAWAY_FROM_JOB, NULL, NULL, &si, &pi))
+	if (!CreateProcessW(NULL, const_cast<wchar_t*>(cli.c_str()), NULL, NULL, TRUE, CREATE_BREAKAWAY_FROM_JOB | EXTENDED_STARTUPINFO_PRESENT, NULL, NULL, &si.StartupInfo, &pi))
 	{
 		trace("failed to exit: %d\n", GetLastError());
+	}
+	else
+	{
+		// to silence VS analyzers
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
 	}
 
 	ExitProcess(0x69);
 #endif
 }
 
-extern void InitializeBuildSwitch(int build);
+extern void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting);
 
 void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
@@ -344,7 +388,7 @@ static WRL::ComPtr<IShellLink> MakeShellLink(const ServerLink& link)
 		GetModuleFileNameEx(hProcess, NULL, imageFileName, std::size(imageFileName));
 
 		psl->SetPath(imageFileName);
-		psl->SetArguments(fmt::sprintf(L"%sfivem://connect/%s", buildArgument, ToWide(link.url)).c_str());
+		psl->SetArguments(fmt::sprintf(L"%s%s://connect/%s", buildArgument, hostData->GetLinkProtocol(), ToWide(link.url)).c_str());
 
 		WRL::ComPtr<IPropertyStore> pps;
 		psl.As(&pps);
@@ -488,9 +532,63 @@ static void DisconnectCmd()
 	}
 }
 
+extern void MarkNuiLoaded();
+
+static std::function<void()> g_onYesCallback;
+
+class PaymentRequestPacketHandler : public net::PacketHandler<net::packet::ServerPaymentRequest, HashRageString("msgPaymentRequest")>
+{
+public:
+	template<typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPacket(stream, [](net::packet::ServerPaymentRequest& serverPaymentRequest)
+		{
+			try
+			{
+				auto json = nlohmann::json::parse(std::string(reinterpret_cast<const char*>(serverPaymentRequest.data.GetValue().data()), serverPaymentRequest.data.GetValue().size()));
+
+				se::ScopedPrincipal scope(se::Principal{ "system.console" });
+				console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("warningMessageResult")->SetValue("0");
+				console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "warningmessage", "PURCHASE REQUEST", fmt::sprintf("The server is requesting a purchase of %s for %s.", json.value("sku_name", ""), json.value("sku_price", "")), "Do you want to purchase this item?", "20" });
+
+				g_onYesCallback = [json]()
+				{
+					std::map<std::string, std::string> postMap;
+					postMap["data"] = json.value<std::string>("data", "");
+					postMap["sig"] = json.value<std::string>("sig", "");
+					postMap["clientId"] = g_discourseClientId;
+					postMap["userToken"] = g_discourseUserToken;
+
+					Instance<HttpClient>::Get()->DoPostRequest("https://keymaster.fivem.net/api/paymentAssign", postMap, [](bool success, const char* data, size_t length)
+					{
+						if (success)
+						{
+							auto res = nlohmann::json::parse(std::string(data, length));
+							auto url = res.value("url", "");
+
+							if (!url.empty())
+							{
+								if (url.find("http://") == 0 || url.find("https://") == 0)
+								{
+									ShellExecute(nullptr, L"open", ToWide(url).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+								}
+							}
+						}
+					});
+				};
+			}
+			catch (const std::exception& e)
+			{
+
+			}
+		});
+	}
+};
+
+
 static InitFunction initFunction([] ()
 {
-	static std::function<void()> g_onYesCallback;
 	static std::function<void()> backfillDoneEvent;
 	static bool mpMenuExpectsBackfill;
 	static bool disconnect;
@@ -587,22 +685,15 @@ static InitFunction initFunction([] ()
 			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
 		});
 
-		netLibrary->OnRequestBuildSwitch.Connect([](int build)
+		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring poolSizesIncreaseSetting)
 		{
-			InitializeBuildSwitch(build);
+			InitializeBuildSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting));
 			g_connected = false;
 		});
 
 		netLibrary->OnConnectionErrorRichEvent.Connect([] (const std::string& errorOrig, const std::string& metaData)
 		{
 			std::string error = errorOrig;
-
-#ifdef GTA_FIVE
-			if (strstr(error.c_str(), "This server requires a different game build"))
-			{
-				RestartGameToOtherBuild();
-			}
-#endif
 
 			if ((strstr(error.c_str(), "steam") || strstr(error.c_str(), "Steam")) && !strstr(error.c_str(), ".ms/verify"))
 			{
@@ -741,47 +832,7 @@ static InitFunction initFunction([] ()
 			}
 		}, 5000);
 
-		lib->AddReliableHandler("msgPaymentRequest", [](const char* buf, size_t len)
-		{
-			try
-			{
-				auto json = nlohmann::json::parse(std::string(buf, len));
-
-				se::ScopedPrincipal scope(se::Principal{ "system.console" });
-				console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("warningMessageResult")->SetValue("0");
-				console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "warningmessage", "PURCHASE REQUEST", fmt::sprintf("The server is requesting a purchase of %s for %s.", json.value("sku_name", ""), json.value("sku_price", "")), "Do you want to purchase this item?", "20" });
-
-				g_onYesCallback = [json]()
-				{
-					std::map<std::string, std::string> postMap;
-					postMap["data"] = json.value<std::string>("data", "");
-					postMap["sig"] = json.value<std::string>("sig", "");
-					postMap["clientId"] = g_discourseClientId;
-					postMap["userToken"] = g_discourseUserToken;
-
-					Instance<HttpClient>::Get()->DoPostRequest("https://keymaster.fivem.net/api/paymentAssign", postMap, [](bool success, const char* data, size_t length)
-					{
-						if (success)
-						{
-							auto res = nlohmann::json::parse(std::string(data, length));
-							auto url = res.value("url", "");
-
-							if (!url.empty())
-							{
-								if (url.find("http://") == 0 || url.find("https://") == 0)
-								{
-									ShellExecute(nullptr, L"open", ToWide(url).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-								}
-							}
-						}
-					});
-				};
-			}
-			catch (const std::exception& e)
-			{
-
-			}
-		}, true);
+		lib->AddPacketHandler<PaymentRequestPacketHandler>(true);
 	});
 
 	OnMainGameFrame.Connect([]()
@@ -959,7 +1010,8 @@ static InitFunction initFunction([] ()
 
 	static ConVar<bool> uiPremium("ui_premium", ConVar_None, false);
 
-	static ConVar<std::string> uiUpdateChannel("ui_updateChannel", ConVar_None, curChannel,
+	// ConVar_ScriptRestricted because update channel is often misused as a marker for other things
+	static ConVar<std::string> uiUpdateChannel("ui_updateChannel", ConVar_ScriptRestricted, curChannel,
 	[](internal::ConsoleVariableEntry<std::string>* convar)
 	{
 		if (convar->GetValue() != curChannel)
@@ -1011,9 +1063,9 @@ static InitFunction initFunction([] ()
 		}
 		else if (!_wcsicmp(type, L"getMinModeInfo"))
 		{
-#ifdef GTA_FIVE
 			static bool done = ([]
 			{
+#ifdef GTA_FIVE
 				std::thread([]
 				{
 					UiDone();
@@ -1026,10 +1078,12 @@ static InitFunction initFunction([] ()
 					SetForegroundWindow(hWnd);
 				})
 				.detach();
+#endif
+
+				MarkNuiLoaded();
 
 				return true;
 			})();
-#endif
 
 			auto manifest = CoreGetMinModeManifest();
 
@@ -1161,7 +1215,7 @@ static InitFunction initFunction([] ()
 		else if (!_wcsicmp(type, L"exit"))
 		{
 			// queue an ExitProcess on the next game frame
-			OnGameFrame.Connect([] ()
+			GetEarlyGameFrame().Connect([]()
 			{
 				AddVectoredExceptionHandler(FALSE, TerminateInstantly);
 
@@ -1183,7 +1237,7 @@ static InitFunction initFunction([] ()
 				Instance<ICoreGameInit>::Get()->SetData("discourseClientId", g_discourseClientId);
 
 				Instance<::HttpClient>::Get()->DoPostRequest(
-					"https://lambda.fivem.net/api/validate/discourse",
+					CNL_ENDPOINT "api/validate/discourse",
 					{
 						{ "entitlementId", ros::GetEntitlementSource() },
 						{ "authToken", g_discourseUserToken },
@@ -1295,7 +1349,7 @@ static InitFunction initFunction([] ()
 		}
 	});
 
-	OnGameFrame.Connect([]()
+	GetEarlyGameFrame().Connect([]()
 	{
 		static bool hi;
 
@@ -1329,9 +1383,8 @@ static InitFunction initFunction([] ()
 #include <nng/protocol/pipeline0/pull.h>
 #include <nng/protocol/pipeline0/push.h>
 
-static void ProtocolRegister()
+static void ProtocolRegister(const wchar_t* name, const wchar_t* cls)
 {
-#ifdef GTA_FIVE
 	LSTATUS result;
 
 #define CHECK_STATUS(x) \
@@ -1343,47 +1396,55 @@ static void ProtocolRegister()
 
 	static HostSharedData<CfxState> hostData("CfxInitState");
 
-	HKEY key;
-	wchar_t command[1024];
-	swprintf_s(command, L"\"%s\" \"%%1\"", hostData->gameExePath);
+	HKEY key = NULL;
+	std::wstring command = fmt::sprintf(L"\"%s\" \"%%1\"", hostData->gameExePath);
 
-	CHECK_STATUS(RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\fivem", &key));
-	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
-	CHECK_STATUS(RegSetValueExW(key, L"URL Protocol", 0, REG_SZ, (BYTE*)L"", 1 * 2));
+	const auto create_key = [&key](std::wstring name)
+	{
+		return RegCreateKeyW(HKEY_CURRENT_USER, name.c_str(), &key);
+	};
+
+	const auto set_string = [&key](const wchar_t* name, std::wstring value)
+	{
+		return RegSetValueExW(key, name, 0, REG_SZ, (const BYTE*)value.c_str(), (value.size() + 1) * sizeof(wchar_t));
+	};
+
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\Classes\\%s", cls)));
+	CHECK_STATUS(set_string(NULL, name));
+	CHECK_STATUS(set_string(L"URL Protocol", L""));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\FiveM.ProtocolHandler", &key));
-	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\Classes\\%s.ProtocolHandler", name)));
+	CHECK_STATUS(set_string(NULL, name));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\FiveM", &key));
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\%s", name)));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\FiveM\\Capabilities", &key));
-	CHECK_STATUS(RegSetValueExW(key, L"ApplicationName", 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
-	CHECK_STATUS(RegSetValueExW(key, L"ApplicationDescription", 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\%s\\Capabilities", name)));
+	CHECK_STATUS(set_string(L"ApplicationName", name));
+	CHECK_STATUS(set_string(L"ApplicationDescription", name));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\FiveM\\Capabilities\\URLAssociations", &key));
-	CHECK_STATUS(RegSetValueExW(key, L"fivem", 0, REG_SZ, (BYTE*)L"FiveM.ProtocolHandler", 22 * 2));
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\%s\\Capabilities\\URLAssociations", name)));
+	CHECK_STATUS(set_string(cls, fmt::sprintf(L"%s.ProtocolHandler", name)));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\RegisteredApplications", &key));
-	CHECK_STATUS(RegSetValueExW(key, L"FiveM", 0, REG_SZ, (BYTE*)L"Software\\FiveM\\Capabilities", 28 * 2));
+	CHECK_STATUS(create_key(L"SOFTWARE\\RegisteredApplications"));
+	CHECK_STATUS(set_string(name, fmt::sprintf(L"Software\\%s\\Capabilities", name)));
 	CHECK_STATUS(RegCloseKey(key));
 
-	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\FiveM.ProtocolHandler\\shell\\open\\command", &key));
-	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
+	CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\Classes\\%s.ProtocolHandler\\shell\\open\\command", name)));
+	CHECK_STATUS(set_string(NULL, command));
 	CHECK_STATUS(RegCloseKey(key));
 
 	if (!IsWindows8Point1OrGreater())
 	{
 		// these are for compatibility on downlevel Windows systems
-		CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\fivem\\shell\\open\\command", &key));
-		CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
+		CHECK_STATUS(create_key(fmt::sprintf(L"SOFTWARE\\Classes\\%s\\shell\\open\\command", cls)));
+		CHECK_STATUS(set_string(NULL, command));
 		CHECK_STATUS(RegCloseKey(key));
 	}
-#endif
 }
 
 void Component_RunPreInit()
@@ -1396,7 +1457,7 @@ void Component_RunPreInit()
 	if (hostData->IsMasterProcess())
 #endif
 	{
-		ProtocolRegister();
+		ProtocolRegister(PRODUCT_NAME, hostData->GetLinkProtocol());
 	}
 
 	int argc;
@@ -1406,11 +1467,13 @@ void Component_RunPreInit()
 	static std::string connectParams;
 	static std::string authPayload;
 
+	static auto protocolLinkStart = ToNarrow(hostData->GetLinkProtocol(L":"));
+
 	for (int i = 1; i < argc; i++)
 	{
 		std::string arg = ToNarrow(argv[i]);
 
-		if (arg.find("fivem:") == 0)
+		if (arg.find(protocolLinkStart) == 0)
 		{
 			auto parsed = skyr::make_url(arg);
 
@@ -1472,7 +1535,7 @@ void Component_RunPreInit()
 			std::string connectMsg = j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::strict);
 
 			nng_push0_open(&socket);
-			nng_dial(socket, "ipc:///tmp/fivem_connect", &dialer, 0);
+			nng_dial(socket, CONNECT_NNG_SOCKET_NAME, &dialer, 0);
 			nng_send(socket, const_cast<char*>(connectMsg.c_str()), connectMsg.size(), 0);
 
 			if (!hostData->gamePid)
@@ -1510,7 +1573,7 @@ void Component_RunPreInit()
 			nng_dialer dialer;
 
 			nng_push0_open(&socket);
-			nng_dial(socket, "ipc:///tmp/fivem_auth", &dialer, 0);
+			nng_dial(socket, AUTH_NNG_SOCKET_NAME, &dialer, 0);
 			nng_send(socket, const_cast<char*>(authPayload.c_str()), authPayload.size(), 0);
 
 			if (!hostData->gamePid)
@@ -1543,15 +1606,15 @@ static InitFunction connectInitFunction([]()
 	static nng_listener listener;
 
 	nng_pull0_open(&netSocket);
-	nng_listen(netSocket, "ipc:///tmp/fivem_connect", &listener, 0);
+	nng_listen(netSocket, CONNECT_NNG_SOCKET_NAME, &listener, 0);
 
 	static nng_socket netAuthSocket;
 	static nng_listener authListener;
 
 	nng_pull0_open(&netAuthSocket);
-	nng_listen(netAuthSocket, "ipc:///tmp/fivem_auth", &authListener, 0);
+	nng_listen(netAuthSocket, AUTH_NNG_SOCKET_NAME, &authListener, 0);
 
-	OnGameFrame.Connect([]()
+	GetEarlyGameFrame().Connect([]()
 	{
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 		{

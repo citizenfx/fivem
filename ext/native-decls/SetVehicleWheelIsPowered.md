@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## SET_VEHICLE_WHEEL_IS_POWERED
 

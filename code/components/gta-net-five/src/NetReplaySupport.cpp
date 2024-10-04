@@ -7,6 +7,8 @@
 #include <CachedResourceMounter.h>
 #include <ResourceCache.h>
 
+#include <VFSManager.h>
+
 #include <ICoreGameInit.h>
 
 static uint32_t (*rage__fiFile__Read)(void* file, void* read, uint32_t size);
@@ -42,8 +44,21 @@ static void StartLoadResources(const std::vector<ResourceMetaData>& rmds)
 	Instance<ICoreGameInit>::Get()->SetVariable("gameKilled");
 	Instance<ICoreGameInit>::Get()->ClearVariable("networkInited");
 
+	// NOTE: we run this in two passes since resources may have dependencies
+	//       and therefore need to be added before being started.
+	//
+	//       this led to an issue report (2023-03)
+	std::list<std::tuple<fwRefContainer<fx::Resource>, const ResourceMetaData*>> resources;
+
 	for (const auto& md : rmds)
 	{
+		// sometimes, this may contain _cfx_internal with '' uri
+		// that prints confusing line in console.
+		if (md.uri.empty())
+		{
+			continue;
+		}
+
 		fwRefContainer<fx::CachedResourceMounter> mounter = resman->GetMounterForUri(md.uri);
 
 		if (mounter.GetRef())
@@ -59,29 +74,66 @@ static void StartLoadResources(const std::vector<ResourceMetaData>& rmds)
 
 			if (resourceResult)
 			{
-				fwRefContainer<fx::Resource> resource = resourceResult.value();
+				resources.emplace_back(resourceResult.value(), &md);
+			}
+		}
+	}
 
-				resource->Start();
+	for (const auto& [resource, mdPtr] : resources)
+	{
+		resource->Start();
 
-				// add SEDs
-				for (auto& rentry : md.entries)
+		const auto& md = *mdPtr;
+
+		fwRefContainer<fx::CachedResourceMounter> mounter = resman->GetMounterForUri(md.uri);
+
+		// add SEDs
+		for (auto& rentry : md.entries)
+		{
+			fx::StreamingEntryData entry;
+
+			if (rentry.extData.find("rscVersion") != rentry.extData.end())
+			{
+				auto ed = rentry.extData;
+
+				entry.rscVersion = std::stoul(ed["rscVersion"]);
+				entry.rscPagesPhysical = std::stoul(ed["rscPagesPhysical"]);
+				entry.rscPagesVirtual = std::stoul(ed["rscPagesVirtual"]);
+
+				entry.filePath = mounter->FormatPath(md.name, rentry.basename);
+				entry.resourceName = md.name;
+
+				auto fileExists = [](const std::string& path)
 				{
-					fx::StreamingEntryData entry;
+					auto device = vfs::GetDevice(path);
 
-					if (rentry.extData.find("rscVersion") != rentry.extData.end())
+					if (!device.GetRef())
 					{
-						auto ed = rentry.extData;
-
-						entry.rscVersion = std::stoul(ed["rscVersion"]);
-						entry.rscPagesPhysical = std::stoul(ed["rscPagesPhysical"]);
-						entry.rscPagesVirtual = std::stoul(ed["rscPagesVirtual"]);
-
-						entry.filePath = mounter->FormatPath(md.name, rentry.basename);
-						entry.resourceName = md.name;
-
-						fx::OnAddStreamingResource(entry);
+						return false;
 					}
+
+					uint64_t ptr = 0;
+					auto handle = device->OpenBulk(path, &ptr);
+
+					if (handle == vfs::Device::InvalidHandle)
+					{
+						return false;
+					}
+
+					char buf[2048] = { 0 };
+					auto fetched = device->ReadBulk(handle, ptr, buf, 0xFFFFFFFC) == 2048;
+
+					device->CloseBulk(handle);
+
+					return fetched;
+				};
+
+				if (!fileExists(entry.filePath))
+				{
+					continue;
 				}
+
+				fx::OnAddStreamingResource(entry);
 			}
 		}
 	}

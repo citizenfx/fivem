@@ -3,6 +3,8 @@
 #include <jitasm.h>
 #include "Hooking.h"
 
+#include <MinHook.h>
+
 #include "Streaming.h"
 #include <fiCollectionWrapper.h>
 
@@ -19,6 +21,9 @@
 #include <VFSError.h>
 #include <VFSManager.h>
 
+#include <EntitySystem.h>
+#include <GameInit.h>
+
 #include <tbb/concurrent_queue.h>
 
 static tbb::concurrent_queue<std::function<void()>> g_onCriticalFrameQueue;
@@ -29,15 +34,29 @@ static std::unordered_map<std::string, int> g_failures;
 
 hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 {
-	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
+	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00 8B D8 E8", -5));
 });
 
-static std::unordered_map<std::string, uint32_t> g_thisSeenRequests;
-static std::unordered_set<std::string> g_erasureQueue;
-
-static bool ProcessHandler(HANDLE sema, char* a1)
+struct SemaAwaiter
 {
-	bool isSignaled = WaitForSingleObject(sema, 0) == WAIT_OBJECT_0;
+	bool operator()(void* sema) const
+	{
+		return WaitForSingleObject(sema, 0) == WAIT_OBJECT_0;
+	}
+};
+
+struct ByteAwaiter
+{
+	bool operator()(void* sema) const
+	{
+		return *((uint8_t*)sema + 0x1848);
+	}
+};
+
+template<typename Awaiter>
+static bool ProcessHandler(void* sema, char* a1)
+{
+	bool isSignaled = Awaiter()(sema);
 
 	if (!isSignaled)
 	{
@@ -66,7 +85,7 @@ static bool ProcessHandler(HANDLE sema, char* a1)
 	return isSignaled;
 }
 
-static void Hook_StreamingSema()
+static void Hook_StreamingSema2699()
 {
 	{
 		static struct : jitasm::Frontend
@@ -75,7 +94,53 @@ static void Hook_StreamingSema()
 			{
 				mov(rdx, rbx);
 
-				mov(rax, (uint64_t)&ProcessHandler);
+				mov(rax, (uint64_t)&ProcessHandler<ByteAwaiter>);
+				jmp(rax);
+			}
+		} weirdStub;
+
+		// rage::strStreamingLoader::ProcessStreamFiles
+		auto location = hook::get_pattern("8A 81 48 18 00 00 84 C0 0F 84 E5");
+		hook::nop(location, 6);
+		hook::call(location, weirdStub.GetCode());
+	}
+
+	{
+		static struct : jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				mov(rdx, rsi);
+
+				mov(rax, (uint64_t)&ProcessHandler<ByteAwaiter>);
+				jmp(rax);
+			}
+		} weirdStub;
+
+		// rage::strStreamingLoader::Flush
+		auto location = hook::get_pattern("8A 81 48 18 00 00 84 C0 0F 84 10 01");
+		hook::nop(location, 6);
+		hook::call(location, weirdStub.GetCode());
+	}
+}
+
+static void Hook_StreamingSema()
+{
+	// 2699+ uses a byte instead of a sema, so needs its own patch
+	if (xbr::IsGameBuildOrGreater<2699>())
+	{
+		Hook_StreamingSema2699();
+		return;	
+	}
+
+	{
+		static struct : jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				mov(rdx, rbx);
+
+				mov(rax, (uint64_t)&ProcessHandler<SemaAwaiter>);
 				jmp(rax);
 			}
 		} weirdStub;
@@ -91,7 +156,7 @@ static void Hook_StreamingSema()
 			{
 				mov(rdx, rsi);
 
-				mov(rax, (uint64_t)&ProcessHandler);
+				mov(rax, (uint64_t)&ProcessHandler<SemaAwaiter>);
 				jmp(rax);
 			}
 		} weirdStub;
@@ -99,210 +164,6 @@ static void Hook_StreamingSema()
 		auto location = hook::get_pattern("48 8B 8C C6 18 0A 03 00 48", 12);
 		hook::call(location, weirdStub.GetCode());
 	}
-}
-
-#include <mmsystem.h>
-
-static void ProcessErasure()
-{
-	static uint32_t lastRanErasure;
-
-	if ((timeGetTime() - lastRanErasure) < 500)
-	{
-		return;
-	}
-
-	lastRanErasure = timeGetTime();
-
-	// this test isn't too accurate but it should at least erase abandoned handles from RCD
-	{
-		for (auto& request : g_thisSeenRequests)
-		{
-			if ((lastRanErasure - request.second) > 500)
-			{
-				auto it = g_handleMap.find(request.first);
-
-				if (it != g_handleMap.end())
-				{
-					g_erasureQueue.insert(request.first);
-				}
-			}
-			else
-			{
-				g_erasureQueue.erase(request.first);
-			}
-		}
-	}
-
-	// erasing these entries is deferred since closing an in-transit entry in ResourceCacheDevice will cause download corruption of sorts
-	{
-		for (auto it = g_erasureQueue.begin(); it != g_erasureQueue.end(); )
-		{
-			auto entry = *it;
-
-			// should be removed from the erasure queue?
-			bool erased = false;
-
-			// get the handle data
-			auto hIt = g_handleMap.find(entry);
-
-			if (hIt != g_handleMap.end())
-			{
-				auto[device, handle, ptr] = hIt->second;
-
-				// perform a status bulk read
-				char readBuffer[2048];
-				uint32_t numRead = device->ReadBulk(handle, ptr, readBuffer, 0xFFFFFFFD);
-
-				// download completed?
-				if (numRead != 0)
-				{
-					// erase the entry
-					device->CloseBulk(handle);
-					g_handleMap.erase(hIt);
-
-					erased = true;
-				}
-			}
-			else
-			{
-				// no longer relevant to us, remove from erasure queue
-				erased = true;
-			}
-
-			// increase iterator if needed
-			if (!erased)
-			{
-				it++;
-			}
-			else
-			{
-				it = g_erasureQueue.erase(it);
-			}
-		}
-	}
-}
-
-static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, int* requests, int a5, int a6, int a7)
-{
-	OPTICK_EVENT();
-
-	int remainingRequests = g_origHandleObjectLoad(streaming, a2, a3, requests, a5, a6, a7);
-
-	for (int i = remainingRequests - 1; i >= 0; i--)
-	{
-		bool shouldRemove = false;
-		int index = requests[i];
-
-		auto entry = &streaming->Entries[index];
-		auto pf = streaming::GetStreamingPackfileForEntry(entry);
-
-		rage::fiCollection* collection = nullptr;
-		
-		if (pf)
-		{
-			collection = reinterpret_cast<rage::fiCollection*>(pf->packfile);
-		}
-
-		if (!collection && (entry->handle >> 16) == 0)
-		{
-			collection = getRawStreamer();
-		}
-
-		if (collection)
-		{
-			char fileNameBuffer[1024];
-			strcpy(fileNameBuffer, "CfxRequest");
-
-			collection->GetEntryNameToBuffer(entry->handle & 0xFFFF, fileNameBuffer, sizeof(fileNameBuffer));
-
-			bool isCache = false;
-			std::string fileName;
-
-			if (strncmp(fileNameBuffer, "cache:/", 7) == 0)
-			{
-				fileName = std::string("cache_nb:/") + &fileNameBuffer[7];
-				isCache = true;
-			}
-
-			if (strncmp(fileNameBuffer, "compcache:/", 11) == 0)
-			{
-				fileName = std::string("compcache_nb:/") + &fileNameBuffer[11];
-				isCache = true;
-			}
-
-			if (isCache)
-			{
-				OPTICK_EVENT("isCache");
-
-				g_thisSeenRequests[fileName] = timeGetTime();
-
-				rage::fiDevice* device;
-				uint64_t handle;
-				uint64_t ptr;
-
-				if (g_handleMap.find(fileName) != g_handleMap.end())
-				{
-					std::tie(device, handle, ptr) = g_handleMap[fileName];
-				}
-				else
-				{
-					device = rage::fiDevice::GetDevice(fileName.c_str(), true);
-					handle = device->OpenBulk(fileName.c_str(), &ptr);
-				}
-
-				if (handle != -1)
-				{
-					char readBuffer[2048];
-					uint32_t numRead;
-
-					{
-						OPTICK_EVENT("readBulk");
-						numRead = device->ReadBulk(handle, ptr, readBuffer, 0xFFFFFFFE);
-					}
-
-					bool killHandle = true;
-
-					if (numRead == 0)
-					{
-						killHandle = false;
-						shouldRemove = true;
-
-						g_handleMap.insert({ fileName, { device, handle, ptr } });
-					}
-					else if (numRead == -1)
-					{
-						shouldRemove = true;
-
-						std::string error;
-						ICoreGameInit* init = Instance<ICoreGameInit>::Get();
-
-						init->GetData("gta-core-five:loadCaller", &error);
-
-						FatalError("Failed to request %s: %s. %s", fileName, vfs::GetLastError(vfs::GetDevice(fileName)), error);
-					}
-
-					if (killHandle)
-					{
-						device->CloseBulk(handle);
-						g_handleMap.erase(fileName);
-					}
-				}
-				else
-				{
-					shouldRemove = true;
-				}
-			}
-		}
-
-		if (shouldRemove)
-		{
-			memmove(&requests[i], &requests[i + 1], (remainingRequests - i - 1) * sizeof(int));
-			remainingRequests -= 1;
-		}
-	}
-
-	return remainingRequests;
 }
 
 struct datResourceChunk
@@ -366,16 +227,21 @@ static void ProcessRemoval()
 	}
 }
 
-static void* (*g_origPgStreamerRead)(uint32_t handle, datResourceChunk* outChunks, int numChunks, int flags, void(*callback)(void*), void* userData, int streamerIdx, int streamerFlags, void* unk9, float unk10);
-
-static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int numChunks, int flags, void (*callback)(void*), void* userData, int streamerIdx, int streamerFlags, void* unk9, float unk10)
+bool IsHandleCache(uint32_t handle, std::string* outFileName)
 {
+	if (outFileName)
+	{
+		*outFileName = {};
+	}
+
 	rage::fiCollection* collection = nullptr;
 
 	if ((handle >> 16) == 0)
 	{
 		collection = getRawStreamer();
 	}
+
+	bool isCache = false;
 
 	if (collection)
 	{
@@ -384,22 +250,37 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 
 		collection->GetEntryNameToBuffer(handle & 0xFFFF, fileNameBuffer, sizeof(fileNameBuffer));
 
-		bool isCache = false;
-		std::string fileName;
-
 		if (strncmp(fileNameBuffer, "cache:/", 7) == 0)
 		{
-			fileName = std::string("cache_nb:/") + &fileNameBuffer[7];
+			if (outFileName)
+			{
+				*outFileName = std::string("cache_nb:/") + &fileNameBuffer[7];
+			}
+
 			isCache = true;
 		}
-
-		if (strncmp(fileNameBuffer, "compcache:/", 11) == 0)
+		else if (strncmp(fileNameBuffer, "compcache:/", 11) == 0)
 		{
-			fileName = std::string("compcache_nb:/") + &fileNameBuffer[11];
+			if (outFileName)
+			{
+				*outFileName = std::string("compcache_nb:/") + &fileNameBuffer[11];
+			}
+
 			isCache = true;
 		}
+	}
 
-		if (isCache)
+	return isCache;
+}
+
+static void* (*g_origPgStreamerRead)(uint32_t handle, datResourceChunk* outChunks, int numChunks, int flags, void(*callback)(void*), void* userData, int streamerIdx, int streamerFlags, void* unk9, float unk10);
+
+static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int numChunks, int flags, void (*callback)(void*), void* userData, int streamerIdx, int streamerFlags, void* unk9, float unk10)
+{
+	std::string fileName;
+
+	{
+		if (IsHandleCache(handle, &fileName))
 		{
 			for (int i = 0; i < numChunks; i++)
 			{
@@ -505,9 +386,202 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 	return g_origPgStreamerRead(handle, outChunks, numChunks, flags, callback, userData, streamerIdx, streamerFlags, unk9, unk10);
 }
 
+#define VFS_RCD_SET_WEIGHT 0x30004
+
+struct SetWeightExtension
+{
+	const char* fileName;
+	int newWeight;
+};
+
+static void SetHandleDownloadWeight(uint32_t handle, int weight)
+{
+	std::string fileName;
+
+	if (IsHandleCache(handle, &fileName))
+	{
+		auto device = vfs::GetDevice(fileName);
+
+		if (device.GetRef())
+		{
+			SetWeightExtension ext;
+			ext.fileName = fileName.c_str();
+			ext.newWeight = weight;
+
+			device->ExtensionCtl(VFS_RCD_SET_WEIGHT, &ext, sizeof(ext));
+		}
+	}
+}
+
+static bool (*g_origCancelRequest)(void* self, uint32_t index);
+
+static bool CancelRequestWrap(void* self, uint32_t index)
+{
+	auto streaming = streaming::Manager::GetInstance();
+	auto handle = streaming->Entries[index].handle;
+
+	SetHandleDownloadWeight(handle, 1);
+
+	return g_origCancelRequest(self, index);
+}
+
+static void (*g_origSetToLoading)(void*, uint32_t);
+
+static void SetToLoadingWrap(streaming::Manager* self, uint32_t index)
+{
+	auto handle = self->Entries[index].handle;
+	SetHandleDownloadWeight(handle, -1);
+
+	return g_origSetToLoading(self, index);
+}
+
 static uint32_t NoLSN(void* streamer, uint16_t idx)
 {
 	return idx;
+}
+
+extern int* g_archetypeStreamingIndex;
+
+static auto GetArchetypeModule()
+{
+	auto mgr = streaming::Manager::GetInstance();
+	return mgr->moduleMgr.modules[*g_archetypeStreamingIndex];
+}
+
+static auto GetModelIndex(rage::fwArchetype* archetype)
+{
+	return *(uint16_t*)((char*)archetype + 106);
+}
+
+static auto GetStrIndexFromArchetype(rage::fwArchetype* archetype)
+{
+	auto modelIndex = GetModelIndex(archetype);
+	return GetArchetypeModule()->baseIdx + modelIndex;
+}
+
+static std::mutex strRefCountsMutex;
+static std::unordered_map<uint32_t, int> strRefCounts;
+
+static bool (*g_origSetModelId)(void* entity, void* id);
+
+static bool CEntity_SetModelIdWrap(rage::fwEntity* entity, rage::fwModelId* id)
+{
+	auto rv = g_origSetModelId(entity, id);
+
+	if (auto archetype = entity->GetArchetype())
+	{
+		auto mgr = streaming::Manager::GetInstance();
+
+		// TODO: recurse?
+		uint32_t outDeps[150];
+		auto module = GetArchetypeModule();
+		auto numDeps = module->GetDependencies(GetModelIndex(archetype), outDeps, std::size(outDeps));
+
+		for (size_t depIdx = 0; depIdx < numDeps; depIdx++)
+		{
+			auto dep = outDeps[depIdx];
+			bool rerequest = false;
+
+			{
+				std::unique_lock _(strRefCountsMutex);
+				auto it = strRefCounts.find(dep);
+
+				if (it == strRefCounts.end())
+				{
+					it = strRefCounts.insert({ dep, 0 }).first;
+				}
+
+				++it->second;
+
+				if (it->second == 1)
+				{
+					rerequest = true;
+				}
+			}
+
+			if (rerequest)
+			{
+				SetHandleDownloadWeight(mgr->Entries[dep].handle, -1);
+			}
+		}
+	}
+
+	return rv;
+}
+
+static hook::thiscall_stub<void(void*, const rage::fwModelId&)> _fwEntity_SetModelId([]()
+{
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		return hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8B D9 48 8B 49 ? 48 8B FA 48 85 C9 74 ? 8B 41");
+	}
+	return hook::get_pattern("E8 ? ? ? ? 45 33 D2 3B 05", -12);
+});
+
+static void (*g_orig_fwEntity_Dtor)(void* entity);
+
+static void fwEntity_DtorWrap(rage::fwEntity* entity)
+{
+	if (auto archetype = entity->GetArchetype())
+	{
+		auto midx = GetModelIndex(archetype);
+
+		// check if the archetype is actually valid for this model index
+		// (some bad asset setups lead to a corrupted archetype list)
+		//
+		// to do this, we use a little hack to not have to manually read the archetype list:
+		// the base rage::fwEntity::SetModelId doesn't do anything other than setting (rcx + 32)
+		// to the resolved archetype, or nullptr if none
+		rage::fwModelId modelId(midx);
+
+		void* fakeEntity[40 / 8] = { 0 };
+		_fwEntity_SetModelId(fakeEntity, modelId);
+
+		// not the same archetype - bail out
+		if (fakeEntity[4] != archetype)
+		{
+			return g_orig_fwEntity_Dtor(entity);
+		}
+
+		auto mgr = streaming::Manager::GetInstance();
+
+		// TODO: recurse?
+		uint32_t outDeps[150];
+		auto module = GetArchetypeModule();
+		auto numDeps = module->GetDependencies(midx, outDeps, std::size(outDeps));
+
+		for (size_t depIdx = 0; depIdx < numDeps; depIdx++)
+		{
+			auto dep = outDeps[depIdx];
+			bool unrequest = false;
+
+			{
+				std::unique_lock _(strRefCountsMutex);
+
+				if (auto it = strRefCounts.find(dep); it != strRefCounts.end())
+				{
+					auto newRefCount = --it->second;
+					if (newRefCount <= 0)
+					{
+						// requested/loading
+						if ((mgr->Entries[dep].flags & 3) >= 2)
+						{
+							unrequest = true;
+						}
+
+						strRefCounts.erase(dep);
+					}
+				}
+			}
+
+			if (unrequest)
+			{
+				SetHandleDownloadWeight(mgr->Entries[dep].handle, 1);
+			}
+		}
+	}
+
+	return g_orig_fwEntity_Dtor(entity);
 }
 
 static HookFunction hookFunction([] ()
@@ -527,22 +601,33 @@ static HookFunction hookFunction([] ()
 
 	Hook_StreamingSema();
 
-	// dequeue GTA streaming request function
-	//auto location = hook::get_pattern("89 7C 24 28 4C 8D 7C 24 40 89 44 24 20 E8", 13);
-	//hook::set_call(&g_origHandleObjectLoad, location);
-	//hook::call(location, HandleObjectLoadWrap);
-
 	OnMainGameFrame.Connect([]()
 	{
 		ProcessRemoval();
-		//ProcessErasure();
 	});
 
 	// redirect pgStreamer::Read for custom streaming reads
 	{
-		auto location = hook::get_pattern("45 8B CC 48 89 7C 24 28 48 89 44 24 20 E8", 13);
+		auto location = hook::get_pattern("48 8D 05 ? ? ? ? 45 8B ? 48 89 7C 24 28 48 89 44 24 20 E8", 20);
 		hook::set_call(&g_origPgStreamerRead, location);
 		hook::call(location, pgStreamerRead);
+	}
+
+	MH_Initialize();
+
+	// rage::strStreamingLoader::CancelRequest hook (deprioritize canceled requests)
+	{
+		auto location = hook::get_pattern("B9 00 40 00 00 33 ED 48", (xbr::IsGameBuildOrGreater<2699>()) ? -0x21: -0x29);
+		MH_CreateHook(location, CancelRequestWrap, (void**)&g_origCancelRequest);
+		MH_EnableHook(location);
+	}
+
+	// rage::strStreamingInfoManager::SetObjectToLoading call for pending (canceled prior?) requests
+	// in rage::strStreamingLoader::RequestStreamFiles to reprioritize
+	{
+		auto location = hook::get_pattern("83 F8 FF 74 72 48 8D 0D ? ? ? ? E8 ? ? ? ? 48", 12);
+		hook::set_call(&g_origSetToLoading, location);
+		hook::call(location, SetToLoadingWrap);
 	}
 
 	// parallelize streaming (force 'disable parallel streaming' flag off)
@@ -567,4 +652,26 @@ static HookFunction hookFunction([] ()
 
 	// don't adhere to some (broken?) streaming time limit
 	hook::nop(hook::get_pattern("0F 2F C6 73 2D", 3), 2);
+
+	// entity setmodelid/destructor for tracking entity unload
+	{
+		// CEntity::SetModelId
+		// E8 ? ? ? ? 44 8B 0B 48 8D 4C 24 - 0x18
+		auto location = hook::get_pattern("E8 ? ? ? ? 44 8B 0B 48 8D 4C 24", -0x18);
+		MH_CreateHook(location, CEntity_SetModelIdWrap, (void**)&g_origSetModelId);
+		MH_EnableHook(location);
+	}
+
+	{
+		// rage::fwEntity::~fwEntity
+		auto location = hook::get_pattern("E8 ? ? ? ? 48 8B 4B 48 48 85 C9 74 0A", -0x21);
+		MH_CreateHook(location, fwEntity_DtorWrap, (void**)&g_orig_fwEntity_Dtor);
+		MH_EnableHook(location);
+	}
+
+	OnKillNetworkDone.Connect([]()
+	{
+		std::unique_lock _(strRefCountsMutex);
+		strRefCounts.clear();
+	});
 });

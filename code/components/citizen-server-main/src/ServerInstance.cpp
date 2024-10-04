@@ -10,9 +10,7 @@
 
 #include <OptionParser.h>
 
-#include <boost/property_tree/xml_parser.hpp>
-
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <ComponentLoader.h>
 
@@ -39,6 +37,7 @@ static std::set<std::string, console::IgnoreCaseLess> setList =
 	"gamename",
 	"sv_enforceGameBuild",
 	"sv_licenseKey",
+	"resources_useSystemChat",
 };
 
 namespace fx
@@ -152,7 +151,7 @@ namespace fx
 					{
 						forwardArgs(cmd, args);
 					}
-					else if (setList.find(cmd) != setList.end())
+					else if (setList.find(cmd) != setList.end() && args.Count() >= 1)
 					{
 						forwardArgs("set", ProgramArguments{ cmd, args.Get(0) });
 					}
@@ -208,15 +207,14 @@ namespace fx
 				});
 			}
 
-			boost::filesystem::path rootPath;
-
+			std::filesystem::path rootPath;
 			try
 			{
-				rootPath = boost::filesystem::canonical(".");
+				rootPath = std::filesystem::canonical(".");
 
-				m_rootPath = rootPath.string();
+				m_rootPath = rootPath.u8string();
 			}
-			catch (std::exception& error)
+			catch (std::exception&)
 			{
 			}
 
@@ -228,11 +226,13 @@ namespace fx
 				se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
 
 				// start standard resources
-				//consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
 				if (console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("txAdminServerMode"))
 				{
 					consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
 				}
+
+				// default forwarded commands to no-print
+				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "con_addChannelFilter", "forward:*/*", "noprint" });
 
 				// add system console access
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);
@@ -248,6 +248,12 @@ namespace fx
 				consoleCtx->GetVariableManager()->ShouldSuppressReadOnlyWarning(false);
 
 				OnInitialConfiguration();
+
+				console::PrintWarning(
+					_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
+					"The players.json endpoint has been modified to no longer return the player identifiers without authentication.\n"
+					"To learn more about this change read our announcement at https://forum.cfx.re/t/celebrating-one-year-with-rockstar-games/5269938#fivem-and-redm-6\n"
+				);
 			});
 		}
 

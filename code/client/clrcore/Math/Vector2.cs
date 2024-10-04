@@ -58,6 +58,7 @@ namespace CitizenFX.Core
 		/// A <see cref="CitizenFX.Core.Vector2"/> with all of its components set to zero.
 		/// </summary>
 		public static readonly Vector2 Zero = new Vector2();
+		public static readonly Vector2 Empty = new Vector2();
 
 		/// <summary>
 		/// The X unit <see cref="CitizenFX.Core.Vector2"/> (1, 0).
@@ -83,6 +84,16 @@ namespace CitizenFX.Core
 		/// The Y component of the vector.
 		/// </summary>
 		public float Y;
+
+		/// <summary>
+		/// Copies to a new instance of the <see cref="CitizenFX.Core.Vector2"/> struct.
+		/// </summary>
+		/// <param name="value">The value that will be assigned to all components.</param>
+		public Vector2(in Vector2 value)
+		{
+			X = value.X;
+			Y = value.Y;
+		}
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="CitizenFX.Core.Vector2"/> struct.
@@ -1225,7 +1236,7 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Multiplies a vector with another by performing component-wise multiplication equivalent to <see cref="Multiply(ref SharpDX.Vector2,ref SharpDX.Vector2,out SharpDX.Vector2)"/>.
+		/// Multiplies a vector with another by performing component-wise multiplication equivalent to <see cref="Multiply(ref Vector2, ref Vector2, out Vector2)"/>.
 		/// </summary>
 		/// <param name="left">The first vector to multiply.</param>
 		/// <param name="right">The second vector to multiply.</param>
@@ -1373,7 +1384,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if <paramref name="left"/> has the same value as <paramref name="right"/>; otherwise, <c>false</c>.</returns>
 		public static bool operator ==(Vector2 left, Vector2 right)
 		{
-			return left.Equals(ref right);
+			return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.Equals(ref right);
 		}
 
 		/// <summary>
@@ -1384,7 +1395,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if <paramref name="left"/> has a different value than <paramref name="right"/>; otherwise, <c>false</c>.</returns>
 		public static bool operator !=(Vector2 left, Vector2 right)
 		{
-			return !left.Equals(ref right);
+			return !(left==right);
 		}
 
 		/// <summary>

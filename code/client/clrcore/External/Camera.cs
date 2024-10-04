@@ -1,7 +1,15 @@
 using System;
 using CitizenFX.Core.Native;
+using System.Security;
 
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM
+#else
 namespace CitizenFX.Core
+#endif
 {
 	public enum CameraShake
 	{
@@ -55,6 +63,7 @@ namespace CitizenFX.Core
 
 		private IntPtr MatrixAddress
 		{
+			[SecuritySafeCritical]
 			get
 			{
 				IntPtr address = MemoryAddress;
@@ -62,7 +71,11 @@ namespace CitizenFX.Core
 				{
 					return IntPtr.Zero;
 				}
+#if MONO_V2
+				return MemoryAccess.Offset(address, MemoryAccess.IsBitSet(address, 0x220, 0) ? 0x110 : 0x30);
+#else
 				return (MemoryAccess.ReadByte(address + 0x220) & 1) == 0 ? address + 0x30 : address + 0x110;
+#endif
 			}
 		}
 
@@ -519,21 +532,33 @@ namespace CitizenFX.Core
 		/// </summary>
 		public static Vector3 UpVector
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 0x210, Vector3.Up);
+#else
 			get { return MemoryAccess.ReadVector3(MemoryAddress + 0x210); }
+#endif
 		}
 		/// <summary>
 		/// Gets the forward vector of the <see cref="GameplayCamera"/>, see also <seealso cref="Direction"/>.
 		/// </summary>
 		public static Vector3 ForwardVector
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 0x200, Vector3.ForwardLH);
+#else
 			get { return MemoryAccess.ReadVector3(MemoryAddress + 0x200); }
+#endif
 		}
 		/// <summary>
 		/// Gets the right vector of the <see cref="GameplayCamera"/>.
 		/// </summary>
 		public static Vector3 RightVector
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 0x1F0, Vector3.Right);
+#else
 			get { return MemoryAccess.ReadVector3(MemoryAddress + 0x1F0); }
+#endif
 		}
 
 		/// <summary>
@@ -541,7 +566,11 @@ namespace CitizenFX.Core
 		/// </summary>
 		public static Matrix Matrix
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 0x1F0, default(Matrix));
+#else
 			get { return MemoryAccess.ReadMatrix(MemoryAddress + 0x1F0); }
+#endif
 		}
 
 		/// <summary>

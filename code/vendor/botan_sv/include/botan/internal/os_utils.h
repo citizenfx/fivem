@@ -95,12 +95,12 @@ size_t get_memory_locking_limit();
 size_t system_page_size();
 
 /**
-* Read the value of an environment variable. Return nullptr if
-* no such variable is set. If the process seems to be running in
-* a privileged state (such as setuid) then always returns nullptr,
-* similiar to glibc's secure_getenv.
+* Read the value of an environment variable, setting it to value_out if it
+* exists.  Returns false and sets value_out to empty string if no such variable
+* is set. If the process seems to be running in a privileged state (such as
+* setuid) then always returns false and does not examine the environment.
 */
-const char* read_env_variable(const std::string& var_name);
+bool read_env_variable(std::string& value_out, const std::string& var_name);
 
 /**
 * Read the value of an environment variable and convert it to an
@@ -184,7 +184,7 @@ class BOTAN_UNSTABLE_API Echo_Suppression
       * Implicitly calls reenable_echo, but swallows/ignored all
       * errors which would leave the terminal in an invalid state.
       */
-      virtual ~Echo_Suppression() = default;
+      virtual ~Echo_Suppression() {}
    };
 
 /**

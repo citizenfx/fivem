@@ -8,6 +8,7 @@
 #pragma once
 
 #include <regex>
+#include <shared_mutex>
 #include <vector>
 
 #include <include/cef_scheme.h>
@@ -17,12 +18,14 @@ class NUISchemeHandlerFactory : public CefSchemeHandlerFactory
 public:
 	virtual CefRefPtr<CefResourceHandler> Create(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& scheme_name, CefRefPtr<CefRequest> request);
 
-	void SetRequestBlacklist(const std::vector<std::regex>& requestBlacklist);
+	void SetRequestBlocklist(const std::vector<std::regex>& requestBlocklist);
 
 	IMPLEMENT_REFCOUNTING(NUISchemeHandlerFactory);
 
 private:
-	std::vector<std::regex> m_requestBlacklist;
+	std::shared_mutex m_requestBlocklistLock;
+
+	std::vector<std::regex> m_requestBlocklist;
 };
 
 DECLARE_INSTANCE_TYPE(NUISchemeHandlerFactory);

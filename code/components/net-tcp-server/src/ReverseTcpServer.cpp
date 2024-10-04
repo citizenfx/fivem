@@ -87,6 +87,11 @@ namespace net
 		}
 	}
 
+	void ReverseTcpServerStream::StartConnectionTimeout(std::chrono::duration<uint64_t, std::milli> timeout)
+	{
+		// not required for ReverseTcpServerStream, because that does not receive incoming external connections and only listens to cfx services with reconnect handling
+	}
+
 	void ReverseTcpServerStream::ConsumeData(const void* data, size_t length)
 	{
 		auto rcb = GetReadCallback();
@@ -393,16 +398,19 @@ namespace net
 		auto loop = loopHolder->Get();
 		m_loop = loop;
 
-		m_reconnectTimer = loop->resource<uvw::TimerHandle>();
-
 		fwRefContainer<ReverseTcpServer> thisRef(this);
 
-		m_reconnectTimer->on<uvw::TimerEvent>([thisRef](const uvw::TimerEvent& e, uvw::TimerHandle& timer)
+		loopHolder->EnqueueCallback([thisRef, loop]()
 		{
+			thisRef->m_reconnectTimer = loop->resource<uvw::TimerHandle>();
+
+			thisRef->m_reconnectTimer->on<uvw::TimerEvent>([thisRef](const uvw::TimerEvent& e, uvw::TimerHandle& timer)
+			{
+				thisRef->Reconnect();
+			});
+
 			thisRef->Reconnect();
 		});
-
-		Reconnect();
 	}
 
 	void ReverseTcpServer::Reconnect()

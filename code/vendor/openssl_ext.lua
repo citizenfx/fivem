@@ -28,7 +28,7 @@
 -- Create an openssl namespace to isolate the plugin
 --
 	local module = {}
-    module._VERSION = "1.1.1d"
+    module._VERSION = "1.1.1t"
 
 	module.printf = function(msg, ...)
 		printf("[openssl] " .. msg, ...)
@@ -242,7 +242,7 @@
 					"_CRT_SECURE_NO_DEPRECATE",
 					"OPENSSL_SYSNAME_WIN32",
 					"OPENSSL_NO_EC_NISTP_64_GCC_128",
-					"OPENSSLDIR=\"C:\\Program Files\\Common Files\\SSL\"",
+					[[OPENSSLDIR="C:\\Program Files\\Common Files\\SSL"]],
 				}
 
 				if _OPTIONS["game"] ~= "ny" then

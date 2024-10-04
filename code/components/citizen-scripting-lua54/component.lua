@@ -16,3 +16,10 @@ if os.istarget('windows') and not _OPTIONS['with-asan'] then
 	
 	buildoptions '/Zc:threadSafeInit- /EHa /fp:fast'
 end
+
+if not os.isfile('./src/Component.cpp') then
+	term.pushColor(term.errorColor)
+	print('ERROR: Could not find citizen-scripting-lua54/src/Component.cpp. If building on Windows, did you have Git `core.symlinks` enabled?')
+	term.popColor()
+	os.exit(1)
+end

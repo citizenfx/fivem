@@ -11,6 +11,8 @@ return {
 		
 		if os.istarget('windows') then
 			buildoptions '/permissive-'
+		else
+			buildoptions '-include algorithm'
 		end
 
 		files {
