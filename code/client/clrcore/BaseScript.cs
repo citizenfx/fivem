@@ -242,7 +242,7 @@ namespace CitizenFX.Core
 		{
 			player.TriggerEvent(eventName, args);
 		}
-		public static void TriggerClientEvent(Player[] players, string eventName, params object[] args)
+		public static void TriggerMulticastClientEvent(Player[] players, string eventName, params object[] args)
 		{
 			var argsSerialized = MsgPackSerializer.Serialize(args);
 			IEnumerable<string> targetNetIds = players.Select(o => o.Handle);
