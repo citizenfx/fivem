@@ -43,6 +43,8 @@
 #pragma comment(lib, "dwrite.lib")
 #pragma comment(lib, "shcore.lib")
 
+#include <ModalWindow.h>
+
 using namespace ABI::Windows::Graphics::Effects;
 
 struct CompositionEffect : winrt::implements
@@ -1785,17 +1787,7 @@ bool UI_IsCanceled()
 
 void UI_DisplayError(const wchar_t* error)
 {
-	static TASKDIALOGCONFIG taskDialogConfig = { 0 };
-	taskDialogConfig.cbSize = sizeof(taskDialogConfig);
-	taskDialogConfig.hInstance = GetModuleHandle(nullptr);
-	taskDialogConfig.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_SIZE_TO_CONTENT;
-	taskDialogConfig.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-	taskDialogConfig.pszWindowTitle = L"Error updating " PRODUCT_NAME;
-	taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
-	taskDialogConfig.pszMainInstruction = NULL;
-	taskDialogConfig.pszContent = error;
-
-	TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
+	::fx::ModalWindow::DisplayError(L"Error updating " PRODUCT_NAME, error);
 }
 
 #include <wrl/module.h>
