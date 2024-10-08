@@ -461,57 +461,49 @@ static InitFunction initFunction([]()
 				}
 #endif
 
-				auto& readQueue = client->rcvbuf;
-
-				size_t origSize = readQueue.size();
-				readQueue.resize(origSize + data.size());
-
-				// close the stream if the length is too big
-				if (readQueue.size() > (1024 * 1024 * 25))
-				{
-					stream->Close();
-					return;
-				}
+				uint8_t* readBuffer = client->rcvbuf;
 
 				if (data.empty())
 				{
 					return;
 				}
 
-				std::copy(data.begin(), data.end(), readQueue.begin() + origSize);
-
-				while (readQueue.size() > 6)
+				if (client->rcvbufSize + data.size() > READ_BUFFER_SIZE)
 				{
-					uint8_t lenBit[4];
-					std::copy(readQueue.begin() + 2, readQueue.begin() + 6, lenBit);
+					stream->Close();
+					return;
+				}
 
-					uint32_t msgLen = ntohl(*(uint32_t*)lenBit);
+				memcpy(readBuffer + client->rcvbufSize, data.data(), data.size());
+				client->rcvbufSize += static_cast<uint16_t>(data.size());
 
-					if (readQueue.size() >= msgLen + 6)
+				while (client->rcvbufSize > 6)
+				{
+					uint32_t msgLen = ntohl(*reinterpret_cast<uint32_t*>(&readBuffer[2]));
+					uint32_t recvLen = msgLen + 6;
+
+					if (recvLen > BUFSIZE)
 					{
-						// copy the deque into a vector for data purposes, again
-						std::vector<uint8_t> rxbuf(readQueue.begin(), readQueue.begin() + msgLen + 6);
+						Log_warn("Too big message received (%d bytes). Playing safe and disconnecting client %s",
+							recvLen, client->remote_tcp.ToString().c_str());
+						stream->Close();
 
-						// remove the original bytes from the queue
-						readQueue.erase(readQueue.begin(), readQueue.begin() + msgLen + 6);
+						return;
+					}
 
-						if (rxbuf.size() > BUFSIZE)
+					if (client->rcvbufSize >= recvLen)
+					{
+						// pass messsage to handler
+						if (message_t* msg = Msg_networkToMessage(client->rcvbuf, static_cast<int>(recvLen)))
 						{
-							Log_warn("Too big message received (%d bytes). Playing safe and disconnecting client %s",
-								rxbuf.size(), client->remote_tcp.ToString().c_str());
-							stream->Close();
-
-							return;
+							Mh_handle_message(client, msg);
 						}
 
-						memcpy(client->rxbuf, rxbuf.data(), rxbuf.size());
-						client->msgsize = rxbuf.size();
+						client->rxcount = 0;
 
-						auto msg = Msg_networkToMessage(client->rxbuf, client->msgsize);
-						/* pass messsage to handler */
-						if (msg)
-							Mh_handle_message(client, msg);
-						client->rxcount = client->msgsize = 0;
+						// remove the bytes from the receive buffer
+						client->rcvbufSize -= recvLen;
+						memmove(client->rcvbuf, client->rcvbuf + recvLen, client->rcvbufSize);
 					}
 					else
 					{
