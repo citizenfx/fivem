@@ -2887,20 +2887,30 @@ struct CTrainGameStateDataNode : GenericSerializeDataNode<CTrainGameStateDataNod
 		s.Serialize(3, data.trainState);
 
 		s.Serialize(data.isEngine);
-		s.Serialize(data.isCaboose);
-		s.Serialize(data.unk12);
-		s.Serialize(data.direction);
-		s.Serialize(data.unk14);
-		s.Serialize(data.renderDerailed);
-
-		if (Is2372()) // Sequence of bits need to be verified for 2732
+		
+		//2372 inserted a bool between isEngine and isCaboose
+		if (Is2372())
 		{
-			s.Serialize(data.unk198);
-			s.Serialize(data.unk224);
-			s.Serialize(data.unk199);
+			//Modified by 0x2310A8F9421EBF43
+			s.Serialize(data.allowRemovalByPopulation);
 		}
 
+		s.Serialize(data.isCaboose);
+		s.Serialize(data.isMissionTrain);
+		s.Serialize(data.direction);
+		s.Serialize(data.hasPassengerCarriages);
+		s.Serialize(data.renderDerailed);
+
 		s.Serialize(data.forceDoorsOpen);
+
+		if (Is2372())
+		{
+			// true on randomly spawned metro trains
+			s.Serialize(data.shouldStopAtStations);
+
+			//Modified by 0xEC0C1D4922AF9754
+			s.Serialize(data.highPrecisionBlending);
+		}
 
 		return true;
 	}
