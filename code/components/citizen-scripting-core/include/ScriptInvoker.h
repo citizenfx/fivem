@@ -9,6 +9,12 @@
 
 #include "fxNativeContext.h"
 
+#include "fxScripting.h"
+
+#ifndef IS_FXSERVER
+#include <scrEngine.h>
+#endif
+
 // scrString corresponds to a binary string: may contain null-terminators, i.e,
 // lua_pushlstring != lua_pushstring, and/or non-UTF valid characters.
 #define SCRSTRING_MAGIC_BINARY 0xFEED1212
@@ -126,49 +132,54 @@ struct CSCRC_EXPORT ScriptNativeContext : fxNativeContext
 	ScriptNativeContext(const ScriptNativeContext&) = delete;
 	ScriptNativeContext(ScriptNativeContext&&) = delete;
 
-	virtual void DoSetError(const char* msg) = 0;
-
-	template <typename... Args>
-	bool SetError(std::string_view string, const Args&... args);
-
-	bool PushRaw(uintptr_t value, ArgumentType type);
+	template<typename... Args>
+	[[nodiscard]] auto ScriptError(std::string_view string, const Args&... args);
 
 	template<typename T>
-	bool Push(const T& value, size_t size = 0);
+	void Push(const T& value, size_t size = 0);
+
+	void PushMetaPointer(uint8_t* ptr);
+
+	void Invoke(IScriptHost& host);
+
+#ifndef IS_FXSERVER
+	void Invoke(rage::scrEngine::NativeHandler handler);
+#endif
+
+	template<typename Visitor>
+	void ProcessResults(Visitor&& visitor);
+
+private:
+	void PushRaw(uintptr_t value, ArgumentType type);
 
 	void* AllocIsolatedData(const void* input, size_t size);
 
-	bool PushReturnValue(MetaField field, const uintptr_t* value);
-	bool PushMetaPointer(uint8_t* ptr);
+	void PushReturnValue(MetaField field, const uintptr_t* value);
 
 	template<typename Visitor>
-	bool ProcessResults(Visitor&& visitor);
-
-	template<typename Visitor>
-	bool ProcessResult(Visitor&& visitor, const void* value, MetaField type);
+	void ProcessResult(Visitor&& visitor, const void* value, MetaField type);
 
 	bool PreInvoke();
-	bool PostInvoke();
+	void PostInvoke();
 
 	bool CheckArguments();
-	bool CheckResults();
+	void CheckResults();
+	void CheckPointerResult();
 
-	bool IsolatePointer(int index);
+	void IsolatePointer(int index);
 };
 
 template<typename... Args>
-inline bool ScriptNativeContext::SetError(std::string_view string, const Args&... args)
+inline auto ScriptNativeContext::ScriptError(std::string_view string, const Args&... args)
 {
-	DoSetError(vva(string, fmt::make_printf_args(args...)));
-
-	return false;
+	return std::exception(va("native %016llx: %s", nativeIdentifier, vva(string, fmt::make_printf_args(args...))));
 }
 
-inline bool ScriptNativeContext::PushRaw(uintptr_t value, ArgumentType type)
+inline void ScriptNativeContext::PushRaw(uintptr_t value, ArgumentType type)
 {
 	if (numArguments >= 32)
 	{
-		return SetError("too many arguments");
+		throw ScriptError("too many arguments");
 	}
 
 	arguments[numArguments] = value;
@@ -176,12 +187,10 @@ inline bool ScriptNativeContext::PushRaw(uintptr_t value, ArgumentType type)
 	pointerMask |= (uint32_t)type.IsPointer << numArguments;
 
 	++numArguments;
-
-	return true;
 }
 
 template<typename T>
-inline bool ScriptNativeContext::Push(const T& value, size_t size)
+inline void ScriptNativeContext::Push(const T& value, size_t size)
 {
 	using TVal = std::decay_t<decltype(value)>;
 
@@ -210,35 +219,27 @@ inline bool ScriptNativeContext::Push(const T& value, size_t size)
 	type.IsString = std::is_same_v<TVal, char*> || std::is_same_v<TVal, const char*>;
 	type.IsPointer = std::is_pointer_v<TVal>;
 
-	return PushRaw(raw, type);
+	PushRaw(raw, type);
 }
 
 template<typename Visitor>
-inline bool ScriptNativeContext::ProcessResults(Visitor&& visitor)
+inline void ScriptNativeContext::ProcessResults(Visitor&& visitor)
 {
 	// if no other result was requested, or we need to return the result anyway, push the primary result
 	if ((numReturnValues == 0) || (returnValueCoercion != MetaField::Max))
 	{
-		if (!ProcessResult(visitor, arguments, returnValueCoercion))
-		{
-			return false;
-		}
+		ProcessResult(visitor, arguments, returnValueCoercion);
 	}
 
 	// loop over the return value pointers
 	for (int i = 0; i < numReturnValues; ++i)
 	{
-		if (!ProcessResult(visitor, retvals[i], rettypes[i]))
-		{
-			return false;
-		}
+		ProcessResult(visitor, retvals[i], rettypes[i]);
 	}
-
-	return true;
 }
 
 template<typename Visitor>
-inline bool ScriptNativeContext::ProcessResult(Visitor&& visitor, const void* value, MetaField type)
+inline void ScriptNativeContext::ProcessResult(Visitor&& visitor, const void* value, MetaField type)
 {
 	// handle the type coercion
 	switch (type)
