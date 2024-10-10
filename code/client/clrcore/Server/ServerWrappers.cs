@@ -91,6 +91,23 @@ namespace CitizenFX.Core
 #endif
 		}
 
+		public void TriggerUnreliableEvent(string eventName, params object[] args)
+		{
+#if MONO_V2
+			CoreNatives.TriggerUnreliableClientEventInternal(eventName, m_handle, args);
+#else
+			var argsSerialized = MsgPackSerializer.Serialize(args);
+
+			unsafe
+			{
+				fixed (byte* serialized = &argsSerialized[0])
+				{
+					Function.Call(Hash.TRIGGER_UNRELIABLE_CLIENT_EVENT_INTERNAL, eventName, m_handle, serialized, argsSerialized.Length);
+				}
+			}
+#endif
+		}
+
 		public void TriggerLatentEvent(string eventName, int bytesPerSecond, params object[] args)
 		{
 #if MONO_V2

@@ -98,6 +98,8 @@ declare function TriggerEvent(eventName: string, ...args: any[]): void
 
 declare function emitNet(eventName: string, ...args: any[]): void
 declare function TriggerServerEvent(eventName: string, ...args: any[]): void
+declare function emitUnreliableNet(eventName: string, ...args: any[]): void
+declare function TriggerUnreliableServerEvent(eventName: string, ...args: any[]): void
 declare function TriggerLatentServerEvent(eventName: string, bps: number, ...args: any[]): void
 
 declare function getPlayerIdentifiers(player: number|string): string[]
@@ -108,6 +110,8 @@ declare function SendNUIMessage(data: any): void
 
 declare function emitNet(eventName: string, target: number|string, ...args: any[]): void
 declare function TriggerClientEvent(eventName: string, target: number|string, ...args: any[]): void
+declare function emitUnreliableNet(eventName: string, target: number|string, ...args: any[]): void
+declare function TriggerUnreliableClientEvent(eventName: string, target: number|string, ...args: any[]): void
 declare function TriggerLatentClientEvent(eventName: string, target: number|string, bps: number, ...args: any[]): void
 
 declare function removeEventListener(eventName: string, callback: Function): void
