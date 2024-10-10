@@ -35,15 +35,40 @@ namespace CitizenFX.Core
 	}
 	[Flags]
 	public enum AnimationFlags
-	{
-		None = 0,
-		Loop = 1,
-		StayInEndFrame = 2,
-		UpperBodyOnly = 16,
-		AllowRotation = 32,
-		CancelableWithMovement = 128,
-		RagdollOnCollision = 4194304
-	}
+    {
+        None = 0,
+        Loop = 1,
+        StayInEndFrame = 2,
+        RepositionAtEnd = 4,
+        NonInterruptible = 8,
+        UpperBodyOnly = 16,
+        AllowRotation = 32,
+        ReorientAtEnd = 64,
+        CancelableWithMovement = 128,
+        AdditivePlayback = 256,
+        IgnoreCollision = 512,
+        OverridePhysics = 1024,
+        IgnoreGravity = 2048,
+        ApplyInitialOffset = 4096,
+        ExitOnInterrupt = 8192,
+        SyncInBlend = 16384,
+        SyncOutBlend = 32768,
+        ContinuousSync = 65536,
+        ForceStart = 131072,
+        KinematicPhysics = 262144,
+        MoverExtraction = 524288,
+        HideWeapon = 1048576,
+        DeadPoseOnEnd = 2097152,
+        RagdollOnCollision = 4194304,
+        PersistOnDeath = 8388608,
+        AbortOnDamage = 16777216,
+        DisablePhysicsUpdate = 33554432,
+        ProcessAttachments = 67108864,
+        ExpandCapsuleFromSkeleton = 134217728,
+        AltFPAnim = 268435456,
+        BlendOutAtEnd = 536870912,
+        FullBlending = 1073741824,
+    }
 	[Flags]
 	public enum LeaveVehicleFlags
 	{
@@ -51,6 +76,28 @@ namespace CitizenFX.Core
 		WarpOut = 16,
 		LeaveDoorOpen = 256,
 		BailOut = 4096
+	}
+	[Flags]
+	public enum LookFlags
+	{
+		None = 0,
+		SlowTurnRate = 1,
+		FastTurnRate = 2,
+		WideYawLimit = 4,
+		WidePitchLimit = 8,
+		WidestYawLimit = 16,
+		WidestPitchLimit = 32,
+		NarrowYawLimit = 64,
+		NarrowPitchLimit = 128,
+		NarrowestYawLimit = 256,
+		NarrowestPitchLimit = 512,
+		IncludeTorso = 1024,
+		TrackOutOfFOV = 2048,
+		CameraFocus = 4096,
+		EyesOnly = 8192,
+		UseLookDir = 16384,
+		ScriptOnly = 32768,
+		AbsoluteRefDir = 65536,
 	}
 
 	public class Tasks
@@ -259,18 +306,20 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="target"></param>
 		/// <param name="duration">Must be greater than 0 for the ped to actually move their head.</param>
-		public void LookAt(Entity target, int duration = 1)
+		/// <param name="flag"></param>
+		public void LookAt(Entity target, int duration = 1, LookFlags flag = LookFlags.FastTurnRate)
 		{
-			API.TaskLookAtEntity(_ped.Handle, target.Handle, duration, 0, 2);
+			API.TaskLookAtEntity(_ped.Handle, target.Handle, duration, 0, (int)flag);
 		}
 		/// <summary>
 		/// Looks at the specified <see cref="Vector3"/> position.
 		/// </summary>
 		/// <param name="position"></param>
 		/// <param name="duration">Must be greater than 0 for the ped to actually move their head.</param>
-		public void LookAt(Vector3 position, int duration = 1)
+		/// <param name="flag"></param>
+		public void LookAt(Vector3 position, int duration = 1, LookFlags flag = LookFlags.FastTurnRate)
 		{
-			API.TaskLookAtCoord(_ped.Handle, position.X, position.Y, position.Z, duration, 0, 2);
+			API.TaskLookAtCoord(_ped.Handle, position.X, position.Y, position.Z, duration, 0, (int)flag);
 		}
 
 		public void ParachuteTo(Vector3 position)

@@ -36,6 +36,12 @@ namespace CitizenFX.Core
 		Horns,
 		Suspension,
 		Armor,
+		Nitrous,
+		Turbo,
+		Subwoofer,
+		TyreSmoke,
+		Hydraulics2,
+		XenonLights,
 		FrontWheel = 23,
 		RearWheel,
 		PlateHolder,
@@ -65,8 +71,11 @@ namespace CitizenFX.Core
 
 	public enum VehicleToggleModType
 	{
+		Nitrous = 17,
 		Turbo = 18,
+		Subwoofer = 19,
 		TireSmoke = 20,
+		Hydraulics = 21,
 		XenonHeadlights = 22
 	}
 
