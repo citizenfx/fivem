@@ -4,6 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"net:tcp-server",
+		"net:packet",
 		"citizen:server:instance",
 		"citizen:server:net",
 		"scripting",

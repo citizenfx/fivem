@@ -51,6 +51,8 @@
 
 #include <NetAddress.h>
 
+#include "StreamByteReader.h"
+
 #define READ_BUFFER_SIZE (8192 + 6 + 4)*2
 #define BUFSIZE 8192
 #define UDP_BUFSIZE 512
@@ -76,7 +78,7 @@ typedef struct {
 	net::PeerAddress remote_tcp;
 	net::PeerAddress remote_udp;
 	uint8_t rcvbuf[READ_BUFFER_SIZE];
-	uint16_t rcvbufSize = 0;
+	net::StreamByteReader streamByteReader {rcvbuf, READ_BUFFER_SIZE};
 	uint8_t txbuf[BUFSIZE];
 	uint32_t rxcount, txcount, txsize;
 	int sessionId;

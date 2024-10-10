@@ -45,6 +45,7 @@
 #include "version.h"
 #include "util.h"
 #include "sharedmemory.h"
+#include "MumbleMessage.h"
 
 /* globals */
 bool_t shutdown_server;
@@ -460,55 +461,31 @@ static InitFunction initFunction([]()
 					client->rxcount = client->msgsize = 0;
 				}
 #endif
-
-				uint8_t* readBuffer = client->rcvbuf;
-
 				if (data.empty())
 				{
 					return;
 				}
-
-				if (client->rcvbufSize + data.size() > READ_BUFFER_SIZE)
+				
+				if (data.size() > (1024 * 1024 * 25))
 				{
 					stream->Close();
 					return;
 				}
 
-				memcpy(readBuffer + client->rcvbufSize, data.data(), data.size());
-				client->rcvbufSize += static_cast<uint16_t>(data.size());
-
-				while (client->rcvbufSize > 6)
+				net::Span dataSpan {const_cast<uint8_t*>(data.data()), data.size()};
+				const bool result = client->streamByteReader.Push<net::packet::ClientMumbleMessage>(dataSpan, [client](net::packet::ClientMumbleMessage& message)
 				{
-					uint32_t msgLen = ntohl(*reinterpret_cast<uint32_t*>(&readBuffer[2]));
-					uint32_t recvLen = msgLen + 6;
-
-					if (recvLen > BUFSIZE)
+					if (message_t* msg = Msg_networkToMessage(message.data.GetValue().data() - 6/*mumble needs start at message type*/, message.data.GetValue().size() + 6))
 					{
-						Log_warn("Too big message received (%d bytes). Playing safe and disconnecting client %s",
-							recvLen, client->remote_tcp.ToString().c_str());
-						stream->Close();
-
-						return;
+						Mh_handle_message(client, msg);
 					}
 
-					if (client->rcvbufSize >= recvLen)
-					{
-						// pass messsage to handler
-						if (message_t* msg = Msg_networkToMessage(client->rcvbuf, static_cast<int>(recvLen)))
-						{
-							Mh_handle_message(client, msg);
-						}
+					client->rxcount = 0;
+				});
 
-						client->rxcount = 0;
-
-						// remove the bytes from the receive buffer
-						client->rcvbufSize -= recvLen;
-						memmove(client->rcvbuf, client->rcvbuf + recvLen, client->rcvbufSize);
-					}
-					else
-					{
-						break;
-					}
+				if (!result)
+				{
+					stream->Close();
 				}
 
 				// close stream if shutting down
