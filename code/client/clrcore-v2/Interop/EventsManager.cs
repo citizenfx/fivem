@@ -138,7 +138,6 @@ namespace CitizenFX.Core
 		public EventHandlerSet Add(DynFunc deleg, Binding binding = Binding.Local)
 		{
 			m_handlers.Add(deleg);
-			EventsManager.AddEventHandler(m_eventName, deleg, binding);
 			return this;
 		}
 

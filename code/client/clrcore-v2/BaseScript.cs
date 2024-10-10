@@ -118,7 +118,8 @@ namespace CitizenFX.Core
 				}
 			}
 
-			m_state = State.Initialized | State.Enabled;
+			m_state = State.Initialized;
+			Enable();
 		}
 
 		/// <summary>
@@ -129,7 +130,6 @@ namespace CitizenFX.Core
 			if (m_state == State.Uninitialized)
 			{
 				Initialize();
-				OnEnable();
 			}
 			else if ((m_state & State.Enabled) == 0)
 			{
@@ -234,7 +234,6 @@ namespace CitizenFX.Core
 			{
 				CoroutineRepeat newTick = new CoroutineRepeat(tick, stopOnException);
 				m_tickList.Add(newTick);
-				newTick.Schedule();
 			}
 		}
 
@@ -309,7 +308,6 @@ namespace CitizenFX.Core
 			throw new NotImplementedException();
 #endif
 			m_nuiCallbacks.Add(callbackName, dynFunc);
-			Native.CoreNatives.RegisterNuiCallback(callbackName, dynFunc);
 		}
 
 		/// <summary>
@@ -328,7 +326,6 @@ namespace CitizenFX.Core
 #endif
 			DynFunc dynFunc = Func.Create(delegateFn);
 			m_nuiCallbacks.Add(callbackName, dynFunc);
-			Native.CoreNatives.RegisterNuiCallback(callbackName, dynFunc);
 		}
 		
 		/// <summary>
