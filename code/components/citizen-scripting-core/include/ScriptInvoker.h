@@ -11,6 +11,8 @@
 
 #include "fxScripting.h"
 
+#include <stdexcept>
+
 #ifndef IS_FXSERVER
 #include <scrEngine.h>
 #endif

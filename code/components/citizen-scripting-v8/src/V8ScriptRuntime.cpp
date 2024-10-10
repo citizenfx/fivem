@@ -14,6 +14,7 @@
 #include <chrono>
 #include <sstream>
 #include <stack>
+#include <stdexcept>
 
 #include <CoreConsole.h>
 #include <SharedFunction.h>
@@ -1494,7 +1495,7 @@ static inline void CallHandler(void* handler, uint64_t nativeIdentifier, rage::s
 	}
 	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, EXCEPTION_EXECUTE_HANDLER)
 	{
-		throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
+		throw std::runtime_error(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
 	}
 }
 

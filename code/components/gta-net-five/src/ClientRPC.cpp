@@ -1,4 +1,7 @@
 #include <StdInc.h>
+
+#include <stdexcept>
+
 #include <ScriptEngine.h>
 #include <RpcConfiguration.h>
 
@@ -56,7 +59,7 @@ static inline void CallHandler(const THandler& handler, uint64_t nativeIdentifie
 	}
 	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind((GetExceptionInformation())->ExceptionRecord->ExceptionCode, nativeIdentifier))
 	{
-		throw std::exception(va("Error executing native 0x%016llx at address %s.", nativeIdentifier, FormatModuleAddress(exceptionAddress)));
+		throw std::runtime_error(va("Error executing native 0x%016llx at address %s.", nativeIdentifier, FormatModuleAddress(exceptionAddress)));
 	}
 }
 

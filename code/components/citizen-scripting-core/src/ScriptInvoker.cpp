@@ -250,7 +250,7 @@ void ScriptNativeContext::Invoke(IScriptHost& host)
 			char* error = "Unknown";
 			host.GetLastErrorText(&error);
 
-			throw std::exception(va("Execution of native %016llx in script host failed: %s", nativeIdentifier, error));
+			throw std::runtime_error(va("Execution of native %016llx in script host failed: %s", nativeIdentifier, error));
 		}
 
 		PostInvoke();
@@ -299,7 +299,7 @@ static void InvokeNativeHandler(fxNativeContext& context, rage::scrEngine::Nativ
 		exceptionAddress = GetExceptionInformation()->ExceptionRecord->ExceptionAddress,
 		FilterFunc(GetExceptionInformation(), context.nativeIdentifier))
 	{
-		throw std::exception(va("Error executing native 0x%016llx at address %s.", context.nativeIdentifier, FormatModuleAddress(exceptionAddress)));
+		throw std::runtime_error(va("Error executing native 0x%016llx at address %s.", context.nativeIdentifier, FormatModuleAddress(exceptionAddress)));
 	}
 }
 
