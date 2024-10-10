@@ -108,6 +108,8 @@ declare function SendNUIMessage(data: any): void
 
 declare function emitNet(eventName: string, target: number|string, ...args: any[]): void
 declare function TriggerClientEvent(eventName: string, target: number|string, ...args: any[]): void
+declare function emitNetMulticast(eventName: string, target: number|string|number[]|string[], ...args: any[]): void
+declare function TriggerMulticastClientEvent(eventName: string, target: number|string|number[]|string[], ...args: any[]): void
 declare function TriggerLatentClientEvent(eventName: string, target: number|string, bps: number, ...args: any[]): void
 
 declare function removeEventListener(eventName: string, callback: Function): void
