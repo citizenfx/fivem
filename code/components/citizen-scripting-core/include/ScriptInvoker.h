@@ -172,7 +172,7 @@ private:
 template<typename... Args>
 inline auto ScriptNativeContext::ScriptError(std::string_view string, const Args&... args)
 {
-	return std::exception(va("native %016llx: %s", nativeIdentifier, vva(string, fmt::make_printf_args(args...))));
+	return std::runtime_error(va("native %016llx: %s", nativeIdentifier, vva(string, fmt::make_printf_args(args...))));
 }
 
 inline void ScriptNativeContext::PushRaw(uintptr_t value, ArgumentType type)
