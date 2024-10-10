@@ -71,19 +71,11 @@ function Invoke-UploadClientSymbols {
 
     $pdbs = $pdbs.Where{ $_.BaseName -notin @("botan", "citizen-scripting-lua", "citizen-scripting-lua54") }
 
-    workflow dump_pdb {
-        param(
-            [Object[]] $files,
-            [string] $dump_syms
-        )
-    
-        foreach -parallel -throttlelimit 10 ($pdb in $files) {
-            $outname = [io.path]::ChangeExtension($pdb.FullName, "sym")
-    
-            Start-Process $dump_syms -ArgumentList ($pdb.FullName) -RedirectStandardOutput $outname -Wait -WindowStyle Hidden
-        }
+    foreach ($pdb in $pdbs) {
+        $outname = [io.path]::ChangeExtension($pdb.FullName, "sym")
+
+        Start-Process $dump_syms -ArgumentList ($pdb.FullName) -RedirectStandardOutput $outname -Wait -WindowStyle Hidden
     }
-    dump_pdb -files $pdbs -dump_syms $dump_syms
 
     foreach ($pdb in $pdbs) {
         $basename = $pdb.BaseName

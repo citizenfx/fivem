@@ -13,11 +13,11 @@ import { fetcher } from 'cfx/utils/fetcher';
 import { mpMenu } from '../../mpMenu';
 import { IConvarService } from '../convars/convars.service';
 
-const ENABLE_SENTRY = !__CFXUI_DEV__ && process.env.CI_PIPELINE_ID;
+const ENABLE_SENTRY = !__CFXUI_DEV__ && __CFXUI_SENTRY_RELEASE__ && __CFXUI_SENTRY_DSN__;
 
 if (ENABLE_SENTRY) {
   Sentry.init({
-    dsn: 'https://cb2ef6d1855b4c5f83c5530b72b8aacb@sentry.fivem.net/12',
+    dsn: __CFXUI_SENTRY_DSN__,
 
     integrations: [
       new BrowserTracing({
@@ -27,7 +27,7 @@ if (ENABLE_SENTRY) {
 
     tracesSampleRate: 0.05,
 
-    release: `cfx-${process.env.CI_PIPELINE_ID || 'dev'}`,
+    release: __CFXUI_SENTRY_RELEASE__,
 
     beforeSend(event, hint) {
       // Ignore errors from console

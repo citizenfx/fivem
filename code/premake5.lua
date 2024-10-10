@@ -1,4 +1,5 @@
 local gameBuilds = require("premake5_builds")
+local setCfxDefines = require("premake5_defines")
 
 -- to work around slow init times due to packagesrv.com being down
 premake.downloadModule = function()
@@ -159,6 +160,8 @@ workspace "CitizenMP"
 		defines { "_PPLTASK_ASYNC_LOGGING=0"}
 
 	filter {}
+
+	setCfxDefines()
 
 	libdirs { "deplibs/lib/" }
 

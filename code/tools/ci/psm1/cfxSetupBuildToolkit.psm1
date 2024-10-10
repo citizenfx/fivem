@@ -13,6 +13,10 @@ function Invoke-CfxSetupBuildToolkit {
         $toolkitBranch = $Context.GitBranchName
         $toolkitUri = $Context.ToolkitUri
 
+        if ($env:CFX_OVERRIDE_TOOLKIT_BRANCH) {
+            $toolkitBranch = $env:CFX_OVERRIDE_TOOLKIT_BRANCH
+        }
+
         # Check if we have matching branch, fallback to master otherwise
         git ls-remote --exit-code --heads $toolkitUri refs/heads/$toolkitBranch | Out-Null
         if ($LASTEXITCODE -eq 2) {

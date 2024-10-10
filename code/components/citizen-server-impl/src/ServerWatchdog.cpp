@@ -128,6 +128,7 @@ void PlatformBark(const std::string& loopName)
 
 	if (success)
 	{
+#ifdef CFX_SENTRY_SERVER_HANGS_UPLOAD_URL
 		std::map<std::wstring, std::wstring> parameters;
 
 		std::wstring responseBody;
@@ -136,13 +137,16 @@ void PlatformBark(const std::string& loopName)
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = dumpPath;
 
-		if (google_breakpad::HTTPUpload::SendMultipartPostRequest(L"https://sentry.fivem.net/api/4/minidump/?sentry_key=8bc0468f1732468ab52d15b77c5fb2fb", parameters, files, nullptr, &responseBody, &responseCode))
+		if (google_breakpad::HTTPUpload::SendMultipartPostRequest(ToWide(CFX_SENTRY_SERVER_HANGS_UPLOAD_URL), parameters, files, nullptr, &responseBody, &responseCode))
 		{
 			if (responseCode >= 200 && responseCode < 399)
 			{
 				console::Printf("server", "Uploaded a live hang dump to the CitizenFX crash reporting service. The report ID is %s.\n", ToNarrow(responseBody));
 			}
-		}		
+		}
+#else
+		console::Printf("server", "Saved a live hang dump: %s\n", ToNarrow(dumpPath));
+#endif	
 	}
 }
 
