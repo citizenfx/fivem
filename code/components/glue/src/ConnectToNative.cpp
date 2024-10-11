@@ -126,27 +126,17 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 
 	auto cli = fmt::sprintf(L"\"%s\" %s %s %s -switchcl:%d \"%s://connect/%s\"",
 	hostData->gameExePath,
-	build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
+	fmt::sprintf(L"-b%d", build),
 	IsCL2() ? L"-cl2" : L"",
 	pureLevel == 0 ? L"" : fmt::sprintf(L"-pure_%d", pureLevel),
 	(uintptr_t)switchEvent,
 	hostData->GetLinkProtocol(),
 	ToWide(g_lastConn));
 
-	uint32_t defaultBuild =
-#ifdef GTA_FIVE
-	1604
-#elif defined(IS_RDR3)
-	1311
-#else
-	0
-#endif
-	;
-
 	// we won't launch the default build if we don't do this
-	if (build == defaultBuild)
+	if (build == xbr::GetDefaultGameBuild())
 	{
-		SaveBuildNumber(defaultBuild);
+		SaveBuildNumber(xbr::GetDefaultGameBuild());
 	}
 
 	SaveGameSettings(poolSizesIncreaseSetting, replaceExecutable);

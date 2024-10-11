@@ -2197,7 +2197,7 @@ std::map<std::string, std::string> UpdateGameCache()
 
 	// Either the feature flag for the new build system with single executable is not set.
 	// Or we are loading the game build that does not require any overrides.
-	if (GetReplaceExecutable() || GetTargetGameBuild() >= xbr::GetLatestStableGameBuild())
+	if (GetReplaceExecutable() || GetTargetGameBuild() >= xbr::GetDefaultGameBuild())
 	{
 		for (auto [_, entry]: g_entriesToLoadPerBuild[GetTargetGameBuild()])
 		{
@@ -2207,7 +2207,7 @@ std::map<std::string, std::string> UpdateGameCache()
 	else
 	{
 		// Download files for the latest stable executable build because that's what we run regardless of the requested version.
-		for (auto [_, entry]: g_entriesToLoadPerBuild[xbr::GetLatestStableGameBuild()])
+		for (auto [_, entry]: g_entriesToLoadPerBuild[xbr::GetDefaultGameBuild()])
 		{
 			g_requiredEntries.push_back(entry);
 		}

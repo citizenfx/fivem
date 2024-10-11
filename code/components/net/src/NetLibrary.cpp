@@ -1877,7 +1877,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						if ((buildRef != 0 && buildRef != xbr::GetRequestedGameBuild()) ||
 							(pureLevel != fx::client::GetPureLevel()) ||
 							(poolSizesIncrease != fx::PoolSizeManager::GetIncreaseRequest()) ||
-							(replaceExecutable != xbr::GetReplaceExecutable() && buildRef < xbr::GetLatestStableGameBuild())
+							(replaceExecutable != xbr::GetReplaceExecutable() && buildRef < xbr::GetDefaultGameBuild())
 						)
 						{
 							if (!xbr::IsSupportedGameBuild(buildRef))
@@ -1910,9 +1910,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					}
 
 #if defined(GTA_FIVE)
-					if (xbr::GetRequestedGameBuild() != 1604 && buildRef == 0)
+					if (buildRef == 0 && xbr::GetRequestedGameBuild() != xbr::GetDefaultGameBuild())
 					{
-						OnRequestBuildSwitch(1604, 0, L"", true);
+						OnRequestBuildSwitch(xbr::GetDefaultGameBuild(), 0, L"", true);
 						m_connectionState = CS_IDLE;
 						return;
 					}
