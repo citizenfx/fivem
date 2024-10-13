@@ -116,4 +116,33 @@ static InitFunction initFunction([]()
 		context.SetResult(atoi(value.c_str()));
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR_FLOAT", [=](fx::ScriptContext& context)
+	{
+		const std::string varName = context.CheckArgument<const char*>(0);
+		const float defaultValue = context.GetArgument<float>(1);
+
+		// get the variable manager
+		const auto varMan = GetVariableManager();
+
+		// get the variable
+		const auto var = varMan->FindEntryRaw(varName);
+
+		// check can it be exposed to script
+		if (IsConVarScriptRestricted(varMan, varName))
+		{
+			// gets and returns default value
+			context.SetResult(defaultValue);
+			return;
+		}
+
+		if (!var)
+		{
+			context.SetResult<float>(defaultValue);
+		}
+		else
+		{
+			context.SetResult<float>(atof(var->GetValue().c_str()));
+		}
+	});
+
 });
