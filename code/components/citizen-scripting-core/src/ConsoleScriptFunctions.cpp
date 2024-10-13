@@ -16,11 +16,27 @@
 #include "ServerInstanceBaseRef.h"
 #endif
 
+#include <regex>
+#include <boost/algorithm/string/replace.hpp>
 
 #include "fxScripting.h"
+#include "ResourceCallbackComponent.h"
+#include "SharedFunction.h"
 #include "Utils.h"
 #include "om/core.h"
 
+// copied from conhost-v2
+static std::regex MakeRegex(const std::string& pattern)
+{
+	std::string re = pattern;
+	re = std::regex_replace(re, std::regex{ "[.^$|()\\[\\]{}?\\\\]" }, "\\$&");
+
+	boost::algorithm::replace_all(re, " ", "|");
+	boost::algorithm::replace_all(re, "+", "|");
+	boost::algorithm::replace_all(re, "*", ".*");
+
+	return std::regex{ "^(?:" + re + ")$", std::regex::icase };
+}
 
 ConsoleVariableManager* GetVariableManager() {
 #if IS_FXSERVER
@@ -145,4 +161,78 @@ static InitFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("ADD_CONVAR_CHANGE_LISTENER", [=](fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			return;
+		}
+
+		fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+		if (!resource)
+		{
+			return;
+		}
+
+		const auto varName = context.GetArgument<const char*>(0);
+
+		const std::regex variableRegex = (varName) ? MakeRegex(varName) : std::regex {".*" };
+
+		auto cbRef = fx::FunctionRef{ context.CheckArgument<const char*>(1) };
+
+		const auto varMan = GetVariableManager();
+
+		const auto rm = fx::ResourceManager::GetCurrent();
+
+		auto cookie = varMan->OnConvarModified.Connect(make_shared_function([rm, variableRegex, cbRef = std::move(cbRef), varMan](const std::string& varName)
+		{
+			if (IsConVarScriptRestricted(varMan, varName))
+			{
+				return true;
+			}
+
+			if (std::regex_match(varName, variableRegex))
+			{
+				// TODO: actually provide the value changed, msgpack in console stuff was very annoying tho
+				rm->CallReference<void>(cbRef.GetRef(), varName, "");
+			}
+
+			return true;
+		}));
+
+		resource->OnStop.Connect([varMan, cookie]()
+		{
+			varMan->OnConvarModified.Disconnect(cookie);
+		});
+
+		context.SetResult(cookie);
+	});
+
+
+	fx::ScriptEngine::RegisterNativeHandler("REMOVE_CONVAR_CHANGE_LISTENER", [=](fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			return;
+		}
+
+
+		fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+		if (!resource)
+		{
+			return;
+		}
+
+		auto cookie = context.GetArgument<int>(0);
+
+		auto varMan = GetVariableManager();
+
+		varMan->OnConvarModified.Disconnect(cookie);
+	});
 });
