@@ -31,7 +31,15 @@ void NetGameEventPacketHandlerV2::RouteEvent(const fwRefContainer<fx::ServerGame
 	}
 }
 
-void NetGameEventPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer)
+void NetGameEventPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
+{
+	gscomms_execute_callback_on_sync_thread([instance, client, packet = std::move(packet)]
+	{
+		HandleNetEvent(instance, client, packet);
+	});
+}
+
+void NetGameEventPacketHandlerV2::HandleNetEvent(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, const net::Buffer& buffer)
 {
 	static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientNetGameEventV2>();
 	static size_t kServerMaxReplySize = net::SerializableComponent::GetMaxSize<net::packet::ServerNetGameEventV2Packet>();

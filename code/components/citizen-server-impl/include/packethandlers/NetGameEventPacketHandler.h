@@ -16,8 +16,10 @@ public:
 	}
 
 	static void COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) RouteEvent(const fwRefContainer<fx::ServerGameStatePublic>& sgs, uint32_t bucket, const std::vector<uint16_t>& targetPlayers, const fwRefContainer<fx::ClientRegistry>& clientRegistry, const net::Buffer& data);
-	
+
 	void COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet);
+	
+	static void COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) HandleNetEvent(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, const net::Buffer& packet);
 
 	static constexpr const char* GetPacketId()
 	{
