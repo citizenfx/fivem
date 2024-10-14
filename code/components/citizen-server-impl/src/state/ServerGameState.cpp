@@ -6754,7 +6754,7 @@ inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedP
 	return [instance, client, ev = std::move(ev)]()
 	{
 		auto evComponent = instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
-		return evComponent->TriggerEvent2(ev->GetName(), { }, fmt::sprintf("%d", client->GetNetId()), *ev);
+		return evComponent->TriggerEvent2(ev->GetName(), { }, std::to_string(client->GetNetId()), *ev);
 	};
 }
 
@@ -6776,7 +6776,7 @@ inline auto GetHandlerWithEvent(fx::ServerInstanceBase* instance, const fx::Clie
 	return [instance, client, ev = std::move(ev)]()
 	{
 		auto evComponent = instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
-		return evComponent->TriggerEvent2(ev->GetName(), { }, fmt::sprintf("%d", client->GetNetId()), *ev);
+		return evComponent->TriggerEvent2(ev->GetName(), { }, std::to_string(client->GetNetId()), *ev);
 	};
 }
 
