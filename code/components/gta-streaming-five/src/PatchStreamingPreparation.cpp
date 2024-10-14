@@ -532,9 +532,12 @@ static void fwEntity_DtorWrap(rage::fwEntity* entity)
 		// to do this, we use a little hack to not have to manually read the archetype list:
 		// the base rage::fwEntity::SetModelId doesn't do anything other than setting (rcx + 32)
 		// to the resolved archetype, or nullptr if none
+		//
+		// Note: for build 3258+ - this function actually tries to do more than just setting the archetype,
+		// but if the input is initialized with zeroes - it will work as we want it to.
 		rage::fwModelId modelId(midx);
 
-		void* fakeEntity[40 / 8] = { 0 };
+		void* fakeEntity[64 / 8] = { 0 };
 		_fwEntity_SetModelId(fakeEntity, modelId);
 
 		// not the same archetype - bail out
