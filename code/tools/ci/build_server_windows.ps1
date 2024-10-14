@@ -29,7 +29,7 @@ try {
 
     $ctx.startBuild()
 
-    if ($ctx.IsPublicBuild) {
+    if ($ctx.IsRetailBuild) {
         Invoke-LogSection "Creating tag" {
             Invoke-CreateGitTag -Context $ctx -Versions $versions
         }.GetNewClosure()
