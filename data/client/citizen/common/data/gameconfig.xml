@@ -608,7 +608,7 @@
 						</Item>
 						<Item>
 							<PoolName>fwArchetypePooledMap</PoolName>
-							<PoolSize value="64000"/>
+							<PoolSize value="65000"/>
 						</Item>
 						<Item>
 							<PoolName>CTaskConversationHelper</PoolName>

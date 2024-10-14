@@ -21,7 +21,7 @@ export async function loadPlaytimes(
     const searchParams = new URLSearchParams(cfxIds.map((cfxId) => ['identifiers[]', cfxId]));
 
     const response: Array<unknown> = await fetcher.json(
-      `https://lambda.fivem.net/api/ticket/playtimes/${serverId}?${searchParams}`,
+      `${__CFXUI_CNL_ENDPOINT__}api/ticket/playtimes/${serverId}?${searchParams}`,
     );
 
     if (!Array.isArray(response)) {

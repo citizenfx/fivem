@@ -36,7 +36,7 @@ public:
 class ClientNetGameEventPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgNetGameEvent") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgNetGameEvent")> };
 	ClientNetGameEvent event;
 
 	template<typename T>
@@ -83,7 +83,7 @@ public:
 class ClientNetGameEventV2Packet : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgNetGameEventV2") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgNetGameEventV2")> };
 	ClientNetGameEventV2 event;
 
 	template<typename T>
@@ -127,7 +127,7 @@ public:
 class ServerNetGameEventV2Packet : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgNetGameEventV2") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgNetGameEventV2")> };
 	ServerNetGameEventV2 event;
 
 	template<typename T>
@@ -162,7 +162,7 @@ public:
 class ServerNetGameEventPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgNetGameEvent") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgNetGameEvent")> };
 	ServerNetGameEvent event;
 
 	template<typename T>

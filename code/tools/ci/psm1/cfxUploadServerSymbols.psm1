@@ -29,19 +29,11 @@ function Invoke-UploadServerSymbols {
 
     $pdbs = $pdbs.Where{ $_.BaseName -notin @("botan") }
 
-    workflow dump_pdb {
-        param(
-            [Object[]] $files,
-            [string] $dump_syms
-        )
-    
-        foreach -parallel -throttlelimit 10 ($pdb in $files) {
-            $outname = [io.path]::ChangeExtension($pdb.FullName, "sym")
-    
-            Start-Process $dump_syms -ArgumentList ($pdb.FullName) -RedirectStandardOutput $outname -Wait -WindowStyle Hidden
-        }
+    foreach ($pdb in $pdbs) {
+        $outname = [io.path]::ChangeExtension($pdb.FullName, "sym")
+
+        Start-Process $dump_syms -ArgumentList ($pdb.FullName) -RedirectStandardOutput $outname -Wait -WindowStyle Hidden
     }
-    dump_pdb -files $pdbs -dump_syms $dump_syms
 
     $syms = Get-ChildItem -Recurse -Filter "*.sym" -File ($Context.MSBuildOutput)
 
@@ -73,7 +65,7 @@ function Invoke-UploadServerSymbols {
         }
     Pop-Location
 
-    if ($Context.IsReleaseBuild) {
+    if ($Context.IsPublicBuild) {
         Invoke-SentryUploadDif -Context $Context -Tools $Tools -Path $symPackDir
     }
 }

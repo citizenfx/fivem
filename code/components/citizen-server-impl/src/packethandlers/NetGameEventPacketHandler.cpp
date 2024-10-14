@@ -31,12 +31,20 @@ void NetGameEventPacketHandlerV2::RouteEvent(const fwRefContainer<fx::ServerGame
 	}
 }
 
-void NetGameEventPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer)
+void NetGameEventPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 {
-	static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientNetGameEventV2>();
-	static size_t kServerMaxReplySize = net::SerializableComponent::GetSize<net::packet::ServerNetGameEventV2Packet>();
+	gscomms_execute_callback_on_sync_thread([instance, client, packet = std::move(packet)]
+	{
+		HandleNetEvent(instance, client, packet);
+	});
+}
 
-	if (buffer.GetLength() > kClientMaxPacketSize)
+void NetGameEventPacketHandlerV2::HandleNetEvent(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, const net::Buffer& buffer)
+{
+	static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientNetGameEventV2>();
+	static size_t kServerMaxReplySize = net::SerializableComponent::GetMaxSize<net::packet::ServerNetGameEventV2Packet>();
+
+	if (buffer.GetRemainingBytes() > kClientMaxPacketSize)
 	{
 		// this only happens when a malicious client sends packets not created from our client code
 		return;

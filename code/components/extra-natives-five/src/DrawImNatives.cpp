@@ -3482,7 +3482,7 @@ static void DoCrosshairDraw()
 	int iOuterBottom = iInnerBottom + iBarSizeInner;
 	int x0 = iCenterX - iBarThickness / 2;
 	int x1 = x0 + iBarThickness;
-	DrawCrosshairRect(r, g, b, flLineAlphaInner, x0, iCenterY, x1, iOuterBottom, bAdditive);
+	DrawCrosshairRect(r, g, b, flLineAlphaInner, x0, iInnerBottom, x1, iOuterBottom, bAdditive);
 
 	// draw top vertical crosshair line if cl_crosshair_t is disabled
 	if (!cl_crosshair_t.GetValue())

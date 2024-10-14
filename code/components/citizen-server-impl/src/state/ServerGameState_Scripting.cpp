@@ -140,6 +140,41 @@ static void Init()
 		context.SetResult(true);
 	});
 
+#if _DEBUG 
+	fx::ScriptEngine::RegisterNativeHandler("IS_ENTITY_RELEVANT", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		// parse the client ID
+		auto id = context.GetArgument<uint32_t>(0);
+
+		if (!id)
+		{
+			context.SetResult(false);
+			return;
+		}
+
+		auto entity = gameState->GetEntity(id);
+
+		if (!entity || entity->finalizing || entity->deleting)
+		{
+			context.SetResult(false);
+			return;
+		}
+
+		std::lock_guard l(entity->guidMutex);
+
+		context.SetResult(entity->relevantTo.any());
+	});
+#endif
+
 	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_FROM_NETWORK_ID", [](fx::ScriptContext& context)
 	{
 		// get the current resource manager
@@ -196,6 +231,53 @@ static void Init()
 
         return retval;
     }));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_ORPHAN_MODE", [](fx::ScriptContext& context)
+    {
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		// parse the client ID
+		auto id = context.GetArgument<uint32_t>(0);
+
+		if (!id)
+		{
+			return;
+		}
+
+		auto entity = gameState->GetEntity(id);
+
+		if (!entity)
+		{
+			throw std::runtime_error(va("Tried to access invalid entity: %d", id));
+		}
+
+		auto orphanMode = context.GetArgument<int>(1);
+
+		if (orphanMode < 0 || orphanMode > fx::sync::KeepEntity)
+		{
+			throw std::runtime_error(va("Tried to set entities (%d) orphan mode to an invalid orphan mode: %d", id, orphanMode));
+		}
+
+		entity->orphanMode = static_cast<fx::sync::EntityOrphanMode>(orphanMode);
+
+		// if they set the orphan mode to `DeleteOnOwnerDisconnect` and the entity already doesn't have an owner then treat this as a `DELETE_ENTITY` call
+		if (entity->orphanMode == fx::sync::DeleteOnOwnerDisconnect && entity->firstOwnerDropped)
+		{
+			gameState->DeleteEntity(entity);
+		}
+    });
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ORPHAN_MODE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		return entity->orphanMode;
+	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_COORDS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
@@ -722,7 +804,58 @@ static void Init()
 
 		return 0;
 	}));
+	
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_NEON_COLOUR", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		const auto vn = entity->syncTree->GetVehicleAppearance();
+		
+		if (context.GetArgumentCount() > 2)
+		{
+			if (!vn->hasNeonLights)
+			{
+				*context.GetArgument<int*>(1) = -1;
+				*context.GetArgument<int*>(2) = -1;
+				*context.GetArgument<int*>(3) = -1;
+				return 1;
+			}
+			*context.GetArgument<int*>(1) = vn ? vn->neonRedColour : 0;
+			*context.GetArgument<int*>(2) = vn ? vn->neonGreenColour : 0;
+			*context.GetArgument<int*>(3) = vn ? vn->neonBlueColour : 0;
+		}
 
+		return 1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_NEON_ENABLED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		const auto vn = entity->syncTree->GetVehicleAppearance();
+
+		if (!vn)
+		{
+			return false;
+		}
+		
+		const int neonIndex = context.GetArgument<int>(0);
+		
+		switch (neonIndex)
+		{
+			case 0: // Left neon light
+				return vn->neonLeftOn;
+
+			case 1: // Right neon light
+				return vn->neonRightOn;
+
+			case 2: // Front neon light
+				return vn->neonFrontOn;
+
+			case 3: // Back neon light
+				return vn->neonBackOn;
+
+			default:
+				return false;
+		}
+	}));
+	
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_COLOURS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		if (context.GetArgumentCount() > 2)
@@ -962,7 +1095,7 @@ static void Init()
 			desiredType = EntityType::Ped;	
 		else if (poolName == "CVehicle")
 			desiredType = EntityType::Vehicle;
-		else if (poolName == "CObject")
+		else if (poolName == "CObject" || poolName == "CNetObject")
 			desiredType = EntityType::Object;
 
 		for (auto& entity : gameState->m_entityList)

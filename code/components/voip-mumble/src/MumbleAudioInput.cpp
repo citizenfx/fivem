@@ -96,6 +96,13 @@ void MumbleAudioInput::ThreadFunc()
 {
 	SetThreadName(-1, "[Mumble] Audio Input Thread");
 
+	HANDLE mmcssHandle;
+	DWORD mmcssTaskIndex;
+
+	mmcssHandle = AvSetMmThreadCharacteristics(L"Capture", &mmcssTaskIndex);
+
+	AvSetMmThreadPriority(mmcssHandle, AVRT_PRIORITY_HIGH);
+
 	// initialize COM for the current thread
 	CoInitialize(nullptr);
 

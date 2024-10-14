@@ -22,7 +22,7 @@ public:
 	void SendPacket(int peer, net::packet::StateBagPacket& packet) override
 	{
 		auto& val = lastPacket.emplace(peer, std::vector<uint8_t>{});
-		val.second.resize(net::SerializableComponent::GetSize<net::packet::StateBagPacket>());
+		val.second.resize(net::SerializableComponent::GetMaxSize<net::packet::StateBagPacket>());
 		net::ByteWriter writer(val.second.data(), val.second.size());
 		packet.Process(writer);
 		val.second.resize(writer.GetOffset());
@@ -31,7 +31,7 @@ public:
 	void SendPacket(int peer, net::packet::StateBagV2Packet& packet) override
 	{
 		auto& val = lastPacket.emplace(peer, std::vector<uint8_t>{});
-		val.second.resize(net::SerializableComponent::GetSize<net::packet::StateBagV2Packet>());
+		val.second.resize(net::SerializableComponent::GetMaxSize<net::packet::StateBagV2Packet>());
 		net::ByteWriter writer(val.second.data(), val.second.size());
 		packet.Process(writer);
 		val.second.resize(writer.GetOffset());

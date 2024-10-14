@@ -14,6 +14,16 @@ public:
 	{
 		return reinterpret_cast<T*>(this->IsOfType(HashString(boost::typeindex::type_id<T>().pretty_name().substr(6).c_str())));
 	}
+
+	inline void* GetNetObject() const
+	{
+		static_assert(offsetof(fwEntity, m_netObject) == 224, "wrong GetNetObject");
+		return m_netObject;
+	}
+
+private:
+	char m_pad[216];
+	void* m_netObject;
 };
 
 class CPickup : public fwEntity

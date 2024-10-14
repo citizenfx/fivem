@@ -6,6 +6,9 @@
  */
 declare var __CFXUI_DEV__: boolean;
 declare var __CFXUI_USE_SOUNDS__: boolean;
+declare var __CFXUI_CNL_ENDPOINT__: string;
+declare var __CFXUI_SENTRY_DSN__: string;
+declare var __CFXUI_SENTRY_RELEASE__: string;
 
 declare type SetTimeoutReturn = ReturnType<typeof setTimeout>;
 declare type SetIntervalReturn = ReturnType<typeof setInterval>;

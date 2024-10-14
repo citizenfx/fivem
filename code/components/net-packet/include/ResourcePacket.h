@@ -28,7 +28,7 @@ public:
 class ServerResourceStartPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgResStart") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgResStart")> };
 	ServerResourceStart data;
 
 	template<typename T>
@@ -63,7 +63,7 @@ public:
 class ServerResourceStopPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgResStop") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgResStop")> };
 	ServerResourceStop data;
 
 	template<typename T>

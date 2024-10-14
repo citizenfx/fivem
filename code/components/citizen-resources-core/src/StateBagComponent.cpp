@@ -400,7 +400,7 @@ void StateBagImpl::SendKeyValue(int target, std::string_view key, std::string_vi
 		if (!key.empty() && !value.empty())
 		{
 			net::packet::StateBagV2Packet stateBagPacket;
-			stateBagPacket.data.stateBagName = m_id;
+			stateBagPacket.data.stateBagName = std::string_view(m_id);
 			stateBagPacket.data.key = key;
 			stateBagPacket.data.data = value;
 			m_parent->QueueSend(target, stateBagPacket);

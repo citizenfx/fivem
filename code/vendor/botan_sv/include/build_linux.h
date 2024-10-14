@@ -2,7 +2,7 @@
 #define BOTAN_BUILD_CONFIG_H_
 
 /*
-* Build configuration for Botan 2.19.3
+* Build configuration for Botan 2.19.5
 *
 * Automatically generated from
 * 'configure.py --disable-modules=win32_stats,proc_walk --amalgamation --cc=clang --os=linux --cc-min-version=11.0'
@@ -15,13 +15,13 @@
 
 #define BOTAN_VERSION_MAJOR 2
 #define BOTAN_VERSION_MINOR 19
-#define BOTAN_VERSION_PATCH 3
-#define BOTAN_VERSION_DATESTAMP 0
+#define BOTAN_VERSION_PATCH 5
+#define BOTAN_VERSION_DATESTAMP 20240708
 
 
-#define BOTAN_VERSION_RELEASE_TYPE "unreleased"
+#define BOTAN_VERSION_RELEASE_TYPE "release"
 
-#define BOTAN_VERSION_VC_REVISION "git:15dc32f12d05e99a267f0fc47d88b678b71b8b05"
+#define BOTAN_VERSION_VC_REVISION "git:935055e839794a076d209c9e9a1e9cd2255aae01"
 
 #define BOTAN_DISTRIBUTION_INFO "unspecified"
 

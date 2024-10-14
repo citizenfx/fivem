@@ -32,7 +32,7 @@ TEST_CASE("net event serialization test")
 		outBuffer.Write(eventData.data(), eventData.size());
 	};
 
-	std::vector<uint8_t> writeBuffer(net::SerializableComponent::GetSize<net::packet::ClientServerEvent>());
+	std::vector<uint8_t> writeBuffer(net::SerializableComponent::GetMaxSize<net::packet::ClientServerEvent>());
 	BENCHMARK("new net event serialization") {
 		net::ByteWriter writer{writeBuffer.data(), writeBuffer.size()};
 		net::packet::ClientServerEvent clientServerEvent;
@@ -41,7 +41,7 @@ TEST_CASE("net event serialization test")
 		clientServerEvent.Process(writer);
 	};
 
-	std::vector<uint8_t> eventBuffer(net::SerializableComponent::GetSize<net::packet::ClientServerEvent>());
+	std::vector<uint8_t> eventBuffer(net::SerializableComponent::GetMaxSize<net::packet::ClientServerEvent>());
 	net::ByteWriter writer {eventBuffer.data(), eventBuffer.size()};
 	net::packet::ClientServerEvent clientServerEvent;
 	clientServerEvent.eventName.SetValue({reinterpret_cast<uint8_t*>(eventName.data()), eventName.size()});

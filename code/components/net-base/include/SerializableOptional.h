@@ -86,7 +86,7 @@ namespace net
 				return false;
 			}
 
-			if (m_set || force_consteval<bool, T::kType == DataStream::Type::Counter>)
+			if (m_set || force_consteval<bool, T::kType == DataStream::Type::MaxCounter>)
 			{
 				return m_property.Process(stream);
 			}

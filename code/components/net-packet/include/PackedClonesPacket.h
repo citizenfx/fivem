@@ -27,7 +27,7 @@ public:
 class ServerPackedClonesPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgPackedClones") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgPackedClones")> };
 	ServerPackedClones event;
 
 	template<typename T>

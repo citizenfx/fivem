@@ -27,7 +27,7 @@ class RandomNumberGenerator;
 class BOTAN_PUBLIC_API(2,0) EMSA
    {
    public:
-      virtual ~EMSA() = default;
+      virtual ~EMSA() {}
 
       /**
       * Add more data to the signature computation

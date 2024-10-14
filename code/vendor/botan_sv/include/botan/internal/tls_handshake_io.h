@@ -58,7 +58,7 @@ class Handshake_IO
 
       Handshake_IO& operator=(const Handshake_IO&) = delete;
 
-      virtual ~Handshake_IO() = default;
+      virtual ~Handshake_IO() {}
    };
 
 /**

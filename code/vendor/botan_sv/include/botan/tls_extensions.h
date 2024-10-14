@@ -72,7 +72,7 @@ class BOTAN_UNSTABLE_API Extension
       */
       virtual bool empty() const = 0;
 
-      virtual ~Extension() = default;
+      virtual ~Extension() {}
    };
 
 /**

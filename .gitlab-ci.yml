@@ -9,14 +9,17 @@ stages:
 variables:
   # Dry run is for builds-only mode, no uploading/deploying/notifying, helpful when experimenting with pipelines
   CFX_DRY_RUN: 'false'
-  CFX_RELEASE_BUILD: 'false'
-  CFX_CLONE_ROOT: $CI_BUILDS_DIR\$CI_PROJECT_PATH_SLUG\$CI_COMMIT_REF_SLUG
+  CFX_RETAIL_BUILD: 'false'
+  CFX_CLONE_ROOT: $CI_BUILDS_DIR\$CI_PROJECT_PATH_SLUG-$CI_CONCURRENT_PROJECT_ID
 
 workflow:
   rules:
-    - if: $CI_COMMIT_BRANCH && ($CI_COMMIT_BRANCH == 'master' || $CI_COMMIT_BRANCH == 'beta' || $CI_COMMIT_BRANCH == 'production')
+    - if: $CI_COMMIT_BRANCH =~ /^(master|beta|production)$/
       variables:
-        CFX_RELEASE_BUILD: 'true'
+        CFX_RETAIL_BUILD: 'true'
+    - if: $CI_COMMIT_BRANCH =~ /^feature\//
+      variables:
+        CFX_FEATURE_BRANCH_BUILD: 'true'
     # never run pipelines for tags
     - if: $CI_COMMIT_TAG
       when: never
@@ -26,17 +29,17 @@ workflow:
     # otherwise, always run pipelines
     - when: always
 
-# helper for jobs that are only meant to be run for releases
-.only_for_release:
+# helper for jobs that are only meant to be run for public builds
+.only_for_public_build:
   rules:
-    - if: $CFX_RELEASE_BUILD == 'true'
+    - if: $CFX_RETAIL_BUILD == 'true' || $CFX_FEATURE_BRANCH_BUILD == 'true'
       when: on_success
     - when: never
 
 # helper for jobs that are only meant to be run on master branch
 .only_for_master:
   rules:
-    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
+    - if: $CI_COMMIT_BRANCH == 'master'
       when: on_success
     - when: never
 
@@ -99,7 +102,7 @@ workflow:
 build_client:
   extends: [.base_build_client]
   variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT\fivem
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT
     CFX_PRODUCT_NAME: fivem
   tags:
     - release_fivem
@@ -109,7 +112,7 @@ build_client:
 build_client_rdr3:
   extends: [.base_build_client]
   variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT\redm
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT
     CFX_PRODUCT_NAME: redm
   tags:
     - release_redm
@@ -122,7 +125,7 @@ build_sdk:
     - release_fivem
     - windows
   variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT\fivem-sdk
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT
   artifacts:
     paths:
       - caches
@@ -150,7 +153,7 @@ build_server_windows:
     - windows
     - vs2022
   variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT\fxserver
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT
     CFX_PRODUCT_NAME: fxserver
   script:
     - ".\\code\\tools\\ci\\build_server_windows.ps1"
@@ -198,7 +201,7 @@ build_proot_linux:
 .base_fivem_deploy:
   extends: [.base_deploy_client]
   variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT\fivem-deploy
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT
     CFX_PRODUCT_NAME: fivem
   needs:
     - job: build_client
@@ -209,7 +212,7 @@ build_proot_linux:
 .base_redm_deploy:
   extends: [.base_deploy_client]
   variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT\redm-deploy
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT
     CFX_PRODUCT_NAME: redm
   needs:
     - job: build_client_rdr3
@@ -221,7 +224,7 @@ fivem_deploy_canary:
   environment:
     name: canary
   rules:
-    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
+    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
       when: on_success
     - when: never
 
@@ -230,7 +233,7 @@ fivem_deploy_beta:
   environment:
     name: beta
   rules:
-    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
+    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
       when: on_success
     - when: never
 
@@ -239,7 +242,7 @@ fivem_deploy_production:
   environment:
     name: production
   rules:
-    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
+    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
       when: on_success
     - when: never
 
@@ -248,7 +251,7 @@ fivem_deploy_specific:
   environment:
     name: specific/$CI_COMMIT_BRANCH
   rules:
-    - if: $CFX_RELEASE_BUILD == 'false' && $CI_COMMIT_BRANCH
+    - if: $CFX_RETAIL_BUILD == 'false' && $CI_COMMIT_BRANCH
       when: manual
       allow_failure: true
     - when: never
@@ -259,7 +262,7 @@ redm_deploy_canary:
   environment:
     name: canary
   rules:
-    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
+    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
       when: on_success
     - when: never
 
@@ -268,7 +271,7 @@ redm_deploy_beta:
   environment:
     name: beta
   rules:
-    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
+    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
       when: on_success
     - when: never
 
@@ -277,7 +280,7 @@ redm_deploy_production:
   environment:
     name: production
   rules:
-    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
+    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
       when: on_success
     - when: never
 
@@ -286,7 +289,7 @@ redm_deploy_specific:
   environment:
     name: specific/$CI_COMMIT_BRANCH
   rules:
-    - if: $CFX_RELEASE_BUILD == 'false' && $CI_COMMIT_BRANCH
+    - if: $CFX_RETAIL_BUILD == 'false' && $CI_COMMIT_BRANCH
       when: manual
       allow_failure: true
     - when: never
@@ -349,7 +352,7 @@ nuget_server:
 # --------------------
 .base_upload_review:
   stage: postdeploy
-  extends: [.only_for_release]
+  extends: [.only_for_public_build]
   allow_failure: true
   script:
     - ".\\code\\tools\\ci\\upload_review.ps1"
@@ -359,7 +362,7 @@ nuget_server:
 fivem_upload_review:
   extends: [.base_upload_review]
   variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT\fivem-review
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT
   needs:
     - job: build_client
       artifacts: true
@@ -367,7 +370,7 @@ fivem_upload_review:
 redm_upload_review:
   extends: [.base_upload_review]
   variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT\redm-review
+    GIT_CLONE_PATH: $CFX_CLONE_ROOT
   needs:
     - job: build_client_rdr3
       artifacts: true

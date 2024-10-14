@@ -90,7 +90,7 @@ class BOTAN_PUBLIC_API(2,0) ASN1_Object
       ASN1_Object() = default;
       ASN1_Object(const ASN1_Object&) = default;
       ASN1_Object & operator=(const ASN1_Object&) = default;
-      virtual ~ASN1_Object() = default;
+      virtual ~ASN1_Object() {}
    };
 
 /**

@@ -20,8 +20,8 @@ public:
 	template<typename Client = fx::ClientSharedPtr>
 	void Handle(fx::ServerInstanceBase* instance, const Client& client, net::Buffer& packet)
 	{
-		static size_t kMaxRequestSize = net::SerializableComponent::GetSize<net::packet::TimeSyncRequest>();
-		static size_t kMaxResponseSize = net::SerializableComponent::GetSize<net::packet::TimeSyncResponsePacket>();
+		static size_t kMaxRequestSize = net::SerializableComponent::GetMaxSize<net::packet::TimeSyncRequest>();
+		static size_t kMaxResponseSize = net::SerializableComponent::GetMaxSize<net::packet::TimeSyncResponsePacket>();
 		thread_local net::packet::TimeSyncRequest timeSyncRequest;
 		thread_local net::packet::TimeSyncResponsePacket timeSyncResponse;
 

@@ -10,7 +10,7 @@
 
 TEST_CASE("array update tests")
 {
-	std::vector<uint8_t> serverEventData(net::SerializableComponent::GetSize<net::packet::ServerArrayUpdatePacket>());
+	std::vector<uint8_t> serverEventData(net::SerializableComponent::GetMaxSize<net::packet::ServerArrayUpdatePacket>());
 	net::ByteWriter serverEventDataWriter(serverEventData.data(), serverEventData.size());
 
 	net::packet::ServerArrayUpdatePacket serverArrayUpdatePacket;
@@ -30,7 +30,7 @@ TEST_CASE("array update tests")
 	memset(data.data(), 0, data.size());
 	static std::vector<size_t> hashes(UINT16_MAX + 1);
 
-	static std::vector<uint8_t> sendBuffer(net::SerializableComponent::GetSize<net::packet::ClientArrayUpdatePacket>());
+	static std::vector<uint8_t> sendBuffer(net::SerializableComponent::GetMaxSize<net::packet::ClientArrayUpdatePacket>());
 
 	BENCHMARK("old array update deserialization")
 	{
@@ -102,8 +102,8 @@ TEST_CASE("array update tests")
 		net::ByteWriter writer(sendBuffer.data(), sendBuffer.size());
 		net::packet::ClientArrayUpdatePacket clientArrayUpdatePacket;
 		clientArrayUpdatePacket.data.handler = serverArrayUpdatePacket.data.handler;
-		clientArrayUpdatePacket.data.index = serverArrayUpdatePacket.data.index;
-		clientArrayUpdatePacket.data.data = serverArrayUpdatePacket.data.data;
+		clientArrayUpdatePacket.data.index = static_cast<uint16_t>(serverArrayUpdatePacket.data.index);
+		clientArrayUpdatePacket.data.data = serverArrayUpdatePacket.data.data.GetValue();
 		clientArrayUpdatePacket.Process(writer);
 		hashes[serverArrayUpdatePacket.data.index] = thisHash;
 	};

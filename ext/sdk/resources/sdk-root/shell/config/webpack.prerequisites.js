@@ -42,7 +42,7 @@ module.exports = {
     return this.isProd(env, args) ? 'production' : 'development';
   },
 
-  plugins(env, args, { project, include }) {
+  plugins(env, args, { sentryProject, sentryDsn, include }) {
     const isProd = this.isProd(env, args);
 
     const sentryAuthToken = isProd && process.env.SENTRY_AUTH_TOKEN;
@@ -59,14 +59,15 @@ module.exports = {
 
       new ForkTsCheckerWebpackPlugin(),
       new webpack.DefinePlugin({
-        'process.env.CI_PIPELINE_ID': JSON.stringify(process.env.CI_PIPELINE_ID || 'dev'),
+        'process.env.__CFX_SENTRY_DSN__': JSON.stringify(sentryDsn),
+        'process.env.__CFX_SENTRY_RELEASE__': JSON.stringify(sentryRelease),
       }),
-      sentryAuthToken && new SentryWebpackPlugin({
+      sentryAuthToken && sentryProject && sentryDsn && new SentryWebpackPlugin({
         url: 'https://sentry.fivem.net/',
         authToken: sentryAuthToken,
         release: sentryRelease,
         org: "citizenfx",
-        project,
+        project: sentryProject,
         include,
         errorHandler: (err, invokeErr, compilation) => {
           compilation.warnings.push('Sentry CLI Plugin: ' + err.message)

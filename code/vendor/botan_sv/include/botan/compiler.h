@@ -190,6 +190,16 @@
 
 #endif
 
+#if !defined(BOTAN_ALIGNAS)
+
+#if defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 8)
+  #define BOTAN_ALIGNAS(x) /**/
+#else
+  #define BOTAN_ALIGNAS(x) alignas(x)
+#endif
+
+#endif
+
 /*
 * Define BOTAN_FORCE_INLINE
 */

@@ -16,6 +16,7 @@
 #include <client/windows/crash_generation/crash_generation_server.h>
 #include <common/windows/http_upload.h>
 
+#include <CfxSentry.h>
 #include <CfxLocale.h>
 #include <CfxState.h>
 #include <CfxSubProcess.h>
@@ -93,38 +94,24 @@ static json load_json_file(const std::wstring& path)
 
 static void send_sentry_session(const json& data)
 {
-	constexpr int sentryProjectId =
-#ifndef IS_RDR3
-	2
-#else
-	11
-#endif
-	;
-
-	constexpr std::string_view sentryKey =
-#ifndef IS_RDR3
-	"9902acf744d546e98ca357203f19278b"
-#else
-	"22f37206f3a64544bbd9b3ca9c5c2891"
-#endif
-	;
-
+#ifdef CFX_SENTRY_USE_SESSION
 	std::stringstream bodyData;
 	bodyData << "{}\n";
 	bodyData << R"({"type":"session"})" << "\n";
 	bodyData << data.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) << "\n";
 
 	auto r = cpr::Post(
-	cpr::Url{ fmt::sprintf("https://sentry.fivem.net/api/%d/envelope/", sentryProjectId) },
-	cpr::Body{bodyData.str()},
+	cpr::Url{ CFX_SENTRY_SESSION_URL },
+	cpr::Body{ bodyData.str() },
 	cpr::VerifySsl{ false },
 	cpr::Header{
 		{
 			"X-Sentry-Auth",
-			fmt::sprintf("Sentry sentry_version=7, sentry_key=%s", sentryKey)
+			fmt::sprintf("Sentry sentry_version=7, sentry_key=%s", CFX_SENTRY_SESSION_KEY)
 		}
 	},
 	cpr::Timeout{ 2500 });
+#endif
 }
 
 std::string g_entitlementSource;
@@ -1668,8 +1655,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				parameters[L"Fatal"] = (shouldTerminate) ? L"true" : L"false";
 
 				// upload the actual minidump file as well
-#if defined(GTA_FIVE) || defined(IS_RDR3)
-				if (uploadCrashes && shouldUpload && HTTPUpload::SendMultipartPostRequest(L"https://crash-ingress.fivem.net/post", parameters, files, &timeout, &responseBody, &responseCode))
+#if defined(CFX_CRASH_INGRESS_URL) && (defined(GTA_FIVE) || defined(IS_RDR3))
+				if (uploadCrashes && shouldUpload && HTTPUpload::SendMultipartPostRequest(va(L"%s/post", ToWide(CFX_CRASH_INGRESS_URL)), parameters, files, &timeout, &responseBody, &responseCode))
 				{
 					trace("Crash report service returned %s\n", ToNarrow(responseBody));
 					crashId = responseBody;

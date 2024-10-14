@@ -286,9 +286,10 @@ static nlohmann::json SymbolicateCrashRequest(HANDLE hProcess, HANDLE hThread, P
 
 nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx)
 {
+#ifdef CFX_CRASH_INGRESS_URL
 	auto symb = SymbolicateCrashRequest(hProcess, hThread, er, ctx);
 
-	auto r = cpr::Post(cpr::Url{ "https://crash-ingress.fivem.net/symbolicate?timeout=5" }, cpr::Body{ symb.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) },
+	auto r = cpr::Post(cpr::Url{ va("%s/symbolicate?timeout=5", CFX_CRASH_INGRESS_URL) }, cpr::Body{ symb.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) },
 	cpr::Timeout{ std::chrono::seconds(10) }, cpr::Header{ { "content-type", "application/json" } }, cpr::VerifySsl{ false });
 
 	if (!r.error && r.status_code <= 299)
@@ -306,6 +307,7 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 		
 		}
 	}
+#endif
 
 	return {};
 }

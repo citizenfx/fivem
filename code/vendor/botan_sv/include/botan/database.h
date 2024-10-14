@@ -67,7 +67,7 @@ class BOTAN_PUBLIC_API(2,0) SQL_Database
             /* Maybe update */
             virtual bool step() = 0;
 
-            virtual ~Statement() = default;
+            virtual ~Statement() {}
          };
 
       /*
@@ -80,7 +80,7 @@ class BOTAN_PUBLIC_API(2,0) SQL_Database
 
       virtual void create_table(const std::string& table_schema) = 0;
 
-      virtual ~SQL_Database() = default;
+      virtual ~SQL_Database() {}
 };
 
 }

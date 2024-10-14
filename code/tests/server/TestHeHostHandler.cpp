@@ -31,7 +31,7 @@ TEST_CASE("HeHost test")
 	// vote for client 1 to become the new host
 	clientHeHost.allegedNewId = 1;
 
-	std::vector<uint8_t> packetBuffer (net::SerializableComponent::GetSize<net::packet::ClientHeHost>());
+	std::vector<uint8_t> packetBuffer (net::SerializableComponent::GetMaxSize<net::packet::ClientHeHost>());
 	net::ByteWriter writer {packetBuffer.data(), packetBuffer.size()};
 
 	REQUIRE(clientHeHost.Process(writer) == true);

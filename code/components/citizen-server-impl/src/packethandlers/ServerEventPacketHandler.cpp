@@ -40,7 +40,7 @@ void ServerEventPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx
 		return;
 	}
 
-	static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientServerEvent>();
+	static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientServerEvent>();
 
 	if (buffer.GetRemainingBytes() > kClientMaxPacketSize)
 	{

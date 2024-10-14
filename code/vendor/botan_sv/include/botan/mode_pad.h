@@ -60,7 +60,7 @@ class BOTAN_PUBLIC_API(2,0) BlockCipherModePaddingMethod
       /**
       * virtual destructor
       */
-      virtual ~BlockCipherModePaddingMethod() = default;
+      virtual ~BlockCipherModePaddingMethod() {}
    };
 
 /**

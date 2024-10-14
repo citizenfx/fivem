@@ -68,7 +68,7 @@ public:
 class ClientGameStateAckPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("gameStateAck") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("gameStateAck")> };
 	ClientGameStateAck data;
 
 	template<typename T>

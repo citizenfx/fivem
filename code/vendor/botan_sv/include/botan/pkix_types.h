@@ -191,6 +191,9 @@ class BOTAN_PUBLIC_API(2,0) Attribute final : public ASN1_Object
 * Handles parsing GeneralName types in their BER and canonical string
 * encoding. Allows matching GeneralNames against each other using
 * the rules laid out in the RFC 5280, sec. 4.2.1.10 (Name Contraints).
+*
+* This entire class is deprecated and will be removed in a future
+* major release
 */
 class BOTAN_PUBLIC_API(2,0) GeneralName final : public ASN1_Object
    {
@@ -213,6 +216,7 @@ class BOTAN_PUBLIC_API(2,0) GeneralName final : public ASN1_Object
       * Creates a new GeneralName for its string format.
       * @param str type and name, colon-separated, e.g., "DNS:google.com"
       */
+      BOTAN_DEPRECATED("Deprecated no replacement")
       GeneralName(const std::string& str);
 
       void encode_into(DER_Encoder&) const override;
@@ -234,15 +238,17 @@ class BOTAN_PUBLIC_API(2,0) GeneralName final : public ASN1_Object
       * @param cert certificate to be matched
       * @return the match result
       */
+      BOTAN_DEPRECATED("Deprecated no replacement")
       MatchResult matches(const X509_Certificate& cert) const;
+
+      bool matches_dns(const std::string&) const;
+      bool matches_dn(const std::string&) const;
+      bool matches_dn_obj(const X509_DN& dn) const;
+      bool matches_ip(const std::string&) const;
 
    private:
       std::string m_type;
       std::string m_name;
-
-      bool matches_dns(const std::string&) const;
-      bool matches_dn(const std::string&) const;
-      bool matches_ip(const std::string&) const;
    };
 
 std::ostream& operator<<(std::ostream& os, const GeneralName& gn);
@@ -253,6 +259,9 @@ std::ostream& operator<<(std::ostream& os, const GeneralName& gn);
 * The Name Constraint extension adds a minimum and maximum path
 * length to a GeneralName to form a constraint. The length limits
 * are currently unused.
+*
+* This entire class is deprecated and will be removed in a future
+* major release
 */
 class BOTAN_PUBLIC_API(2,0) GeneralSubtree final : public ASN1_Object
    {
@@ -260,6 +269,7 @@ class BOTAN_PUBLIC_API(2,0) GeneralSubtree final : public ASN1_Object
       /**
       * Creates an empty name constraint.
       */
+      BOTAN_DEPRECATED("Deprecated no replacement")
       GeneralSubtree() : m_base(), m_minimum(0), m_maximum(std::numeric_limits<std::size_t>::max())
       {}
 
@@ -269,6 +279,7 @@ class BOTAN_PUBLIC_API(2,0) GeneralSubtree final : public ASN1_Object
       * @param min minimum path length
       * @param max maximum path length
       */
+      BOTAN_DEPRECATED("Deprecated no replacement")
       GeneralSubtree(const GeneralName& base, size_t min, size_t max)
       : m_base(base), m_minimum(min), m_maximum(max)
       {}
@@ -277,6 +288,7 @@ class BOTAN_PUBLIC_API(2,0) GeneralSubtree final : public ASN1_Object
       * Creates a new name constraint for its string format.
       * @param str name constraint
       */
+      BOTAN_DEPRECATED("Deprecated no replacement")
       GeneralSubtree(const std::string& str);
 
       void encode_into(DER_Encoder&) const override;
@@ -325,9 +337,7 @@ class BOTAN_PUBLIC_API(2,0) NameConstraints final
       * @param excluded_subtrees names for which the certificate is not permitted
       */
       NameConstraints(std::vector<GeneralSubtree>&& permitted_subtrees,
-                    std::vector<GeneralSubtree>&& excluded_subtrees)
-      : m_permitted_subtrees(permitted_subtrees), m_excluded_subtrees(excluded_subtrees)
-      {}
+                      std::vector<GeneralSubtree>&& excluded_subtrees);
 
       /**
       * @return permitted names
@@ -339,9 +349,22 @@ class BOTAN_PUBLIC_API(2,0) NameConstraints final
       */
       const std::vector<GeneralSubtree>& excluded() const { return m_excluded_subtrees; }
 
+      /**
+      * Return true if all of the names in the certificate are permitted
+      */
+      bool is_permitted(const X509_Certificate& cert, bool reject_unknown) const;
+
+      /**
+      * Return true if any of the names in the certificate are excluded
+      */
+      bool is_excluded(const X509_Certificate& cert, bool reject_unknown) const;
+
    private:
       std::vector<GeneralSubtree> m_permitted_subtrees;
       std::vector<GeneralSubtree> m_excluded_subtrees;
+
+      std::set<std::string> m_permitted_name_types;
+      std::set<std::string> m_excluded_name_types;
    };
 
 /**
@@ -398,7 +421,7 @@ class BOTAN_PUBLIC_API(2,0) Certificate_Extension
             std::vector<std::set<Certificate_Status_Code>>& cert_status,
             size_t pos);
 
-      virtual ~Certificate_Extension() = default;
+      virtual ~Certificate_Extension() {}
    protected:
       friend class Extensions;
       virtual bool should_encode() const { return true; }
@@ -573,6 +596,8 @@ class BOTAN_PUBLIC_API(2,0) Extensions final : public ASN1_Object
       class Extensions_Info
          {
          public:
+            Extensions_Info() {}
+
             Extensions_Info(bool critical,
                             Certificate_Extension* ext) :
                m_obj(ext),

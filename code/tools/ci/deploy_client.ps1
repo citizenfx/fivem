@@ -121,7 +121,7 @@ try {
         }.GetNewClosure()
     }
 
-    if ($Context.IsReleaseBuild) {
+    if ($Context.IsPublicBuild) {
         Invoke-LogSection "Creating sentry deploy" {
             $params = @{
                 Context = $ctx

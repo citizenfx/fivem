@@ -30,7 +30,7 @@ public:
 class TimeSyncRequestPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgTimeSyncReq") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgTimeSyncReq")> };
 	TimeSyncRequest data;
 
 	template<typename T>
@@ -67,7 +67,7 @@ public:
 class TimeSyncResponsePacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgTimeSync") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgTimeSync")> };
 	TimeSyncResponse data;
 
 	template<typename T>

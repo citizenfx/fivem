@@ -255,5 +255,5 @@ namespace rage
 	CNetGamePlayer* GetPlayer31();
 
 	static void HandleNetGameEvent(const char* idata, size_t len);
-	static void HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGameEventV2);
+	static void HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGameEventV2, uint8_t retries);
 }

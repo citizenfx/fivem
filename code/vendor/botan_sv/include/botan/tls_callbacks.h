@@ -40,7 +40,7 @@ class Certificate_Status_Request;
 class BOTAN_PUBLIC_API(2,0) Callbacks
    {
    public:
-       virtual ~Callbacks() = default;
+       virtual ~Callbacks() {}
 
        /**
        * Mandatory callback: output function

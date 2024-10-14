@@ -17,6 +17,7 @@ module.exports = (env, argv) => {
 
   const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN;
   const sentryRelease = `cfx-${process.env.CI_PIPELINE_ID || 'dev'}`;
+  const sentryProjectName = process.env.CFX_SENTRY_PROJECT_NAME_CFXUI || 'mpmenu';
 
   const app = env.app;
 
@@ -25,6 +26,14 @@ module.exports = (env, argv) => {
   verifyApp(app);
   const appPath = path.join(srcPath, 'cfx/apps', app);
   const appBuildPath = path.join(buildPath, app);
+
+  const defines = {
+    '__CFXUI_DEV__': JSON.stringify(isDev),
+    '__CFXUI_USE_SOUNDS__': app === 'mpMenu',
+    '__CFXUI_CNL_ENDPOINT__': JSON.stringify(process.env.CFX_CNL_ENDPOINT || 'https://lambda.fivem.net/'),
+    '__CFXUI_SENTRY_DSN__': JSON.stringify(process.env.CFX_SENTRY_DSN_CFXUI || ''),
+    '__CFXUI_SENTRY_RELEASE__': JSON.stringify(sentryRelease),
+  };
 
   return {
     devtool: isProd ? 'source-map' : 'eval',
@@ -166,11 +175,7 @@ module.exports = (env, argv) => {
     ignoreWarnings: [/Failed to parse source map/],
 
     plugins: [
-      new webpack.DefinePlugin({
-        '__CFXUI_DEV__': JSON.stringify(isDev),
-        '__CFXUI_USE_SOUNDS__': app === 'mpMenu',
-        'process.env.CI_PIPELINE_ID': JSON.stringify(process.env.CI_PIPELINE_ID),
-      }),
+      new webpack.DefinePlugin(defines),
       new HtmlWebpackPlugin({
         template: path.join(appPath, 'index.html'),
         templateParameters: {
@@ -191,7 +196,7 @@ module.exports = (env, argv) => {
         release: sentryRelease,
 
         org: 'citizenfx',
-        project: 'mpmenu',
+        project: sentryProjectName,
 
         include: appBuildPath,
         urlPrefix: 'https://nui-game-internal/ui/app/',

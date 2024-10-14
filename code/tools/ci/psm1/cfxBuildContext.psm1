@@ -2,7 +2,9 @@ class CfxBuildContext {
     [string] $ProjectRoot
 
     [boolean] $IsDryRun
-    [boolean] $IsReleaseBuild
+    [boolean] $IsPublicBuild
+    [boolean] $IsRetailBuild
+    [boolean] $IsFeatureBranchBuild
 
     [string] $ProductName
     [string] $ProductExeName
@@ -104,7 +106,10 @@ function Get-CfxBuildContext {
     $ctx.ProjectRoot = $env:CI_PROJECT_DIR -replace '/', '\'
 
     $ctx.IsDryRun = $env:CFX_DRY_RUN -eq "true"
-    $ctx.IsReleaseBuild = $env:CFX_RELEASE_BUILD -eq "true"
+    $ctx.IsRetailBuild = $env:CFX_RETAIL_BUILD -eq "true"
+    $ctx.IsFeatureBranchBuild = $env:CFX_FEATURE_BRANCH_BUILD -eq "true"
+
+    $ctx.IsPublicBuild = $ctx.IsRetailBuild -or $ctx.IsFeatureBranchBuild
 
     # Perform basic checks
     if (!(Test-Path $ctx.ProjectRoot)) {
@@ -128,8 +133,8 @@ function Get-CfxBuildContext {
         $ctx.PrivateRoot = $ctx.getPathInBuildCache("fivem-private")
         $ctx.PrivateUri = $env:FIVEM_PRIVATE_URI
     }
-    elseif ($ctx.IsReleaseBuild) {
-        throw "Release build requires FIVEM_PRIVATE_URI env var to be defined"
+    elseif ($ctx.IsPublicBuild) {
+        throw "Public build requires FIVEM_PRIVATE_URI env var to be defined"
     }
 
     # Figure out toolkit
@@ -137,8 +142,8 @@ function Get-CfxBuildContext {
         $ctx.ToolkitRoot = $ctx.getPathInBuildCache("cfx-build-toolkit")
         $ctx.ToolkitUri = $env:CFX_BUILD_TOOLKIT_URI
     }
-    elseif ($ctx.IsReleaseBuild) {
-        throw "Release build requires CFX_BUILD_TOOLKIT_URI env var to be defined"
+    elseif ($ctx.IsPublicBuild) {
+        throw "Public build requires CFX_BUILD_TOOLKIT_URI env var to be defined"
     }
 
     $premakeDirSubpath = ""
@@ -150,7 +155,7 @@ function Get-CfxBuildContext {
             $ctx.ProductName = "fivem"
             $ctx.ProductExeName = "FiveM.exe"
             $ctx.PremakeGameName = "five"
-            $ctx.SentryProjectName = "fivem-client-1604"
+            $ctx.SentryProjectName = Get-EnvOrDefault $env:CFX_SENTRY_PROJECT_NAME_FIVEM "fivem-client-1604"
 
             break
         }
@@ -160,7 +165,7 @@ function Get-CfxBuildContext {
             $ctx.ProductName = "redm"
             $ctx.ProductExeName = "CitiLaunch.exe"
             $ctx.PremakeGameName = "rdr3"
-            $ctx.SentryProjectName = "redm"
+            $ctx.SentryProjectName = Get-EnvOrDefault $env:CFX_SENTRY_PROJECT_NAME_REDM "redm"
 
             break
         }
@@ -170,7 +175,7 @@ function Get-CfxBuildContext {
             $ctx.ProductName = "fxserver"
             $ctx.ProductExeName = "FXServer.exe"
             $ctx.PremakeGameName = "server"
-            $ctx.SentryProjectName = "fxserver"
+            $ctx.SentryProjectName = Get-EnvOrDefault $env:CFX_SENTRY_PROJECT_NAME_FXSERVER "fxserver"
 
             $premakeDirSubpath = "windows\"
 
@@ -187,4 +192,17 @@ function Get-CfxBuildContext {
     $ctx.MSBuildSolution = [IO.Path]::Combine($ctx.PremakeBuildDir, $ctx.PremakeGameName, $premakeDirSubpath + "CitizenMP.sln")
 
     return $ctx
+}
+
+function Get-EnvOrDefault {
+    param(
+        [string] $Value,
+        [string] $Default
+    )
+
+    if ($Value) {
+        return $Value
+    }
+
+    return $Default
 }

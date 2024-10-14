@@ -27,7 +27,7 @@ public:
 class ServerPaymentRequestPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgPaymentRequest") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgPaymentRequest")> };
 	ServerPaymentRequest event;
 
 	template<typename T>

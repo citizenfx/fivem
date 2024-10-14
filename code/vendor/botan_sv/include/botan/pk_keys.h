@@ -31,7 +31,7 @@ class BOTAN_PUBLIC_API(2,0) Public_Key
       Public_Key() =default;
       Public_Key(const Public_Key& other) = default;
       Public_Key& operator=(const Public_Key& other) = default;
-      virtual ~Public_Key() = default;
+      virtual ~Public_Key() {}
 
       /**
       * Get the name of the underlying public key scheme.
@@ -183,7 +183,7 @@ class BOTAN_PUBLIC_API(2,0) Private_Key : public virtual Public_Key
       Private_Key() = default;
       Private_Key(const Private_Key& other) = default;
       Private_Key& operator=(const Private_Key& other) = default;
-      virtual ~Private_Key() = default;
+      virtual ~Private_Key() {}
 
       virtual bool stateful_operation() const { return false; }
 
@@ -301,7 +301,7 @@ class BOTAN_PUBLIC_API(2,0) PK_Key_Agreement_Key : public virtual Private_Key
       PK_Key_Agreement_Key() = default;
       PK_Key_Agreement_Key(const PK_Key_Agreement_Key&) = default;
       PK_Key_Agreement_Key& operator=(const PK_Key_Agreement_Key&) = default;
-      virtual ~PK_Key_Agreement_Key() = default;
+      virtual ~PK_Key_Agreement_Key() {}
    };
 
 /*

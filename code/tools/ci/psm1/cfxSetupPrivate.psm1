@@ -16,6 +16,10 @@ function Invoke-CfxSetupPrivate {
         $privateBranch = $Context.GitBranchName
         $privateUri = $Context.PrivateUri
 
+        if ($env:CFX_OVERRIDE_PRIVATE_BRANCH) {
+            $privateBranch = $env:CFX_OVERRIDE_PRIVATE_BRANCH
+        }
+
         # Check if we have matching branch, fallback to master otherwise
         git ls-remote --exit-code --heads $privateUri refs/heads/$privateBranch | Out-Null
         if ($LASTEXITCODE -eq 2) {

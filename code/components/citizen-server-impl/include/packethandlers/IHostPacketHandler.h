@@ -29,7 +29,7 @@ namespace fx
 					return;
 				}
 
-				static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientIHost>();
+				static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientIHost>();
 
 				if (packet.GetRemainingBytes() > kClientMaxPacketSize)
 				{
@@ -55,7 +55,7 @@ namespace fx
 					client->SetNetBase(clientIHost.baseNum);
 					clientRegistry->SetHost(client);
 
-					net::Buffer hostBroadcast(net::SerializableComponent::GetSize<net::packet::ServerIHostPacket>());
+					net::Buffer hostBroadcast(net::SerializableComponent::GetMaxSize<net::packet::ServerIHostPacket>());
 					net::packet::ServerIHostPacket serverIHostPacket;
 					serverIHostPacket.data.netId = client->GetNetId();
 					serverIHostPacket.data.baseNum = client->GetNetBase();

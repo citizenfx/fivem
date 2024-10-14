@@ -3,7 +3,6 @@ using System;
 #if MONO_V2
 using CitizenFX.Core;
 using API = CitizenFX.Server.Native.Natives;
-using Prop = CitizenFX.Server.Object;
 using compat_int_uint = System.UInt32;
 using compat_int_entity_type = CitizenFX.Shared.EntityType;
 #else

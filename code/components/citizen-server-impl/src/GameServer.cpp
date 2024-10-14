@@ -113,6 +113,7 @@ namespace fx
 		OnAttached(instance);
 
 		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_ReadOnly, "");
+		m_playersToken = instance->AddVariable<std::string>("sv_playersToken", ConVar_None, "");
 		m_hostname = instance->AddVariable<std::string>("sv_hostname", ConVar_ServerInfo, "default FXServer");
 		m_masters[0] = instance->AddVariable<std::string>("sv_master1", ConVar_None, kDefaultServerList);
 		m_masters[1] = instance->AddVariable<std::string>("sv_master2", ConVar_None, "");
@@ -904,7 +905,7 @@ namespace fx
 						net::packet::ServerFramePacket serverFrame;
 						serverFrame.data.lockdownMode = lockdownMode;
 						serverFrame.data.syncStyle = syncStyle;
-						static const size_t kMaxFrameSize = net::SerializableComponent::GetSize<net::packet::ServerFramePacket>();
+						static const size_t kMaxFrameSize = net::SerializableComponent::GetMaxSize<net::packet::ServerFramePacket>();
 						net::Buffer responseBuffer(kMaxFrameSize);
 						net::ByteWriter writer(responseBuffer.GetBuffer(), kMaxFrameSize);
 						serverFrame.Process(writer);

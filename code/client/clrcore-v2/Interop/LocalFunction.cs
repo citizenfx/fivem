@@ -41,6 +41,7 @@ namespace CitizenFX.Core
 			return CoreNatives.DuplicateFunctionReference(m_reference);
 		}
 
+		[SecuritySafeCritical]
 		internal unsafe Coroutine<object> Invoke(object[] args)
 		{
 			object[] returnData = MsgPackDeserializer.DeserializeArray(ScriptInterface.InvokeFunctionReference(m_reference, new InPacket(args).value));

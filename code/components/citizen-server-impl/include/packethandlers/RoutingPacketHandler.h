@@ -19,7 +19,7 @@ public:
 	
 	void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 	{
-		static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientRoute>();
+		static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientRoute>();
 
 		if (packet.GetRemainingBytes() > kClientMaxPacketSize)
 		{

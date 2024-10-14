@@ -94,7 +94,8 @@ module.exports = (env, args) => {
 
     plugins: [
       ...prerequisites.plugins(env, args, {
-        project: 'fxdk',
+        sentryProject: process.env.CFX_SENTRY_PROJECT_NAME_FXDK,
+        sentryDsn: process.env.CFX_SENTRY_DSN_FXDK,
         include: prerequisites.paths.buildClient,
       }),
       new CopyWebpackPlugin({

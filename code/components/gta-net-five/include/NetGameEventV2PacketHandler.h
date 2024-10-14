@@ -20,7 +20,7 @@ public:
 				return;
 			}
 
-			rage::HandleNetGameEventV2(serverNetGameEventV2);
+			rage::HandleNetGameEventV2(serverNetGameEventV2, 0);
 		});
 	}
 };

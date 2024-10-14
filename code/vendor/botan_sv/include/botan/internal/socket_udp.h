@@ -34,7 +34,7 @@ class BOTAN_TEST_API SocketUDP
       /**
       * The socket will be closed upon destruction
       */
-      virtual ~SocketUDP() = default;
+      virtual ~SocketUDP() {}
 
       /**
       * Write to the socket. Returns immediately.

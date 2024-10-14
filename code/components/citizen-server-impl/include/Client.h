@@ -363,7 +363,7 @@ namespace fx
 		void SendSerializable(int channel, TSerializable& serializable, NetPacketType flags = NetPacketType_Unreliable)
 		{
 			// todo: add a size method and split max and min size
-			static size_t maxSize = net::SerializableComponent::GetSize<TSerializable>();
+			static size_t maxSize = net::SerializableComponent::GetMaxSize<TSerializable>();
 
 			net::Buffer netBuffer(maxSize);
 			net::ByteWriter writer(netBuffer.GetBuffer(), netBuffer.GetLength());

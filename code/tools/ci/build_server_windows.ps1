@@ -23,13 +23,13 @@ try {
     $tools.ensurePython()
     $tools.ensureNodeJS()
 
-    Write-Host "Context:", $ctx, "`n"
-    Write-Host "Tools:", $tools, "`n"
-    Write-Host "Versions:", $versions, "`n"
+    Write-Output "Context:", $ctx, "`n"
+    Write-Output "Tools:", $tools, "`n"
+    Write-Output "Versions:", $versions, "`n"
 
     $ctx.startBuild()
 
-    if ($ctx.IsReleaseBuild) {
+    if ($ctx.IsRetailBuild) {
         Invoke-LogSection "Creating tag" {
             Invoke-CreateGitTag -Context $ctx -Versions $versions
         }.GetNewClosure()
@@ -73,7 +73,7 @@ try {
         Invoke-PackServer -Context $ctx -Tools $tools
     }.GetNewClosure()
 
-    if ($ctx.IsReleaseBuild){
+    if ($ctx.IsPublicBuild){
         Invoke-LogSection "Creating sentry release" {
             Invoke-SentryCreateRelease -Context $ctx -Version $ctx.GitTag
         }.GetNewClosure()

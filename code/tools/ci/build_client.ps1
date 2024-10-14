@@ -25,9 +25,9 @@ try {
     $tools.ensureNodeJS()
     $tools.ensureYarn()
 
-    Write-Host "Context:", $ctx, "`n"
-    Write-Host "Tools:", $tools, "`n"
-    Write-Host "Versions:", $versions, "`n"
+    Write-Output "Context:", $ctx, "`n"
+    Write-Output "Tools:", $tools, "`n"
+    Write-Output "Versions:", $versions, "`n"
 
     $ctx.startBuild()
 
@@ -75,7 +75,7 @@ try {
         Invoke-PackClient -Context $ctx -Tools $tools -Versions $versions
     }.GetNewClosure()
 
-    if ($ctx.IsReleaseBuild) {
+    if ($ctx.IsPublicBuild) {
         Invoke-LogSection "Creating sentry release" {
             $sentryVersion = "cfx-{0}" -f $versions.BuildID
 

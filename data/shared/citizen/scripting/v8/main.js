@@ -8,6 +8,7 @@ const EXT_LOCALFUNCREF = 11;
 	let boundaryIdx = 1;
 	let lastBoundaryStart = null;
 	const isDuplicityVersion = IsDuplicityVersion();
+	const currentResourceName = GetCurrentResourceName();
 
 	// temp
 	global.FormatStackTrace = function (args, argLength) {
@@ -76,13 +77,30 @@ const EXT_LOCALFUNCREF = 11;
 
 	function refFunctionUnpacker(refSerialized) {
 		const fnRef = Citizen.makeFunctionReference(refSerialized);
+		const invoker = GetInvokingResource();
 
 		return function (...args) {
 			return runWithBoundaryEnd(() => {
-				const retvals = unpack(fnRef(pack(args)));
+				let retvals = null;
+				try {
+					retvals = unpack(fnRef(pack(args)));
+				} catch (e) {
+				}
 
 				if (retvals === null) {
-					throw new Error('Error in nested ref call.');
+					let errorMessage = `Error in nested ref call for ${currentResourceName}. `
+					// invoker can be null, we don't want to give an even worse
+					// error by erroring here :P
+					if (invoker) {
+						errorMessage += `${currentResourceName} tried to call a function reference in ${invoker} but the reference wasn't valid. `
+						if (GetResourceState(invoker) !== "started") {
+							errorMessage += `And ${invoker} isn't started, was the resource restarted mid call?`
+						} else {
+							errorMessage += `(did ${invoker} restart recently?)`
+						}
+					}
+
+					throw new Error(errorMessage);
 				}
 
 				switch (retvals.length) {
@@ -519,7 +537,7 @@ const EXT_LOCALFUNCREF = 11;
 	const getExportEventName = (resource, name) => `__cfx_export_${resource}_${name}`;
 
 	on(`on${eventType}ResourceStart`, (resource) => {
-		if (resource === GetCurrentResourceName()) {
+		if (resource === currentResourceName) {
 			const numMetaData = GetNumResourceMetadata(resource, exportKey) || 0;
 
 			for (let i = 0; i < numMetaData; i++) {
@@ -582,7 +600,7 @@ const EXT_LOCALFUNCREF = 11;
 
 				const [exportName, func] = args;
 
-				on(getExportEventName(GetCurrentResourceName(), exportName), (setCB) => {
+				on(getExportEventName(currentResourceName, exportName), (setCB) => {
 					setCB(func);
 				});
 			},

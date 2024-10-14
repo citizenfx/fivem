@@ -39,6 +39,10 @@
 #include "NetBitVersion.h"
 #include "NetEvent.h"
 
+#ifndef POLICY_LIVE_ENDPOINT
+#define POLICY_LIVE_ENDPOINT "https://policy-live.fivem.net/"
+#endif
+
 #ifdef FIVEM_INTERNAL_POSTMAP
 #include "InternalServerPostmap_includes.h"
 #endif
@@ -1506,7 +1510,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 												{
 												}
 
-												m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s", val), [=](bool success, const char* data, size_t size)
+												m_httpClient->DoGetRequest(fmt::sprintf("%sapi/policy/%s", POLICY_LIVE_ENDPOINT, val), [=](bool success, const char* data, size_t size)
 												{
 													std::string fact;
 

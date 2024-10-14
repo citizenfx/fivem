@@ -1,20 +1,16 @@
 #if MONO_V2
 namespace CitizenFX.Server
-{
-	public sealed class Object : Entity, Shared.IObject
-	{
-		public Object(int handle) : base(handle)
-		{
-		}
-	}
 #else
 namespace CitizenFX.Core
+#endif
 {
 	public sealed class Prop : Entity
-	{
+#if MONO_V2
+	, Shared.IObject
+#endif
+{
 		public Prop(int handle) : base(handle)
 		{
 		}
 	}
-#endif
 }

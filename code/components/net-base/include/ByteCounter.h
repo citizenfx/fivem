@@ -8,10 +8,12 @@
 
 namespace net
 {
+	/// <summary>
+	/// A ByteCounter is a DataStream that counts the size of the data.
+	/// </summary>
 	class ByteCounter : public DataStream
-	{		
+	{
 		uint64_t m_counter = 0;
-
 	public:
 		static constexpr Type kType = Type::Counter;
 
@@ -92,7 +94,7 @@ namespace net
 	template <>
 	inline bool ByteCounter::Field<bool>(bool& value)
 	{
-		const uint64_t valueSize = 1;
+		constexpr uint64_t valueSize = 1;
 		if (m_counter > m_counter + valueSize)
 		{
 			m_counter = std::numeric_limits<uint64_t>::max();
@@ -102,7 +104,8 @@ namespace net
 		m_counter += valueSize;
 		return true;
 	}
-	
+
+
 	template <>
 	inline bool ByteCounter::Field<std::string_view>(std::string_view& value, const size_t size)
 	{
@@ -115,7 +118,7 @@ namespace net
 		m_counter += size;
 		return true;
 	}
-	
+
 	template <>
 	inline bool ByteCounter::Field<std::string>(std::string& value, const size_t size)
 	{
@@ -128,4 +131,22 @@ namespace net
 		m_counter += size;
 		return true;
 	}
+
+	/// <summary>
+	/// The ByteMaxCounter is counting the maximum size of the data
+	/// </summary>
+	class ByteMaxCounter : public ByteCounter
+	{
+	public:
+		static constexpr Type kType = Type::MaxCounter;
+	};
+
+	/// <summary>
+	/// The ByteMinCounter is counting the minimum size of the data
+	/// </summary>
+	class ByteMinCounter : public ByteCounter
+	{
+	public:
+		static constexpr Type kType = Type::MinCounter;
+	};
 }

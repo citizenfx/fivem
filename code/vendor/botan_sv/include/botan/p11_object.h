@@ -33,7 +33,7 @@ class BOTAN_PUBLIC_API(2,0) AttributeContainer
       /// @param object_class the class type of this container
       AttributeContainer(ObjectClass object_class);
 
-      virtual ~AttributeContainer() = default;
+      virtual ~AttributeContainer() {}
 
       AttributeContainer(AttributeContainer&& other) = default;
       AttributeContainer& operator=(AttributeContainer&& other) = default;
@@ -650,7 +650,7 @@ class BOTAN_PUBLIC_API(2,0) Object
 
       Object(const Object&) = default;
       Object& operator=(const Object&) = delete;
-      virtual ~Object() = default;
+      virtual ~Object() {}
 
       /// Searches for all objects of the given type that match `search_template`
       template<typename T>

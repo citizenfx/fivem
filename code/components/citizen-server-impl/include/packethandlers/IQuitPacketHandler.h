@@ -23,7 +23,7 @@ namespace fx
 
 			void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 			{
-				static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientIQuit>();
+				static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientIQuit>();
 
 				if (packet.GetRemainingBytes() < 1 || packet.GetRemainingBytes() > kClientMaxPacketSize)
 				{

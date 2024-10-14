@@ -25,7 +25,7 @@ void fx::ServerDecorators::ReassembledEventPacketHandler::Handle(ServerInstanceB
 		return;
 	}
 
-	static size_t kMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ReassembledEvent>();
+	static size_t kMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ReassembledEvent>();
 
 	if (buffer.GetRemainingBytes() > kMaxPacketSize)
 	{
@@ -42,5 +42,10 @@ void fx::ServerDecorators::ReassembledEventPacketHandler::Handle(ServerInstanceB
 		return;
 	}
 
-	m_rac->HandlePacket(client->GetNetId(), std::string_view{ reinterpret_cast<const char*>(reassembledEvent.data.GetValue().data()), reassembledEvent.data.GetValue().size() });
+	gscomms_execute_callback_on_main_thread([this, reassembledEvent, client, buffer = std::move(buffer)]() mutable
+	{
+		m_rac->HandlePacket(client->GetNetId(), std::string_view{ reinterpret_cast<const char*>(reassembledEvent.data.GetValue().data()), reassembledEvent.data.GetValue().size() });
+		// buffer needs to be moved to prevent packet memory from being freed
+		(void)buffer;
+	});
 }

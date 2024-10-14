@@ -87,8 +87,8 @@ TEST_CASE("game state nack test")
 	gameStateNAck.SetIgnoreList(ignoreList);
 	gameStateNAck.SetRecreateList(recreateList);
 
-	REQUIRE(net::SerializableComponent::GetSize<net::packet::ClientGameStateNAck>() == 3087);
-	std::vector<uint8_t> buffer(net::SerializableComponent::GetSize<net::packet::ClientGameStateNAck>());
+	REQUIRE(net::SerializableComponent::GetMaxSize<net::packet::ClientGameStateNAck>() == 3087);
+	std::vector<uint8_t> buffer(net::SerializableComponent::GetMaxSize<net::packet::ClientGameStateNAck>());
 	net::ByteWriter writer {buffer.data(), buffer.size()};
 	REQUIRE(gameStateNAck.Process(writer) == true);
 	REQUIRE(gameStateNAck.GetFlags() == flags);
@@ -123,7 +123,7 @@ TEST_CASE("game state nack test")
 	if (!emptyIgnoreList && !emptyRecreateList && !isMissingFrames)
 	{
 		BENCHMARK("new game state ack serialization") {
-			std::vector<uint8_t> writeBuffer(net::SerializableComponent::GetSize<net::packet::ClientGameStateNAck>());
+			std::vector<uint8_t> writeBuffer(net::SerializableComponent::GetMaxSize<net::packet::ClientGameStateNAck>());
 			net::ByteWriter gameStateNAckWriter {writeBuffer.data(), writeBuffer.size()};
 			net::packet::ClientGameStateNAck gameStateNAckData;
 			gameStateNAckData.SetFrameIndex(frameIndex);

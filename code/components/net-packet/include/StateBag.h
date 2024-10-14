@@ -27,7 +27,7 @@ public:
 class StateBagPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgStateBag") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgStateBag")> };
 	StateBag data;
 
 	template<typename T>
@@ -73,7 +73,7 @@ public:
 class StateBagV2Packet : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgStateBagV2") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgStateBagV2")> };
 	StateBagV2 data;
 
 	template<typename T>

@@ -30,7 +30,7 @@ public:
 class ServerWorldGridPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgWorldGrid3") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<const uint32_t, HashRageString("msgWorldGrid3")> };
 	ServerWorldGrid data;
 
 	template<typename T>

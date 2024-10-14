@@ -12,7 +12,7 @@ namespace net::packet
 class ClientRequestObjectIdsPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgRequestObjectIds") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgRequestObjectIds")> };
 
 	template<typename T>
 	bool Process(T& stream)
@@ -135,7 +135,7 @@ template<bool BigMode>
 class ServerObjectIdsPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgObjectIds") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgObjectIds")> };
 	ServerObjectIds<BigMode> data;
 
 	template<typename T>

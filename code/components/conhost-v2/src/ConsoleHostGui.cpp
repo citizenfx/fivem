@@ -684,7 +684,7 @@ auto msec()
 
 struct MiniConsole : CfxBigConsole
 {
-	ImVector<std::chrono::milliseconds> ItemTimes;
+	boost::circular_buffer<std::chrono::milliseconds> ItemTimes{ 2500 };
 
 	ConVar<std::string>* m_miniconChannels;
 	std::string m_miniconLastValue;

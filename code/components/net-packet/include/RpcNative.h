@@ -27,7 +27,7 @@ public:
 class ServerRpcNativePacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgRpcNative") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgRpcNative")> };
 	ServerRpcNative event;
 
 	template<typename T>

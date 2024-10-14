@@ -70,7 +70,7 @@ class BOTAN_PUBLIC_API(2,0) Buffered_Filter
       */
       Buffered_Filter(size_t block_size, size_t final_minimum);
 
-      virtual ~Buffered_Filter() = default;
+      virtual ~Buffered_Filter() {}
    protected:
       /**
       * The block processor, implemented by subclasses

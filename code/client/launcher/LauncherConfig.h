@@ -7,8 +7,9 @@
 
 #pragma once
 
-#define CONTENT_URL "https://content.cfx.re/updates"
-#define CONTENT_URL_WIDE L"https://content.cfx.re/updates"
+#ifndef CFX_UPDATER_URL
+#define CFX_UPDATER_URL "https://content.cfx.re/updates"
+#endif
 
 #if defined(GTA_NY)
 #define PRODUCT_NAME L"LibertyM"

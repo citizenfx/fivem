@@ -57,13 +57,15 @@ struct ReEventQueueItem
 	uint16_t eventId;
 	bool isReply;
 	std::vector<uint8_t> eventData;
+	uint8_t retries;
 
-	ReEventQueueItem(net::packet::ServerNetGameEventV2& serverNetGameEvent):
+	ReEventQueueItem(net::packet::ServerNetGameEventV2& serverNetGameEvent, uint8_t retries):
 		eventNameHash(serverNetGameEvent.eventNameHash),
 		clientNetId(serverNetGameEvent.clientNetId),
 		eventId(serverNetGameEvent.eventId),
 		isReply(serverNetGameEvent.isReply),
-		eventData(serverNetGameEvent.data.GetValue().begin(), serverNetGameEvent.data.GetValue().end())
+		eventData(serverNetGameEvent.data.GetValue().begin(), serverNetGameEvent.data.GetValue().end()),
+		retries(retries)
 	{
 
 	}
@@ -543,9 +545,14 @@ void rage::HandleNetGameEvent(const char* idata, size_t len)
 	}
 }
 
-void rage::HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGameEventV2)
+void rage::HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGameEventV2, uint8_t retries)
 {
 	if (!icgi->HasVariable("networkInited"))
+	{
+		return;
+	}
+
+	if (retries > 100)
 	{
 		return;
 	}
@@ -641,7 +648,7 @@ void rage::HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGame
 
 		if (rejected)
 		{
-			g_reEventQueueV2.emplace_back(serverNetGameEventV2);
+			g_reEventQueueV2.emplace_back(serverNetGameEventV2, retries + 1);
 		}
 	}
 }
@@ -1167,7 +1174,7 @@ namespace rage
 			serverNetGameEvent.isReply = g_reEventQueueV2.front().isReply;
 			serverNetGameEvent.data = {g_reEventQueueV2.front().eventData.data(), g_reEventQueueV2.front().eventData.size()};
 
-			HandleNetGameEventV2(serverNetGameEvent);
+			HandleNetGameEventV2(serverNetGameEvent, g_reEventQueueV2.front().retries);
 
 			g_reEventQueueV2.pop_front();
 		}
@@ -1235,6 +1242,7 @@ static InitFunction initFunction([]()
 		g_events.clear();
 		g_eventsV2.clear();
 		g_reEventQueue.clear();
+		g_reEventQueueV2.clear();
 	});
 });
 

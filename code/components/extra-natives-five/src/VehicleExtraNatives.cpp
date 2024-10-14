@@ -236,6 +236,8 @@ static void writeVehicleMemory(fx::ScriptContext& context, std::string_view nn)
 	}
 }
 
+static float* PassengerMassPtr;
+
 static int StreamRenderGfxPtrOffset;
 static int HandlingDataPtrOffset;
 static int DrawHandlerPtrOffset;
@@ -751,6 +753,11 @@ static HookFunction initFunction([]()
 	{
 		VehiclePitchBiasOffset = *hook::get_pattern<uint32_t>("0F 2F F7 44 0F 28 C0 F3 44 0F 58 83", 12);
 		VehicleRollBiasOffset = VehiclePitchBiasOffset - 4;
+	}
+
+	{
+		auto location = hook::get_pattern<char>("F3 0F 59 3D ? ? ? ? F3 0F 58 3D ? ? ? ? 48 85 C9", 4);
+		PassengerMassPtr = hook::get_address<float*>(location);
 	}
 
 	{
@@ -1518,6 +1525,22 @@ static HookFunction initFunction([]()
 		ResetFlyThroughWindscreenParams();
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_GLOBAL_PASSENGER_MASS_MULTIPLIER", [](fx::ScriptContext& context)
+	{
+		float weight = context.GetArgument<float>(0);
+
+		if (weight < 0.0)
+		{
+			weight = 0.0;
+		}
+		*PassengerMassPtr = weight;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_GLOBAL_PASSENGER_MASS_MULTIPLIER", [](fx::ScriptContext& context)
+	{
+		context.SetResult<float>(*PassengerMassPtr);
+	});
+
 	static struct : jitasm::Frontend
 	{
 		static bool ShouldSkipRepairFunc(fwEntity* VehPointer)
@@ -1595,6 +1618,8 @@ static HookFunction initFunction([]()
 
 		g_isFuelConsumptionOn = false;
 		g_globalFuelConsumptionMultiplier = 1.f;
+
+		*PassengerMassPtr = 0.05f;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context)

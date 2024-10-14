@@ -32,7 +32,7 @@ public:
 class ClientServerCommandPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgServerCommand") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgServerCommand")> };
 	ClientServerCommand data;
 
 	template<typename T>

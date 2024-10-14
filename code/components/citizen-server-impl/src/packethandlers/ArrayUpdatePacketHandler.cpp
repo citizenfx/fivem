@@ -20,8 +20,8 @@ void fx::ServerDecorators::ArrayUpdatePacketHandler::Handle(fx::ServerInstanceBa
 	{
 		return;
 	}
-	
-	static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientArrayUpdate>();
+
+	static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientArrayUpdate>();
 
 	if (buffer.GetRemainingBytes() > kClientMaxPacketSize)
 	{
@@ -38,6 +38,11 @@ void fx::ServerDecorators::ArrayUpdatePacketHandler::Handle(fx::ServerInstanceBa
 		return;
 	}
 
-	auto sgs = instance->GetComponent<fx::ServerGameStatePublic>();
-	sgs->HandleArrayUpdate(client, clientArrayUpdate);
+	gscomms_execute_callback_on_sync_thread([clientArrayUpdate, instance, client, buffer = std::move(buffer)]() mutable
+	{
+		auto sgs = instance->GetComponent<fx::ServerGameStatePublic>();
+		sgs->HandleArrayUpdate(client, clientArrayUpdate);
+		// buffer needs to be moved to prevent packet memory from being freed
+		(void)buffer;
+	});
 }
