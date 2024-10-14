@@ -18,6 +18,11 @@ struct GetInfoOutOfBand
 	void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from,
 	                    const std::string_view& data)
 	{
+		if (data.size() > 8)
+		{
+			return;
+		}
+
 		const auto limiter = server->GetInstance()->template GetComponent<fx::PeerAddressRateLimiterStore>()->
 		                             GetRateLimiter(
 			                             "getinfo", fx::RateLimiterDefaults{2.0, 10.0});

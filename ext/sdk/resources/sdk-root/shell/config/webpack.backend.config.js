@@ -34,7 +34,8 @@ module.exports = (env, args) => {
     },
     optimization: prerequisites.optimization(env, args),
     plugins: prerequisites.plugins(env, args, {
-      project: 'fxdk-backend',
+      sentryProject: process.env.CFX_SENTRY_PROJECT_NAME_FXDK_BACKEND,
+      sentryDsn: process.env.CFX_SENTRY_DSN_FXDK_BACKEND,
       include: prerequisites.paths.buildServer,
     }),
     ...prerequisites.common,

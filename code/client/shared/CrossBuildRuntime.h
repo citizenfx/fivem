@@ -154,6 +154,17 @@ inline bool IsGameBuild()
 	return GetGameBuild() == Build;
 }
 
+inline bool IsSupportedGameBuild(uint32_t targetBuild)
+{
+	switch (targetBuild)
+	{
+#define EXPAND(_, __, x) case x: return true;
+		BOOST_PP_SEQ_FOR_EACH(EXPAND, , GAME_BUILDS)
+#undef EXPAND
+	}
+	return false;
+}
+
 #ifdef _WIN32
 inline const wchar_t* GetGameWndClass()
 {

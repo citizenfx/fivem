@@ -31,7 +31,7 @@ public:
 class ClientHeHostPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgHeHost") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgHeHost")> };
 	ClientHeHost data;
 
 	template<typename T>

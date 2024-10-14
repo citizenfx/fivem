@@ -4,6 +4,24 @@ local function printFunctionName(native)
 	end)
 end
 
+function table.shallow_copy(t)
+	local t2 = {}
+	for k, v in pairs(t) do
+		t2[k] = v
+	end
+	return t2
+end
+
+function table.slice(tbl, first, last, step)
+	local sliced = {}
+
+	for i = first or 1, last or #tbl, step or 1 do
+		sliced[#sliced + 1] = tbl[i]
+	end
+	return sliced
+end
+
+
 -- C# language words
 local langWords = {
 	['abstract'] = '_abstract',
@@ -202,6 +220,26 @@ local function formatDocString(native)
 	end
 
 	return l
+end
+
+local function getCodeSplits(native)
+	local splits = {}
+	if native.arguments then
+		for i, argument in ipairs(native.arguments) do
+			if argument.annotations and argument.annotations['cs_split'] then
+				-- mark it as a split native so we can ignore collisions
+				-- for the native later
+				native.is_split = true
+				local native_clone = table.shallow_copy(native)
+				-- get the argument before this
+				native_clone.arguments = table.slice(native.arguments, 1, i - 1, 1)
+				splits[#splits + 1] = native_clone
+			end
+		end
+	end
+	splits[#splits + 1] = native
+
+	return splits
 end
 
 local function parseArgument(argument, native)
@@ -465,7 +503,7 @@ local function formatImpl(native, baseAppendix)
 		body = body .. t .. '\tcxt->functionDataPtr = _fnPtr;\n'
 		body = body .. t .. '\tcxt->retDataPtr = _fnPtr;\n'
 		body = body .. t .. ("\tvar invv = m_invoker%s;\n"):format(nativeName)
-		body = body .. t .. ("\tbyte* error = null;\n"):format(nativeName)
+		body = body .. t .. "\tbyte* error = null;\n"
 		body = body .. t .. ("\tif (invv == null) m_invoker%s = invv = ScriptContext.DoGetNative(%s);\n"):format(nativeName, native.hash)
 		body = body .. t .. ("\tif (!invv(cxt, (void**)&error)) { throw new System.InvalidOperationException(ScriptContext.ErrorHandler(error)); }\n")
 		body = body .. "#endif\n"
@@ -512,7 +550,7 @@ local function printNative(native)
 	local retType, def, hyperDriveSafe = formatImpl(native, baseAppendix)
 	local wrapper = formatWrapper(native, 'Internal' .. nativeName .. baseAppendix)
 
-	local str = string.format("%s\t\t[System.Security.SecuritySafeCritical]\n\t\tpublic static %s %s%s", doc, retType, nativeName .. appendix, wrapper)
+	local str = string.format("%s\t\t[System.Security.SecuritySafeCritical]\n\t\tpublic static %s %s%s", doc, retType, nativeName .. (native.is_split and '' or appendix), wrapper)
 
 	for _, alias in ipairs(native.aliases) do
 		local aliasName = printFunctionName({ name = alias })
@@ -545,7 +583,10 @@ print('\tpublic static class API\n\t{')
 
 for _, v in pairs(_natives) do
 	if matchApiSet(v) then
-		print(printNative(v))
+		local splits = getCodeSplits(v)
+		for _i, native_split in ipairs(splits) do
+			print(printNative(native_split))
+		end
 	end
 end
 

@@ -64,11 +64,8 @@ namespace net
 
 		Type m_value;
 
-		SerializableProperty(Type& v) : m_value(v)
-		{
-		}
-
-		SerializableProperty(const Type&& v) : m_value(std::move(v))
+		template <typename T>
+		SerializableProperty(T&& v) : m_value(std::forward<T>(v))
 		{
 		}
 
@@ -93,6 +90,11 @@ namespace net
 		}
 
 		Type& GetValue()
+		{
+			return m_value;
+		}
+
+		Type GetValue() const
 		{
 			return m_value;
 		}

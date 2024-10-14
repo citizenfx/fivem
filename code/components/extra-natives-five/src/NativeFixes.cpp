@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include <Local.h>
 
+#include <array>
+
 #include <ScriptEngine.h>
 #include <Hooking.h>
 #include <scrEngine.h>

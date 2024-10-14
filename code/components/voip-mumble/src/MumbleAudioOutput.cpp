@@ -1469,6 +1469,8 @@ void MumbleAudioOutput::ThreadFunc()
 
 	mmcssHandle = AvSetMmThreadCharacteristics(L"Audio", &mmcssTaskIndex);
 
+	AvSetMmThreadPriority(mmcssHandle, AVRT_PRIORITY_HIGH);
+
 	// initialize COM for the current thread
 	CoInitialize(nullptr);
 
@@ -1867,6 +1869,30 @@ struct scrBindArgument<lab::FilterType>
 	}
 };
 
+template <>
+struct scrBindParent<lab::BiquadFilterNode>
+{
+	using type = lab::AudioBasicProcessorNode;
+};
+
+template<>
+struct scrBindParent<lab::WaveShaperNode>
+{
+	using type = lab::AudioBasicProcessorNode;
+};
+
+template<>
+struct scrBindParent<lab::AudioBasicProcessorNode>
+{
+	using type = lab::AudioNode;
+};
+
+template<>
+struct scrBindParent<lab::AudioSourceNode>
+{
+	using type = lab::AudioNode;
+};
+
 static std::shared_ptr<lab::BiquadFilterNode> createBiquadFilterNode(lab::AudioContext* self)
 {
 	return std::make_shared<lab::BiquadFilterNode>();
@@ -1884,7 +1910,7 @@ static std::shared_ptr<lab::AudioSourceNode> getSource(lab::AudioContext* self)
 
 static InitFunction initFunctionScript([]()
 {
-	scrBindClass<std::shared_ptr<lab::AudioContext>>()
+	scrBindClass<lab::AudioContext>()
 		.AddMethod("AUDIOCONTEXT_CONNECT", &lab::AudioContext::connect)
 		.AddMethod("AUDIOCONTEXT_DISCONNECT", &lab::AudioContext::disconnect)
 		.AddMethod("AUDIOCONTEXT_GET_CURRENT_TIME", &lab::AudioContext::currentTime)
@@ -1893,7 +1919,7 @@ static InitFunction initFunctionScript([]()
 		.AddMethod("AUDIOCONTEXT_CREATE_BIQUADFILTERNODE", &createBiquadFilterNode)
 		.AddMethod("AUDIOCONTEXT_CREATE_WAVESHAPERNODE", &createWaveShaperNode);
 	
-	scrBindClass<std::shared_ptr<lab::BiquadFilterNode>>()
+	scrBindClass<lab::BiquadFilterNode>()
 		.AddMethod("BIQUADFILTERNODE_SET_TYPE", &lab::BiquadFilterNode::setType)
 		.AddMethod("BIQUADFILTERNODE_Q", &lab::BiquadFilterNode::q)
 		// needs msgpack wrappers for in/out and a weird lock thing
@@ -1903,13 +1929,13 @@ static InitFunction initFunctionScript([]()
 		.AddMethod("BIQUADFILTERNODE_DETUNE", &lab::BiquadFilterNode::detune)
 		.AddDestructor("BIQUADFILTERNODE_DESTROY");
 
-	scrBindClass<std::shared_ptr<lab::WaveShaperNode>>()
+	scrBindClass<lab::WaveShaperNode>()
 		// this is if 0'd?
 		//.AddMethod("WAVESHAPERNODE_GET_CURVE", &lab::WaveShaperNode::curve)
 		.AddMethod("WAVESHAPERNODE_SET_CURVE", &lab::WaveShaperNode::setCurve)
 		.AddDestructor("WAVESHAPERNODE_DESTROY");
 
-	scrBindClass<std::shared_ptr<lab::AudioParam>>()
+	scrBindClass<lab::AudioParam>()
 		.AddMethod("AUDIOPARAM_SET_VALUE", &lab::AudioParam::setValue)
 		.AddMethod("AUDIOPARAM_SET_VALUE_AT_TIME", &lab::AudioParam::setValueAtTime)
 		.AddMethod("AUDIOPARAM_SET_VALUE_CURVE_AT_TIME", &lab::AudioParam::setValueCurveAtTime)

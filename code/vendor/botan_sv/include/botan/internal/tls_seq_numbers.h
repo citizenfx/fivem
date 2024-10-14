@@ -18,7 +18,7 @@ namespace TLS {
 class Connection_Sequence_Numbers
    {
    public:
-      virtual ~Connection_Sequence_Numbers() = default;
+      virtual ~Connection_Sequence_Numbers() {}
 
       virtual void new_read_cipher_state() = 0;
       virtual void new_write_cipher_state() = 0;

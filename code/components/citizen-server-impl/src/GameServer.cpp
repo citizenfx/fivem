@@ -47,6 +47,9 @@
 
 #include <packethandlers/RequestObjectIdsPacketHandler.h>
 
+#include "ByteWriter.h"
+#include "Frame.h"
+
 constexpr const char kDefaultServerList[] = "https://servers-ingress-live.fivem.net/ingress";
 
 static fx::GameServer* g_gameServer;
@@ -110,6 +113,7 @@ namespace fx
 		OnAttached(instance);
 
 		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_ReadOnly, "");
+		m_playersToken = instance->AddVariable<std::string>("sv_playersToken", ConVar_None, "");
 		m_hostname = instance->AddVariable<std::string>("sv_hostname", ConVar_ServerInfo, "default FXServer");
 		m_masters[0] = instance->AddVariable<std::string>("sv_master1", ConVar_None, kDefaultServerList);
 		m_masters[1] = instance->AddVariable<std::string>("sv_master2", ConVar_None, "");
@@ -898,13 +902,15 @@ namespace fx
 						!lf ||
 						(m_serverTime - fx::AnyCast<uint64_t>(lf)) > 1000)
 					{
-						net::Buffer outMsg;
-						outMsg.Write(HashRageString("msgFrame"));
-						outMsg.Write<uint32_t>(0);
-						outMsg.Write<uint8_t>(lockdownMode);
-						outMsg.Write<uint8_t>(syncStyle);
-
-						client->SendPacket(0, outMsg, NetPacketType_Reliable);
+						net::packet::ServerFramePacket serverFrame;
+						serverFrame.data.lockdownMode = lockdownMode;
+						serverFrame.data.syncStyle = syncStyle;
+						static const size_t kMaxFrameSize = net::SerializableComponent::GetMaxSize<net::packet::ServerFramePacket>();
+						net::Buffer responseBuffer(kMaxFrameSize);
+						net::ByteWriter writer(responseBuffer.GetBuffer(), kMaxFrameSize);
+						serverFrame.Process(writer);
+						responseBuffer.Seek(writer.GetOffset());
+						client->SendPacket(0, responseBuffer, NetPacketType_Reliable);
 
 						client->SetData("lockdownMode", lockdownMode);
 						client->SetData("syncStyle", syncStyle);
@@ -1270,6 +1276,8 @@ namespace fx
 #include <packethandlers/NetGameEventPacketHandler.h>
 #include <packethandlers/ReassembledEventPacketHandler.h>
 #include <packethandlers/ArrayUpdatePacketHandler.h>
+#include <packethandlers/GameStateNAckPacketHandler.h>
+#include <packethandlers/GameStateAckPacketHandler.h>
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
@@ -1339,7 +1347,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(new fx::UdpInterceptor());
 
 		instance->SetComponent(
-			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2, ArrayUpdatePacketHandler, ReassembledEventPacketHandler, RequestObjectIdsPacketHandler>(
+			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2, ArrayUpdatePacketHandler, ReassembledEventPacketHandler, RequestObjectIdsPacketHandler, GameStateNAckPacketHandler, GameStateAckPacketHandler>(
 				WithProcessTick<ThreadWait, GameServerTick>(
 					WithOutOfBand<GetInfoOutOfBand, GetStatusOutOfBand, RconOutOfBand>(
 						WithEndPoints(

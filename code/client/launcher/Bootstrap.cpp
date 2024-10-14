@@ -83,7 +83,7 @@ bool Bootstrap_DoBootstrap()
 
 	auto fetchContent = [&contentHeaders, &bootstrapVersion](const std::string& updateChannel)
 	{
-		return DL_RequestURL(va(CONTENT_URL "/heads/" CONTENT_NAME "/%s?time=%lld", updateChannel, _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
+		return DL_RequestURL(va(CFX_UPDATER_URL "/heads/" CONTENT_NAME "/%s?time=%lld", updateChannel, _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
 	};
 
 	int result = fetchContent(GetUpdateChannel());
@@ -109,7 +109,7 @@ bool Bootstrap_DoBootstrap()
 		{
 			if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
-				UI_DisplayError(va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())));
+				UI_DisplayError(ToWide(va("An error (%i, %s) occurred while checking the bootstrapper version. Check if " CFX_UPDATER_URL " is available in your web browser.", result, DL_RequestURLError())).c_str());
 				return false;
 			}
 
@@ -126,7 +126,7 @@ bool Bootstrap_DoBootstrap()
 		{
 			if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
-				UI_DisplayError(va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())));
+				UI_DisplayError(ToWide(va("An error (%i, %s) occurred while checking the bootstrapper version. Check if " CFX_UPDATER_URL " is available in your web browser.", result, DL_RequestURLError())).c_str());
 				return false;
 			}
 

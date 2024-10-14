@@ -17,7 +17,7 @@ set UIRoot=%~dp0\data
 pushd ..\cfx-ui\
 
 :: install packages (using Yarn now)
-call yarn --ignore-engines
+call yarn --ignore-engines --frozen-lockfile
 :: propagate error
 if %ERRORLEVEL% neq 0 exit /b 1
 

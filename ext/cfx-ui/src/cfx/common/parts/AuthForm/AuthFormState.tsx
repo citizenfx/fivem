@@ -209,7 +209,10 @@ class AuthFormState {
       ),
     );
 
-    this.email = this.toDispose.register(new FieldController((email) => this.accountService.getEmailError(email)));
+    this.email = this.toDispose.register(new FieldController((email) => this.accountService.getEmailError(
+      email,
+      this.isRegistration,
+    )));
 
     this.toDispose.add(
       reaction(

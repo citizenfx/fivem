@@ -193,6 +193,11 @@ static InitFunction initFunction([] ()
 			resourcesToNuiWindows.insert({ resource->GetName(), m_autogenHandle });
 		}
 
+		~NUIWindowWrapper()
+		{
+			Destroy();
+		}
+
 		void SetURL(const char* url)
 		{
 			if (!url)
@@ -205,12 +210,15 @@ static InitFunction initFunction([] ()
 
 		void Destroy()
 		{
-			nui::DestroyNUIWindow(m_autogenHandle);
+			if (m_autogenHandle.empty())
+			{
+				return;
+			}
 
 			nuiWindows.erase(m_autogenHandle);
 
-			// delet this!
-			delete this;
+			nui::DestroyNUIWindow(m_autogenHandle);
+			m_autogenHandle.clear();
 		}
 
 		const char* GetHandle()
@@ -329,7 +337,8 @@ static InitFunction initFunction([] ()
 	};
 
 	scrBindClass<NUIWindowWrapper>()
-		.AddConstructor<void(*)(const char*, int, int)>("CREATE_DUI")
+		.AddConstructor<const char*, int, int>("CREATE_DUI")
+		.AddDestructor("DESTROY_DUI")
 		.AddMethod("SET_DUI_URL", &NUIWindowWrapper::SetURL)
 		.AddMethod("SEND_DUI_MESSAGE", &NUIWindowWrapper::SendMessage)
 		.AddMethod("GET_DUI_HANDLE", &NUIWindowWrapper::GetHandle)
@@ -337,8 +346,7 @@ static InitFunction initFunction([] ()
 		.AddMethod("SEND_DUI_MOUSE_MOVE", &NUIWindowWrapper::InjectMouseMove)
 		.AddMethod("SEND_DUI_MOUSE_DOWN", &NUIWindowWrapper::InjectMouseDown)
 		.AddMethod("SEND_DUI_MOUSE_UP", &NUIWindowWrapper::InjectMouseUp)
-		.AddMethod("SEND_DUI_MOUSE_WHEEL", &NUIWindowWrapper::InjectMouseWheel)
-		.AddMethod("DESTROY_DUI", &NUIWindowWrapper::Destroy);		
+		.AddMethod("SEND_DUI_MOUSE_WHEEL", &NUIWindowWrapper::InjectMouseWheel);
 
 	// this *was* a multiset before but some resources would not correctly pair set/unset and then be stuck in 'set' state
 	static std::unordered_set<std::string> focusVotes;
@@ -393,12 +401,9 @@ static InitFunction initFunction([] ()
 
 			for (auto dui : fx::GetIteratorView(resourcesToNuiWindows.equal_range(resourceName)))
 			{
-				auto it = nuiWindows.find(dui.second);
-
-				if (it != nuiWindows.end())
+				if (auto it = nuiWindows.find(dui.second); it != nuiWindows.end())
 				{
 					it->second->Destroy();
-					nuiWindows.erase(dui.second);
 				}
 			}
 

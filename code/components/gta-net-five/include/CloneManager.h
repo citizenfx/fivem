@@ -86,7 +86,10 @@ public:
 
 	// TEMP: for temporary use during player deletion
 	virtual void DeleteObjectId(uint16_t objectId, uint16_t uniqifier, bool force = false) = 0;
+	
+	virtual void HandleCloneSync(const char* data, size_t len) = 0;
 
+	virtual void HandleCloneAcks(const char* data, size_t len) = 0;
 public:
 	virtual void Logv(const char* format, fmt::printf_args argumentList) = 0;
 

@@ -184,7 +184,7 @@ class BOTAN_UNSTABLE_API Echo_Suppression
       * Implicitly calls reenable_echo, but swallows/ignored all
       * errors which would leave the terminal in an invalid state.
       */
-      virtual ~Echo_Suppression() = default;
+      virtual ~Echo_Suppression() {}
    };
 
 /**

@@ -27,7 +27,7 @@ public:
 class ReassembledEventPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgReassembledEvent") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgReassembledEvent")> };
 	ReassembledEvent data;
 
 	template<typename T>

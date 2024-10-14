@@ -113,6 +113,11 @@ namespace fx
 			return m_rconPassword->GetValue();
 		}
 
+		inline std::string GetPlayersToken()
+		{
+			return m_playersToken->GetValue();
+		}
+
 		inline int GetNetLibVersion()
 		{
 			return m_net->GetClientVersion();
@@ -280,6 +285,8 @@ namespace fx
 		std::shared_ptr<ConVar<bool>> m_useAccurateSendsVar;
 
 		std::shared_ptr<ConVar<std::string>> m_rconPassword;
+
+		std::shared_ptr<ConVar<std::string>> m_playersToken;
 
 		std::shared_ptr<ConVar<std::string>> m_hostname;
 

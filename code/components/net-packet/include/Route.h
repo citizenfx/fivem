@@ -35,7 +35,7 @@ public:
 class ClientRoutePacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgRoute") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgRoute")> };
 	ClientRoute data;
 
 	template<typename T>

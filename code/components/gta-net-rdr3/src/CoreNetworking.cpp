@@ -9,6 +9,8 @@
 #include <CrossBuildRuntime.h>
 #include <Error.h>
 
+#include "FramePacketHandler.h"
+#include "IHost.h"
 #include "netTimeSync.h"
 
 NetLibrary* g_netLibrary;
@@ -202,7 +204,7 @@ static HookFunction initFunction([]()
 
 	ObjectIds_BindNetLibrary(g_netLibrary);
 
-	g_netLibrary->OnBuildMessage.Connect([](const std::function<void(uint32_t, const char*, int)>& writeReliable)
+	g_netLibrary->OnBuildMessage.Connect([]()
 	{
 		static bool lastHostState;
 
@@ -212,8 +214,9 @@ static HookFunction initFunction([]()
 		{
 			if (isHost)
 			{
-				auto base = g_netLibrary->GetServerBase();
-				writeReliable(HashRageString("msgIHost"), (char*)&base, sizeof(base));
+				net::packet::ClientIHostPacket iHostPacket;
+				iHostPacket.data.baseNum = g_netLibrary->GetServerBase();
+				g_netLibrary->SendNetPacket(iHostPacket);
 			}
 
 			lastHostState = isHost;
@@ -228,31 +231,7 @@ static HookFunction initFunction([]()
 		}
 	});
 
-	g_netLibrary->AddReliableHandler("msgFrame", [](const char* data, size_t len)
-	{
-		net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
-		auto idx = buffer.Read<uint32_t>();
-
-		auto icgi = Instance<ICoreGameInit>::Get();
-
-		uint8_t strictLockdown = buffer.Read<uint8_t>();
-
-		static uint8_t lastStrictLockdown;
-
-		if (strictLockdown != lastStrictLockdown)
-		{
-			if (!strictLockdown)
-			{
-				icgi->ClearVariable("strict_entity_lockdown");
-			}
-			else
-			{
-				icgi->SetVariable("strict_entity_lockdown");
-			}
-
-			lastStrictLockdown = strictLockdown;
-		}
-	}, true);
+	g_netLibrary->AddPacketHandler<fx::FramePacketHandler>(true);
 
 	OnMainGameFrame.Connect([]()
 	{

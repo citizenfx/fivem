@@ -12,7 +12,7 @@ namespace net::packet
 class ClientRequestObjectIdsPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgRequestObjectIds") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgRequestObjectIds")> };
 
 	template<typename T>
 	bool Process(T& stream)
@@ -57,9 +57,9 @@ public:
 	};
 
 	// todo: in future net version use StreamTail
-	SerializableProperty<std::vector<IdEntry>, storage_type::ConstrainedBytesArray<0, BigMode ? 6 : 32>> ids;
+	SerializableProperty<Span<IdEntry>, storage_type::ConstrainedBytesArray<0, BigMode ? 6 : 64>> ids;
 
-	void SetIds(const std::vector<uint16_t>& idsToSet)
+	void SetIds(const std::vector<uint16_t>& idsToSet, std::vector<IdEntry>& container)
 	{
 		// compress and send
 		// adapted from https://stackoverflow.com/a/1081776
@@ -81,8 +81,10 @@ public:
 
 			last = idsToSet[i - 1];
 
-			ids.GetValue().emplace_back(gap, size);
+			container.emplace_back(gap, size);
 		}
+
+		ids.SetValue({container.data(), container.size()});
 	}
 
 	void GetIds(std::vector<uint16_t>& idsToRead)
@@ -96,6 +98,22 @@ public:
 			{
 				uint16_t objectId = last++;
 				idsToRead.push_back(objectId);
+			}
+		}
+	}
+
+	template<class Func>
+	void ForEachId(const Func&& callback)
+	{
+		uint16_t last = 0;
+		for (const auto& idEntry : ids.GetValue())
+		{
+			last += idEntry.gap + 1;
+
+			for (uint16_t j = 0; j <= idEntry.size; j++)
+			{
+				uint16_t objectId = last++;
+				callback(objectId);
 			}
 		}
 	}
@@ -117,7 +135,7 @@ template<bool BigMode>
 class ServerObjectIdsPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ HashRageString("msgObjectIds") };
+	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgObjectIds")> };
 	ServerObjectIds<BigMode> data;
 
 	template<typename T>

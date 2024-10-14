@@ -50,7 +50,7 @@ export class LinkedIdentitiesService implements AppContribution, ILinkedIdentiti
     }
 
     try {
-      const json = await fetcher.json('https://lambda.fivem.net/api/ticket/identities', {
+      const json = await fetcher.json(`${__CFXUI_CNL_ENDPOINT__}api/ticket/identities`, {
         method: 'POST',
         body: serializeQueryString({
           token: ownershipTicket,

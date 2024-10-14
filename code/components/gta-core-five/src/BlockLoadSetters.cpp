@@ -52,6 +52,10 @@ static inline int MapInitState(int initState)
 		}
 	}
 
+	if (initState >= 2 && xbr::IsGameBuildOrGreater<3323>())
+	{
+		initState += 1;
+	}
 	return initState;
 }
 
@@ -586,7 +590,7 @@ static HookFunction hookFunction([] ()
 
 	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'), UNLESS it's digital distribution with standalone auth...
 	// Since game build 2699.16 executables now shared.
-	char* p = (xbr::IsGameBuild<2060>() || xbr::IsGameBuildOrGreater<2802>()) ? hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14) : hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
+	char* p = (xbr::IsGameBuild<2060>() || xbr::IsGameBuildOrGreater<2802>()) ? hook::pattern("48 83 EC ? E8 ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? E8").count(1).get(0).get<char>(55) : hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
 
 	char* varPtr = p + 2;
 	g_initState = (int*)(varPtr + *(int32_t*)varPtr + 4);
@@ -598,7 +602,7 @@ static HookFunction hookFunction([] ()
 	// and if this *is* digital distribution, we want to find a completely different place that sets the value to 8 (i.e. BA 08 ...)
 	if (g_isDigitalDistrib)
 	{
-		p = hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
+		p = hook::pattern("48 83 EC ? E8 ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? E8").count(1).get(0).get<char>(55);
 	}
 
 	{
@@ -693,7 +697,15 @@ static HookFunction hookFunction([] ()
 	hook::call(hook::get_pattern("C8 89 05 ? ? ? ? E8 ? ? ? ? 89 05", 7), BlipAsIndex);
 
 	// don't load commandline.txt
-	hook::return_function(hook::get_pattern("45 33 E4 83 39 02 4C 8B FA 45 8D 6C", -0x1C));
+	if (xbr::IsGameBuildOrGreater<3323>())
+	{
+		// force return 0 here, with xor eax, eax
+		hook::put<uint64_t>(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 45 33 ED 83 39"), 0x90C3C031);
+	}
+	else
+	{
+		hook::return_function(hook::get_pattern("45 33 E4 83 39 02 4C 8B FA 45 8D 6C", -0x1C));
+	}
 
 	// sometimes this crashes
 	SafeRun([]()

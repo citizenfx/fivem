@@ -101,6 +101,16 @@ inline bool Is3258()
 {
 	return true;
 }
+
+inline bool Is3323()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 3323;
+	})();
+
+	return value;
+}
 #elif defined(STATE_RDR3)
 inline bool Is1311()
 {
@@ -299,50 +309,109 @@ struct CObjectGameStateNodeData
 
 struct CVehicleAppearanceNodeData
 {
-	int primaryColour;
-	int secondaryColour;
-	int pearlColour;
-	int wheelColour;
-	int interiorColour;
-	int dashboardColour;
+    int primaryColour;
+    int secondaryColour;
+    int pearlColour;
+    int wheelColour;
+    int interiorColour;
+    int dashboardColour;
 
-	bool isPrimaryColourRGB;
-	bool isSecondaryColourRGB;
+    bool isPrimaryColourRGB;
+    bool isSecondaryColourRGB;
 
-	int primaryRedColour;
-	int primaryGreenColour;
-	int primaryBlueColour;
+    int primaryRedColour;
+    int primaryGreenColour;
+    int primaryBlueColour;
 
-	int secondaryRedColour;
-	int secondaryGreenColour;
-	int secondaryBlueColour;
+    int secondaryRedColour;
+    int secondaryGreenColour;
+    int secondaryBlueColour;
 
-	int dirtLevel;
-	int extras;
-	int liveryIndex;
-	int roofLiveryIndex;
+	int envEffScale;
+	bool hasExtras;
 
-	int wheelChoice;
-	int wheelType;
+    int dirtLevel;
+    int extras;
+	bool hasCustomLivery;
+	bool hasCustomLiveryIndex;
+    int liveryIndex;
+    int roofLiveryIndex;
 
-	bool hasCustomTires;
+	bool hasCustomRoofLivery;
 
-	int windowTintIndex;
+	bool hasMod;
+	int kitMods[32];
 
-	int tyreSmokeRedColour;
-	int tyreSmokeGreenColour;
-	int tyreSmokeBlueColour;
+	bool hasToggleMods;
+	int toggleMods;
 
-	char plate[9];
+    int wheelChoice;
+    int wheelType;
 
-	int numberPlateTextIndex;
+	bool hasDifferentRearWheel;
+	int rearWheelChoice;
 
-	int hornTypeHash;
+	int kitIndex;
+    bool hasCustomTires;
+	bool hasWheelVariation1;
 
-	inline CVehicleAppearanceNodeData()
-	{
-		memset(plate, 0, sizeof(plate));
-	}
+	bool hasWindowTint;
+    int windowTintIndex;
+
+	bool hasTyreSmokeColours;
+
+    int tyreSmokeRedColour;
+    int tyreSmokeGreenColour;
+    int tyreSmokeBlueColour;
+
+	bool hasPlate;
+    char plate[9];
+
+    int numberPlateTextIndex;
+
+    int hornTypeHash;
+
+
+    // Badge related fields
+    bool hasEmblems;
+	bool isEmblem;
+	int emblemType;
+    int emblemId;
+	bool isSizeModified;
+    int emblemSize;
+    int txdName;
+    int textureName;
+
+	bool hasNeonLights;
+	bool hasVehicleBadge;
+
+    bool hasBadge[4];
+    int badgeBoneIndex[4];
+    int badgeAlpha[4];
+    float badgeOffsetX[4];
+    float badgeOffsetY[4];
+    float badgeOffsetZ[4];
+    float badgeDirX[4];
+    float badgeDirY[4];
+    float badgeDirZ[4];
+    float badgeSideX[4];
+    float badgeSideY[4];
+    float badgeSideZ[4];
+    float badgeSize[4];
+	
+    int neonRedColour;
+    int neonGreenColour;
+    int neonBlueColour;
+    bool neonLeftOn;
+    bool neonRightOn;
+    bool neonFrontOn;
+    bool neonBackOn;
+    bool isNeonSuppressed;
+
+    inline CVehicleAppearanceNodeData()
+    {
+        memset(plate, 0, sizeof(plate));
+    }
 };
 
 struct CVehicleHealthNodeData
@@ -730,6 +799,13 @@ public:
 	virtual bool IsEntityVisible(bool* visible) = 0;
 };
 
+enum EntityOrphanMode : uint8_t
+{
+	DeleteWhenNotRelevant = 0,
+	DeleteOnOwnerDisconnect = 1,
+	KeepEntity = 2,
+};
+
 struct SyncEntityState
 {
 	using TData = std::variant<int, float, bool, std::string>;
@@ -774,6 +850,7 @@ struct SyncEntityState
 	bool passedFilter = false;
 	bool wantsReassign = false;
 	bool firstOwnerDropped = false;
+	EntityOrphanMode orphanMode = EntityOrphanMode::DeleteWhenNotRelevant;
 
 	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
 
@@ -1139,7 +1216,6 @@ struct GameStateClientData
 {
 	rl::MessageBuffer ackBuffer{ 16384 };
 	std::unordered_set<int> objectIds;
-	std::unordered_set<int> reservedObjectIds;
 
 	std::mutex selfMutex;
 
@@ -1213,8 +1289,12 @@ public:
 
 	void HandleClientDrop(const fx::ClientSharedPtr& client, uint16_t netId, uint32_t slotId);
 
-	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer);
+	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::packet::ClientArrayUpdate& buffer) override;
 
+	void HandleGameStateNAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateNAck& buffer) override;
+
+	void HandleGameStateAck(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::packet::ClientGameStateAck& buffer) override;
+	
 	void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds);
 
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
@@ -1406,7 +1486,9 @@ private:
 public:
 	bool MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client);
 
-	void SendPacket(int peer, std::string_view data) override;
+	void SendPacket(int peer, net::packet::StateBagPacket& packet) override;
+
+	void SendPacket(int peer, net::packet::StateBagV2Packet& packet) override;
 
 	bool IsAsynchronous() override;
 

@@ -30,6 +30,10 @@
 #include <CfxState.h>
 #include <HostSharedData.h>
 
+#include "FramePacketHandler.h"
+#include "HeHost.h"
+#include "IHost.h"
+
 NetLibrary* g_netLibrary;
 
 #include <ws2tcpip.h>
@@ -286,13 +290,11 @@ void MigrateSessionCopy(char* target, char* source)
 	g_origMigrateCopy(target, source);
 
 	auto sessionAddress = reinterpret_cast<rlSessionInfo<Build>*>(target - 16);
-	
-	std::unique_ptr<net::Buffer> msgBuffer(new net::Buffer(64));
 
-	msgBuffer->Write<uint32_t>((sessionAddress->addr.localAddr().ip.addr & 0xFFFF) ^ 0xFEED);
-	msgBuffer->Write<uint32_t>(sessionAddress->addr.unkKey1());
-
-	g_netLibrary->SendReliableCommand("msgHeHost", reinterpret_cast<const char*>(msgBuffer->GetBuffer()), msgBuffer->GetCurOffset());
+	net::packet::ClientHeHostPacket packet;
+	packet.data.allegedNewId = (sessionAddress->addr.localAddr().ip.addr & 0xFFFF) ^ 0xFEED;
+	packet.data.baseNum = sessionAddress->addr.unkKey1();
+	g_netLibrary->SendNetPacket(packet);
 }
 
 static hook::cdecl_stub<bool()> isNetworkHost([] ()
@@ -345,59 +347,7 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 
 	// b2190+: hook::get_call(hook::get_pattern("8B D7 8B CE 41 0F 95 C0 41 0F BA E8 08 E8", 13))
 
-	if (xbr::IsGameBuild<2189>())
-	{
-		return (void*)hook::get_adjusted(0x14105DFE8);
-	}
-
-	if (xbr::IsGameBuild<2372>())
-	{
-		return (void*)hook::get_adjusted(0x1410646BC);
-	}
-
-	if (xbr::IsGameBuild<2545>())
-	{
-		return (void*)hook::get_adjusted(0x14106FF30);
-	}
-
-	if (xbr::IsGameBuild<2612>())
-	{
-		return (void*)hook::get_adjusted(0x141071468);
-	}
-
-	if (xbr::IsGameBuild<2699>())
-	{
-		return (void*)hook::get_adjusted(0x14107AE54);
-	}
-
-	if (xbr::IsGameBuild<2802>())
-	{
-		return (void*)hook::get_adjusted(0x14107A4DC);
-	}
-
-	if (xbr::IsGameBuild<2944>())
-	{
-		return (void*)hook::get_adjusted(0x141088EB0);
-	}
-
-	if (xbr::IsGameBuild<3095>())
-	{
-		return (void*)hook::get_adjusted(0x141094DF8);
-	}
-
-	if (xbr::IsGameBuild<3258>())
-	{
-		return (void*)hook::get_adjusted(0x1410A1444);
-	}
-
-	// 1737
-	//return (void*)0x141029A20;
-
-	// 1868
-	//return (void*)0x141037BCC;
-
-	// 2060
-	return (void*)hook::get_adjusted(0x1410494F8);
+	return hook::get_call(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 41 8A D8 8B FA 8B F1 E8 ? ? ? ? 45 33 C0", 0x31));
 });
 
 static void** g_networkMgrPtr = nullptr;
@@ -610,7 +560,7 @@ struct
 
 				packer.pack_array(0);
 
-				g_netLibrary->SendNetEvent("hostingSession", std::string(nameArgs.data(), nameArgs.size()), -2);
+				g_netLibrary->SendNetEvent("hostingSession", std::string(nameArgs.data(), nameArgs.size()));
 
 				state = HS_WAIT_HOSTING;
 			}
@@ -683,7 +633,7 @@ struct
 
 					packer.pack_array(0);
 
-					g_netLibrary->SendNetEvent("hostedSession", std::string(nameArgs.data(), nameArgs.size()), -2);
+					g_netLibrary->SendNetEvent("hostedSession", std::string(nameArgs.data(), nameArgs.size()));
 				}
 			}
 			else if (!*g_isNetGame)
@@ -890,7 +840,7 @@ static HookFunction initFunction([]()
 	});
 
 	// host state sending
-	g_netLibrary->OnBuildMessage.Connect([] (const std::function<void(uint32_t, const char*, int)>& writeReliable)
+	g_netLibrary->OnBuildMessage.Connect([] ()
 	{
 		ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
 
@@ -907,8 +857,9 @@ static HookFunction initFunction([]()
 		{
 			if (isHost)
 			{
-				auto base = g_netLibrary->GetServerBase();
-				writeReliable(HashRageString("msgIHost"), (char*)&base, sizeof(base));
+				net::packet::ClientIHostPacket iHostPacket;
+				iHostPacket.data.baseNum = g_netLibrary->GetServerBase();
+				g_netLibrary->SendNetPacket(iHostPacket);
 			}
 
 			lastHostState = isHost;
@@ -924,34 +875,7 @@ static HookFunction initFunction([]()
 		}
 	});
 
-	g_netLibrary->AddReliableHandler("msgFrame", [](const char* data, size_t len)
-	{
-		net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
-		auto idx = buffer.Read<uint32_t>();
-
-		auto icgi = Instance<ICoreGameInit>::Get();
-		
-		uint8_t strictLockdown = buffer.Read<uint8_t>();
-		uint8_t syncStyle = buffer.Read<uint8_t>();
-
-		static uint8_t lastStrictLockdown;
-
-		if (strictLockdown != lastStrictLockdown)
-		{
-			if (!strictLockdown)
-			{
-				icgi->ClearVariable("strict_entity_lockdown");
-			}
-			else
-			{
-				icgi->SetVariable("strict_entity_lockdown");
-			}
-
-			lastStrictLockdown = strictLockdown;
-		}
-
-		icgi->SyncIsARQ = syncStyle == 1;
-	}, true);
+	g_netLibrary->AddPacketHandler<fx::FramePacketHandler>(true);
 
 	g_netLibrary->SetBase(GetTickCount());
 
@@ -1515,6 +1439,16 @@ static HookFunction hookFunction([] ()
 		g_quitMsg = "Quit: " + message;
 		ExitProcess(-1);
 	});
+
+	// Increase network heap size with 1mb for our needs
+	if (xbr::IsGameBuildOrGreater<3323>())
+	{
+		uint32_t* size1 = hook::get_pattern<uint32_t>("41 B8 00 00 E0 00 48 8B C8", 2);
+		uint32_t* size2 = hook::get_pattern<uint32_t>("BA 00 00 E0 00 48 8B 01", 1);
+
+		*size1 += 1024 * 1024;
+		*size2 += 1024 * 1024;
+	}
 
 	// exit game on game exit from alt-f4
 	hook::call(hook::get_pattern("48 83 F8 04 75 ? 40 88", 6), ExitCleanly);

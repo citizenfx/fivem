@@ -18,6 +18,7 @@ follows:
 ### Supported pools
 * `CPed`: Peds (including animals) and players.
 * `CObject`: Objects (props), doors, and projectiles.
+* `CNetObject`: Networked objects
 * `CVehicle`: Vehicles.
 * `CPickup`: Pickups.
 

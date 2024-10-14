@@ -12,6 +12,9 @@
 
 #include <MinHook.h>
 
+#include "ObjectIds.h"
+#include "ObjectIdsPacketHandler.h"
+
 static std::list<int> g_objectIds;
 static std::set<int> g_usedObjectIds;
 static std::set<int> g_stolenObjectIds;
@@ -169,34 +172,7 @@ void ObjectIds_BindNetLibrary(NetLibrary* netLibrary)
 {
 	g_netLibrary = netLibrary;
 
-	netLibrary->AddReliableHandler("msgObjectIds", [](const char* data, size_t len)
-	{
-		net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
-
-		auto numIds = buffer.Read<uint16_t>();
-
-		int last = 0;
-
-		for (int i = 0; i < numIds; i++)
-		{
-			auto skip = buffer.Read<uint16_t>();
-			auto take = buffer.Read<uint16_t>();
-
-			last += skip + 1;
-
-			for (int j = 0; j <= take; j++)
-			{
-				int objectId = last++;
-
-				TheClones->Log("got object id %d\n", objectId);
-
-				g_objectIds.push_back(objectId);
-				g_stolenObjectIds.erase(objectId);
-			}
-		}
-
-		g_requestedIds = false;
-	});
+	netLibrary->AddPacketHandler<fx::ObjectIdsPacketHandler>(false);
 }
 
 static HookFunction hookFunction([]()
@@ -224,10 +200,8 @@ static HookFunction hookFunction([]()
 		{
 			if (!g_requestedIds)
 			{
-				net::Buffer outBuffer;
-				outBuffer.Write<uint16_t>(32);
-
-				g_netLibrary->SendReliableCommand("msgRequestObjectIds", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+				net::packet::ClientRequestObjectIdsPacket packet;
+				g_netLibrary->SendNetPacket(packet);
 
 				g_requestedIds = true;
 			}

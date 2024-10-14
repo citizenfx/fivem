@@ -37,6 +37,7 @@
 #include "ByteReader.h"
 #include "ByteWriter.h"
 #include "NetBitVersion.h"
+#include "WorldGridPacketHandler.h"
 
 extern NetLibrary* g_netLibrary;
 
@@ -2485,37 +2486,11 @@ static HookFunction hookFunction2([]()
 	}
 });
 
-struct WorldGridEntry
-{
-	uint8_t sectorX;
-	uint8_t sectorY;
-	uint16_t slotID;
-};
-
-struct WorldGridState
-{
-	WorldGridEntry entries[32];
-};
-
-static WorldGridState g_worldGrid;
-
 static InitFunction initFunctionWorldGrid([]()
 {
 	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* lib)
 	{
-		lib->AddReliableHandler("msgWorldGrid3", [](const char* data, size_t len)
-		{
-			net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
-			auto base = buf.Read<uint32_t>();
-			auto length = buf.Read<uint32_t>();
-
-			if ((size_t(base) + length) > sizeof(g_worldGrid))
-			{
-				return;
-			}
-
-			buf.Read(reinterpret_cast<char*>(&g_worldGrid) + base, length);
-		});
+		lib->AddPacketHandler<fx::WorldGridPacketHandler>(false);
 	});
 });
 
@@ -2550,7 +2525,7 @@ bool DoesLocalPlayerOwnWorldGrid(float* pos)
 
 	bool does = false;
 
-	for (const auto& entry : g_worldGrid.entries)
+	for (const auto& entry : fx::g_worldGrid.entries)
 	{
 		if (entry.sectorX == sectorX && entry.sectorY == sectorY && entry.slotID == playerIdx)
 		{

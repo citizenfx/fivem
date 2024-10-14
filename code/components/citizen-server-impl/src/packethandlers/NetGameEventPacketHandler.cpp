@@ -5,7 +5,7 @@
 #include <Client.h>
 #include <state/ServerGameStatePublic.h>
 
-#include <NetGameEventV2.h>
+#include <NetGameEventPacket.h>
 #include <SerializableComponent.h>
 
 #include <ByteReader.h>
@@ -33,10 +33,10 @@ void NetGameEventPacketHandlerV2::RouteEvent(const fwRefContainer<fx::ServerGame
 
 void NetGameEventPacketHandlerV2::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer)
 {
-	static size_t kClientMaxPacketSize = net::SerializableComponent::GetSize<net::packet::ClientNetGameEventV2>();
-	static size_t kServerMaxReplySize = net::SerializableComponent::GetSize<net::packet::ServerNetGameEventV2Packet>();
+	static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientNetGameEventV2>();
+	static size_t kServerMaxReplySize = net::SerializableComponent::GetMaxSize<net::packet::ServerNetGameEventV2Packet>();
 
-	if (buffer.GetLength() > kClientMaxPacketSize)
+	if (buffer.GetRemainingBytes() > kClientMaxPacketSize)
 	{
 		// this only happens when a malicious client sends packets not created from our client code
 		return;

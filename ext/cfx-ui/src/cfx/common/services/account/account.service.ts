@@ -24,7 +24,7 @@ export interface IAccountService {
   resetPassword(email: string): void | Promise<void>;
   resendActivationEmail(username: string): void | Promise<void>;
 
-  getEmailError(email: string): Promise<string | null>;
+  getEmailError(email: string, onlineCheck: boolean): Promise<string | null>;
   getUsernameError(username: string): Promise<string | null>;
 
   getAvatarUrlForUser(template: string, size?: number): string;

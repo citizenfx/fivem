@@ -19,8 +19,7 @@
 
 #include <unordered_set>
 
-extern void PointerArgumentSafety();
-extern bool storyMode;
+static bool storyMode;
 
 #if __has_include("scrEngineStubs.h")
 #include <scrEngineStubs.h>
@@ -389,10 +388,6 @@ static InitFunction initFunction([] ()
 
 		doReg();
 
-		PointerArgumentSafety();
-		g_fastPathMap.clear();
-		doReg();
-
 		for (auto& entry : g_onScriptInitQueue)
 		{
 			entry();
@@ -457,7 +452,7 @@ static int(*g_origReturnTrue)(void* a1, void* a2);
 
 static int ReturnTrueFromScript(void* a1, void* a2)
 {
-	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	if (storyMode)
 	{
 		return g_origReturnTrue(a1, a2);
 	}
@@ -481,7 +476,7 @@ static int(*g_origNoScript)(void*, int);
 
 static int JustNoScript(GtaThread* thread, int a2)
 {
-	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	if (storyMode)
 	{
 		return g_origNoScript(thread, a2);
 	}
@@ -536,6 +531,14 @@ static InitFunction initFunction([]
 
 static HookFunction hookFunction([] ()
 {
+	Instance<ICoreGameInit>::Get()->OnSetVariable.Connect([](const std::string& name, bool value)
+	{
+		if (name == "storyMode")
+		{
+			storyMode = value;
+		}
+	});
+
 	char* location = nullptr;
 
 	if (xbr::IsGameBuildOrGreater<3258>())

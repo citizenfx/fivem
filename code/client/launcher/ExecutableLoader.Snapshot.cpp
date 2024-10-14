@@ -30,6 +30,11 @@ inline uintptr_t GetTriggerEP()
 	{
 		return ep;
 	}
+
+	if (xbr::IsGameBuild<3323>())
+	{
+		return 0x1418492F0;
+	}
 	
 	if (xbr::IsGameBuild<3258>())
 	{

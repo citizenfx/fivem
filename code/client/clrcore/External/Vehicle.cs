@@ -26,12 +26,19 @@ namespace CitizenFX.Core
 	}
 	public enum LicensePlateStyle
 	{
-		BlueOnWhite1 = 3,
-		BlueOnWhite2 = 0,
+		BlueOnWhite1 = 0,
+ 		YellowOnBlack = 1,
+   		YellowOnBlue = 2,
+		BlueOnWhite2 = 3,
 		BlueOnWhite3 = 4,
-		YellowOnBlack = 1,
-		YellowOnBlue = 2,
-		NorthYankton = 5
+		NorthYankton = 5,
+  		ECola = 6,
+		LasVenturas = 7,
+  		LibertyCity = 8,
+		LSCarMeet = 9,
+  		LSPanic = 10,
+		LSPounders = 11,
+  		Sprunk = 12
 	}
 	public enum LicensePlateType
 	{
@@ -1470,11 +1477,11 @@ namespace CitizenFX.Core
 			Vector3 currentPosition = Position;
 			Vector3 newPosition = new Vector3();
 			float heading = 0f;
-			compat_i32_i64 unkn = 0;
+			int totalLanes = 0;
 
 			for (int i = 1; i < 40; i++)
 			{
-				API.GetNthClosestVehicleNodeWithHeading(currentPosition.X, currentPosition.Y, currentPosition.Z, i, ref newPosition, ref heading, ref unkn, 1, 3f, 0f);
+				API.GetNthClosestVehicleNodeWithHeading(currentPosition.X, currentPosition.Y, currentPosition.Z, i, ref newPosition, ref heading, ref totalLanes, 1, 3f, 0f);
 				if (!API.IsPointObscuredByAMissionEntity(newPosition.X, newPosition.Y, newPosition.Z, 5f, 5f, 5f, 0))
 				{
 					Position = newPosition;

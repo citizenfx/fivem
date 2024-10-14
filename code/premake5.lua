@@ -1,4 +1,5 @@
 local gameBuilds = require("premake5_builds")
+local setCfxDefines = require("premake5_defines")
 
 -- to work around slow init times due to packagesrv.com being down
 premake.downloadModule = function()
@@ -146,6 +147,10 @@ workspace "CitizenMP"
 		"../vendor/boost-submodules/boost-mp11/include/",
 		"../vendor/boost-submodules/boost-logic/include/",
 		"../vendor/boost-submodules/boost-endian/include/",
+		"../vendor/boost-submodules/boost-describe/include/",
+		"../vendor/boost-submodules/boost-scope/include/",
+		"../vendor/boost-submodules/boost-align/include/",
+		"../vendor/boost-submodules/boost-static-string/include/",
 	}
 
 	filter { 'language:C or language:C++'}
@@ -155,6 +160,8 @@ workspace "CitizenMP"
 		defines { "_PPLTASK_ASYNC_LOGGING=0"}
 
 	filter {}
+
+	setCfxDefines()
 
 	libdirs { "deplibs/lib/" }
 
@@ -299,8 +306,9 @@ workspace "CitizenMP"
 		include 'client/diag'
 	else
 		include 'server/launcher'
-		include 'tests'
 	end
+
+	include 'tests'
 	
 	if os.istarget('windows') then
 		include 'premake5_layout.lua'
