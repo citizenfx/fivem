@@ -64,102 +64,89 @@ bool IsConVarScriptRestricted(ConsoleVariableManager* varMan, const std::string&
 	return varMan->GetEntryFlags(varName) & ConVar_ScriptRestricted;
 }
 
+template<typename T>
+void GetConVar(fx::ScriptContext& context)
+{
+	// get variable name
+	const std::string varName = context.CheckArgument<const char*>(0);
+	const auto defaultValue = context.GetArgument<T>(1);
+
+	const auto varMan = GetVariableManager();
+
+	// check can it be exposed to script
+	if (IsConVarScriptRestricted(varMan, varName))
+	{
+		// gets and returns default value
+		context.SetResult(defaultValue);
+		return;
+	}
+
+	// get the variable
+	const auto var = varMan->FindEntryRaw(varName);
+
+	if (!var)
+	{
+		// gets and returns default value
+		context.SetResult(defaultValue);
+		return;
+	}
+
+
+	static std::string varVal;
+
+	varVal = var->GetValue();
+
+	if (std::is_integral_v<T> || std::is_same_v<T, bool>)
+	{
+		// convert the string to lower case so if the variables were capitalized
+		// for some reason we'll still get proper values
+		LowerString(varVal);
+		if (varVal == "true")
+		{
+			varVal = "1";
+		}
+		else if (varVal == "false")
+		{
+			varVal = "0";
+		}
+	}
+
+	T returnValue = defaultValue;
+
+	try
+	{
+		if constexpr (std::is_integral_v<T> || std::is_same_v<T, bool>)
+		{
+			returnValue = std::stoi(varVal);
+		}
+		if constexpr (std::is_floating_point_v<T>)
+		{
+			returnValue = std::stof(varVal);
+		}
+		if constexpr (std::is_same_v<T, const char*>)
+		{
+			returnValue = varVal.c_str();
+		}
+	}
+	catch (std::exception& _v)
+	{
+		// We failed to convert, set to default value
+		context.SetResult(defaultValue);
+		return;
+	}
+
+	context.SetResult(returnValue);
+}
+
 static InitFunction initFunction([]()
 {
+	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR", GetConVar<const char*>);
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR_INT", GetConVar<int>);
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR", [=](fx::ScriptContext& context)
-	{
-		// get variable name
-		const std::string varName = context.CheckArgument<const char*>(0);
-		const auto defaultValue = context.GetArgument<const char*>(1);
+	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR_FLOAT", GetConVar<float>);
 
-		const auto varMan = GetVariableManager();
-
-		// check can it be exposed to script
-		if (IsConVarScriptRestricted(varMan, varName))
-		{
-			// gets and returns default value
-			context.SetResult(defaultValue);
-			return;
-		}
-
-		// get the variable
-		const auto var = varMan->FindEntryRaw(varName);
-
-		if (!var)
-		{
-			// gets and returns default value
-			context.SetResult(defaultValue);
-			return;
-		}
-
-		static std::string varVal;
-		varVal = var->GetValue();
-
-		context.SetResult(varVal.c_str());
-	});
-
-	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR_INT", [=](fx::ScriptContext& context)
-	{
-		const std::string varName = context.CheckArgument<const char*>(0);
-		const int defaultValue = context.GetArgument<int>(1);
-
-		// get the variable manager
-		const auto varMan = GetVariableManager();
-
-		// check can it be exposed to script
-		if (IsConVarScriptRestricted(varMan, varName))
-		{
-			context.SetResult(defaultValue);
-			return;
-		}
-
-		// get the variable
-		const auto var = varMan->FindEntryRaw(varName);
-		if (!var)
-		{
-			context.SetResult(defaultValue);
-			return;
-		}
-
-		auto value = var->GetValue();
-		if (value == "true")
-		{
-			value = "1";
-		}
-
-		context.SetResult(atoi(value.c_str()));
-	});
-
-	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR_FLOAT", [=](fx::ScriptContext& context)
-	{
-		const std::string varName = context.CheckArgument<const char*>(0);
-		const float defaultValue = context.GetArgument<float>(1);
-
-		// get the variable manager
-		const auto varMan = GetVariableManager();
-
-		// get the variable
-		const auto var = varMan->FindEntryRaw(varName);
-
-		// check can it be exposed to script
-		if (IsConVarScriptRestricted(varMan, varName))
-		{
-			// gets and returns default value
-			context.SetResult(defaultValue);
-			return;
-		}
-
-		if (!var)
-		{
-			context.SetResult<float>(defaultValue);
-		}
-		else
-		{
-			context.SetResult<float>(atof(var->GetValue().c_str()));
-		}
-	});
+	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR_BOOL", GetConVar<bool>);
 
 	fx::ScriptEngine::RegisterNativeHandler("ADD_CONVAR_CHANGE_LISTENER", [=](fx::ScriptContext& context)
 	{
