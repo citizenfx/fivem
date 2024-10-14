@@ -81,7 +81,9 @@ static void* g_netEventMgr;
 static uint16_t g_eventHeader;
 static bool g_lastEventGotRejected;
 
+#ifdef GTA_FIVE
 static atPoolBase** g_netGameEventPool;
+#endif
 
 static std::map<std::tuple<uint16_t, uint16_t>, netGameEventState> g_events;
 static std::map<std::tuple<uint32_t, uint16_t>, netGameEventState> g_eventsV2;
@@ -687,7 +689,7 @@ static uint32_t* GetFireApplicability(void* event, uint32_t* result, void* pos)
 	uint32_t value = (1 << 31);
 
 	*result = value;
-	return &value;
+	return result;
 }
 #endif
 
@@ -1063,20 +1065,16 @@ namespace rage
 
 	void EventManager_Update()
 	{
-#ifdef IS_RDR3
-		if (!g_netGameEventPool)
-		{
-			auto pool = rage::GetPoolBase("netGameEvent");
-
-			if (pool)
-			{
-				g_netGameEventPool = &pool;
-			}
-		}
+		if (!(
+#ifdef GTA_FIVE
+			*g_netGameEventPool
+#elif IS_RDR3
+			rage::GetPoolBase("netGameEvent")
 #endif
-
-		if (!g_netGameEventPool || !*g_netGameEventPool)
+			))
 		{
+			// Just give up once the pool has been destroyed
+			// Events will be cleaned up in OnKillNetworkDone
 			return;
 		}
 
