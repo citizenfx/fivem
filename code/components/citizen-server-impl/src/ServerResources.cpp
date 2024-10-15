@@ -37,6 +37,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "BuildInfo.h"
+
 #if defined(_DEBUG) && defined(_WIN32)
 #include <shellapi.h>
 #endif
@@ -874,6 +876,10 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 
 static InitFunction initFunction2([]()
 {
+	fx::ScriptEngine::RegisterNativeHandler("GET_BUILD_NUMBER", [](fx::ScriptContext& context)
+	{
+		return fx::BuildInfo::GetBuildNumber();
+	});
 	fx::ScriptEngine::RegisterNativeHandler("PRINT_STRUCTURED_TRACE", [](fx::ScriptContext& context)
 	{
 		std::string_view jsonData = context.CheckArgument<const char*>(0);
