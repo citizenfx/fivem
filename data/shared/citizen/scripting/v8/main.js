@@ -275,6 +275,14 @@ const EXT_LOCALFUNCREF = 11;
 
 		global.TriggerClientEvent = global.emitNet;
 
+		global.emitUnreliableNet = (name, source, ...args) => {
+			const dataSerialized = pack(args);
+
+			TriggerUnreliableClientEventInternal(name, source, dataSerialized, dataSerialized.length);
+		};
+
+		global.TriggerUnreliableClientEvent = global.emitUnreliableNet;
+
 		global.TriggerLatentClientEvent = (name, source, bps, ...args) => {
 			const dataSerialized = pack(args);
 
@@ -322,6 +330,14 @@ const EXT_LOCALFUNCREF = 11;
 		};
 
 		global.TriggerServerEvent = global.emitNet;
+
+		global.emitUnreliableNet = (name, ...args) => {
+			const dataSerialized = pack(args);
+
+			TriggerUnreliableServerEventInternal(name, dataSerialized, dataSerialized.length);
+		};
+
+		global.TriggerUnreliableServerEvent = global.emitUnreliableNet;
 
 		global.TriggerLatentServerEvent = (name, bps, ...args) => {
 			const dataSerialized = pack(args);
