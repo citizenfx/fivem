@@ -1033,9 +1033,15 @@ static void* GetFunc()
 }
 
 static std::map<std::string, std::tuple<std::string, std::string>> g_registeredBindings;
+static bool g_hideAllResourceNames = false;
 
 namespace game
 {
+	GAMEINPUT_EXPORT void SetKeyMappingHideResources(bool hide)
+	{
+		g_hideAllResourceNames = hide;
+	}
+
 	void SetBindingTagActive(const std::string& tag, bool active)
 	{
 		if (active)
@@ -1172,22 +1178,45 @@ static void(*g_origGetMappingCategoryInputs)(uint32_t* categoryId, atArray<uint3
 
 static void GetMappingCategoryInputs(uint32_t* categoryId, atArray<uint32_t>& controlIds)
 {
-	g_origGetMappingCategoryInputs(categoryId, controlIds);
+    g_origGetMappingCategoryInputs(categoryId, controlIds);
 
-	if (*categoryId == HashString("PM_PANE_CFX"))
-	{
-		std::vector<std::pair<std::string, std::tuple<std::string, std::string>>> sortedBindings(g_registeredBindings.begin(), g_registeredBindings.end());
-		std::sort(sortedBindings.begin(), sortedBindings.end(), [](const auto& left, const auto& right)
-		{
-			// #TODO: Unicode-aware comparison
-			return std::get<1>(left.second) < std::get<1>(right.second);
-		});
+    if (*categoryId == HashString("PM_PANE_CFX"))
+    {
+        auto caseInsensitiveCompare = [](const std::string& a, const std::string& b)
+    	{
+            return std::lexicographical_compare(
+                a.begin(), a.end(),
+                b.begin(), b.end(),
+                [](char a, char b) {
+                    return std::tolower(static_cast<unsigned char>(a)) < std::tolower(static_cast<unsigned char>(b));
+                }
+            );
+        };
 
-		for (auto& binding : sortedBindings)
-		{
-			controlIds.Set(controlIds.GetCount(), HashBinding(binding.first));
-		}
-	}
+        std::map<std::string, std::vector<std::pair<std::string, std::tuple<std::string, std::string>>>, decltype(caseInsensitiveCompare)> groupedBindings(caseInsensitiveCompare);
+
+        for (const auto& [command, info] : g_registeredBindings)
+        {
+            const auto& [tag, desc] = info;
+            groupedBindings[tag].push_back({command, info});
+        }
+    	
+        std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::tuple<std::string, std::string>>>>> sortedGroups(groupedBindings.begin(), groupedBindings.end());
+    	
+        
+        for (auto& [tag, bindings] : sortedGroups)
+        {
+            std::sort(bindings.begin(), bindings.end(),
+                [&caseInsensitiveCompare](const auto& a, const auto& b) {
+                    return caseInsensitiveCompare(std::get<1>(a.second), std::get<1>(b.second));
+                });
+            
+            for (const auto& [command, info] : bindings)
+            {
+                controlIds.Set(controlIds.GetCount(), HashBinding(command));
+            }
+        }
+    }
 }
 
 static void*(*g_origGetBindingForControl)(void* control, rage::ioInputSource* outBinding, uint32_t controlId, int source, uint8_t subIdx, bool unk);
@@ -1232,16 +1261,26 @@ static const char* GetNameForControl(uint32_t controlId)
 		static std::string str;
 		str = fmt::sprintf("INPUT_%08X", HashString(pair.first.c_str()));
 
-		// #TODO: replace once GH-1111 is done
 		auto resourceName = std::get<0>(pair.second);
+		auto actionName = std::get<1>(pair.second);
 
 		if (resourceName == "monitor")
 		{
 			resourceName = "txAdmin";
 		}
-
-		// lame hack
-		game::AddCustomText(HashString(str.c_str()), fmt::sprintf("~HC_3~(%s)~s~ %s", resourceName, std::get<1>(pair.second)));
+		
+		std::string displayName;
+		
+		if (g_hideAllResourceNames)
+		{
+			displayName = fmt::sprintf("%s", actionName);
+		}
+		else
+		{
+			displayName = fmt::sprintf("~HC_3~(%s)~s~ %s", resourceName, actionName);
+		}
+		
+		game::AddCustomText(HashString(str.c_str()), displayName);
 
 		return str.c_str();
 	}
