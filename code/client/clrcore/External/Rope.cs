@@ -13,6 +13,9 @@ namespace CitizenFX.Core
 {
 	public enum RopeType
 	{
+		ThinRope = 0,
+		DefaultRope = 1,
+		DefaultWire = 3,
 		ThickRope = 4,
 		ThinMetalWire = 5,
 	}
