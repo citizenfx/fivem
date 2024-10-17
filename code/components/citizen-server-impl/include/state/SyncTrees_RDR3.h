@@ -491,7 +491,180 @@ struct CDoorScriptGameStateDataNode { };
 struct CHeliHealthDataNode { };
 struct CHeliControlDataNode { };
 
-struct CObjectCreationDataNode { };
+struct CObjectCreationDataNode : GenericSerializeDataNode<CObjectCreationDataNode>
+{
+	uint32_t m_unk2; // mostly 0
+	uint32_t m_createdBy;
+	uint32_t m_scriptHash;
+	bool m_unk6; // mostly false
+	bool m_unk7; // mostly false
+	uint32_t m_model;
+#if 0
+	bool m_hasInitPhysics;
+	CDummyObjectCreationNodeData dummy;
+	bool m_hasLodDist;
+	uint16_t m_lodDist;
+	uint16_t m_maxHealth;
+	bool m_unk11; // mostly false
+	bool m_unk12; // mostly false
+	bool m_unk13; // mostly false
+	bool m_unk14; // mostly false
+	bool m_unk15; // mostly false
+	uint32_t m_unkHash18; // mostly 0
+	bool m_unk19; // mostly false
+	bool m_unk32; // mostly false
+	uint32_t m_unkHash35; // mostly 0
+#endif
+
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
+	{
+		bool unkBool = m_unk2 != 0;
+		s.Serialize(unkBool);
+
+		if (unkBool)
+		{
+			s.Serialize(32, m_unk2);
+		}
+
+		s.Serialize(5, m_createdBy);
+
+		bool hasScript = m_scriptHash != 0;
+		s.Serialize(hasScript);
+
+		if (hasScript)
+		{
+			s.Serialize(32, m_scriptHash);
+		}
+		else
+		{
+			m_scriptHash = 0;
+		}
+
+		s.Serialize(m_unk6);
+		s.Serialize(m_unk7);
+
+		if (m_createdBy != 3 && (m_createdBy > 0x12 || (409602 & (1 << m_createdBy)) == 0))
+		{
+			s.Serialize(32, m_model);
+#if 0
+			s.Serialize(m_hasInitPhysics);
+
+			s.Serialize(m_unk11);
+			s.Serialize(m_unk12);
+			s.Serialize(m_unk13);
+			s.Serialize(m_unk14);
+			s.Serialize(m_unk15);
+
+			bool unkBool16 = m_unkHash18 != 0;
+			s.Serialize(unkBool16);
+
+			if (unkBool16)
+			{
+				bool unkBool17 = m_unkHash18 != 0;
+				s.Serialize(unkBool17);
+
+				if (unkBool17)
+				{
+					s.Serialize(32, m_unkHash18);
+				}
+			}
+
+			if (m_unk13)
+			{
+				s.Serialize(m_unk19);
+				// More data...
+			}
+			else if (m_unk12)
+			{
+				// More data...
+			}
+			else if (m_unk14)
+			{
+				// More data...
+			}
+#endif
+		}
+		else
+		{
+#if 0
+			s.SerializeSigned(31, 27648.0f, dummy.dummyPosX);
+			s.SerializeSigned(31, 27648.0f, dummy.dummyPosY);
+			s.Serialize(31, 4416.0f, dummy.dummyPosZ);
+			dummy.dummyPosZ -= 1700.0f;
+
+			s.Serialize(dummy.playerWantsControl);
+			s.Serialize(dummy.hasFragGroup);
+			s.Serialize(dummy.isBroken);
+			s.Serialize(dummy.unk11);
+			s.Serialize(dummy.hasExploded);
+			s.Serialize(dummy._explodingEntityExploded);
+			// s.Serialize(dummy.keepRegistered); // 1 bool between hasFragGroup & _hasRelatedDummy needs to be deleted
+			s.Serialize(dummy._hasRelatedDummy);
+
+			if (dummy.hasFragGroup)
+			{
+				s.Serialize(4, dummy.fragGroupIndex);
+			}
+
+			if (!dummy._hasRelatedDummy)
+			{
+				int ownershipToken = 0;
+				s.Serialize(10, ownershipToken);
+
+				float objectPosX = 0.0f, objectPosY = 0.0f, objectPosZ = 0.0f;
+				s.SerializeSigned(19, 27648.0f, objectPosX);
+				s.SerializeSigned(19, 27648.0f, objectPosY);
+				s.Serialize(19, 4416.0f, objectPosZ);
+				objectPosZ -= 1700.0f;
+
+				float objectRotX = 0.0f, objectRotY = 0.0f, objectRotZ = 0.0f;
+				s.SerializeRotation(objectRotX, objectRotY, objectRotZ);
+			}
+#endif
+		}
+
+#if 0
+		s.Serialize(m_hasLodDist);
+
+		if (m_hasLodDist)
+		{
+			s.Serialize(16, m_lodDist);
+		}
+
+		bool hasMaxHealth = m_maxHealth != 0;
+		s.Serialize(hasMaxHealth);
+
+		if (hasMaxHealth)
+		{
+			s.Serialize(12, m_maxHealth);
+		}
+		else
+		{
+			m_maxHealth = 0;
+		}
+
+		s.Serialize(m_unk32);
+
+		bool unkBool33 = m_unkHash35 != 0;
+		s.Serialize(unkBool33);
+
+		if (unkBool33)
+		{
+			bool unkBool34 = m_unkHash35 != 0;
+			s.Serialize(unkBool34);
+
+			if (unkBool34)
+			{
+				s.Serialize(32, m_unkHash35);
+			}
+		}
+#endif
+
+		return true;
+	}
+};
+
 struct CObjectGameStateDataNode { };
 struct CObjectScriptGameStateDataNode { };
 struct CPhysicalHealthDataNode { };
@@ -918,7 +1091,105 @@ struct CWorldStateBaseDataNode { };
 struct CIncidentCreateDataNode { };
 struct CGuardzoneCreateDataNode { };
 struct CPedGroupCreateDataNode { };
-struct CAnimalCreationDataNode { };
+
+struct CAnimalCreationDataNode : GenericSerializeDataNode<CAnimalCreationDataNode>
+{
+	ePopType m_popType;
+	uint32_t m_model;
+#if 0
+	uint16_t randomSeed;
+	uint32_t m_maxHealth;
+	bool isStanding;
+	bool m_unk2; // mostly false
+	uint8_t m_unk3; // mostly -1
+	uint32_t m_unk4; // mostly 0
+	bool m_unk5; // mostly true
+	uint32_t m_unkHash10; // mostly 0
+	uint16_t m_unk12; // mostly 0
+#endif
+
+	template<typename TSerializer>
+	bool Serialize(TSerializer& s)
+	{
+		uint32_t popType = (uint32_t)m_popType;
+		s.Serialize(4, popType);
+		m_popType = (ePopType)popType;
+
+		s.Serialize(32, m_model);
+
+		/*
+		if (m_model == 138961043 || m_model == -1150462894 || m_model == 969427509 || m_model == -1904821831 || m_model == 1543787725
+			|| m_model == 352143044 || m_model == 809532746 || m_model == 264503396 || m_model == -1398443261 || m_model == -900222268
+			|| m_model == 1976314726 || m_model == 286955722 || m_model == -2064282163)
+		{
+			m_model = -171876066;
+		}
+		*/
+
+#if 0
+		s.Serialize(16, randomSeed);
+		s.Serialize(isStanding);
+
+		s.Serialize(m_unk2);
+
+		if (m_unk2)
+		{
+			s.Serialize(m_unk3);
+		}
+
+		s.Serialize(13, m_maxHealth);
+
+		bool unkBool3 = m_unk4 != 0;
+		s.Serialize(unkBool3);
+
+		if (unkBool3)
+		{
+			s.Serialize(32, m_unk4);
+		}
+
+		s.Serialize(m_unk5);
+
+		uint32_t unk7 = m_model;
+
+		bool unkBool6 = unk7 != 0;
+		s.Serialize(unkBool6);
+
+		if (unkBool6)
+		{
+			s.Serialize(32, unk7);
+		}
+
+		bool unkBool8 = m_unkHash10 != 0;
+		s.Serialize(unkBool8);
+
+		if (unkBool8)
+		{
+			bool unkBool9 = m_unkHash10 != 0;
+			s.Serialize(unkBool9);
+
+			if (unkBool9)
+			{
+				s.Serialize(32, m_unkHash10);
+			}
+		}
+
+		bool unkBool11 = m_unk12 != 0;
+		s.Serialize(unkBool11);
+
+		if (unkBool11)
+		{
+			/* Serialise_E0 - unknown, uint16_t confirmed
+			s.Serialize(m_unk12);
+			uint8_t unk13 = 0;
+			s.Serialize(unk13);
+			*/
+		}
+#endif
+
+		return true;
+	}
+};
+
 struct CProjectileCreationDataNode { };
 struct CPedStandingOnObjectDataNode { };
 struct CProjectileAttachNode { };
@@ -1356,7 +1627,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 			*modelHash = pedCreationNode->m_model;
 			return true;
 		}
-#if 0
+
 		auto[hasOcn, objectCreationNode] = this->template GetData<CObjectCreationDataNode>();
 
 		if (hasOcn)
@@ -1364,12 +1635,20 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 			*modelHash = objectCreationNode->m_model;
 			return true;
 		}
-#endif
+
 		auto[hasPan, playerAppearanceNode] = this->template GetData<CPlayerAppearanceDataNode>();
 
 		if (hasPan)
 		{
 			*modelHash = playerAppearanceNode->model;
+			return true;
+		}
+
+		auto [hasAcn, animalCreationNode] = this->template GetData<CAnimalCreationDataNode>();
+
+		if (hasAcn)
+		{
+			*modelHash = animalCreationNode->m_model;
 			return true;
 		}
 
