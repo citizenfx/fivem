@@ -22,17 +22,42 @@ namespace CitizenFX.Core
 	public enum DrivingStyle
 	{
 		None = 0,
+		StopForCars = 1,
+		StopForPeds = 2,
+		SwerveAroundCars = 4,
+		SometimesOvertakeTraffic = 5,
+		AvoidTrafficExtremely = 6,
+		SteerAroundStationaryCars = 8,
+		SteerAroundPeds = 16,
+		SteerAroundObjects = 32,
+		IgnorePlayerPed = 64,
+		StopAtLights = 128,
+		GoOffRoad = 256,
+		DriveInOncoming = 512,
+		Backwards = 1024,
+		WanderOnPathFail = 2048,
+		AvoidRestrictedAreas = 4096,
+		NoBackgroundPathfinding = 8192,
+		AdjustSpeedForRoad = 16384,
+		ShortestPath = 262144,
+		ChangeLanes = 524288,
+		UseInactiveNodes = 2097152,
+		IgnoreRoads = 4194304,
+		PlaneTaxiMode = 8388608,
+		IgnorePathing = 16777216,
+		StringPullAtJunctions = 33554432,
+		AvoidHighwaysWhenPossible = 536870912,
+		JoinInRoadDirection = 1073741824,
+		StrictStopForCars = 262275,
+		AvoidCars = 786469,
+		AvoidTraffic = 786468,
+		PloughThrough = 262144,
+		StopForCarsIgnoreLights = 786475,
+		AvoidCarsObeyLights = 786597,
+		AvoidCarsStopForPedsObeyLights = 786599,
 		Normal = 786603,
 		IgnoreLights = 2883621,
-		SometimesOvertakeTraffic = 5,
 		Rushed = 1074528293,
-		AvoidTraffic = 786468,
-		AvoidTrafficExtremely = 6,
-		AvoidHighwaysWhenPossible = 536870912,
-		IgnorePathing = 16777216,
-		IgnoreRoads = 4194304,
-		ShortestPath = 262144,
-		Backwards = 1024
 	}
 	[Flags]
 	public enum VehicleDrivingFlags : uint
@@ -56,16 +81,35 @@ namespace CitizenFX.Core
 	}
 	public enum HelmetType : uint
 	{
+		None = 0u,
+		Bulky = 1u,
+		Job = 2u,
+		Sunny = 4u,
+		Wet = 8u,
+		Cold = 16u,
+		NotInCar = 32u,
+		BikeOnly = 64u,
+		NotIndoors = 128u,
+		FireRetardant = 256u,
+		Armoured = 512u,
+		LightlyArmoured = 1024u,
+		HighDetail = 2048u,
 		RegularMotorcycleHelmet = 4096u,
+		RandomHelmet = 8192u,
 		FiremanHelmet = 16384u,
-		PilotHeadset = 32768u
+		PilotHeadset = 32768u,
+		HideInFirstPerson = 65536u,
+		UsePhysicsHat2 = 131072u,
+		PilotHelmet = 262144u
 	}
 	public enum ParachuteLandingType
 	{
 		None = -1,
-		Stumbling = 1,
+		Slow = 0,
+		Stumbling,
 		Rolling,
-		Ragdoll
+		Ragdoll,
+		Water
 	}
 	public enum ParachuteState
 	{
