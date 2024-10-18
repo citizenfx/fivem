@@ -9,7 +9,10 @@ local unsupList = {
 	'SET_OBJECT_AS_NO_LONGER_NEEDED',
 	'SET_PED_AS_NO_LONGER_NEEDED',
 	'SET_VEHICLE_AS_NO_LONGER_NEEDED',
-	'SET_MISSION_TRAIN_AS_NO_LONGER_NEEDED'
+	'SET_MISSION_TRAIN_AS_NO_LONGER_NEEDED',
+	-- RDR3: This function can take multiple different types which OAL doesn't
+	-- currently support.
+	'VAR_STRING'
 }
 
 local unsup = {}
