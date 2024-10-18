@@ -348,6 +348,12 @@ if isDuplicityVersion then
 
 		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
+
+	function TriggerUnreliableClientEvent(eventName, playerId, ...)
+		local payload = msgpack_pack_args(...)
+
+		return TriggerUnreliableClientEventInternal(eventName, playerId, payload, payload:len())
+	end
 	
 	function TriggerLatentClientEvent(eventName, playerId, bps, ...)
 		local payload = msgpack_pack_args(...)
@@ -440,6 +446,12 @@ else
 		local payload = msgpack_pack_args(...)
 
 		return TriggerServerEventInternal(eventName, payload, payload:len())
+	end
+
+	function TriggerUnreliableServerEvent(eventName, ...)
+		local payload = msgpack_pack_args(...)
+
+		return TriggerUnreliableServerEventInternal(eventName, payload, payload:len())
 	end
 	
 	function TriggerLatentServerEvent(eventName, bps, ...)
