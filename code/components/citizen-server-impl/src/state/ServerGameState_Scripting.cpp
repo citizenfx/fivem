@@ -17,6 +17,102 @@ namespace fx
 void DisownEntityScript(const fx::sync::SyncEntityPtr& entity);
 }
 
+namespace
+{
+	bool IsConnectedToRootEntity(const fx::sync::SyncEntityPtr& entity,
+								const fx::sync::SyncEntityPtr& rootEntity,
+								const fwRefContainer<fx::ServerGameState>& gameState,
+								std::unordered_set<uint32_t>& visitedEntities,
+								std::unordered_set<uint32_t>& rootConnectedEntities)
+	{
+		if (!entity)
+		{
+			return false;
+		}
+
+		if (rootConnectedEntities.find(entity->handle) != rootConnectedEntities.end())
+		{
+			return true;
+		}
+
+		if (visitedEntities.find(entity->handle) != visitedEntities.end())
+		{
+			return false;
+		}
+
+		visitedEntities.insert(entity->handle);
+
+		const auto& syncTree = entity->syncTree;
+		if (syncTree)
+		{
+			fx::sync::SyncEntityPtr parentEntity = {};
+			fx::sync::SyncEntityPtr vehicleEntity = {};
+			bool isAttached = false;
+			bool isOccupant = false;
+
+			const auto attachment = syncTree->GetAttachment();
+			if (attachment && attachment->attached && attachment->attachedTo)
+			{
+				parentEntity = gameState->GetEntity(0, attachment->attachedTo);
+				if (parentEntity && parentEntity->handle == rootEntity->handle)
+				{
+					isAttached = true;
+				}
+			}
+
+			const auto pedGameState = syncTree->GetPedGameState();
+			if (pedGameState && pedGameState->curVehicle)
+			{
+				vehicleEntity = gameState->GetEntity(0, pedGameState->curVehicle);
+				if (vehicleEntity && vehicleEntity->handle == rootEntity->handle)
+				{
+					isOccupant = true;
+				}
+			}
+
+			if (isAttached ||
+				isOccupant ||
+				IsConnectedToRootEntity(parentEntity, rootEntity, gameState, visitedEntities, rootConnectedEntities) ||
+				IsConnectedToRootEntity(vehicleEntity, rootEntity, gameState, visitedEntities, rootConnectedEntities))
+			{
+				if (entity->type == fx::sync::NetObjEntityType::Player)
+				{
+					if (const auto client = entity->GetClient())
+					{
+						auto [lock, clientData] = gameState->ExternalGetClientData(client);
+						gameState->ClearClientFromWorldGrid(client);
+						clientData->routingBucket = rootEntity->routingBucket;
+					}
+				}
+
+				entity->routingBucket = rootEntity->routingBucket;
+
+				rootConnectedEntities.insert(entity->handle);
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void SetRoutingBucketForConnectedEntities(const fx::sync::SyncEntityPtr& rootEntity)
+	{
+		const auto resourceManager = fx::ResourceManager::GetCurrent();
+		const auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+		const auto& gameState = instance->GetComponent<fx::ServerGameState>();
+
+		std::unordered_set<uint32_t> visitedEntities;
+		std::unordered_set<uint32_t> rootConnectedEntities;
+
+		std::shared_lock lock(gameState->m_entityListMutex);
+		for (auto& entity : gameState->m_entityList)
+		{
+			IsConnectedToRootEntity(entity, rootEntity, gameState, visitedEntities, rootConnectedEntities);
+		}
+	}
+}
+
 static void Init()
 {
 	auto makeEntityFunction = [](auto fn, uintptr_t defaultValue = 0)
@@ -1550,6 +1646,7 @@ static void Init()
 				if (playerEntity)
 				{
 					playerEntity->routingBucket = bucket;
+					SetRoutingBucketForConnectedEntities(playerEntity);
 				}
 			}
 		}
@@ -1571,6 +1668,7 @@ static void Init()
 			if (bucket >= 0)
 			{
 				entity->routingBucket = bucket;
+				SetRoutingBucketForConnectedEntities(entity);
 			}
 		}
 
