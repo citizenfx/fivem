@@ -71,7 +71,7 @@ namespace CitizenFX.Core
 				return Coroutine<object>.Completed(result);
 			}
 
-			return null;
+			return Coroutine<object>.Completed(null);
 		}
 	}
 }
