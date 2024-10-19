@@ -4527,6 +4527,7 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 	m_instance = instance;
 
 	m_lockdownModeVar = instance->AddVariable<fx::EntityLockdownMode>("sv_entityLockdown", ConVar_None, m_entityLockdownMode, &m_entityLockdownMode);
+	m_stateBagStrictModeVar = instance->AddVariable<bool>("sv_stateBagStrictMode", ConVar_None, m_stateBagStrictMode, &m_stateBagStrictMode);
 
 	auto sbac = fx::StateBagComponent::Create(fx::StateBagRole::Server);
 	sbac->SetGameInterface(this);
