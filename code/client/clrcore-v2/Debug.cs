@@ -51,12 +51,12 @@ namespace CitizenFX.Core
 
 		[SecuritySafeCritical]
 		public static void Write(string data) => ScriptInterface.Print(s_debugName, data);
-		public static void Write(object obj) => Write(obj.ToString());
+		public static void Write(object obj) => Write(obj?.ToString());
 		public static void Write(string format, params object[] args) => Write(string.Format(format, args));
 
 		public static void WriteLine() => Write("\n");
 		public static void WriteLine(string data) => Write(data + "\n");
-		public static void WriteLine(object obj) => Write(obj.ToString() + "\n");
+		public static void WriteLine(object obj) => Write(obj?.ToString() + "\n");
 		public static void WriteLine(string format, params object[] args) => Write(string.Format(format, args) + "\n");
 
 		internal static void PrintError(Exception what, string where = null)
