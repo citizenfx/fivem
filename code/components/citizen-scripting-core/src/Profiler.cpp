@@ -417,6 +417,98 @@ void PrintEvents(const TContainer& evs) {
 	}
 }
 
+namespace profiler
+{
+	static auto MakeVfsStream = [](const std::string& path) -> fwRefContainer<vfs::Stream>
+	{
+		std::string outFn = path;
+
+#ifndef IS_FXSERVER
+		outFn = "citizen:/profiler/" + outFn;
+#endif
+
+		auto vfsDevice = vfs::GetDevice(outFn);
+
+		if (!vfsDevice.GetRef())
+		{
+			console::PrintError("cmd", "Invalid path %s.\n", path);
+			return nullptr;
+		}
+
+		auto handle = vfsDevice->Create(outFn);
+
+		if (handle == vfs::Device::InvalidHandle)
+		{
+			console::PrintError("cmd", "Invalid path %s.\n", path);
+			return nullptr;
+		}
+
+		return new vfs::Stream(vfsDevice, handle);
+	};
+
+	auto SaveToJSON = ExecuteOffThread<std::string>([](std::string path)
+	{
+		auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+
+		if (profiler->IsRecording())
+		{
+			console::Printf("cmd", "Cannot save: profiler is active.\n");
+			return;
+		}
+
+		auto writeStream = MakeVfsStream(path);
+
+		if (!writeStream.GetRef())
+		{
+			return;
+		}
+
+		console::Printf("cmd", "Saving the recording as JSON to: %s.\n", path);
+
+		auto json = ConvertToJSON(ConvertToStorage(profiler));
+		auto jsonStr = json.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
+		writeStream->Write(jsonStr.data(), jsonStr.size());
+
+		console::Printf("cmd", "Save complete\n");
+	});
+
+	auto SaveToMsgPack = ExecuteOffThread<std::string>([](std::string path)
+	{
+		auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+
+		if (profiler->IsRecording())
+		{
+			console::Printf("cmd", "Cannot save: profiler is active.\n");
+			return;
+		}
+
+		auto writeStream = profiler::MakeVfsStream(path);
+
+		if (!writeStream.GetRef())
+		{
+			return;
+		}
+
+		struct WriteWrapper
+		{
+			WriteWrapper(vfs::Stream& stream)
+				: stream(stream)
+			{
+			}
+
+			void write(const char* data, size_t size)
+			{
+				stream.Write(data, size);
+			}
+
+			vfs::Stream& stream;
+		} writeWrapper(*writeStream.GetRef());
+
+		console::Printf("cmd", "Saving the recording to: %s.\n", path);
+		msgpack::pack(writeWrapper, ConvertToStorage(profiler));
+		console::Printf("cmd", "Save complete\n");
+	});
+}
 
 // profiler help
 // profiler status
@@ -440,6 +532,7 @@ namespace profilerCommand {
 		{"load",   " <filename>"},
 		{"view",   " [filename]" }
 	};
+
 
 	static fwRefContainer<console::Context> profilerCtx;
 	auto Setup()
@@ -573,83 +666,10 @@ namespace profilerCommand {
 			console::Printf("cmd", "Started recording\n");
 		}));
 
-		static auto makeVfsStream = [](const std::string& path) -> fwRefContainer<vfs::Stream>
-		{
-			std::string outFn = path;
 
-#ifndef IS_FXSERVER
-			outFn = "citizen:/" + outFn;
-#endif
+		static ConsoleCommand saveCmd(profilerCtx.GetRef(), "save", profiler::SaveToMsgPack);
 
-			auto vfsDevice = vfs::GetDevice(outFn);
-
-			if (!vfsDevice.GetRef())
-			{
-				console::PrintError("cmd", "Invalid path %s.\n", path);
-				return nullptr;
-			}
-
-			auto handle = vfsDevice->Create(outFn);
-
-			if (handle == vfs::Device::InvalidHandle)
-			{
-				console::PrintError("cmd", "Invalid path %s.\n", path);
-				return nullptr;
-			}
-
-			return new vfs::Stream(vfsDevice, handle);
-		};
-
-		static ConsoleCommand saveCmd(profilerCtx.GetRef(), "save", ExecuteOffThread<std::string>([](std::string path)
-		{
-			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
-
-			auto writeStream = makeVfsStream(path);
-
-			if (!writeStream.GetRef())
-			{
-				return;
-			}
-
-			struct WriteWrapper
-			{
-				WriteWrapper(vfs::Stream& stream)
-					: stream(stream)
-				{
-				}
-
-				void write(const char* data, size_t size)
-				{
-					stream.Write(data, size);
-				}
-
-				vfs::Stream& stream;
-			} writeWrapper(*writeStream.GetRef());
-
-			console::Printf("cmd", "Saving the recording to: %s.\n", path);
-			msgpack::pack(writeWrapper, ConvertToStorage(profiler));
-			console::Printf("cmd", "Save complete\n");
-		}));
-
-		static ConsoleCommand saveJSONCmd(profilerCtx.GetRef(), "saveJSON", ExecuteOffThread<std::string>([](std::string path)
-		{
-			auto writeStream = makeVfsStream(path);
-
-			if (!writeStream.GetRef())
-			{
-				return;
-			}
-
-			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
-
-			console::Printf("cmd", "Saving the recording as JSON to: %s.\n", path);
-
-			auto json = ConvertToJSON(ConvertToStorage(profiler));
-			auto jsonStr = json.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
-			writeStream->Write(reinterpret_cast<const uint8_t*>(jsonStr.data()), jsonStr.size());
-
-			console::Printf("cmd", "Save complete\n");
-		}));
+		static ConsoleCommand saveJSONCmd(profilerCtx.GetRef(), "saveJSON", profiler::SaveToJSON);
 
 		static ConsoleCommand dumpCmd(profilerCtx.GetRef(), "dump", ExecuteOffThread([]() {
 			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
@@ -931,6 +951,23 @@ namespace fx {
 
 static InitFunction initFunction([]()
 {
+	// we should let the client decide if the client wants to allow the script to save profiles to their PC.
+#ifndef IS_FXSERVER
+	static ConVar<bool> allowProfilerSaveNatives("profiler_allowSaveNatives", ConVar_UserPref, false);
+#endif
+	auto CanProfilerSaveFiles = [&]() {
+#ifndef IS_FXSERVER
+		if (!allowProfilerSaveNatives.GetValue())
+		{
+			console::PrintWarning("profiler", "Tried to save a profile to path: %s but the client did not have `profiler_allowSaveNatives` set to 'true', ");
+			console::PrintWarning("profiler", "If you want to allow the profiler to save to your PC please do `profiler_allowSaveNatives true` in the console below.");
+			return false;
+		}
+#endif
+
+		return true;
+	};
+
 	fx::ScriptEngine::RegisterNativeHandler("PROFILER_ENTER_SCOPE", [](fx::ScriptContext& ctx)
 	{
 		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
@@ -947,6 +984,45 @@ static InitFunction initFunction([]()
 	{
 		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
 		ctx.SetResult<int>(profiler->IsRecording());
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("PROFILER_START_RECORDING", [](fx::ScriptContext& ctx)
+	{
+		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
+		const int frames = ctx.GetArgument<int>(0);
+		const char* resource = ctx.GetArgument<char*>(1);
+		profiler->StartRecording(frames ? frames : -1, resource);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("PROFILER_STOP_RECORDING", [](fx::ScriptContext& ctx)
+	{
+		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
+		profiler->StopRecording();
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("PROFILER_SAVE_TO_JSON", [CanProfilerSaveFiles](fx::ScriptContext& ctx)
+	{
+		const char* path = ctx.CheckArgument<char*>(0);
+
+		if (!CanProfilerSaveFiles())
+		{
+			return;
+		}
+
+		profiler::SaveToJSON(path);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("PROFILER_SAVE_TO_MSGPACK", [CanProfilerSaveFiles](fx::ScriptContext& ctx)
+	{
+		const char* path = ctx.CheckArgument<char*>(0);
+
+		if (!CanProfilerSaveFiles())
+		{
+			return;
+		}
+
+
+		profiler::SaveToMsgPack(path);
 	});
 
 	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* res)
