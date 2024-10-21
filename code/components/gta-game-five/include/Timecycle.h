@@ -68,7 +68,13 @@ struct tcConfig // see "rage::tcManager::Init"
 class tcManager
 {
 private:
-	char pad[0x40];
+	char pad[8];
+
+public:
+	atArray<float> m_modifierStrengths;
+
+private:
+	char pad18[0x28];
 
 public:
 	atArray<tcModifier*> m_modifiers;
@@ -165,7 +171,7 @@ private:
 	void RemoveTimecycleBackup(uint32_t hash);
 
 	static void AddTimecycleToList(rage::tcModifier& modifier, bool sort = true);
-	static void SortTimecycleMap();
+	static void FinishModifierLoad();
 };
 
 extern GAME_COMPONENT_EXPORT TimecycleManager* TheTimecycleManager;
