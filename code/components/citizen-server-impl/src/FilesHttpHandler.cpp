@@ -2,6 +2,7 @@
 #include <ServerInstanceBase.h>
 #include <HttpServerManager.h>
 #include <TcpServerManager.h>
+#include <TcpListenManager.h>
 
 #include <ResourceManager.h>
 #include <ResourceFilesComponent.h>
@@ -14,6 +15,7 @@
 #include <filesystem>
 
 constexpr const size_t kFileSendSize = 128 * 1024;
+std::shared_ptr<ConVar<bool>> g_httpFileServerProxyOnly;
 
 namespace fx
 {
@@ -66,6 +68,20 @@ namespace fx
 
 		auto sendFile = [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response, const std::string& resourceName, const std::string& fileName, const fx::ClientSharedPtr& client)
 		{
+
+			// Check is proxy only
+			if (g_httpFileServerProxyOnly->GetValue())
+			{
+				auto remoteAddr = request->GetRemoteAddress();
+				auto remoteHost = remoteAddr.substr(0, remoteAddr.find_last_of(':'));
+				if (!fx::IsProxyAddress(remoteHost) && fileName != "resource.rpf")
+				{
+					response->SetStatusCode(403);
+					response->End(fmt::sprintf("Host %s is not allowed to access this endpoint.", remoteHost));
+					return;
+				}
+			}
+
 			// get resource manager and resource
 			auto resourceManager = instance->GetComponent<fx::ResourceManager>();
 			auto resource = resourceManager->GetResource(resourceName);
@@ -346,6 +362,7 @@ static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		g_httpFileServerProxyOnly = instance->AddVariable<bool>("sv_httpFileServerProxyOnly", ConVar_None, false);
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/files", fx::GetFilesEndpointHandler(instance));
 	});
 });
