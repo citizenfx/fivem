@@ -298,6 +298,7 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
         continue;
       }
 
+      case key === 'sv_poolSizesIncrease':
       case key === 'sv_disableClientReplays':
       case key === 'onesync':
       case key === 'gametype':
