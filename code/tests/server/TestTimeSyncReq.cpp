@@ -2,6 +2,7 @@
 
 #include <catch_amalgamated.hpp>
 
+#include "EnetPacketInstance.h"
 #include "GameServer.h"
 #include "ServerInstance.h"
 #include "packethandlers/TimeSyncReqPacketHandler.h"
@@ -40,10 +41,9 @@ namespace fx
 
 TEST_CASE("time sync request handler test")
 {
-	REQUIRE(std::string(TimeSyncReqPacketHandler::GetPacketId()) == "msgTimeSyncReq");
-	REQUIRE(HashRageString(TimeSyncReqPacketHandler::GetPacketId()) == 0x1c1303f8);
+	REQUIRE(TimeSyncReqPacketHandler::PacketType == HashRageString("msgTimeSyncReq"));
 
-	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
+	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
 
 	uint32_t reqTime = fx::TestUtils::u64Random(0xFFFFFFFF);
 	uint32_t reqSeq = fx::TestUtils::u64Random(0xFFFFFFFF);
@@ -57,8 +57,10 @@ TEST_CASE("time sync request handler test")
 
 	uint32_t before = (msec().count()) & 0xFFFFFFFF;
 	fwRefContainer client = {new fx::FakeClient()};
-	TimeSyncReqPacketHandler handler(serverInstance);
-	handler.Handle(serverInstance, client, requestBuffer);
+	TimeSyncReqPacketHandler handler(serverInstance.GetRef());
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(requestBuffer.GetBuffer(), requestBuffer.GetLength());
+	net::ByteReader handlerReader(requestBuffer.GetBuffer(), requestBuffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 	uint32_t after = (msec().count()) & 0xFFFFFFFF;
 
 	REQUIRE(fx::FakeClient::lastTimeSyncResponse.has_value() == true);
@@ -73,6 +75,4 @@ TEST_CASE("time sync request handler test")
 	REQUIRE(time >= after);
 	REQUIRE(fx::FakeClient::lastTimeSyncResponse.value().channel == 1);
 	REQUIRE(fx::FakeClient::lastTimeSyncResponse.value().flags == NetPacketType::NetPacketType_Reliable);
-
-	delete serverInstance;
 }

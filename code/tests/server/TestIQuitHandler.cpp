@@ -4,6 +4,7 @@
 
 #include "ByteReader.h"
 #include "ByteWriter.h"
+#include "EnetPacketInstance.h"
 #include "GameServer.h"
 #include "GameServerInstance.h"
 #include "ServerInstance.h"
@@ -16,8 +17,7 @@ TEST_CASE("IQuit test")
 	// test with new and old packet buffer
 	bool newPacketBuffer = GENERATE(true, false);
 
-	REQUIRE(std::string(fx::ServerDecorators::IQuitPacketHandler::GetPacketId()) == std::string("msgIQuit"));
-	REQUIRE(HashRageString(fx::ServerDecorators::IQuitPacketHandler::GetPacketId()) == 0x522cadd1);
+	REQUIRE(fx::ServerDecorators::IQuitPacketHandler::PacketType == HashRageString("msgIQuit"));
 
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
@@ -45,7 +45,9 @@ TEST_CASE("IQuit test")
 	if (newPacketBuffer)
 	{
 		net::Buffer buffer {packetBuffer.data(), writer.GetOffset()};
-		handler.Handle(serverInstance.GetRef(), client1, buffer);
+		fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+		net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+		handler.Process(serverInstance.GetRef(), client1, handlerReader, packetPtr);
 	}
 	else
 	{
@@ -54,7 +56,9 @@ TEST_CASE("IQuit test")
 		// add null terminator
 		oldNetBuffer.Write<uint8_t>(0);
 		oldNetBuffer.Reset();
-		handler.Handle(serverInstance.GetRef(), client1, oldNetBuffer);
+		fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(oldNetBuffer.GetBuffer(), oldNetBuffer.GetLength());
+		net::ByteReader handlerReader(oldNetBuffer.GetBuffer(), oldNetBuffer.GetLength());
+		handler.Process(serverInstance.GetRef(), client1, handlerReader, packetPtr);
 	}
 
 	REQUIRE(fx::GameServerInstance::dropClientData.has_value() == true);

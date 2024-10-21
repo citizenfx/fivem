@@ -12,55 +12,42 @@
 #include "GameServer.h"
 #include "HeHost.h"
 #include "IHost.h"
+#include "PacketHandler.h"
 
 namespace fx
 {
-	namespace ServerDecorators
+namespace ServerDecorators
+{
+	struct HostVoteCount : public fwRefCountable
 	{
-		struct HostVoteCount : public fwRefCountable
-		{
-			std::map<uint32_t, int> voteCounts;
-		};
-	}
+		std::map<uint32_t, int> voteCounts;
+	};
+}
 }
 
 DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 
 namespace fx
 {
-	namespace ServerDecorators
+namespace ServerDecorators
+{
+	// Used to vote for a new host which is initiated by client. The client that gets more then 50% of the votes will become the new host.
+	class HeHostPacketHandler : public net::PacketHandler<net::packet::ClientHeHost, HashRageString("msgHeHost")>
 	{
-		// Used to vote for a new host which is initiated by client. The client that gets more then 50% of the votes will become the new host.
-		class HeHostPacketHandler
+	public:
+		HeHostPacketHandler(fx::ServerInstanceBase* instance)
 		{
-		public:
-			HeHostPacketHandler(fx::ServerInstanceBase* instance)
+		}
+
+		bool Process(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader, fx::ENetPacketPtr& packet)
+		{
+			if (fx::IsOneSync())
 			{
+				return false;
 			}
 
-			static void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
+			return ProcessPacket(reader, [](net::packet::ClientHeHost& clientHeHost, fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client)
 			{
-				if (fx::IsOneSync())
-				{
-					return;
-				}
-
-				static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientHeHost>();
-
-				if (packet.GetRemainingBytes() > kClientMaxPacketSize)
-				{
-					return;
-				}
-
-				net::packet::ClientHeHost clientHeHost;
-
-				net::ByteReader reader{ packet.GetRemainingBytesPtr(), packet.GetRemainingBytes() };
-				if (!clientHeHost.Process(reader))
-				{
-					// this only happens when a malicious client sends packets not created from our client code
-					return;
-				}
-
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 				auto gameServer = instance->GetComponent<fx::GameServer>();
 
@@ -108,21 +95,21 @@ namespace fx
 
 				if (it == voteComponent->voteCounts.end())
 				{
-					it = voteComponent->voteCounts.insert({clientHeHost.allegedNewId, 1}).first;
+					it = voteComponent->voteCounts.insert({ clientHeHost.allegedNewId, 1 }).first;
 				}
 
 				++it->second;
 
 				// log
 				trace("Received a vouch for %s, they have %d vouches and need %d.\n", newClient->GetName(), it->second,
-				      votesNeeded);
+				votesNeeded);
 
 				// is the vote count exceeded?
 				if (it->second >= votesNeeded)
 				{
 					// make new arbitrator
 					trace("%s is the new arbitrator, with an overwhelming %d vote/s.\n", newClient->GetName(),
-					      it->second);
+					it->second);
 
 					// clear vote list
 					voteComponent->voteCounts.clear();
@@ -142,12 +129,8 @@ namespace fx
 					hostBroadcast.Seek(writer.GetOffset());
 					gameServer->Broadcast(hostBroadcast);
 				}
-			}
-
-			static constexpr const char* GetPacketId()
-			{
-				return "msgHeHost";
-			}
-		};
-	}
+			}, instance, client);
+		}
+	};
+}
 }

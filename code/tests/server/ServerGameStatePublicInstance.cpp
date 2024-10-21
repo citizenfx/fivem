@@ -51,9 +51,9 @@ public:
 		return fx::EntityLockdownMode::Strict;
 	}
 
-	void ParseGameStatePacket(const fx::ClientSharedPtr& client, const std::vector<uint8_t>& packetData) override
+	void ParseGameStatePacket(const fx::ClientSharedPtr& client, const net::packet::ClientRoute& packetData) override
 	{
-		parseGameStatePacketDataLastCall.emplace(client, packetData);
+		parseGameStatePacketDataLastCall.emplace(client, std::vector<uint8_t>{packetData.data.GetValue().begin(), packetData.data.GetValue().end()});
 	}
 
 	void ForAllEntities(const std::function<void(fx::sync::Entity*)>& cb) override

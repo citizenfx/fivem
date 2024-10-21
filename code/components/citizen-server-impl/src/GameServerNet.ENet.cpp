@@ -19,6 +19,8 @@
 #include <FixedBuffer.h>
 #include <net/PacketNames.h>
 
+#include "ENetPacketUniquePtr.h"
+
 namespace fx
 {
 	struct enet_host_deleter
@@ -243,8 +245,9 @@ namespace fx
 					auto peerId = static_cast<int>(reinterpret_cast<uintptr_t>(event.peer->data));
 
 					NetPeerImplENet netPeer(this, peerId);
-					m_server->ProcessPacket(&netPeer, event.packet->data, event.packet->dataLength);
-					enet_packet_destroy(event.packet);
+
+					ENetPacketPtr packet (event.packet, ENetPacketDeleter{});
+					m_server->ProcessPacket(&netPeer, packet);
 					break;
 				}
 				}

@@ -8,6 +8,7 @@
 #include "ByteReader.h"
 #include "ByteWriter.h"
 #include "ConsoleContextInstance.h"
+#include "EnetPacketInstance.h"
 #include "GameServer.h"
 #include "ServerGameStatePublicInstance.h"
 #include "ServerInstance.h"
@@ -20,8 +21,7 @@ TEST_CASE("Array update test")
 	const bool usePacket = GENERATE(true, false);
 	fx::SetOneSyncGetCallback([] { return true; });
 
-	REQUIRE(std::string(fx::ServerDecorators::ArrayUpdatePacketHandler::GetPacketId()) == "msgArrayUpdate");
-	REQUIRE(HashRageString(fx::ServerDecorators::ArrayUpdatePacketHandler::GetPacketId()) == 0x976e783);
+	REQUIRE(fx::ServerDecorators::ArrayUpdatePacketHandler::PacketType == HashRageString("msgArrayUpdate"));
 	// test is only implemented for onesync
 	REQUIRE(fx::IsOneSync() == true);
 
@@ -63,7 +63,9 @@ TEST_CASE("Array update test")
 	fx::ServerGameStatePublicInstance::GetArrayUpdateLastCall().reset();
 	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
 	fx::ServerDecorators::ArrayUpdatePacketHandler handler(serverInstance.GetRef());
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader reader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, reader, packetPtr);
 
 	REQUIRE(fx::ServerGameStatePublicInstance::GetArrayUpdateLastCall().has_value() == true);
 	REQUIRE(fx::ServerGameStatePublicInstance::GetArrayUpdateLastCall().value().client == client);

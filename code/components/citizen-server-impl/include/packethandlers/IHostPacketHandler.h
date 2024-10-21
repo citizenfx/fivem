@@ -9,67 +9,51 @@
 #include "GameServer.h"
 #include "IHost.h"
 
+#include "PacketHandler.h"
+
 namespace fx
 {
 	namespace ServerDecorators
 	{
 		// Used from the client to announce itself as a new lobby host when the old host has disconnected.
-		class IHostPacketHandler
+		class IHostPacketHandler : public net::PacketHandler<net::packet::ClientIHost, HashRageString("msgIHost")>
 		{
 		public:
 			IHostPacketHandler(fx::ServerInstanceBase* instance)
 			{
 			}
 
-			void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
-			                          net::Buffer& packet)
+			bool Process(ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
+			                          net::ByteReader& reader, fx::ENetPacketPtr& packet)
 			{
 				if (IsOneSync())
 				{
-					return;
+					return false;
 				}
 
-				static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientIHost>();
-
-				if (packet.GetRemainingBytes() > kClientMaxPacketSize)
+				return ProcessPacket(reader, [](net::packet::ClientIHost& clientIHost, fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client)
 				{
-					return;
-				}
+					auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+					auto gameServer = instance->GetComponent<fx::GameServer>();
 
-				net::packet::ClientIHost clientIHost;
+					auto currentHost = clientRegistry->GetHost();
 
-				net::ByteReader reader{ packet.GetRemainingBytesPtr(), packet.GetRemainingBytes() };
-				if (!clientIHost.Process(reader))
-				{
-					// this only happens when a malicious client sends packets not created from our client code
-					return;
-				}
+					if (!currentHost || currentHost->IsDead())
+					{
+						client->SetNetBase(clientIHost.baseNum);
+						clientRegistry->SetHost(client);
 
-				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
-				auto gameServer = instance->GetComponent<fx::GameServer>();
-
-				auto currentHost = clientRegistry->GetHost();
-
-				if (!currentHost || currentHost->IsDead())
-				{
-					client->SetNetBase(clientIHost.baseNum);
-					clientRegistry->SetHost(client);
-
-					net::Buffer hostBroadcast(net::SerializableComponent::GetMaxSize<net::packet::ServerIHostPacket>());
-					net::packet::ServerIHostPacket serverIHostPacket;
-					serverIHostPacket.data.netId = client->GetNetId();
-					serverIHostPacket.data.baseNum = client->GetNetBase();
-					net::ByteWriter writer(hostBroadcast.GetBuffer(), hostBroadcast.GetLength());
-					serverIHostPacket.Process(writer);
-					hostBroadcast.Seek(writer.GetOffset());
-					gameServer->Broadcast(hostBroadcast);
-					//client->SendPacket(1, hostBroadcast, NetPacketType_Reliable);
-				}
-			}
-
-			static constexpr const char* GetPacketId()
-			{
-				return "msgIHost";
+						net::Buffer hostBroadcast(net::SerializableComponent::GetMaxSize<net::packet::ServerIHostPacket>());
+						net::packet::ServerIHostPacket serverIHostPacket;
+						serverIHostPacket.data.netId = client->GetNetId();
+						serverIHostPacket.data.baseNum = client->GetNetBase();
+						net::ByteWriter writer(hostBroadcast.GetBuffer(), hostBroadcast.GetLength());
+						serverIHostPacket.Process(writer);
+						hostBroadcast.Seek(writer.GetOffset());
+						gameServer->Broadcast(hostBroadcast);
+						//client->SendPacket(1, hostBroadcast, NetPacketType_Reliable);
+					}
+				}, instance, client);
 			}
 		};
 	}

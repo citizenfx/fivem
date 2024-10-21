@@ -8,6 +8,7 @@
 #include "ByteReader.h"
 #include "ByteWriter.h"
 #include "ClientMetricData.h"
+#include "EnetPacketInstance.h"
 #include "GameServer.h"
 #include "NetGameEventPacket.h"
 #include "ServerInstance.h"
@@ -19,13 +20,12 @@ TEST_CASE("NetGameEventV2 test")
 {
 	fx::SetOneSyncGetCallback([] { return true; });
 
-	REQUIRE(std::string(NetGameEventPacketHandlerV2::GetPacketId()) == std::string("msgNetGameEventV2"));
-	REQUIRE(HashRageString(NetGameEventPacketHandlerV2::GetPacketId()) == 0x2b513e19);
+	REQUIRE(NetGameEventPacketHandlerV2::PacketType == HashRageString("msgNetGameEventV2"));
 	REQUIRE(net::SerializableComponent::GetMaxSize<net::packet::ClientNetGameEventV2>() == 1543);
 	// test is only implemented for onesync
 	REQUIRE(fx::IsOneSync() == true);
 
-	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
+	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
 	serverInstance->SetComponent<fx::ServerGameStatePublic>(fx::ServerGameStatePublicInstance::Create());
 	
@@ -60,11 +60,13 @@ TEST_CASE("NetGameEventV2 test")
 	});
 	fx::ServerGameStatePublicInstance::SetClientRoutingBucket(client, 1);
 
-	NetGameEventPacketHandlerV2 handler(serverInstance);
+	NetGameEventPacketHandlerV2 handler(serverInstance.GetRef());
 	net::Buffer buffer {packetBuffer.data(), writer.GetOffset()};
 	REQUIRE(writer.GetOffset() == 1034);
 	buffer.Reset();
-	handler.Handle(serverInstance, client, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader readerBuffer(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, readerBuffer, packetPtr);
 
 	REQUIRE(fx::ServerGameStatePublicInstance::GetGameEventHandlerLastCall().has_value() == true);
 	REQUIRE(fx::ServerGameStatePublicInstance::GetGameEventHandlerLastCall().value().client == client);
@@ -88,6 +90,4 @@ TEST_CASE("NetGameEventV2 test")
 	REQUIRE(serverNetGameEvent.event.isReply == isReply);
 	REQUIRE(serverNetGameEvent.event.eventNameHash == eventNameHash);
 	REQUIRE(serverNetGameEvent.event.clientNetId == static_cast<uint16_t>(client->GetNetId()));
-
-	delete serverInstance;
 }

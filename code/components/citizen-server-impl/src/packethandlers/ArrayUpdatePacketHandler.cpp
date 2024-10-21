@@ -11,38 +11,26 @@
 #include "ByteReader.h"
 #include "KeyedRateLimiter.h"
 
-void fx::ServerDecorators::ArrayUpdatePacketHandler::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer)
+bool fx::ServerDecorators::ArrayUpdatePacketHandler::Process(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader, ENetPacketPtr& packet)
 {
 	static RateLimiterStore<uint32_t, false> arrayHandlerLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
-	static auto arrayUpdateRateLimiter = arrayHandlerLimiterStore.GetRateLimiter("arrayUpdate", fx::RateLimiterDefaults{ 75.f, 125.f });
+	static auto arrayUpdateRateLimiter = arrayHandlerLimiterStore.GetRateLimiter(
+		"arrayUpdate", fx::RateLimiterDefaults{ 75.f, 125.f }
+	);
 
 	if (!arrayUpdateRateLimiter->Consume(client->GetNetId()))
 	{
-		return;
+		return false;
 	}
 
-	static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientArrayUpdate>();
-
-	if (buffer.GetRemainingBytes() > kClientMaxPacketSize)
+	return ProcessPacket(reader, [](net::packet::ClientArrayUpdate& clientArrayUpdate, fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, ENetPacketPtr& packet)
 	{
-		// this only happens when a malicious client sends packets not created from our client code
-		return;
-	}
-
-	net::packet::ClientArrayUpdate clientArrayUpdate;
-
-	net::ByteReader reader{ buffer.GetRemainingBytesPtr(), buffer.GetRemainingBytes() };
-	if (!clientArrayUpdate.Process(reader))
-	{
-		// this only happens when a malicious client sends packets not created from our client code
-		return;
-	}
-
-	gscomms_execute_callback_on_sync_thread([clientArrayUpdate, instance, client, buffer = std::move(buffer)]() mutable
-	{
-		auto sgs = instance->GetComponent<fx::ServerGameStatePublic>();
-		sgs->HandleArrayUpdate(client, clientArrayUpdate);
-		// buffer needs to be moved to prevent packet memory from being freed
-		(void)buffer;
-	});
+		gscomms_execute_callback_on_sync_thread([clientArrayUpdate, instance, client, packet]() mutable
+		{
+			auto sgs = instance->GetComponent<fx::ServerGameStatePublic>();
+			sgs->HandleArrayUpdate(client, clientArrayUpdate);
+			// packet needs to be moved to prevent packet memory from being freed
+			(void)packet;
+		});
+	}, instance, client, packet);
 }
