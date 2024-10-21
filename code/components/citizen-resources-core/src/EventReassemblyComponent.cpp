@@ -117,9 +117,9 @@ struct EventPacket
 	std::array<uint8_t, kFragmentSize> payload;
 
 public:
-	bool Parse(rl::MessageBuffer& buffer);
+	bool Parse(rl::MessageBufferView& buffer);
 
-	bool Unparse(rl::MessageBuffer& buffer);
+	bool Unparse(rl::MessageBufferView& buffer);
 
 	inline bool IsAck()
 	{
@@ -127,7 +127,7 @@ public:
 	}
 };
 
-bool EventPacket::Parse(rl::MessageBuffer& buffer)
+bool EventPacket::Parse(rl::MessageBufferView& buffer)
 {
 	static_assert(kFragmentSize <= (1 << kFragmentSizeBits), "Too little kFragmentSizeBits.");
 
@@ -164,7 +164,7 @@ bool EventPacket::Parse(rl::MessageBuffer& buffer)
 	return true;
 }
 
-bool EventPacket::Unparse(rl::MessageBuffer& buffer)
+bool EventPacket::Unparse(rl::MessageBufferView& buffer)
 {
 	buffer.Write(32, uint32_t(eventId & 0xFFFFFFFF));
 	buffer.Write(32, uint32_t(eventId >> 32));
@@ -314,8 +314,7 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 	// parse event data
 	static char eventName[65536];
 
-	// TODO: no copying please
-	rl::MessageBuffer buffer(eventPayload.data(), readSize);
+	rl::MessageBufferView buffer(net::Span<uint8_t>(eventPayload.data(), readSize));
 
 	uint16_t nameLength = buffer.Read<uint16_t>(16);
 	buffer.ReadBits(eventName, nameLength * 8);
@@ -442,10 +441,11 @@ void EventReassemblyComponentImpl::NetworkTick()
 							memcpy(packet.payload.data(), sendPacket->sendPayload.data() + offset, size);
 							packet.thisBytes = size;
 
-							rl::MessageBuffer buf(1536);
-							packet.Unparse(buf);
+							uint8_t buf[1536];
+							rl::MessageBufferView view(net::Span<uint8_t>(buf, 1536));
+							packet.Unparse(view);
 
-							m_sink->SendPacket(target, std::string_view{ (char*)buf.GetBuffer().data(), buf.GetDataLength() });
+							m_sink->SendPacket(target, std::string_view{ (char*)buf, view.GetDataLength() });
 
 							// cut down time
 							if (resTime > latency)
@@ -512,7 +512,7 @@ void EventReassemblyComponentImpl::NetworkTick()
 /// <param name="data">The packet data we received</param>
 void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view data)
 {
-	rl::MessageBuffer buffer(data.data(), data.size());
+	rl::MessageBufferView buffer(net::Span<uint8_t>(const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data.data())), static_cast<size_t>(data.size())));
 
 	EventPacket packet;
 	if (!packet.Parse(buffer))
@@ -607,12 +607,14 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 		if (receiveData->source == source && (receiveData->completed || ackedPacket))
 		{
 			// TODO: why allocate a std::vector with 1536 byte when this has a maximum of 108 bit
-			rl::MessageBuffer buf(1536);
+			
+			uint8_t buf[1536];
+			rl::MessageBufferView view(net::Span<uint8_t>(buf, 1536));
 			// thisBytes = 0 makes sure the receive ack to remote does not repeat the packet payload and only the meta data.
 			packet.thisBytes = 0;
-			packet.Unparse(buf);
+			packet.Unparse(view);
 
-			m_sink->SendPacket(source, std::string_view{ (char*)buf.GetBuffer().data(), buf.GetDataLength() });
+			m_sink->SendPacket(source, std::string_view{ (char*)buf, view.GetDataLength() });
 			receiveData->timeLastAck = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 		}
 		// Still rebuilding event...,
@@ -637,12 +639,13 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 			// send ack
 			{
 				// TODO: why allocate a std::vector with 1536 byte when this has a maximum of 108 bit
-				rl::MessageBuffer buf(1536);
+				uint8_t buf[1536];
+				rl::MessageBufferView view(net::Span<uint8_t>(buf, 1536));
 				// thisBytes = 0 makes sure the receive ack to remote does not repeat the packet payload and only the meta data.
 				packet.thisBytes = 0;
-				packet.Unparse(buf);
+				packet.Unparse(view);
 
-				m_sink->SendPacket(source, std::string_view{ (char*)buf.GetBuffer().data(), buf.GetDataLength() });
+				m_sink->SendPacket(source, std::string_view{ (char*)buf, view.GetDataLength() });
 				receiveData->timeLastAck = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 			}
 
