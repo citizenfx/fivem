@@ -12,6 +12,7 @@ return {
         game_2189 = "2189_0",
         game_2060 = "2060_2",
         game_1604 = "1604_0",
+        game_1 = "1", -- Special build that is used to remove all DLCs from the game.
     },
     rdr3 = {
         game_1491 = "1491_50",

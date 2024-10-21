@@ -966,7 +966,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	std::string gameName = "unk";
 #endif
 
-	auto gameBuild = xbr::GetGameBuild();
+	auto gameBuild = xbr::GetRequestedGameBuild();
 	const auto identifier = xbr::GetGameBuildUniquifier(gameName, gameBuild);
 
 	// Revision "0" shouldn't be included for backward compatibility.
@@ -1863,7 +1863,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				if (info.is_object() && info["vars"].is_object())
 				{
 					int pureLevel = 0;
-
 					if (auto pureVal = info["vars"].value("sv_pureLevel", "0"); !pureVal.empty())
 					{
 						pureLevel = std::stoi(pureVal);
@@ -1879,11 +1878,18 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					auto val = info["vars"].value("sv_enforceGameBuild", "");
 					int buildRef = 0;
 
+					// Special build 1 with all DLCs turned off can not be achieved by replacing the executable. There is no executable for that build.
+					bool replaceExecutable = info["vars"].value("sv_replaceExeToSwitchBuilds", "true") != std::string("false") && val != std::string("1");
+
 					if (!val.empty())
 					{
 						buildRef = std::stoi(val);
 
-						if ((buildRef != 0 && buildRef != xbr::GetGameBuild()) || (pureLevel != fx::client::GetPureLevel()) || (poolSizesIncrease != fx::PoolSizeManager::GetIncreaseRequest()))
+						if ((buildRef != 0 && buildRef != xbr::GetRequestedGameBuild()) ||
+							(pureLevel != fx::client::GetPureLevel()) ||
+							(poolSizesIncrease != fx::PoolSizeManager::GetIncreaseRequest()) ||
+							(replaceExecutable != xbr::GetReplaceExecutable() && buildRef < xbr::GetLatestStableGameBuild())
+						)
 						{
 							if (!xbr::IsSupportedGameBuild(buildRef))
 							{
@@ -1908,16 +1914,16 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 
-							OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw));
+							OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw), replaceExecutable);
 							m_connectionState = CS_IDLE;
 							return;
 						}
 					}
 
 #if defined(GTA_FIVE)
-					if (xbr::GetGameBuild() != 1604 && buildRef == 0)
+					if (xbr::GetRequestedGameBuild() != 1604 && buildRef == 0)
 					{
-						OnRequestBuildSwitch(1604, 0, L"");
+						OnRequestBuildSwitch(1604, 0, L"", true);
 						m_connectionState = CS_IDLE;
 						return;
 					}

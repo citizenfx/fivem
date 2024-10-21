@@ -100,17 +100,18 @@ static void SaveBuildNumber(uint32_t build)
 	}
 }
 
-static void SavePoolSizesIncreaseRequest(const std::wstring& setting)
+static void SaveGameSettings(const std::wstring& poolIncreases, bool replaceExecutable)
 {
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
-		WritePrivateProfileString(L"Game", L"PoolSizesIncrease", setting.c_str(), fpath.c_str());
+		WritePrivateProfileString(L"Game", L"PoolSizesIncrease", poolIncreases.c_str(), fpath.c_str());
+		WritePrivateProfileString(L"Game", L"ReplaceExecutable", replaceExecutable ? L"1" : L"0", fpath.c_str());
 	}
 }
 
-void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesIncreaseSetting)
+void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 	SECURITY_ATTRIBUTES securityAttributes = { 0 };
@@ -145,9 +146,9 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 		SaveBuildNumber(defaultBuild);
 	}
 
-	SavePoolSizesIncreaseRequest(poolSizesIncreaseSetting);
+	SaveGameSettings(poolSizesIncreaseSetting, replaceExecutable);
 
-	trace("Switching from build %d to build %d...\n", xbr::GetGameBuild(), build);
+	trace("Switching from build %d to build %d...\n", xbr::GetRequestedGameBuild(), build);
 
 	SIZE_T size = 0;
 	InitializeProcThreadAttributeList(NULL, 1, 0, &size);
@@ -181,7 +182,7 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 #endif
 }
 
-extern void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting);
+extern void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable);
 
 void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
@@ -685,9 +686,9 @@ static InitFunction initFunction([] ()
 			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
 		});
 
-		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring poolSizesIncreaseSetting)
+		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable)
 		{
-			InitializeBuildSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting));
+			InitializeBuildSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting), replaceExecutable);
 			g_connected = false;
 		});
 
@@ -1597,7 +1598,7 @@ static InitFunction connectInitFunction([]()
 	{
 		if (type == rage::INIT_BEFORE_MAP_LOADED)
 		{
-			SaveBuildNumber(xbr::GetGameBuild());
+			SaveBuildNumber(xbr::GetRequestedGameBuild());
 		}
 	});
 #endif

@@ -18,7 +18,7 @@
 
 static inline auto GetGameBuild()
 {
-	return xbr::GetGameBuild();
+	return xbr::GetRequestedGameBuild();
 }
 #else
 static inline auto GetGameBuild()

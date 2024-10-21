@@ -223,6 +223,8 @@
     "#BuildSwitch_GeneralDescription": "The server you are joining requires settings that are different from your current ones. The game will close and restart shortly to change it and connect to the server.",
     "#BuildSwitch_BuildDiff": "Switching from game version {{currentBuild}} to {{build}}.",
     "#BuildSwitch_PureModeDiff": "Changing 'pure mode' level from {{currentPureLevel}} to {{pureLevel}}.",
+    "#BuildSwitch_ReplaceExecutable": "Returning to default way of loading old game builds. Old build exe and corresponding files will be loaded.",
+    "#BuildSwitch_DontReplaceExecutable": "Switching to the new way of loading old game builds. Run latest exe while updating only the content set.",
     "#BuildSwitch_PoolSizeDiff": "Increasing pool sizes by the following number of items: \"{{sizeIncreasePerPool}}\".",
     "#BuildSwitch_PoolSizeDefault": "Setting pool sizes to default values.",
     "#BuildSwitch_Cancel": "Cancel",

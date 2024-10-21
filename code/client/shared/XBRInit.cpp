@@ -8,7 +8,7 @@
 
 namespace xbr
 {
-int GetGameBuildInit()
+int GetRequestedGameBuildInit()
 {
 	constexpr const std::pair<std::wstring_view, int> buildNumbers[] = {
 #define EXPAND(_, __, x) \
@@ -21,7 +21,8 @@ int GetGameBuildInit()
 
 	auto sharedData = CfxState::Get();
 	std::wstring_view cli = (sharedData->initCommandLine[0]) ? sharedData->initCommandLine : GetCommandLineW();
-	auto buildNumber = std::get<1>(buildNumbers[0]);
+	// TODO: replace with default game build defined in CrossBuildRuntime.h.
+	auto buildNumber = 1604;
 
 	for (auto [build, number] : buildNumbers)
 	{
@@ -34,5 +35,19 @@ int GetGameBuildInit()
 
 	return buildNumber;
 }
+
+bool GetReplaceExecutableInit()
+{
+	bool replaceExecutable = true;
+
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		replaceExecutable = (GetPrivateProfileInt(L"Game", L"ReplaceExecutable", 1, fpath.c_str()) != 0);
+	}
+
+	return replaceExecutable;
+}
+
 }
 #endif

@@ -14,6 +14,7 @@ static constexpr const size_t kGamePlayerCap =
 
 #include <Client.h>
 #include <GameServer.h>
+#include <CrossBuildRuntime.h>
 
 #include <ServerInstanceBase.h>
 #include <ServerTime.h>
@@ -50,11 +51,14 @@ static constexpr const size_t kGamePlayerCap =
 #include <net/NetObjEntityType.h>
 
 #ifdef STATE_FIVE
+// For GTA5, if the feature flag for new build system is set, we use the latest stable build executable even if lower version is enforced.
+// The different sv_enforceGameBuild behaviors is achieved on the client side by loading different DLC sets with IsDlcIncludedInBuild.
+
 inline bool Is2060()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuildNumber() >= 2060;
+		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGameBuild() >= 2060) || fx::GetEnforcedGameBuildNumber() >= 2060;
 	})();
 
 	return value;
@@ -64,7 +68,7 @@ inline bool Is2189()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuildNumber() >= 2189;
+		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGameBuild() >= 2189) || fx::GetEnforcedGameBuildNumber() >= 2189;
 	})();
 
 	return value;
@@ -74,7 +78,7 @@ inline bool Is2372()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuildNumber() >= 2372;
+		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGameBuild() >= 2372) || fx::GetEnforcedGameBuildNumber() >= 2372;
 	})();
 
 	return value;
@@ -84,7 +88,7 @@ inline bool Is2545()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuildNumber() >= 2545;
+		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGameBuild() >= 2545) || fx::GetEnforcedGameBuildNumber() >= 2545;
 	})();
 
 	return value;
@@ -94,7 +98,7 @@ inline bool Is2612()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuildNumber() >= 2612;
+		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGameBuild() >= 2612) || fx::GetEnforcedGameBuildNumber() >= 2612;
 	})();
 
 	return value;
@@ -104,7 +108,7 @@ inline bool Is2699()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuildNumber() >= 2699;
+		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGameBuild() >= 2699) || fx::GetEnforcedGameBuildNumber() >= 2699;
 	})();
 
 	return value;
@@ -114,7 +118,7 @@ inline bool Is2802()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuildNumber() >= 2802;
+		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGameBuild() >= 2802) || fx::GetEnforcedGameBuildNumber() >= 2802;
 	})();
 
 	return value;
@@ -124,7 +128,7 @@ inline bool Is2944()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuildNumber() >= 2944;
+		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGameBuild() >= 2944) || fx::GetEnforcedGameBuildNumber() >= 2944;
 	})();
 
 	return value;
@@ -134,7 +138,7 @@ inline bool Is3095()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuildNumber() >= 3095;
+		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGameBuild() >= 3095) || fx::GetEnforcedGameBuildNumber() >= 3095;
 	})();
 
 	return value;
@@ -144,7 +148,7 @@ inline bool Is3258()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuildNumber() >= 3258;
+		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGameBuild() >= 3258) || fx::GetEnforcedGameBuildNumber() >= 3258;
 	})();
 
 	return value;
@@ -154,7 +158,7 @@ inline bool Is3323()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuildNumber() >= 3323;
+		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGameBuild() >= 3323) || fx::GetEnforcedGameBuildNumber() >= 3323;
 	})();
 
 	return value;

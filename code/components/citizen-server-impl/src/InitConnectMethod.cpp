@@ -379,6 +379,7 @@ std::optional<TicketData> VerifyTicketEx(const std::string& ticket, const Botan:
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 fx::GameBuild g_enforcedGameBuild;
+bool g_replaceExecutable;
 
 static InitFunction initFunction([]()
 {
@@ -401,6 +402,9 @@ static InitFunction initFunction([]()
 
 		g_enforcedGameBuild = "1604";
 		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, "1604", &g_enforcedGameBuild);
+
+		g_replaceExecutable = true;
+		auto replaceExecutableVar = instance->AddVariable<bool>("sv_replaceExeToSwitchBuilds", ConVar_ReadOnly | ConVar_ServerInfo, true, &g_replaceExecutable);
 
 		auto poolSizesIncrease = std::make_shared<std::unordered_map<std::string, uint32_t>>();
 		auto poolSizesIncreaseVar = instance->AddVariable<std::string>("sv_poolSizesIncrease", ConVar_ServerInfo | ConVar_Internal, "");
@@ -738,6 +742,9 @@ static InitFunction initFunction([]()
 			{
 				trace("Something went wrong. Pool sizes increase may not be set.");
 			}
+
+			// Capture replaceExecutableVar just to prolong it's lifetime until connection is initialized.
+			(void)replaceExecutableVar;
 
 			{
 				auto oldClient = clientRegistry->GetClientByGuid(guid);
