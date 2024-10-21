@@ -9,7 +9,7 @@ namespace net::packet
 class StateBag : public SerializableComponent
 {
 public:
-	net::SerializableProperty<std::string_view, net::storage_type::ConstrainedStreamTail<1, 256 * 1024.0>> data;
+	net::SerializableProperty<std::string_view, net::storage_type::ConstrainedStreamTail<1, 256 * 1024>> data;
 	
 	template <typename T>
 	bool Process(T& stream)
@@ -46,7 +46,7 @@ class StateBagV2 : public SerializableComponent
 public:
 	net::SerializableProperty<std::string_view, net::storage_type::ConstrainedBytesArray<1, 128>> stateBagName;
 	net::SerializableProperty<std::string_view, net::storage_type::ConstrainedBytesArray<1, 1024>> key;
-	net::SerializableProperty<std::string_view, net::storage_type::ConstrainedStreamTail<1, 256 * 1024.0>> data;
+	net::SerializableProperty<std::string_view, net::storage_type::ConstrainedStreamTail<1, 256 * 1024>> data;
 
 	StateBagV2() = default;
 

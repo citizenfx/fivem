@@ -41,6 +41,8 @@ bool NetGameEventPacketHandlerV2::Process(fx::ServerInstanceBase* instance, cons
 		ProcessNetEvent(instance, client, movedReader);
 		(void) packet;
 	});
+
+	return true;
 }
 
 bool NetGameEventPacketHandlerV2::ProcessNetEvent(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader)

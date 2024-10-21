@@ -7,7 +7,7 @@
 #include "ServerEventComponentInstance.h"
 #include "ServerInstance.h"
 
-TEST_CASE("Principal test")
+TEST_CASE("onPlayerJoining event test")
 {
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
@@ -19,5 +19,5 @@ TEST_CASE("Principal test")
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.has_value() == true);
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.value().eventName == "onPlayerJoining");
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.value().targetSrc == std::to_string(client->GetNetId()));
-	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.value().data.size() == 1);
+	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.value().data.size() == 8);
 }

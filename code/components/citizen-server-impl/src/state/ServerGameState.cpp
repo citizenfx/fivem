@@ -7734,6 +7734,7 @@ static InitFunction initFunction([]()
 			constexpr int kMaxPacketSize = 1024 + 512 + 2 + 2 + 2 + 1 + 1;
 
 			net::Buffer buffer(reader.GetData(), reader.GetCapacity());
+			buffer.Seek(reader.GetOffset());
 
 			if (buffer.GetLength() > kMaxPacketSize)
 			{

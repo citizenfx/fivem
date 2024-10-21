@@ -36,11 +36,13 @@ namespace fx
 
 					if (entry)
 					{
-						auto cb = [client, entry, &reader, packet]
+						const uint64_t offset = reader.GetOffset();
+						auto cb = [client, entry, offset, packet]
 						{
 							auto scope = client->EnterPrincipalScope();
-
-							std::get<1>(*entry)(client, reader, packet);
+							net::ByteReader movedReader (packet->data, packet->dataLength);
+							movedReader.Seek(offset);
+							std::get<1>(*entry)(client, movedReader, packet);
 						};
 
 						switch (std::get<fx::ThreadIdx>(*entry))
