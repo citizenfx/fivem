@@ -4,6 +4,8 @@
 
 #include <ForceConsteval.h>
 
+#include "Net.h"
+
 namespace net::storage_type
 {
 	class SerializableSizeOption
@@ -66,7 +68,7 @@ namespace net::storage_type
 		/// <param name="suggestion">Suggested size, only used for writing.</param>
 		/// <param name="valid">True when the received size is allowed, false otherwise</param>
 		/// <returns>Returns the size</returns>
-		template <typename T, typename U>
+		template <typename T, typename U, bool BigEndian>
 		static ElementType Process(T& stream, U suggestion, bool& valid)
 		{
 			if constexpr (T::kType == DataStream::Type::Reader)
@@ -92,6 +94,10 @@ namespace net::storage_type
 				{
 					ElementType size;
 					stream.Field(size);
+					if constexpr (BigEndian)
+					{
+						size = net::ntoh(size);
+					}
 					
 					// size is out of the given constraints
 					if (!ValidateSize(size))
@@ -106,7 +112,7 @@ namespace net::storage_type
 					return size;
 				}
 			}
-			else if constexpr (T::kType == DataStream::Type::Writer || T::kType == DataStream::Type::Counter)
+			else if constexpr (T::kType == DataStream::Type::Writer)
 			{
 				if (!ValidateSize(suggestion))
 				{
@@ -115,16 +121,39 @@ namespace net::storage_type
 					return ElementType(0);
 				}
 
-				ElementType size = suggestion;
-
 				if constexpr (!Remaining)
 				{
+					ElementType size = suggestion;
+					if constexpr (BigEndian)
+					{
+						size = net::hton(size);
+					}
+
 					stream.Field(size);
 				}
 
 				valid = true;
 
-				return size;
+				return suggestion;
+			}
+			else if constexpr (T::kType == DataStream::Type::Counter)
+			{
+				if (!ValidateSize(suggestion))
+				{
+					valid = false;
+
+					return ElementType(0);
+				}
+
+				if constexpr (!Remaining)
+				{
+					ElementType size = suggestion;
+					stream.Field(size);
+				}
+
+				valid = true;
+
+				return suggestion;
 			}
 			else if constexpr (T::kType == DataStream::Type::MaxCounter)
 			{

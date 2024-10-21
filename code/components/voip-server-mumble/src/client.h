@@ -51,6 +51,9 @@
 
 #include <NetAddress.h>
 
+#include "StreamByteReader.h"
+
+#define READ_BUFFER_SIZE (8192 + 6 + 4)*2
 #define BUFSIZE 8192
 #define UDP_BUFSIZE 512
 #define INACTIVITY_TIMEOUT 60 /* Seconds */
@@ -74,9 +77,10 @@ typedef struct {
 	bool_t readBlockedOnWrite, writeBlockedOnRead;
 	net::PeerAddress remote_tcp;
 	net::PeerAddress remote_udp;
-	std::deque<uint8_t> rcvbuf;
-	uint8_t rxbuf[BUFSIZE], txbuf[BUFSIZE];
-	uint32_t rxcount, msgsize, drainleft, txcount, txsize;
+	uint8_t rcvbuf[READ_BUFFER_SIZE];
+	net::StreamByteReader streamByteReader {rcvbuf, READ_BUFFER_SIZE};
+	uint8_t txbuf[BUFSIZE];
+	uint32_t rxcount, txcount, txsize;
 	int sessionId;
 	uint8_t key[KEY_LENGTH];
 	char *username;

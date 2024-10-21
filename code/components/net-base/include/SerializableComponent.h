@@ -2,6 +2,8 @@
 
 #include <ByteCounter.h>
 
+#include "SerializableProperty.h"
+
 namespace net
 {
 	/// <summary>
@@ -48,6 +50,21 @@ namespace net
 				if (result && !property.Process(stream))
 				{
 					result = false;
+				}
+			}(), ...);
+
+			return result;
+		}
+
+		template <typename T, typename... Property>
+		SerializableResult ProcessPropertiesResultInOrder(T& stream, Property&... property)
+		{
+			SerializableResult result = SerializableResult::Success;
+			([&]()
+			{
+				if (result == SerializableResult::Success)
+				{
+					result = property.Process(stream);
 				}
 			}(), ...);
 

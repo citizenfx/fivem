@@ -10,7 +10,7 @@ namespace net
 	/// The SizeOption are used to specify the size of the buffer.
 	/// Property needs to be a SerializableProperty and nothing else.
 	/// </summary>
-	template <typename Property, typename SizeOption>
+	template <typename Property, typename SizeOption, bool BigEndian = false>
 	struct SerializableVector
 	{
 	private:
@@ -79,7 +79,7 @@ namespace net
 			}
 
 			bool validSize;
-			auto size = SizeOption::Process(stream, m_properties.size(), validSize);
+			auto size = SizeOption::template Process<T, decltype(m_properties.size()), BigEndian>(stream, m_properties.size(), validSize);
 			if (!validSize)
 			{
 				return false;
