@@ -121,6 +121,38 @@ namespace fx
 		m_listingIpOverride = instance->AddVariable<std::string>("sv_listingIpOverride", ConVar_None, "");
 		m_useAccurateSendsVar = instance->AddVariable<bool>("sv_useAccurateSends", ConVar_None, true);
 
+		m_peerTimeoutVar = instance->AddVariable<uint32_t>("sv_peerTimeout", ConVar_Replicated | ConVar_Internal, 30000);
+		m_peerTimeoutCmd = instance->AddCommand("set_peer_timeout", [=](const int timeout)
+		{
+			if (timeout < 0)
+			{
+				trace("Invalid peer timeout: %dms. Timeout cannot be negative\n", timeout);
+				return;
+			}
+
+			if (timeout < 1000)
+			{
+				trace("Invalid peer timeout: %dms. Timeout must be at least 1000ms\n", timeout);
+				return;
+			}
+
+			if (timeout > 60000)
+			{
+				trace("Invalid peer timeout: %dms. Timeout must be at most 60000ms\n", timeout);
+				return;
+			}
+
+			const uint32_t convertedTimeout = static_cast<uint32_t>(timeout);
+
+			m_peerTimeout = timeout;
+
+			m_peerTimeoutVar->GetHelper()->SetRawValue(convertedTimeout);
+
+			m_net->SetPeerTimeout(m_peerTimeout);
+
+			trace("Peer timeout successfully set to %dms\n", convertedTimeout);
+		});
+
 		// sv_forceIndirectListing will break listings if the proxy host can not be reached
 		m_forceIndirectListing = instance->AddVariable<bool>("sv_forceIndirectListing", ConVar_None, false);
 
@@ -709,7 +741,7 @@ namespace fx
 						wasNew = true;
 					}
 
-					peer->OnSendConnectOK();
+					peer->OnSendConnectOK(m_peerTimeout);
 
 					// send a connectOK
 					net::Buffer outMsg;

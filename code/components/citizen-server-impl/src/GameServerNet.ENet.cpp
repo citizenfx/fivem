@@ -127,7 +127,7 @@ namespace fx
 			return GetPeerAddress(peer->address);
 		}
 
-		virtual void OnSendConnectOK() override
+		virtual void OnSendConnectOK(const uint32_t timeout) override
 		{
 			auto peer = GetPeer();
 
@@ -140,7 +140,7 @@ namespace fx
 			enet_peer_throttle_configure(peer, 1000, ENET_PEER_PACKET_THROTTLE_SCALE, 0);
 
 			// all-but-disable the backoff-based timeout, and set the hard timeout to 30 seconds
-			enet_peer_timeout(peer, 10000000, 10000000, 30000);
+			enet_peer_timeout(peer, 10000000, 10000000, timeout);
 		}
 
 	private:
@@ -552,6 +552,14 @@ namespace fx
 		virtual int GetClientVersion() override
 		{
 			return 2;
+		}
+
+		virtual void SetPeerTimeout(const uint32_t timeout) override
+		{
+			for (const auto& [handle, peer] : m_peerHandles)
+			{
+				enet_peer_timeout(peer, 10000000, 10000000, timeout);
+			}
 		}
 
 	private:

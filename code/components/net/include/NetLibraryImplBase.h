@@ -43,6 +43,8 @@ public:
 
 	virtual void SendConnect(const std::string& token, const std::string& connectData) = 0;
 
+	virtual void SetPeerTimeout(uint32_t timeout) = 0;
+
 	virtual bool HasTimedOut() = 0;
 
 	virtual bool IsDisconnected() { return false; }
