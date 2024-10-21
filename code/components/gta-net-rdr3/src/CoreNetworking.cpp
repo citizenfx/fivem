@@ -206,6 +206,13 @@ static HookFunction initFunction([]()
 
 	g_netLibrary->OnBuildMessage.Connect([]()
 	{
+		ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
+
+		if (cgi->OneSyncEnabled)
+		{
+			return;
+		}
+
 		static bool lastHostState;
 
 		// hostie
