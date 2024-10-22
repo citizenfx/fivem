@@ -281,6 +281,7 @@ static int VisualHeightSetOffset = 0x07C;
 static int LightMultiplierGetOffset;
 static int VehiclePitchBiasOffset;
 static int VehicleRollBiasOffset;
+static int VehicleFlagsOffset;
 
 static int VehicleDamageParentOffset;
 static int VehicleHandlingOffset;
@@ -753,6 +754,11 @@ static HookFunction initFunction([]()
 	{
 		VehiclePitchBiasOffset = *hook::get_pattern<uint32_t>("0F 2F F7 44 0F 28 C0 F3 44 0F 58 83", 12);
 		VehicleRollBiasOffset = VehiclePitchBiasOffset - 4;
+	}
+
+	{
+		auto location = hook::get_pattern<char>("48 85 C0 74 3C 8B 80 ? ? ? ? C1 E8 0F");
+		VehicleFlagsOffset = *(uint32_t*)(location + 7);
 	}
 
 	{
@@ -1377,6 +1383,43 @@ static HookFunction initFunction([]()
 				auto value = context.GetArgument<float>(1);
 				writeValue<float>(vehicle, VehicleRollBiasOffset, value);
 			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_HAS_FLAG", [](fx::ScriptContext& context)
+	{
+		int flagIndex = context.GetArgument<int>(1);
+
+		if (flagIndex < 0 || flagIndex >= 256)
+		{
+			return;
+		}
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_HAS_FLAG"))
+		{
+			auto addr = readValue<uint64_t>(vehicle, ModelInfoPtrOffset);
+			auto flagBlocks = reinterpret_cast<std::bitset<256>*>(addr + VehicleFlagsOffset);
+			
+			context.SetResult<bool>(flagBlocks->test(flagIndex));
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_FLAG", [](fx::ScriptContext& context)
+	{
+		int flagIndex = context.GetArgument<int>(1);
+		bool value = context.GetArgument<bool>(2);
+		
+		if (flagIndex < 0 || flagIndex >= 256)
+		{
+			return;
+		}
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "SET_VEHICLE_FLAG"))
+		{
+			auto addr = readValue<uint64_t>(vehicle, ModelInfoPtrOffset);
+			auto flagBlocks = reinterpret_cast<std::bitset<256>*>(addr + VehicleFlagsOffset);
+
+			flagBlocks->set(flagIndex, value);
 		}
 	});
 
