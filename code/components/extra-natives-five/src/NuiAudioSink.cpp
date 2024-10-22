@@ -1319,7 +1319,7 @@ public:
 
 	virtual ~MumbleAudioEntityBase() = default;
 
-	virtual void MInit(float overrideVolume) = 0;
+	virtual void MInit() = 0;
 	virtual void MShutdown() = 0;
 
 	void SetPosition(float position[3], float distance, float overrideVolume)
@@ -1350,6 +1350,11 @@ public:
 	void SetPoller(const std::function<void(int)>& poller)
 	{
 		m_poller = poller;
+	}
+
+	int GetSubmixId()
+	{
+		return m_submixId;
 	}
 
 	void SetSubmixId(int id)
@@ -1409,7 +1414,7 @@ public:
 
 	virtual void Shutdown() override;
 
-	virtual void MInit(float overrideVolume) override;
+	virtual void MInit() override;
 	
 	virtual void MShutdown() override;
 
@@ -1484,7 +1489,7 @@ void MumbleAudioEntity<Build>::Init()
 {
 	rage::audEntity<Build>::Init();
 
-	MInit(m_overrideVolume);
+	MInit();
 }
 
 template<int Build>
@@ -1507,9 +1512,10 @@ static constexpr int kExtraAudioBuckets = 6;
 static uint32_t bucketsUsed[kExtraAudioBuckets];
 
 template<int Build>
-void MumbleAudioEntity<Build>::MInit(float overrideVolume)
+void MumbleAudioEntity<Build>::MInit()
 {
 	std::lock_guard _(m_render);
+
 	m_environmentGroup = naEnvironmentGroup::Create();
 	m_environmentGroup->Init(nullptr, 20.0f, 1000, 4000, 0.5f, 1000);
 	m_environmentGroup->SetPosition(m_position);
@@ -1524,18 +1530,9 @@ void MumbleAudioEntity<Build>::MInit(float overrideVolume)
 		initValues.SetCategory(category);
 	}
 
-#ifdef GTA_FIVE
 	initValues.SetPositional(true);
 
 	initValues.SetEnvironmentGroup(m_environmentGroup);
-#elif IS_RDR3
-	if (overrideVolume < 0.0)
-	{
-		m_environmentGroup->SetPosition(m_position);
-		initValues.SetEnvironmentGroup(m_environmentGroup);
-		initValues.SetPositional(true);
-	}
-#endif
 
 	if (m_submixId >= 0)
 	{
@@ -1610,15 +1607,14 @@ template<int Build>
 void MumbleAudioEntity<Build>::MShutdown()
 {
 	std::lock_guard _(m_render);
-	auto sound = m_sound;
 
-	if (sound)
+	if (m_sound)
 	{
-		//trace("deleting sound (%s): %016llx\n", ToNarrow(m_name), (uintptr_t)sound);
-
-		sound->StopAndForget(false);
-		m_sound = nullptr;
+		std::exchange(m_sound, nullptr)->StopAndForget(false);
 	}
+
+	// Owned by m_sound, released by rage::audSound::SetIsReferencedByGame
+	m_environmentGroup = nullptr;
 
 	if (m_soundBucket != 0xFF)
 	{
@@ -1626,16 +1622,9 @@ void MumbleAudioEntity<Build>::MShutdown()
 		m_soundBucket = -1;
 	}
 
-	// needs to be delayed to when the sound is removed
-	//delete m_environmentGroup;
-	m_environmentGroup = nullptr;
-
-	auto buffer = m_buffer;
-
-	if (buffer)
+	if (m_buffer)
 	{
-		buffer->Release();
-		m_buffer = nullptr;
+		std::exchange(m_buffer, nullptr)->Release();
 	}
 }
 
@@ -1799,10 +1788,6 @@ void MumbleAudioEntity<Build>::PreUpdateService(uint32_t)
 		}
 	}
 #endif
-	if (m_poller)
-	{
-		//m_poller();
-	}
 }
 
 void MumbleAudioEntityBase::PushAudio(int16_t* pcm, int len)
@@ -1845,10 +1830,6 @@ private:
 	alignas(16) rage::Vec3V m_position;
 	float m_distance;
 	float m_overrideVolume;
-	float m_lastOverrideVolume = -1.0f;
-
-	int m_lastSubmixId = -1;
-	int m_lastPed = -1;
 
 	std::function<void(int)> m_poller;
 	std::function<void()> m_resetti;
@@ -1968,19 +1949,6 @@ void MumbleAudioSink::Process()
 #endif
 	static auto getEntityAddress = fx::ScriptEngine::GetNativeHandler(HashString("GET_ENTITY_ADDRESS"));
 
-#if 0
-	if (m_serverId == 0)
-	{
-		if (!m_entity)
-		{
-			m_entity = std::make_shared<MumbleAudioEntity>();
-			m_entity->Init();
-		}
-
-		return;
-	}
-#endif
-
 	auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, m_serverId);
 	bool isNoPlayer = (playerId > 256 || playerId == -1);
 
@@ -1999,58 +1967,32 @@ void MumbleAudioSink::Process()
 	if (isNoPlayer && m_overrideVolume <= 0.0f)
 	{
 		m_entity = {};
-		m_lastPed = -1;
 	}
 	else
 	{
-		auto ped = (!isNoPlayer) ? FxNativeInvoke::Invoke<int>(getPlayerPed, playerId) : 0;
-
-		// pre-initialize ped
-		if (m_lastPed == -1)
-		{
-			m_lastPed = ped;
-		}
-
-		if (!m_entity)
+		if (!m_entity || (m_entity->GetSubmixId() != submixId))
 		{
 			Reset();
 
-			m_entity = MakeMumbleAudioEntity([this, submixId](MumbleAudioEntityBase* entity)
+			if (!m_entity)
 			{
-				entity->SetPoller(m_poller);
-				entity->SetSubmixId(submixId);
-			}, m_name);
+				m_entity = MakeMumbleAudioEntity([submixId](auto entity) {
+					entity->SetSubmixId(submixId);
+				}, m_name);
+			}
+			else
+			{
+				m_entity->MShutdown();
+				m_entity->SetSubmixId(submixId);
+				m_entity->MInit();
+			}
 
-			m_lastSubmixId = submixId;
+			m_entity->SetPoller(m_poller);
 		}
 
-		if (m_overrideVolume != m_lastOverrideVolume ||
-			submixId != m_lastSubmixId ||
-			ped != m_lastPed)
-		{
-			Reset();
-
-			m_lastOverrideVolume = m_overrideVolume;
-			m_lastSubmixId = submixId;
-			m_lastPed = ped;
-
-			m_entity->MShutdown();
-			m_entity->SetSubmixId(submixId);
-			m_entity->MInit(m_overrideVolume);
-		}
-
+		auto ped = (!isNoPlayer) ? FxNativeInvoke::Invoke<int>(getPlayerPed, playerId) : 0;
+		m_entity->SetBackingEntity((ped > 0) ? FxNativeInvoke::Invoke<CPed*>(getEntityAddress, ped) : nullptr);
 		m_entity->SetPosition((float*)&m_position, m_distance, m_overrideVolume);
-		
-		if (ped > 0)
-		{
-			auto address = FxNativeInvoke::Invoke<CPed*>(getEntityAddress, ped);
-
-			m_entity->SetBackingEntity(address);
-		}
-		else
-		{
-			m_entity->SetBackingEntity(nullptr);
-		}
 	}
 }
 
