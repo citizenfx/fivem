@@ -3,7 +3,7 @@
 #include <catch_amalgamated.hpp>
 
 #include "ConsoleContextInstance.h"
-#include "EnetPacketInstance.h"
+#include "ENetPacketInstance.h"
 #include "GameServer.h"
 #include "GameStateNAck.h"
 #include "NetBuffer.h"

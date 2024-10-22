@@ -9,7 +9,7 @@
 #include "ByteWriter.h"
 #include "ClientRegistry.h"
 #include "ConsoleContextInstance.h"
-#include "EnetPacketInstance.h"
+#include "ENetPacketInstance.h"
 #include "ResourceManagerInstance.h"
 #include "ServerInstance.h"
 #include "TestUtils.h"

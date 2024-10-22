@@ -8,7 +8,7 @@
 #include "ByteReader.h"
 #include "ByteWriter.h"
 #include "ClientMetricData.h"
-#include "EnetPacketInstance.h"
+#include "ENetPacketInstance.h"
 #include "GameServer.h"
 #include "NetGameEventPacket.h"
 #include "ServerInstance.h"

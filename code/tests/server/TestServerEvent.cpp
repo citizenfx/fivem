@@ -11,7 +11,7 @@
 
 #include <catch_amalgamated.hpp>
 
-#include "EnetPacketInstance.h"
+#include "ENetPacketInstance.h"
 #include "ServerInstance.h"
 #include "TestUtils.h"
 #include "packethandlers/ServerEventPacketHandler.h"

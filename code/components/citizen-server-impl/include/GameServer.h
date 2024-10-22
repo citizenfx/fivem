@@ -222,7 +222,7 @@ namespace fx
 		void ProcessPacket(NetPeerBase* peer, ENetPacketPtr& packet);
 
 	public:
-		using TPacketHandler = std::function<void(uint32_t packetId, const fx::ClientSharedPtr& client, net::ByteReader& packet, ENetPacketPtr packetPtr)>;
+		using TPacketHandler = std::function<void(uint32_t packetId, const fx::ClientSharedPtr& client, net::ByteReader& packet, ENetPacketPtr& packetPtr)>;
 
 		inline void SetPacketHandler(const TPacketHandler& handler)
 		{
