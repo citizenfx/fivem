@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 
 #if MONO_V2
 using CitizenFX.Core;
@@ -77,6 +78,16 @@ namespace CitizenFX.Core
 		LeaveDoorOpen = 256,
 		BailOut = 4096
 	}
+
+	public enum LookPriority
+	{
+		VeryLow = 0,
+		Low = 1,
+		Medium = 2,
+		High = 3,
+		VeryHigh = 4
+	}
+
 	[Flags]
 	public enum LookFlags
 	{
@@ -307,19 +318,44 @@ namespace CitizenFX.Core
 		/// <param name="target"></param>
 		/// <param name="duration">Must be greater than 0 for the ped to actually move their head.</param>
 		/// <param name="flag"></param>
-		public void LookAt(Entity target, int duration = 1, LookFlags flag = LookFlags.FastTurnRate)
+		/// <param name="lookPriority"></param>
+		public void LookAt(Entity target, int duration = 1, LookFlags flag = LookFlags.None, LookPriority lookPriority = LookPriority.Medium)
 		{
-			API.TaskLookAtEntity(_ped.Handle, target.Handle, duration, 0, (int)flag);
+			API.TaskLookAtEntity(_ped.Handle, target.Handle, duration, (int)flag, (int)lookPriority);
 		}
+
+		/// <summary>
+		/// Looks at the specified <see cref="Entity"/>
+		/// </summary>
+		/// <param name="target"></param>
+		/// <param name="duration">Must be greater than 0 for the ped to actually move their head.</param>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public void LookAt(Entity target, int duration = 1)
+		{
+			API.TaskLookAtEntity(_ped.Handle, target.Handle, duration, (int)LookFlags.None, (int)LookPriority.Medium);
+		}
+
 		/// <summary>
 		/// Looks at the specified <see cref="Vector3"/> position.
 		/// </summary>
 		/// <param name="position"></param>
 		/// <param name="duration">Must be greater than 0 for the ped to actually move their head.</param>
 		/// <param name="flag"></param>
-		public void LookAt(Vector3 position, int duration = 1, LookFlags flag = LookFlags.FastTurnRate)
+		/// <param name="lookPriority"></param>
+		public void LookAt(Vector3 position, int duration = 1, LookFlags flag = LookFlags.None, LookPriority lookPriority = LookPriority.Medium)
 		{
-			API.TaskLookAtCoord(_ped.Handle, position.X, position.Y, position.Z, duration, 0, (int)flag);
+			API.TaskLookAtCoord(_ped.Handle, position.X, position.Y, position.Z, duration, (int)flag, (int)lookPriority);
+		}
+
+		/// <summary>
+		/// Looks at the specified <see cref="Vector3"/>
+		/// </summary>
+		/// <param name="position"></param>
+		/// <param name="duration">Must be greater than 0 for the ped to actually move their head.</param>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public void LookAt(Vector3 position, int duration = 1)
+		{
+			API.TaskLookAtCoord(_ped.Handle, position.X, position.Y, position.Z, duration, (int)LookFlags.None, (int)LookPriority.Medium);
 		}
 
 		public void ParachuteTo(Vector3 position)
