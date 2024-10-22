@@ -4166,6 +4166,18 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 		return false;
 	}
+
+	virtual void SetPedDead(bool isDead) override
+	{
+		auto [hasNode, node] = this->template GetData<CPedHealthDataNode>();
+
+		if (hasNode)
+		{
+			auto data = &node->data;
+
+			node->data.isDead = isDead;
+		}
+	}
 };
 
 using CAutomobileSyncTree = SyncTree<
