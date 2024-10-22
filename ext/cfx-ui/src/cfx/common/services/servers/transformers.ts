@@ -308,7 +308,7 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
       case key === 'sv_maxClients': {
         continue;
       }
-
+      case lckey.includes('ratelimiter_'):
       case lckey.includes('banner_'):
       case lckey.includes('sv_project'):
       case lckey.includes('version'):
