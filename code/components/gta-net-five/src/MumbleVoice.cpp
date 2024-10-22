@@ -1069,9 +1069,9 @@ static HookFunction hookFunction([]()
 							return target.users.size() > 0 && std::find(target.users.begin(), target.users.end(), targetName) != target.users.end();
 						});
 					}
-				}
 
-				g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+					g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+				}
 			}
 		});
 
