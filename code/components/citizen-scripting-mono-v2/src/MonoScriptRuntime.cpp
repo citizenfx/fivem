@@ -379,6 +379,12 @@ result_t MonoScriptRuntime::RemoveRef(int32_t refIndex)
 {
 	fx::PushEnvironment env(this);
 	MonoComponentHost::EnsureThreadAttached();
+
+	if (m_appDomain == nullptr)
+	{
+		return FX_E_INVALIDARG;
+	}
+
 	MonoDomainScope scope(m_appDomain);
 
 	MonoException* exc = nullptr;
