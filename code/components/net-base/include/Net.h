@@ -46,7 +46,7 @@ inline Type hton(Type net)
 	}
 	else
 	{
-		static_assert(false, "Unsupported type for hton");
+		static_assert(!std::is_same_v<Type,Type>, "Unsupported type for hton");
 		return Type{};
 	}
 }
@@ -83,7 +83,7 @@ inline Type ntoh(Type net)
 	}
 	else
 	{
-		static_assert(false, "Unsupported type for ntoh");
+		static_assert(!std::is_same_v<Type,Type>, "Unsupported type for ntoh");
 		return Type{};
 	}
 }

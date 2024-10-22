@@ -7,7 +7,7 @@
 
 #include "ByteReader.h"
 #include "ClientMetricData.h"
-#include "EnetPacketInstance.h"
+#include "ENetPacketInstance.h"
 #include "ObjectIds.h"
 #include "RoundToType.h"
 #include "ServerGameStatePublicInstance.h"

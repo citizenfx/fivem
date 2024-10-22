@@ -2,7 +2,7 @@
 
 #include <catch_amalgamated.hpp>
 
-#include "EnetPacketInstance.h"
+#include "ENetPacketInstance.h"
 #include "GameServer.h"
 #include "ServerInstance.h"
 #include "packethandlers/TimeSyncReqPacketHandler.h"

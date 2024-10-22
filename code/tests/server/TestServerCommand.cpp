@@ -4,7 +4,7 @@
 
 #include "ByteWriter.h"
 #include "ConsoleContextInstance.h"
-#include "EnetPacketInstance.h"
+#include "ENetPacketInstance.h"
 #include "GameServer.h"
 #include "ServerEventComponent.h"
 #include "ServerEventComponentInstance.h"

@@ -6,7 +6,7 @@
 #include <state/ServerGameStatePublic.h>
 
 #include "ClientMetricData.h"
-#include "EnetPacketInstance.h"
+#include "ENetPacketInstance.h"
 #include "ServerGameStatePublicInstance.h"
 #include "ServerInstance.h"
 #include "packethandlers/RoutingPacketHandler.h"

@@ -7721,7 +7721,7 @@ static InitFunction initFunction([]()
 
 		auto gameServer = instance->GetComponent<fx::GameServer>();
 
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgNetGameEvent"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::ByteReader& reader, fx::ENetPacketPtr& packet)
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgNetGameEvent"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::ByteReader& reader, fx::ENetPacketPtr packet)
 		{
 			// this should match up with SendGameEventRaw on client builds
 			// 1024 bytes is from the rlBuffer

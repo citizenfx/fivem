@@ -146,7 +146,7 @@ namespace net
 					if constexpr (SizeOption::kType != storage_type::SerializableSizeOption::Type::Value)
 					{
 						static_assert(
-								false,
+								!std::is_same_v<Type,Type>,
 								"serializable of a primitive type requires a SerializableSizeOptionValue when SizeOption is specified.")
 							;
 					}
@@ -193,7 +193,7 @@ namespace net
 					storage_type::SerializableSizeOption::Type::Area)
 				{
 					static_assert(
-						false,
+						!std::is_same_v<Type,Type>,
 						"serializable of a std::string or std::string_view requires a SerializableSizeOptionArea.");
 				}
 
@@ -222,7 +222,7 @@ namespace net
 				if constexpr (std::is_same<SizeOption, void>() || SizeOption::kType !=
 					storage_type::SerializableSizeOption::Type::Area)
 				{
-					static_assert(false, "serializable of a buffer requires a SerializableSizeOptionArea.");
+					static_assert(!std::is_same_v<Type,Type>, "serializable of a buffer requires a SerializableSizeOptionArea.");
 				}
 
 				bool validSize;
@@ -248,7 +248,7 @@ namespace net
 				if constexpr (std::is_same<SizeOption, void>() || SizeOption::kType !=
 					storage_type::SerializableSizeOption::Type::Area)
 				{
-					static_assert(false, "serializable of a buffer requires a SerializableSizeOptionArea.");
+					static_assert(!std::is_same_v<Type,Type>, "serializable of a buffer requires a SerializableSizeOptionArea.");
 				}
 
 				bool validSize;
@@ -286,7 +286,7 @@ namespace net
 			}
 			else
 			{
-				static_assert(false, "Unsupported property type");
+				static_assert(!std::is_same_v<Type,Type>, "Unsupported property type");
 			}
 
 			return Success;
