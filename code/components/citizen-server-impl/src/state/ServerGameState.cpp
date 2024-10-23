@@ -7802,5 +7802,17 @@ static InitFunction initFunction([]()
 				routeEvent();
 			}
 		} });
+
+		auto consoleCtx = instance->GetComponent<console::Context>();
+
+		// start sessionmanager
+		if (gameServer->GetGameName() == fx::GameName::RDR3)
+		{
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+		}
+		else if (!g_oneSyncEnabledVar->GetValue() && g_oneSyncVar->GetValue() == fx::OneSyncState::Off)
+		{
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
+		}
 	}, 999999);
 });
