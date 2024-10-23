@@ -591,9 +591,12 @@ void ScriptNativeContext::CheckResults()
 			break;
 		}
 
-		default:
+		case MetaField::ReturnResultAnyway:
+		case MetaField::ResultAsInteger:
+		case MetaField::ResultAsFloat:
+		case MetaField::Max:
 		{
-			if (rtype != PAS_RET_INT && rtype != PAS_RET_FLOAT)
+			if (rtype != PAS_RET_INT && rtype != PAS_RET_FLOAT && rtype != PAS_RET_LONG)
 			{
 				if (arguments[0] != 0) // Preserve zero/false
 				{
@@ -602,6 +605,11 @@ void ScriptNativeContext::CheckResults()
 			}
 
 			break;
+		}
+
+		default:
+		{
+			throw ScriptError("invalid return type");
 		}
 	}
 }
