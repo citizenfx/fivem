@@ -1370,19 +1370,4 @@ static InitFunction initFunction([]()
 		instance->SetComponent(new fx::PeerAddressRateLimiterStore(instance->GetComponent<console::Context>().GetRef()));
 		instance->SetComponent(new HostVoteCount());
 	});
-
-	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
-	{
-		auto consoleCtx = instance->GetComponent<console::Context>();
-
-		// start sessionmanager
-		if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::RDR3)
-		{
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
-		}
-		else
-		{
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
-		}
-	}, INT32_MAX);
 });
