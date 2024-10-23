@@ -219,7 +219,7 @@ local function printReturnType(type)
 			return '_ri'
 		end
 	elseif type.nativeType == 'Any*' then
-		return '_ri'
+		return '_rl' -- Assume pointers are 64 bits
 	elseif type.nativeType == 'object' then
 		return '_ro'
 	end
