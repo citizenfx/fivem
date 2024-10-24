@@ -124,7 +124,6 @@ public:
 
 static tbb::concurrent_queue<std::function<void()>> g_onRenderQueue;
 static tbb::concurrent_queue<std::function<void()>> g_earlyOnRenderQueue;
-static std::mutex g_frontendDeletionMutex;
 
 class GtaNuiTextureBase : public nui::GITexture
 {
@@ -136,8 +135,6 @@ class GtaNuiTexture final : public GtaNuiTextureBase
 {
 private:
 	rage::grcTexture* m_texture;
-
-	std::shared_ptr<GtaNuiTexture*> m_canary;
 
 	bool m_overriddenTexture;
 
@@ -153,26 +150,16 @@ public:
 	explicit GtaNuiTexture(std::function<rage::grcTexture*(GtaNuiTexture*)> fn)
 		: m_texture(nullptr), m_overriddenTexture(false), m_overriddenSRV(false)
 	{
-		m_canary = std::make_shared<GtaNuiTexture*>(this);
-
-		// make a weak reference to the class pointer, so if it gets `delete`d, we can just ignore this creation attempt
-		std::weak_ptr<GtaNuiTexture*> weakCanary = m_canary;
-
-		g_onRenderQueue.push([weakCanary, fn]()
+		g_onRenderQueue.push([self = fwRefContainer(this), fn]()
 		{
-			std::unique_lock<std::mutex> lock(g_frontendDeletionMutex);
-			auto ref = weakCanary.lock();
-
-			if (ref)
+			if (self.GetRefCount() > 1) // Don't bother creating the texture if we are the only reference left
 			{
-				auto deref = *ref;
-				deref->m_texture = fn(deref);
+				std::unique_lock _(self->TextureLock);
 
-				{
-					std::unique_lock _(deref->OnMaterializeLock);
-					deref->OnMaterialize();
-					deref->OnMaterialize.Reset();
-				}
+				self->m_texture = fn(self.GetRef());
+
+				self->OnMaterialize(self->m_texture);
+				self->OnMaterialize.Reset();
 			}
 		});
 	}
@@ -254,21 +241,19 @@ public:
 
 	virtual void WithHostTexture(std::function<void(void*)>&& callback) override
 	{
-		auto texture = GetHostTexture();
+		std::unique_lock _(TextureLock);
 
-		if (!texture)
+		if (auto texture = GetHostTexture())
 		{
-			std::unique_lock _(OnMaterializeLock);
-
-			OnMaterialize.Connect([this, callback = std::move(callback)]()
-			{
-				callback(GetHostTexture());
-			});
-
-			return;
+			callback(texture);
 		}
-
-		callback(texture);
+		else
+		{
+			OnMaterialize.Connect([callback = std::move(callback)](void* texture)
+			{
+				callback(texture);
+			});
+		}
 	}
 
 	virtual bool Map(int numSubLevels, int subLevel, nui::GILockedTexture* lockedTexture, nui::GILockFlags flags) override
@@ -326,8 +311,8 @@ public:
 	}
 
 private:
-	fwEvent<> OnMaterialize;
-	std::mutex OnMaterializeLock;
+	fwEvent<void*> OnMaterialize;
+	std::mutex TextureLock;
 };
 
 #ifdef IS_RDR3
@@ -336,28 +321,15 @@ class GtaNuiDynamicTexture final : public GtaNuiTextureBase
 private:
 	rage::sga::ext::DynamicTexture2* m_texture;
 
-	std::shared_ptr<GtaNuiDynamicTexture*> m_canary;
-
 public:
 	explicit GtaNuiDynamicTexture(std::function<rage::sga::ext::DynamicTexture2*(GtaNuiDynamicTexture*)> fn)
 		: m_texture(nullptr)
 	{
-		m_canary = std::make_shared<GtaNuiDynamicTexture*>(this);
-
-		// make a weak reference to the class pointer, so if it gets `delete`d, we can just ignore this creation attempt
-		std::weak_ptr<GtaNuiDynamicTexture*> weakCanary = m_canary;
-
-		g_onRenderQueue.push([weakCanary, fn]()
+		g_onRenderQueue.push([self = fwRefContainer(this), fn]()
 		{
-			std::unique_lock<std::mutex> lock(g_frontendDeletionMutex);
-			auto ref = weakCanary.lock();
-
-			if (ref)
+			if (self.GetRefCount() > 1) // Don't bother creating the texture if we are the only reference left
 			{
-				(*ref)->m_texture = fn(*ref);
-			}
-			else
-			{
+				self->m_texture = fn(self.GetRef());
 			}
 		});
 	}
