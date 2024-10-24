@@ -45,6 +45,7 @@
 #include "version.h"
 #include "util.h"
 #include "sharedmemory.h"
+#include "MumbleMessage.h"
 
 /* globals */
 bool_t shutdown_server;
@@ -460,63 +461,31 @@ static InitFunction initFunction([]()
 					client->rxcount = client->msgsize = 0;
 				}
 #endif
-
-				auto& readQueue = client->rcvbuf;
-
-				size_t origSize = readQueue.size();
-				readQueue.resize(origSize + data.size());
-
-				// close the stream if the length is too big
-				if (readQueue.size() > (1024 * 1024 * 25))
+				if (data.empty())
+				{
+					return;
+				}
+				
+				if (data.size() > (1024 * 1024 * 25))
 				{
 					stream->Close();
 					return;
 				}
 
-				if (data.empty())
+				net::Span dataSpan {const_cast<uint8_t*>(data.data()), data.size()};
+				const bool result = client->streamByteReader.Push<net::packet::ClientMumbleMessage>(dataSpan, [client](net::packet::ClientMumbleMessage& message)
 				{
-					return;
-				}
+					if (message_t* msg = Msg_networkToMessage(message.data.GetValue().data() - 6/*mumble needs start at message type*/, message.data.GetValue().size() + 6))
+					{
+						Mh_handle_message(client, msg);
+					}
 
-				std::copy(data.begin(), data.end(), readQueue.begin() + origSize);
+					client->rxcount = 0;
+				});
 
-				while (readQueue.size() > 6)
+				if (!result)
 				{
-					uint8_t lenBit[4];
-					std::copy(readQueue.begin() + 2, readQueue.begin() + 6, lenBit);
-
-					uint32_t msgLen = ntohl(*(uint32_t*)lenBit);
-
-					if (readQueue.size() >= msgLen + 6)
-					{
-						// copy the deque into a vector for data purposes, again
-						std::vector<uint8_t> rxbuf(readQueue.begin(), readQueue.begin() + msgLen + 6);
-
-						// remove the original bytes from the queue
-						readQueue.erase(readQueue.begin(), readQueue.begin() + msgLen + 6);
-
-						if (rxbuf.size() > BUFSIZE)
-						{
-							Log_warn("Too big message received (%d bytes). Playing safe and disconnecting client %s",
-								rxbuf.size(), client->remote_tcp.ToString().c_str());
-							stream->Close();
-
-							return;
-						}
-
-						memcpy(client->rxbuf, rxbuf.data(), rxbuf.size());
-						client->msgsize = rxbuf.size();
-
-						auto msg = Msg_networkToMessage(client->rxbuf, client->msgsize);
-						/* pass messsage to handler */
-						if (msg)
-							Mh_handle_message(client, msg);
-						client->rxcount = client->msgsize = 0;
-					}
-					else
-					{
-						break;
-					}
+					stream->Close();
 				}
 
 				// close stream if shutting down

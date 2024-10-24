@@ -6,25 +6,23 @@
 
 #include <Client.h>
 
+#include "ByteReader.h"
 #include "ComponentExport.h"
+#include "ENetPacketUniquePtr.h"
+#include "PacketHandler.h"
 
 namespace fx
 {
 namespace ServerDecorators
 {
-	class GameStateNAckPacketHandler
+	class GameStateNAckPacketHandler : public net::PacketHandler<net::packet::ClientGameStateNAck, HashRageString("gameStateNAck")>
 	{
 	public:
 		GameStateNAckPacketHandler(fx::ServerInstanceBase* instance)
 		{
 		}
 
-		void COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet);
-
-		static constexpr const char* GetPacketId()
-		{
-			return "gameStateNAck";
-		}
+		bool COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) Process(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader, ENetPacketPtr& packet);
 	};
 }
 }

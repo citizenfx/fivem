@@ -7,6 +7,7 @@
 
 #include "ByteReader.h"
 #include "ClientMetricData.h"
+#include "ENetPacketInstance.h"
 #include "ObjectIds.h"
 #include "RoundToType.h"
 #include "ServerGameStatePublicInstance.h"
@@ -51,8 +52,7 @@ TEST_CASE("Send object ids test")
 	// object ids need to be sorted from small to large for the algorithm to work
 	std::sort(fx::ServerGameStatePublicInstance::GetFreeObjectIds().begin(), fx::ServerGameStatePublicInstance::GetFreeObjectIds().end());
 
-	REQUIRE(std::string(RequestObjectIdsPacketHandler::GetPacketId()) == "msgRequestObjectIds");
-	REQUIRE(HashRageString(RequestObjectIdsPacketHandler::GetPacketId()) == 0xb8e611cf);
+	REQUIRE(RequestObjectIdsPacketHandler::PacketType == HashRageString("msgRequestObjectIds"));
 	// test is only implemented for onesync
 	REQUIRE(fx::IsOneSync() == true);
 
@@ -73,7 +73,9 @@ TEST_CASE("Send object ids test")
 	});
 
 	RequestObjectIdsPacketHandler handler(serverInstance.GetRef());
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 
 	REQUIRE(fx::ServerGameStatePublicInstance::GetFreeObjectIdsLastCall().has_value() == true);
 	REQUIRE(fx::ServerGameStatePublicInstance::GetFreeObjectIdsLastCall().value().client == client);

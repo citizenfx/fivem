@@ -4,6 +4,7 @@
 
 #include "ByteWriter.h"
 #include "ConsoleContextInstance.h"
+#include "ENetPacketInstance.h"
 #include "GameServer.h"
 #include "ServerEventComponent.h"
 #include "ServerEventComponentInstance.h"
@@ -18,7 +19,7 @@
 
 TEST_CASE("Server command test")
 {
-	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
+	REQUIRE(ServerCommandPacketHandler::PacketType == HashRageString("msgServerCommand"));
 
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
@@ -38,8 +39,10 @@ TEST_CASE("Server command test")
 
 	auto principalScope = client->EnterPrincipalScope();
 
+	ServerCommandPacketHandler handler(serverInstance.GetRef());
+
 	ConsoleCommand testCommand(serverInstance->GetComponent<console::Context>().GetRef(), "testCommand",
-	                           [=](const std::string& echo)
+	                           [&](const std::string& echo)
 	                           {
 		                           REQUIRE(echo == "test");
 		                           console::Printf("console", "echo:" + echo + "\n");
@@ -52,8 +55,10 @@ TEST_CASE("Server command test")
 	buffer.Write<uint32_t>(HashString(command.c_str()));
 	buffer.Reset();
 
-	ServerCommandPacketHandler handler(serverInstance.GetRef());
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.has_value() == true);
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.value().eventName == "__cfx_internal:serverPrint");
@@ -76,7 +81,7 @@ TEST_CASE("Server command test")
 
 TEST_CASE("Server command not existing test")
 {
-	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
+	REQUIRE(ServerCommandPacketHandler::PacketType == HashRageString("msgServerCommand"));
 
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
@@ -104,7 +109,9 @@ TEST_CASE("Server command not existing test")
 	buffer.Reset();
 
 	ServerCommandPacketHandler handler(serverInstance.GetRef());
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.has_value() == true);
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.value().eventName == "__cfx_internal:serverPrint");
@@ -130,7 +137,7 @@ TEST_CASE("Server command not existing test")
 
 TEST_CASE("Server command no access test")
 {
-	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
+	REQUIRE(ServerCommandPacketHandler::PacketType == HashRageString("msgServerCommand"));
 
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
@@ -157,7 +164,9 @@ TEST_CASE("Server command no access test")
 	buffer.Reset();
 
 	ServerCommandPacketHandler handler(serverInstance.GetRef());
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.has_value() == true);
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.value().eventName == "__cfx_internal:serverPrint");
@@ -180,7 +189,7 @@ TEST_CASE("Server command no access test")
 
 TEST_CASE("Server command wrong argument count test")
 {
-	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
+	REQUIRE(ServerCommandPacketHandler::PacketType == HashRageString("msgServerCommand"));
 
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
@@ -213,7 +222,9 @@ TEST_CASE("Server command wrong argument count test")
 	buffer.Reset();
 
 	ServerCommandPacketHandler handler(serverInstance.GetRef());
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.has_value() == true);
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.value().eventName == "__cfx_internal:serverPrint");
@@ -236,7 +247,7 @@ TEST_CASE("Server command wrong argument count test")
 
 TEST_CASE("Server command packet test")
 {
-	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
+	REQUIRE(ServerCommandPacketHandler::PacketType == HashRageString("msgServerCommand"));
 	REQUIRE(net::SerializableComponent::GetMaxSize<net::packet::ClientServerCommand>() == 4102);
 
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
@@ -274,7 +285,9 @@ TEST_CASE("Server command packet test")
 	fx::ServerEventComponentInstance::lastClientEvent.reset();
 	
 	ServerCommandPacketHandler handler(serverInstance.GetRef());
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.has_value() == true);
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.value().eventName == "__cfx_internal:serverPrint");
@@ -295,7 +308,7 @@ TEST_CASE("Server command packet test")
 
 TEST_CASE("Server command empty string test")
 {
-	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
+	REQUIRE(ServerCommandPacketHandler::PacketType == HashRageString("msgServerCommand"));
 	REQUIRE(net::SerializableComponent::GetMaxSize<net::packet::ClientServerCommand>() == 4102);
 
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
@@ -312,14 +325,16 @@ TEST_CASE("Server command empty string test")
 	
 	net::Buffer buffer;
 	ServerCommandPacketHandler handler(serverInstance.GetRef());
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.has_value() == false);
 }
 
 TEST_CASE("Server command invalid length test")
 {
-	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
+	REQUIRE(ServerCommandPacketHandler::PacketType == HashRageString("msgServerCommand"));
 	REQUIRE(net::SerializableComponent::GetMaxSize<net::packet::ClientServerCommand>() == 4102);
 
 	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
@@ -337,7 +352,9 @@ TEST_CASE("Server command invalid length test")
 	net::Buffer buffer;
 	buffer.Write<uint16_t>(1024);
 	ServerCommandPacketHandler handler(serverInstance.GetRef());
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.has_value() == false);
 
@@ -351,7 +368,9 @@ TEST_CASE("Server command invalid length test")
 	buffer.Write(commandBuffer.data(), commandBuffer.size());
 	buffer.Write<uint32_t>(0);
 	ServerCommandPacketHandler handler2(serverInstance.GetRef());
-	handler2.Handle(serverInstance.GetRef(), client, buffer2);
+	fx::ENetPacketPtr packetPtr2 = fx::ENetPacketInstance::Create(buffer2.GetBuffer(), buffer2.GetLength());
+	net::ByteReader handlerReader2(buffer2.GetBuffer(), buffer2.GetLength());
+	handler2.Process(serverInstance.GetRef(), client, handlerReader2, packetPtr2);
 
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.has_value() == false);
 }

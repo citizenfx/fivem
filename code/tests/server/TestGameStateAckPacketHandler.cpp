@@ -3,6 +3,7 @@
 #include <catch_amalgamated.hpp>
 
 #include "ConsoleContextInstance.h"
+#include "ENetPacketInstance.h"
 #include "GameServer.h"
 #include "GameStateNAck.h"
 #include "NetBuffer.h"
@@ -16,8 +17,7 @@ TEST_CASE("game state ack handler test")
 {
 	fx::SetOneSyncGetCallback([] { return true; });
 
-	REQUIRE(std::string(fx::ServerDecorators::GameStateAckPacketHandler::GetPacketId()) == "gameStateAck");
-	REQUIRE(HashRageString(fx::ServerDecorators::GameStateAckPacketHandler::GetPacketId()) == 0xa5d4e2bc);
+	REQUIRE(fx::ServerDecorators::GameStateAckPacketHandler::PacketType == HashRageString("gameStateAck"));
 	// test is only implemented for onesync
 	REQUIRE(fx::IsOneSync() == true);
 
@@ -64,7 +64,9 @@ TEST_CASE("game state ack handler test")
 	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
 	fx::ServerDecorators::GameStateAckPacketHandler handler(serverInstance.GetRef());
 	outBuffer.Reset();
-	handler.Handle(serverInstance.GetRef(), client, outBuffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(outBuffer.GetBuffer(), outBuffer.GetLength());
+	net::ByteReader handlerReader(outBuffer.GetBuffer(), outBuffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 	REQUIRE(fx::ServerGameStatePublicInstance::GetGameStateAckLastCall().has_value() == true);
 	REQUIRE(fx::ServerGameStatePublicInstance::GetGameStateAckLastCall().value().client == client);
 	REQUIRE(fx::ServerGameStatePublicInstance::GetGameStateAckLastCall().value().frameIndex == frameIndex);

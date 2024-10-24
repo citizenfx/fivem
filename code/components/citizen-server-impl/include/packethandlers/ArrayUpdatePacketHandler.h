@@ -4,25 +4,23 @@
 
 #include <Client.h>
 
+#include "ByteReader.h"
 #include "ComponentExport.h"
+#include "ENetPacketUniquePtr.h"
+#include "PacketHandler.h"
 
 namespace fx
 {
-	namespace ServerDecorators
+namespace ServerDecorators
+{
+	class ArrayUpdatePacketHandler : public net::PacketHandler<net::packet::ClientArrayUpdate, HashRageString("msgArrayUpdate")>
 	{
-		class ArrayUpdatePacketHandler
+	public:
+		ArrayUpdatePacketHandler(fx::ServerInstanceBase* instance)
 		{
-		public:
-			ArrayUpdatePacketHandler(fx::ServerInstanceBase* instance)
-			{
-			}
+		}
 
-			void COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer);
-
-			static constexpr const char* GetPacketId()
-			{
-				return "msgArrayUpdate";
-			}
-		};
-	}
+		bool COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) Process(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader, ENetPacketPtr& packet);
+	};
+}
 }

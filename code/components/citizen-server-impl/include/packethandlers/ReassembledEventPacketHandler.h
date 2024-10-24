@@ -5,25 +5,23 @@
 #include <Client.h>
 
 #include "ComponentExport.h"
+#include "ENetPacketUniquePtr.h"
 #include "EventReassemblyComponent.h"
+#include "PacketHandler.h"
+#include "ReassembledEvent.h"
 
 namespace fx
 {
 namespace ServerDecorators
 {
-	class ReassembledEventPacketHandler
+	class ReassembledEventPacketHandler : public net::PacketHandler<net::packet::ReassembledEvent, HashRageString("msgReassembledEvent")>
 	{
 		std::shared_ptr<ConVar<bool>> m_enableNetEventReassemblyConVar;
 		fwRefContainer<fx::EventReassemblyComponent> m_rac;
 	public:
 		COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) ReassembledEventPacketHandler(fx::ServerInstanceBase* instance);
 
-		void COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer);
-
-		static constexpr const char* GetPacketId()
-		{
-			return "msgReassembledEvent";
-		}
+		bool COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) Process(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader, ENetPacketPtr& packet);
 	};
 }
 }

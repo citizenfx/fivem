@@ -7,12 +7,27 @@
 namespace net::packet
 {
 /// <summary>
+/// The client request data for requesting object ids is empty
+/// </summary>
+class ClientRequestObjectIds : public net::SerializableComponent
+{
+public:
+	template<typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPropertiesInOrder<T>(
+			stream
+		);
+	}
+};
+
+/// <summary>
 /// Request from the client to the server for requesting new object ids
 /// </summary>
 class ClientRequestObjectIdsPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgRequestObjectIds")> };
+	SerializableProperty<uint32_t> type{net::force_consteval<uint32_t, HashRageString("msgRequestObjectIds")>};
 
 	template<typename T>
 	bool Process(T& stream)
@@ -38,7 +53,7 @@ public:
 		SerializableProperty<uint16_t> size;
 
 		IdEntry() = default;
-		
+
 		IdEntry(const uint16_t gapValue, const uint16_t sizeValue)
 		{
 			gap = gapValue;
@@ -64,7 +79,7 @@ public:
 		// compress and send
 		// adapted from https://stackoverflow.com/a/1081776
 		int32_t last = -1;
-		for (size_t i = 0; i < idsToSet.size(); )
+		for (size_t i = 0; i < idsToSet.size();)
 		{
 			uint16_t gap = idsToSet[i] - 2 - last;
 			uint16_t size = 0;
@@ -135,7 +150,7 @@ template<bool BigMode>
 class ServerObjectIdsPacket : public SerializableComponent
 {
 public:
-	SerializableProperty<uint32_t> type{ net::force_consteval<uint32_t, HashRageString("msgObjectIds")> };
+	SerializableProperty<uint32_t> type{net::force_consteval<uint32_t, HashRageString("msgObjectIds")>};
 	ServerObjectIds<BigMode> data;
 
 	template<typename T>

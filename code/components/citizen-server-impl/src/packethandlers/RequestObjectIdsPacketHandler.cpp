@@ -33,12 +33,14 @@ void SendObjectIdsToClient(const fx::ClientSharedPtr& client, const std::vector<
 	client->SendPacket(1, responseBuffer, NetPacketType_Reliable);
 }
 
-void RequestObjectIdsPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
+bool RequestObjectIdsPacketHandler::Process(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader, fx::ENetPacketPtr& packet)
 {
 	gscomms_execute_callback_on_sync_thread([instance, client]
 	{
 		SendObjectIds(instance, client, fx::IsBigMode() ? 6 : 32);
 	});
+
+	return true;
 }
 
 void RequestObjectIdsPacketHandler::SendObjectIds(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, const uint8_t numIds)

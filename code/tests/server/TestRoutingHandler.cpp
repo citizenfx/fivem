@@ -6,6 +6,7 @@
 #include <state/ServerGameStatePublic.h>
 
 #include "ClientMetricData.h"
+#include "ENetPacketInstance.h"
 #include "ServerGameStatePublicInstance.h"
 #include "ServerInstance.h"
 #include "packethandlers/RoutingPacketHandler.h"
@@ -16,8 +17,7 @@ TEST_CASE("Routing handler test")
 {
 	fx::SetOneSyncGetCallback([] { return true; });
 
-	REQUIRE(std::string(RoutingPacketHandler::GetPacketId()) == "msgRoute");
-	REQUIRE(HashRageString(RoutingPacketHandler::GetPacketId()) == 0xE938445B);
+	REQUIRE(RoutingPacketHandler::PacketType == HashRageString("msgRoute"));
 	// test is only implemented for onesync
 	REQUIRE(fx::IsOneSync() == true);
 
@@ -36,7 +36,9 @@ TEST_CASE("Routing handler test")
 	fx::ServerGameStatePublicInstance::GetParseGameStatePacketDataLastCall().reset();
 	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
 	RoutingPacketHandler handler(serverInstance.GetRef());
-	handler.Handle(serverInstance.GetRef(), client, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
 
 	REQUIRE(fx::ServerGameStatePublicInstance::GetParseGameStatePacketDataLastCall().has_value() == true);
 	REQUIRE(fx::ServerGameStatePublicInstance::GetParseGameStatePacketDataLastCall().value().client == client);
@@ -47,8 +49,7 @@ TEST_CASE("Routing handler none OneSync test")
 {
 	fx::SetOneSyncGetCallback([] { return false; });
 
-	REQUIRE(std::string(RoutingPacketHandler::GetPacketId()) == "msgRoute");
-	REQUIRE(HashRageString(RoutingPacketHandler::GetPacketId()) == 0xE938445B);
+	REQUIRE(RoutingPacketHandler::PacketType == HashRageString("msgRoute"));
 	// test is only implemented for none onesync
 	REQUIRE(fx::IsOneSync() == false);
 
@@ -77,7 +78,9 @@ TEST_CASE("Routing handler none OneSync test")
 	});
 
 	RoutingPacketHandler handler(serverInstance.GetRef());
-	handler.Handle(serverInstance.GetRef(), client1, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client1, handlerReader, packetPtr);
 
 	REQUIRE(lastClientMetricData.has_value() == true);
 	auto receivedBuffer = lastClientMetricData.value().buffer;

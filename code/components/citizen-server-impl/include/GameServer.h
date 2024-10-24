@@ -28,6 +28,9 @@
 
 #include <ClientDropReasons.h>
 
+#include "ByteReader.h"
+#include "ENetPacketUniquePtr.h"
+
 #ifdef COMPILING_CITIZEN_SERVER_IMPL
 #define SVIMP_EXPORT DLL_EXPORT
 #else
@@ -216,10 +219,10 @@ namespace fx
 		void Run();
 
 	public:
-		void ProcessPacket(NetPeerBase* peer, const uint8_t* data, size_t size);
+		void ProcessPacket(NetPeerBase* peer, ENetPacketPtr& packet);
 
 	public:
-		using TPacketHandler = std::function<void(uint32_t packetId, const fx::ClientSharedPtr& client, net::Buffer& packet)>;
+		using TPacketHandler = std::function<void(uint32_t packetId, const fx::ClientSharedPtr& client, net::ByteReader& packet, ENetPacketPtr& packetPtr)>;
 
 		inline void SetPacketHandler(const TPacketHandler& handler)
 		{
@@ -329,7 +332,7 @@ namespace fx
 		detached_mpsc_queue<GameServerPacket> m_netSendList;
 	};
 
-	using TPacketTypeHandler = std::function<void(const fx::ClientSharedPtr& client, net::Buffer& packet)>;
+	using TPacketTypeHandler = std::function<void(const fx::ClientSharedPtr& client, net::ByteReader& reader, ENetPacketPtr packet)>;
 
 	enum class ThreadIdx
 	{

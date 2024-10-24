@@ -638,11 +638,15 @@ namespace fx
 		return variable->GetValue();
 	}
 
-	void GameServer::ProcessPacket(NetPeerBase* peer, const uint8_t* data, size_t size)
+	void GameServer::ProcessPacket(NetPeerBase* peer, ENetPacketPtr& packet)
 	{
-		// create a netbuffer and read the message type
-		net::Buffer msg(data, size);
-		uint32_t msgType = msg.Read<uint32_t>();
+		// create a byte reader and read the message type
+		net::ByteReader msg(packet->data, packet->dataLength);
+		uint32_t msgType;
+		if (!msg.Field(msgType))
+		{
+			return;
+		}
 
 		// get the client
 		auto peerId = peer->GetId();
@@ -654,10 +658,13 @@ namespace fx
 		{
 			if (!client)
 			{
-				std::vector<char> dataBuffer(msg.GetRemainingBytes());
-				msg.Read(dataBuffer.data(), dataBuffer.size());
+				std::string_view dataSpan;
+				if (!msg.Field(dataSpan, msg.GetRemaining()))
+				{
+					return;
+				}
 
-				auto postMap = ParsePOSTString(std::string_view(dataBuffer.data(), dataBuffer.size()));
+				auto postMap = ParsePOSTString(dataSpan);
 				auto guid = postMap["guid"];
 				auto token = postMap["token"];
 
@@ -763,15 +770,16 @@ namespace fx
 
 		auto principalScope = client->EnterPrincipalScope();
 
-		if (m_packetHandler)
-		{
-			m_packetHandler(msgType, client, msg);
-		}
-
 		if (client->GetNetworkMetricsRecvCallback())
 		{
 			client->GetNetworkMetricsRecvCallback()(client.get(), msgType, msg);
 		}
+
+		if (m_packetHandler)
+		{
+			m_packetHandler(msgType, client, msg, packet);
+		}
+
 		client->Touch();
 	}
 

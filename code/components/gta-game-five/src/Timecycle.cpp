@@ -340,7 +340,7 @@ void TimecycleManager::RevertChanges()
 	}
 
 	// sort timecycle modifier map after all the mess
-	SortTimecycleMap();
+	FinishModifierLoad();
 
 	// clear custom timecycle names
 	m_customNames.clear();
@@ -349,7 +349,7 @@ void TimecycleManager::RevertChanges()
 	m_modifiersBackup.clear();
 }
 
-void TimecycleManager::SortTimecycleMap()
+void TimecycleManager::FinishModifierLoad()
 {
 	const auto tcManager = GetGameManager();
 
@@ -359,6 +359,8 @@ void TimecycleManager::SortTimecycleMap()
 	});
 
 	tcManager->m_modifiersMap.m_isSorted = true;
+
+	tcManager->m_modifierStrengths.Expand(tcManager->m_modifiers.GetCount());
 }
 
 void TimecycleManager::RemoveTimecycle(uint32_t hash)
@@ -444,12 +446,7 @@ void TimecycleManager::AddTimecycleToList(rage::tcModifier& modifier, bool sort)
 
 		if (sort)
 		{
-			std::sort(tcManager->m_modifiersMap.m_array.begin(), tcManager->m_modifiersMap.m_array.end(), [](const auto& left, const auto& right)
-			{
-				return (left.m_hash < right.m_hash);
-			});
-
-			tcManager->m_modifiersMap.m_isSorted = true;
+			FinishModifierLoad();
 		}
 	}
 }

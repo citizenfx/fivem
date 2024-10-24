@@ -11,6 +11,7 @@
 
 #include <catch_amalgamated.hpp>
 
+#include "ENetPacketInstance.h"
 #include "ServerInstance.h"
 #include "TestUtils.h"
 #include "packethandlers/ServerEventPacketHandler.h"
@@ -78,7 +79,9 @@ namespace
 		g_serverEvent.reset();
 		g_serverEventFromResourceTick.reset();
 		ServerEventPacketHandler handler(g_serverInstance);
-		handler.Handle(g_serverInstance, client, buffer);
+		fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+		net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+		handler.Process(g_serverInstance, client, handlerReader, packetPtr);
 		g_serverInstance->GetComponent<fx::ResourceManager>()->Tick();
 	}
 }

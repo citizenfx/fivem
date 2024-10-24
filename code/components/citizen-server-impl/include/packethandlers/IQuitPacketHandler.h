@@ -9,43 +9,39 @@
 #include "GameServer.h"
 #include "IQuit.h"
 
+#include "PacketHandler.h"
+
 namespace fx
 {
 	namespace ServerDecorators
 	{
 		//  Used from the client to signal to the server that the client wants to quit with the given reason.
-		class IQuitPacketHandler
+		class IQuitPacketHandler : public net::PacketHandler<net::packet::ClientIQuit, HashRageString("msgIQuit")>
 		{
 		public:
 			IQuitPacketHandler(fx::ServerInstanceBase* instance)
 			{
 			}
 
-			void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
+			bool Process(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader, fx::ENetPacketPtr& packet)
 			{
-				static size_t kClientMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ClientIQuit>();
-
-				if (packet.GetRemainingBytes() < 1 || packet.GetRemainingBytes() > kClientMaxPacketSize)
+				if (reader.GetRemaining() < 1)
 				{
 					instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, "");
-					return;
+					return false;
 				}
 
-				net::packet::ClientIQuit clientIQuit;
+				const bool result = ProcessPacket(reader, [](net::packet::ClientIQuit& clientIQuit, fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client)
+				{
+					instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, std::string(std::string_view(clientIQuit.reason.GetValue().data(), clientIQuit.reason.GetValue().size() - 1)));
+				}, instance, client);
 
-				net::ByteReader reader{ packet.GetRemainingBytesPtr(), packet.GetRemainingBytes()};
-				if (!clientIQuit.Process(reader))
+				if (!result)
 				{
 					instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, "");
-					return;
 				}
 
-				instance->GetComponent<fx::GameServer>()->DropClientv(client, clientDropResourceName, fx::ClientDropReason::CLIENT, std::string(std::string_view(clientIQuit.reason.GetValue().data(), clientIQuit.reason.GetValue().size() - 1)));
-			}
-
-			static constexpr const char* GetPacketId()
-			{
-				return "msgIQuit";
+				return result;
 			}
 		};
 	}

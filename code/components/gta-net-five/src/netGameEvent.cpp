@@ -83,7 +83,9 @@ static void* g_netEventMgr;
 static uint16_t g_eventHeader;
 static bool g_lastEventGotRejected;
 
+#ifdef GTA_FIVE
 static atPoolBase** g_netGameEventPool;
+#endif
 
 static std::map<std::tuple<uint16_t, uint16_t>, netGameEventState> g_events;
 static std::map<std::tuple<uint32_t, uint16_t>, netGameEventState> g_eventsV2;
@@ -95,7 +97,7 @@ static std::unordered_set<uint16_t> g_eventBlacklist;
 static std::unordered_set<uint32_t> g_eventBlacklistV2;
 
 #ifdef IS_RDR3
-static std::unordered_map<uint16_t, const char*> g_eventNames;
+static std::unordered_map<uint16_t, std::string> g_eventNames;
 #endif
 
 static void (*g_origAddEvent)(void*, rage::netGameEvent*);
@@ -284,9 +286,17 @@ static uint16_t netEventMgr_MapEventId(uint16_t type, bool isSend)
 	return type;
 }
 
-static std::vector<uint32_t> netEventMgr_GetIdentsToEventHash()
+static std::vector<uint32_t>& netEventMgr_GetIdentsToEventHash(bool invalidate = false)
 {
-	std::vector<uint32_t> eventIdents;
+	static std::vector<uint32_t> eventIdents {};
+	static bool init {true};
+
+	if (!init && !invalidate)
+	{
+		return eventIdents;
+	}
+
+	eventIdents.clear();
 
 #ifdef GTA_FIVE
 	auto eventMgr = *(char**)g_netEventMgr;
@@ -303,10 +313,16 @@ static std::vector<uint32_t> netEventMgr_GetIdentsToEventHash()
 #elif IS_RDR3
 	for (auto [type, name] : g_eventNames)
 	{
-		eventIdents.resize(type + 1);
+		if (eventIdents.size() <= type)
+		{
+			eventIdents.resize(type + 1);
+		}
+
 		eventIdents[type] =  HashRageString(name);
 	}
 #endif
+
+	init = false;
 
 	return eventIdents;
 }
@@ -398,7 +414,7 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 
 	if (icgi->IsNetVersionOrHigher(net::NetBitVersion::netVersion4))
 	{
-		static std::vector<uint32_t> eventIdentsToHash = netEventMgr_GetIdentsToEventHash();
+		std::vector<uint32_t>& eventIdentsToHash = netEventMgr_GetIdentsToEventHash();
 
 		if (ev->eventType >= eventIdentsToHash.size())
 		{
@@ -609,12 +625,6 @@ void rage::HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGame
 
 		bool rejected = false;
 
-		// for all intents and purposes, the player will be 31
-		auto lastIndex = player->physicalPlayerIndex();
-		player->physicalPlayerIndex() = 31;
-
-		auto eventMgr = *(char**)g_netEventMgr;
-
 		static std::unordered_map<uint32_t, uint16_t> eventIdents = netEventMgr_GetEventHashIdents();
 
 		const auto eventIdentRes = eventIdents.find(eventNameHash);
@@ -625,7 +635,11 @@ void rage::HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGame
 			return;
 		}
 
-		if (eventMgr)
+		// for all intents and purposes, the player will be 31
+		auto lastIndex = player->physicalPlayerIndex();
+		player->physicalPlayerIndex() = 31;
+
+		if (auto eventMgr = *(char**)g_netEventMgr)
 		{
 #ifdef GTA_FIVE
 			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + (xbr::IsGameBuildOrGreater<2372>() ? 0x3B3D0 : xbr::IsGameBuildOrGreater<2060>() ? 0x3ABD0 : 0x3AB80));
@@ -657,6 +671,7 @@ void rage::HandleNetGameEventV2(net::packet::ServerNetGameEventV2& serverNetGame
 static void* RegisterNetGameEvent(void* eventMgr, uint16_t eventId, void* func, const char* name)
 {
 	g_eventNames.insert({ eventId, name });
+	netEventMgr_GetIdentsToEventHash(true);
 	return g_origRegisterNetGameEvent(eventMgr, eventId, func, name);
 }
 #endif
@@ -694,7 +709,7 @@ static uint32_t* GetFireApplicability(void* event, uint32_t* result, void* pos)
 	uint32_t value = (1 << 31);
 
 	*result = value;
-	return &value;
+	return result;
 }
 #endif
 
@@ -870,7 +885,7 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 
 	if (icgi->IsNetVersionOrHigher(net::NetBitVersion::netVersion4))
 	{
-		static std::vector<uint32_t> eventIdentsToHash = netEventMgr_GetIdentsToEventHash();
+		std::vector<uint32_t>& eventIdentsToHash = netEventMgr_GetIdentsToEventHash();
 		if (ev->eventType >= eventIdentsToHash.size())
 		{
 			// invalid event id
@@ -930,7 +945,7 @@ static void DecideNetGameEvent(rage::netGameEvent* ev, CNetGamePlayer* player, C
 
 			if (icgi->IsNetVersionOrHigher(net::NetBitVersion::netVersion4))
 			{
-				static std::vector<uint32_t> eventIdentsToHash = netEventMgr_GetIdentsToEventHash();
+				std::vector<uint32_t>& eventIdentsToHash = netEventMgr_GetIdentsToEventHash();
 
 				if (ev->eventType >= eventIdentsToHash.size())
 				{
@@ -1070,20 +1085,16 @@ namespace rage
 
 	void EventManager_Update()
 	{
-#ifdef IS_RDR3
-		if (!g_netGameEventPool)
-		{
-			auto pool = rage::GetPoolBase("netGameEvent");
-
-			if (pool)
-			{
-				g_netGameEventPool = &pool;
-			}
-		}
+		if (!(
+#ifdef GTA_FIVE
+			*g_netGameEventPool
+#elif IS_RDR3
+			rage::GetPoolBase("netGameEvent")
 #endif
-
-		if (!g_netGameEventPool || !*g_netGameEventPool)
+			))
 		{
+			// Just give up once the pool has been destroyed
+			// Events will be cleaned up in OnKillNetworkDone
 			return;
 		}
 
@@ -1214,7 +1225,7 @@ const char* rage::netGameEvent::GetName()
 		return "UNKNOWN_EVENT";
 	}
 
-	return findEvent->second;
+	return findEvent->second.c_str();
 }
 #endif
 

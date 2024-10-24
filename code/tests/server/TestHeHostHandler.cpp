@@ -4,6 +4,7 @@
 
 #include "ByteReader.h"
 #include "ByteWriter.h"
+#include "ENetPacketInstance.h"
 #include "GameServer.h"
 #include "GameServerInstance.h"
 #include "HeHost.h"
@@ -16,8 +17,7 @@ TEST_CASE("HeHost test")
 {
 	fx::SetOneSyncGetCallback([] { return false; });
 
-	REQUIRE(std::string(fx::ServerDecorators::HeHostPacketHandler::GetPacketId()) == std::string("msgHeHost"));
-	REQUIRE(HashRageString(fx::ServerDecorators::HeHostPacketHandler::GetPacketId()) == 0x86e9f87b);
+	REQUIRE(fx::ServerDecorators::HeHostPacketHandler::PacketType == HashRageString("msgHeHost"));
 	// test is only implemented for disabled onesync
 	REQUIRE(fx::IsOneSync() == false);
 
@@ -67,7 +67,9 @@ TEST_CASE("HeHost test")
 	net::Buffer buffer {packetBuffer.data(), writer.GetOffset()};
 
 	// client 1 vote for 1
-	handler.Handle(serverInstance.GetRef(), client1, buffer);
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client1, handlerReader, packetPtr);
 	buffer.Reset();
 	REQUIRE(serverInstance->GetComponent<fx::ServerDecorators::HostVoteCount>()->voteCounts.size() == 1);
 	// should be one, but it is two votes, because the first vote is count twice
@@ -78,7 +80,9 @@ TEST_CASE("HeHost test")
 	oldBuffer.Write<uint32_t>(clientHeHost.allegedNewId);
 	oldBuffer.Write<uint32_t>(clientHeHost.baseNum);
 	oldBuffer.Reset();
-	handler.Handle(serverInstance.GetRef(), client2, oldBuffer);
+	fx::ENetPacketPtr packetPtr2 = fx::ENetPacketInstance::Create(oldBuffer.GetBuffer(), oldBuffer.GetLength());
+	net::ByteReader handlerReader2(oldBuffer.GetBuffer(), oldBuffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client1, handlerReader2, packetPtr);
 
 	// count is 0, because it gets cleared after voice was successfully
 	REQUIRE(serverInstance->GetComponent<fx::ServerDecorators::HostVoteCount>()->voteCounts.size() == 0);

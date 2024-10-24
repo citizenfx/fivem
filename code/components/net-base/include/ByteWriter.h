@@ -38,6 +38,11 @@ namespace net
 			return m_offset + length <= m_capacity;
 		}
 
+		void Seek(size_t offset)
+		{
+			m_offset = offset;
+		}
+
 		/// <summary>
 		/// Writes a T to a byte stream
 		/// </summary>

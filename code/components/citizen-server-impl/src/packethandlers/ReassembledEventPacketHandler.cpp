@@ -3,10 +3,8 @@
 #include <ServerInstanceBase.h>
 
 #include <Client.h>
-#include <SerializableComponent.h>
 
 #include <ByteReader.h>
-#include <ByteWriter.h>
 
 #include "packethandlers/ReassembledEventPacketHandler.h"
 
@@ -18,34 +16,20 @@ fx::ServerDecorators::ReassembledEventPacketHandler::ReassembledEventPacketHandl
 {
 }
 
-void fx::ServerDecorators::ReassembledEventPacketHandler::Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer)
+bool fx::ServerDecorators::ReassembledEventPacketHandler::Process(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader, ENetPacketPtr& packet)
 {
 	if (!m_enableNetEventReassemblyConVar->GetValue())
 	{
-		return;
+		return false;
 	}
 
-	static size_t kMaxPacketSize = net::SerializableComponent::GetMaxSize<net::packet::ReassembledEvent>();
-
-	if (buffer.GetRemainingBytes() > kMaxPacketSize)
+	return ProcessPacket(reader, [](net::packet::ReassembledEvent& reassembledEvent, fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, fwRefContainer<fx::EventReassemblyComponent>& rac, ENetPacketPtr& packet)
 	{
-		// this only happens when a malicious client sends packets not created from our client code
-		return;
-	}
-
-	net::packet::ReassembledEvent reassembledEvent;
-
-	net::ByteReader reader{ buffer.GetRemainingBytesPtr(), buffer.GetRemainingBytes() };
-	if (!reassembledEvent.Process(reader))
-	{
-		// this only happens when a malicious client sends packets not created from our client code
-		return;
-	}
-
-	gscomms_execute_callback_on_main_thread([this, reassembledEvent, client, buffer = std::move(buffer)]() mutable
-	{
-		m_rac->HandlePacket(client->GetNetId(), std::string_view{ reinterpret_cast<const char*>(reassembledEvent.data.GetValue().data()), reassembledEvent.data.GetValue().size() });
-		// buffer needs to be moved to prevent packet memory from being freed
-		(void)buffer;
-	});
+		gscomms_execute_callback_on_main_thread([rac, reassembledEvent, client, packet]()
+		{
+			rac->HandlePacket(client->GetNetId(), std::string_view{ reinterpret_cast<const char*>(reassembledEvent.data.GetValue().data()), reassembledEvent.data.GetValue().size() });
+			// packet needs to be moved to prevent packet memory from being freed
+			(void)packet;
+		});
+	}, instance, client, m_rac, packet);
 }
