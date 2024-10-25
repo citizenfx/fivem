@@ -16,28 +16,39 @@ namespace net
 		uint64_t m_capacity;
 		uint64_t m_offset = 0;
 
-		bool RequireSpan(Span<uint8_t>& data, const size_t size)
+		bool RequireSpan(Span<uint8_t>& data, const size_t size, bool& written)
 		{
 			if (data.size() < size)
 			{
 				// when we can't require the expected size we try to read as much as possible
 				if (!data.empty())
 				{
-					ReadSpan(data, data.size());
+					ReadSpan(data, data.size(), written);
+				}
+				else
+				{
+					written = true;
 				}
 
 				return false;
 			}
 
-			ReadSpan(data, size);
+			ReadSpan(data, size, written);
 			return true;
 		}
 
-		void ReadSpan(Span<uint8_t>& data, const size_t size)
+		void ReadSpan(Span<uint8_t>& data, const size_t size, bool& written)
 		{
+			if (m_capacity - m_offset < size)
+			{
+				written = false;
+				return;
+			}
+
 			memcpy(m_data + m_offset, data.data(), size);
 			data = Span(data.data() + size, data.size() - size);
 			m_offset += size;
+			written = true;
 		}
 	public:
 		StreamByteReader(uint8_t* data, const uint64_t capacity): m_data(data), m_capacity(capacity)
@@ -61,6 +72,11 @@ namespace net
 			return m_data;
 		}
 
+		void Reset()
+		{
+			m_offset = 0;
+		}
+
 		/// <summary>
 		/// Pushes data to read.
 		/// The incomplete data will be saved to the buffer.
@@ -73,6 +89,7 @@ namespace net
 		{
 			if (data.empty())
 			{
+				Reset();
 				return false;
 			}
 
@@ -83,7 +100,16 @@ namespace net
 				// make sure the minimum size is at least in the stream before reading a message from it
 				if (m_offset < kMinSize)
 				{
-					if (!RequireSpan(data, kMinSize - m_offset))
+					bool written;
+					bool require = RequireSpan(data, kMinSize - m_offset, written);
+					if (!written)
+					{
+						// remaining data buffer is full
+						Reset();
+						return false;
+					}
+
+					if (!require)
 					{
 						return true;
 					}
@@ -95,6 +121,7 @@ namespace net
 				if (result != SerializableResult::Incomplete)
 				{
 					// stream is broken, because it should always be incomplete, otherwise would not be left in the stream
+					Reset();
 					return false;
 				}
 
@@ -103,21 +130,38 @@ namespace net
 				// should only be false if the message only requires the minimum size
 				if (m_offset < requiredSize)
 				{
-					if (!RequireSpan(data, requiredSize - m_offset))
+					bool written;
+					bool require = RequireSpan(data, requiredSize - m_offset, written);
+					if (!written)
+					{
+						// remaining data buffer is full
+						Reset();
+						return false;
+					}
+					
+					if (!require)
 					{
 						return true;
 					}
 				}
-			
+
 				ByteReader increasedReader(m_data, m_offset);
 				SerializableResult increasedResult = message.Process(increasedReader);
 				if (increasedResult != SerializableResult::Success)
 				{
 					// stream broken, data should have been complete
+					Reset();
 					return false;
 				}
 
-				m_offset -= increasedReader.GetOffset();
+				if (m_offset != increasedReader.GetOffset())
+				{
+					// more as the required data was read
+					Reset();
+					return false;
+				}
+
+				m_offset = 0;
 				completeCallback(message);
 			}
 
@@ -140,13 +184,21 @@ namespace net
 				else
 				{
 					// stream broken, error
+					Reset();
 					return false;
 				}
 			}
 
 			if (!data.empty())
 			{
-				ReadSpan(data, data.size());
+				bool written;
+				ReadSpan(data, data.size(), written);
+				if (!written)
+				{
+					// remaining data buffer is full
+					Reset();
+					return false;
+				}
 			}
 
 			return true;
