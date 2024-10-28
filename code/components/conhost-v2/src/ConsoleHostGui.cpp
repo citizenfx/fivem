@@ -406,7 +406,6 @@ struct CfxBigConsole : FiveMConsoleBase
 
 			// Input field in the first column
 			ImGui::PushItemWidth(-FLT_MIN);
-			bool reclaim_focus = false;
 			if (ImGui::InputText("##_Input", InputBuf, _countof(InputBuf),
 				ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
 			{
@@ -417,7 +416,6 @@ struct CfxBigConsole : FiveMConsoleBase
 				if (InputBuf[0])
 					ExecCommand(InputBuf);
 				strcpy(InputBuf, "");
-				reclaim_focus = true;
 			}
 			ImGui::PopItemWidth();
 
@@ -431,6 +429,11 @@ struct CfxBigConsole : FiveMConsoleBase
 			{
 				OpenLogFile();
 				shouldOpenLog = false;
+			}
+
+			if (ImGui::IsItemHovered() || (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)))
+			{
+				ImGui::SetKeyboardFocusHere(-1);
 			}
 
 			bool preAutoScrollValue = AutoScrollEnabled;
