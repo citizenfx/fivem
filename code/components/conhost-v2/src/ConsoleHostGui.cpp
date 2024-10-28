@@ -242,6 +242,8 @@ struct CfxBigConsole : FiveMConsoleBase
 {
 	char InputBuf[1024];
 	bool ScrollToBottom;
+	bool AutoScrollEnabled;
+	ConVar<bool>* m_conAutoScroll;
 	ImVector<char*> History;
 	int HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.
 	ImVector<const char*> Commands;
@@ -261,6 +263,9 @@ struct CfxBigConsole : FiveMConsoleBase
 		Commands.push_back("QUIT");
 		Commands.push_back("NETGRAPH");
 		Commands.push_back("STRDBG");
+
+		m_conAutoScroll = new ConVar<bool>("con_autoScroll", ConVar_Archive | ConVar_UserPref, true);
+		AutoScrollEnabled = m_conAutoScroll->GetValue();
 	}
 
 	virtual ~CfxBigConsole()
@@ -279,8 +284,10 @@ struct CfxBigConsole : FiveMConsoleBase
 
 	virtual void OnAddLog(std::string_view key, std::string_view msg) override
 	{
-		// TODO: figure out if scrolled up somehow?
-		ScrollToBottom = true;
+		if (AutoScrollEnabled)
+		{
+			ScrollToBottom = true;
+		}
 	}
 
 	virtual bool PreStartWindow()
@@ -387,54 +394,64 @@ struct CfxBigConsole : FiveMConsoleBase
 
 		// Command-line
 		float w = 0.0f;
-		
-#ifndef IS_FXSERVER
-		w = (ImGui::CalcTextSize("Open log").x + (ImGui::GetStyle().ItemSpacing.x * 4));
-#endif
 
-		ImGui::PushItemWidth(ImGui::GetWindowWidth() - w);
-
-		bool reclaim_focus = false;
-		if (ImGui::InputText("##_Input", InputBuf, _countof(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
+		if (ImGui::BeginTable("InputTable", 2, ImGuiTableFlags_SizingStretchProp))
 		{
-			char* input_end = InputBuf + strlen(InputBuf);
-			while (input_end > InputBuf && input_end[-1] == ' ') input_end--; *input_end = 0;
-			if (InputBuf[0])
-				ExecCommand(InputBuf);
-			strcpy(InputBuf, "");
-			reclaim_focus = true;
-		}
-		ImGui::PopItemWidth();
+			// Set up columns: first column stretches, second column has fixed width
+			ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed);
 
-		// Auto-focus on window apparition
-		ImGui::SetItemDefaultFocus();
-		if (ImGui::IsWindowAppearing())
-		{
-			ImGui::ActivateItem(ImGui::GetItemID());
-			GImGui->NavNextActivateFlags = ImGuiActivateFlags_PreferInput;
-		}
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
 
-		if (reclaim_focus)
-		{
-			ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
-		}
+			// Input field in the first column
+			ImGui::PushItemWidth(-FLT_MIN);
+			bool reclaim_focus = false;
+			if (ImGui::InputText("##_Input", InputBuf, _countof(InputBuf),
+				ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
+			{
+				char* input_end = InputBuf + strlen(InputBuf);
+				while (input_end > InputBuf && input_end[-1] == ' ')
+					input_end--;
+				*input_end = 0;
+				if (InputBuf[0])
+					ExecCommand(InputBuf);
+				strcpy(InputBuf, "");
+				reclaim_focus = true;
+			}
+			ImGui::PopItemWidth();
 
 #ifndef IS_FXSERVER
-		ImGui::SameLine();
 
-		static bool shouldOpenLog;
+			ImGui::TableNextColumn();
 
-		if (shouldOpenLog)
-		{
-			OpenLogFile();
-			shouldOpenLog = false;
-		}
+			static bool shouldOpenLog;
 
-		if (ImGui::Button("Open log"))
-		{
-			shouldOpenLog = true;
-		}
+			if (shouldOpenLog)
+			{
+				OpenLogFile();
+				shouldOpenLog = false;
+			}
+
+			bool preAutoScrollValue = AutoScrollEnabled;
+
+			// Controls in the second column
+			ImGui::Checkbox("Auto scroll", &AutoScrollEnabled);
+
+			if (preAutoScrollValue != AutoScrollEnabled)
+			{
+				m_conAutoScroll->GetHelper()->SetRawValue(AutoScrollEnabled);
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Open log"))
+			{
+				shouldOpenLog = true;
+			}
 #endif
+
+			ImGui::EndTable();
+		}
 
 		EndWindow();
 	}
@@ -536,6 +553,9 @@ struct CfxBigConsole : FiveMConsoleBase
 			{
 				// No match
 				AddLog("", "No match for \"%.*s\"!\n", (int)(word_end - word_start), word_start);
+
+				// Scroll to bottom anyway if "Tab" pressed
+				ScrollToBottom = true;
 			}
 			else if (candidates.size() == 1)
 			{
@@ -582,6 +602,9 @@ struct CfxBigConsole : FiveMConsoleBase
 				AddLog("", "Possible matches:\n");
 				for (const auto& candidate : candidates)
 					AddLog("", "- %s\n", candidate.c_str());
+
+				// Scroll to bottom anyway if "Tab" pressed
+				ScrollToBottom = true;
 			}
 
 			break;
