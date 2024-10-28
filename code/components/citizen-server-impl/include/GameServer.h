@@ -374,6 +374,7 @@ namespace fx
 	SVIMP_EXPORT void SetOneSyncPopulation(bool population);
 	SVIMP_EXPORT std::string_view GetEnforcedGameBuild();
 	SVIMP_EXPORT int GetEnforcedGameBuildNumber();
+	SVIMP_EXPORT bool GetReplaceExecutable();
 }
 
 DECLARE_INSTANCE_TYPE(fx::GameServer);

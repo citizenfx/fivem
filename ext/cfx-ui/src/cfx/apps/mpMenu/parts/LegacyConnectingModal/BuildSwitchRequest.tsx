@@ -73,6 +73,9 @@ export function BuildSwitchRequest(props: BuildSwitchRequestProps) {
           <Text size="large">{$L('#BuildSwitch_GeneralDescription', textData)}</Text>
           {state.currentBuild !== state.build && <Text size="large">{$L('#BuildSwitch_BuildDiff', textData)}</Text>}
           {state.currentPureLevel !== state.pureLevel && <Text size="large">{$L('#BuildSwitch_PureModeDiff', textData)}</Text>}
+          {state.currentReplaceExecutable !== state.replaceExecutable && <Text size="large">{
+            state.replaceExecutable === true ? $L('#BuildSwitch_ReplaceExecutable', textData) : $L('#BuildSwitch_DontReplaceExecutable', textData)
+          }</Text>}
           {state.currentPoolSizesIncrease !== state.poolSizesIncrease && <Text size="large">{
             state.poolSizesIncrease === "" ? $L('#BuildSwitch_PoolSizeDefault', textData) : $L('#BuildSwitch_PoolSizeDiff', textData)
           }</Text>}

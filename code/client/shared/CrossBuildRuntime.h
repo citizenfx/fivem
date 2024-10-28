@@ -18,6 +18,20 @@ namespace xbr
 // When there's no entry for a specific major game build, revision "0" will be assumed in the relevant code.
 //
 
+// TODO: Replace with the default game build once we use latest game build as default instead of the 1604 one.
+inline unsigned int GetLatestStableGameBuild()
+{
+#if defined(IS_RDR3)
+	return 1491;
+#elif defined(GTA_FIVE)
+	return 3258;
+#elif defined(GTA_NY)
+	return 43;
+#else
+	return 0;
+#endif
+}
+
 struct GameBuildUniquifier
 {
 	int m_minor;
@@ -59,23 +73,66 @@ inline std::pair<int, int> ParseGameBuildFromString(const std::string& buildStr)
 #ifndef XBR_BUILDS_ONLY
 namespace xbr
 {
-int GetGameBuildInit();
+int GetRequestedGameBuildInit();
+bool GetReplaceExecutableInit();
 
+#ifdef IS_FXSERVER
 inline int GetGameBuild()
 {
-#ifndef IS_FXSERVER
+	return 0;
+}
+
+inline int GetRequestedGameBuild()
+{
+	return 0;
+}
+
+inline bool GetReplaceExecutable()
+{
+	return false;
+}
+
+#else
+
+inline int GetRequestedGameBuild()
+{
 	static int buildNumber = -1;
 
 	if (buildNumber == -1)
 	{
-		buildNumber = GetGameBuildInit();
+		buildNumber = GetRequestedGameBuildInit();
 	}
 
 	return buildNumber;
-#else
-	return 0;
-#endif
 }
+
+inline bool GetReplaceExecutable()
+{
+	// Special build 1 with all DLCs turned off can not be achieved by replacing the executable.
+	static bool replaceExecutable = GetReplaceExecutableInit() && GetRequestedGameBuild() != 1;
+	return replaceExecutable;
+}
+
+inline int GetGameBuild()
+{
+	// For GTA5 we may want to ignore the CLI build request and use the latest build.
+	// In this case the requested build behavior will be achieved by partially loading old update.rpf files in UpdateRpfOverrideMount.cpp.
+#ifdef GTA_FIVE
+	if (!GetReplaceExecutable() && GetRequestedGameBuild() < GetLatestStableGameBuild())
+	{
+		static int buildNumber = -1;
+
+		if (buildNumber == -1)
+		{
+			buildNumber = GetLatestStableGameBuild();
+		}
+
+		return buildNumber;
+	}
+#endif
+	return GetRequestedGameBuild();
+}
+#endif
 
 #ifndef IS_FXSERVER
 inline std::string_view GetCurrentGameBuildString()
