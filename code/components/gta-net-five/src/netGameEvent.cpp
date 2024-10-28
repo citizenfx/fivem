@@ -188,7 +188,7 @@ static void netEventMgr_PopulateEventBlacklist()
 		}
 	}
 #elif IS_RDR3
-	for (auto [type, name] : g_eventNames)
+	for (const auto& [type, name] : g_eventNames)
 	{
 		eventIdents.insert({ name, type });
 	}
