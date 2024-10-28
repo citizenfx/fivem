@@ -27,6 +27,17 @@ static InitFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_KEY_MAPPING_HIDE_RESOURCES", [](fx::ScriptContext& context)
+	{
+		bool hide = context.GetArgument<bool>(0);
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			game::SetKeyMappingHideResources(hide);
+		}
+	});
+
 	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
 	{
 		resource->OnStart.Connect([resource]()
