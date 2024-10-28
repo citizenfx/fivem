@@ -66,3 +66,42 @@ cd ../../
 mv bin/release/premake5 /usr/local/bin
 cd ..
 rm -rf premake-*
+
+# install specific glibc version to enable running binaries compiled against it instead of alpine's muslc
+# See: https://github.com/oven-sh/bun/blob/14c23cc429521bd935b2a0dafa36b0966685b0fe/dockerhub/alpine/Dockerfile
+GLIBC_VERSION=2.34-r0
+GLIBC_VERSION_AARCH64=2.26-r1
+
+arch="$(apk --print-arch)" \
+    && cd /tmp \
+    && case "${arch##*-}" in \
+      x86_64) curl "https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk" \
+        -fsSLO \
+        --compressed \
+        --retry 5 \
+        || (echo "error: failed to download: glibc v${GLIBC_VERSION}" && exit 1) \
+      && mv "glibc-${GLIBC_VERSION}.apk" glibc.apk \
+      && curl "https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-bin-${GLIBC_VERSION}.apk" \
+        -fsSLO \
+        --compressed \
+        --retry 5 \
+        || (echo "error: failed to download: glibc-bin v${GLIBC_VERSION}" && exit 1) \
+      && mv "glibc-bin-${GLIBC_VERSION}.apk" glibc-bin.apk ;; \
+      aarch64) curl "https://raw.githubusercontent.com/squishyu/alpine-pkg-glibc-aarch64-bin/master/glibc-${GLIBC_VERSION_AARCH64}.apk" \
+        -fsSLO \
+        --compressed \
+        --retry 5 \
+        || (echo "error: failed to download: glibc v${GLIBC_VERSION_AARCH64}" && exit 1) \
+      && mv "glibc-${GLIBC_VERSION_AARCH64}.apk" glibc.apk \
+      && curl "https://raw.githubusercontent.com/squishyu/alpine-pkg-glibc-aarch64-bin/master/glibc-bin-${GLIBC_VERSION_AARCH64}.apk" \
+        -fsSLO \
+        --compressed \
+        --retry 5 \
+        || (echo "error: failed to download: glibc-bin v${GLIBC_VERSION_AARCH64}" && exit 1) \
+      && mv "glibc-bin-${GLIBC_VERSION_AARCH64}.apk" glibc-bin.apk ;; \
+      *) echo "error: unsupported architecture '$arch'"; exit 1 ;; \
+    esac
+
+apk --no-cache --force-overwrite --allow-untrusted add \
+      /tmp/glibc.apk \
+      /tmp/glibc-bin.apk
