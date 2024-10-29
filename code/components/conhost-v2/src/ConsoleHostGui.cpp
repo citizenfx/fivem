@@ -444,6 +444,11 @@ struct CfxBigConsole : FiveMConsoleBase
 			if (preAutoScrollValue != AutoScrollEnabled)
 			{
 				m_conAutoScroll->GetHelper()->SetRawValue(AutoScrollEnabled);
+				if (AutoScrollEnabled)
+				{
+					// Force scroll to bottom on enabling autoscroll
+					ScrollToBottom = true;
+				}
 			}
 
 			ImGui::SameLine();
