@@ -189,26 +189,24 @@ class
 	GtaThread :
 		public rage::scrThread
 {
-protected:
-	uint32_t nameHash;
-	char scriptName[60];                        // 208
-	rage::scriptHandler* m_pScriptHandler;      // 272
-	void* m_pNetcomponent;                      // 280
-	char gta_pad2[24];                          // 288
-	uint32_t m_networkId;                       // 312
-	uint32_t gta_padInt;                        // 316
-	char flag1;                                 // 320
-	char m_networkFlag;                         // 321
-	uint16_t gta_pad3;                          // 322
-	char gta_pad4[12];                          // 324
-	uint8_t m_canRemoveBlipsFromOtherScripts;   // 336
-	char gta_pad5[7];                           // 337
-	char shrug[40];
+private:
+	uint32_t m_nameHash; // 0x6D8
+	rage::scriptHandler* m_pScriptHandler; // 0x6E0
+	void* m_pNetcomponent; // 0x6E8
+	char pad1[28];
+	uint32_t m_networkId; // 0x70C
+	uint32_t gta_padInt;
+	char flag1;
+	bool m_networkFlag; // 0x715
+	char gta_pad4[6];
+	uint8_t m_canRemoveBlipsFromOtherScripts; // 0x71C
 
+	char shrug[107];
+	
 public:
 	inline GtaThread()
 	{
-		nameHash = HashString("startup"); // cheat for some init-time checks
+		SetScriptName("startup"); // cheat for some init-time checks
 	}
 
 	virtual void					DoRun() = 0;
@@ -220,16 +218,12 @@ public:
 
 	inline void SetScriptName(const char* name)
 	{
-		nameHash = HashString(name);
+		m_nameHash = HashString(name);
 	}
 
 	inline rage::scriptHandler* GetScriptHandler() { return m_pScriptHandler; }
 
-	inline void SetScriptHandler(void* scriptHandler) { m_pScriptHandler = reinterpret_cast<rage::scriptHandler*>(scriptHandler); }
-
 	inline void SetScriptHandler(rage::scriptHandler* scriptHandler) { m_pScriptHandler = scriptHandler; }
-
-	inline void RemoveCleanupFlag() {  }
 };
 
 static_assert(sizeof(rage::scrThread) == 1752, "scrThread has wrong size!");
