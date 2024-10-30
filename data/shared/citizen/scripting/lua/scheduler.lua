@@ -1118,5 +1118,5 @@ end
 
 -- Redefine os.execute to prevent command execution on the server
 function os.execute()
-	print("^1Error: The os.system function has been disabled for security reasons. Command execution prevented.^7")
+	print("^1Error: The os.system function has been disabled for security reasons.^7")
 end
