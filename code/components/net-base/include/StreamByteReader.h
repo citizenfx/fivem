@@ -118,47 +118,52 @@ namespace net
 				T message;
 				ByteReader reader(m_data, m_offset);
 				SerializableResult result = message.Process(reader);
-				if (result != SerializableResult::Incomplete)
+				if (result == SerializableResult::Error)
 				{
-					// stream is broken, because it should always be incomplete, otherwise would not be left in the stream
+					// stream is broken, because of an error while processing the message
 					Reset();
 					return false;
 				}
 
-				const size_t requiredSize = SerializableComponent::GetSize(message);
-
-				// should only be false if the message only requires the minimum size
-				if (m_offset < requiredSize)
+				// can be completed early when the offset before did not yet reach the min size
+				// and the message only requires the min size
+				if (result != SerializableResult::Success)
 				{
-					bool written;
-					bool require = RequireSpan(data, requiredSize - m_offset, written);
-					if (!written)
+					const size_t requiredSize = SerializableComponent::GetSize(message);
+
+					// should only be false if the message only requires the minimum size
+					if (m_offset < requiredSize)
 					{
-						// remaining data buffer is full
+						bool written;
+						bool require = RequireSpan(data, requiredSize - m_offset, written);
+						if (!written)
+						{
+							// remaining data buffer is full
+							Reset();
+							return false;
+						}
+					
+						if (!require)
+						{
+							return true;
+						}
+					}
+
+					ByteReader increasedReader(m_data, m_offset);
+					SerializableResult increasedResult = message.Process(increasedReader);
+					if (increasedResult != SerializableResult::Success)
+					{
+						// stream broken, data should have been complete
 						Reset();
 						return false;
 					}
-					
-					if (!require)
+
+					if (m_offset != increasedReader.GetOffset())
 					{
-						return true;
+						// more as the required data was read
+						Reset();
+						return false;
 					}
-				}
-
-				ByteReader increasedReader(m_data, m_offset);
-				SerializableResult increasedResult = message.Process(increasedReader);
-				if (increasedResult != SerializableResult::Success)
-				{
-					// stream broken, data should have been complete
-					Reset();
-					return false;
-				}
-
-				if (m_offset != increasedReader.GetOffset())
-				{
-					// more as the required data was read
-					Reset();
-					return false;
 				}
 
 				m_offset = 0;
