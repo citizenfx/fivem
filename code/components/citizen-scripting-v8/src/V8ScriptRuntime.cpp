@@ -209,8 +209,6 @@ private:
 
 	void* m_parentObject;
 
-	invoker::PointerField m_pointerFields[3];
-
 	// string values, which need to be persisted across calls as well
 	std::unique_ptr<String::Utf8Value> m_stringValues[50];
 
@@ -302,11 +300,6 @@ public:
 	inline OMPtr<IScriptHost> GetScriptHost()
 	{
 		return m_scriptHost;
-	}
-
-	inline invoker::PointerField* GetPointerFields()
-	{
-		return m_pointerFields;
 	}
 
 	inline const char* GetResourceName()
@@ -1018,7 +1011,7 @@ struct V8ScriptNativeContext final : ScriptNativeContext
 };
 
 V8ScriptNativeContext::V8ScriptNativeContext(uint64_t hash, V8ScriptRuntime* runtime, v8::Isolate* isolate)
-	: ScriptNativeContext(hash, runtime->GetPointerFields()), isolateScope(GetV8Isolate()), runtime(runtime), isolate(isolate), cxt(runtime->GetContext())
+	: ScriptNativeContext(hash), isolateScope(GetV8Isolate()), runtime(runtime), isolate(isolate), cxt(runtime->GetContext())
 {
 }
 
@@ -1351,50 +1344,31 @@ static void V8_InvokeNativeHash(const v8::FunctionCallbackInfo<v8::Value>& args)
 	});
 }
 
-template<MetaField MetaField>
+template<MetaField field>
 static void V8_GetMetaField(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	args.GetReturnValue().Set(External::New(GetV8Isolate(), &ScriptNativeContext::s_metaFields[(int)MetaField]));
+	args.GetReturnValue().Set(External::New(GetV8Isolate(), ScriptNativeContext::GetMetaField(field)));
 }
 
-template<MetaField MetaField>
+template<MetaField field>
 static void V8_GetPointerField(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
 
-	auto pointerFields = runtime->GetPointerFields();
-	auto pointerFieldStart = &pointerFields[(int)MetaField];
+	auto arg = args[0];
+	uintptr_t value = 0;
 
-	static uintptr_t dummyOut;
-	PointerFieldEntry* pointerField = nullptr;
-	
-	for (int i = 0; i < _countof(pointerFieldStart->data); i++)
+	if constexpr (field == MetaField::PointerValueInt)
 	{
-		if (pointerFieldStart->data[i].empty)
-		{
-			pointerField = &pointerFieldStart->data[i];
-			pointerField->empty = false;
-			
-			auto arg = args[0];
-
-			if (MetaField == MetaField::PointerValueFloat)
-			{
-				float value = static_cast<float>(arg->NumberValue(runtime->GetContext()).ToChecked());
-
-				pointerField->value = *reinterpret_cast<uint32_t*>(&value);
-			}
-			else if (MetaField == MetaField::PointerValueInt)
-			{
-				intptr_t value = arg->IntegerValue(runtime->GetContext()).ToChecked();
-
-				pointerField->value = value;
-			}
-
-			break;
-		}
+		value = (uint64_t) arg->IntegerValue(runtime->GetContext()).ToChecked();
+	}
+	else if constexpr (field == MetaField::PointerValueFloat)
+	{
+		float fvalue = static_cast<float>(arg->NumberValue(runtime->GetContext()).ToChecked());
+		value = *reinterpret_cast<uint32_t*>(&value);
 	}
 
-	args.GetReturnValue().Set(External::New(GetV8Isolate(), (pointerField) ? static_cast<void*>(pointerField) : &dummyOut));
+	args.GetReturnValue().Set(External::New(GetV8Isolate(), ScriptNativeContext::GetPointerField(field, value)));
 }
 
 std::string SaveProfileToString(CpuProfile* profile);

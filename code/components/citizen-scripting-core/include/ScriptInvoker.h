@@ -77,19 +77,10 @@ struct ScrVector
 	}
 };
 
-struct PointerFieldEntry
-{
-	bool empty;
-	uintptr_t value;
-	PointerFieldEntry()
-		: empty(true), value(0)
-	{
-	}
-};
-
 struct PointerField
 {
-	PointerFieldEntry data[64];
+	MetaField type;
+	uintptr_t value;
 };
 
 struct ArgumentType
@@ -115,8 +106,6 @@ struct CSCRC_EXPORT ScriptNativeContext : fxNativeContext
 	uint32_t pointerMask = 0;
 	const uint32_t* typeInfo = nullptr;
 
-	PointerField* pointerFields;
-
 	uint8_t* isolatedBuffer = nullptr;
 	uint8_t* isolatedBufferEnd = nullptr;
 
@@ -128,9 +117,7 @@ struct CSCRC_EXPORT ScriptNativeContext : fxNativeContext
 	IsolatedBuffer isolatedBuffers[8];
 	int numIsolatedBuffers = 0;
 
-	static uint8_t s_metaFields[(size_t)MetaField::Max];
-
-	ScriptNativeContext(uint64_t hash, PointerField* fields);
+	ScriptNativeContext(uint64_t hash);
 	ScriptNativeContext(const ScriptNativeContext&) = delete;
 	ScriptNativeContext(ScriptNativeContext&&) = delete;
 
@@ -150,6 +137,9 @@ struct CSCRC_EXPORT ScriptNativeContext : fxNativeContext
 
 	template<typename Visitor>
 	void ProcessResults(Visitor&& visitor);
+
+	static void* GetMetaField(MetaField field);
+	static void* GetPointerField(MetaField type, uintptr_t value);
 
 private:
 	void PushRaw(uintptr_t value, ArgumentType type);
