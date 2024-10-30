@@ -1115,3 +1115,8 @@ end
 if not isDuplicityVersion then
 	LocalPlayer = Player(-1)
 end
+
+-- Redefine os.execute to prevent command execution on the server
+function os.execute()
+	print("^1Error: The os.system function has been disabled for security reasons. Command execution prevented.^7")
+end
