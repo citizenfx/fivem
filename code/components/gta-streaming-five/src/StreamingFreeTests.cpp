@@ -360,53 +360,59 @@ static void MakeDefragmentableHook(rage::pgBase* self, const rage::datResourceMa
 #include <stack>
 #include <atHashMap.h>
 
-static void (*g_origArchetypeDtor)(fwArchetype* at);
-
-static std::unordered_map<uint32_t, std::deque<uint32_t>> g_archetypeDeletionStack;
+static std::unordered_map<uint32_t, std::deque<std::pair<uintptr_t, uint32_t>>> g_archetypeDeletionStack;
 static atHashMapReal<uint32_t>* g_archetypeHash;
-static char** g_archetypeStart;
-static size_t* g_archetypeLength;
+
+static void (*g_origArchetypeDtor)(fwArchetype* at);
 
 static void ArchetypeDtorHook1(fwArchetype* at)
 {
-	if (auto stackIt = g_archetypeDeletionStack.find(at->hash); stackIt != g_archetypeDeletionStack.end())
+	auto stackIt = g_archetypeDeletionStack.find(at->hash);
+	if (stackIt == g_archetypeDeletionStack.end())
 	{
-		auto& stack = stackIt->second;
+		// If archetype that is being unregistered was initialized but not added to the deletion stack.
+		// I.e. created bypassing ArchetypeInitHook. Should never happen on practice.
+		g_origArchetypeDtor(at);
+		return;
+	}
 
-		if (!stack.empty())
+	auto& stack = stackIt->second;
+	// Most archetypes will have a single entry in the stack.
+	// Add this check to save some g_archetypeHash lookups.
+	if (stack.size() <= 1)
+	{
+		g_origArchetypeDtor(at);
+		g_archetypeDeletionStack.erase(stackIt);
+		return;
+	}
+
+	auto correctIndex = *g_archetypeHash->find(at->hash);
+	for (auto it = stack.begin(); it != stack.end(); it++)
+	{
+		if (it->first == (uintptr_t)at)
 		{
-			// get our index
-			auto atIdx = *g_archetypeHash->find(at->hash);
-
-			// delete ourselves from the stack
-			for (auto it = stack.begin(); it != stack.end();)
-			{
-				if (*it == atIdx)
-				{
-					it = stack.erase(it);
-				}
-				else
-				{
-					it++;
-				}
-			}
-
-			if (!stack.empty())
-			{
-				// update hash map with the front
-				auto oldArchetype = stack.front();
-
-				*g_archetypeHash->find(at->hash) = oldArchetype;
-			}
-		}
-
-		if (stack.empty())
-		{
-			g_archetypeDeletionStack.erase(stackIt);
+			correctIndex = it->second;
+			stack.erase(it);
+			break;
 		}
 	}
 
+	// In case of duplicated archetypes (same hash) the g_origArchetypeDtor doesn't know which one should be deleted.
+	// So it removes the first matching element in the internal linked list.
+	// Set the first element to index that corresponds to the archetype that is being deleted.
+	*g_archetypeHash->find(at->hash) = correctIndex;
 	g_origArchetypeDtor(at);
+
+	if (!stack.empty())
+	{
+		// After the override above we now need to maintain correct state of g_archetypeHash.
+		// Without it, the g_archetypeHash->find(at->hash) may point to archetype that was already deleted.
+		*g_archetypeHash->find(at->hash) = stack.front().second;
+	}
+	else
+	{
+		g_archetypeDeletionStack.erase(stackIt);
+	}
 }
 
 static void (*g_origArchetypeInit)(void* at, void* a3, fwArchetypeDef* def, void* a4);
@@ -416,10 +422,9 @@ static void ArchetypeInitHook(void* at, void* a3, fwArchetypeDef* def, void* a4)
 	g_origArchetypeInit(at, a3, def, a4);
 
 	auto atIdx = g_archetypeHash->find(def->name);
-
 	if (atIdx)
 	{
-		g_archetypeDeletionStack[def->name].push_front(*atIdx);
+		g_archetypeDeletionStack[def->name].emplace_front((uintptr_t)at, *atIdx);
 	}
 }
 #endif
@@ -622,10 +627,7 @@ static HookFunction hookFunction([] ()
 
 	{
 		auto getArchetypeFn = hook::get_pattern<char>("0F 84 AD 00 00 00 44 0F B7 C0 33 D2", 20);
-
 		g_archetypeHash = (atHashMapReal<uint32_t>*)hook::get_address<void*>(getArchetypeFn);
-		g_archetypeStart = (char**)hook::get_address<void*>(getArchetypeFn + 0x84);
-		g_archetypeLength = (size_t*)hook::get_address<void*>(getArchetypeFn + 0x7D);
 	}
 #endif
 });
