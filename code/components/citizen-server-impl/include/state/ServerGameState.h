@@ -963,6 +963,14 @@ public:
 		return scriptHash;
 	}
 
+	/// <summary>
+	/// Checks of the entity is set to be kept by the server via orphan mode or by being owned by a server script.
+	/// </summary>
+	inline bool ShouldServerKeepEntity()
+	{
+		return IsOwnedByServerScript() || orphanMode == EntityOrphanMode::KeepEntity;
+	}
+
 	inline bool IsOwnedByScript()
 	{
 		return GetScriptHash() != 0;

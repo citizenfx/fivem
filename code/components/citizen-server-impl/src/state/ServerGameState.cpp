@@ -1515,7 +1515,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					if (entityClient && entityClient->GetNetId() == client->GetNetId())
 					{
 						// if this entity is owned by a server script, reassign to nobody and wait until someone else owns it
-						if (entity->IsOwnedByServerScript())
+						if (entity->ShouldServerKeepEntity())
 						{
 							ReassignEntity(entity->handle, {});
 						}
@@ -2812,10 +2812,9 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 
 		if (candidates.empty()) // no candidate?
 		{
-			GS_LOG("no candidates for entity %d, assigning as unowned\n", entity->handle);
-
-			if (entity->IsOwnedByServerScript())
+			if (entity->ShouldServerKeepEntity())
 			{
+				GS_LOG("no candidates for entity %d, assigning as unowned\n", entity->handle);
 				ReassignEntity(entity->handle, {});
 			}
 			else
@@ -2924,8 +2923,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 				{
 					ReassignEntity(entity->handle, firstOwner);
 				}
-				// we don't want to add these to the list to remove if they're set to be kept when orphaned
-				else if (entity->orphanMode != sync::KeepEntity)
+				else
 				{
 					toErase.insert(entity->handle);
 				}
