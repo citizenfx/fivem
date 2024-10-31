@@ -19,18 +19,30 @@ namespace xbr
 //
 
 // TODO: Replace with the default game build once we use latest game build as default instead of the 1604 one.
+inline unsigned int GetLatestStableGTA5Build()
+{
+	return 3258;
+}
+
+inline unsigned int GetLatestStableRDR3Build()
+{
+	return 1491;
+}
+
+#ifndef IS_FXSERVER
 inline unsigned int GetLatestStableGameBuild()
 {
 #if defined(IS_RDR3)
-	return 1491;
+	return GetLatestStableRDR3Build();
 #elif defined(GTA_FIVE)
-	return 3258;
+	return GetLatestStableGTA5Build();
 #elif defined(GTA_NY)
 	return 43;
 #else
 	return 0;
 #endif
 }
+#endif
 
 struct GameBuildUniquifier
 {
