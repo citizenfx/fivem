@@ -26,15 +26,11 @@
 #define PRODUCT_NAME L"FiveM"
 #define GAME_EXECUTABLE L"GTA5.exe"
 #define CONTENT_NAME "fivereborn"
-#define CONNECT_NNG_SOCKET_NAME "ipc:///tmp/fivem_connect"
-#define AUTH_NNG_SOCKET_NAME "ipc:///tmp/fivem_auth"
 #define LINK_PROTOCOL L"fivem"
 #elif defined(IS_RDR3)
 #define PRODUCT_NAME L"RedM"
 #define CONTENT_NAME "redm"
 #define GAME_EXECUTABLE L"RDR2.exe"
-#define CONNECT_NNG_SOCKET_NAME "ipc:///tmp/redm_connect"
-#define AUTH_NNG_SOCKET_NAME "ipc:///tmp/redm_auth"
 #define LINK_PROTOCOL L"redm"
 #elif defined(IS_LAUNCHER)
 #define PRODUCT_NAME L"Cfx.re Launcher"

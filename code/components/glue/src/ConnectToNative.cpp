@@ -57,6 +57,8 @@
 #include "PacketHandler.h"
 #include "PaymentRequest.h"
 
+#include "LinkProtocolIPC.h"
+
 #ifdef GTA_FIVE
 #include <ArchetypesCollector.h>
 #endif
@@ -1380,10 +1382,6 @@ static InitFunction initFunction([] ()
 #endif
 #include <shellapi.h>
 
-#include <nng/nng.h>
-#include <nng/protocol/pipeline0/pull.h>
-#include <nng/protocol/pipeline0/push.h>
-
 static void ProtocolRegister(const wchar_t* name, const wchar_t* cls)
 {
 	LSTATUS result;
@@ -1529,15 +1527,10 @@ void Component_RunPreInit()
 		}
 		else
 		{
-			nng_socket socket;
-			nng_dialer dialer;
-
 			auto j = nlohmann::json::object({ { "host", connectHost }, { "params", connectParams } });
 			std::string connectMsg = j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::strict);
 
-			nng_push0_open(&socket);
-			nng_dial(socket, CONNECT_NNG_SOCKET_NAME, &dialer, 0);
-			nng_send(socket, const_cast<char*>(connectMsg.c_str()), connectMsg.size(), 0);
+			cfx::glue::LinkProtocolIPC::SendConnectTo(connectMsg);
 
 			if (!hostData->gamePid)
 			{
@@ -1570,12 +1563,7 @@ void Component_RunPreInit()
 		}
 		else
 		{
-			nng_socket socket;
-			nng_dialer dialer;
-
-			nng_push0_open(&socket);
-			nng_dial(socket, AUTH_NNG_SOCKET_NAME, &dialer, 0);
-			nng_send(socket, const_cast<char*>(authPayload.c_str()), authPayload.size(), 0);
+			cfx::glue::LinkProtocolIPC::SendAuthPayload(authPayload);
 
 			if (!hostData->gamePid)
 			{
@@ -1603,17 +1591,22 @@ static InitFunction connectInitFunction([]()
 	});
 #endif
 
-	static nng_socket netSocket;
-	static nng_listener listener;
+	cfx::glue::LinkProtocolIPC::OnConnectTo.Connect([](const std::string_view& connectMsg)
+	{
+		auto connectData = nlohmann::json::parse(connectMsg);
+		ConnectTo(connectData["host"], false, connectData["params"]);
 
-	nng_pull0_open(&netSocket);
-	nng_listen(netSocket, CONNECT_NNG_SOCKET_NAME, &listener, 0);
+		SetForegroundWindow(CoreGetGameWindow());
+	});
 
-	static nng_socket netAuthSocket;
-	static nng_listener authListener;
+	cfx::glue::LinkProtocolIPC::OnAuthPayload.Connect([](const std::string_view& authPayload)
+	{
+		HandleAuthPayload(std::string(authPayload));
 
-	nng_pull0_open(&netAuthSocket);
-	nng_listen(netAuthSocket, AUTH_NNG_SOCKET_NAME, &authListener, 0);
+		SetForegroundWindow(CoreGetGameWindow());
+	});
+
+	cfx::glue::LinkProtocolIPC::Initialize();
 
 	GetEarlyGameFrame().Connect([]()
 	{
@@ -1622,34 +1615,6 @@ static InitFunction connectInitFunction([]()
 			return;
 		}
 
-		char* buffer;
-		size_t bufLen;
-
-		int err;
-
-		err = nng_recv(netSocket, &buffer, &bufLen, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC);
-
-		if (err == 0)
-		{
-			std::string connectMsg(buffer, buffer + bufLen);
-			nng_free(buffer, bufLen);
-
-			auto connectData = nlohmann::json::parse(connectMsg);
-			ConnectTo(connectData["host"], false, connectData["params"]);
-
-			SetForegroundWindow(CoreGetGameWindow());
-		}
-
-		err = nng_recv(netAuthSocket, &buffer, &bufLen, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC);
-
-		if (err == 0)
-		{
-			std::string msg(buffer, buffer + bufLen);
-			nng_free(buffer, bufLen);
-
-			HandleAuthPayload(msg);
-
-			SetForegroundWindow(CoreGetGameWindow());
-		}
+		cfx::glue::LinkProtocolIPC::ProcessMessages();
 	});
 });
