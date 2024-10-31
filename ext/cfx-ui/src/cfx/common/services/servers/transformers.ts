@@ -187,6 +187,22 @@ function getSortableName(searchableName: string): string {
     .toLowerCase();
 }
 
+function shouldVarBeShown(key: string): boolean {
+  const convars: string[] = [
+    'sv_lan',
+    'mapname', 
+    'onesync', 
+    'gametype', 
+    'sv_maxClients',
+    'sv_poolSizesIncrease', 
+    'sv_enhancedHostSupport',  
+    'sv_disableClientReplays', 
+    'sv_replaceExeToSwitchBuilds',
+  ];
+
+  return !convars.includes(key);
+}
+
 type VarsView = Partial<
   Pick<
     IServerView,
@@ -294,21 +310,11 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
       }
       case key === 'sv_pureLevel': {
         view.pureLevel = value as ServerPureLevel;
-
         continue;
       }
-
-      case key === 'sv_poolSizesIncrease':
-      case key === 'sv_disableClientReplays':
-      case key === 'onesync':
-      case key === 'gametype':
-      case key === 'mapname':
-      case key === 'sv_enhancedHostSupport':
-      case key === 'sv_lan':
-      case key === 'sv_maxClients': {
+      case !shouldVarBeShown(key): {
         continue;
       }
-
       case lckey.includes('banner_'):
       case lckey.includes('sv_project'):
       case lckey.includes('version'):
