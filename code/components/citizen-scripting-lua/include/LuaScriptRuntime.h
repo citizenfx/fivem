@@ -187,8 +187,6 @@ private:
 
 	void* m_parentObject = nullptr;
 
-	invoker::PointerField m_pointerFields[3];
-
 	int m_instanceId;
 
 	std::string m_nativesDir;
@@ -303,11 +301,6 @@ public:
 	LUA_INLINE IScriptHostWithBookmarks* GetScriptHostWithBookmarks()
 	{
 		return m_bookmarkHost;
-	}
-
-	LUA_INLINE invoker::PointerField* GetPointerFields()
-	{
-		return m_pointerFields;
 	}
 
 	LUA_INLINE const char* GetResourceName()

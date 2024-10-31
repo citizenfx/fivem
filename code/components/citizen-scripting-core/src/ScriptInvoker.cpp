@@ -86,10 +86,11 @@ struct NativeTypeInfo
 
 namespace fx::invoker
 {
-uint8_t ScriptNativeContext::s_metaFields[(size_t)MetaField::Max];
+static uint8_t s_metaFields[(size_t)MetaField::Max];
+static PointerField s_pointerFields[128];
+static size_t s_pointerFieldIndex = 0;
 
-ScriptNativeContext::ScriptNativeContext(uint64_t hash, PointerField* fields)
-	: pointerFields(fields)
+ScriptNativeContext::ScriptNativeContext(uint64_t hash)
 {
 	nativeIdentifier = hash;
 	numArguments = 0;
@@ -196,17 +197,13 @@ void ScriptNativeContext::PushMetaPointer(uint8_t* ptr)
 		}
 	}
 	// or if the pointer is a runtime pointer field
-	else if (ptr >= reinterpret_cast<uint8_t*>(pointerFields) && ptr < (reinterpret_cast<uint8_t*>(pointerFields) + (sizeof(PointerField) * 2)))
+	else if (ptr >= reinterpret_cast<uint8_t*>(s_pointerFields) && ptr < (reinterpret_cast<uint8_t*>(s_pointerFields + std::size(s_pointerFields))))
 	{
-		// guess the type based on the pointer field type
-		const intptr_t ptrField = ptr - reinterpret_cast<uint8_t*>(pointerFields);
-		const MetaField metaField = static_cast<MetaField>(ptrField / sizeof(PointerField));
+		PointerField* field = reinterpret_cast<PointerField*>(ptr);
 
-		if (metaField == MetaField::PointerValueInt || metaField == MetaField::PointerValueFloat)
+		if (field->type == MetaField::PointerValueInt || field->type == MetaField::PointerValueFloat)
 		{
-			auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
-			ptrFieldEntry->empty = true;
-			PushReturnValue(metaField, &ptrFieldEntry->value);
+			PushReturnValue(field->type, &field->value);
 		}
 	}
 	else
@@ -713,6 +710,24 @@ void ScriptNativeContext::IsolatePointer(int index)
 	buffer.SafeBuffer = storage;
 
 	type.IsIsolated = true;
+}
+
+void* ScriptNativeContext::GetMetaField(MetaField field)
+{
+	return &s_metaFields[static_cast<int>(field)];
+}
+
+void* ScriptNativeContext::GetPointerField(MetaField type, uintptr_t value)
+{
+	assert(type == MetaField::PointerValueInt || type == MetaField::PointerValueFloat);
+
+	PointerField* entry = &s_pointerFields[s_pointerFieldIndex];
+	s_pointerFieldIndex = (s_pointerFieldIndex + 1) % std::size(s_pointerFields);
+
+	entry->type = type;
+	entry->value = value;
+
+	return entry;
 }
 
 }

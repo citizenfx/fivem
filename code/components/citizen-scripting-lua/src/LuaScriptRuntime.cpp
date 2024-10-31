@@ -691,7 +691,7 @@ static int Lua_SubmitBoundaryEnd(lua_State* L)
 template<MetaField metaField>
 static int Lua_GetMetaField(lua_State* L)
 {
-	lua_pushlightuserdata(L, &ScriptNativeContext::s_metaFields[(int)metaField]);
+	lua_pushlightuserdata(L, ScriptNativeContext::GetMetaField(metaField));
 
 	return 1;
 }
@@ -741,48 +741,30 @@ static int Lua_ResultAsObject(lua_State* L)
 	return Lua_GetMetaField<MetaField::ResultAsObject>(L);
 }
 
-template<MetaField MetaField>
+template<MetaField field>
 static int Lua_GetPointerField(lua_State* L)
 {
-	auto& runtime = LuaScriptRuntime::GetCurrent();
+	uintptr_t value = 0;
 
-	auto pointerFields = runtime->GetPointerFields();
-	auto pointerFieldStart = &pointerFields[(int)MetaField];
+	const int type = lua_type(L, 1);
 
-	static uintptr_t dummyOut;
-	fx::invoker::PointerFieldEntry* pointerField = nullptr;
-
-	for (int i = 0; i < _countof(pointerFieldStart->data); i++)
+	// to prevent accidental passing of arguments like _r, we check if this is a userdata
+	if (type == LUA_TNIL || type == LUA_TLIGHTUSERDATA || type == LUA_TUSERDATA)
 	{
-		if (pointerFieldStart->data[i].empty)
-		{
-			pointerField = &pointerFieldStart->data[i];
-			pointerField->empty = false;
-
-			// to prevent accidental passing of arguments like _r, we check if this is a userdata
-			const int type = lua_type(L, 1);
-			if (type == LUA_TNIL || type == LUA_TLIGHTUSERDATA || type == LUA_TUSERDATA)
-			{
-				pointerField->value = 0;
-			}
-			else if (MetaField == MetaField::PointerValueFloat)
-			{
-				float value = static_cast<float>(luaL_checknumber(L, 1));
-
-				pointerField->value = *reinterpret_cast<uint32_t*>(&value);
-			}
-			else if (MetaField == MetaField::PointerValueInt)
-			{
-				intptr_t value = luaL_checkinteger(L, 1);
-
-				pointerField->value = value;
-			}
-
-			break;
-		}
+		value = 0;
+	}
+	else if constexpr (field == MetaField::PointerValueInt)
+	{
+		value = (uint64_t)luaL_checkinteger(L, 1);
+	}
+	else if constexpr (field == MetaField::PointerValueFloat)
+	{
+		float fvalue = static_cast<float>(luaL_checknumber(L, 1));
+		value = *reinterpret_cast<uint32_t*>(&value);
 	}
 
-	lua_pushlightuserdata(L, (pointerField) ? static_cast<void*>(pointerField) : &dummyOut);
+	lua_pushlightuserdata(L, ScriptNativeContext::GetPointerField(field, value));
+
 	return 1;
 }
 

@@ -117,7 +117,7 @@ struct LuaScriptNativeContext final : ScriptNativeContext
 };
 
 LuaScriptNativeContext::LuaScriptNativeContext(uint64_t hash, lua_State* L, fx::LuaScriptRuntime& runtime)
-	: ScriptNativeContext(hash, runtime.GetPointerFields()), L(L), runtime(runtime)
+	: ScriptNativeContext(hash), L(L), runtime(runtime)
 {
 }
 
