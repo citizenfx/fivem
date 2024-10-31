@@ -281,24 +281,30 @@ static HookFunction hookFunction([]()
 		auto variationInfoCollection = GetPedVariationInfoCollection(context.GetArgument<uint32_t>(0));
 		if (variationInfoCollection)
 		{
-			context.SetResult<int>(g_GetDlcDrawableIdx(variationInfoCollection, context.GetArgument<int>(1), context.GetArgument<int>(2)));
+			// Validate that the drawable index is within bounds. If variationInfo is null then input is invalid.
+			auto variationInfo = g_GetVariationInfoFromDrawableIdx(variationInfoCollection, context.GetArgument<int>(1), context.GetArgument<int>(2));
+			if (variationInfo)
+			{
+				context.SetResult<int>(g_GetDlcDrawableIdx(variationInfoCollection, context.GetArgument<int>(1), context.GetArgument<int>(2)));
+				return;
+			}
 		}
-		else
-		{
-			context.SetResult<int>(-1);
-		}
+		context.SetResult<int>(-1);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_COLLECTION_LOCAL_INDEX_FROM_PROP", [](fx::ScriptContext& context)
 	{
 		auto variationInfoCollection = GetPedVariationInfoCollection(context.GetArgument<uint32_t>(0));
 		if (variationInfoCollection)
 		{
-			context.SetResult<int>(g_GetDlcPropIdx(variationInfoCollection, context.GetArgument<int>(1), context.GetArgument<int>(2)));
+			// Validate that the prop index is within bounds. If variationInfo is null then input is invalid.
+			auto variationInfo = g_GetVariationInfoFromPropIdx(variationInfoCollection, context.GetArgument<int>(1), context.GetArgument<int>(2));
+			if (variationInfo)
+			{
+				context.SetResult<int>(g_GetDlcPropIdx(variationInfoCollection, context.GetArgument<int>(1), context.GetArgument<int>(2)));
+				return;
+			}
 		}
-		else
-		{
-			context.SetResult<int>(-1);
-		}
+		context.SetResult<int>(-1);
 	});
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_DRAWABLE_GLOBAL_INDEX_FROM_COLLECTION", [](fx::ScriptContext& context)
 	{
