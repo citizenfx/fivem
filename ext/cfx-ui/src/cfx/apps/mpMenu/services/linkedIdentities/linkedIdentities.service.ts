@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
 
 import { ServicesContainer } from 'cfx/base/servicesContainer';
-import { AppContribution } from 'cfx/common/services/app/app.extensions';
+import { AppContribution, registerAppContribution } from 'cfx/common/services/app/app.extensions';
 import { IdentitiesChangeEvent } from 'cfx/common/services/linkedIdentities/events';
 import { ILinkedIdentitiesService } from 'cfx/common/services/linkedIdentities/linkedIdentities.service';
 import { ILinkedIdentity } from 'cfx/common/services/linkedIdentities/types';
@@ -14,6 +14,8 @@ import { IConvarService } from '../convars/convars.service';
 
 export function registerLinkedIdentitiesService(container: ServicesContainer) {
   container.registerImpl(ILinkedIdentitiesService, LinkedIdentitiesService);
+
+  registerAppContribution(container, LinkedIdentitiesService);
 }
 
 @injectable()
