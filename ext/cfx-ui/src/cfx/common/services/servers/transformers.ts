@@ -187,20 +187,20 @@ function getSortableName(searchableName: string): string {
     .toLowerCase();
 }
 
-function shouldVarBeShown(key: string): boolean {
-  const convars: string[] = [
-    'sv_lan',
-    'mapname', 
-    'onesync', 
-    'gametype', 
-    'sv_maxClients',
-    'sv_poolSizesIncrease', 
-    'sv_enhancedHostSupport',  
-    'sv_disableClientReplays', 
-    'sv_replaceExeToSwitchBuilds',
-  ];
+const convars = new Set([
+  'sv_lan',
+  'mapname', 
+  'onesync', 
+  'gametype', 
+  'sv_maxClients',
+  'sv_poolSizesIncrease', 
+  'sv_enhancedHostSupport',  
+  'sv_disableClientReplays', 
+  'sv_replaceExeToSwitchBuilds',
+]);
 
-  return !convars.includes(key);
+function shouldVarBeShown(key: string): boolean {
+  return !convars.has(key);
 }
 
 type VarsView = Partial<
