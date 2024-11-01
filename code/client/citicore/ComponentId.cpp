@@ -16,7 +16,7 @@ ComponentId::ComponentId()
 
 const std::string& ComponentId::GetCategory(size_t idx) const
 {
-	static std::string emptyString = "";
+	static std::string emptyString = "-";
 
 	if (idx < 0 || idx >= m_categories.size())
 	{
