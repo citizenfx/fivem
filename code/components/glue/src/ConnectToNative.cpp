@@ -52,6 +52,7 @@
 
 #include <MinMode.h>
 
+#include "CfxState.h"
 #include "GameInit.h"
 #include "CnlEndpoint.h"
 #include "PacketHandler.h"
@@ -1579,9 +1580,8 @@ void Component_RunPreInit()
 	}
 }
 
-static InitFunction connectInitFunction([]()
-{
 #if __has_include(<gameSkeleton.h>)
+static InitFunction buildSaverInitFunction([]() {
 	rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 	{
 		if (type == rage::INIT_BEFORE_MAP_LOADED)
@@ -1589,7 +1589,18 @@ static InitFunction connectInitFunction([]()
 			SaveBuildNumber(xbr::GetRequestedGameBuild());
 		}
 	});
+});
 #endif
+
+static InitFunction linkProtocolIPCInitFunction([]()
+{
+	// Only run LinkProtocolIPC in the game process
+	if (!CfxState::Get()->IsGameProcess())
+	{
+		return;
+	}
+
+	cfx::glue::LinkProtocolIPC::Initialize();
 
 	cfx::glue::LinkProtocolIPC::OnConnectTo.Connect([](const std::string_view& connectMsg)
 	{
@@ -1605,8 +1616,6 @@ static InitFunction connectInitFunction([]()
 
 		SetForegroundWindow(CoreGetGameWindow());
 	});
-
-	cfx::glue::LinkProtocolIPC::Initialize();
 
 	GetEarlyGameFrame().Connect([]()
 	{
