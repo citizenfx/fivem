@@ -478,13 +478,13 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 		}
 	}
 
+	DrawMiniConsole();
+
 	if (g_consoleFlag)
 	{
 		DrawDevGui();
 		DrawConsole();
 	}
-
-	DrawMiniConsole();
 
 	if (g_winConsole)
 	{
@@ -659,6 +659,7 @@ static HookFunction initFunction([]()
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	io.ConfigDockingWithShift = true;
 	io.ConfigWindowsResizeFromEdges = true;
+	io.ConfigWindowsMoveFromTitleBarOnly = true;
 
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;

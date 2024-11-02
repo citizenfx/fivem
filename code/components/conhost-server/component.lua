@@ -7,6 +7,8 @@ return function()
 		includedirs {
 			"components/conhost-v2/include/",
 			"components/conhost-v2/src/",
+			"../vendor/range-v3/include/",
+			"../vendor/utfcpp/source",
 		}
 		
 		files {
@@ -14,6 +16,7 @@ return function()
 			"components/conhost-v2/src/ConsoleHostGui.cpp",
 			"components/conhost-v2/src/DevGui.cpp",
 			"components/conhost-v2/src/backends/**.cpp",
+			"components/conhost-v2/src/Textselect.cpp",
 		}
 	end
 end
