@@ -176,13 +176,19 @@ namespace fx
 #endif*/
 
 			// push arguments from the original context
-			NativeContextRaw rageContext(context.GetArgumentBuffer(), context.GetArgumentCount());
+			NativeContextRaw rageContext(context.GetArgumentBuffer(), context.GetResultBuffer(), context.GetArgumentCount());
 
 			CallHandler(rageHandler, nativeIdentifier, rageContext);
 
 			// append vector3 result components
 			rageContext.SetVectorResults();
 		});
+	}
+
+	TNativeHandler* ScriptEngine::GetNativeHandlerPtr(uint64_t nativeIdentifier)
+	{
+		auto it = g_registeredHandlers.find(nativeIdentifier);
+		return it != g_registeredHandlers.end() ? &it->second : nullptr;
 	}
 
 	static bool __declspec(safebuffers) CallNativeHandlerUniversal(uint64_t nativeIdentifier, ScriptContext& context);
@@ -210,7 +216,7 @@ namespace fx
 		if (rageHandler)
 		{
 			// push arguments from the original context
-			NativeContextRaw rageContext(context.GetArgumentBuffer(), context.GetArgumentCount());
+			NativeContextRaw rageContext(context.GetArgumentBuffer(), context.GetResultBuffer(), context.GetArgumentCount());
 
 			CallHandler(rageHandler, nativeIdentifier, rageContext);
 
@@ -286,7 +292,7 @@ namespace fx
 				TNativeHandler* handler = reinterpret_cast<TNativeHandler*>(handlerData);
 
 				// turn into a native context
-				ScriptContextRaw cfxContext(context->GetArgumentBuffer(), context->GetArgumentCount());
+				ScriptContextRaw cfxContext(context->GetArgumentBuffer(), context->GetResultBuffer(), context->GetArgumentCount());
 
 				// call the native
 				(*handler)(cfxContext);

@@ -28,6 +28,7 @@ namespace fx
 
 	protected:
 		void* m_argumentBuffer;
+		void* m_resultBuffer;
 
 		int m_numArguments;
 		int m_numResults;
@@ -96,7 +97,7 @@ namespace fx
 		template<typename T>
 		inline void SetResult(const T& value)
 		{
-			auto functionData = (uintptr_t*)m_argumentBuffer;
+			auto functionData = (uintptr_t*)m_resultBuffer;
 
 			if (sizeof(T) < ArgumentSize)
 			{
@@ -112,7 +113,7 @@ namespace fx
 		template<typename T>
 		inline T GetResult()
 		{
-			auto functionData = (uintptr_t*)m_argumentBuffer;
+			auto functionData = (uintptr_t*)m_resultBuffer;
 
 			return *reinterpret_cast<T*>(functionData);
 		}
@@ -126,11 +127,11 @@ namespace fx
 	class ScriptContextRaw : public ScriptContext
 	{
 	public:
-		inline ScriptContextRaw(void* functionBuffer, int numArguments)
+		inline ScriptContextRaw(void* args, void* rets, int nargs)
 		{
-			m_argumentBuffer = functionBuffer;
-
-			m_numArguments = numArguments;
+			m_argumentBuffer = args;
+			m_resultBuffer = rets;
+			m_numArguments = nargs;
 			m_numResults = 0;
 		}
 	};
@@ -144,6 +145,7 @@ namespace fx
 		inline ScriptContextBuffer()
 		{
 			m_argumentBuffer = &m_functionData;
+			m_resultBuffer = &m_functionData; // TODO: Use separate arg and result buffers
 
 			m_numArguments = 0;
 			m_numResults = 0;

@@ -29,8 +29,6 @@ using namespace fx::invoker;
 #ifndef IS_FXSERVER
 #include <CL2LaunchMode.h>
 #include <CfxSubProcess.h>
-
-#include <scrEngine.h>
 #endif
 
 #include <rapidjson/writer.h>
@@ -1010,7 +1008,7 @@ struct V8ScriptNativeContext final : ScriptNativeContext
 	v8::Local<v8::Context> cxt;
 };
 
-V8ScriptNativeContext::V8ScriptNativeContext(uint64_t hash, V8ScriptRuntime* runtime, v8::Isolate* isolate)
+inline V8ScriptNativeContext::V8ScriptNativeContext(uint64_t hash, V8ScriptRuntime* runtime, v8::Isolate* isolate)
 	: ScriptNativeContext(hash), isolateScope(GetV8Isolate()), runtime(runtime), isolate(isolate), cxt(runtime->GetContext())
 {
 }
@@ -1028,7 +1026,7 @@ void V8ScriptNativeContext::PushArgument(v8::Local<v8::Value> arg)
 		}
 		else
 		{
-			return Push(static_cast<float>(value));
+			return Push(value);
 		}
 	}
 	else if (arg->IsBoolean() || arg->IsBooleanObject())
@@ -1079,7 +1077,7 @@ void V8ScriptNativeContext::PushArgument(v8::Local<v8::Value> arg)
 
 		if (array->Length() < 2 || array->Length() > 4)
 		{
-			throw ScriptError("arrays should be vectors (wrong number of values)");
+			ScriptError("arrays should be vectors (wrong number of values)");
 		}
 
 		if (array->Length() >= 2)
@@ -1089,7 +1087,7 @@ void V8ScriptNativeContext::PushArgument(v8::Local<v8::Value> arg)
 
 			if (x == NAN || y == NAN)
 			{
-				throw ScriptError("invalid vector array value");
+				ScriptError("invalid vector array value");
 			}
 
 			Push(x);
@@ -1102,7 +1100,7 @@ void V8ScriptNativeContext::PushArgument(v8::Local<v8::Value> arg)
 
 			if (z == NAN)
 			{
-				throw ScriptError("invalid vector array value");
+				ScriptError("invalid vector array value");
 			}
 
 			Push(z);
@@ -1114,7 +1112,7 @@ void V8ScriptNativeContext::PushArgument(v8::Local<v8::Value> arg)
 
 			if (w == NAN)
 			{
-				throw ScriptError("invalid vector array value");
+				ScriptError("invalid vector array value");
 			}
 
 			Push(w);
@@ -1136,7 +1134,7 @@ void V8ScriptNativeContext::PushArgument(v8::Local<v8::Value> arg)
 
 		if (!object->Get(cxt, String::NewFromUtf8(GetV8Isolate(), "__data").ToLocalChecked()).ToLocal(&data))
 		{
-			throw ScriptError("__data field does not contain a number");
+			ScriptError("__data field does not contain a number");
 		}
 
 		if (!data.IsEmpty() && data->IsNumber())
@@ -1151,18 +1149,18 @@ void V8ScriptNativeContext::PushArgument(v8::Local<v8::Value> arg)
 		}
 		else
 		{
-			throw ScriptError("__data field does not contain a number");
+			ScriptError("__data field does not contain a number");
 		}
 	}
 	else
 	{
 		String::Utf8Value str(GetV8Isolate(), arg);
-		throw ScriptError("invalid V8 value: %s", *str);
+		ScriptErrorf("invalid V8 value: %s", *str);
 	}
 }
 
 template<typename T>
-v8::Local<v8::Value> V8ScriptNativeContext::ProcessResult(const T& value)
+CSCRC_INLINE v8::Local<v8::Value> V8ScriptNativeContext::ProcessResult(const T& value)
 {
 	if constexpr (std::is_same_v<T, bool>)
 	{
@@ -1264,18 +1262,12 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args, uin
 	// get argument count for the loop
 	int numArgs = args.Length();
 
-	// verify argument count
-	if (numArgs < baseArgs)
-	{
-		throw context.ScriptError("wrong argument count (needs at least a hash string)");
-	}
-	
 	for (int i = baseArgs; i < numArgs; i++)
 	{
 		context.PushArgument(args[i]);
 	}
 
-	context.Invoke(*runtime->GetScriptHost().GetRef());
+	context.Invoke();
 
 	// For a single result, return it directly.
 	// For multiple results, store them in an array.
@@ -1329,6 +1321,11 @@ static void V8_TryCatch(const v8::FunctionCallbackInfo<v8::Value>& args, Func&& 
 static void V8_InvokeNativeString(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	V8_TryCatch(args, [] (const v8::FunctionCallbackInfo<v8::Value>& args) {
+		if (args.Length() < 1)
+		{
+			throw std::runtime_error("wrong argument count (needs at least a hash string)");
+		}
+
 		String::Utf8Value hashString(GetV8Isolate(), args[0]);
 		uint64_t hash = strtoull(*hashString, nullptr, 16);
 		V8_InvokeNative(args, hash, 1);
@@ -1338,6 +1335,11 @@ static void V8_InvokeNativeString(const v8::FunctionCallbackInfo<v8::Value>& arg
 static void V8_InvokeNativeHash(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	V8_TryCatch(args, [](const v8::FunctionCallbackInfo<v8::Value>& args) {
+		if (args.Length() < 2)
+		{
+			throw std::runtime_error("wrong argument count (needs at least two hash integers)");
+		}
+
 		auto scrt = V8ScriptRuntime::GetCurrent();
 		uint64_t hash = (args[1]->Uint32Value(scrt->GetContext()).ToChecked() | (((uint64_t)args[0]->Uint32Value(scrt->GetContext()).ToChecked()) << 32));
 		V8_InvokeNative(args, hash, 2);
@@ -1350,22 +1352,26 @@ static void V8_GetMetaField(const v8::FunctionCallbackInfo<v8::Value>& args)
 	args.GetReturnValue().Set(External::New(GetV8Isolate(), ScriptNativeContext::GetMetaField(field)));
 }
 
-template<MetaField field>
+template<MetaField field, bool init>
 static void V8_GetPointerField(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
 
-	auto arg = args[0];
 	uintptr_t value = 0;
 
-	if constexpr (field == MetaField::PointerValueInt)
+	if (init)
 	{
-		value = (uint64_t) arg->IntegerValue(runtime->GetContext()).ToChecked();
-	}
-	else if constexpr (field == MetaField::PointerValueFloat)
-	{
-		float fvalue = static_cast<float>(arg->NumberValue(runtime->GetContext()).ToChecked());
-		value = *reinterpret_cast<uint32_t*>(&value);
+		auto arg = args[0];
+
+		if constexpr (field == MetaField::ResultAsInteger)
+		{
+			value = (uint64_t)arg->IntegerValue(runtime->GetContext()).ToChecked();
+		}
+		else if constexpr (field == MetaField::ResultAsFloat)
+		{
+			float fvalue = static_cast<float>(arg->NumberValue(runtime->GetContext()).ToChecked());
+			value = *reinterpret_cast<uint32_t*>(&value);
+		}
 	}
 
 	args.GetReturnValue().Set(External::New(GetV8Isolate(), ScriptNativeContext::GetPointerField(field, value)));
@@ -1443,78 +1449,6 @@ static void V8_Trace(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 	ScriptTrace("\n");
 }
-
-
-#ifndef IS_FXSERVER
-
-// WIP
-#ifdef _DEBUG
-struct InvokeStruct
-{
-	uint64_t nativeIdentifier;
-	uint64_t args[32];
-	int numArgs;
-	int numResults;
-};
-
-static inline void CallHandler(void* handler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext)
-{
-	// call the original function
-	static void* exceptionAddress;
-
-	__try
-	{
-		auto rageHandler = (rage::scrEngine::NativeHandler)handler;
-		rageHandler(&rageContext);
-	}
-	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, EXCEPTION_EXECUTE_HANDLER)
-	{
-		throw std::runtime_error(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
-	}
-}
-
-static void V8_InvokeNativeRaw(const v8::FunctionCallbackInfo<v8::Value>& args)
-{
-	Local<ArrayBuffer> abv = args[0].As<ArrayBuffer>();
-	Local<Number> off = args[1].As<Number>();
-
-	if (abv->ByteLength() < sizeof(InvokeStruct))
-	{
-		return;
-	}
-
-	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
-	OMPtr<IScriptHost> scriptHost = runtime->GetScriptHost();
-
-	auto abs = abv->GetBackingStore();
-	auto ivs = (InvokeStruct*)((uint8_t*)abs->Data() + int64_t(off->Value()));
-
-	NativeContextRaw ncr(ivs->args, ivs->numArgs);
-	auto handler = rage::scrEngine::GetNativeHandler(ivs->nativeIdentifier);
-	ncr.SetArgumentCount(ivs->numArgs);
-
-	try
-	{
-		if (handler)
-		{
-			CallHandler(handler, ivs->nativeIdentifier, ncr);
-		}
-
-		// append vector3 result components
-		ncr.SetVectorResults();
-	}
-	catch (std::exception& e)
-	{
-		trace("%s: execution failed: %s\n", __func__, e.what());
-		return;
-	}
-}
-#else
-static void V8_InvokeNativeRaw(const v8::FunctionCallbackInfo<v8::Value>& args)
-{
-}
-#endif
-#endif
 
 static void V8_GetResourcePath(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -1609,11 +1543,7 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "getTickCount", V8_GetTickCount },
 	{ "invokeNative", V8_InvokeNativeString },
 	{ "invokeNativeByHash", V8_InvokeNativeHash },
-#ifndef IS_FXSERVER
-	{ "invokeNativeRaw", V8_InvokeNativeRaw },
-	// not yet!
-	//{ "getString", V8_GetString },
-#endif
+
 	{ "snap", V8_Snap },
 	{ "startProfiling", V8_StartProfiling },
 	{ "stopProfiling", V8_StopProfiling },
@@ -1623,11 +1553,11 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "submitBoundaryEnd", V8_SubmitBoundaryEnd },
 	{ "setStackTraceFunction", V8_SetStackTraceRoutine },
 	// metafields
-	{ "pointerValueIntInitialized", V8_GetPointerField<MetaField::PointerValueInt> },
-	{ "pointerValueFloatInitialized", V8_GetPointerField<MetaField::PointerValueFloat> },
-	{ "pointerValueInt", V8_GetMetaField<MetaField::PointerValueInt> },
-	{ "pointerValueFloat", V8_GetMetaField<MetaField::PointerValueFloat> },
-	{ "pointerValueVector", V8_GetMetaField<MetaField::PointerValueVector> },
+	{ "pointerValueIntInitialized", V8_GetPointerField<MetaField::ResultAsInteger, true> },
+	{ "pointerValueFloatInitialized", V8_GetPointerField<MetaField::ResultAsFloat, true> },
+	{ "pointerValueInt", V8_GetPointerField<MetaField::ResultAsInteger, false> },
+	{ "pointerValueFloat", V8_GetPointerField<MetaField::ResultAsFloat, false> },
+	{ "pointerValueVector", V8_GetPointerField<MetaField::ResultAsVector, false> },
 	{ "returnResultAnyway", V8_GetMetaField<MetaField::ReturnResultAnyway> },
 	{ "resultAsInteger", V8_GetMetaField<MetaField::ResultAsInteger> },
 	{ "resultAsLong", V8_GetMetaField<MetaField::ResultAsLong> },

@@ -118,12 +118,11 @@ class NativeContextRaw :
 	public rage::scrNativeCallContext
 {
 public:
-	inline NativeContextRaw(void* buffer, int argumentCount)
+	inline NativeContextRaw(void* args, void* rets, int nargs)
 	{
-		m_pArgs = buffer;
-		m_pReturn = buffer;
-
-		m_nArgCount = argumentCount;
+		m_pArgs = args;
+		m_pReturn = rets;
+		m_nArgCount = nargs;
 		m_nDataCount = 0;
 	}
 
