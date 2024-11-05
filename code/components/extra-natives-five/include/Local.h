@@ -19,3 +19,8 @@ class CPed : public fwEntity
 {
 
 };
+
+class CPhysical : fwEntity
+{
+
+};

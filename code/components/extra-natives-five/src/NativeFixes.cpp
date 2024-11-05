@@ -426,6 +426,33 @@ static void FixDrawMarker()
 	}
 }
 
+static void FixApplyForceToEntity()
+{
+	// ApplyForceToEntity checks if the entity is valid, but then does some stuff outside of that check
+
+	constexpr const uint64_t nativeHash = 0xC5F68BE9613E2D18; // APPLY_FORCE_TO_ENTITY
+
+	const auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!originalHandler)
+	{
+		return;
+	}
+
+	const auto handler = *originalHandler;
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	{
+		const auto handle = ctx.GetArgument<uint32_t>(0);
+		const auto entity = rage::fwScriptGuid::GetBaseFromGuid(handle);
+
+		if (entity && entity->IsOfType<CPhysical>())
+		{
+			handler(ctx);
+		}
+	});
+}
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
@@ -460,5 +487,7 @@ static HookFunction hookFunction([]()
 		FixReplaceHudColour();
 
 		FixDrawMarker();
+
+		FixApplyForceToEntity();
 	});
 });
