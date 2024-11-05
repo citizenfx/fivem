@@ -115,6 +115,11 @@ bool ServerCommandPacketHandler::Process(fx::ServerInstanceBase* instance, const
 
 			fx::ScopeDestructor destructor([&]()
 			{
+				if (printString.empty())
+				{
+					return;
+				}
+
 				msgpack::sbuffer sb;
 
 				msgpack::packer<msgpack::sbuffer> packer(sb);
