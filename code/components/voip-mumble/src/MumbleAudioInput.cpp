@@ -139,22 +139,26 @@ void MumbleAudioInput::ThreadFunc()
 
 		if (g_curInputIntentMode != g_lastIntentMode)
 		{
-			switch (g_curInputIntentMode)
+			if (m_apm)
 			{
-			case InputIntentMode::MUSIC:
-			{
-				m_apm->noise_suppression()->Enable(false);
-				m_apm->high_pass_filter()->Enable(false);
-				break;
+				switch (g_curInputIntentMode)
+				{
+				case InputIntentMode::MUSIC:
+				{
+					m_apm->noise_suppression()->Enable(false);
+					m_apm->high_pass_filter()->Enable(false);
+					break;
+				}
+				case InputIntentMode::SPEECH:
+				default:
+				{
+					m_apm->noise_suppression()->Enable(true);
+					m_apm->high_pass_filter()->Enable(true);
+					break;
+				}
+				};
 			}
-			case InputIntentMode::SPEECH:
-			default:
-			{
-				m_apm->noise_suppression()->Enable(true);
-				m_apm->high_pass_filter()->Enable(true);
-				break;
-			}
-			};
+
 			g_lastIntentMode = g_curInputIntentMode;
 		}
 
@@ -705,10 +709,12 @@ void MumbleAudioInput::InitializeAudioDevice()
 
 	m_apm->Initialize(pconfig);
 
-	m_apm->high_pass_filter()->Enable(true);
-	m_apm->echo_cancellation()->Enable(false);
-	m_apm->noise_suppression()->Enable(true);
+	const bool isVoiceIntent = g_curInputIntentMode == InputIntentMode::SPEECH;
+	m_apm->high_pass_filter()->Enable(isVoiceIntent);
+	m_apm->noise_suppression()->Enable(isVoiceIntent);
 	m_apm->noise_suppression()->set_level(webrtc::NoiseSuppression::kHigh);
+
+	m_apm->echo_cancellation()->Enable(false);
 	m_apm->level_estimator()->Enable(true);
 	m_apm->voice_detection()->set_likelihood(ConvertLikelihood(m_likelihood));
 	//m_apm->voice_detection()->set_frame_size_ms(10);
