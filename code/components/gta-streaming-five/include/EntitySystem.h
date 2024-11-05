@@ -488,43 +488,8 @@ public:
 	return (this->*(get_member<TFn>(vtbl[MapEntityMethod<offset>() / 8])))(__VA_ARGS__);
 
 private:
-	inline bool IsOfTypeH(uint32_t hash)
-	{
-		if (xbr::IsGameBuildOrGreater<2802>())
-		{
-			return (GetTypeHash() == hash);
-		}
-
-		if (xbr::IsGameBuildOrGreater<2189>())
-		{
-			return IsOfTypeRef(hash);
-		}
-
-		FORWARD_FUNC(IsOfTypeH, 0x8, hash);
-	}
-
-	inline bool IsOfTypeRef(const uint32_t& hash)
-	{
-		if (xbr::IsGameBuildOrGreater<2802>())
-		{
-			return (GetTypeHash() == hash);
-		}
-
-		FORWARD_FUNC(IsOfTypeRef, 0x8, hash);
-	}
-
-private:
-	inline uint32_t GetTypeHash()
-	{
-		if (!xbr::IsGameBuildOrGreater<2802>())
-		{
-			assert(false);
-		}
-
-		// #TODO2802: new RTTI method, a bit weird but works, definitely need to make it less dirty at some point...
-		return (*(uint32_t(__fastcall**)(char*))(*(char**)this + 0x10))((char*)this);
-	}
-
+	bool IsOfTypeH(uint32_t hash);
+	
 public:
 	inline void SetupFromEntityDef(fwEntityDef* entityDef, fwArchetype* archetype, uint32_t a3)
 	{

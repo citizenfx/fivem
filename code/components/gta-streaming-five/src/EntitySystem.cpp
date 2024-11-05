@@ -50,9 +50,86 @@ uint32_t fwSceneUpdateExtension::GetClassId()
 	return *fwSceneUpdateExtension_classId;
 }
 
+static PIMAGE_SECTION_HEADER GetSection(std::string_view name, int off = 0)
+{
+	PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)GetModuleHandle(NULL);
+	PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)((char*)dosHeader + dosHeader->e_lfanew);
+	IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(ntHeader);
+
+	int matchIdx = -1;
+
+	for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
+	{
+		if (name == (char*)section->Name)
+		{
+			matchIdx++;
+
+			if (off == matchIdx)
+			{
+				return section;
+			}
+		}
+
+		section++;
+	}
+
+	return NULL;
+}
+
+struct NewTypeId
+{
+	NewTypeId* Self;
+	uint32_t Hash;
+};
+
+static std::unordered_map<uint32_t, void*> s_newTypesIds;
+
+static void FindNewTypeIds()
+{
+	PIMAGE_SECTION_HEADER section = GetSection(".data");
+
+	auto here = (uintptr_t)GetModuleHandle(NULL) + section->VirtualAddress;
+	auto end = here + section->Misc.VirtualSize - sizeof(NewTypeId);
+
+	for (; here <= end; here += sizeof(void*))
+	{
+		auto type = (NewTypeId*)here;
+
+		if (type->Self != type)
+			continue;
+
+		// This'll probably find some false positives, but that shouldn't matter
+
+		s_newTypesIds.emplace(type->Hash, type);
+	}
+}
+
+bool fwEntity::IsOfTypeH(uint32_t hash)
+{
+	void** vtbl = *(void***)this;
+
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		void* ptr = s_newTypesIds.at(hash);
+		return ((bool(*)(fwEntity*, void*)) vtbl[5])(this, ptr);
+	}
+
+	if (xbr::IsGameBuildOrGreater<2189>())
+	{
+		return ((bool(*)(fwEntity*, const uint32_t&)) vtbl[1])(this, hash);
+	}
+
+	return ((bool(*)(fwEntity*, uint32_t)) vtbl[1])(this, hash);
+}
+
 static HookFunction hookFunction([]
 {
 	fwSceneUpdateExtension_classId = hook::get_address<uint32_t*>(hook::get_pattern("48 8B D3 48 89 73 08 E8", -64));
+
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		FindNewTypeIds();
+	}
 });
 
 static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, rage::fwModelId& id)> getArchetype([]()
