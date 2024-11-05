@@ -60,7 +60,7 @@ public:
 				Botan::X509_Cert_Options options;
 				options.country = "XX";
 				options.common_name = "do-not-trust.citizenfx.tls.invalid";
-				options.not_after("20250101000000Z");
+				options.not_after("20260101000000Z");
 
 				m_key = Botan::create_private_key("RSA", rng, "2048");
 
