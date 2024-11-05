@@ -12,4 +12,4 @@ void DISABLE_IDLE_CAMERA(BOOL state);
 Disables the game's afk camera that starts panning around after 30 seconds of inactivity.
 
 ## Parameters
-* **state**: On/Off
+* **state**: `true` to disable idle camera, `false` to enable

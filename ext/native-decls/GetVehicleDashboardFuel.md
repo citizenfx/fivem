@@ -8,3 +8,6 @@ game: gta5
 ```c
 float GET_VEHICLE_DASHBOARD_FUEL();
 ```
+
+## Return value
+Returns the percentage of fuel the current vehicle has on the dashboard.

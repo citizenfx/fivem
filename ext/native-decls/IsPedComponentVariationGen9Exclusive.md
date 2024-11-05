@@ -9,6 +9,14 @@ game: gta5
 bool IS_PED_COMPONENT_VARIATION_GEN9_EXCLUSIVE(Ped ped, int componentId, int drawableId);
 ```
 
+## Parameters
+* **ped**: The target ped.
+* **componentId**: The component id.
+* **drawableId**: The drawable id.
+
+## Return value
+Whether or not the ped component variation is a gen9 exclusive (stub assets).
+
 ## Examples
 ```lua
 local ped = PlayerPedId()
@@ -23,11 +31,3 @@ for component = 0, 12 do
   end
 end
 ```
-
-## Parameters
-* **ped**: The target ped.
-* **componentId**: The component id.
-* **drawableId**: The drawable id.
-
-## Return value
-Whether or not the ped component variation is a gen9 exclusive (stub assets).

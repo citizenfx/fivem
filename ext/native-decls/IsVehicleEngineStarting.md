@@ -9,8 +9,8 @@ game: gta5
 BOOL IS_VEHICLE_ENGINE_STARTING(Vehicle vehicle);
 ```
 
-
 ## Parameters
-* **vehicle**: 
+* **vehicle**: The vehicle to check
 
 ## Return value
+Returns `true` if the vehicle engine is starting

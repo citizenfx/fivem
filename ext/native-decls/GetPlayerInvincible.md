@@ -12,4 +12,4 @@ BOOL GET_PLAYER_INVINCIBLE(char* playerSrc);
 * **playerSrc**: The player handle
 
 ## Return value
-A boolean to tell if the player is invincible.
+Returns `true` if the player is set to be invincible.

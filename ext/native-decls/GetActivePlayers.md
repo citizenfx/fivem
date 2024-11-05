@@ -16,3 +16,14 @@ The data returned adheres to the following layout:
 
 ## Return value
 An object containing a list of player indices.
+
+## Examples
+```lua
+local players = GetActivePlayers()
+for i = 1, #players do
+    local player = players[i]
+    local playerName = GetPlayerName(player)
+
+    print("player", player, "has the name:", playerName)
+end
+```

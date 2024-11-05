@@ -8,14 +8,15 @@ game: gta5
 ```c
 BOOL GET_WATER_QUAD_NO_STENCIL(int waterQuad, int* noStencil);
 ```
-## Examples
-
-```lua
-local success, noStencil = GetWaterQuadNoStencil(0)
-```
 
 ## Parameters
 * **waterQuad**: The water quad index
+* **noStencil**: Returns `1` if the given water quad has no stencil
 
 ## Return value
-Returns if the given water quad has no stencil.
+Returns `true` on success, `false` otherwise, `noStencil` will be `0` on failure
+
+## Examples
+```lua
+local success, noStencil = GetWaterQuadNoStencil(0)
+```

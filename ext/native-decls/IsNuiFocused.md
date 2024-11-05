@@ -8,7 +8,7 @@ apiset: client
 BOOL IS_NUI_FOCUSED();
 ```
 
-Returns the current NUI focus state previously set with `SET_NUI_FOCUS`.
+Getter for [`SET_NUI_FOCUS`](#_0x5B98AE30).
 
 ## Return value
-True or false.
+Returns `true` if any NUI is currently focused.

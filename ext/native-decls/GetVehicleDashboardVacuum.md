@@ -8,3 +8,6 @@ game: gta5
 ```c
 float GET_VEHICLE_DASHBOARD_VACUUM();
 ```
+
+## Return value
+Seems to only ever return 1.0

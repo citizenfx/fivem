@@ -8,14 +8,15 @@ game: gta5
 ```c
 BOOL GET_WATER_QUAD_IS_INVISIBLE(int waterQuad, int* isInvisible);
 ```
-## Examples
-
-```lua
-local success, isInvisible = GetWaterQuadIsInvisible(0)
-```
 
 ## Parameters
 * **waterQuad**: The water quad index
+* **isInvisible**: Gets set to `1` if the quad is invisible.
 
 ## Return value
-Returns if the given water quad is invisible
+Returns `true` if the operation was successful, `false` otherwise, `isInvisible` will be set to `0` on failure.
+
+## Examples
+```lua
+local success, isInvisible = GetWaterQuadIsInvisible(0)
+```

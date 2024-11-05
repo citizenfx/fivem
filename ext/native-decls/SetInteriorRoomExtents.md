@@ -9,6 +9,16 @@ game: gta5
 void SET_INTERIOR_ROOM_EXTENTS(int interiorId, int roomIndex, float bbMinX, float bbMinY, float bbMinZ, float bbMaxX, float bbMaxY, float bbMaxZ);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **roomIndex**: Interior room index.
+* **bbMinX**:
+* **bbMinY**:
+* **bbMinZ**:
+* **bbMaxX**:
+* **bbMaxY**:
+* **bbMaxZ**:
+
 ## Examples
 
 ```lua
@@ -20,13 +30,3 @@ if interiorId ~= 0 then
   RefreshInterior(interiorId)
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **roomIndex**: Interior room index.
-* **bbMinX**:
-* **bbMinY**:
-* **bbMinZ**:
-* **bbMaxX**:
-* **bbMaxY**:
-* **bbMaxZ**:

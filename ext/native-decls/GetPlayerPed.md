@@ -8,7 +8,7 @@ apiset: server
 Entity GET_PLAYER_PED(char* playerSrc);
 ```
 
-Used to get the player's Ped Entity ID when a valid `playerSrc` is passed.
+Used to get the Player's Ped Entity ID when a valid `playerSrc` is passed.
 
 
 ## Parameters

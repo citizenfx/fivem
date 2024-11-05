@@ -8,8 +8,13 @@ apiset: client
 int GET_TIMECYCLE_MODIFIER_VAR_COUNT(char* modifierName);
 ```
 
-## Examples
+## Parameters
+* **modifierName**: The timecycle modifier name.
 
+## Return value
+The amount of variables used on a specified timecycle modifier.
+
+## Examples
 ```lua
 local varCount = GetTimecycleModifierVarCount("underwater")
 
@@ -21,9 +26,3 @@ if varCount ~= 0 then
   end
 end
 ```
-
-## Parameters
-* **modifierName**: The timecycle modifier name.
-
-## Return value
-The amount of variables used on a specified timecycle modifier.

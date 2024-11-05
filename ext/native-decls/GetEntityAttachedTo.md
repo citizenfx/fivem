@@ -8,10 +8,10 @@ apiset: server
 Entity GET_ENTITY_ATTACHED_TO(Entity entity);
 ```
 
-Gets the entity that this entity is attached to.
+Gets the entity that `entity` is attached to.
 
 ## Parameters
 * **entity**: The entity to check.
 
 ## Return value
-The attached entity handle. 0 returned if the entity is not attached.
+Returns the attached entity handle, or `0` if the entity isn't attached to anything.

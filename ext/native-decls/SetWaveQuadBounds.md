@@ -11,12 +11,6 @@ BOOL SET_WAVE_QUAD_BOUNDS(int waveQuad, int minX, int minY, int maxX, int maxY);
 
 This native allows you to update the bounds of a specified water quad index.
 
-## Examples
-
-```lua
-local success = SetWaveQuadBounds(0, -5000, -5000, 5000, 5000)
-```
-
 ## Parameters
 * **waveQuad**: The wave quad index
 * **minX**: The minX coordinate
@@ -25,4 +19,9 @@ local success = SetWaveQuadBounds(0, -5000, -5000, 5000, 5000)
 * **maxY**: The maxY coordinate
 
 ## Return value
-Returns true on success.
+Returns `true` if `waveQuad`s bounds got set, `false` otherwise.
+
+## Examples
+```lua
+local success = SetWaveQuadBounds(0, -5000, -5000, 5000, 5000)
+```

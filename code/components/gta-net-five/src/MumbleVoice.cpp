@@ -1347,7 +1347,7 @@ static HookFunction hookFunction([]()
 			g_mumbleClient->SetAudioInputDistance(dist);
 		});
 
-		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_AUDIO_OUTPUT_DISTANCE", [](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_LISTENING_RANGE", [](fx::ScriptContext& context)
 		{
 			float dist = context.GetArgument<float>(0);
 

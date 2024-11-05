@@ -8,5 +8,7 @@ apiset: shared
 int GET_INSTANCE_ID();
 ```
 
+This native is used internally for function reference calls.
 
 ## Return value
+Returns the current resources instance id.

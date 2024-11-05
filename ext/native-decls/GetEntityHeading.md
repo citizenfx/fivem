@@ -8,8 +8,8 @@ apiset: server
 float GET_ENTITY_HEADING(Entity entity);
 ```
 
-
 ## Parameters
-* **entity**: 
+* **entity**: The entity to get the heading of
 
 ## Return value
+Returns the entities current heading

@@ -9,14 +9,46 @@ game: gta5
 int GET_VEHICLE_DASHBOARD_LIGHTS();
 ```
 
-Gets the state of the player vehicle's dashboard lights as a bit set
-	indicator_left = 1
-	indicator_right = 2
-	handbrakeLight = 4
-	engineLight = 8
-	ABSLight = 16
-	gasLight = 32
-	oilLight = 64
-	headlights = 128
-	highBeam = 256
-	batteryLight = 512
+```c
+enum eDashboardLights {
+	IndicatorLeft = 1,
+	IndicatorRight = 2,
+	HandbrakeLight = 4,
+	EngineLight = 8,
+	ABSLight = 16,
+	GasLight = 32,
+	OilLight = 64,
+	Headlights = 128,
+	HighBeam = 256,
+	BatteryLight = 512
+}
+```
+
+## Return value
+Returns the state of the vehicle dashboard lights
+
+## Examples
+```lua
+local eDashboardLights = {
+    IndicatorLeft = 1,
+    IndicatorRight = 2,
+    HandbrakeLight = 4,
+    EngineLight = 8,
+    ABSLight = 16,
+    GasLight = 32,
+    OilLight = 64,
+    Headlights = 128,
+    HighBeam = 256,
+    BatteryLight = 512
+}
+
+local dashboardLights = GetVehicleDashboardLights()
+
+if (dashboardLights & eDashboardLights.HighBeam) ~= 0 then
+    print("The high beams are on!")
+end
+
+if (dashboardLights & eDashboardLights.GasLight) ~= 0 then
+    print("You might need to get some fuel!")
+end
+```

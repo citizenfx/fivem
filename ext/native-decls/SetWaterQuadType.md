@@ -19,15 +19,16 @@ Valid type definitions:
 * **3** Right triangle where the 90 degree angle is at minX, maxY
 * **4** Right triangle where the 90 degree angle is at maxY, maxY
 
-## Examples
 
-```lua
-local success = SetWaterQuadType(0, 0)
-```
 
 ## Parameters
 * **waterQuad**: The water quad index
 * **type**: The water quad type
 
 ## Return value
-Returns true on success.
+Returns `true` if `waveQuad`s quad type got set, `false` otherwise.
+
+## Examples
+```lua
+local success = SetWaterQuadType(0, 0)
+```

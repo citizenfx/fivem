@@ -15,3 +15,4 @@ See the client-side [IS_VEHICLE_WINDOW_INTACT](#_0x46E571A0E20D01F1) for a windo
 * **windowIndex**: The window index.
 
 ## Return value
+Returns `true` if the vehicle window is intact

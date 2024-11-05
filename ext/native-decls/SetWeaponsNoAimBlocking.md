@@ -13,4 +13,4 @@ Disables weapons aim blocking due to environment for local player.
 For non-player peds [SET_PED_ENABLE_WEAPON_BLOCKING](#_0x97A790315D3831FD) can be used.
 
 ## Parameters
-* **state**: On/Off
+* **state**: `true` to enable aim blocking, `false` (default) to disable it

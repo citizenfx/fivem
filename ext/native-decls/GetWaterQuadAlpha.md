@@ -8,11 +8,6 @@ game: gta5
 ```c
 BOOL GET_WATER_QUAD_ALPHA(int waterQuad, int* a0, int* a1, int* a2, int* a3);
 ```
-## Examples
-
-```lua
-local success, a0, a1, a2, a3 = GetWaterQuadAlpha(0)
-```
 
 ## Parameters
 * **waterQuad**: The water quad index
@@ -22,4 +17,10 @@ local success, a0, a1, a2, a3 = GetWaterQuadAlpha(0)
 * **a3**: The a3 level
 
 ## Return value
-Returns true on success. Alpha values are undefined on failure
+Returns `true` if the operation was successful, `false` otherwise, the bounds will be set to `0` on failure.
+
+## Examples
+
+```lua
+local success, a0, a1, a2, a3 = GetWaterQuadAlpha(0)
+```

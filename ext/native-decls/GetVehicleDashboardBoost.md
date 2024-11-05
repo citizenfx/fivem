@@ -8,3 +8,8 @@ game: gta5
 ```c
 float GET_VEHICLE_DASHBOARD_BOOST();
 ```
+
+
+
+## Return value
+Returns the current turbo pressure in the engine, will return `0.0` if the engine doesn't have turbo mod equiped
