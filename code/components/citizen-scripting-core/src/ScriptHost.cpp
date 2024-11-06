@@ -314,7 +314,7 @@ result_t SAFE_BUFFERS TestScriptHost::InvokeNative(fxNativeContext & context)
 	}
 #else
 	// get a native handler for the identifier
-	auto nativeHandler = ScriptEngine::GetNativeHandler(context.nativeIdentifier);
+	auto nativeHandler = ScriptEngine::GetNativeHandlerPtr(context.nativeIdentifier);
 
 	if (nativeHandler)
 	{

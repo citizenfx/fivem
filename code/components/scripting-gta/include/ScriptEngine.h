@@ -13,7 +13,6 @@
 #define SCRT_EXPORT DLL_IMPORT
 #endif
 
-#include <boost/optional.hpp>
 #include "DebugAlias.h"
 
 #define SCRT_HAS_CALLNATIVEHANDLER 1
@@ -171,7 +170,7 @@ namespace fx
 	class SCRT_EXPORT ScriptEngine
 	{
 	public:
-		static boost::optional<TNativeHandler> GetNativeHandler(uint64_t nativeIdentifier);
+		static TNativeHandler GetNativeHandler(uint64_t nativeIdentifier);
 
 		static TNativeHandler* GetNativeHandlerPtr(uint64_t nativeIdentifier);
 
@@ -187,19 +186,14 @@ namespace fx
 class FxNativeInvoke
 {
 private:
-	static inline void Invoke(fx::ScriptContext& cxt, const boost::optional<fx::TNativeHandler>& handler)
-	{
-		(*handler)(cxt);
-	}
-
 public:
 	template<typename R, typename... Args>
-	static inline R Invoke(const boost::optional<fx::TNativeHandler>& handler, Args... args)
+	static inline R Invoke(const fx::TNativeHandler& handler, Args... args)
 	{
 		fx::ScriptContextBuffer cxt;
 		(cxt.Push(args), ...);
 
-		Invoke(cxt, handler);
+		handler(cxt);
 
 		if constexpr (!std::is_void_v<R>)
 		{

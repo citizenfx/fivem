@@ -183,7 +183,7 @@ static void PatchResetHudComponentValues()
 
 		RestoreHudComponent(index);
 
-		return (*handler)(ctx);
+		return handler(ctx);
 	});
 }
 

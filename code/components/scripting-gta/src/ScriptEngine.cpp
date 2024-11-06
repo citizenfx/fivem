@@ -139,7 +139,7 @@ static std::unordered_map<uint64_t, fx::TNativeHandler> g_registeredHandlers;
 
 namespace fx
 {
-	boost::optional<TNativeHandler> ScriptEngine::GetNativeHandler(uint64_t nativeIdentifier)
+	TNativeHandler ScriptEngine::GetNativeHandler(uint64_t nativeIdentifier)
 	{
 		auto it = g_registeredHandlers.find(nativeIdentifier);
 
@@ -150,17 +150,17 @@ namespace fx
 
 		if (launch::IsSDK())
 		{
-			return {};
+			return nullptr;
 		}
 
 		auto rageHandler = rage::scrEngine::GetNativeHandler(nativeIdentifier);
 
 		if (rageHandler == nullptr)
 		{
-			return boost::optional<TNativeHandler>();
+			return nullptr;
 		}
 
-		return boost::optional<TNativeHandler>([=] (ScriptContext& context)
+		return [=] (ScriptContext& context)
 		{
 /*#if USE_OPTICK
 			static std::unordered_map<uint64_t, Optick::EventDescription*> staticDescriptions;
@@ -182,7 +182,7 @@ namespace fx
 
 			// append vector3 result components
 			rageContext.SetVectorResults();
-		});
+		};
 	}
 
 	TNativeHandler* ScriptEngine::GetNativeHandlerPtr(uint64_t nativeIdentifier)
@@ -197,7 +197,7 @@ namespace fx
 
 	static bool __declspec(safebuffers) CallNativeHandlerSdk(uint64_t nativeIdentifier, ScriptContext& context)
 	{
-		auto h = ScriptEngine::GetNativeHandler(nativeIdentifier);
+		auto h = ScriptEngine::GetNativeHandlerPtr(nativeIdentifier);
 
 		if (h)
 		{
