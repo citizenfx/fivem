@@ -25,7 +25,7 @@ static int CalculateMipLevelHook(uint8_t type, uint16_t width, uint16_t height, 
 
 		// try getting the relevant archetype, and see if it's a vehicle
 		rage::fwModelId idx;
-		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(HashString(baseName.c_str()), idx);
+		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(HashString(baseName.c_str()), idx);
 
 		if (archetype)
 		{

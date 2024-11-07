@@ -2860,8 +2860,6 @@ static hook::cdecl_stub<void()> _unloadTextureLODs([]()
 });
 
 #ifdef GTA_FIVE
-int* g_archetypeStreamingIndex;
-
 static void FlushCustomAssets()
 {
 	auto strManager = streaming::Manager::GetInstance();
@@ -2876,7 +2874,7 @@ static void FlushCustomAssets()
 			// if this is registered by us
 			// #TODO: check if model info streaming module
 			if (g_handlesToTag.find(entry.handle) != g_handlesToTag.end() ||
-				strManager->moduleMgr.GetStreamingModule(i) == strManager->moduleMgr.modules[*g_archetypeStreamingIndex])
+				strManager->moduleMgr.GetStreamingModule(i) == rage::fwArchetypeManager::GetStreamingModule())
 			{
 				// force-unload the object (canceling the request)
 				// if this breaks next reload, 'so be it', we just want to get to the main menu safely
@@ -3249,7 +3247,7 @@ static bool ParserCreateAndLoadAnyType(void* self, const char* path, const char*
 	{
 		uint32_t entryHash = HashString(path);
 		uint16_t entryCount = *(uint16_t*)(*(char**)parParsableStructure + 8);
-		g_archetypeFactories->Get(5)->GetOrCreate(entryHash, entryCount);
+		g_archetypeFactories->Get(5)->AddStorageBlock(entryHash, entryCount);
 	}
 	return success;
 }
@@ -3510,32 +3508,6 @@ static void VideoEditorActionEventsOnGameDestruction()
 	CleanupStreaming();
 	g_origActionEventsOnGameDestruction();
 }
-
-static int32_t entityFlagsOffset = 0;
-static int32_t entityArchetypeOffset = 0;
-
-static hook::cdecl_stub<void*(void*)> rage__fwArchetypeManager__LookupModelId([]()
-{
-	return hook::get_pattern("0F B7 05 ? ? ? ? 44 8B 49 ? 45 33 C0");
-});
-
-static void (*g_origReleaseImportantSlodAssets)(void* entity);
-static void ReleaseImportantSlodAssets(void* entity)
-{
-	if (!entity || (*(uint8_t*)((uintptr_t)entity + entityFlagsOffset) & 4) == 0)
-	{
-		return;
-	}
-
-	// Prevent crash when enetity without attached archetype is deleted.
-	void* archetype = *(void**)((uintptr_t)entity + entityArchetypeOffset);
-	if (!archetype || !rage__fwArchetypeManager__LookupModelId(archetype))
-	{
-		return;
-	}
-
-	return g_origReleaseImportantSlodAssets(entity);
-}
 #endif
 
 static HookFunction hookFunction([]()
@@ -3598,8 +3570,6 @@ static HookFunction hookFunction([]()
 		MH_CreateHook(location, FreeArchetypesHook, (void**)&g_origFreeArchetypes);
 		MH_EnableHook(location);
 	}
-
-	g_archetypeStreamingIndex = hook::get_address<int*>(hook::get_pattern("48 83 7B 68 00 44 8B 05 ? ? ? ? 48 8B 15", 8));
 #endif
 
 	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
@@ -3933,19 +3903,6 @@ static HookFunction hookFunction([]()
 		auto loc = hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? E8 ? ? ? ? 8B D3");
 		hook::set_call(&g_origActionEventsOnGameDestruction, loc);
 		hook::call(loc, VideoEditorActionEventsOnGameDestruction);
-	}
-
-	// Do not crash when entities without attached archetypes are deleted.
-	// This happens in video editor streaming cleanup. See VideoEditorActionEventsOnGameDestruction.
-	{
-		MH_Initialize();
-
-		auto location = hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? F6 41 ? ? 48 8B F9 74 ? 48 8B 49");
-		MH_CreateHook(location, ReleaseImportantSlodAssets, (void**)&g_origReleaseImportantSlodAssets);
-		MH_EnableHook(location);
-
-		entityFlagsOffset = *(uint8_t*)((uintptr_t)location + 12);
-		entityArchetypeOffset = *(uint8_t*)((uintptr_t)location + 22);
 	}
 #endif
 

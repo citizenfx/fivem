@@ -16,7 +16,8 @@ void trampoline_raw(void* address, const void* target, void** origTrampoline)
 
 	auto location = reinterpret_cast<void*>(hook::get_adjusted(address));
 	MH_CreateHook(location, const_cast<void*>(target), origTrampoline);
-	assert(MH_EnableHook(location) == MH_OK);
+	auto status = MH_EnableHook(location);
+	assert(status == MH_OK);
 }
 }
 #endif

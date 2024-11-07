@@ -190,7 +190,7 @@ public:
 		atArray<strStreamingModule*> modules;
 	};
 
-	// actually CStreaming
+	// rage::strStreamingInfoManager
 	class STREAMING_EXPORT Manager
 	{
 	private:
@@ -204,11 +204,15 @@ public:
 		}
 
 	public:
+		void RegisterObject(uint32_t* fileIdx, const char* registerName, uint32_t handle, uint32_t collectionId, void* unk, bool unk2, void* unk3, bool unk4);
+
 		void RequestObject(uint32_t objectId, int flags);
 
 		bool ReleaseObject(uint32_t objectId);
 
 		bool ReleaseObject(uint32_t objectId, int flags);
+
+		bool UnregisterObject(uint32_t objectId);
 
 		bool IsObjectReadyToDelete(uint32_t streamingIndex, int flags);
 
@@ -226,6 +230,7 @@ public:
 			}
 		}
 
+		// rage::strStreamingEngine::ms_info
 		static Manager* GetInstance();
 
 	private:
