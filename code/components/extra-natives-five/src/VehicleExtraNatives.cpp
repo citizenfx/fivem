@@ -105,7 +105,7 @@ struct VehicleDashboardData
 	float temp;
 	float vacuum;
 	float boost;
-	float waterTemp;
+	float currentGear;
 	float oilTemp;
 	float oilPressure;
 	char _pad[0x3F]; // aircraft data
@@ -938,9 +938,9 @@ static HookFunction initFunction([]()
 		context.SetResult<float>(g_DashboardData.boost);
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_WATER_TEMP", [](fx::ScriptContext& context)
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_CURRENT_GEAR", [](fx::ScriptContext& context)
 	{
-		context.SetResult<float>(g_DashboardData.waterTemp);
+		context.SetResult<float>(g_DashboardData.currentGear);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_OIL_PRESSURE", [](fx::ScriptContext& context)
