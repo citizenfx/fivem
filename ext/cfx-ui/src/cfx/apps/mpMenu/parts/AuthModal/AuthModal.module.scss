@@ -1,0 +1,41 @@
+$customSpacing: calc(ui.offset('normal') * 5);
+
+.wrap {
+  padding: $customSpacing 0;
+
+  background-color: ui.color('main', 50);
+}
+
+.customSplitter {
+  width: 100%;
+
+  // while normally we're not using pixels directly,
+  // this is similar to Spacer size where 2px needs
+  // to be the same regardless of the screen size
+  height: 2px;
+
+  margin: $customSpacing 0;
+
+  background-color: ui.color('main', 100, .5);
+}
+
+.authbtn {
+  flex-direction: row-reverse;
+
+  svg {
+    width: auto;
+    height: 1em; // make the hight be the same as the font size
+  }
+}
+
+.inlineButton {
+  display: inline;
+  text-transform: lowercase;
+}
+
+.composite {
+  svg {
+    width: auto;
+    height: ui.q(6);
+  }
+}

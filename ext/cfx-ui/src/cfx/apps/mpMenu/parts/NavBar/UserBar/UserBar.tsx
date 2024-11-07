@@ -65,7 +65,7 @@ export const UserBar = observer(function UserBar() {
   }, [handleSettingsClick]);
 
   const handleAuthClick = React.useCallback(() => {
-    AuthService.openUI();
+    AuthService.openAuthUI();
     eventHandler({
       action: EventActionNames.SiteNavClick,
       properties: {
