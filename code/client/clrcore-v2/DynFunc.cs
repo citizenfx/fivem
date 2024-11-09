@@ -114,8 +114,6 @@ namespace CitizenFX.Core
 				return (DynFunc)existingMethod.CreateDelegate(typeof(DynFunc), target);
 			}
 
-			// TODO: implement optional parameter(s) support with parameter.IsOptional and parameter.DefaultValue
-
 			ParameterInfo[] parameters = method.GetParameters();
 #if DYN_FUNC_CALLI
 			Type[] parameterTypes = new Type[parameters.Length];
@@ -126,6 +124,7 @@ namespace CitizenFX.Core
 				hasThis ? new[] { typeof(object), typeof(Remote), typeof(object[]) } : new[] { typeof(Remote), typeof(object[]) });
 
 			ILGenerator g = lambda.GetILGenerator();
+			g.DeclareLocal(typeof(uint));
 
 			OpCode ldarg_remote, ldarg_args;
 			if (hasThis)
@@ -141,8 +140,13 @@ namespace CitizenFX.Core
 				ldarg_args = OpCodes.Ldarg_1;
 			}
 
+			g.Emit(ldarg_args);
+			g.Emit(OpCodes.Ldlen);
+			g.Emit(OpCodes.Stloc_0);
 			for (int i = 0, p = 0; i < parameters.Length; ++i)
 			{
+				Label lblOutOfRange = g.DefineLabel();
+				Label lblNextArgument = g.DefineLabel();
 				var parameter = parameters[i];
 				var t = parameter.ParameterType;
 
@@ -176,27 +180,15 @@ namespace CitizenFX.Core
 					throw new ArgumentException($"{nameof(SourceAttribute)} used on type {t}, this type can't be constructed with parameter Remote.");
 				}
 
+				g.Emit(OpCodes.Ldc_I4, p);
+				g.Emit(OpCodes.Ldloc_0);
+				g.Emit(OpCodes.Bge_Un, lblOutOfRange);
 				g.Emit(ldarg_args);
 				g.Emit(OpCodes.Ldc_I4_S, (byte)p++);
 				g.Emit(OpCodes.Ldelem_Ref);
 
 				if (t.IsValueType)
 				{
-					Label diff = g.DefineLabel();
-					Label done = g.DefineLabel();
-
-					g.Emit(OpCodes.Dup);
-
-					// check if given type is already of the target type
-					g.Emit(OpCodes.Isinst, t);
-					g.Emit(OpCodes.Brfalse_S, diff);
-
-					// same type, unbox and pass it as an argument
-					g.Emit(OpCodes.Unbox_Any, t);
-					g.Emit(OpCodes.Br, done);
-
-					// not the same type, try and convert it
-					g.MarkLabel(diff);
 					if (t.IsPrimitive)
 					{
 						g.Emit(OpCodes.Call, convertMethods[t]); // already handles null
@@ -206,14 +198,46 @@ namespace CitizenFX.Core
 						g.Emit(OpCodes.Pop);
 						g.Emit(OpCodes.Ldloc_S, g.DeclareLocal(t));
 					}
-
-					g.MarkLabel(done);
 				}
 				else if (t != typeof(object))
 				{
 					g.Emit(OpCodes.Castclass, t); // throwing cast, exception on fail
 					//g.Emit(OpCodes.Isinst, t);    // non throwing cast, null on fail
 				}
+				g.Emit(OpCodes.Br, lblNextArgument);
+				
+				g.MarkLabel(lblOutOfRange);
+				if (parameter.IsOptional)
+				{
+					switch (parameter.DefaultValue)
+					{
+						case null: g.Emit(OpCodes.Ldnull); break;
+						case string v: g.Emit(OpCodes.Ldstr, v); break;
+						case byte v: g.Emit(OpCodes.Ldc_I4, v); break;
+						case ushort v: g.Emit(OpCodes.Ldc_I4, v); break;
+						case uint v: g.Emit(OpCodes.Ldc_I4, v); break;
+						case ulong v: g.Emit(OpCodes.Ldc_I4, v); break;
+						case sbyte v: g.Emit(OpCodes.Ldc_I4, v); break;
+						case short v: g.Emit(OpCodes.Ldc_I4, v); break;
+						case int v: g.Emit(OpCodes.Ldc_I4, v); break;
+					}
+					
+					// Generic way to also support Nullable<> types
+					if (t.IsGenericType)
+					{
+						Type[] genericArguments = t.GetGenericArguments();
+						if (genericArguments.Length == 1)
+							g.Emit(OpCodes.Newobj, t.GetConstructor(genericArguments));
+						else
+							throw new ArgumentException($"Default value for {t} is unsupported.");
+					}
+				}
+				else
+				{
+					g.Emit(OpCodes.Newobj, typeof(IndexOutOfRangeException).GetConstructor(Type.EmptyTypes));
+					g.Emit(OpCodes.Throw);	
+				}
+				g.MarkLabel(lblNextArgument);
 			}
 
 #if DYN_FUNC_CALLI
