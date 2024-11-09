@@ -33,10 +33,12 @@ static InitFunction initFunction([]()
 			bool success = true;
 			std::vector<std::string> errorList;
 
-			auto loadDeps = [&] (const std::string& type)
+			auto loadDeps = [&] (const std::string& type, const bool soft = false)
 			{
 				for (const auto& dependency : metaData->GetEntries(type))
 				{
+					// Skip constraints when handling soft dependencies, as these can't be soft.
+					if (!soft)
 					{
 						std::string constraintError;
 						auto constraintResult = constraintsComponent->MatchConstraint(dependency.second, &constraintError);
@@ -57,12 +59,22 @@ static InitFunction initFunction([]()
 
 					if (!other.GetRef())
 					{
-						trace("Could not find dependency %s for resource %s.\n", dependency.second, resource->GetName());
+						trace("Could not find %s %s for resource %s.\n", soft ? "soft dependency" : "dependency", dependency.second, resource->GetName());
+
+						// Continue to the next dependency if we're handling soft dependencies, as these dependencies are optional.
+						if (soft)
+						{
+							continue;
+						}
+
 						return false;
 					}
 
-					// store in a list for use in OnStop
-					resourceDependants.insert({ other->GetName(), resource->GetName() });
+					if (!soft)
+					{
+						// store in a list for use in OnStop
+						resourceDependants.insert({ other->GetName(), resource->GetName() });
+					}
 
 					if (other->GetState() == fx::ResourceState::Starting || other->GetState() == fx::ResourceState::Started)
 					{
@@ -73,7 +85,13 @@ static InitFunction initFunction([]()
 
 					if (!success)
 					{
-						trace("Could not start dependency %s for resource %s.\n", dependency.second, resource->GetName());
+						trace("Could not start %s %s for resource %s.\n", soft ? "soft dependency" : "dependency", dependency.second, resource->GetName());
+
+						// Continue to the next dependency if we're handling soft dependencies, just like we do when one is missing.
+						if (soft)
+						{
+							continue;
+						}
 
 						// store for deferred use (e.g. build systems)
 						resourceDependencies.insert({ other->GetName(), resource->GetName() });
@@ -103,6 +121,10 @@ static InitFunction initFunction([]()
 
 				return false;
 			}
+
+			// Load soft dependencies defined with `soft_dependency` or `soft_dependencies`.
+			// We ignore the result, as we don't want to cancel loading the resource if a soft dependency is missing.
+			loadDeps("soft_dependency", true) && loadDeps("soft_dependencie", true); // soft_dependencies without s
 
 			return true;
 		}, -9999);
