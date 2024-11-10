@@ -120,7 +120,7 @@ build_client_rdr3:
     - vs2022
 
 build_sdk:
-  stage: build
+  stage: buildD
   tags:
     - release_fivem
     - windows
@@ -167,7 +167,7 @@ build_server_windows:
 
 build_proot_linux:
   extends: [.base_build_server]
-  stage: build
+  stage: buildD
   tags:
     - linux
   image: registry-internal.fivem.net/cfx/fivem/fivem-builder-linux-alpine:latest
@@ -298,7 +298,7 @@ redm_deploy_specific:
 # -- ScRT PACKAGES --
 # -------------------
 typings_server:
-  stage: deploy
+  stage: deployD
   extends: [.only_for_master]
   needs:
     - job: build_server_windows
@@ -315,7 +315,7 @@ typings_server:
     - sh ext/typings/server/build.sh
     
 typings_client:
-  stage: deploy
+  stage: deployD
   extends: [.only_for_master]
   needs:
     - job: build_client
@@ -326,7 +326,7 @@ typings_client:
     - "cmd /c ext\\typings\\client\\build.bat"
     
 nuget_client:
-  stage: deploy
+  stage: deployD
   extends: [.only_for_master]
   needs:
     - job: build_client
@@ -337,7 +337,7 @@ nuget_client:
     - "cmd /c ext\\nuget\\client\\build.bat"
     
 nuget_server:
-  stage: deploy
+  stage: deployD
   extends: [.only_for_master]
   needs:
     - job: build_server_windows
@@ -351,7 +351,7 @@ nuget_server:
 # -- UPLOAD REVIEWS --
 # --------------------
 .base_upload_review:
-  stage: postdeploy
+  stage: postdeploy2
   extends: [.only_for_public_build]
   allow_failure: true
   script:
@@ -377,7 +377,7 @@ redm_upload_review:
 
 prebuild_linux_docker_container:
   image: docker:24.0
-  stage: build
+  stage: buildD
   tags:
     - linux
   services:
