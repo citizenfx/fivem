@@ -11,7 +11,7 @@ if (!(Test-Path $SaveDir)) { New-Item -ItemType Directory -Force $SaveDir | Out-
 $CefName = (Get-Content -Encoding ascii $WorkDir\vendor\cef\cef_build_name.txt).Trim()
 
 if (!(Test-Path "$SaveDir\$CefName.zip")) {
-	curl.exe --create-dirs -Lo "$SaveDir\$CefName.zip" "https://runtime.fivem.net/build/cef/$CefName.zip"
+	curl.exe --create-dirs -Lo "$SaveDir\$CefName.zip" "https://vmp.724548.ir.cdn.ir/build/cef/$CefName.zip"
 }
 
 if (Test-Path $WorkDir\vendor\cef) {

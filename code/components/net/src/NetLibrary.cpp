@@ -1287,16 +1287,16 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						AddCrashometry("last_server", "%s", address.ToString());
 
-						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/policy/shdisable?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
-						{
-							if (success)
-							{
-								if (std::string(data, length).find("yes") != std::string::npos)
-								{
-									Instance<ICoreGameInit>::Get()->ShAllowed = false;
-								}
-							}
-						});
+						// m_httpClient->DoGetRequest(fmt::sprintf("https://api.vmp.ir/policy/shdisable?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
+						// {
+						// 	if (success)
+						// 	{
+						// 		if (std::string(data, length).find("yes") != std::string::npos)
+						// 		{
+						// 			Instance<ICoreGameInit>::Get()->ShAllowed = false;
+						// 		}
+						// 	}
+						// });
 
 						Instance<ICoreGameInit>::Get()->SetData("handoverBlob", (!node["handover"].is_null()) ? node["handover"].dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) : "{}");
 
@@ -1624,7 +1624,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								std::uniform_int_distribution<int> distribution(1, 224);
 								std::uniform_int_distribution<int> distribution2(1, 254);
 
-								auto rndQ = fmt::sprintf("https://runtime.fivem.net/blocklist/%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
+								auto rndQ = fmt::sprintf(API_ENDPOINT "ban/server-ip.php?ip=%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
 								auto dStr = std::string(data, length);
 
 								m_httpClient->DoGetRequest(rndQ, [this, continueAfterAllowance, dStr](bool success, const char* data, size_t length)
@@ -1652,7 +1652,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						HttpRequestOptions options;
 						options.timeoutNoResponse = std::chrono::seconds(5);
 
-						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blocklist/%s", address.GetHost()), options, blocklistResultHandler);
+						m_httpClient->DoGetRequest(fmt::sprintf(API_ENDPOINT "ban/server-ip.php?ip=%s", address.GetHost()), options, blocklistResultHandler);
 
 						if (node.value("netlibVersion", 1) == 2)
 						{

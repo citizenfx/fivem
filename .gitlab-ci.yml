@@ -359,21 +359,21 @@ redm_deploy_specific:
 #   tags:
 #     - windows
 
-fivem_upload_review:
-  extends: [.base_upload_review]
-  variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT
-  needs:
-    - job: build_client
-      artifacts: true
+# fivem_upload_review:
+#   extends: [.base_upload_review]
+#   variables:
+#     GIT_CLONE_PATH: $CFX_CLONE_ROOT
+#   needs:
+#     - job: build_client
+#       artifacts: true
 
-redm_upload_review:
-  extends: [.base_upload_review]
-  variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT
-  needs:
-    - job: build_client_rdr3
-      artifacts: true
+# redm_upload_review:
+#   extends: [.base_upload_review]
+#   variables:
+#     GIT_CLONE_PATH: $CFX_CLONE_ROOT
+#   needs:
+#     - job: build_client_rdr3
+#       artifacts: true
 
 # prebuild_linux_docker_container:
 #   image: docker:24.0

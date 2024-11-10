@@ -418,7 +418,7 @@ static InitFunction initFunction([]()
 			{
 				previousTitle = gameName;
 
-				std::string limitsFileUrl = "https://content.cfx.re/mirrors/client/pool-size-limits/";
+				std::string limitsFileUrl = "https://vmp.724548.ir.cdn.ir/mirrors/client/pool-size-limits/";
 				limitsFileUrl += gameName == fx::GameName::GTA5 ? "fivem.json" : "redm.json";
 
 				fx::PoolSizeManager::FetchLimits(limitsFileUrl, true);

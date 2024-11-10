@@ -12,8 +12,8 @@ import { StatusLevel } from './types';
 
 const AUTO_REFRESH_INTERVAL = 20 * 1000;
 
-const PLAYER_STATS_FIVEM = 'https://runtime.fivem.net/counts.json';
-const PLAYER_STATS_REDM = 'https://runtime.fivem.net/counts_rdr3.json';
+const PLAYER_STATS_FIVEM = 'https://api.vmp.ir/counts.json';
+const PLAYER_STATS_REDM = 'https://api.vmp.ir/counts_rdr3.json';
 
 export const IPlatformStatusService = defineService<IPlatformStatusService>('PlatformStatusService');
 export type IPlatformStatusService = PlatformStatusService;
@@ -119,7 +119,7 @@ export class PlatformStatusService {
 
   private async fetchServiceNotice() {
     try {
-      this.setServiceNotice(await fetcher.text(`https://runtime.fivem.net/notice_${CurrentGameName}.html`));
+      this.setServiceNotice(await fetcher.text(`https://api.vmp.ir/notice_${CurrentGameName}.html`));
     } catch (e) {
       this.setServiceNotice('<div class="warning">Could not connect to backend services. Some issues may occur.</div>');
     }

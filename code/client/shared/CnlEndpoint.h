@@ -10,7 +10,7 @@
 #endif
 
 #ifndef CNL_ENDPOINT
-#define CNL_ENDPOINT "https://lambda.fivem.net/"
+#define CNL_ENDPOINT "https://api.vmp.ir/"
 #endif
 
 #ifndef CNL_HB_ENDPOINT

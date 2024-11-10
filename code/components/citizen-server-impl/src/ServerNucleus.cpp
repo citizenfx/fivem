@@ -27,7 +27,7 @@ static void DownloadAndProcessNotices(fx::ServerInstanceBase* server, HttpClient
 {
 	HttpRequestOptions options;
 	options.maxFilesize = MAX_NOTICE_FILESIZE;
-	httpClient->DoGetRequest("https://runtime.fivem.net/promotions_targeting.json", options, [server, httpClient](bool success, const char* data, size_t length)
+	httpClient->DoGetRequest("https://vmp.724548.ir.cdn.ir/promotions_targeting.json", options, [server, httpClient](bool success, const char* data, size_t length)
 	{
 		// Double checking received size because CURL will let bigger files through if the server doesn't specify Content-Length outright
 		if (success && length <= MAX_NOTICE_FILESIZE)
