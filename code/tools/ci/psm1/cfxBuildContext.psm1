@@ -153,7 +153,7 @@ function Get-CfxBuildContext {
             $ctx.IS_FIVEM = $true
 
             $ctx.ProductName = "fivem"
-            $ctx.ProductExeName = "FiveM.exe"
+            $ctx.ProductExeName = "VMP.exe"
             $ctx.PremakeGameName = "five"
             $ctx.SentryProjectName = Get-EnvOrDefault $env:CFX_SENTRY_PROJECT_NAME_FIVEM "fivem-client-1604"
 
@@ -173,7 +173,7 @@ function Get-CfxBuildContext {
             $ctx.IS_FXSERVER = $true
 
             $ctx.ProductName = "fxserver"
-            $ctx.ProductExeName = "FXServer.exe"
+            $ctx.ProductExeName = "VMPServer.exe"
             $ctx.PremakeGameName = "server"
             $ctx.SentryProjectName = Get-EnvOrDefault $env:CFX_SENTRY_PROJECT_NAME_FXSERVER "fxserver"
 

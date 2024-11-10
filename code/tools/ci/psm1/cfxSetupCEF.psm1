@@ -23,7 +23,7 @@ function Invoke-CfxSetupCEF {
         
         $CachedCefBuildArchive = "$CefCacheDir\$CefBuildName.zip"
 
-        curl.exe -Lo $CachedCefBuildArchive "https://runtime.fivem.net/build/cef/$CefBuildName.zip"
+        curl.exe -Lo $CachedCefBuildArchive "https://cdn.vmp.ir/build/cef/$CefBuildName.zip"
 
         # unpack cef
         $tempDir = "$CefCacheDir\$([System.Guid]::NewGuid())"

@@ -52,6 +52,9 @@ function Invoke-PackServer {
     & $Tools.SevenZip a -mx=9 $packRoot\server.zip $packRoot\server\*
     & $Tools.SevenZip a -mx=7 $packRoot\server.7z $packRoot\server\*
 
+    New-Item -ItemType Directory -Path C:\inetpub\artifact.vmp.ir\artifacts\$BuildID-$commit
+    Copy-Item -Force -Recurse $packRoot\server-artifact.7z C:\inetpub\artifact.vmp.ir\artifacts\$BuildID-$commit
+
     # cleanup
     Remove-Item -Force -Recurse $packRoot\server
 }

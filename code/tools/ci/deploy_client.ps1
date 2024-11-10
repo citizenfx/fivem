@@ -13,9 +13,9 @@ try {
         throw "This script cannot deploy FXServer"
     }
 
-    if (!$env:REFRESH_URL) {
-        throw "No REFRESH_URL env var"
-    }
+    # if (!$env:REFRESH_URL) {
+    #     throw "No REFRESH_URL env var"
+    # }
 
     if (!$env:CI_ENVIRONMENT_NAME) {
         throw "No CI_ENVIRONMENT_NAME env var"
@@ -58,80 +58,80 @@ try {
     }.GetNewClosure()
 
     # notify services as soon as possible
-    Invoke-LogSection "Services notification" {
-        if ($Context.IsDryRun) {
-            Write-Output "DRY RUN: Would notify services about new deployment"
-        } else {
-            $oldSecurityProtocol = [Net.ServicePointManager]::SecurityProtocol
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    # Invoke-LogSection "Services notification" {
+    #     if ($Context.IsDryRun) {
+    #         Write-Output "DRY RUN: Would notify services about new deployment"
+    #     } else {
+    #         $oldSecurityProtocol = [Net.ServicePointManager]::SecurityProtocol
+    #         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     
-            $retriesLeft = 5
-            $succeeded = $false
+    #         $retriesLeft = 5
+    #         $succeeded = $false
     
-            while ($retriesLeft -ne 0) {
-                try {
-                    Invoke-WebRequest -UseBasicParsing -Uri $env:REFRESH_URL -Method GET | Out-Null
+    #         while ($retriesLeft -ne 0) {
+    #             try {
+    #                 Invoke-WebRequest -UseBasicParsing -Uri $env:REFRESH_URL -Method GET | Out-Null
     
-                    $succeeded = $true
-                    break
-                }
-                catch {
-                    Write-Host "Notifying services failed:" $_
-                    Write-Host "Retries left #$retriesLeft"
+    #                 $succeeded = $true
+    #                 break
+    #             }
+    #             catch {
+    #                 Write-Host "Notifying services failed:" $_
+    #                 Write-Host "Retries left #$retriesLeft"
     
-                    $retriesLeft -= 1
+    #                 $retriesLeft -= 1
     
-                    Start-Sleep -Milliseconds 500
-                }
-            }
+    #                 Start-Sleep -Milliseconds 500
+    #             }
+    #         }
     
-            [Net.ServicePointManager]::SecurityProtocol = $oldSecurityProtocol
+    #         [Net.ServicePointManager]::SecurityProtocol = $oldSecurityProtocol
     
-            if (!$succeeded) {
-                Write-Host "Failed to notify services"
-                $Context.addBuildWarning("Failed to notify services")
-            }
-        }
-    }.GetNewClosure()
+    #         if (!$succeeded) {
+    #             Write-Host "Failed to notify services"
+    #             $Context.addBuildWarning("Failed to notify services")
+    #         }
+    #     }
+    # }.GetNewClosure()
 
     # deploy FxDK for FiveM as well
-    if ($ctx.IS_FIVEM) {
-        $cacheName = "fxdk-five"
-        $cacheDir = [IO.Path]::Combine($ctx.CachesRoot, $cacheName)
+    # if ($ctx.IS_FIVEM) {
+    #     $cacheName = "fxdk-five"
+    #     $cacheDir = [IO.Path]::Combine($ctx.CachesRoot, $cacheName)
 
-        $fxdkVersions = Read-FxDKCacheVersions -CacheName $cacheName -CachesRoot $ctx.CachesRoot
+    #     $fxdkVersions = Read-FxDKCacheVersions -CacheName $cacheName -CachesRoot $ctx.CachesRoot
 
-        Write-Output "FxDK versions:", $fxdkVersions, "`n"
+    #     Write-Output "FxDK versions:", $fxdkVersions, "`n"
 
-        Invoke-LogSection "Deploying FxDK for FiveM" {
-            $params = @{
-                Context = $ctx
-                Tools = $tools
+    #     Invoke-LogSection "Deploying FxDK for FiveM" {
+    #         $params = @{
+    #             Context = $ctx
+    #             Tools = $tools
             
-                BootstrapVersion = $clientVersions.BootstrapVersion
+    #             BootstrapVersion = $clientVersions.BootstrapVersion
 
-                UpdateChannelName = $updateChannelName
-                UpdateChannelVersion = $fxdkVersions.UpdateChannelVersion
+    #             UpdateChannelName = $updateChannelName
+    #             UpdateChannelVersion = $fxdkVersions.UpdateChannelVersion
 
-                CacheDir = $cacheDir
-                CacheName = $cacheName
-            }
+    #             CacheDir = $cacheDir
+    #             CacheName = $cacheName
+    #         }
     
-            Invoke-BuildCacheMeta @params
-        }.GetNewClosure()
-    }
+    #         Invoke-BuildCacheMeta @params
+    #     }.GetNewClosure()
+    # }
 
-    if ($Context.IsPublicBuild) {
-        Invoke-LogSection "Creating sentry deploy" {
-            $params = @{
-                Context = $ctx
-                Version = $clientVersions.BuildID
-                Environment = $updateChannelName
-            }
+    # if ($Context.IsPublicBuild) {
+    #     Invoke-LogSection "Creating sentry deploy" {
+    #         $params = @{
+    #             Context = $ctx
+    #             Version = $clientVersions.BuildID
+    #             Environment = $updateChannelName
+    #         }
 
-            Invoke-SentryCreateDeploy @params
-        }.GetNewClosure()
-    }
+    #         Invoke-SentryCreateDeploy @params
+    #     }.GetNewClosure()
+    # }
 
     $ctx.finishBuild()
 } catch {
