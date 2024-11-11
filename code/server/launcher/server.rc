@@ -48,7 +48,7 @@ BEGIN
 			VALUE "FileDescription", "VMP Platform Server (VMPServer)"
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "VMP"
-            VALUE "LegalCopyright", "(C) 2024 VMP"
+            VALUE "LegalCopyright", "(C) 2024 VMP.IR"
             VALUE "OriginalFilename", "FXServer.exe"
             VALUE "ProductName", "VMP"
             VALUE "ProductVersion", "1.0.0.0"
