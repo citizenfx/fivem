@@ -922,7 +922,7 @@ static InitFunction initFunction([]()
 
 				if (maxTrust < minTrustVar->GetValue() || minVariance > maxVarianceVar->GetValue())
 				{
-					sendError("You can not join this server due to your identifiers being insufficient. Please try starting Steam or another identity provider and try again.");
+					sendError("You can not join this server due to your identifiers being insufficient. Please try starting Steam or another identity provider and try again.\nاستیم شما یافت نشد، از باز بودن استیم اطمینان حاصل کنید");
 					return;
 				}
 

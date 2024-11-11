@@ -167,13 +167,29 @@ namespace fx
 			consoleCtx->ExecuteBuffer();
 		});
 
-		trace(R"(^2  _______  ______                           
- |  ___\ \/ / ___|  ___ _ ____   _____ _ __ 
- | |_   \  /\___ \ / _ \ '__\ \ / / _ \ '__|
- |  _|  /  \ ___) |  __/ |   \ V /  __/ |   
- |_|   /_/\_\____/ \___|_|    \_/ \___|_|   
--------------------------------- ^3txAdmin^2 ---^7
-
+		trace(R"(^2
+          _____                    _____                    _____          
+         /\    \                  /\    \                  /\    \         
+        /::\____\                /::\____\                /::\    \        
+       /:::/    /               /::::|   |               /::::\    \       
+      /:::/    /               /:::::|   |              /::::::\    \      
+     /:::/    /               /::::::|   |             /:::/\:::\    \     
+    /:::/____/               /:::/|::|   |            /:::/__\:::\    \    
+    |::|    |               /:::/ |::|   |           /::::\   \:::\    \   
+    |::|    |     _____    /:::/  |::|___|______    /::::::\   \:::\    \  
+    |::|    |    /\    \  /:::/   |::::::::\    \  /:::/\:::\   \:::\____\ 
+    |::|    |   /::\____\/:::/    |:::::::::\____\/:::/  \:::\   \:::|    |
+    |::|    |  /:::/    /\::/    / ~~~~~/:::/    /\::/    \:::\  /:::|____|
+    |::|    | /:::/    /  \/____/      /:::/    /  \/_____/\:::\/:::/    / 
+    |::|____|/:::/    /               /:::/    /            \::::::/    /  
+    |:::::::::::/    /               /:::/    /              \::::/    /   
+    \::::::::::/____/               /:::/    /                \::/____/    
+     ~~~~~~~~~~                    /:::/    /                  ~~          
+                                  /:::/    /                               
+                                 /:::/    /                                
+                                 \::/    /                                 
+                                  \/____/                                  
+                                                                           
 )");
 
 		// disable QuickEdit in *monitor mode only*
@@ -198,7 +214,7 @@ namespace fx
 		std::shared_ptr<ConVar<std::string>> rootVar;
 
 		auto monitorVar = AddVariable<bool>("monitorMode", ConVar_None, true);
-		auto versionVar = AddVariable<std::string>("version", ConVar_None, "FXServer-" GIT_DESCRIPTION);
+		auto versionVar = AddVariable<std::string>("version", ConVar_None, "VMPServer-" GIT_DESCRIPTION);
 
 		{
 			se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
