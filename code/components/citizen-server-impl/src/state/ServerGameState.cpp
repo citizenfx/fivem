@@ -7036,6 +7036,7 @@ enum GTA_EVENT_IDS
 	NETWORK_DEBUG_REQUEST_ENTITY_POSITION,
 	NETWORK_REMOVE_PROP_OWNERSHIP,
 	NETWORK_DUMP_CARRIABLE_OFF_MOUNT_EVENT,
+	NETWORK_FORCE_IN_SCOPE_FOR_DUPLICATE_OBJECT_OWNER, // Added in 1491.50(?)
 #endif
 };
 
@@ -7344,6 +7345,8 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 		eventType++;
 	}
 #endif
+
+	// RDR3 remaps eventType on the client (netEventMgr_MapEventId)
 
 #if defined(STATE_FIVE) || defined(STATE_RDR3)
 #ifdef STATE_FIVE

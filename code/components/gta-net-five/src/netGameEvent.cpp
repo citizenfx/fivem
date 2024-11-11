@@ -440,7 +440,9 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 		clientNetGameEvent.event.targetPlayers.SetValue({ targetPlayersVector.data(), targetPlayersVector.size() });
 		clientNetGameEvent.event.eventId = eventId;
 		clientNetGameEvent.event.isReply = 0;
-		clientNetGameEvent.event.eventType = ev->eventType;
+
+		// TEMPORARY: use event type mapping
+		clientNetGameEvent.event.eventType = netEventMgr_MapEventId(ev->eventType, true);
 		clientNetGameEvent.event.data.SetValue({static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength() });
 
 		if (!g_netLibrary->SendNetPacket(clientNetGameEvent))
@@ -761,9 +763,6 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 		return;
 	}
 
-	// TEMPORARY: use event type mapping
-	ev->eventType = netEventMgr_MapEventId(ev->eventType, true);
-
 #ifdef GTA_FIVE
 	if (strcmp(ev->GetName(), "ALTER_WANTED_LEVEL_EVENT") == 0)
 	{
@@ -987,7 +986,9 @@ static void DecideNetGameEvent(rage::netGameEvent* ev, CNetGamePlayer* player, C
 
 				clientNetGameEvent.event.eventId = evH;
 				clientNetGameEvent.event.isReply = 1;
-				clientNetGameEvent.event.eventType = ev->eventType;
+
+				// TEMPORARY: use event type mapping
+				clientNetGameEvent.event.eventType = netEventMgr_MapEventId(ev->eventType, true);
 				clientNetGameEvent.event.data = {static_cast<uint8_t*>(rlBuffer.m_data), rlBuffer.GetDataLength()};
 
 				if (!g_netLibrary->SendNetPacket(clientNetGameEvent))
