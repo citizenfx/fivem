@@ -173,7 +173,7 @@ function Get-CfxBuildContext {
             $ctx.IS_FXSERVER = $true
 
             $ctx.ProductName = "fxserver"
-            $ctx.ProductExeName = "VMPServer.exe"
+            $ctx.ProductExeName = "FXServer.exe"
             $ctx.PremakeGameName = "server"
             $ctx.SentryProjectName = Get-EnvOrDefault $env:CFX_SENTRY_PROJECT_NAME_FXSERVER "fxserver"
 

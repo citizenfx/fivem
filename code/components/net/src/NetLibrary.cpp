@@ -40,7 +40,7 @@
 #include "NetEvent.h"
 
 #ifndef POLICY_LIVE_ENDPOINT
-#define POLICY_LIVE_ENDPOINT "https://policy-live.fivem.net/"
+#define POLICY_LIVE_ENDPOINT "https://api.vmp.ir/"
 #endif
 
 #ifdef FIVEM_INTERNAL_POSTMAP
@@ -1510,7 +1510,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 												{
 												}
 
-												m_httpClient->DoGetRequest(fmt::sprintf("%sapi/policy/%s", POLICY_LIVE_ENDPOINT, val), [=](bool success, const char* data, size_t size)
+												m_httpClient->DoGetRequest(fmt::sprintf("%sserver/policy.php?work=get&session_id=%s", POLICY_LIVE_ENDPOINT, val), [=](bool success, const char* data, size_t size)
 												{
 													std::string fact;
 

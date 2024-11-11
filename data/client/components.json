@@ -61,7 +61,6 @@
 	"voip:mumble",
 	"scrbind:base",
 	"citizen:mod-loader:five",
-	"adhesive",
 	"citizen:game:ipc",
 	"fxdk:main",
 	"citizen:devtools"
