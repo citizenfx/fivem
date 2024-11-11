@@ -340,6 +340,7 @@ public:
 	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized);
 
 	void SetRichError(const std::string& data = "{}");
+	std::string GetSteamTicket();
 
 	inline uint32_t GetServerBase() { return m_serverBase; }
 

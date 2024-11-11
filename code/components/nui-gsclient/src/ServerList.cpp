@@ -690,7 +690,7 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 		});
 	};
 
-	if (narrowArg.find("cfx.re/join") != std::string::npos)
+	if (narrowArg.find("vmp.ir/j") != std::string::npos)
 	{
 		HttpRequestOptions ro;
 		ro.responseHeaders = std::make_shared<HttpHeaderList>();
@@ -1003,7 +1003,7 @@ static InitFunction initFunction([] ()
 
 					if (auto it = rhl->find("location"); it != rhl->end())
 					{
-						if (it->second.find("https://cfx.re/join/") == 0)
+						if (it->second.find("https://vmp.ir/j/") == 0)
 						{
 							cb(it->second.substr(20));
 						}

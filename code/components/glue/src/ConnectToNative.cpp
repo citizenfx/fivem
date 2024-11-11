@@ -314,7 +314,7 @@ static void ConnectTo(const std::string& hostnameStr, bool fromUI = false, const
 
 	if (!hostnameStr.empty() && hostnameStr[0] == '-')
 	{
-		netLibrary->ConnectToServer("cfx.re/join/" + hostnameStr.substr(1));
+		netLibrary->ConnectToServer("vmp.ir/j/" + hostnameStr.substr(1));
 	}
 	else
 	{
@@ -664,7 +664,7 @@ static InitFunction initFunction([] ()
 
 				if (auto it = info.find("vars"); it != info.end())
 				{
-					if (auto it2 = it.value().find("sv_licenseKeyToken"); it2 != it.value().end())
+					if (auto it2 = it.value().find("sv_sessionId"); it2 != it.value().end())
 					{
 						svLicenseKeyToken = it2.value().get<std::string>();
 					}
@@ -1336,7 +1336,7 @@ static InitFunction initFunction([] ()
 					json[i]["address"].get_to(l.url);
 					l.vars = json[i]["vars"];
 
-					if (l.url.find("cfx.re/join/") == 0)
+					if (l.url.find("vmp.ir/j/") == 0)
 					{
 						l.url = "-" + l.url.substr(12);
 					}
