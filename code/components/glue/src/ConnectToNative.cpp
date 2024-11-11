@@ -1241,9 +1241,9 @@ static InitFunction initFunction([] ()
 				Instance<ICoreGameInit>::Get()->SetData("discourseClientId", g_discourseClientId);
 
 				Instance<::HttpClient>::Get()->DoPostRequest(
-					CNL_ENDPOINT "api/validate/discourse",
+					CNL_ENDPOINT "game/discourse.php?work=register",
 					{
-						{ "entitlementId", ros::GetEntitlementSource() },
+						{ "identifier", ros::GetEntitlementSource() },
 						{ "authToken", g_discourseUserToken },
 						{ "clientId", g_discourseClientId },
 					},

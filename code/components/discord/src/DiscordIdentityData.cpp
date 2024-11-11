@@ -88,9 +88,9 @@ static HookFunction initFunction([]()
 
 					// check with CnL if we have access
 					Instance<::HttpClient>::Get()->DoPostRequest(
-						CNL_ENDPOINT "api/validate/discord",
+						CNL_ENDPOINT "game/discord.php?work=validate",
 						{
-							{ "entitlementId", ros::GetEntitlementSource() },
+							{ "identifier", ros::GetEntitlementSource() },
 							{ "userId", userId }
 						},
 						[writePipe, closeConnection](bool success, const char* data, size_t length)
@@ -101,8 +101,8 @@ static HookFunction initFunction([]()
 								{ "cmd", "AUTHORIZE" },
 								{ "args", json::object({
 									{ "scopes", json::array({"identify", "guilds.join"}) },
-									{ "client_id", "382624125287399424" },
-									{ "redirect_url", "https://cfx.re" },
+									{ "client_id", "1228105632113229865" },
+									{ "redirect_url", "https://vmp.ir" },
 									{ "prompt", "none" },
 								}) },
 								{ "nonce", "nonce1" },
@@ -129,9 +129,9 @@ static HookFunction initFunction([]()
 						if (!code.empty())
 						{
 							Instance<::HttpClient>::Get()->DoPostRequest(
-								CNL_ENDPOINT "api/validate/discord",
+								CNL_ENDPOINT "game/discord.php?work=register",
 								{
-									{ "entitlementId", ros::GetEntitlementSource() },
+									{ "identifier", ros::GetEntitlementSource() },
 									{ "authCode", code },
 									{ "userId", userId },
 									{ "v", "2" },

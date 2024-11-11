@@ -30,7 +30,7 @@ module.exports = (env, argv) => {
   const defines = {
     '__CFXUI_DEV__': JSON.stringify(isDev),
     '__CFXUI_USE_SOUNDS__': app === 'mpMenu',
-    '__CFXUI_CNL_ENDPOINT__': JSON.stringify(process.env.CFX_CNL_ENDPOINT || 'https://lambda.fivem.net/'),
+    '__CFXUI_CNL_ENDPOINT__': JSON.stringify(process.env.CFX_CNL_ENDPOINT || 'https://api.vmp.ir/'),
     '__CFXUI_SENTRY_DSN__': JSON.stringify(process.env.CFX_SENTRY_DSN_CFXUI || ''),
     '__CFXUI_SENTRY_RELEASE__': JSON.stringify(sentryRelease),
   };

@@ -206,8 +206,6 @@ build_server_windows:
   needs:
     - job: build_client
       artifacts: true
-    - job: build_sdk
-      artifacts: true
 
 .base_redm_deploy:
   extends: [.base_deploy_client]
