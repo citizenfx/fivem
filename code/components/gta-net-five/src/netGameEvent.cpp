@@ -258,12 +258,12 @@ static bool netEventMgr_IsBlacklistedEvent(uint16_t type)
 ///
 /// If the event implements a Reply method, or is exposed via script command,
 /// ensure blacklisting it will not negatively impact the game or network state.
-static bool netEventMgr_IsBlacklistedEventV2(uint16_t type)
+static bool netEventMgr_IsBlacklistedEventV2(uint32_t hash)
 {
 	static std::once_flag generated;
 	std::call_once(generated, netEventMgr_PopulateEventBlacklistV2);
 
-	return g_eventBlacklistV2.find(type) != g_eventBlacklistV2.end();
+	return g_eventBlacklistV2.find(hash) != g_eventBlacklistV2.end();
 }
 
 /// TEMPORARY: Event ID overriding process. Should be used for RedM only for now
