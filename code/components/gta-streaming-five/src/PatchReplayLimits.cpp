@@ -95,7 +95,7 @@ static HookFunction hookFunction([]()
 	if (xbr::IsGameBuildOrGreater<3258>())
 	{
 		static const constexpr uint32_t NewBufferSize = 1024;
-		static uint32_t* NewIPLBuffer = (uint32_t*)hook::AllocateStubMemory((size_t)NewBufferSize);
+		static uint32_t* NewIPLBuffer = (uint32_t*)hook::AllocateStubMemory((size_t)NewBufferSize * 4);
 
 		// Relocate CPacketIPL2 buffer references; stubs from 3258
 		RelocateRelative((void*)NewIPLBuffer, {
