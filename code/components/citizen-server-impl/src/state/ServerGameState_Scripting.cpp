@@ -652,7 +652,13 @@ static void Init()
 
 		if (context.GetArgumentCount() > 1 && doorsOpen)
 		{
-			doorStatus = vn->doorPositions[context.GetArgument<int>(1)];
+			const int index = context.GetArgument<int>(1);
+			if (index < 0 || index > 6)
+			{
+				return doorStatus;
+			}
+
+			doorStatus = vn->doorPositions[index];
 		}
 
 		return doorStatus;
@@ -716,9 +722,14 @@ static void Init()
 		bool tyreBurst = false;
 		bool wheelsFine = vn->tyresFine;
 
-		if (!wheelsFine && context.GetArgumentCount() > 1)
+		if (!wheelsFine)
 		{
-			int tyreID = context.GetArgument<int>(1);
+			const int tyreID = context.GetArgument<int>(1);
+			if (tyreID < 0 || tyreID > 15)
+			{
+				return tyreBurst;
+			}
+
 			bool completely = context.GetArgument<bool>(2);
 
 			int tyreStatus = vn->tyreStatus[tyreID];
@@ -1219,7 +1230,11 @@ static void Init()
     {
         auto vn = entity->syncTree->GetVehicleGameState();
 
-        int seatArg = context.GetArgument<int>(1) + 2;
+		const int seatArg = context.GetArgument<int>(1) + 2;
+		if (seatArg < 0 || seatArg > 31)
+		{
+			return 0;
+		}
 
         // get the current resource manager
         auto resourceManager = fx::ResourceManager::GetCurrent();
@@ -1248,7 +1263,11 @@ static void Init()
     {
         auto vn = entity->syncTree->GetVehicleGameState();
 
-        int seatArg = context.GetArgument<int>(1) + 2;
+		const int seatArg = context.GetArgument<int>(1) + 2;
+		if (seatArg < 0 || seatArg > 31)
+		{
+			return 0;
+		}
 
         // get the current resource manager
         auto resourceManager = fx::ResourceManager::GetCurrent();
