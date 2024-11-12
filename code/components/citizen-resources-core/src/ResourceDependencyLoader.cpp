@@ -59,7 +59,7 @@ static InitFunction initFunction([]()
 
 					if (!other.GetRef())
 					{
-						trace("Could not find %s %s for resource %s.\n", soft ? "soft dependency" : "dependency", dependency.second, resource->GetName());
+						trace("Could not find %s '%s' for resource '%s'.\n", soft ? "soft dependency" : "dependency", dependency.second, resource->GetName());
 
 						// Continue to the next dependency if we're handling soft dependencies, as these dependencies are optional.
 						if (soft)
@@ -85,7 +85,7 @@ static InitFunction initFunction([]()
 
 					if (!success)
 					{
-						trace("Could not start %s %s for resource %s.\n", soft ? "soft dependency" : "dependency", dependency.second, resource->GetName());
+						trace("Could not start %s '%s' for resource '%s'.\n", soft ? "soft dependency" : "dependency", dependency.second, resource->GetName());
 
 						// Continue to the next dependency if we're handling soft dependencies, just like we do when one is missing.
 						if (soft)
