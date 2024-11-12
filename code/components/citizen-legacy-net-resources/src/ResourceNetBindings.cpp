@@ -775,10 +775,19 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 		});
 	});
 
+	static bool gameLoaded = false;
+
+	Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+	{
+		gameLoaded = true;
+	});
+
 	static bool inSessionReset = false;
 
 	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 	{
+		gameLoaded = false;
+
 		AddCrashometry("reset_resources", "true");
 
 		inSessionReset = true;
@@ -804,7 +813,7 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 
 	console::GetDefaultContext()->GetCommandManager()->FallbackEvent.Connect([netLibrary](const std::string& cmd, const ProgramArguments& args, const std::string& context)
 	{
-		if (netLibrary->GetConnectionState() != NetLibrary::CS_ACTIVE)
+		if (netLibrary->GetConnectionState() != NetLibrary::CS_ACTIVE || !gameLoaded)
 		{
 			return true;
 		}
