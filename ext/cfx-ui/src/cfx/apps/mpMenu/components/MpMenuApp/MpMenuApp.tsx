@@ -1,7 +1,7 @@
 import { observer } from 'mobx-react-lite';
 import { Outlet } from 'react-router-dom';
 
-import { AuthFlyout } from 'cfx/apps/mpMenu/parts/AuthFlyout/AuthFlyout';
+import { AuthModal } from 'cfx/apps/mpMenu/parts/AuthModal/AuthModal';
 import { LegacyConnectingModal } from 'cfx/apps/mpMenu/parts/LegacyConnectingModal/LegacyConnectingModal';
 import { LegacyUiMessageModal } from 'cfx/apps/mpMenu/parts/LegacyUiMessageModal/LegacyUiMessageModal';
 import { LegalAccepter } from 'cfx/apps/mpMenu/parts/LegalAccepter/LegalAccepter';
@@ -21,7 +21,7 @@ function MpMenuUI() {
     <>
       <NavigationTracker />
 
-      <AuthFlyout />
+      <AuthModal />
       <SettingsFlyout />
 
       <LegacyConnectingModal />
