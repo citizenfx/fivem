@@ -7,7 +7,7 @@ import {
 import { observer } from 'mobx-react-lite';
 
 import { useAuthService } from 'cfx/apps/mpMenu/services/auth/auth.service';
-import { useConvarService, useStreamerMode } from 'cfx/apps/mpMenu/services/convars/convars.service';
+import { useStreamerMode } from 'cfx/apps/mpMenu/services/convars/convars.service';
 import { useAccountService } from 'cfx/common/services/account/account.service';
 import { $L } from 'cfx/common/services/intl/l10n';
 
@@ -17,7 +17,7 @@ export const AccountHeader = observer(function AccountHeader() {
 
   if (!AccountService.account) {
     return (
-      <Button size="large" text={$L('#BottomNav_LinkAccount')} theme="primary" onClick={AuthService.openUI} />
+      <Button size="large" text={$L('#BottomNav_LinkAccount')} theme="primary" onClick={AuthService.openAuthUI} />
     );
   }
 
@@ -27,8 +27,6 @@ export const AccountHeader = observer(function AccountHeader() {
 });
 
 const AccountHeaderSignedIn = observer(function AccountHeaderSignedIn() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const ConvarService = useConvarService();
   const AccountService = useAccountService();
 
   const node = useStreamerMode()

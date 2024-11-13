@@ -11,11 +11,15 @@ export namespace fetcher {
 
     public statusText: string;
 
+    public cfRay: string | null = null;
+
     constructor(public response: Response) {
       super(`Request to ${response.url} failed with status code ${response.status}`);
 
       this.status = response.status;
       this.statusText = response.statusText;
+
+      this.cfRay = response.headers.get('cf-ray');
     }
 
     async readJsonBody<T>(): Promise<T | null> {

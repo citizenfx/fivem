@@ -12,6 +12,11 @@
 #include <CloneManager.h>
 #include <CrossBuildRuntime.h>
 
+#include <netBlender.h>
+#include <netSyncTree.h>
+#include <EntitySystem.h>
+#include <netPlayerManager.h>
+
 static ICoreGameInit* icgi;
 
 extern void CD_AllocateSyncData(uint16_t objectId);
@@ -81,6 +86,20 @@ static void netObjectMgrBase__DestroyNetworkObject(rage::netObjectMgr* manager, 
 	}
 }
 
+#ifdef GTA_FIVE
+static int g_trainTrackNodeIndexOffset;
+
+static hook::cdecl_stub<void(CVehicle*, int, int)> CTrain__SetTrainCoord([]()
+{
+	return hook::pattern("44 8B C2 48 83 C4 ? 5B").count(1).get(0).get<void>(8);
+});
+
+static hook::cdecl_stub<bool(CVehicle*)> CTrain__IsCarriageEngine([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 80 A3 ? ? ? ? ? 24 ? 02 C0 08 83 ? ? ? ? F6 83 ? ? ? ? ? 74 ? 8A 05"));
+});
+#endif
+
 static void(*g_orig_netObjectMgrBase__ChangeOwner)(rage::netObjectMgr*, rage::netObject*, CNetGamePlayer*, int);
 
 static void netObjectMgrBase__ChangeOwner(rage::netObjectMgr* manager, rage::netObject* object, CNetGamePlayer* targetPlayer, int migrationType)
@@ -96,6 +115,24 @@ static void netObjectMgrBase__ChangeOwner(rage::netObjectMgr* manager, rage::net
 	object->PostMigrate(migrationType);
 
 	CloneObjectMgr->ChangeOwner(object, oldOwnerId, targetPlayer, migrationType);
+	// Handle scenarios where a train was previously owned by the server
+#ifdef GTA_FIVE
+	// Make sure that this is a train and that we are now the new owner of it
+	if (object->objectType == (uint16_t)NetObjEntityType::Train && targetPlayer->physicalPlayerIndex() == rage::GetLocalPlayer()->physicalPlayerIndex())
+	{
+		if (CVehicle* train = (CVehicle*)object->GetGameObject())
+		{
+			// Ensure this is the engine and the client has no knowledge of the trains current track node.
+			if (CTrain__IsCarriageEngine(train) && *(int*)((uintptr_t)train + g_trainTrackNodeIndexOffset) == 0)
+			{
+				//Find the trains track node based on its current location
+				CTrain__SetTrainCoord(train, -1, -1);
+				// Force blend to apply location
+				object->GetBlender()->Update();
+			}
+		}
+	}
+#endif
 }
 
 static rage::netObject* (*g_orig_netObjectMgrBase__GetNetworkObject)(rage::netObjectMgr* manager, uint16_t id, bool evenIfDeleting);
@@ -148,6 +185,9 @@ static HookFunction hookFunction([]()
 	MH_Initialize();
 
 #if GTA_FIVE
+	//Taken from extra-natives-five/VehicleExtraNatives.cpp
+	g_trainTrackNodeIndexOffset = *hook::get_pattern<uint32_t>("E8 ? ? ? ? 40 8A F8 84 C0 75 ? 48 8B CB E8", -4);
+	
 	MH_CreateHook(hook::get_pattern("48 8B F2 0F B7 52 0A 41 B0 01", -0x19), netObjectMgrBase__RegisterNetworkObject, (void**)&g_orig_netObjectMgrBase__RegisterNetworkObject); //
 	MH_CreateHook(hook::get_pattern("8A 42 4C 45 33 FF 48 8B DA C0 E8 02", -0x21), netObjectMgrBase__DestroyNetworkObject, (void**)&g_orig_netObjectMgrBase__DestroyNetworkObject); //
 	if (xbr::IsGameBuildOrGreater<3258>())

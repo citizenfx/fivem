@@ -1,4 +1,17 @@
-﻿#pragma once
+#pragma once
+
+#ifdef htonl
+#undef htonl
+#endif
+#ifdef htons
+#undef htons
+#endif
+#ifdef ntohl
+#undef ntohl
+#endif
+#ifdef ntohs
+#undef ntohs
+#endif
 
 namespace net
 {
