@@ -123,7 +123,7 @@ static void netObjectMgrBase__ChangeOwner(rage::netObjectMgr* manager, rage::net
 		if (CVehicle* train = (CVehicle*)object->GetGameObject())
 		{
 			// Ensure this is the engine and the client has no knowledge of the trains current track node.
-			if (CTrain__IsCarriageEngine(train) && *(int*)((uintptr_t)train + TrainTrackNodeIndexOffset) == 0)
+			if (CTrain__IsCarriageEngine(train) && *(int*)((uintptr_t)train + g_trainTrackNodeIndexOffset) == 0)
 			{
 				//Find the trains track node based on its current location
 				CTrain__SetTrainCoord(train, -1, -1);
