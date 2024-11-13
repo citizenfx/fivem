@@ -115,7 +115,7 @@ std::optional<Botan::RSA_PublicKey> GetPublicKey()
 	if (requestInProgress.compare_exchange_strong(notInProgress, true))
 	{
 		// http get request for loading the token
-		Instance<HttpClient>::Get()->DoGetRequest(CNL_ENDPOINT "api/ticket/pubkey", [](bool success, const char* data, size_t length) {
+		Instance<HttpClient>::Get()->DoGetRequest(CNL_ENDPOINT "game/pubkey.php", [](bool success, const char* data, size_t length) {
 			// lock to synchronize threads awaiting the token
 			bool inProgress = true;
 			if (!requestInProgress.compare_exchange_strong(inProgress, false))

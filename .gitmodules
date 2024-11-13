@@ -1,6 +1,6 @@
 [submodule "vendor/jitasm"]
 	path = vendor/jitasm
-	url = https://github.com/citizenfx/jitasm.git
+	url = https://git.vmp.ir/hamidreza/jitasm.git
 [submodule "vendor/msgpack-c"]
 	path = vendor/msgpack-c
 	url = https://github.com/msgpack/msgpack-c.git
@@ -13,10 +13,10 @@
 	url = https://github.com/google/protobuf.git
 [submodule "vendor/breakpad"]
 	path = vendor/breakpad
-	url = https://github.com/citizenfx/breakpad.git
+	url = https://git.vmp.ir/hamidreza/breakpad.git
 [submodule "vendor/udis86"]
 	path = vendor/udis86
-	url = https://github.com/citizenfx/udis86.git
+	url = https://git.vmp.ir/hamidreza/udis86.git
 [submodule "vendor/tinyxml2"]
 	path = vendor/tinyxml2
 	url = https://github.com/leethomason/tinyxml2.git
@@ -28,19 +28,19 @@
 	url = https://github.com/xz-mirror/xz.git
 [submodule "vendor/curl"]
 	path = vendor/curl
-	url = https://github.com/citizenfx/curl.git
+	url = https://git.vmp.ir/hamidreza/curl.git
 [submodule "vendor/leveldb"]
 	path = vendor/leveldb
-	url = https://github.com/citizenfx/leveldb.git
+	url = https://git.vmp.ir/hamidreza/leveldb.git
 [submodule "vendor/minhook"]
 	path = vendor/minhook
-	url = https://github.com/citizenfx/minhook.git
+	url = https://git.vmp.ir/hamidreza/minhook.git
 [submodule "vendor/rapidjson"]
 	path = vendor/rapidjson
 	url = https://github.com/miloyip/rapidjson.git
 [submodule "vendor/libuv"]
 	path = vendor/libuv
-	url = https://github.com/citizenfx/libuv.git
+	url = https://git.vmp.ir/hamidreza/libuv.git
 [submodule "vendor/fmtlib"]
 	path = vendor/fmtlib
 	url = https://github.com/fmtlib/fmt.git
@@ -52,16 +52,16 @@
 	url = https://github.com/libcpr/cpr.git
 [submodule "vendor/imgui"]
 	path = vendor/imgui
-	url = https://github.com/citizenfx/imgui.git
+	url = https://git.vmp.ir/hamidreza/imgui.git
 [submodule "vendor/tbb"]
 	path = vendor/tbb
-	url = https://github.com/citizenfx/oneTBB.git
+	url = https://git.vmp.ir/hamidreza/oneTBB.git
 [submodule "vendor/cpprestsdk"]
 	path = vendor/cpprestsdk
 	url = https://github.com/Microsoft/cpprestsdk.git
 [submodule "vendor/discord-rpc"]
 	path = vendor/discord-rpc
-	url = https://github.com/citizenfx/discord-rpc.git
+	url = https://git.vmp.ir/hamidreza/discord-rpc.git
 [submodule "vendor/lz4"]
 	path = vendor/lz4
 	url = https://github.com/lz4/lz4.git
@@ -70,7 +70,7 @@
 	url = https://github.com/nanomsg/nng.git
 [submodule "vendor/node"]
 	path = vendor/node
-	url = https://github.com/citizenfx/node.git
+	url = https://git.vmp.ir/hamidreza/node.git
 [submodule "vendor/openssl"]
 	path = vendor/openssl
 	url = https://github.com/openssl/openssl.git
@@ -82,7 +82,7 @@
 	url = https://github.com/dpirch/libfvad.git
 [submodule "vendor/webrtc-audio-processing"]
 	path = vendor/webrtc-audio-processing
-	url = https://github.com/citizenfx/webrtc-audio-processing.git
+	url = https://git.vmp.ir/hamidreza/webrtc-audio-processing.git
 [submodule "vendor/minizip"]
 	path = vendor/minizip
 	url = https://github.com/nmoinvaz/minizip.git
@@ -91,7 +91,7 @@
 	url = https://github.com/g-truc/glm.git
 [submodule "vendor/eastl"]
 	path = vendor/eastl
-	url = https://github.com/citizenfx/EASTL.git
+	url = https://git.vmp.ir/hamidreza/EASTL.git
 [submodule "vendor/utfcpp"]
 	path = vendor/utfcpp
 	url = https://github.com/nemtrif/utfcpp.git
@@ -100,7 +100,7 @@
 	url = https://github.com/ARMmbed/mbedtls.git
 [submodule "vendor/websocketpp"]
 	path = vendor/websocketpp
-	url = https://github.com/citizenfx/websocketpp.git
+	url = https://git.vmp.ir/hamidreza/websocketpp.git
 [submodule "vendor/replxx"]
 	path = vendor/replxx
 	url = https://github.com/blattersturm/replxx.git
@@ -109,13 +109,13 @@
 	url = https://github.com/inkooboo/thread-pool-cpp.git
 [submodule "vendor/ben-demystifier"]
 	path = vendor/ben-demystifier
-	url = https://github.com/citizenfx/Ben.Demystifier.git
+	url = https://git.vmp.ir/hamidreza/Ben-Demystifier.git
 [submodule "vendor/cpp-url"]
 	path = vendor/cpp-url
-	url = https://github.com/citizenfx/cpp-url.git
+	url = https://git.vmp.ir/hamidreza/cpp-url.git
 [submodule "vendor/uvw"]
 	path = vendor/uvw
-	url = https://github.com/citizenfx/uvw.git
+	url = https://git.vmp.ir/hamidreza/uvw.git
 [submodule "vendor/uws"]
 	path = vendor/uws
 	url = https://github.com/uNetworking/uWebSockets.git
@@ -127,7 +127,7 @@
 	url = https://github.com/stbrumme/toojpeg.git
 [submodule "vendor/bgfx"]
 	path = vendor/bgfx
-	url = https://github.com/citizenfx/bgfx.git
+	url = https://git.vmp.ir/hamidreza/bgfx.git
 [submodule "vendor/bx"]
 	path = vendor/bx
 	url = https://github.com/bkaradzic/bx.git
@@ -136,7 +136,7 @@
 	url = https://github.com/bkaradzic/bimg.git
 [submodule "vendor/nngpp"]
 	path = vendor/nngpp
-	url = https://github.com/citizenfx/nngpp.git
+	url = https://git.vmp.ir/hamidreza/nngpp.git
 [submodule "vendor/vulkan-headers"]
 	path = vendor/vulkan-headers
 	url = https://github.com/KhronosGroup/Vulkan-Headers.git
@@ -160,7 +160,7 @@
 	url = https://github.com/cameron314/concurrentqueue.git
 [submodule "vendor/xenium"]
 	path = vendor/xenium
-	url = https://github.com/citizenfx/xenium.git
+	url = https://git.vmp.ir/hamidreza/xenium.git
 [submodule "vendor/rocksdb"]
 	path = vendor/rocksdb
 	url = https://github.com/facebook/rocksdb.git
@@ -222,7 +222,7 @@
 	url = https://github.com/Thalhammer/jwt-cpp.git
 [submodule "ext/sdk/resources/sdk-root/fxcode"]
 	path = ext/sdk/resources/sdk-root/fxcode
-	url = https://github.com/citizenfx/fxcode.git
+	url = https://git.vmp.ir/hamidreza/fxcode.git
 [submodule "vendor/zstd"]
 	path = vendor/zstd
 	url = https://github.com/facebook/zstd.git
