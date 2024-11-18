@@ -91,7 +91,7 @@ struct NativeTypeInfo
 #include "NativeTypes.h"
 #elif defined(IS_RDR3) && 0 // FIXME: RDR3 uses long for some text natives?
 #include "NativeTypesRDR.h"
-#elif defined(IS_FXSERVER) && 0
+#elif defined(IS_FXSERVER)
 #include "NativeTypesServer.h"
 #endif
 }
