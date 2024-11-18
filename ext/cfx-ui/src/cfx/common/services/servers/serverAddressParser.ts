@@ -297,7 +297,7 @@ function tryParseIp(str: string): { ip: string; port: number } | null {
   return null;
 }
 
-const JOIN_LINK_DISCRIMINATOR = 'vmp.ir/j/';
+const JOIN_LINK_DISCRIMINATOR = 'cfx.re/join/';
 
 // courtesy Node.js source code
 // IPv4 Segment

@@ -183,7 +183,7 @@ void WaitForRlInit()
 				PWSTR appdataPath = nullptr;
 				SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appdataPath);
 
-				_wunlink(va(L"%s\\CitizenFX\\ros_id%s.dat", appdataPath, IsCL2() ? L"CL2" : L""));
+				_wunlink(va(L"%s\\VMP\\ros_id%s.dat", appdataPath, IsCL2() ? L"CL2" : L""));
 			}
 
 			FatalError("Took too long in WaitForRlInit\nWaiting for R* SC SDK initialization took too long. Please restart your game and try again.\n\nIf this issue reoccurs, there might be a problem with cached entitlement tickets.");

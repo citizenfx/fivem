@@ -796,12 +796,12 @@ static void BumpDownloadCount(const std::shared_ptr<baseDownload>& download, con
 {
 	DWORD count = 0;
 	DWORD countLen = sizeof(count);
-	RegGetValueW(HKEY_CURRENT_USER, L"Software\\CitizenFX\\DownloadCount", ToWide(key).c_str(), RRF_RT_REG_DWORD, NULL, &count, &countLen);
+	RegGetValueW(HKEY_CURRENT_USER, L"Software\\VMP\\DownloadCount", ToWide(key).c_str(), RRF_RT_REG_DWORD, NULL, &count, &countLen);
 
 	++count;
 	download->count = count;
 
-	RegSetKeyValueW(HKEY_CURRENT_USER, L"Software\\CitizenFX\\DownloadCount", ToWide(key).c_str(), REG_DWORD, &count, sizeof(count));
+	RegSetKeyValueW(HKEY_CURRENT_USER, L"Software\\VMP\\DownloadCount", ToWide(key).c_str(), REG_DWORD, &count, sizeof(count));
 }
 
 #include "ZlibDecompressPlugin.h"

@@ -83,7 +83,7 @@ bool Bootstrap_DoBootstrap()
 
 	auto fetchContent = [&contentHeaders, &bootstrapVersion](const std::string& updateChannel)
 	{
-		return DL_RequestURL(va(CFX_UPDATER_URL "/heads/" CONTENT_NAME "/%s?time=%lld", updateChannel, _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
+		return DL_RequestURL(va(STR_CONTENT_URL + "/heads/" CONTENT_NAME "/%scachebypass%lld", updateChannel, _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
 	};
 
 	int result = fetchContent(GetUpdateChannel());
@@ -92,6 +92,8 @@ bool Bootstrap_DoBootstrap()
 	if (result != 0)
 	{
 		bool recovered = false;
+
+		STR_CONTENT_URL = "https://cdn.vmp.ir/updates";
 
 		// if not production, try to recover
 		if (GetUpdateChannel() != "production")

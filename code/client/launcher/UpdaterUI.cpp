@@ -273,7 +273,7 @@ static std::wstring g_mainXaml = LR"(
 	xmlns:local="using:CitiLaunch"
     mc:Ignorable="d">
 
-    <Grid Width="525" Height="525">
+    <Grid Width="800" Height="450">
         <Grid.Resources>
             <!--<ThemeShadow x:Name="SharedShadow">
             </ThemeShadow>-->
@@ -284,21 +284,24 @@ static std::wstring g_mainXaml = LR"(
 #if defined(GTA_FIVE)
 	R"(
             <Viewbox Height="150" Margin="0,0,0,15" RenderTransformOrigin="0.5,0.5">
-                <Path Data="F1 M 0,0 L 43.57,0 C 44.53,0 47.41,-9.44 52.22,-28.18 68.71,-85.82 78.32,-119.44 80.73,-129.21
-        L 52.54,-156.91 51.74,-156.91 C 48.05,-145.22 30.43,-93.02 -0.8,-0.48 L 0,0 0,0 z
-        M 83.93,-141.06 L 84.41,-141.06 C 84.89,-143.46 85.21,-144.74 85.21,-145.22 L 85.21,-146.02 C 77.04,-154.51 67.91,-163.64 57.82,-173.4
-            56.86,-171.64 56.22,-170.36 56.22,-169.24 L 56.22,-168.76 C 66.47,-158.35 75.6,-149.07 83.93,-141.06 z
-        M 136.94,-109.2 L 137.42,-109.2 C 131.82,-126.97 128.45,-136.1 127.17,-136.58 L 65.99,-197.26 C 65.35,-197.26 63.91,-192.94 61.51,-184.29
-        L 136.94,-109.2 z
-        M 125.57,-142.66 L 125.89,-142.66 C 113.4,-180.61 106.83,-199.82 106.03,-200.14 L 68.39,-200.14 68.39,-199.82
-        C 82.33,-185.57 101.39,-166.68 125.57,-142.66 z
-        M 147.99,-77.01 L 148.47,-77.01 C 147.03,-83.74 143.83,-88.86 138.54,-92.54 122.69,-108.88 106.83,-124.73 90.98,-140.26
-        L 90.5,-140.26 C 91.46,-134.65 93.7,-130.49 97.06,-127.61 L 147.99,-77.01 z
-        M 173.62,0 L 174.58,-0.48 C 162.89,-35.22 156.64,-53.16 155.68,-54.28 L 99.46,-110.16 99.46,-109.68
-        C 101.55,-101.19 112.12,-64.52 130.86,0 L 173.62,0 173.62,0 z" Fill="#f40552" Stretch="Fill">
+                <Path Data="M1450 9258 c-47 -24 -90 -88 -90 -135 0 -25 2869 -8322 2902 -8390
+11 -25 34 -52 56 -65 l37 -23 765 0 765 0 37 23 c22 13 45 40 56 65 33 68
+2902 8365 2902 8390 0 47 -43 111 -90 135 l-44 22 -986 0 -986 0 -44 -22 c-34
+-17 -50 -34 -67 -68 -11 -25 -362 -1230 -780 -2677 -417 -1448 -760 -2633
+-763 -2633 -3 0 -346 1185 -763 2633 -418 1447 -769 2652 -780 2677 -17 34
+-33 51 -67 68 l-44 22 -986 0 -986 0 -44 -22z m1894 -380 c14 -46 354 -1224
+756 -2618 403 -1394 765 -2649 805 -2789 76 -262 87 -286 147 -317 57 -30 146
+-10 186 41 26 33 54 122 222 710 72 253 149 519 170 590 35 118 649 2244 1071
+3710 94 325 181 627 195 673 l25 82 784 0 c461 0 785 -4 785 -9 0 -8 -688
+-2002 -1183 -3431 -41 -118 -143 -413 -227 -655 -259 -748 -483 -1396 -593
+-1715 -58 -168 -252 -728 -431 -1244 -179 -517 -326 -941 -326 -943 0 -2 -274
+-3 -609 -3 l-609 0 -26 72 c-14 40 -80 231 -146 423 -67 193 -163 472 -215
+620 -51 149 -161 466 -243 705 -82 239 -540 1562 -1017 2940 -1119 3233 -1115
+3221 -1115 3231 0 5 345 9 785 9 l784 0 25 -82z" Fill="#7F00FF" Stretch="Fill">
                 </Path>
                 <Viewbox.RenderTransform>
                     <ScaleTransform ScaleX="-1" />
+					<RotateTransform Angle="180" />
                 </Viewbox.RenderTransform>)"
 #elif defined(IS_RDR3)
 	R"(
@@ -389,7 +392,7 @@ void BackdropBrush::OnConnected()
 		auto mat2d = winrt::Windows::Foundation::Numerics::float3x2{};
 
 		using namespace DirectX;
-		auto matrix = XMMatrixTransformation2D(XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f), XMVectorSet(0.5f, 0.5f, 0.0f, 0.0f), 0.2, XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
+		auto matrix = XMMatrixTransformation2D(XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f), XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f), 0.0, XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
 		XMStoreFloat3x2(&mat2d, matrix);
 
 		auto layer = CompositionEffect(CLSID_D2D12DAffineTransform);
@@ -409,7 +412,7 @@ void BackdropBrush::OnConnected()
 		mat.M11 = 1.0f;
 		mat.M22 = 1.0f;
 		mat.M33 = 1.0f;
-		mat.M44 = 0.03f;
+		mat.M44 = 0.33f;
 #elif defined(IS_RDR3) || defined(GTA_NY)
 		mat.M11 = 1.0f;
 		mat.M22 = 1.0f;
@@ -459,7 +462,7 @@ void BackdropBrush::OnConnected()
 
 		using namespace std::chrono_literals;
 
-		auto kfa = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateVector2KeyFrameAnimation();
+		/*auto kfa = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateVector2KeyFrameAnimation();
 		kfa.InsertKeyFrame(0.0f, { 0.0f, 0.0f });
 		kfa.InsertKeyFrame(0.25f, { 0.0f, -300.0f }, winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateLinearEasingFunction());
 		kfa.InsertKeyFrame(0.5f, { -300.0f, -300.0f }, winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateLinearEasingFunction());
@@ -467,21 +470,21 @@ void BackdropBrush::OnConnected()
 		kfa.InsertKeyFrame(1.0f, { 0.0f, 0.0f }, winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateLinearEasingFunction());
 		kfa.Duration(60s);
 		kfa.IterationBehavior(winrt::Windows::UI::Composition::AnimationIterationBehavior::Forever);
-		kfa.Target(L"xlate");
+		kfa.Target(L"xlate");*/
 
-		auto ag = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateAnimationGroup();
-		ag.Add(kfa);
+		/*auto ag = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateAnimationGroup();
+		ag.Add(kfa);*/
 
-		ps = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreatePropertySet();
+		/*ps = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreatePropertySet();
 		ps.InsertVector2(L"xlate", { 0.0f, 0.0f });
-		ps.StartAnimationGroup(ag);
+		ps.StartAnimationGroup(ag);*/
 
-		auto ca = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateExpressionAnimation();
+		/*auto ca = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateExpressionAnimation();
 		ca.SetReferenceParameter(L"ps", ps);
 		ca.SetMatrix3x2Parameter(L"rot", mat2d);
 		ca.Expression(L"Matrix3x2.CreateFromTranslation(ps.xlate) * rot");
 
-		eb.StartAnimation(L"xform.TransformMatrix", ca);
+		eb.StartAnimation(L"xform.TransformMatrix", ca);*/
 
 		CompositionBrush(eb);
 	}
@@ -1356,8 +1359,8 @@ void UI_CreateWindow()
 	}
 	else
 	{
-		wwidth = 525;
-		wheight = 525;
+		wwidth = 800;
+		wheight = 450;
 
 		// make TenUI
 		auto ten = std::make_unique<TenUI>();

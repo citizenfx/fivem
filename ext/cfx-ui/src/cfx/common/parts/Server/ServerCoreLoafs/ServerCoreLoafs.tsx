@@ -145,7 +145,7 @@ export const ServerCoreLoafs = observer(function ServerCoreLoafs(props: ServerCo
   }
 
   if (!hideActions && server.joinId && !server.private) {
-    nodes.push(<Copier key="copy-join-id" text={`vmp.ir/j/${server.joinId}`} />);
+    nodes.push(<Copier key="copy-join-id" text={`cfx.re/join/${server.joinId}`} />);
 
     nodes.push(<ServerBoostButton key="boost-button" server={server} />);
   }

@@ -76,7 +76,7 @@ static void WriteArchetypesFile()
 	PWSTR appDataPath;
 	HRESULT hr = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &appDataPath);
 
-	std::string archetypesFilePath = ToNarrow(appDataPath) + "\\citizenfx\\archetypes.json";
+	std::string archetypesFilePath = ToNarrow(appDataPath) + "\\vmp\\archetypes.json";
 
 	CoTaskMemFree(appDataPath);
 

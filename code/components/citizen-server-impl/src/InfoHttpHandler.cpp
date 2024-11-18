@@ -55,7 +55,7 @@ struct InfoHttpHandlerComponentLocals : fwRefCountable
 		ConVar<int>* ivVar;
 
 		InfoData(ServerInstanceBase* instance, ConVar<int>* ivVar)
-			: infoHash(0), infoJson({ { "server", "VMPServer-" GIT_DESCRIPTION }, { "enhancedHostSupport", true }, { "resources", {} } , { "authVersion", 3 }}), m_instance(instance), ivVar(ivVar)
+			: infoHash(0), infoJson({ { "server", "VMPServer-" GIT_DESCRIPTION }, { "enhancedHostSupport", true }, { "resources", {} } , { "authVersion", 2 }}), m_instance(instance), ivVar(ivVar)
 		{
 			Update();
 		}

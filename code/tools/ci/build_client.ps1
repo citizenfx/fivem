@@ -49,7 +49,7 @@ try {
         Invoke-RunPrebuild -Context $ctx
     }.GetNewClosure()
 
-    # Invoke-CfxSetupPrivate -Context $ctx -Versions $versions
+    Invoke-CfxSetupPrivate -Context $ctx -Versions $versions
 
     Invoke-LogSection "Running premake" {
         Invoke-RunPremake -Context $ctx -Tools $tools

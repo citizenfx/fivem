@@ -361,7 +361,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
        * }
        *
        */
-      const json = await fetcher.json('https://api.vmp.ir/pins.json');
+      const json = await fetcher.json('https://runtime.fivem.net/pins.json');
 
       const config: IPinnedServersConfig = {
         pinnedServers: [],

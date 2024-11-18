@@ -502,10 +502,10 @@ CefSize SDKWindowDelegate::GetMinimumSize(CefRefPtr<CefView> view)
 void SDKWindowDelegate::LoadPlacement(CefRefPtr<CefWindow> window)
 {
 	DWORD dataSize = 0;
-	if (RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", placementRegistryKey.c_str(), RRF_RT_REG_BINARY, NULL, NULL, &dataSize) == ERROR_SUCCESS)
+	if (RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\VMP\\FxDK", placementRegistryKey.c_str(), RRF_RT_REG_BINARY, NULL, NULL, &dataSize) == ERROR_SUCCESS)
 	{
 		std::vector<uint8_t> data(dataSize);
-		if (RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", placementRegistryKey.c_str(), RRF_RT_REG_BINARY, NULL, data.data(), &dataSize) == ERROR_SUCCESS)
+		if (RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\VMP\\FxDK", placementRegistryKey.c_str(), RRF_RT_REG_BINARY, NULL, data.data(), &dataSize) == ERROR_SUCCESS)
 		{
 			SetWindowPlacement(window->GetWindowHandle(), (const WINDOWPLACEMENT*)data.data());
 		}
@@ -519,7 +519,7 @@ void SDKWindowDelegate::SavePlacement(CefRefPtr<CefWindow> window)
 
 	if (GetWindowPlacement(window->GetWindowHandle(), &wndpl))
 	{
-		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", placementRegistryKey.c_str(), REG_BINARY, &wndpl, sizeof(wndpl));
+		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\VMP\\FxDK", placementRegistryKey.c_str(), REG_BINARY, &wndpl, sizeof(wndpl));
 	}
 }
 

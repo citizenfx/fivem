@@ -11,6 +11,8 @@
 #define CFX_UPDATER_URL "https://vmp.724548.ir.cdn.ir/updates"
 #endif
 
+inline std::string STR_CONTENT_URL = CFX_UPDATER_URL;
+
 #if defined(GTA_NY)
 #define PRODUCT_NAME L"LibertyM"
 #define CONTENT_NAME "libertym"

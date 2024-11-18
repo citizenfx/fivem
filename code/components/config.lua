@@ -31,7 +31,7 @@ if _OPTIONS['game'] == 'server' then
 	component 'vfs-impl-server'
 else
 	component 'citizen-devtools'
-	component 'sticky'
+	-- component 'sticky'
 	component 'steam'
 
 	if _OPTIONS["game"] ~= 'ny' then
@@ -84,7 +84,7 @@ component 'rage-graphics-five'
 component 'rage-scripting-five'
 component 'rage-scripting-rdr3'
 component 'lovely-script'
-component 'ros-patches-five'
+-- component 'ros-patches-five'
 component 'ros-patches-rdr3'
 
 component 'gta-net-five'
