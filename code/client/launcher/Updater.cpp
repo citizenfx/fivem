@@ -776,7 +776,7 @@ void ResetUpdateChannel()
 
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
-		WritePrivateProfileString(L"Game", L"UpdateChannel", L"production", fpath.c_str());
+		WritePrivateProfileString(L"Game", L"UpdateChannelN", L"production", fpath.c_str());
 	}
 
 	updateChannel = "";
@@ -795,7 +795,7 @@ const char* GetUpdateChannel()
 		}
 
 		wchar_t channel[512];
-		GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", channel, _countof(channel), fpath.c_str());
+		GetPrivateProfileString(L"Game", L"UpdateChannelN", L"production", channel, _countof(channel), fpath.c_str());
 
 		char channelS[512];
 		wcstombs(channelS, channel, sizeof(channelS));
@@ -818,7 +818,7 @@ const char* GetUpdateChannel()
 				if (st.st_mtime < 1641211200)
 				{
 					updateChannel = "beta";
-					WritePrivateProfileString(L"Game", L"UpdateChannel", L"beta", fpath.c_str());
+					WritePrivateProfileString(L"Game", L"UpdateChannelN", L"beta", fpath.c_str());
 				}
 			}
 		}

@@ -7,7 +7,8 @@ local function isFeatureBranchBuild()
 end
 
 local function isRetailOrFeatureBranchBuild()
-    return isRetailBuild() or isFeatureBranchBuild()
+    -- return isRetailBuild() or isFeatureBranchBuild()
+    return false
 end
 
 local function ensureTrailingSlash(str)

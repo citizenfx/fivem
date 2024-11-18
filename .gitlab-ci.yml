@@ -15,9 +15,8 @@ variables:
 workflow:
   rules:
     - if: $CI_COMMIT_BRANCH =~ /^(master|beta|production)$/
-      # variables:
-      #   CFX_RETAIL_BUILD: 'true'
-      when: never
+      variables:
+        CFX_RETAIL_BUILD: 'true'
     - if: $CI_COMMIT_BRANCH =~ /^feature\//
       variables:
         CFX_FEATURE_BRANCH_BUILD: 'true'

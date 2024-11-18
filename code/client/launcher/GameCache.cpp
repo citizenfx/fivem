@@ -2263,12 +2263,12 @@ std::map<std::string, std::string> UpdateGameCache()
 
 	if (IsTargetGameBuildOrGreater<2944>())
 	{
-		g_requiredEntries.push_back({ "update/x64/dlcpacks/mp2023_01/dlc.rpf", "11519d20c34a5f34d06252078b41e28275dbc67b", "nope:https://vmp.724548.ir.cdn.ir/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 809424896 });
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mp2023_01/dlc.rpf", "11519d20c34a5f34d06252078b41e28275dbc67b", "https://vmp.724548.ir.cdn.ir/patches/dlcpacks/mp2023_01/dlc.rpf", 809424896 });
 	}
 
 	if (IsTargetGameBuildOrGreater<3095>())
 	{
-		g_requiredEntries.push_back({ "update/x64/dlcpacks/mp2023_02/dlc.rpf", "22afecbf20f46f1a871f442b2822b120bb41fbbf", "nope:https://vmp.724548.ir.cdn.ir/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1604741120 });
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mp2023_02/dlc.rpf", "22afecbf20f46f1a871f442b2822b120bb41fbbf", "https://vmp.724548.ir.cdn.ir/patches/dlcpacks/mp2023_02/dlc.rpf", 1604741120 });
 	}
 #elif IS_RDR3
 	for (auto [_, entry]: g_entriesToLoadPerBuild[GetTargetGameBuild()])
