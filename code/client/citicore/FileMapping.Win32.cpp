@@ -665,17 +665,17 @@ LONG WINAPI RegOpenKeyExWStub(HKEY key, const wchar_t* subKey, DWORD options, RE
 {
 	if (subKey && wcsstr(subKey, L"Rockstar Games Social Club"))
 	{
-		//LONG status = RegCreateKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", 0, nullptr, 0, KEY_READ, nullptr, outKey, nullptr);
+		//LONG status = RegCreateKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\VMP\\Social Club", 0, nullptr, 0, KEY_READ, nullptr, outKey, nullptr);
 		auto setValue = [&] (const wchar_t* name, const wchar_t* keyString)
 		{
-			RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", name, REG_SZ, keyString, (wcslen(keyString) * 2) + 2);
+			RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\VMP\\Social Club", name, REG_SZ, keyString, (wcslen(keyString) * 2) + 2);
 		};
 
 		setValue(L"InstallFolder", MakeRelativeCitPath(L"data\\game-storage\\ros_1241").c_str());
 		setValue(L"InstallLang", L"1033");
 		setValue(L"Version", L"1.2.4.1");
 
-        LONG status = g_origRegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", 0, KEY_READ, outKey);
+        LONG status = g_origRegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\VMP\\Social Club", 0, KEY_READ, outKey);
 
 		return status;
 	}

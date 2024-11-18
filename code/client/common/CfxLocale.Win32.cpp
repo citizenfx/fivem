@@ -29,7 +29,7 @@ public:
 	virtual void SetLocale(const std::string& locale) override
 	{
 		auto wPath = ToWide(locale);
-		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX", L"Global Locale", REG_SZ, wPath.c_str(), (wPath.size() * 2) + 2);
+		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\VMP", L"Global Locale", REG_SZ, wPath.c_str(), (wPath.size() * 2) + 2);
 
 		LoadLocale(locale);
 	}
@@ -39,7 +39,7 @@ private:
 	{
 		wchar_t regPath[32] = { 0 };
 		DWORD size = sizeof(regPath);
-		RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX", L"Global Locale", RRF_RT_REG_SZ, NULL, regPath, &size);
+		RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\VMP", L"Global Locale", RRF_RT_REG_SZ, NULL, regPath, &size);
 
 		LoadLocale(ToNarrow(regPath));
 	}

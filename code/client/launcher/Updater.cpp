@@ -35,7 +35,7 @@ struct cache_t
 
 std::string GetObjectURL(std::string_view objectHash, std::string_view suffix = "")
 {
-	auto url = fmt::sprintf("%s/%s/%s/%s%s", CFX_UPDATER_URL, objectHash.substr(0, 2), objectHash.substr(2, 2), objectHash, suffix);
+	auto url = fmt::sprintf("%s/%s/%s/%s%s", STR_CONTENT_URL, objectHash.substr(0, 2), objectHash.substr(2, 2), objectHash, suffix);
 	boost::algorithm::to_lower(url);
 
 	return url;
@@ -271,7 +271,7 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 		char bootstrapVersion[256];
 
 		auto contentHeaders = std::make_shared<HttpHeaderList>();
-		int result = DL_RequestURL(va(CFX_UPDATER_URL "/heads/%s/%s?time=%lld", cacheName, GetUpdateChannel(), _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
+		int result = DL_RequestURL(va(STR_CONTENT_URL + "/heads/%s/%scachebypass%lld", cacheName, GetUpdateChannel(), _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
 
 		if (result != 0 && !success)
 		{
@@ -772,7 +772,7 @@ static std::string updateChannel;
 
 void ResetUpdateChannel()
 {
-	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
 
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
@@ -786,7 +786,7 @@ const char* GetUpdateChannel()
 {
 	if (!updateChannel.size())
 	{
-		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+		std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
 
 		if (GetFileAttributes(fpath.c_str()) == INVALID_FILE_ATTRIBUTES)
 		{

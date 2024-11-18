@@ -12,6 +12,8 @@
 
 #include "CoreConsole.h"
 
+#include <PureModeState.h>
+
 #pragma comment(lib, "version.lib")
 
 bool IsValidGraphicsLibrary(const std::wstring& path)
@@ -74,7 +76,7 @@ bool IsValidGraphicsLibrary(const std::wstring& path)
 						// as is ReShade v5+ because of an unknown crash (unless setting an override)
 						else if (fixedInfo->dwProductVersionMS >= 0x50000)
 						{
-							std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+							std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
 
 							bool disableReShade5 = true;
 							const char* computername = getenv("COMPUTERNAME");
@@ -250,5 +252,8 @@ void ScanForReshades()
 
 static HookFunction hookFunction([]()
 {
-	ScanForReshades();
+	if (fx::client::GetPureLevel() == 0)
+	{
+		ScanForReshades();
+	}
 });

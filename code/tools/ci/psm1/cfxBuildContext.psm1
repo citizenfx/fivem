@@ -33,6 +33,9 @@ class CfxBuildContext {
     [string] $PrivateRoot = ""
     [string] $PrivateUri = ""
 
+    [string] $UIRoot = ""
+    [string] $UIUri = ""
+
     [string] $ToolkitRoot = ""
     [string] $ToolkitUri = ""
 
@@ -132,6 +135,8 @@ function Get-CfxBuildContext {
     if ($env:FIVEM_PRIVATE_URI) {
         $ctx.PrivateRoot = $ctx.getPathInBuildCache("fivem-private")
         $ctx.PrivateUri = $env:FIVEM_PRIVATE_URI
+        $ctx.UIRoot = $ctx.getPathInBuildCache("ui-private")
+        $ctx.UIUri = $env:VMP_UI_URI
     }
     elseif ($ctx.IsPublicBuild) {
         throw "Public build requires FIVEM_PRIVATE_URI env var to be defined"

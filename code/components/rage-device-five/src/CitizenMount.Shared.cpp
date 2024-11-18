@@ -274,7 +274,7 @@ static InitFunction initFunction([]()
 			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
 			{
 				// create the directory if not existent
-				std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+				std::wstring cfxPath = std::wstring(appDataPath) + L"\\VMP";
 				CreateDirectory(cfxPath.c_str(), nullptr);
 
 				std::wstring profilePath = cfxPath + L"\\";

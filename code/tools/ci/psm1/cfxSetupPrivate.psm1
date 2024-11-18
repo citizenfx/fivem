@@ -1,6 +1,7 @@
 using module .\cfxBuildContext.psm1
 using module .\cfxBuildTools.psm1
 using module .\cfxVersions.psm1
+using module .\uiReplace.psm1
 
 function Invoke-CfxSetupPrivate {
     param(
@@ -61,6 +62,12 @@ function Invoke-CfxSetupPrivate {
             $relativePathToPrivateFromCode = (Resolve-Path -Relative $Context.PrivateRoot) -replace '\\','/'
 
             "private_repo '$relativePathToPrivateFromCode/'" | Out-File -Encoding ascii privates_config.lua
+        Pop-Location
+
+        Invoke-UI -Context $Context -Versions $Versions
+
+        Push-Location $Context.CodeRoot
+            Copy-Item -Path "$($Context.PrivateRoot)\InitConnectMethod.cpp" -Destination "$($Context.CodeRoot)\components\citizen-server-impl\src\InitConnectMethod.cpp" -Force
         Pop-Location
     }.GetNewClosure()
 }

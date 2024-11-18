@@ -281,7 +281,7 @@ static void add_crashometry(json& data)
 
 static auto GetMinidumpGamePath() -> std::wstring
 {
-	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
 
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
@@ -411,7 +411,7 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 	if (blame)
 	{
 		static std::wstring errTitle = fmt::sprintf(L"%s encountered an error", blame);
-		static std::wstring errDescription = fmt::sprintf(L"FiveM crashed due to %s.\n%s", blame, blame_two);
+		static std::wstring errDescription = fmt::sprintf(L"VMP crashed due to %s.\n%s", blame, blame_two);
 
 		config->pszMainInstruction = errTitle.c_str();
 		config->pszContent = errDescription.c_str();
@@ -482,7 +482,7 @@ static std::wstring UnblameCrash(const std::wstring& hash)
 
 	if (hash.find(L"GTAProcess") != std::string::npos ||
 		hash.find(L"GameProcess") != std::string::npos ||
-		_wcsnicmp(hash.c_str(), L"fivem.exe+", 10) == 0 ||
+		_wcsnicmp(hash.c_str(), L"vmp.exe+", 10) == 0 ||
 		_wcsnicmp(hash.c_str(), L"redm.exe+", 9) == 0)
 	{
 		auto baseGame = std::wstring_view{ GAME_EXECUTABLE };
@@ -519,7 +519,7 @@ std::string GetOwnershipPath()
 {
 	PWSTR appDataPath;
 	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &appDataPath))) {
-		std::string cfxPath = ToNarrow(appDataPath) + "\\DigitalEntitlements";
+		std::string cfxPath = ToNarrow(appDataPath) + "\\VMPEntitlements";
 		CreateDirectory(ToWide(cfxPath).c_str(), nullptr);
 
 		CoTaskMemFree(appDataPath);
@@ -942,7 +942,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 													if (wcsstr(filename, L".exe") != nullptr)
 													{
 #ifdef GTA_FIVE
-														wcscpy(filename, L"\\FiveM.exe");
+														wcscpy(filename, L"\\VMP.exe");
 #elif defined(IS_RDR3)
 														wcscpy(filename, L"\\RedM.exe");
 #else
@@ -1346,7 +1346,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 						if (!cd.empty())
 						{
-							mainInstruction = gettext(L"FiveM crashed... but we're on it!");
+							mainInstruction = gettext(L"VMP crashed... but we're on it!");
 							cd += "\n\n";
 						}
 
@@ -1622,7 +1622,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 					}
 				}
 
-				std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+				std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
 
 				bool uploadCrashes = true;
 				bool bigMemoryDump = false;

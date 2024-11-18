@@ -236,7 +236,7 @@ function CheatsheetModal(props: CheatsheetModalProps) {
                 <TextBlock size="small" opacity="50">
                   Server address is the last part in join URL:{' '}
                   <kbd>
-                    vmp.ir/j/<strong>moonsc</strong>
+                    cfx.re/join/<strong>moonsc</strong>
                   </kbd>
                 </TextBlock>
               </Flex>

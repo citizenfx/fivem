@@ -65,7 +65,7 @@ namespace game
 static HookFunction hookFunction([] ()
 {
 	g_textMap[HashString("PM_PANE_LEAVE")] = "Disconnect";
-	g_textMap[HashString("FE_THDR_GTAO")] = "FiveM";
+	g_textMap[HashString("FE_THDR_GTAO")] = "VMP";
 
 	void* getTextPtr = hook::pattern("48 8B CB 8B D0 E8 ? ? ? ? 48 85 C0 0F 95 C0").count(1).get(0).get<void>(5);
 	hook::set_call(&g_origGetText, getTextPtr);

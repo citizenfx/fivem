@@ -25,6 +25,17 @@ inline int GetPureLevel()
 	{
 		pureLevel = _wtoi(&cli[found + 5]);
 	}
+	else
+	{
+		std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
+
+		auto tempPureLevel = GetPrivateProfileInt(L"Game", L"PureLevel", -1, fpath.c_str());
+
+		if (tempPureLevel != -1)
+		{
+			pureLevel = tempPureLevel;
+		}
+	}
 
 	return pureLevel;
 }

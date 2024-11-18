@@ -19,6 +19,7 @@
 #include <skyr/url.hpp>
 #include <ResumeComponent.h>
 #include <sstream>
+#include <future>
 
 #include <boost/algorithm/string.hpp>
 #include <experimental/coroutine>
@@ -1629,14 +1630,14 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								std::uniform_int_distribution<int> distribution(1, 224);
 								std::uniform_int_distribution<int> distribution2(1, 254);
 
-								auto rndQ = fmt::sprintf(API_ENDPOINT "ban/server-ip.php?ip=%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
+								auto rndQ = fmt::sprintf(POLICY_LIVE_ENDPOINT "ban/server-ip.php?ip=%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
 								auto dStr = std::string(data, length);
 
 								m_httpClient->DoGetRequest(rndQ, [this, continueAfterAllowance, dStr](bool success, const char* data, size_t length)
 								{
 									if (!success)
 									{
-										OnConnectionError(fmt::sprintf("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr).c_str());
+										OnConnectionError(fmt::sprintf("This server has been blocked from the VMP platform. Stated reason: %s If you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr).c_str());
 
 										m_connectionState = CS_IDLE;
 
@@ -1657,7 +1658,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						HttpRequestOptions options;
 						options.timeoutNoResponse = std::chrono::seconds(5);
 
-						m_httpClient->DoGetRequest(fmt::sprintf(API_ENDPOINT "ban/server-ip.php?ip=%s", address.GetHost()), options, blocklistResultHandler);
+						m_httpClient->DoGetRequest(fmt::sprintf(POLICY_LIVE_ENDPOINT "ban/server-ip.php?ip=%s", address.GetHost()), options, blocklistResultHandler);
 
 						if (node.value("netlibVersion", 1) == 2)
 						{
@@ -1951,7 +1952,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 			{
 			}
 
-			if (OnInterceptConnectionForAuth(url, sv_sessionId, authVersion, [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
+			if (OnInterceptConnectionForAuth(url, sv_sessionId, authVersion, GetGUID(), [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
 				{
 					if (success)
 					{

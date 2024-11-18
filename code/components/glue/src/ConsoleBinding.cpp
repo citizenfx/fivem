@@ -13,7 +13,7 @@
 #if defined(IS_RDR3)
 #define CONFIG_NAME "redm"
 #elif defined(GTA_FIVE)
-#define CONFIG_NAME "fivem"
+#define CONFIG_NAME "vmp"
 #elif defined (GTA_NY)
 #define CONFIG_NAME "citizeniv"
 #endif
@@ -106,7 +106,7 @@ static InitFunction initFunction([]()
 			}
 
 			// create the directory if not existent
-			std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+			std::wstring cfxPath = std::wstring(appDataPath) + L"\\VMP";
 			CreateDirectory(cfxPath.c_str(), nullptr);
 
 			std::wstring profilePath = cfxPath + L"\\" + ToWide(path);

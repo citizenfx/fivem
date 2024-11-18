@@ -4,7 +4,7 @@
 stages:
   - build
   - deploy
-  - postdeploy
+  # - postdeploy
 
 variables:
   # Dry run is for builds-only mode, no uploading/deploying/notifying, helpful when experimenting with pipelines
@@ -110,15 +110,15 @@ build_client:
     - windows
     - vs2022
 
-build_client_rdr3:
-  extends: [.base_build_client]
-  variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT
-    CFX_PRODUCT_NAME: redm
-  tags:
-    - release_redm
-    - windows
-    - vs2022
+# build_client_rdr3:
+#   extends: [.base_build_client]
+#   variables:
+#     GIT_CLONE_PATH: $CFX_CLONE_ROOT
+#     CFX_PRODUCT_NAME: redm
+#   tags:
+#     - release_redm
+#     - windows
+#     - vs2022
 
 # build_sdk:
 #   stage: build
@@ -208,14 +208,14 @@ build_server_windows:
     - job: build_client
       artifacts: true
 
-.base_redm_deploy:
-  extends: [.base_deploy_client]
-  variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT
-    CFX_PRODUCT_NAME: redm
-  needs:
-    - job: build_client_rdr3
-      artifacts: true
+# .base_redm_deploy:
+#   extends: [.base_deploy_client]
+#   variables:
+#     GIT_CLONE_PATH: $CFX_CLONE_ROOT
+#     CFX_PRODUCT_NAME: redm
+#   needs:
+#     - job: build_client_rdr3
+#       artifacts: true
 
 # FiveM deployments
 fivem_deploy_canary:
@@ -256,42 +256,42 @@ fivem_deploy_specific:
     - when: never
 
 # RedM deployments
-redm_deploy_canary:
-  extends: [.base_redm_deploy]
-  environment:
-    name: canary
-  rules:
-    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
-      when: on_success
-    - when: never
+# redm_deploy_canary:
+#   extends: [.base_redm_deploy]
+#   environment:
+#     name: canary
+#   rules:
+#     - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
+#       when: on_success
+#     - when: never
 
-redm_deploy_beta:
-  extends: [.base_redm_deploy]
-  environment:
-    name: beta
-  rules:
-    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
-      when: on_success
-    - when: never
+# redm_deploy_beta:
+#   extends: [.base_redm_deploy]
+#   environment:
+#     name: beta
+#   rules:
+#     - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
+#       when: on_success
+#     - when: never
 
-redm_deploy_production:
-  extends: [.base_redm_deploy]
-  environment:
-    name: production
-  rules:
-    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
-      when: on_success
-    - when: never
+# redm_deploy_production:
+#   extends: [.base_redm_deploy]
+#   environment:
+#     name: production
+#   rules:
+#     - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
+#       when: on_success
+#     - when: never
 
-redm_deploy_specific:
-  extends: [.base_redm_deploy]
-  environment:
-    name: specific/$CI_COMMIT_BRANCH
-  rules:
-    - if: $CFX_RETAIL_BUILD == 'false' && $CI_COMMIT_BRANCH
-      when: manual
-      allow_failure: true
-    - when: never
+# redm_deploy_specific:
+#   extends: [.base_redm_deploy]
+#   environment:
+#     name: specific/$CI_COMMIT_BRANCH
+#   rules:
+#     - if: $CFX_RETAIL_BUILD == 'false' && $CI_COMMIT_BRANCH
+#       when: manual
+#       allow_failure: true
+#     - when: never
 
 # -------------------
 # -- ScRT PACKAGES --

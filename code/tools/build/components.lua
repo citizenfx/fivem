@@ -167,7 +167,11 @@ add_dependencies = function(list)
 		end
 		
 		if not data.vendor then
-			includedirs { 'components/' .. dep .. '/include/' }
+			if dep:match('stronghold') or dep:match('ros%-patches') or dep:match('sticky') then
+				includedirs { data.absPath .. '/include/' }
+			else
+				includedirs { 'components/' .. dep .. '/include/' }
+			end
 		end
 
 		if data.vendor and data.vendor.include then
@@ -310,7 +314,11 @@ local do_component = function(name, comp)
 				data.vendor.include()
 			end
 		else
-			includedirs { 'components/' .. dep .. '/include/' }
+			if dep:match('stronghold') or dep:match('ros%-patches') or dep:match('sticky') then
+				includedirs { data.absPath .. '/include/' }
+			else
+				includedirs { 'components/' .. dep .. '/include/' }
+			end
 		end
 	end
 

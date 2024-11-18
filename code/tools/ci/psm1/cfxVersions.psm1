@@ -28,7 +28,7 @@ function Get-CfxVersions {
     $versions = [CfxVersions]::new()
 
     if ($env:CI_PIPELINE_IID) {
-        $versions.BuildID = $env:CI_PIPELINE_IID + 100000
+        $versions.BuildID = 100000 + [int]$env:CI_PIPELINE_IID
     }
 
     Push-Location $Context.ProjectRoot

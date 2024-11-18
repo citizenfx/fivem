@@ -23,7 +23,7 @@ namespace fx
 #ifndef IS_FXSERVER
 	void PoolSizeManager::FetchIncreaseRequest()
 	{
-		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+		std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
 		if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
 			wchar_t requestRaw[2048];

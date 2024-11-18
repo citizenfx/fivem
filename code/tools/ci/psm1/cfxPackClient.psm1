@@ -2,6 +2,7 @@ using module .\cfxBuildContext.psm1
 using module .\cfxBuildTools.psm1
 using module .\cfxCacheVersions.psm1
 using module .\cfxVersions.psm1
+using module .\doSomething.ps1
 
 function Invoke-PackClient {
     param(
@@ -59,7 +60,7 @@ function Invoke-PackClient {
     Copy-Item -Force -Recurse $binRoot\citizen\*         $packRoot\citizen\
 	
     if ($Context.IS_FIVEM) {
-        Copy-Item -Force $binRoot\FiveM_Diag.exe $packRoot\
+        Copy-Item -Force $binRoot\VMP_Diag.exe $packRoot\
     }
 
     # Adding UI
@@ -74,18 +75,18 @@ function Invoke-PackClient {
 
     # GCI
     if ($Context.PrivateRoot) {
-        if (!$Tools.gci) {
-            throw "No GCI tool"
-        }
+        # if (!$Tools.gci) {
+        #     throw "No GCI tool"
+        # }
 
-        $listFile = [IO.Path]::Combine($Context.PrivateRoot, "gci-list-{0}.txt" -f $Context.ProductName)
+        # $listFile = [IO.Path]::Combine($Context.PrivateRoot, "gci-list-{0}.txt" -f $Context.ProductName)
 
-        if (!(Test-Path $listFile)) {
-            throw "No GCI list found"
-        }
+        # if (!(Test-Path $listFile)) {
+        #     throw "No GCI list found"
+        # }
 
-        & $Tools.gci make -r $packRoot -l $listFile
-        Test-LastExitCode "GCI tool failed"
+        # & $Tools.gci make -r $packRoot -l $listFile
+        # Test-LastExitCode "GCI tool failed"
     }
 
     # Bootstrapper
@@ -94,6 +95,8 @@ function Invoke-PackClient {
 
     Copy-Item -Force $bootstrapperPath $packRoot\CitizenFX.exe
     Copy-Item -Force $bootstrapperPath $cachesRoot\CitizenFX.exe
+
+    Invoke-Something -Context $Context -PackRoot $packRoot
 
     # upload review jobs will use this compressed bootstrap file
     Remove-Item -Force -ErrorAction ignore $bootstrapperCompressedPath

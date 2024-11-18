@@ -52,7 +52,7 @@ rmdir /s /q %SRRoot%\chat\
 
 rmdir /s /q resources\chat\node_modules\
 
-xcopy /y /e resources\chat\ %SRRoot%\chat\ || goto :error
+xcopy /y /e resources\chat %SRRoot%\chat\ || goto :error
 del %SRRoot%\chat\yarn.lock
 del %SRRoot%\chat\package.json
 
