@@ -31,7 +31,7 @@ try {
 
     $ctx.startBuild()
 
-    Invoke-CfxSetupBuildToolkit -Context $ctx
+    # Invoke-CfxSetupBuildToolkit -Context $ctx
 
     Invoke-LogSection "Visual Studio Environment Setup" {
         Invoke-CfxSetupVS -Context $ctx -Tools $tools

@@ -1023,7 +1023,7 @@ static InitFunction initFunction([] ()
 	wchar_t resultPath[1024];
 
 	static std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
-	GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+	GetPrivateProfileString(L"Game", L"UpdateChannelN", L"production", resultPath, std::size(resultPath), fpath.c_str());
 
 	curChannel = ToNarrow(resultPath);
 
@@ -1037,7 +1037,7 @@ static InitFunction initFunction([] ()
 		{
 			curChannel = convar->GetValue();
 
-			WritePrivateProfileString(L"Game", L"UpdateChannel", ToWide(curChannel).c_str(), fpath.c_str());
+			WritePrivateProfileString(L"Game", L"UpdateChannelN", ToWide(curChannel).c_str(), fpath.c_str());
 
 			rapidjson::Document document;
 			document.SetString("Restart the game to apply the update channel change.", document.GetAllocator());

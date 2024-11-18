@@ -286,7 +286,7 @@ static std::wstring GetUpdateChannel()
 	wchar_t resultPath[1024];
 
 	static std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
-	GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+	GetPrivateProfileString(L"Game", L"UpdateChannelN", L"production", resultPath, std::size(resultPath), fpath.c_str());
 
 	return resultPath;
 }

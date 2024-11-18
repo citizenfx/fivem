@@ -148,7 +148,7 @@ function Get-CfxBuildContext {
         $ctx.ToolkitUri = $env:CFX_BUILD_TOOLKIT_URI
     }
     elseif ($ctx.IsPublicBuild) {
-        throw "Public build requires CFX_BUILD_TOOLKIT_URI env var to be defined"
+        # throw "Public build requires CFX_BUILD_TOOLKIT_URI env var to be defined"
     }
 
     $premakeDirSubpath = ""
