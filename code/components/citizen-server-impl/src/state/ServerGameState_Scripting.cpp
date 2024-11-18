@@ -484,6 +484,11 @@ static void Init()
 		return (int)GetEntityType(entity);
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_TYPE_RAW", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		return entity->type;
+	}, -1));
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_ROUTING_BUCKET_POPULATION_ENABLED", [](fx::ScriptContext& context)
 	{
 		int bucket = context.GetArgument<int>(0);
