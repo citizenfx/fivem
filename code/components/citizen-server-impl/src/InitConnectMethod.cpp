@@ -427,7 +427,9 @@ static InitFunction initFunction([]()
 			auto validationError = fx::PoolSizeManager::Validate(poolName, sizeIncrease);
 			if (validationError.has_value())
 			{
-				trace("Requested pool size increase is invalid: %s\n", validationError.value());
+				console::PrintWarning(
+					_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
+					fmt::sprintf("Requested pool size increase is invalid: %s\n.", validationError.value()));
 				return;
 			}
 
