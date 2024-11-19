@@ -3,6 +3,8 @@
 #include <HostSharedData.h>
 #include <CfxState.h>
 
+#include <shellapi.h>
+
 namespace fx
 {
 namespace client
@@ -20,10 +22,17 @@ inline int GetPureLevel()
 	std::wstring_view cli = (sharedData->initCommandLine[0]) ? sharedData->initCommandLine : GetCommandLineW();
 	pureLevel = 0;
 
-	size_t found = cli.find(L"pure_");
-	if (found != std::wstring_view::npos)
+	int argc;
+	wchar_t** wargv = CommandLineToArgvW(cli.data(), &argc);
+	for (int i = 1; i < argc; i++)
 	{
-		pureLevel = _wtoi(&cli[found + 5]);
+		std::wstring_view arg = wargv[i];
+		size_t found = arg.find(L"pure_");
+		if (found != std::wstring_view::npos)
+		{
+			pureLevel = _wtoi(&arg[found + 5]);
+			break;
+		}
 	}
 
 	return pureLevel;
