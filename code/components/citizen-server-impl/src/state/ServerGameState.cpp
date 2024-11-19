@@ -3271,6 +3271,20 @@ auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const st
 		m_entitiesById[id] = entity;
 	}
 
+	const auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+
+	/*NETEV serverEntityCreated SERVER
+	/#*
+	 * A server-side event that is triggered when an entity has been created by a server-side script.
+	 *
+	 * Unlike "entityCreated" the newly created entity may not yet have an assigned network owner.
+	 *
+	 * @param entity - The created entity handle.
+	 #/
+	declare function serverEntityCreated(handle: number): void;
+	*/
+	evComponent->QueueEvent2("serverEntityCreated", { }, MakeScriptHandle(entity));
+
 	return entity;
 }
 
