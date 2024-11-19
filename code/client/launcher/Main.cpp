@@ -695,7 +695,8 @@ int RealMain()
 				}
 			}
 
-			bool checkElevation = !CfxIsWine();
+			//bool checkElevation = !CfxIsWine();
+			bool checkElevation = false;
 
 #ifdef _DEBUG
 			checkElevation = false;
