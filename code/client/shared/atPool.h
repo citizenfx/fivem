@@ -1,5 +1,6 @@
 #pragma once
 
+// Actually fwBasePool
 class atPoolBase
 {
 protected:
