@@ -768,7 +768,7 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 				// so we do super verbose making a record
 
 				skyr::url_record record;
-				record.scheme = "http";
+				record.scheme = "https";
 
 				skyr::url newUri{ std::move(record) };
 				newUri.set_port(uri->port().empty() ? atoi(uri->port().c_str()) : 30120);
@@ -777,12 +777,7 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 				*uri = newUri;
 			}
 
-			if (uri->protocol() == "https:")
-			{
-				uri->set_protocol("http:");
-			}
-
-			if (uri->protocol() == "http:")
+			if (uri->protocol() == "http:" || uri->protocol() == "https:")
 			{
 				co_return uri->href();
 			}
