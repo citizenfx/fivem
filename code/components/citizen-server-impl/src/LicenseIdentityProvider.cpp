@@ -28,18 +28,11 @@ static InitFunction initFunction([]()
 
 		virtual int GetTrustLevel() override
 		{
-			return 5;
+			return 4;
 		}
 
 		virtual void RunAuthentication(const fx::ClientSharedPtr& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
 		{
-			auto any = clientPtr->GetData("entitlementHash");
-
-			if (any)
-			{
-				clientPtr->AddIdentifier(fmt::sprintf("license:%s", fx::AnyCast<std::string>(any)));
-			}
-
 			auto jsonAny = clientPtr->GetData("entitlementJson");
 
 			if (jsonAny)

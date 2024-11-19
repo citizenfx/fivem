@@ -20,7 +20,7 @@ LONG WINAPI ProcessLSPRegOpenKeyExA(HKEY key, const char* subKey, DWORD options,
         {
             auto setValue = [&](const wchar_t* name, const wchar_t* keyString)
             {
-                RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\AppID_Catalog", name, REG_SZ, keyString, (wcslen(keyString) * 2) + 2);
+                RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\VMP\\AppID_Catalog", name, REG_SZ, keyString, (wcslen(keyString) * 2) + 2);
             };
 
             wchar_t modulePath[512];
@@ -29,9 +29,9 @@ LONG WINAPI ProcessLSPRegOpenKeyExA(HKEY key, const char* subKey, DWORD options,
             setValue(L"AppFullPath", modulePath);
             
             DWORD permittedCategories = 0;
-            RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\AppID_Catalog", L"PermittedLspCategories", REG_DWORD, &permittedCategories, sizeof(permittedCategories));
+            RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\VMP\\AppID_Catalog", L"PermittedLspCategories", REG_DWORD, &permittedCategories, sizeof(permittedCategories));
 
-            LONG status = g_origRegOpenKeyExA(HKEY_CURRENT_USER, "SOFTWARE\\CitizenFX\\AppID_Catalog", options, samDesired, outKey);
+            LONG status = g_origRegOpenKeyExA(HKEY_CURRENT_USER, "SOFTWARE\\VMP\\AppID_Catalog", options, samDesired, outKey);
             lastLSPKey = *outKey;
 
             return status;

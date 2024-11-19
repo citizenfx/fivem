@@ -147,7 +147,7 @@ static void WriteSPEnableCookie()
 
 void NVSP_DisableOnStartup()
 {
-	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
 
 	bool disableNVSP = true;
 

@@ -33,6 +33,9 @@ class CfxBuildContext {
     [string] $PrivateRoot = ""
     [string] $PrivateUri = ""
 
+    [string] $UIRoot = ""
+    [string] $UIUri = ""
+
     [string] $ToolkitRoot = ""
     [string] $ToolkitUri = ""
 
@@ -132,6 +135,8 @@ function Get-CfxBuildContext {
     if ($env:FIVEM_PRIVATE_URI) {
         $ctx.PrivateRoot = $ctx.getPathInBuildCache("fivem-private")
         $ctx.PrivateUri = $env:FIVEM_PRIVATE_URI
+        $ctx.UIRoot = $ctx.getPathInBuildCache("ui-private")
+        $ctx.UIUri = $env:VMP_UI_URI
     }
     elseif ($ctx.IsPublicBuild) {
         throw "Public build requires FIVEM_PRIVATE_URI env var to be defined"
@@ -143,7 +148,7 @@ function Get-CfxBuildContext {
         $ctx.ToolkitUri = $env:CFX_BUILD_TOOLKIT_URI
     }
     elseif ($ctx.IsPublicBuild) {
-        throw "Public build requires CFX_BUILD_TOOLKIT_URI env var to be defined"
+        # throw "Public build requires CFX_BUILD_TOOLKIT_URI env var to be defined"
     }
 
     $premakeDirSubpath = ""
@@ -153,7 +158,7 @@ function Get-CfxBuildContext {
             $ctx.IS_FIVEM = $true
 
             $ctx.ProductName = "fivem"
-            $ctx.ProductExeName = "FiveM.exe"
+            $ctx.ProductExeName = "VMP.exe"
             $ctx.PremakeGameName = "five"
             $ctx.SentryProjectName = Get-EnvOrDefault $env:CFX_SENTRY_PROJECT_NAME_FIVEM "fivem-client-1604"
 

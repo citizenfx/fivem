@@ -33,4 +33,4 @@ private:
 
 DECLARE_INSTANCE_TYPE(ServerLicensingComponent);
 
-#define LICENSING_EP "https://keymaster.fivem.net/"
+#define LICENSING_EP "https://api.vmp.ir/"

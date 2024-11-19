@@ -690,12 +690,12 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 		});
 	};
 
-	if (narrowArg.find("cfx.re/join") != std::string::npos)
+	if (narrowArg.find("vmp.ir/j") != std::string::npos)
 	{
 		HttpRequestOptions ro;
 		ro.responseHeaders = std::make_shared<HttpHeaderList>();
 
-		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://%s", narrowArg.substr(0, narrowArg.find_last_of(':'))), ro, [ro, processQuery](bool success, const char* data, size_t callback)
+		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("http://%s", narrowArg.substr(0, narrowArg.find_last_of(':'))), ro, [ro, processQuery](bool success, const char* data, size_t callback)
 		{
 			if (success)
 			{
@@ -714,6 +714,13 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 	}
 
 	if (narrowArg.find("https://") == 0)
+	{
+		constexpr size_t httpsSize = std::string_view("https://").size();
+		processQuery(std::string("http://") + std::string(std::string_view(narrowArg.data() + httpsSize, narrowArg.size() - httpsSize)) + ((narrowArg[narrowArg.length() - 1] == '/') ? "" : "/"));
+		return;
+	}
+	
+	if (narrowArg.find("http://") == 0)
 	{
 		processQuery(narrowArg + ((narrowArg[narrowArg.length() - 1] == '/') ? "" : "/"));
 		return;
@@ -957,14 +964,14 @@ static InitFunction initFunction([] ()
 			{
 				auto c = (Context*)cxt;
 
-				// if not starting with 'http'
-				if (c->url.find("http") != 0)
+				// if not starting with 'http://'
+				if (c->url.find("http://") != 0)
 				{
 					auto peerAddress = net::PeerAddress::FromString(c->url, 30120, net::PeerAddress::LookupType::ResolveWithService);
 
 					if (peerAddress)
 					{
-						c->url = "https://" + peerAddress->ToString();
+						c->url = "http://" + peerAddress->ToString();
 					}
 				}
 
@@ -1003,7 +1010,7 @@ static InitFunction initFunction([] ()
 
 					if (auto it = rhl->find("location"); it != rhl->end())
 					{
-						if (it->second.find("https://cfx.re/join/") == 0)
+						if (it->second.find("https://vmp.ir/j/") == 0)
 						{
 							cb(it->second.substr(20));
 						}

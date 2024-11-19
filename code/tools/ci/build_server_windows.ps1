@@ -61,9 +61,9 @@ try {
         Invoke-RunMSBuild -Context $ctx -Tools $tools
     }.GetNewClosure()
 
-    Invoke-LogSection "Uploading symbols" {
-        Invoke-UploadServerSymbols -Context $ctx -Tools $tools
-    }.GetNewClosure()
+    # Invoke-LogSection "Uploading symbols" {
+    #     Invoke-UploadServerSymbols -Context $ctx -Tools $tools
+    # }.GetNewClosure()
 
     Invoke-LogSection "Building system resources" {
         Invoke-BuildSystemResources -Context $ctx -Versions $versions
@@ -73,11 +73,11 @@ try {
         Invoke-PackServer -Context $ctx -Tools $tools
     }.GetNewClosure()
 
-    if ($ctx.IsPublicBuild){
-        Invoke-LogSection "Creating sentry release" {
-            Invoke-SentryCreateRelease -Context $ctx -Version $ctx.GitTag
-        }.GetNewClosure()
-    }
+    # if ($ctx.IsPublicBuild){
+    #     Invoke-LogSection "Creating sentry release" {
+    #         Invoke-SentryCreateRelease -Context $ctx -Version $ctx.GitTag
+    #     }.GetNewClosure()
+    # }
 
     $ctx.finishBuild()
 } catch {

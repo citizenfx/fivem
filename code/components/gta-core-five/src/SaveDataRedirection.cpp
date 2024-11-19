@@ -34,7 +34,7 @@ static std::wstring GetCitizenSavePath()
 		CoTaskMemFree(saveBasePath);
 
 		// append our path components
-		AppendPathComponent(savePath, L"\\CitizenFX");
+		AppendPathComponent(savePath, L"\\VMP");
 		AppendPathComponent(savePath, L"\\GTA5");
 
 		// append a final separator

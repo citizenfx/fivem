@@ -235,7 +235,7 @@ bool ComponentInstance::DoGameLoad(void* module)
 							auto timeStamp = ntHeader->FileHeader.TimeDateStamp;
 							if (timeStamp != 0 && timeStamp <= 0x605FC73B)
 							{
-								MessageBoxW(NULL, L"This version of the manual transmission plugin ('Gears.asi') is outdated and no longer works with FiveM. Please update this plugin to a newer version or delete it.", L"FiveM", MB_OK | MB_ICONSTOP);
+								MessageBoxW(NULL, L"This version of the manual transmission plugin ('Gears.asi') is outdated and no longer works with FiveM. Please update this plugin to a newer version or delete it.", L"VMP", MB_OK | MB_ICONSTOP);
 
 								bad = true;
 							}

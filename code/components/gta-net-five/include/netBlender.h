@@ -17,7 +17,7 @@ public:
 
 	virtual void m_28() = 0;
 
-	virtual void m_30() = 0;
+	virtual void Update() = 0;
 
 	virtual void m_38() = 0;
 

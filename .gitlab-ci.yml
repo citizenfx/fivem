@@ -4,7 +4,7 @@
 stages:
   - build
   - deploy
-  - postdeploy
+  # - postdeploy
 
 variables:
   # Dry run is for builds-only mode, no uploading/deploying/notifying, helpful when experimenting with pipelines
@@ -109,33 +109,33 @@ build_client:
     - windows
     - vs2022
 
-build_client_rdr3:
-  extends: [.base_build_client]
-  variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT
-    CFX_PRODUCT_NAME: redm
-  tags:
-    - release_redm
-    - windows
-    - vs2022
+# build_client_rdr3:
+#   extends: [.base_build_client]
+#   variables:
+#     GIT_CLONE_PATH: $CFX_CLONE_ROOT
+#     CFX_PRODUCT_NAME: redm
+#   tags:
+#     - release_redm
+#     - windows
+#     - vs2022
 
-build_sdk:
-  stage: build
-  tags:
-    - release_fivem
-    - windows
-  variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT
-  artifacts:
-    paths:
-      - caches
-    expire_in: 1 month
-  cache:
-    key: $CI_JOB_NAME--$CI_COMMIT_REF_SLUG
-    paths:
-      - caches
-  script:
-    - ".\\code\\tools\\ci\\build_sdk.ps1"
+# build_sdk:
+#   stage: build
+#   tags:
+#     - release_fivem
+#     - windows
+#   variables:
+#     GIT_CLONE_PATH: $CFX_CLONE_ROOT
+#   artifacts:
+#     paths:
+#       - caches
+#     expire_in: 1 month
+#   cache:
+#     key: $CI_JOB_NAME--$CI_COMMIT_REF_SLUG
+#     paths:
+#       - caches
+#   script:
+#     - ".\\code\\tools\\ci\\build_sdk.ps1"
 
 # -------------------
 # -- SERVER BUILDS --
@@ -165,24 +165,24 @@ build_server_windows:
   cache:
     untracked: true
 
-build_proot_linux:
-  extends: [.base_build_server]
-  stage: build
-  tags:
-    - linux
-  image: registry-internal.fivem.net/cfx/fivem/fivem-builder-linux-alpine:latest
-  variables:
-    GIT_SUBMODULE_STRATEGY: normal
-    GIT_SUBMODULE_DEPTH: 3
-    # workaround gitlab-ci-multi-runner#2148
-    GIT_SSL_CAPATH: /etc/ssl/certs/
-    DOCKER_TLS_CERTDIR: ""
-  script: 
-    - sh code/tools/ci/build_server_docker_alpine.sh
-  artifacts:
-    paths:
-      - fx.tar.xz
-    expire_in: 1 month
+# build_proot_linux:
+#   extends: [.base_build_server]
+#   stage: build
+#   tags:
+#     - linux
+#   image: registry-internal.fivem.net/cfx/fivem/fivem-builder-linux-alpine:latest
+#   variables:
+#     GIT_SUBMODULE_STRATEGY: normal
+#     GIT_SUBMODULE_DEPTH: 3
+#     # workaround gitlab-ci-multi-runner#2148
+#     GIT_SSL_CAPATH: /etc/ssl/certs/
+#     DOCKER_TLS_CERTDIR: ""
+#   script: 
+#     - sh code/tools/ci/build_server_docker_alpine.sh
+#   artifacts:
+#     paths:
+#       - fx.tar.xz
+#     expire_in: 1 month
 
 # -------------------
 # -- CLIENT DEPLOY --
@@ -206,17 +206,15 @@ build_proot_linux:
   needs:
     - job: build_client
       artifacts: true
-    - job: build_sdk
-      artifacts: true
 
-.base_redm_deploy:
-  extends: [.base_deploy_client]
-  variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT
-    CFX_PRODUCT_NAME: redm
-  needs:
-    - job: build_client_rdr3
-      artifacts: true
+# .base_redm_deploy:
+#   extends: [.base_deploy_client]
+#   variables:
+#     GIT_CLONE_PATH: $CFX_CLONE_ROOT
+#     CFX_PRODUCT_NAME: redm
+#   needs:
+#     - job: build_client_rdr3
+#       artifacts: true
 
 # FiveM deployments
 fivem_deploy_canary:
@@ -257,149 +255,149 @@ fivem_deploy_specific:
     - when: never
 
 # RedM deployments
-redm_deploy_canary:
-  extends: [.base_redm_deploy]
-  environment:
-    name: canary
-  rules:
-    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
-      when: on_success
-    - when: never
+# redm_deploy_canary:
+#   extends: [.base_redm_deploy]
+#   environment:
+#     name: canary
+#   rules:
+#     - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
+#       when: on_success
+#     - when: never
 
-redm_deploy_beta:
-  extends: [.base_redm_deploy]
-  environment:
-    name: beta
-  rules:
-    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
-      when: on_success
-    - when: never
+# redm_deploy_beta:
+#   extends: [.base_redm_deploy]
+#   environment:
+#     name: beta
+#   rules:
+#     - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
+#       when: on_success
+#     - when: never
 
-redm_deploy_production:
-  extends: [.base_redm_deploy]
-  environment:
-    name: production
-  rules:
-    - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
-      when: on_success
-    - when: never
+# redm_deploy_production:
+#   extends: [.base_redm_deploy]
+#   environment:
+#     name: production
+#   rules:
+#     - if: $CFX_RETAIL_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
+#       when: on_success
+#     - when: never
 
-redm_deploy_specific:
-  extends: [.base_redm_deploy]
-  environment:
-    name: specific/$CI_COMMIT_BRANCH
-  rules:
-    - if: $CFX_RETAIL_BUILD == 'false' && $CI_COMMIT_BRANCH
-      when: manual
-      allow_failure: true
-    - when: never
+# redm_deploy_specific:
+#   extends: [.base_redm_deploy]
+#   environment:
+#     name: specific/$CI_COMMIT_BRANCH
+#   rules:
+#     - if: $CFX_RETAIL_BUILD == 'false' && $CI_COMMIT_BRANCH
+#       when: manual
+#       allow_failure: true
+#     - when: never
 
 # -------------------
 # -- ScRT PACKAGES --
 # -------------------
-typings_server:
-  stage: deploy
-  extends: [.only_for_master]
-  needs:
-    - job: build_server_windows
-      artifacts: true
-  image: node:alpine
-  tags:
-    - linux
-  variables:
-    GIT_SUBMODULE_STRATEGY: normal
-    GIT_SUBMODULE_DEPTH: 3
-    # workaround gitlab-ci-multi-runner#2148
-    GIT_SSL_CAPATH: /etc/ssl/certs/
-  script:
-    - sh ext/typings/server/build.sh
+# typings_server:
+#   stage: deploy
+#   extends: [.only_for_master]
+#   needs:
+#     - job: build_server_windows
+#       artifacts: true
+#   image: node:alpine
+#   tags:
+#     - linux
+#   variables:
+#     GIT_SUBMODULE_STRATEGY: normal
+#     GIT_SUBMODULE_DEPTH: 3
+#     # workaround gitlab-ci-multi-runner#2148
+#     GIT_SSL_CAPATH: /etc/ssl/certs/
+#   script:
+#     - sh ext/typings/server/build.sh
     
-typings_client:
-  stage: deploy
-  extends: [.only_for_master]
-  needs:
-    - job: build_client
-      artifacts: true
-  tags:
-    - windows
-  script:
-    - "cmd /c ext\\typings\\client\\build.bat"
+# typings_client:
+#   stage: deploy
+#   extends: [.only_for_master]
+#   needs:
+#     - job: build_client
+#       artifacts: true
+#   tags:
+#     - windows
+#   script:
+#     - "cmd /c ext\\typings\\client\\build.bat"
     
-nuget_client:
-  stage: deploy
-  extends: [.only_for_master]
-  needs:
-    - job: build_client
-      artifacts: true
-  tags:
-    - windows
-  script:
-    - "cmd /c ext\\nuget\\client\\build.bat"
+# nuget_client:
+#   stage: deploy
+#   extends: [.only_for_master]
+#   needs:
+#     - job: build_client
+#       artifacts: true
+#   tags:
+#     - windows
+#   script:
+#     - "cmd /c ext\\nuget\\client\\build.bat"
     
-nuget_server:
-  stage: deploy
-  extends: [.only_for_master]
-  needs:
-    - job: build_server_windows
-      artifacts: true
-  tags:
-    - windows
-  script:
-    - "cmd /c ext\\nuget\\server\\build.bat"
+# nuget_server:
+#   stage: deploy
+#   extends: [.only_for_master]
+#   needs:
+#     - job: build_server_windows
+#       artifacts: true
+#   tags:
+#     - windows
+#   script:
+#     - "cmd /c ext\\nuget\\server\\build.bat"
 
 # --------------------
 # -- UPLOAD REVIEWS --
 # --------------------
-.base_upload_review:
-  stage: postdeploy
-  extends: [.only_for_public_build]
-  allow_failure: true
-  script:
-    - ".\\code\\tools\\ci\\upload_review.ps1"
-  tags:
-    - windows
+# .base_upload_review:
+#   stage: postdeploy
+#   extends: [.only_for_public_build]
+#   allow_failure: true
+#   script:
+#     - ".\\code\\tools\\ci\\upload_review.ps1"
+#   tags:
+#     - windows
 
-fivem_upload_review:
-  extends: [.base_upload_review]
-  variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT
-  needs:
-    - job: build_client
-      artifacts: true
+# fivem_upload_review:
+#   extends: [.base_upload_review]
+#   variables:
+#     GIT_CLONE_PATH: $CFX_CLONE_ROOT
+#   needs:
+#     - job: build_client
+#       artifacts: true
 
-redm_upload_review:
-  extends: [.base_upload_review]
-  variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT
-  needs:
-    - job: build_client_rdr3
-      artifacts: true
+# redm_upload_review:
+#   extends: [.base_upload_review]
+#   variables:
+#     GIT_CLONE_PATH: $CFX_CLONE_ROOT
+#   needs:
+#     - job: build_client_rdr3
+#       artifacts: true
 
-prebuild_linux_docker_container:
-  image: docker:24.0
-  stage: build
-  tags:
-    - linux
-  services:
-    - docker:24.0-dind
-  variables:
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    GIT_SUBMODULE_STRATEGY: none
-    DOCKER_IMAGE_NAME: "$CI_REGISTRY_IMAGE/fivem-builder-linux-alpine:latest"
-    DOCKER_COMMIT_TAG: "$CI_REGISTRY_IMAGE/fivem-builder-linux-alpine:$CI_COMMIT_SHORT_SHA"
-  before_script:
-    - docker info
-  script:
-    - echo "Building Docker image..."
-    - docker build -t $DOCKER_IMAGE_NAME -t $DOCKER_COMMIT_TAG -f code/tools/ci/docker-builder/Dockerfile .
-    - echo "Logging into GitLab Container Registry..."
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - echo "Pushing Docker image to registry with latest tag..."
-    - docker push $DOCKER_IMAGE_NAME
-    - echo "Pushing Docker image to registry with commit tag..."
-    - docker push $DOCKER_COMMIT_TAG
-  rules:
-    - when: manual
-  allow_failure: true
+# prebuild_linux_docker_container:
+#   image: docker:24.0
+#   stage: build
+#   tags:
+#     - linux
+#   services:
+#     - docker:24.0-dind
+#   variables:
+#     DOCKER_TLS_CERTDIR: ""
+#     DOCKER_DRIVER: overlay2
+#     GIT_SUBMODULE_STRATEGY: none
+#     DOCKER_IMAGE_NAME: "$CI_REGISTRY_IMAGE/fivem-builder-linux-alpine:latest"
+#     DOCKER_COMMIT_TAG: "$CI_REGISTRY_IMAGE/fivem-builder-linux-alpine:$CI_COMMIT_SHORT_SHA"
+#   before_script:
+#     - docker info
+#   script:
+#     - echo "Building Docker image..."
+#     - docker build -t $DOCKER_IMAGE_NAME -t $DOCKER_COMMIT_TAG -f code/tools/ci/docker-builder/Dockerfile .
+#     - echo "Logging into GitLab Container Registry..."
+#     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+#     - echo "Pushing Docker image to registry with latest tag..."
+#     - docker push $DOCKER_IMAGE_NAME
+#     - echo "Pushing Docker image to registry with commit tag..."
+#     - docker push $DOCKER_COMMIT_TAG
+#   rules:
+#     - when: manual
+#   allow_failure: true
 

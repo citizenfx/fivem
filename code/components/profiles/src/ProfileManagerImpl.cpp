@@ -91,7 +91,7 @@ void ProfileManagerImpl::LoadStoredProfiles()
 	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
 	{
 		// create the directory if not existent
-		std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+		std::wstring cfxPath = std::wstring(appDataPath) + L"\\VMP";
 		CreateDirectory(cfxPath.c_str(), nullptr);
 
 		// open and read the profile file
@@ -290,7 +290,7 @@ void ProfileManagerImpl::SaveStoredProfiles(const std::string& savedList)
 		if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
 		{
 			// create the directory if not existent
-			std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+			std::wstring cfxPath = std::wstring(appDataPath) + L"\\VMP";
 			CreateDirectory(cfxPath.c_str(), nullptr);
 
 			// open and read the profile file

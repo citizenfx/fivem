@@ -36,13 +36,13 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "cfx-collective"
-			VALUE "FileDescription", "FiveM Diagnostics Utility"
+            VALUE "CompanyName", "vmp"
+			VALUE "FileDescription", "VMP Diagnostics Utility"
             VALUE "FileVersion", "1.1.0.0"
             VALUE "InternalName", "Citizen"
-            VALUE "LegalCopyright", "(C) 2019- CitizenFX"
-            VALUE "OriginalFilename", "citizenmp.exe"
-            VALUE "ProductName", "Citizen"
+            VALUE "LegalCopyright", "(C) 2024- VMP"
+            VALUE "OriginalFilename", "VMP.exe"
+            VALUE "ProductName", "VMP"
             VALUE "ProductVersion", "1.0.0.0"
         END
     END

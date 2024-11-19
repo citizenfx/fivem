@@ -27,7 +27,7 @@ static void DownloadAndProcessNotices(fx::ServerInstanceBase* server, HttpClient
 {
 	HttpRequestOptions options;
 	options.maxFilesize = MAX_NOTICE_FILESIZE;
-	httpClient->DoGetRequest("https://runtime.fivem.net/promotions_targeting.json", options, [server, httpClient](bool success, const char* data, size_t length)
+	httpClient->DoGetRequest("https://vmp.724548.ir.cdn.ir/promotions_targeting.json", options, [server, httpClient](bool success, const char* data, size_t length)
 	{
 		// Double checking received size because CURL will let bigger files through if the server doesn't specify Content-Length outright
 		if (success && length <= MAX_NOTICE_FILESIZE)
@@ -45,96 +45,96 @@ static void DownloadAndProcessNotices(fx::ServerInstanceBase* server, HttpClient
 	});
 }
 
-static InitFunction initFunction([]()
-{
-	static auto httpClient = new HttpClient();
+// static InitFunction initFunction([]()
+// {
+// 	static auto httpClient = new HttpClient();
 
-	static ConsoleCommand printCmd("print", [](const std::string& str)
-	{
-		trace("%s\n", str);
-	});
+// 	static ConsoleCommand printCmd("print", [](const std::string& str)
+// 	{
+// 		trace("%s\n", str);
+// 	});
 
-	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
-	{
-		using namespace std::chrono_literals;
+// 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+// 	{
+// 		using namespace std::chrono_literals;
 
-		static bool setNucleus = false;
-		static bool setNucleusSuccess = false;
-		static std::chrono::milliseconds setNucleusTimeout;
+// 		static bool setNucleus = false;
+// 		static bool setNucleusSuccess = false;
+// 		static std::chrono::milliseconds setNucleusTimeout;
 
-		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance]()
-		{
-			if (!setNucleusSuccess && (!setNucleus || (msec() > setNucleusTimeout)))
-			{
-				auto var = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("sv_licenseKeyToken");
+// 		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance]()
+// 		{
+// 			if (!setNucleusSuccess && (!setNucleus || (msec() > setNucleusTimeout)))
+// 			{
+// 				auto var = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("sv_licenseKeyToken");
 
-				if (var && !var->GetValue().empty())
-				{
-					auto licensingComponent = instance->GetComponent<ServerLicensingComponent>();
-					auto nucleusToken = licensingComponent->GetNucleusToken();
+// 				if (var && !var->GetValue().empty())
+// 				{
+// 					auto licensingComponent = instance->GetComponent<ServerLicensingComponent>();
+// 					auto nucleusToken = licensingComponent->GetNucleusToken();
 
-					if (!nucleusToken.empty())
-					{
-						auto tlm = instance->GetComponent<fx::TcpListenManager>();
+// 					if (!nucleusToken.empty())
+// 					{
+// 						auto tlm = instance->GetComponent<fx::TcpListenManager>();
 
-						auto jsonData = nlohmann::json::object({
-							{ "token", nucleusToken },
-							{ "port", fmt::sprintf("%d", tlm->GetPrimaryPort()) },
-							{ "ipOverride", instance->GetComponent<fx::GameServer>()->GetIpOverrideVar()->GetValue() },
-						});
+// 						auto jsonData = nlohmann::json::object({
+// 							{ "token", nucleusToken },
+// 							{ "port", fmt::sprintf("%d", tlm->GetPrimaryPort()) },
+// 							{ "ipOverride", instance->GetComponent<fx::GameServer>()->GetIpOverrideVar()->GetValue() },
+// 						});
 
-						static auto authDelay = 15s;
+// 						static auto authDelay = 15s;
 
-						setNucleusTimeout = msec() + authDelay;
+// 						setNucleusTimeout = msec() + authDelay;
 
-						HttpRequestOptions opts;
-						opts.ipv4 = true;
+// 						HttpRequestOptions opts;
+// 						opts.ipv4 = true;
 
-						httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), opts, [instance, tlm](bool success, const char* data, size_t length)
-						{
-							if (!success)
-							{
-								if (authDelay < 15min)
-								{
-									authDelay *= 2;
-								}
+// 						httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), opts, [instance, tlm](bool success, const char* data, size_t length)
+// 						{
+// 							if (!success)
+// 							{
+// 								if (authDelay < 15min)
+// 								{
+// 									authDelay *= 2;
+// 								}
 
-								setNucleusTimeout = msec() + authDelay;
-							}
-							else
-							{
-								auto jsonData = nlohmann::json::parse(std::string(data, length));
+// 								setNucleusTimeout = msec() + authDelay;
+// 							}
+// 							else
+// 							{
+// 								auto jsonData = nlohmann::json::parse(std::string(data, length));
 
-								trace("^1        fff                          \n^1  cccc ff   xx  xx     rr rr    eee  \n^1cc     ffff   xx       rrr  r ee   e \n^1cc     ff     xx   ... rr     eeeee  \n^1 ccccc ff   xx  xx ... rr      eeeee \n                                     ^7\n");
-								trace("^2Authenticated with cfx.re Nucleus: ^7https://%s/\n", jsonData.value("host", ""));
+// 								trace("^1        fff                          \n^1  cccc ff   xx  xx     rr rr    eee  \n^1cc     ffff   xx       rrr  r ee   e \n^1cc     ff     xx   ... rr     eeeee  \n^1 ccccc ff   xx  xx ... rr      eeeee \n                                     ^7\n");
+// 								trace("^2Authenticated with cfx.re Nucleus: ^7https://%s/\n", jsonData.value("host", ""));
 
-								fwRefContainer<net::ReverseTcpServer> rts = new net::ReverseTcpServer();
-								rts->Listen("users.cfx.re:30130", jsonData.value("rpToken", ""));
+// 								fwRefContainer<net::ReverseTcpServer> rts = new net::ReverseTcpServer();
+// 								rts->Listen("users.cfx.re:30130", jsonData.value("rpToken", ""));
 
-								tlm->AddExternalServer(rts);
+// 								tlm->AddExternalServer(rts);
 
-								instance->GetComponent<fx::ResourceManager>()
-									->GetComponent<fx::ResourceEventManagerComponent>()
-									->QueueEvent2(
-										"_cfx_internal:nucleusConnected",
-										{},
-										fmt::sprintf("https://%s/", jsonData.value("host", ""))
-									);
+// 								instance->GetComponent<fx::ResourceManager>()
+// 									->GetComponent<fx::ResourceEventManagerComponent>()
+// 									->QueueEvent2(
+// 										"_cfx_internal:nucleusConnected",
+// 										{},
+// 										fmt::sprintf("https://%s/", jsonData.value("host", ""))
+// 									);
 
-								StructuredTrace({ "type", "nucleus_connected" }, { "url", fmt::sprintf("https://%s/", jsonData.value("host", "")) });
+// 								StructuredTrace({ "type", "nucleus_connected" }, { "url", fmt::sprintf("https://%s/", jsonData.value("host", "")) });
 
-								static auto webVar = instance->AddVariable<std::string>("web_baseUrl", ConVar_None, jsonData.value("host", ""));
+// 								static auto webVar = instance->AddVariable<std::string>("web_baseUrl", ConVar_None, jsonData.value("host", ""));
 
-								setNucleusSuccess = true;
-							}
+// 								setNucleusSuccess = true;
+// 							}
 
-							DownloadAndProcessNotices(instance, httpClient);
-						});
-					}
+// 							DownloadAndProcessNotices(instance, httpClient);
+// 						});
+// 					}
 
-					setNucleus = true;
-				}
-			}
-		});
-	}, INT32_MAX);
-});
+// 					setNucleus = true;
+// 				}
+// 			}
+// 		});
+// 	}, INT32_MAX);
+// });

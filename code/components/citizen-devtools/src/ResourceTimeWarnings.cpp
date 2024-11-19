@@ -210,7 +210,7 @@ static TThreadStack* GetThread()
 #pragma comment(lib, "version.lib")
 
 #define STOPPED_RESPONDING_MESSAGE(x) \
-	"FiveM has stopped responding " x "\nThe game stopped responding for too long and needs to be restarted. When asking for help, please click 'Save information' and upload the file that is saved when you click the button.%s"
+	"VMP has stopped responding " x "\nThe game stopped responding for too long and needs to be restarted. When asking for help, please click 'Save information' and upload the file that is saved when you click the button.%s"
 
 static void __declspec(noinline) StoppedRespondingNVIDIA(const std::string& reasoning)
 {

@@ -19,6 +19,7 @@
 #include <skyr/url.hpp>
 #include <ResumeComponent.h>
 #include <sstream>
+#include <future>
 
 #include <boost/algorithm/string.hpp>
 #include <experimental/coroutine>
@@ -40,7 +41,7 @@
 #include "NetEvent.h"
 
 #ifndef POLICY_LIVE_ENDPOINT
-#define POLICY_LIVE_ENDPOINT "https://policy-live.fivem.net/"
+#define POLICY_LIVE_ENDPOINT "https://api.vmp.ir/"
 #endif
 
 #ifdef FIVEM_INTERNAL_POSTMAP
@@ -385,7 +386,7 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 #if defined(GTA_FIVE) || defined(GTA_NY)
 				SetWindowText(CoreGetGameWindow(), va(
 #ifdef GTA_FIVE
-					L"FiveM® by Cfx.re"
+					L"VMP®"
 #elif defined(GTA_NY)
 					L"LibertyM™ by Cfx.re"
 #endif
@@ -768,7 +769,7 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 				// so we do super verbose making a record
 
 				skyr::url_record record;
-				record.scheme = "https";
+				record.scheme = "http";
 
 				skyr::url newUri{ std::move(record) };
 				newUri.set_port(uri->port().empty() ? atoi(uri->port().c_str()) : 30120);
@@ -777,7 +778,12 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 				*uri = newUri;
 			}
 
-			if (uri->protocol() == "http:" || uri->protocol() == "https:")
+			if (uri->protocol() == "https:")
+			{
+				uri->set_protocol("http:");
+			}
+
+			if (uri->protocol() == "http:")
 			{
 				co_return uri->href();
 			}
@@ -795,7 +801,7 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 	
 	// if it doesn't contain a . or a : it might be a join URL
 	// (or if it is a join URL, it is a join URL)
-	if (rootUrl.find_first_of(".:") == std::string::npos || rootUrl.find("cfx.re/join") != std::string::npos)
+	if (rootUrl.find_first_of(".:") == std::string::npos || rootUrl.find("vmp.ir/j") != std::string::npos)
 	{
 		concurrency::task_completion_event<std::optional<std::string>> tce;
 
@@ -805,9 +811,9 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 		// prefix cfx.re/join if we can
 		auto joinRootUrl = rootUrl;
 
-		if (joinRootUrl.find("cfx.re/join") == std::string::npos)
+		if (joinRootUrl.find("vmp.ir/j") == std::string::npos)
 		{
-			joinRootUrl = "cfx.re/join/" + rootUrl;
+			joinRootUrl = "vmp.ir/j/" + rootUrl;
 		}
 
 		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://%s", joinRootUrl), ro, [ro, tce](bool success, const char* data, size_t callback)
@@ -1287,16 +1293,16 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						AddCrashometry("last_server", "%s", address.ToString());
 
-						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/policy/shdisable?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
-						{
-							if (success)
-							{
-								if (std::string(data, length).find("yes") != std::string::npos)
-								{
-									Instance<ICoreGameInit>::Get()->ShAllowed = false;
-								}
-							}
-						});
+						// m_httpClient->DoGetRequest(fmt::sprintf("https://api.vmp.ir/policy/shdisable?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
+						// {
+						// 	if (success)
+						// 	{
+						// 		if (std::string(data, length).find("yes") != std::string::npos)
+						// 		{
+						// 			Instance<ICoreGameInit>::Get()->ShAllowed = false;
+						// 		}
+						// 	}
+						// });
 
 						Instance<ICoreGameInit>::Get()->SetData("handoverBlob", (!node["handover"].is_null()) ? node["handover"].dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) : "{}");
 
@@ -1497,7 +1503,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 										if (info.is_object() && info["vars"].is_object())
 										{
-											auto val = info["vars"].value("sv_licenseKeyToken", "");
+											auto val = info["vars"].value("sv_sessionId", "");
 
 											if (!val.empty())
 											{
@@ -1510,7 +1516,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 												{
 												}
 
-												m_httpClient->DoGetRequest(fmt::sprintf("%sapi/policy/%s", POLICY_LIVE_ENDPOINT, val), [=](bool success, const char* data, size_t size)
+												m_httpClient->DoGetRequest(fmt::sprintf("%sserver/policy.php?work=get&session_id=%s", POLICY_LIVE_ENDPOINT, val), [=](bool success, const char* data, size_t size)
 												{
 													std::string fact;
 
@@ -1624,14 +1630,14 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								std::uniform_int_distribution<int> distribution(1, 224);
 								std::uniform_int_distribution<int> distribution2(1, 254);
 
-								auto rndQ = fmt::sprintf("https://runtime.fivem.net/blocklist/%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
+								auto rndQ = fmt::sprintf(POLICY_LIVE_ENDPOINT "ban/server-ip.php?ip=%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
 								auto dStr = std::string(data, length);
 
 								m_httpClient->DoGetRequest(rndQ, [this, continueAfterAllowance, dStr](bool success, const char* data, size_t length)
 								{
 									if (!success)
 									{
-										OnConnectionError(fmt::sprintf("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr).c_str());
+										OnConnectionError(fmt::sprintf("This server has been blocked from the VMP platform. Stated reason: %s If you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr).c_str());
 
 										m_connectionState = CS_IDLE;
 
@@ -1652,7 +1658,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						HttpRequestOptions options;
 						options.timeoutNoResponse = std::chrono::seconds(5);
 
-						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blocklist/%s", address.GetHost()), options, blocklistResultHandler);
+						m_httpClient->DoGetRequest(fmt::sprintf(POLICY_LIVE_ENDPOINT "ban/server-ip.php?ip=%s", address.GetHost()), options, blocklistResultHandler);
 
 						if (node.value("netlibVersion", 1) == 2)
 						{
@@ -1826,7 +1832,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 		{
 			using json = nlohmann::json;
 
-			std::string licenseKeyToken;
+			std::string sv_sessionId;
+			int authVersion = 1;
 
 			// We got a response way later than we wanted - user has canceled connection or joined another server
 			if (m_connectionState != CS_INITING)
@@ -1929,14 +1936,15 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					}
 #endif
 
-					auto ival = info["vars"].value("sv_licenseKeyToken", "");
+					auto ival = info["vars"].value("sv_sessionId", "");
 
 					if (!ival.empty())
 					{
-						licenseKeyToken = ival;
+						sv_sessionId = ival;
 					}
 
 					requestSteamTicket = info.value("requestSteamTicket", "on");
+					authVersion = info.value("authVersion", 1);
 				}
 #endif
 			}
@@ -1944,7 +1952,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 			{
 			}
 
-			if (OnInterceptConnectionForAuth(url, licenseKeyToken, [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
+			if (OnInterceptConnectionForAuth(url, sv_sessionId, authVersion, GetGUID(), [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
 				{
 					if (success)
 					{
@@ -1961,7 +1969,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					}
 				}))
 			{
-				continueRequest();
+				// continueRequest();
 			}
 		});
 
@@ -2249,4 +2257,66 @@ int32_t NetLibrary::GetVariance()
 void NetLibrary::SetRichError(const std::string& data /* = "{}" */)
 {
 	m_richError = data;
+}
+
+std::string NetLibrary::GetSteamTicket()
+{
+	auto steamComponent = GetSteam();
+	try
+	{
+		if (steamComponent)
+		{
+			static uint32_t ticketLength;
+			static uint8_t ticketBuffer[4096];
+
+			static int lastCallback = -1;
+
+			IClientEngine* steamClient = steamComponent->GetPrivateClient();
+
+			InterfaceMapper steamUtils(steamClient->GetIClientUtils(steamComponent->GetHSteamPipe(), "CLIENTUTILS_INTERFACE_VERSION001"));
+			InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
+
+			if (steamUser.IsValid())
+			{
+				auto removeCallback = []()
+				{
+					if (lastCallback != -1)
+					{
+						GetSteam()->RemoveSteamCallback(lastCallback);
+						lastCallback = -1;
+					}
+				};
+
+				removeCallback();
+				std::promise<std::string> promise;
+				auto future = promise.get_future();
+				lastCallback = steamComponent->RegisterSteamCallback<GetAuthSessionTicketResponse_t>([=, &promise](GetAuthSessionTicketResponse_t* response)
+				{
+					removeCallback();
+
+					if (response->m_eResult != 1) // k_EResultOK
+					{
+						promise.set_value("");
+						OnConnectionError(va("Failed to obtain Steam ticket, EResult %d.", response->m_eResult));
+					}
+					else
+					{
+						// encode the ticket buffer
+						char outHex[16384];
+						tohex(ticketBuffer, ticketLength, outHex, sizeof(outHex));
+						promise.set_value(std::string(outHex));
+					}
+				});
+
+				int appID = steamUtils.Invoke<int>("GetAppID");
+				steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
+				return future.get();
+			}
+		}
+	}
+	catch (const std::exception&)
+	{
+
+	}
+	return "";
 }

@@ -340,6 +340,7 @@ public:
 	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized);
 
 	void SetRichError(const std::string& data = "{}");
+	std::string GetSteamTicket();
 
 	inline uint32_t GetServerBase() { return m_serverBase; }
 
@@ -451,7 +452,7 @@ public:
 
 	// same as the other routine, except it's for authentication
 	// a2 -> license key token
-	fwEvent<const std::string&, const std::string&, const std::function<void(bool success, const std::map<std::string, std::string>& additionalPostData)>&> OnInterceptConnectionForAuth;
+	fwEvent<const std::string&, const std::string&, const int&, const uint64_t&, const std::function<void(bool success, const std::map<std::string, std::string>& additionalPostData)>&> OnInterceptConnectionForAuth;
 
 	// event to intercept server events for debugging
 	// a1: event name

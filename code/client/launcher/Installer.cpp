@@ -65,7 +65,7 @@ static std::wstring GetRootPath()
 	if (!appDataPath.empty())
 	{
 #ifdef GTA_FIVE
-		appDataPath += L"\\FiveM";
+		appDataPath += L"\\VMP";
 #elif defined(IS_RDR3)
 		appDataPath += L"\\RedM";
 #else
@@ -91,21 +91,21 @@ static void CreateUninstallEntryIfNeeded()
 
 	auto setUninstallString = [](const std::wstring& name, const std::wstring& value)
 	{
-		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CitizenFX_" PRODUCT_NAME, name.c_str(), REG_SZ, value.c_str(), (value.length() * 2) + 2);
+		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VMP_" PRODUCT_NAME, name.c_str(), REG_SZ, value.c_str(), (value.length() * 2) + 2);
 	};
 
 	auto setUninstallDword = [](const std::wstring& name, DWORD value)
 	{
-		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CitizenFX_" PRODUCT_NAME, name.c_str(), REG_DWORD, &value, sizeof(value));
+		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VMP_" PRODUCT_NAME, name.c_str(), REG_DWORD, &value, sizeof(value));
 	};
 
 	setUninstallString(L"DisplayName", PRODUCT_NAME);
 	setUninstallString(L"DisplayIcon", filename + std::wstring(L",0"));
-	setUninstallString(L"HelpLink", L"https://cfx.re/");
+	setUninstallString(L"HelpLink", L"https://vmp.ir/");
 	setUninstallString(L"InstallLocation", GetRootPath());
-	setUninstallString(L"Publisher", L"Cfx.re");
+	setUninstallString(L"Publisher", L"vmp.ir");
 	setUninstallString(L"UninstallString", fmt::sprintf(L"\"%s\" -uninstall app", filename));
-	setUninstallString(L"URLInfoAbout", L"https://cfx.re/");
+	setUninstallString(L"URLInfoAbout", L"https://vmp.ir/");
 	setUninstallDword(L"NoModify", 1);
 	setUninstallDword(L"NoRepair", 1);
 }
@@ -167,8 +167,8 @@ void Install_Uninstall(const wchar_t* directory)
 	addDelete(directory);
 	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L".lnk");
 	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L".lnk");
-	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" - Cfx.re Development Kit (FxDK).lnk");
-	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" - Cfx.re Development Kit (FxDK).lnk");
+	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" - VMP.ir Development Kit (FxDK).lnk");
+	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" - VMP.ir  Development Kit (FxDK).lnk");
 
 	hr = ifo->PerformOperations();
 
@@ -186,7 +186,7 @@ void Install_Uninstall(const wchar_t* directory)
 		MessageBox(NULL, L"The uninstall operation was canceled. Some files may still remain. Please remove these files manually.", L"InsnailShield", MB_OK | MB_ICONSTOP);
 	}
 
-	RegDeleteKey(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CitizenFX_" PRODUCT_NAME);
+	RegDeleteKey(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VMP_" PRODUCT_NAME);
 }
 
 bool Install_PerformInstallation()
@@ -375,7 +375,7 @@ void Install_RunPostInstall()
 
 	std::initializer_list<std::tuple<std::wstring, std::wstring, int, std::wstring>> links = {
 #ifdef GTA_FIVE
-		{ L" - Cfx.re Development Kit (FxDK)", L"-fxdk", -203, L"CitizenFX.FiveM.SDK" },
+		//{ L" - VMP.ir Development Kit (FxDK)", L"-fxdk", -203, L"CitizenFX.FiveM.SDK" },
 #endif
 	};
 
@@ -459,7 +459,7 @@ bool Install_RunInstallMode()
 	// if we're already installed 'sufficiently', this isn't a new install, but we *should* update external links
 	if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) != INVALID_FILE_ATTRIBUTES ||
 		GetFileAttributes(MakeRelativeCitPath(L"citizen-resources-client.dll").c_str()) != INVALID_FILE_ATTRIBUTES ||
-		GetFileAttributes(MakeRelativeCitPath(L"CitizenFX.ini").c_str()) != INVALID_FILE_ATTRIBUTES ||
+		GetFileAttributes(MakeRelativeCitPath(L"VMP.ini").c_str()) != INVALID_FILE_ATTRIBUTES ||
 		GetFileAttributes(MakeRelativeCitPath(PRODUCT_NAME L".installroot").c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
 		Install_RunPostInstall();

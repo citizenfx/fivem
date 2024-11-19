@@ -52,6 +52,14 @@ function Invoke-PackServer {
     & $Tools.SevenZip a -mx=9 $packRoot\server.zip $packRoot\server\*
     & $Tools.SevenZip a -mx=7 $packRoot\server.7z $packRoot\server\*
 
+    if ($Context.GitBranchName -eq "master") {
+        $versions = Get-CfxVersions -Context $Context
+        $BuildID = $versions.BuildID
+        $commit = $Context.GitCommitSHA
+        New-Item -ItemType Directory -Path "C:\inetpub\artifact.vmp.ir\artifacts\$BuildID-$commit" -Force
+        Copy-Item -Force -Recurse "$packRoot\server.7z" "C:\inetpub\artifact.vmp.ir\artifacts\$BuildID-$commit\server-artifact.7z"
+    }
+
     # cleanup
     Remove-Item -Force -Recurse $packRoot\server
 }

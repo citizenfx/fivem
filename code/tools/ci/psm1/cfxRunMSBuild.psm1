@@ -12,16 +12,16 @@ function Invoke-RunMSBuild {
     $sogAfter = "C:\f\shadesofgray_after.ps1"
     $useSog = $false
 
-    if (!$Context.IsDryRun -and $Context.IsPublicBuild -and ($Context.IS_FIVEM -or $Context.IS_REDM)) {
-        $someToolIsMissing = ($sogBefore, "C:\f\shadesofgray.cmd", $sogAfter | Test-Path) -contains $false
-        if ($someToolIsMissing) {
-            throw "Private tooling not found or incomplete, but is required for release build"
-        }
+    # if (!$Context.IsDryRun -and $Context.IsPublicBuild -and ($Context.IS_FIVEM -or $Context.IS_REDM)) {
+    #     $someToolIsMissing = ($sogBefore, "C:\f\shadesofgray.cmd", $sogAfter | Test-Path) -contains $false
+    #     if ($someToolIsMissing) {
+    #         throw "Private tooling not found or incomplete, but is required for release build"
+    #     }
 
-        $env:SOG_DISCRIMINATOR = [System.Guid]::NewGuid().ToString()
+    #     $env:SOG_DISCRIMINATOR = [System.Guid]::NewGuid().ToString()
         
-        $useSog = $true
-    }
+    #     $useSog = $true
+    # }
 
     # setup errors log file
     $errorsLogPath = $Context.getPathInBuildCache("MSBuild.Errors.log")

@@ -29,4 +29,4 @@
 			targetname "CitizenPayne"
 
 		filter { "options:game=five" }
-			targetname "FiveM"
+			targetname "VMP"

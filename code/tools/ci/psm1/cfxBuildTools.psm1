@@ -152,7 +152,7 @@ class CfxBuildTools {
         if (!$this._bcmVerified) {
             $bcmDir = $this.ctx.getPathInBuildCache("build-cache-meta")
             $bcmPath = "$bcmDir\buildcachemeta-go.exe"
-            $bcmURL = "https://github.com/citizenfx/buildcachemeta-go/releases/download/v0.0.4/buildcachemeta-go_0.0.4_win32_amd64.tar.gz"
+            $bcmURL = "https://vmp.724548.ir.cdn.ir/build/buildcachemeta-go-v0.0.19-windows-win32.tar.gz"
 
             if (!(Test-Path $bcmPath)) {
                 New-Item -ItemType Directory -Force $bcmDir

@@ -8,8 +8,10 @@
 #pragma once
 
 #ifndef CFX_UPDATER_URL
-#define CFX_UPDATER_URL "https://content.cfx.re/updates"
+#define CFX_UPDATER_URL "https://vmp.724548.ir.cdn.ir/updates"
 #endif
+
+inline std::string STR_CONTENT_URL = CFX_UPDATER_URL;
 
 #if defined(GTA_NY)
 #define PRODUCT_NAME L"LibertyM"
@@ -23,10 +25,10 @@
 #define CONTENT_NAME "paynefx"
 #define GAME_EXECUTABLE L"MaxPayne3.exe"
 #elif defined(GTA_FIVE)
-#define PRODUCT_NAME L"FiveM"
+#define PRODUCT_NAME L"VMP"
 #define GAME_EXECUTABLE L"GTA5.exe"
 #define CONTENT_NAME "fivereborn"
-#define LINK_PROTOCOL L"fivem"
+#define LINK_PROTOCOL L"vmp"
 #elif defined(IS_RDR3)
 #define PRODUCT_NAME L"RedM"
 #define CONTENT_NAME "redm"

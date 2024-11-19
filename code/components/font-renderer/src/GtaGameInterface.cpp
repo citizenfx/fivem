@@ -19,6 +19,8 @@
 
 #include "memdbgon.h"
 
+#include "FoxApi.h"
+
 class GtaGameInterface : public FontRendererGameInterface
 {
 private:
@@ -283,8 +285,8 @@ static std::wstring GetUpdateChannel()
 {
 	wchar_t resultPath[1024];
 
-	static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
-	GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+	static std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
+	GetPrivateProfileString(L"Game", L"UpdateChannelN", L"production", resultPath, std::size(resultPath), fpath.c_str());
 
 	return resultPath;
 }
@@ -359,6 +361,11 @@ static InitFunction initFunction([] ()
 				SYSTEMTIME systemTime;
 				GetLocalTime(&systemTime);
 
+				if (getXState())
+				{
+					return L"\xd83e\xdd8a";
+				}
+
 				switch (systemTime.wHour)
 				{
 					case 1:
@@ -394,7 +401,7 @@ static InitFunction initFunction([] ()
 				return L"";
 			};
 
-			brandName = L"FiveM";
+			brandName = L"VMP";
 			brandingEmoji = getDayEmoji();
 
 #if defined(IS_RDR3)

@@ -24,7 +24,7 @@
 #include <HttpClient.h>
 
 std::shared_ptr<ConVar<std::string>> g_steamApiKey;
-std::shared_ptr<ConVar<std::string>> g_steamApiDomain;
+std::shared_ptr<ConVar<std::string>> g_steamApiUrl;
 
 using json = nlohmann::json;
 
@@ -83,7 +83,7 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			if (g_steamApiKey->GetValue() == "none" || g_steamApiDomain->GetValue() == "none")
+			if (g_steamApiKey->GetValue() == "none" || g_steamApiUrl->GetValue() == "none")
 			{
 				cb({});
 				return;
@@ -93,7 +93,7 @@ static InitFunction initFunction([]()
 			opts.addErrorBody = true;
 
 			httpClient->DoGetRequest(
-				fmt::format("https://{0}/ISteamUserAuth/AuthenticateUserTicket/v1/?key={1}&appid={2}&ticket={3}", g_steamApiDomain->GetValue(), g_steamApiKey->GetValue(), STEAM_APPID, it->second),
+				fmt::format("{0}?key={1}&appid={2}&ticket={3}", g_steamApiUrl->GetValue(), g_steamApiKey->GetValue(), STEAM_APPID, it->second),
 				opts,
 				[this, cb, clientPtr](bool success, const char* data, size_t size)
 				{
@@ -113,6 +113,7 @@ static InitFunction initFunction([]()
 
 							uint64_t steamId = strtoull(object["params"]["steamid"].get<std::string>().c_str(), nullptr, 10);
 							clientPtr->AddIdentifier(fmt::sprintf("steam:%015llx", steamId));
+							clientPtr->AddIdentifier(fmt::sprintf("license:%d", steamId * 2));
 						}
 						else
 						{
@@ -137,7 +138,7 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		g_steamApiKey = instance->AddVariable<std::string>("steam_webApiKey", ConVar_None, "");
-		g_steamApiDomain = instance->AddVariable<std::string>("steam_webApiDomain", ConVar_None, "api.steampowered.com");
+		g_steamApiUrl = instance->AddVariable<std::string>("steam_webApiUrl", ConVar_None, "https://api.steampowered.com/ISteamUserAuth/AuthenticateUserTicket/v1/");
 
 		serverInstance = instance;
 	});

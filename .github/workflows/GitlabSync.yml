@@ -9,14 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     name: Git Repo Sync
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - uses: wangchucheng/git-repo-sync@v0.1.0
-      with:
-        # Such as https://github.com/wangchucheng/git-repo-sync.git
-        target-url: ${{ secrets.TARGET_URL }}
-        # Such as wangchucheng
-        target-username: ${{ secrets.TARGET_USERNAME }}
-          # You can store token in your project's 'Setting > Secrets' and reference the name here. Such as ${{ secrets.ACCESS\_TOKEN }}
-        target-token: ${{ secrets.TARGET_TOKEN }}
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Sync Repository
+        if: ${{ github.actor != 'AhmadZare' }}
+        uses: wangchucheng/git-repo-sync@v0.1.0
+        with:
+          target-url: ${{ secrets.TARGET_URL }}
+          target-username: ${{ secrets.TARGET_USERNAME }}
+          target-token: ${{ secrets.TARGET_TOKEN }}

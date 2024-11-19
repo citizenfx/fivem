@@ -922,8 +922,8 @@ bool IsNonProduction()
 	static auto isProd = ([]()
 	{
 		wchar_t resultPath[1024];
-		static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
-		GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+		static std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
+		GetPrivateProfileString(L"Game", L"UpdateChannelN", L"production", resultPath, std::size(resultPath), fpath.c_str());
 
 		return _wcsicmp(resultPath, L"production") == 0 || _wcsicmp(resultPath, L"prod") == 0;
 	})();

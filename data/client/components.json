@@ -9,6 +9,7 @@
 	"debug:net",
 	"citizen:game:main",
 	"net",
+	"stronghold",
 	"profiles",
 	"steam",
 	"gta:net:five",

@@ -55,7 +55,7 @@ struct InfoHttpHandlerComponentLocals : fwRefCountable
 		ConVar<int>* ivVar;
 
 		InfoData(ServerInstanceBase* instance, ConVar<int>* ivVar)
-			: infoHash(0), infoJson({ { "server", "FXServer-" GIT_DESCRIPTION }, { "enhancedHostSupport", true }, { "resources", {} } }), m_instance(instance), ivVar(ivVar)
+			: infoHash(0), infoJson({ { "server", "VMPServer-" GIT_DESCRIPTION }, { "enhancedHostSupport", true }, { "resources", {} } , { "authVersion", 2 }}), m_instance(instance), ivVar(ivVar)
 		{
 			Update();
 		}
@@ -165,7 +165,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 	ivVar = instance->AddVariable<int>("sv_infoVersion", ConVar_ServerInfo, 0);
 	maxClientsVar = instance->AddVariable<int>("sv_maxClients", ConVar_ServerInfo, 30);
 	iconVar = instance->AddVariable<std::string>("sv_icon", ConVar_Internal, "");
-	versionVar = instance->AddVariable<std::string>("version", ConVar_Internal, "FXServer-" GIT_DESCRIPTION);
+	versionVar = instance->AddVariable<std::string>("version", ConVar_Internal, "VMPServer-" GIT_DESCRIPTION);
 	const char* lastPeriod = strrchr(GIT_TAG, '.');
 	int versionBuildNo = lastPeriod == nullptr ? 0 : strtol(lastPeriod + 1, nullptr, 10);
 	versionBuildNoVar = instance->AddVariable<int>("buildNumber", ConVar_Internal, versionBuildNo);
@@ -482,13 +482,47 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 			
 		if (baseUrl)
 		{
-			console::Printf("profiler", "You can view the recorded profile data at ^4%s?loadTimelineFromURL=https://%s/profileData.json^7 in Chrome (or compatible).\n",
-				fx::ProfilerComponent::GetDevToolsURL(), baseUrl->GetValue());
+			const auto server = instance->GetComponent<fx::GameServer>();
+
+			std::string authentication{};
+
+			if (!server->GetProfileDataToken().empty())
+			{
+				authentication = "?token=" + server->GetProfileDataToken();
+			}
+
+			console::Printf("profiler", "You can view the recorded profile data at ^4%s?loadTimelineFromURL=https://%s/profileData.json%s^7 in Chrome (or compatible).\n",
+				fx::ProfilerComponent::GetDevToolsURL(), baseUrl->GetValue(), authentication.c_str());
 		}
 	});
 
-	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/profileData.json", [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
+	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/profileData.json", [this, instance](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 	{
+		const auto server = instance->GetComponent<fx::GameServer>();
+
+		bool needsAuthorization = !server->GetProfileDataToken().empty();
+		bool authorizedRequest = false;
+
+		if (needsAuthorization)
+		{
+			if (auto path = request->GetPath(); std::string_view{path.data(), path.size()}.rfind("/profileData.json", 0) == 0)
+			{
+				constexpr uint8_t pathLength = net::force_consteval<int, std::string_view("/profileData.json").size()>;
+				skyr::v1::url_search_parameters searchParameters (std::string_view{path.data() + pathLength, path.size() - pathLength});
+				if (auto token = searchParameters.get("token"); token.has_value() && server->GetProfileDataToken() == token.value())
+				{
+					authorizedRequest = true;
+				}
+			}
+
+			if (!authorizedRequest)
+			{
+				response->SetStatusCode(401);
+				response->End("Unauthorized");
+				return;
+			}
+		}
+
 		if (!lastProfile)
 		{
 			response->SetStatusCode(404);

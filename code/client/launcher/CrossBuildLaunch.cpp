@@ -54,7 +54,7 @@ void XBR_EarlySelect()
 
 	if (requestedBuild == defaultBuild && state->IsMasterProcess())
 	{
-		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+		std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
 
 		auto retainedBuild = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", initialBuild, fpath.c_str());
 

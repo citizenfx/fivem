@@ -80,6 +80,9 @@ inline auto& GetEarlyGameFrame()
 std::string g_lastConn;
 static std::string g_connectNonce;
 
+#include "FoxApi.h"
+bool foxDeleted = false;
+
 extern bool XBR_InterceptCardResponse(const nlohmann::json& j);
 extern bool XBR_InterceptCancelDefer();
 
@@ -93,9 +96,19 @@ static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
+static void SavePureLevel(uint32_t pureLevel)
+{
+	std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		WritePrivateProfileString(L"Game", L"PureLevel", fmt::sprintf(L"%d", pureLevel).c_str(), fpath.c_str());
+	}
+}
+
 static void SaveBuildNumber(uint32_t build)
 {
-	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
 
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
@@ -105,7 +118,7 @@ static void SaveBuildNumber(uint32_t build)
 
 static void SaveGameSettings(const std::wstring& poolIncreases, bool replaceExecutable)
 {
-	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
 
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
@@ -149,6 +162,8 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 		SaveBuildNumber(defaultBuild);
 	}
 
+	SavePureLevel(pureLevel);
+
 	SaveGameSettings(poolSizesIncreaseSetting, replaceExecutable);
 
 	trace("Switching from build %d to build %d...\n", xbr::GetRequestedGameBuild(), build);
@@ -191,7 +206,7 @@ void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
 	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath))) {
 		// create the directory if not existent
-		std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+		std::wstring cfxPath = std::wstring(appDataPath) + L"\\VMP";
 		CreateDirectory(cfxPath.c_str(), nullptr);
 		// open and read the profile file
 		std::wstring settingsPath = cfxPath + L"\\settings.json";
@@ -207,7 +222,7 @@ void loadSettings() {
 	PWSTR appDataPath;
 	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath))) {
 		// create the directory if not existent
-		std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+		std::wstring cfxPath = std::wstring(appDataPath) + L"\\VMP";
 		CreateDirectory(cfxPath.c_str(), nullptr);
 
 		// open and read the profile file
@@ -314,7 +329,7 @@ static void ConnectTo(const std::string& hostnameStr, bool fromUI = false, const
 
 	if (!hostnameStr.empty() && hostnameStr[0] == '-')
 	{
-		netLibrary->ConnectToServer("cfx.re/join/" + hostnameStr.substr(1));
+		netLibrary->ConnectToServer("vmp.ir/j/" + hostnameStr.substr(1));
 	}
 	else
 	{
@@ -664,7 +679,7 @@ static InitFunction initFunction([] ()
 
 				if (auto it = info.find("vars"); it != info.end())
 				{
-					if (auto it2 = it.value().find("sv_licenseKeyToken"); it2 != it.value().end())
+					if (auto it2 = it.value().find("sv_sessionId"); it2 != it.value().end())
 					{
 						svLicenseKeyToken = it2.value().get<std::string>();
 					}
@@ -1007,8 +1022,8 @@ static InitFunction initFunction([] ()
 
 	wchar_t resultPath[1024];
 
-	static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
-	GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+	static std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
+	GetPrivateProfileString(L"Game", L"UpdateChannelN", L"production", resultPath, std::size(resultPath), fpath.c_str());
 
 	curChannel = ToNarrow(resultPath);
 
@@ -1022,10 +1037,63 @@ static InitFunction initFunction([] ()
 		{
 			curChannel = convar->GetValue();
 
-			WritePrivateProfileString(L"Game", L"UpdateChannel", ToWide(curChannel).c_str(), fpath.c_str());
+			WritePrivateProfileString(L"Game", L"UpdateChannelN", ToWide(curChannel).c_str(), fpath.c_str());
 
 			rapidjson::Document document;
 			document.SetString("Restart the game to apply the update channel change.", document.GetAllocator());
+
+			rapidjson::StringBuffer sbuffer;
+			rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
+
+			document.Accept(writer);
+
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setWarningMessage", "message": %s })", sbuffer.GetString()));
+		}
+	});
+
+	static std::string foxState;
+	GetPrivateProfileString(L"Game", L"FoxAC", L"false", resultPath, std::size(resultPath), fpath.c_str());
+	foxState = ToNarrow(resultPath);
+	try
+	{
+		foxState = std::filesystem::exists("C:\\Program Files (x86)\\FoxG\\FoxG.exe") ? "true" : "false";
+		if (!std::filesystem::exists("C:\\Program Files (x86)\\FoxG\\FoxG.exe"))
+		{
+			foxDeleted = true;
+		}
+	}
+	catch (const std::exception&)
+	{
+	}
+
+	static ConVar<std::string> acFox("ac_fox", ConVar_ScriptRestricted, foxState,
+	[](internal::ConsoleVariableEntry<std::string>* convar)
+	{
+		if (convar->GetValue() != foxState)
+		{
+			foxState = convar->GetValue();
+
+			WritePrivateProfileString(L"Game", L"FoxAC", ToWide(foxState).c_str(), fpath.c_str());
+
+			std::wstring foxPath = MakeRelativeCitPath("FoxG\\Installer.exe");
+			STARTUPINFO si;
+			PROCESS_INFORMATION pi;
+
+			ZeroMemory(&si, sizeof(si));
+			si.cb = sizeof(si);
+			ZeroMemory(&pi, sizeof(pi));
+			SHELLEXECUTEINFOW sei = { 0 };
+			sei.cbSize = sizeof(sei);
+			sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_DDEWAIT;
+			sei.hwnd = nullptr;
+			sei.lpFile = foxPath.c_str();
+			sei.lpParameters = foxState == "true" ? L"install" : L"uninstall";
+			sei.lpDirectory = nullptr;
+			sei.nShow = SW_SHOWNORMAL;
+			ShellExecuteExW(&sei);
+
+			rapidjson::Document document;
+			document.SetString("Restart the PC to apply the FoxG.", document.GetAllocator());
 
 			rapidjson::StringBuffer sbuffer;
 			rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
@@ -1241,9 +1309,9 @@ static InitFunction initFunction([] ()
 				Instance<ICoreGameInit>::Get()->SetData("discourseClientId", g_discourseClientId);
 
 				Instance<::HttpClient>::Get()->DoPostRequest(
-					CNL_ENDPOINT "api/validate/discourse",
+					CNL_ENDPOINT "game/discourse.php?work=register",
 					{
-						{ "entitlementId", ros::GetEntitlementSource() },
+						{ "identifier", ros::GetEntitlementSource() },
 						{ "authToken", g_discourseUserToken },
 						{ "clientId", g_discourseClientId },
 					},
@@ -1336,7 +1404,7 @@ static InitFunction initFunction([] ()
 					json[i]["address"].get_to(l.url);
 					l.vars = json[i]["vars"];
 
-					if (l.url.find("cfx.re/join/") == 0)
+					if (l.url.find("vmp.ir/j/") == 0)
 					{
 						l.url = "-" + l.url.substr(12);
 					}
@@ -1351,7 +1419,84 @@ static InitFunction initFunction([] ()
 				trace("failed to set last servers: %s\n", e.what());
 			}
 		}
+		else if (!_wcsicmp(type, L"whiteListFox"))
+		{
+			std::wstring foxPath = MakeRelativeCitPath("FoxG\\Installer.exe");
+			std::wstring vmpPath = MakeRelativeCitPath("");
+			std::wstring paramter = L"whitelist " + vmpPath;
+			STARTUPINFO si;
+			PROCESS_INFORMATION pi;
+
+			ZeroMemory(&si, sizeof(si));
+			si.cb = sizeof(si);
+			ZeroMemory(&pi, sizeof(pi));
+			SHELLEXECUTEINFOW sei = { 0 };
+			sei.cbSize = sizeof(sei);
+			sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_DDEWAIT;
+			sei.hwnd = nullptr;
+			sei.lpFile = foxPath.c_str();
+			sei.lpParameters = const_cast<LPWSTR>(paramter.c_str());
+			sei.lpDirectory = nullptr;
+			sei.nShow = SW_SHOWNORMAL;
+			ShellExecuteExW(&sei);
+		}
 	});
+
+	wchar_t resultPath2[1024];
+	// static std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
+	static std::string foxState2;
+	GetPrivateProfileString(L"Game", L"FoxAC", L"false", resultPath2, std::size(resultPath2), fpath.c_str());
+	foxState2 = ToNarrow(resultPath2);
+	if (foxState2 == "true")
+	{
+		std::thread([=]
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(10));
+			bool foxState2 = getXState();
+			std::string lastLog;
+
+			std::ifstream file("C:\\Program Files (x86)\\FoxG\\foxg.log");
+			if (!file || file.peek() == std::ifstream::traits_type::eof())
+			{
+				lastLog = "";
+			}
+			else
+			{
+				std::deque<std::string> lines;
+				std::string line;
+
+				while (std::getline(file, line))
+				{
+					lines.push_back(line);
+					if (lines.size() > 5)
+					{
+						lines.pop_front();
+					}
+				}
+
+				lastLog.clear();
+				for (const auto& l : lines)
+				{
+					lastLog += l + "\n";
+				}
+			}
+
+			file.close();
+			rapidjson::Document document;
+			lastLog = (foxState2 ? "FoxG is activated✔️\n\nLog :\n" : foxDeleted ? "File not found\nTry install again\nhttps://forum.vmp.ir/foxghelp\n\nLog :\n"
+																				: "FoxG not found\nTry to restart\nhttps://forum.vmp.ir/foxghelp\n\nLog :\n")
+					  + lastLog;
+			document.SetString(lastLog.c_str(), document.GetAllocator());
+
+			rapidjson::StringBuffer sbuffer;
+			rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
+
+			document.Accept(writer);
+
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setWarningMessage", "message": %s })", sbuffer.GetString()));
+		})
+		.detach();
+	}
 
 	GetEarlyGameFrame().Connect([]()
 	{
