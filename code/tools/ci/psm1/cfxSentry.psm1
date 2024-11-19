@@ -12,6 +12,11 @@ function Invoke-SentryCreateRelease {
         return
     }
 
+	if (!$env:CFX_SENTRY_FIVEM_REPOSITORY) {
+		$Context.addBuildWarning("Skipping creating sentry release as CFX_SENTRY_FIVEM_REPOSITORY env var is missing")
+		return
+	}
+
     $sentryOrgName = $Context.SentryOrgName
 
     $request = @{
@@ -25,7 +30,7 @@ function Invoke-SentryCreateRelease {
             version  = $Version
             refs     = @(
                 @{
-                    repository = 'citizenfx/fivem'
+                    repository = $env:CFX_SENTRY_FIVEM_REPOSITORY
                     commit     = $Context.GitCommitSHA
                 }
             )
