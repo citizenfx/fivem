@@ -3,6 +3,9 @@
 
 const EXT_FUNCREF = 10;
 const EXT_LOCALFUNCREF = 11;
+const EXT_VECTOR2 = 20;
+const EXT_VECTOR3 = 21;
+const EXT_VECTOR4 = 22;
 
 (function (global) {
 	let boundaryIdx = 1;
@@ -45,6 +48,39 @@ const EXT_LOCALFUNCREF = 11;
 		uint8array: true,
 		preset: false,
 		binarraybuffer: true
+	});
+
+	// Vector2 unpacker
+	codec.addExtUnpacker(EXT_VECTOR2, (data) => {
+		// Converting Uint8Array to Buffer
+		const buffer = Buffer.from(data);
+		// Reading 3 float values from the buffer
+		const x = buffer.readFloatLE(0);
+		const y = buffer.readFloatLE(4);
+		return [x, y];
+	});
+
+	// Vector3 unpacker
+	codec.addExtUnpacker(EXT_VECTOR3, (data) => {
+		// Converting Uint8Array to Buffer
+		const buffer = Buffer.from(data);
+		// Reading 3 float values from the buffer
+		const x = buffer.readFloatLE(0);
+		const y = buffer.readFloatLE(4);
+		const z = buffer.readFloatLE(8);
+		return [x, y, z];
+	});
+
+	// Vector4 unpacker
+	codec.addExtUnpacker(EXT_VECTOR4, (data) => {
+		// Converting Uint8Array to Buffer
+		const buffer = Buffer.from(data);
+		// Reading 3 float values from the buffer
+		const x = buffer.readFloatLE(0);
+		const y = buffer.readFloatLE(4);
+		const z = buffer.readFloatLE(8);
+		const w = buffer.readFloatLE(12);
+		return [x, y, z, w];
 	});
 
 	const pack = data => msgpack.encode(data, { codec });
