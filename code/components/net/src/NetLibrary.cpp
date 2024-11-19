@@ -769,7 +769,7 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 				// so we do super verbose making a record
 
 				skyr::url_record record;
-				record.scheme = "http";
+				record.scheme = "https";
 
 				skyr::url newUri{ std::move(record) };
 				newUri.set_port(uri->port().empty() ? atoi(uri->port().c_str()) : 30120);
@@ -778,12 +778,7 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 				*uri = newUri;
 			}
 
-			if (uri->protocol() == "https:")
-			{
-				uri->set_protocol("http:");
-			}
-
-			if (uri->protocol() == "http:")
+			if (uri->protocol() == "http:" || uri->protocol() == "https:")
 			{
 				co_return uri->href();
 			}
@@ -1158,20 +1153,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						continue;
 					}
 
-					isLegacyDeferral = true;
-
-					OnConnectionProgress(node["status"].get<std::string>(), 5, 100, true);
-
-					static fwMap<fwString, fwString> newMap;
-					newMap["method"] = "getDeferState";
-					newMap["guid"] = va("%lld", GetGUID());
-					newMap["token"] = m_token;
-
-					HttpRequestOptions options;
-					options.streamingCallback = handleAuthResultData;
-					m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(newMap), options, handleAuthResult);
-
-					continue;
+					OnConnectionError("Server is using a outdated deferVersion. Please update the server or contact the server owner.");
+					m_connectionState = CS_IDLE;
+					return true;
 				}
 
 				m_handshakeRequest = {};

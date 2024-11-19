@@ -323,15 +323,14 @@ void ParseArchetypeFile(char* text, size_t length)
 						}
 
 						// assume this is a CBaseModelInfo
-						// TODO: get [mi] from [miPtr]
-						void* miPtr = g_archetypeFactories->Get(1)->GetOrCreate(archetypeDef->name, 1);
+						g_archetypeFactories->Get(1)->AddStorageBlock(archetypeDef->name, 1);
 
-						fwArchetype* mi = g_archetypeFactories->Get(1)->Get(archetypeDef->name);
+						fwArchetype* mi = g_archetypeFactories->Get(1)->CreateBaseItem(archetypeDef->name);
 
 						mi->InitializeFromArchetypeDef(1390, archetypeDef, true);
 
 						// TODO: clean up
-						mi->flags &= ~(1 << 31);
+						mi->streaming = 0;
 
 						// register the archetype in the streaming module
 						registerArchetype(mi);
@@ -401,7 +400,7 @@ void ParseArchetypeFile(char* text, size_t length)
 					}
 
 					rage::fwModelId modelId;
-					fwArchetype* archetype = rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(archetypeHash, modelId);
+					fwArchetype* archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(archetypeHash, modelId);
 
 					if (archetype)
 					{
