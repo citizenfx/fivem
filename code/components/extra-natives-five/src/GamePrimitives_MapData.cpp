@@ -595,7 +595,7 @@ static void rage__fwEntity__InitExtensionsFromDefinition(rage::fwEntity* entity,
 			auto extensionIdx = rage__fwMapData__GetExtensionFactory(extensionParser->m_nameHash);
 			auto factory = (*rage__fwFactoryManager_rage__fwExtension___ms_Factories)[extensionIdx];
 
-			if (auto extension = factory->Get(ownerHash))
+			if (auto extension = factory->CreateBaseItem(ownerHash))
 			{
 				extension->InitEntityExtensionFromDefinition(extensionDef, entity);
 				entity->AddExtension(extension);

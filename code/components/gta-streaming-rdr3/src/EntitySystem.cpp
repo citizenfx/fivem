@@ -22,15 +22,3 @@ fwArchetype* rage::fwArchetypeManager::GetArchetypeFromHashKey(uint32_t hash, fw
 {
 	return getArchetype(hash, id);
 }
-
-fwArchetype* rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(uint32_t hash, fwModelId& id)
-{
-	__try
-	{
-		return getArchetype(hash, id);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		return nullptr;
-	}
-}

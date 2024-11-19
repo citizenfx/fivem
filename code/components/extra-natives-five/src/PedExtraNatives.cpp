@@ -101,6 +101,19 @@ static CPedHeadBlendData* GetPedHeadBlendData(fwEntity* entity)
 	return nullptr;
 }
 
+static fwArchetype* GetPedModel(uint32_t pedModel)
+{
+	rage::fwModelId index;
+	auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
+
+	if (archetype && static_cast<CBaseModelInfo*>(archetype)->miType == 6)
+	{
+		return archetype;
+	}
+
+	return nullptr;
+}
+
 static HookFunction initFunction([]()
 {
 	_id_CPedHeadBlendData = hook::get_address<uint64_t*>(hook::get_pattern("48 39 5E 38 74 1B 8B 15 ? ? ? ? 48 8D 4F 10 E8", 8));
@@ -258,15 +271,15 @@ static HookFunction initFunction([]()
 	static std::map<uint32_t, uint16_t> initialPersonalities;
 	static std::list<std::tuple<uint32_t, uint16_t>> undoPersonalities;
 
+	
 	OnKillNetworkDone.Connect([]()
 	{
 		for (auto& [pedModel, personality] : undoPersonalities)
 		{
-			rage::fwModelId index;
-			auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
+			auto archetype = GetPedModel(pedModel);
 
 			// if is ped
-			if (archetype && archetype->miType == 6)
+			if (archetype)
 			{
 				*(uint16_t*)((char*)archetype + 0x14A) = personality;
 			}
@@ -280,11 +293,10 @@ static HookFunction initFunction([]()
 		auto pedModel = context.GetArgument<uint32_t>(0);
 		auto personality = context.GetArgument<uint32_t>(1);
 
-		rage::fwModelId index;
-		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
+		auto archetype = GetPedModel(pedModel);
 
 		// if is ped
-		if (archetype && archetype->miType == 6)
+		if (archetype)
 		{
 			auto index = _getPedPersonalityIndex(personality);
 
@@ -307,11 +319,10 @@ static HookFunction initFunction([]()
 	{
 		auto pedModel = context.GetArgument<uint32_t>(0);
 
-		rage::fwModelId index;
-		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
+		auto archetype = GetPedModel(pedModel);
 
 		// if is ped
-		if (archetype && archetype->miType == 6)
+		if (archetype)
 		{
 			if (auto it = initialPersonalities.find(pedModel); it != initialPersonalities.end())
 			{
@@ -324,13 +335,12 @@ static HookFunction initFunction([]()
 	{
 		auto pedModel = context.GetArgument<uint32_t>(0);
 
-		rage::fwModelId index;
-		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
+		auto archetype = GetPedModel(pedModel);
 
 		uint32_t result = 0;
 
 		// if is ped
-		if (archetype && archetype->miType == 6)
+		if (archetype)
 		{
 			auto index = *(uint16_t*)((char*)archetype + 0x14A);
 			if (index < g_pedPersonalities->GetCount())
