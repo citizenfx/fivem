@@ -90,7 +90,7 @@ static HookFunction initFunction([]()
 					Instance<::HttpClient>::Get()->DoPostRequest(
 						CNL_ENDPOINT "game/discord.php?work=validate",
 						{
-							{ "identifier", ros::GetEntitlementSource() },
+							{ "identifier", ros::GetApiIdentifier() },
 							{ "userId", userId }
 						},
 						[writePipe, closeConnection](bool success, const char* data, size_t length)
@@ -131,7 +131,7 @@ static HookFunction initFunction([]()
 							Instance<::HttpClient>::Get()->DoPostRequest(
 								CNL_ENDPOINT "game/discord.php?work=register",
 								{
-									{ "identifier", ros::GetEntitlementSource() },
+									{ "identifier", ros::GetApiIdentifier() },
 									{ "authCode", code },
 									{ "userId", userId },
 									{ "v", "2" },
