@@ -13,6 +13,8 @@
 #include <ICoreGameInit.h>
 #include <CrossBuildRuntime.h>
 
+DWORD g_mainThreadId;
+
 fwEvent<> OnLookAliveFrame;
 fwEvent<> OnEarlyGameFrame;
 fwEvent<> OnGameFrame;
@@ -64,7 +66,6 @@ static uint32_t g_lastCriticalFrame;
 static std::mutex g_gameFrameMutex;
 static std::mutex g_earlyGameFrameMutex;
 static std::mutex g_criticalFrameMutex;
-static DWORD g_mainThreadId;
 static bool g_executedOnMainThread;
 
 // NOTE: depends indirectly on GameProfiling.cpp in gta:core!
