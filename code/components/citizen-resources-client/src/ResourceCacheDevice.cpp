@@ -269,7 +269,7 @@ void ResourceCacheDevice::EnsureDeferredOpen(THandle handle, HandleData* handleD
 	}
 }
 
-ResourceCacheDevice::THandle ResourceCacheDevice::Open(const std::string& fileName, bool readOnly)
+ResourceCacheDevice::THandle ResourceCacheDevice::Open(const std::string& fileName, bool readOnly, bool append)
 {
 	// this is a read-only device
 	if (!readOnly)
@@ -968,9 +968,19 @@ bool ResourceCacheDevice::ExtensionCtl(int controlIdx, void* controlData, size_t
 	return false;
 }
 
+std::string ResourceCacheDevice::GetAbsolutePath() const
+{
+	return "";
+}
+
 void ResourceCacheDevice::SetPathPrefix(const std::string& pathPrefix)
 {
 	m_pathPrefix = pathPrefix;
+}
+
+bool ResourceCacheDevice::Flush(THandle handle)
+{
+	return true;
 }
 
 void ResourceCacheEntryList::AttachToObject(fx::Resource* resource)

@@ -12,9 +12,15 @@
 
 namespace vfs
 {
-Device::THandle LocalDevice::Open(const std::string& fileName, bool readOnly)
+Device::THandle LocalDevice::Open(const std::string& fileName, bool readOnly, bool append)
 {
-	int fd = open(fileName.c_str(), (readOnly) ? O_RDONLY : O_RDWR);
+	int flags = (readOnly) ? O_RDONLY : O_RDWR;
+	if (append && !readOnly)
+	{
+		flags |= O_APPEND;
+	}
+
+	int fd = open(fileName.c_str(), flags);
 
 	if (fd < 0)
 	{
@@ -30,9 +36,21 @@ Device::THandle LocalDevice::OpenBulk(const std::string& fileName, uint64_t* ptr
 	return Open(fileName, true);
 }
 
-Device::THandle LocalDevice::Create(const std::string& filename)
+Device::THandle LocalDevice::Create(const std::string& filename, bool createIfExists, bool append)
 {
-	int fd = creat(filename.c_str(), 0755);
+	mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
+	int flags = O_CREAT;	
+	if (createIfExists)
+	{
+		flags |= O_TRUNC;
+	}
+
+	if (append)
+	{
+		flags |= O_APPEND;
+	}
+
+	int fd = open(filename.c_str(), flags, mode);
 
 	if (fd < 0)
 	{
@@ -266,6 +284,11 @@ bool LocalDevice::ExtensionCtl(int controlIdx, void* controlData, size_t control
 	}
 
 	return false;
+}
+
+bool LocalDevice::Flush(THandle handle)
+{
+	return fsync(static_cast<int>(handle)) == 0;
 }
 }
 

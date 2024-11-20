@@ -15,7 +15,7 @@ auto Device::OpenBulk(const std::string& fileName, uint64_t* ptr) -> THandle
 	return INVALID_DEVICE_HANDLE;
 }
 
-auto Device::Create(const std::string& filename) -> THandle
+auto Device::Create(const std::string& filename, bool createIfExists, bool append) -> THandle
 {
 	return INVALID_DEVICE_HANDLE;
 }
@@ -113,5 +113,10 @@ void Device::SetPathPrefix(const std::string& pathPrefix)
 bool Device::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
 {
 	return false;
+}
+
+bool Device::Flush(THandle handle)
+{
+	return false;	
 }
 }

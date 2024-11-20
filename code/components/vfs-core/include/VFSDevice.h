@@ -39,11 +39,11 @@ public:
 	static const THandle InvalidHandle = -1;
 
 public:
-	virtual THandle Open(const std::string& fileName, bool readOnly) = 0;
+	virtual THandle Open(const std::string& fileName, bool readOnly, bool append = false) = 0;
 
 	virtual THandle OpenBulk(const std::string& fileName, uint64_t* ptr);
 
-	virtual THandle Create(const std::string& filename);
+	virtual THandle Create(const std::string& filename, bool createIfExists = true, bool append = false);
 
 	virtual size_t Read(THandle handle, void* outBuffer, size_t size) = 0;
 
@@ -84,6 +84,10 @@ public:
 	virtual void SetPathPrefix(const std::string& pathPrefix);
 
 	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize);
+
+	virtual std::string GetAbsolutePath() const = 0;
+
+	virtual bool Flush(THandle handle) = 0;
 };
 
 #define VFS_FLUSH_BUFFERS 0x10001

@@ -7,11 +7,11 @@ namespace vfs
 class LocalDevice : public Device
 {
 public:
-	virtual THandle Open(const std::string& fileName, bool readOnly) override;
+	virtual THandle Open(const std::string& fileName, bool readOnly, bool append = false) override;
 
 	virtual THandle OpenBulk(const std::string& fileName, uint64_t* ptr) override;
 
-	virtual THandle Create(const std::string& filename) override;
+	virtual THandle Create(const std::string& filename, bool createIfExists = true, bool append = false) override;
 
 	virtual size_t Read(THandle handle, void* outBuffer, size_t size) override;
 
@@ -48,5 +48,12 @@ public:
 	virtual uint32_t GetAttributes(const std::string& filename) override;
 
 	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
+
+	virtual std::string GetAbsolutePath() const override
+	{
+		return {};
+	}
+
+	bool Flush(THandle handle) override;
 };
 }

@@ -68,7 +68,7 @@ public:
 		return m_parentDevice->OpenBulk(fn, ptr);
 	}
 
-	virtual THandle Open(const std::string & fileName, bool readOnly) override
+	virtual THandle Open(const std::string & fileName, bool readOnly, bool append = false) override
 	{
 		auto fn = MapFileName(fileName);
 
@@ -77,7 +77,7 @@ public:
 			return InvalidHandle;
 		}
 
-		return m_parentDevice->Open(fn, readOnly);
+		return m_parentDevice->Open(fn, readOnly, append);
 	}
 
 	virtual size_t ReadBulk(THandle handle, uint64_t ptr, void* outBuffer, size_t size) override
@@ -153,6 +153,10 @@ public:
 	bool ShouldMountCommon();
 
 	bool ShouldMountPlatform();
+
+	std::string GetAbsolutePath() const override;
+
+	bool Flush(THandle handle) override;
 
 private:
 	std::string MapFileName(const std::string& fn);
@@ -239,6 +243,16 @@ bool ModVFSDevice::ShouldMountCommon()
 }
 
 bool ModVFSDevice::ShouldMountPlatform()
+{
+	return true;
+}
+
+std::string ModVFSDevice::GetAbsolutePath() const
+{
+	return "";
+}
+
+bool ModVFSDevice::Flush(THandle handle)
 {
 	return true;
 }

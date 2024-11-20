@@ -312,11 +312,11 @@ private:
 public:
 	RageVFSDevice(rage::fiDevice* device);
 
-	virtual THandle Open(const std::string& fileName, bool readOnly) override;
+	virtual THandle Open(const std::string& fileName, bool readOnly, bool append = false) override;
 
 	virtual THandle OpenBulk(const std::string& fileName, uint64_t* ptr) override;
 
-	virtual THandle Create(const std::string& filename) override;
+	virtual THandle Create(const std::string& filename, bool createIfExists = true, bool append = false) override;
 
 	virtual size_t Read(THandle handle, void* outBuffer, size_t size) override;
 
@@ -355,6 +355,13 @@ public:
 	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
 
 	bool IsCollection();
+
+	std::string GetAbsolutePath() const override
+	{
+		return "";
+	}
+
+	bool Flush(THandle handle) override;
 };
 
 RageVFSDevice::RageVFSDevice(rage::fiDevice* device)
@@ -382,7 +389,7 @@ static std::enable_if_t<(sizeof(size_t) > sizeof(T)), size_t> WrapInt(T value)
 	return static_cast<size_t>(value);
 }
 
-THandle RageVFSDevice::Open(const std::string& fileName, bool readOnly)
+THandle RageVFSDevice::Open(const std::string& fileName, bool readOnly, bool append)
 {
 	return m_device->Open(fileName.substr(m_pathPrefixLength).c_str(), readOnly);
 }
@@ -392,7 +399,7 @@ THandle RageVFSDevice::OpenBulk(const std::string& fileName, uint64_t* ptr)
 	return m_device->OpenBulk(fileName.substr(m_pathPrefixLength).c_str(), ptr);
 }
 
-THandle RageVFSDevice::Create(const std::string& filename)
+THandle RageVFSDevice::Create(const std::string& filename, bool createIfExists, bool append)
 {
 	return m_device->Create(filename.substr(m_pathPrefixLength).c_str());
 }
@@ -544,6 +551,11 @@ bool RageVFSDevice::ExtensionCtl(int controlIdx, void* controlData, size_t contr
 	return false;
 }
 
+bool RageVFSDevice::Flush(THandle handle)
+{
+	return true;
+}
+
 #ifndef GTA_NY
 bool RageVFSDeviceAdapter::IsCollection()
 {
@@ -588,6 +600,11 @@ private:
 
 public:
 	virtual fwRefContainer<vfs::Device> GetDevice(const std::string& path) override;
+
+	virtual fwRefContainer<vfs::Device> FindDevice(const std::string& absolutePath, std::string& transformedPath) override
+	{
+		return nullptr;
+	}
 
 	virtual fwRefContainer<vfs::Device> GetNativeDevice(void* nativeDevice) override;
 
