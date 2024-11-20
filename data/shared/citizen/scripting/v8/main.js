@@ -50,38 +50,15 @@ const EXT_VECTOR4 = 22;
 		binarraybuffer: true
 	});
 
+	// Unpack a msgpack buffer into an array of vector components with preserved precision
+	const vectorUnpacker = (data => Array.from(new Float32Array(data.buffer), (v) => Number(v.toPrecision(7))));
+
 	// Vector2 unpacker
-	codec.addExtUnpacker(EXT_VECTOR2, (data) => {
-		// Converting Uint8Array to Buffer
-		const buffer = Buffer.from(data);
-		// Reading 3 float values from the buffer
-		const x = buffer.readFloatLE(0);
-		const y = buffer.readFloatLE(4);
-		return [x, y];
-	});
-
+	codec.addExtUnpacker(EXT_VECTOR2, vectorUnpacker);
 	// Vector3 unpacker
-	codec.addExtUnpacker(EXT_VECTOR3, (data) => {
-		// Converting Uint8Array to Buffer
-		const buffer = Buffer.from(data);
-		// Reading 3 float values from the buffer
-		const x = buffer.readFloatLE(0);
-		const y = buffer.readFloatLE(4);
-		const z = buffer.readFloatLE(8);
-		return [x, y, z];
-	});
-
+	codec.addExtUnpacker(EXT_VECTOR3, vectorUnpacker);
 	// Vector4 unpacker
-	codec.addExtUnpacker(EXT_VECTOR4, (data) => {
-		// Converting Uint8Array to Buffer
-		const buffer = Buffer.from(data);
-		// Reading 3 float values from the buffer
-		const x = buffer.readFloatLE(0);
-		const y = buffer.readFloatLE(4);
-		const z = buffer.readFloatLE(8);
-		const w = buffer.readFloatLE(12);
-		return [x, y, z, w];
-	});
+	codec.addExtUnpacker(EXT_VECTOR4, vectorUnpacker);
 
 	const pack = data => msgpack.encode(data, { codec });
 	const unpack = data => msgpack.decode(data, { codec });
