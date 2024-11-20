@@ -184,6 +184,11 @@ void WaitForRlInit()
 				SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appdataPath);
 
 				_wunlink(va(L"%s\\VMP\\ros_id%s.dat", appdataPath, IsCL2() ? L"CL2" : L""));
+
+				PWSTR appDataPathLocal;
+				HRESULT hr = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &appDataPathLocal);
+
+				_wunlink(va(L"%s\\VMPEntitlements\\38d8f400-aa8a-4784-a9f0-26a08628577e", appDataPathLocal));
 			}
 
 			FatalError("Took too long in WaitForRlInit\nWaiting for R* SC SDK initialization took too long. Please restart your game and try again.\n\nIf this issue reoccurs, there might be a problem with cached entitlement tickets.");
