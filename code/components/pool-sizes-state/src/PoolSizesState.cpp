@@ -10,9 +10,12 @@
 #include "PoolSizesState.h"
 
 #include "CoreConsole.h"
-#include "Error.h"
 #include "HttpClient.h"
 #include "Utils.h"
+
+#ifndef IS_FXSERVER
+#include "Error.h"
+#endif
 
 #include <json.hpp>
 
@@ -113,7 +116,9 @@ namespace fx
 				validationError.value()
 			);
 
+#ifndef IS_FXSERVER
 			AddCrashometry("invalid_pool_size_increase_used", "%s: %d", poolName, sizeIncrease);
+#endif
 		}
 
 		return std::nullopt;
