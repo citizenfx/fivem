@@ -8,6 +8,8 @@
 
 #include <ICoreGameInit.h>
 
+extern void ValidateHeaps();
+
 static std::unordered_map<uint32_t, std::string> g_initFunctionNames;
 
 // rage::strStreamingEngine::ms_bIsPerformingAsyncInit
@@ -88,6 +90,8 @@ namespace rage
 
 	void gameSkeleton::RunInitFunctions(InitFunctionType type)
 	{
+		ValidateHeaps();
+
 		trace(__FUNCTION__ ": Running %s init functions\n", InitFunctionTypeToString(type));
 
 		OnInitFunctionStart(type);
@@ -109,6 +113,8 @@ namespace rage
 					{
 						for (int index : entry->functions)
 						{
+							ValidateHeaps();
+
 							auto func = m_initFunctions[index];
 
 							bool isAsync = (func.asyncInitMask & type) != 0;
@@ -134,6 +140,8 @@ namespace rage
 							OnInitFunctionInvoked(type, func);
 
 							++i;
+
+							ValidateHeaps();
 						}
 					}
 
@@ -145,6 +153,8 @@ namespace rage
 		}
 
 		OnInitFunctionEnd(type);
+
+		ValidateHeaps();
 
 		trace(__FUNCTION__ ": Done running %s init functions!\n", InitFunctionTypeToString(type));
 	}

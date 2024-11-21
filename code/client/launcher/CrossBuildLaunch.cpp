@@ -6,6 +6,8 @@
 #define XBR_BUILDS_ONLY
 #include <CrossBuildRuntime.h>
 
+#include <shellapi.h>
+
 void XBR_EarlySelect()
 {
 	uint32_t defaultBuild =
@@ -38,28 +40,34 @@ void XBR_EarlySelect()
 #undef EXPAND
 	};
 
-	uint32_t requestedBuild = defaultBuild;
+	bool buildFlagFound = false;
 
 	auto state = CfxState::Get();
 	const auto realCli = (state->initCommandLine[0]) ? state->initCommandLine : GetCommandLineW();
 
-	for (uint32_t build : builds)
+	int argc;
+	wchar_t** wargv = CommandLineToArgvW(realCli, &argc);
+	for (int i = 1; i < argc; i++)
 	{
-		if (wcsstr(realCli, fmt::sprintf(L"b%d", build).c_str()) != nullptr)
+		std::wstring_view arg = wargv[i];
+
+		for (uint32_t build : builds)
 		{
-			requestedBuild = build;
-			break;
+			if (arg == fmt::sprintf(L"-b%d", build).c_str())
+			{
+				buildFlagFound = true;
+				break;
+			}
 		}
 	}
 
-	if (requestedBuild == defaultBuild && state->IsMasterProcess())
+	if (!buildFlagFound && state->IsMasterProcess())
 	{
 		std::wstring fpath = MakeRelativeCitPath(L"VMP.ini");
-
 		auto retainedBuild = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", initialBuild, fpath.c_str());
 
-		// wcsstr is in case we have a `b1604` argument e.g. and we therefore want to ignore the saved build
-		if (retainedBuild != defaultBuild && !wcsstr(realCli, va(L"b%d", defaultBuild)))
+		// If there is no explicit build flag and retained build is not default - add flag to command line.
+		if (retainedBuild != defaultBuild)
 		{
 			wcscat(state->initCommandLine, va(L" -b%d", retainedBuild));
 		}

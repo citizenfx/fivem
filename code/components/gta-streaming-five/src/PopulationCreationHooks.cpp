@@ -54,7 +54,7 @@ static void* CreatePopulationPedWrap(uint16_t a1, int a2, const char* sourceName
 	if (creationState.model != modelHash)
 	{
 		rage::fwModelId idx{ mi };
-		rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(creationState.model, idx);
+		rage::fwArchetypeManager::GetArchetypeFromHashKey(creationState.model, idx);
 
 		uint32_t at = idx.value;
 		if (!hasModelLoaded(&at))

@@ -1311,7 +1311,7 @@ static InitFunction initFunction([] ()
 				Instance<::HttpClient>::Get()->DoPostRequest(
 					CNL_ENDPOINT "game/discourse.php?work=register",
 					{
-						{ "identifier", ros::GetEntitlementSource() },
+						{ "identifier", ros::GetApiIdentifier() },
 						{ "authToken", g_discourseUserToken },
 						{ "clientId", g_discourseClientId },
 					},
