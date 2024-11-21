@@ -1757,6 +1757,8 @@ static hook::cdecl_stub<void(int, const char*)> initGfxTexture([]()
 });
 #endif
 
+std::unordered_map<std::string, int> g_resourceStats;
+
 static void LoadStreamingFiles(LoadType loadType)
 {
 	auto cstreaming = streaming::Manager::GetInstance();
@@ -1834,6 +1836,8 @@ static void LoadStreamingFiles(LoadType loadType)
 			it = g_customStreamingFiles.erase(it);
 			continue;
 		}
+
+		g_resourceStats[ext]++;
 
 		// this may get used on unloading
 		if (baseName == "busy_spinner.gfx")
@@ -2884,6 +2888,8 @@ static void SafelyDrainStreamer()
 	_unloadTextureLODs();
 
 	trace("Shutdown: streamer tasks done\n");
+
+	g_resourceStats.clear();
 }
 
 #ifdef GTA_FIVE
@@ -3276,7 +3282,13 @@ void* chunkyArrayAppend(hook::FlexStruct* self)
 	const int32_t loadedEntriesCount = self->Get<int32_t>(chunkyArrayCountOffset);
 	if (loadedEntriesCount >= 0xFFFF)
 	{
-		FatalError("ERR_STR_FAILURE: trying to add more assets to pgRawStreamer when it's already full (65535)."); 
+		std::stringstream ss;
+		for (auto& [ext, num] : g_resourceStats)
+		{
+			ss << ext << ": " << num << ", ";
+		}
+		AddCrashometry("asset_stats", ss.str());
+		FatalError("ERR_STR_FAILURE: trying to add more assets to pgRawStreamer when it's already full (65535).");
 	}
 
 	return g_chunkyArrayAppend(self);
