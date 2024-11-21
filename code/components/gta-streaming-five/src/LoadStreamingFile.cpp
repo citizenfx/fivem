@@ -3461,15 +3461,6 @@ static void CleanupStreaming()
 	g_unloadingCfx = false;
 }
 
-#ifdef GTA_FIVE
-static void (*g_origActionEventsOnGameDestruction)();
-static void VideoEditorActionEventsOnGameDestruction()
-{
-	CleanupStreaming();
-	g_origActionEventsOnGameDestruction();
-}
-#endif
-
 static HookFunction hookFunction([]()
 {
 #ifdef GTA_FIVE
@@ -3859,16 +3850,6 @@ static HookFunction hookFunction([]()
 		hook::set_call(&g_origAddMapBoolEntry, location);
 		hook::call(location, WrapAddMapBoolEntry);
 	}
-
-#ifdef GTA_FIVE
-	// Cleanup streaming entities when loading a new clip in video editor.
-	// Use the same logic as we do on game disconnect.
-	{
-		auto loc = hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? E8 ? ? ? ? 8B D3");
-		hook::set_call(&g_origActionEventsOnGameDestruction, loc);
-		hook::call(loc, VideoEditorActionEventsOnGameDestruction);
-	}
-#endif
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("45 8B E8 4C 8B F1 83 FA FF 0F 84", -0x18), fwStaticBoundsStore__ModifyHierarchyStatus, (void**)&g_orig_fwStaticBoundsStore__ModifyHierarchyStatus);
