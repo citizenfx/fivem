@@ -34,7 +34,7 @@ static void BlockForbiddenNatives()
 		{
 			if (rage::scrEngine::GetStoryMode())
 			{
-				(*origHandler)(ctx);
+				origHandler(ctx);
 			}
 			else
 			{
