@@ -21,6 +21,8 @@ namespace fx
 
 		static std::unordered_map<std::string, uint32_t> sizeIncrease;
 
+		static std::optional<std::string> ValidateImpl(const std::string& poolName, uint32_t sizeIncrease);
+
 	public:
 #ifndef IS_FXSERVER
 		static void FetchIncreaseRequest();
