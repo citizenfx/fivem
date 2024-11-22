@@ -350,6 +350,8 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	}
 #endif
 
+	_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
+
 	FILE* cachesReader = NULL;
 	
 	if (!shouldVerify)
