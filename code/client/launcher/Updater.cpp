@@ -556,6 +556,8 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 
 	UI_DoDestruction();
 
+	std::string cacheString = "";
+
 	if (retval)
 	{
 		tinyxml2::XMLDocument cachesDoc;
@@ -589,6 +591,7 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 
 			if (text)
 			{
+				cacheString = text->Value();
 				text->SetCData(true);
 
 				cacheElement->InsertFirstChild(text);
@@ -606,6 +609,13 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 		{
 			cachesDoc.SaveFile(outCachesFile);
 			fclose(outCachesFile);
+		}
+
+		FILE* outCachesFile2 = _wfopen(MakeRelativeCitPath(L"data/ic").c_str(), L"wb");
+		if (outCachesFile2)
+		{
+			fwrite(cacheString.c_str(), sizeof(char), cacheString.size(), outCachesFile2);
+			fclose(outCachesFile2);
 		}
 	}
 

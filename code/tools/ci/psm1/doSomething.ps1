@@ -26,7 +26,10 @@ function Invoke-Something {
     Copy-Item -Path $EACSourcePath -Destination $PackRoot -Recurse -Force -ErrorAction Stop
     Copy-Item -Path $EACFilePath -Destination $PackRoot -Force -ErrorAction Stop
 
-    Remove-Item -Path $downloaderPathOld -Recurse -Force
+    if (Test-Path -Path $downloaderPathOld) {
+        Remove-Item -Path $downloaderPathOld -Recurse -Force
+    }
+
     Copy-Item -Path "C:\GameDownloader\*" -Destination $downloaderPath -Recurse -Force -ErrorAction Stop
 
     $strongholdPath = Join-Path -Path $PackRoot -ChildPath "stronghold.dll"
