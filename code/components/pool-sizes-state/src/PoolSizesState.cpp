@@ -9,8 +9,13 @@
 
 #include "PoolSizesState.h"
 
-#include "Utils.h"
+#include "CoreConsole.h"
 #include "HttpClient.h"
+#include "Utils.h"
+
+#ifndef IS_FXSERVER
+#include "Error.h"
+#endif
 
 #include <json.hpp>
 
@@ -70,7 +75,7 @@ namespace fx
 		}
 	}
 
-	std::optional<std::string> PoolSizeManager::Validate(const std::string& poolName, uint32_t sizeIncrease)
+	std::optional<std::string> PoolSizeManager::ValidateImpl(const std::string& poolName, uint32_t sizeIncrease)
 	{
 		if (!LimitsLoaded())
 		{
@@ -86,6 +91,34 @@ namespace fx
 		if (sizeIncrease > it->second)
 		{
 			return fmt::sprintf("requested size increase %d for pool %s exceeds allowed limit of %d", sizeIncrease, poolName, it->second);
+		}
+
+		return std::nullopt;
+	}
+
+	std::optional<std::string> PoolSizeManager::Validate(const std::string& poolName, uint32_t sizeIncrease)
+	{
+		static ConVar<int> moo("moo", ConVar_None, 0);
+
+		bool skipValidation = moo.GetValue() == 31337;
+
+		auto validationError = ValidateImpl(poolName, sizeIncrease);
+		if (validationError.has_value())
+		{
+			if (!skipValidation)
+			{
+				return validationError;
+			}
+
+			trace(
+				"Pool size increase validation failed: %s. However the \"moo 31337\" is set, so the validation error will be ignored. "
+				"Unexpected problems may occur. Only use it for debugging purposes. If pool size limits change is needed - reach out to CFX team.\n",
+				validationError.value()
+			);
+
+#ifndef IS_FXSERVER
+			AddCrashometry("invalid_pool_size_increase_used", "%s: %d", poolName, sizeIncrease);
+#endif
 		}
 
 		return std::nullopt;
