@@ -4,6 +4,8 @@
 #include <Hooking.Stubs.h>
 #include <Hooking.FlexStruct.h>
 
+#include <jitasm.h>
+
 uint32_t taskEntityOffset = 0;
 uint32_t dynamicEntityComponentOffset = 0;
 uint32_t animDirectorOffset = 0;
@@ -69,4 +71,49 @@ static HookFunction hookFunction([]
 
 	parachuteObjectOffset = *hook::get_pattern<uint32_t>("48 8B 81 ? ? ? ? 48 8B D9 48 85 C0 74 ? 48 8B 40 ? 48 8B 78", 3);
 	drawHandlerOffset = *hook::get_pattern<uint8_t>("48 8B 40 ? 48 8B 78", 3);
+
+	// Vehicle shader type checks for fragments using vehicle models
+	{
+		static struct : jitasm::Frontend
+		{
+			intptr_t retSuccess;
+			intptr_t retFail;
+
+			void Init(intptr_t success, intptr_t fail)
+			{
+				this->retSuccess = success;
+				this->retFail = fail;
+			}
+
+			void InternalMain() override
+			{
+				cmp(byte_ptr[rbp + 0x0C8], 0);		//    if ( *(rbp + 0x0C8) )
+				jz("fail");							//    {
+													//
+				mov(rax, qword_ptr[rsi + 0x20]);	//        void* shader = *(rsi + 0x20);;
+													//
+				mov(al, byte_ptr[rax + 0xA]);		//
+				and(al, 0xF);						//
+				cmp(al, 3);							//        if ( ((shader + 0xA) & 0xF) == 3 /* vehicle */ )
+				jz("fail");							//        {
+													//
+				mov(rax, retSuccess);				//
+				jmp(rax);							//            [run original code]
+													//
+				L("fail");							//        }
+				mov(rax, retFail);					//
+				jmp(rax);							//
+			}
+		} patchStub;
+
+		auto location = hook::get_pattern<char>("80 BD ? ? ? ? ? 0F 84 ? ? ? ? 48 8B 5E");
+
+		const auto success = reinterpret_cast<intptr_t>(location) + 13;
+		const auto fail = success + *reinterpret_cast<uint32_t*>(location + 9);
+
+		patchStub.Init(success, fail);
+
+		hook::nop(location, 7);
+		hook::jump(location, patchStub.GetCode());
+	}
 });
