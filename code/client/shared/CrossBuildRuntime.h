@@ -192,6 +192,18 @@ inline bool IsGameBuild()
 	return GetGameBuild() == Build;
 }
 
+template<int Build>
+inline bool IsRequestedGameBuildOrGreater()
+{
+	return GetRequestedGameBuild() >= Build;
+}
+
+template<int Build>
+inline bool IsRequestedGameBuild()
+{
+	return GetRequestedGameBuild() == Build;
+}
+
 inline bool IsSupportedGameBuild(uint32_t targetBuild)
 {
 	switch (targetBuild)
