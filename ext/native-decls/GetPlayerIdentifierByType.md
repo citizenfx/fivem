@@ -9,6 +9,7 @@ char* GET_PLAYER_IDENTIFIER_BY_TYPE(char* playerSrc, char* identifierType);
 ```
 
 Get an identifier from a player by the type of the identifier.
+Known [Identifiers](https://docs.fivem.net/docs/scripting-reference/runtimes/lua/functions/GetPlayerIdentifiers/#identifier-types)
 
 ## Parameters
 
