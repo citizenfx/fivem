@@ -17,7 +17,7 @@ using ContextType = CitizenFX.Core.fxScriptContext;
 
 namespace CitizenFX.Core
 {
-	public static class ScriptContext
+	internal static class ScriptContext
 	{
 		private static readonly ConcurrentQueue<Action> ms_finalizers = new ConcurrentQueue<Action>();
 
@@ -55,7 +55,7 @@ namespace CitizenFX.Core
 		}
 
 		[SecuritySafeCritical]
-		public static void Push(object arg)
+		internal static void Push(object arg)
 		{
 			PushInternal(arg);
 		}
@@ -219,13 +219,13 @@ namespace CitizenFX.Core
 		}
 
 		[SecuritySafeCritical]
-		public static T GetResult<T>()
+		internal static T GetResult<T>()
 		{
 			return (T)GetResult(typeof(T));
 		}
 
 		[SecuritySafeCritical]
-		public static object GetResult(Type type)
+		internal static object GetResult(Type type)
 		{
 			return GetResultHelper(type);
 		}
@@ -313,7 +313,7 @@ namespace CitizenFX.Core
 
 			return null;
 		}
-		
+
 		[SecurityCritical]
 		private static unsafe object GetResultInternal(Type type, byte* ptr)
 		{
@@ -464,7 +464,7 @@ namespace CitizenFX.Core
 			uint result = 0;
 			long a1 = (long)cxt;
 
-			for (; *(uint*)(a1 + 24) != 0; *(uint*)(*(ulong*)(a1 + 8 * *(int *)(a1 + 24) + 32) + 16) = result)
+			for (; *(uint*)(a1 + 24) != 0; *(uint*)(*(ulong*)(a1 + 8 * *(int*)(a1 + 24) + 32) + 16) = result)
 			{
 				--*(uint*)(a1 + 24);
 				**(uint**)(a1 + 8 * *(int*)(a1 + 24) + 32) = *(uint*)(a1 + 16 * (*(int*)(a1 + 24) + 4));
