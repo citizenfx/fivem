@@ -160,8 +160,6 @@ static HookFunction hookFunction([]()
 
 			fx::ScriptEngine::RegisterNativeHandler("SHUTDOWN_LOADING_SCREEN_NUI", [=](fx::ScriptContext& ctx)
 			{
-				loadsThread.doSetup = true;
-
 				endLoadingScreens();
 			});
 
@@ -333,6 +331,14 @@ void LoadsThread::DoRun()
 {
 	if (ShouldSkipLoading())
 	{
+		if (doShutdown && !autoShutdownNui)
+		{
+			// SET_ENTITY_COORDS Init the player for RAGE sake
+			NativeInvoke::Invoke<0x06843DA7060A026B, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>(), 0.0f, 0.0f, 0.0f, false, false, false, false);
+
+			doShutdown = false;
+		}
+
 		return;
 	}
 
