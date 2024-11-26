@@ -23,6 +23,7 @@ local typeSizes = {
 local paramOverrides = {
     ['CFX/SET_RUNTIME_TEXTURE_ARGB_DATA/1'] = PAS_ARG_POINTER | PAS_ARG_BUFFER, -- buffer
     ['CFX/SET_STATE_BAG_VALUE/2']           = PAS_ARG_POINTER | PAS_ARG_BUFFER, -- valueData
+    ['CFX/PERFORM_HTTP_REQUEST_INTERNAL/0'] = PAS_ARG_POINTER | PAS_ARG_BUFFER, -- requestData
 
     -- eventPayload
     ['CFX/TRIGGER_CLIENT_EVENT_INTERNAL/2']          = PAS_ARG_POINTER | PAS_ARG_BUFFER,
@@ -101,18 +102,21 @@ for _, v in pairs(_natives) do
             end
         end
 
-        local args = { (#v.arguments) | (rtype << 8) }
+        local args = {}
         local trivial = true
         local unsafe = false
+        local i = 0
 
-        for i, a in ipairs(v.arguments) do
+        for _, a in ipairs(v.arguments) do
             local argx = 0
-            local override = paramOverrides[('%s/%s/%s'):format(v.ns, v.name, i - 1)]
+            local override = paramOverrides[('%s/%s/%s'):format(v.ns, v.name, #args)]
 
             if override ~= nil then
                 argx = override
             elseif (a.name == 'networkHandle') then
                 argx = PAS_ARG_POINTER -- These are incorrectly labelled as intPtr
+            elseif (a.type.name == 'object') then
+                argx = PAS_ARG_POINTER | PAS_ARG_BUFFER
             elseif (a.type.name == 'charPtr') or (a.type.name == 'func') then
                 argx = PAS_ARG_POINTER | PAS_ARG_STRING
             elseif a.pointer then
@@ -135,21 +139,27 @@ for _, v in pairs(_natives) do
             end
 
             table.insert(args, argx)
-            i = i + 1
+
+            if a.type.name == 'object' then
+                -- object is a pointer/length pair
+                table.insert(args, 0)
+            end
         end
-        
+
+        local flags = #args | (rtype << 8)
+    
         if block then
-            args[1] = args[1] | PAS_FLAG_BLOCKED -- Block this native
+            flags = flags | PAS_FLAG_BLOCKED -- Block this native
         end
 
         if unsafe then
-            args[1] = args[1] | PAS_FLAG_UNSAFE -- We don't trust the argument types
-            trivial = false
+            flags = flags | PAS_FLAG_UNSAFE -- We don't trust the argument types
+        elseif trivial then
+            flags = flags | PAS_FLAG_TRIVIAL -- None of the arguments are pointers
         end
-        
-        if trivial then
-            args[1] = args[1] | PAS_FLAG_TRIVIAL -- None of the arguments are pointers
-        end
+
+        -- Add the flags to the front of the data
+        table.insert(args, 1, flags)
 
         a = ''
 
