@@ -384,6 +384,19 @@ static int64_t GetSizeOfPool(void* configManager, uint32_t poolHash, int default
 	return size;
 }
 
+static hook::cdecl_stub<void()> fwBaseEntityContainer_UpdateDataHandleCacheForAll([]()
+{
+	return hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8B 3D ? ? ? ? 33 DB 44 8B 4F");
+});
+
+static void (*g_orig_fwDescPool_DefragFull)(void* self);
+
+static void fwDescPool_DefragFull(void* self)
+{
+	g_orig_fwDescPool_DefragFull(self);
+	fwBaseEntityContainer_UpdateDataHandleCacheForAll();
+}
+
 static HookFunction hookFunction([] ()
 {
 	auto generateAndCallStub = [](hook::pattern_match match, int callOffset, uint32_t hash, bool isAssetStore)
@@ -482,6 +495,11 @@ static HookFunction hookFunction([] ()
 	}
 
 	MH_CreateHook(hook::get_pattern("45 33 DB 44 8B D2 66 44 39 59 ? 74 ? 44 0F B7 49 ? 33 D2 41 8B C2 41 F7 F1 48 8B 41 ? 48 8B 0C D0 EB ? 44 3B 11 74 ? 48 8B 49"), GetSizeOfPool, (void**)&g_origGetSizeOfPool);
+
+	// When ms_entityDescPool is defragmented sometimes the base game is not fast enough to update the data handlers pointers. Which leads to memory access violation and crash.
+	// Force update of the data handlers cache after each full defragmentation.
+	// Full defragmentation only happens when server is reaching limits of ms_entityDescPool. Which is rare. So this patch should not cause any performance issues.
+	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8B D9 0F B7 7B"), fwDescPool_DefragFull, (void**)&g_orig_fwDescPool_DefragFull);
 
 	//MH_CreateHook((void*)0x14159A8F0, AssignObjectIdWrap, (void**)&g_origAssignObjectId);
 
