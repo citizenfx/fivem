@@ -34,6 +34,8 @@ misrepresented as being the original software.
 #include "pgCollection.h"
 #include "scrThread.h"
 
+#include <vector>
+
 namespace rage
 {
 class 
@@ -70,6 +72,13 @@ public:
 	// queues the registration of a custom native function handler with an identifier
 	static void RegisterNativeHandler(uint64_t nativeIdentifier, NativeHandler handler);
 	
+	// returns true if the native should be blocked
+	// some natives may be blocked only on certain builds
+	static bool ShouldBlockNative(uint64_t hash);
+
+	// returns a list of native hashes that should be blocked
+	static std::vector<uint64_t> GetBlockedNatives();
+
 public:
 	static fwEvent<> OnScriptInit;
 

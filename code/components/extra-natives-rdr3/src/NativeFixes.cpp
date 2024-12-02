@@ -15,9 +15,23 @@
 #include "RageParser.h"
 #include "ScriptWarnings.h"
 
+#include <vector>
+
 static bool* g_textCentre;
 static bool* g_textDropshadow;
 
+
+static void BlockForbiddenNatives()
+{
+	std::vector<uint64_t> nativesToBlock = rage::scrEngine::GetBlockedNatives();
+	for (auto native: nativesToBlock)
+	{
+		fx::ScriptEngine::RegisterNativeHandler(native, [](fx::ScriptContext& ctx)
+		{
+			ctx.SetResult<uintptr_t>(0);
+		});
+	}
+}
 
 static void RedirectNoppedTextNatives()
 {
@@ -130,6 +144,8 @@ static HookFunction hookFunction([]()
 
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
+		BlockForbiddenNatives();
+
 		// R* removed some text related natives since RDR3 1436.25 build.
 		// Redirecting original natives to their successors to keep cross build compatibility.
 		// Also re-implementing entirely removed natives.
