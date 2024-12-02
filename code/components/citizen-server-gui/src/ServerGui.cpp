@@ -198,7 +198,7 @@ private:
 
 					consoleWindowState.lastHostname = hostNameVar->GetValue();
 
-					SetConsoleTitle(fmt::sprintf(L"Cfx.re Server (FXServer/%s%s) - %s", ToWide((gameNameVar) ? gameNameVar->GetValue() : "unknown"), ToWide(txSuffix), ToWide(consoleWindowState.lastHostname)).c_str());
+					SetConsoleTitle(fmt::sprintf(L"VMP.ir Server (VMPServer/%s%s) - %s", ToWide((gameNameVar) ? gameNameVar->GetValue() : "unknown"), ToWide(txSuffix), ToWide(consoleWindowState.lastHostname)).c_str());
 				}
 
 				if (iconVar && consoleWindowState.lastIcon != iconVar->GetValue())
@@ -245,7 +245,7 @@ private:
 
 #ifdef _WIN32
 						auto hWnd = (HWND)consoleHost.GetPlatformWindowHandle();
-						SendMessageW(hWnd, WM_SETTEXT, 0, (LPARAM)fmt::sprintf(L"Cfx.re Server (FXServer/%s) - %s", ToWide((gameNameVar) ? gameNameVar->GetValue() : "unknown"), ToWide(state.lastHostname)).c_str());
+						SendMessageW(hWnd, WM_SETTEXT, 0, (LPARAM)fmt::sprintf(L"VMP.ir Server (VMPServer/%s) - %s", ToWide((gameNameVar) ? gameNameVar->GetValue() : "unknown"), ToWide(state.lastHostname)).c_str());
 #endif
 					}
 

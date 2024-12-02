@@ -106,7 +106,7 @@ ConHostSvImpl::ConHostSvImpl()
 	//ImGui_ImplWin32_EnableDpiAwareness();
 	wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("FXS"), NULL };
 	::RegisterClassEx(&wc);
-	hwnd = ::CreateWindow(wc.lpszClassName, _T("Cfx.re Server (FXServer)"), WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
+	hwnd = ::CreateWindow(wc.lpszClassName, _T("VMP.ir Server (VMPServer)"), WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
 
 	// Initialize Direct3D
 	if (!CreateDeviceD3D(hwnd))
