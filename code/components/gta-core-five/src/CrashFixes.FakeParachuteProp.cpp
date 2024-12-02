@@ -14,32 +14,71 @@ std::once_flag traceOnceFlag;
 uint32_t parachuteObjectOffset = 0;
 uint32_t drawHandlerOffset = 0;
 
+uint32_t taskTakeOffPedVariationPropOffset = 0;
+
+template<bool UseTaskPropEntity>
+bool IsTaskFSMEntityAnimDirectorValid(hook::FlexStruct* self)
+{
+	hook::FlexStruct* taskEntity = self->Get<hook::FlexStruct*>(UseTaskPropEntity ? taskTakeOffPedVariationPropOffset : taskEntityOffset);
+
+	// We only care about validating a entity's animDirector if the entity exists already
+	// as entity creation might be deferred for tasks such as CTaskParachuteObject
+	if (taskEntity)
+	{
+		hook::FlexStruct* dynamicEntityComponent = taskEntity->Get<hook::FlexStruct*>(dynamicEntityComponentOffset);
+
+		if (!dynamicEntityComponent)
+		{
+			return false;
+		}
+
+		hook::FlexStruct* animDirector = dynamicEntityComponent->Get<hook::FlexStruct*>(animDirectorOffset);
+
+		if (!animDirector)
+		{
+			std::call_once(traceOnceFlag, []()
+			{
+				trace("Fake parachute model crash prevented [CFX-1907]\n");
+			});
+
+			return false;
+		}
+	}
+
+	return true;
+}
+
 uint64_t (*g_CTaskParachuteObject_UpdateFSM)(hook::FlexStruct* self, int state, int subState);
 uint64_t CTaskParachuteObject_UpdateFSM(hook::FlexStruct* self, int state, int subState)
 {
-	hook::FlexStruct* taskEntity = self->Get<hook::FlexStruct*>(taskEntityOffset);
-	if (!taskEntity)
+	if (!IsTaskFSMEntityAnimDirectorValid<false>(self))
 	{
-		return 0;
-	}
-
-	hook::FlexStruct* dynamicEntityComponent = taskEntity->Get<hook::FlexStruct*>(dynamicEntityComponentOffset);
-	if (!dynamicEntityComponent)
-	{
-		return 0;
-	}
-
-	hook::FlexStruct* animDirector = dynamicEntityComponent->Get<hook::FlexStruct*>(animDirectorOffset);
-	if (!animDirector)
-	{
-		std::call_once(traceOnceFlag, []()
-		{
-			trace("Fake parachute model crash prevented [CFX-1907]\n");
-		});
 		return 0;
 	}
 
 	return g_CTaskParachuteObject_UpdateFSM(self, state, subState);
+}
+
+uint64_t (*g_CTaskTakeOffPedVariation_UpdateFSM)(hook::FlexStruct* self, int state, int subState);
+uint64_t CTaskTakeOffPedVariation_UpdateFSM(hook::FlexStruct* self, int state, int subState)
+{
+	if (!IsTaskFSMEntityAnimDirectorValid<true>(self))
+	{
+		return 0;
+	}
+
+	return g_CTaskTakeOffPedVariation_UpdateFSM(self, state, subState);
+}
+
+uint64_t (*g_CTaskTakeOffPedVariation_AttachProp)(hook::FlexStruct* self);
+uint64_t CTaskTakeOffPedVariation_AttachProp(hook::FlexStruct* self)
+{
+	if (!IsTaskFSMEntityAnimDirectorValid<true>(self))
+	{
+		return 0;
+	}
+
+	return g_CTaskTakeOffPedVariation_AttachProp(self);
 }
 
 void (*g_CTaskParachute_SetParachuteTintIndex)(hook::FlexStruct* self);
@@ -116,4 +155,9 @@ static HookFunction hookFunction([]
 		hook::nop(location, 7);
 		hook::jump(location, patchStub.GetCode());
 	}
+
+	taskTakeOffPedVariationPropOffset = *hook::get_pattern<uint32_t>("48 8B 81 ? ? ? ? 33 C9 48 85 C0 74 ? 48 8B 40 ? 48 85 C0", 3);
+
+	g_CTaskTakeOffPedVariation_UpdateFSM = hook::trampoline(hook::get_pattern<void>("48 83 EC ? 4C 8B C9 85 D2 78 ? B8"), &CTaskTakeOffPedVariation_UpdateFSM);
+	g_CTaskTakeOffPedVariation_AttachProp = hook::trampoline(hook::get_pattern<void>("48 89 5C 24 ? 57 48 83 EC ? 0F 29 74 24 ? 48 8B D9 E8 ? ? ? ? 84 C0"), &CTaskTakeOffPedVariation_AttachProp);
 });
