@@ -474,6 +474,7 @@ struct CVehicleHealthNodeData
 	int tyreStatus[1 << 4];
 	int bodyHealth;
 	int health;
+	int totalRepairs;
 };
 
 struct CVehicleGameStateNodeData

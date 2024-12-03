@@ -2590,11 +2590,13 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 			strModule->FindSlotFromHashKey(&strId, HashString(nameWithoutExt.c_str()));
 #endif
 
-			auto rawStreamer = getRawStreamer();
-			uint32_t idx = (rawStreamer->GetCollectionId() << 16) | rawStreamer->GetEntryByName(file.c_str());
-
 			if (strId != -1)
 			{
+				auto rawStreamer = getRawStreamer();
+#ifdef IS_RDR3
+				uint32_t idx = (rawStreamer->GetCollectionId() << 16) | rawStreamer->GetEntryByName(file.c_str());
+#endif
+
 				// remove from our index set
 				g_ourIndexes.erase(strId + strModule->baseIdx);
 
@@ -2603,7 +2605,12 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 
 				for (auto it = handleData.begin(); it != handleData.end(); ++it)
 				{
+#ifdef GTA_FIVE
+					auto entryName = rawStreamer->GetEntryName((*it & 0xFFFF));
+					if (entryName && strcmp(file.c_str(), entryName) == 0)
+#elif IS_RDR3
 					if (*it == idx)
+#endif
 					{
 						it = handleData.erase(it);
 					}

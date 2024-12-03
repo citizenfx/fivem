@@ -1041,6 +1041,18 @@ static void Init()
 
 		return false;
 	}));
+	
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_TOTAL_REPAIRS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vn = entity->syncTree->GetVehicleHealth();
+
+		if (vn)
+		{
+			return vn->totalRepairs;
+		}
+
+		return 0;
+	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("HAS_ENTITY_BEEN_MARKED_AS_NO_LONGER_NEEDED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{

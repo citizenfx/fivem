@@ -976,7 +976,7 @@ static HookFunction initFunction([]()
 
 			if (*g_dlcMountCount != 132)
 			{
-				if (!xbr::IsGameBuildOrGreater<2060>())
+				if (!xbr::IsRequestedGameBuildOrGreater<2060>() && xbr::GetRequestedGameBuild() != 1)
 				{
 					// #TODO1737
 					GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 132);

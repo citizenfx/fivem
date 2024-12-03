@@ -13,7 +13,7 @@ const enum IHomePageNavBarLinkIDs {
   FiveM,
   RedM,
   Forum,
-  Patreon,
+  Portal,
   Discord,
 }
 
@@ -44,9 +44,9 @@ const homePageNavBarLinks: IHomePageNavBarLink[] = [
     visible: returnTrue,
   },
   {
-    id: IHomePageNavBarLinkIDs.Patreon,
-    href: 'https://patreon.com/fivem',
-    label: 'Patreon',
+    id: IHomePageNavBarLinkIDs.Portal,
+    href: 'https://portal.cfx.re',
+    label: 'Portal',
     visible: returnTrue,
   },
   {

@@ -1104,7 +1104,7 @@ struct CVehicleHealthDataNode
 		}
 
 		int unk21 = state.buffer.Read<int>(4);
-		int totalRepairs = state.buffer.Read<int>(4); // maximum 15
+		data.totalRepairs = state.buffer.Read<int>(4); // maximum 15
 		auto unk23 = state.buffer.ReadBit();
 
 		if (unk23)
