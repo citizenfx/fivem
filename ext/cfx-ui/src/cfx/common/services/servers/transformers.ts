@@ -290,7 +290,7 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
         continue;
       }
       case key === 'can_review': {
-        view.canReview = Boolean(value);
+        view.canReview = false; // disable server reviews for the time being
         continue;
       }
       case key === 'onesync_enabled': {
