@@ -212,12 +212,10 @@ AddEventHandler('_chat:messageEntered', function(author, color, message, mode)
 end)
 
 AddEventHandler('__cfx_internal:commandFallback', function(command)
-    local name = GetPlayerName(source)
-
-    -- route the message as if it were a /command
-    routeMessage(source, name, '/' .. command, nil, true)
-
     CancelEvent()
+    -- local name = GetPlayerName(source)
+    -- route the message as if it were a /command
+    -- routeMessage(source, name, '/' .. command, nil, true) -- this allows users to spam messages of commands that do not exist that everyone can see
 end)
 
 -- player join messages
