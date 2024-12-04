@@ -338,7 +338,11 @@ static HookFunction hookFunction([]()
 		void** cNetObjPhys_vtable = hook::get_address<void**>(hook::get_pattern<unsigned char>("88 44 24 20 E8 ? ? ? ? 33 C9 48 8D 05", 14));
 		int vtableIdx = 0;
 
-		if (xbr::IsGameBuildOrGreater<2802>())
+		if (xbr::IsGameBuildOrGreater<3258>())
+		{
+			vtableIdx = 137;
+		}
+		else if (xbr::IsGameBuildOrGreater<2802>())
 		{
 			vtableIdx = 136;
 		}

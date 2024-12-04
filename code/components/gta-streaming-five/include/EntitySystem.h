@@ -42,6 +42,11 @@ using Matrix4x4 = DirectX::XMFLOAT4X4;
 
 class fwEntity;
 
+namespace streaming
+{
+	class strStreamingModule;
+}
+
 namespace rage
 {
 	class STREAMING_EXPORT fwRefAwareBase
@@ -72,14 +77,14 @@ class fwFactoryBase
 public:
 	virtual ~fwFactoryBase() = 0;
 
-	virtual TSubClass* Get(uint32_t hash) = 0;
+	virtual TSubClass* CreateBaseItem(uint32_t hash) = 0;
 
 	virtual void m3() = 0;
 	virtual void m4() = 0;
 
-	virtual void* GetOrCreate(uint32_t hash, uint32_t numEntries) = 0;
+	virtual void AddStorageBlock(uint32_t hash, uint32_t numEntries) = 0;
 
-	virtual void Remove(uint32_t hash) = 0;
+	virtual void FreeStorageBlock(uint32_t hash) = 0;
 
 	virtual void ForAllOfHash(uint32_t hash, void(*cb)(TSubClass*)) = 0;
 };
@@ -163,6 +168,38 @@ private:
 	uint16_t flags;
 };
 
+namespace rage
+{
+struct fwModelId
+{
+	union
+	{
+		uint32_t value;
+
+		struct
+		{
+			uint16_t modelIndex;
+			uint16_t mapTypesIndex : 12;
+			uint16_t isStreamed : 1;
+			uint16_t isMemLocked : 1;
+			uint16_t pad1 : 1;
+			uint16_t pad2 : 1;
+		};
+	};
+
+	fwModelId()
+		: modelIndex(0xFFFF), mapTypesIndex(0xFFF), isStreamed(0), isMemLocked(0), pad1(0), pad2(0)
+	{
+	}
+
+	fwModelId(uint32_t idx)
+		: value(idx)
+	{
+	}
+};
+
+static_assert(sizeof(fwModelId) == 4);
+
 class STREAMING_EXPORT fwArchetype : XBR_VIRTUAL_BASE_2802(0)
 {
 public:
@@ -189,13 +226,18 @@ public:
 public:
 	char pad[16];
 	uint32_t hash;
-	char pad2[16];
+
+	rage::fwModelId cachedModelId; // Inserted into padding
+
+	char pad2[12];
 	float radius;
 	float aabbMin[4];
 	float aabbMax[4];
-	uint32_t flags;
+	uint32_t flags : 31;
+	uint32_t streaming : 1;
 
-	uint8_t pad3[4];
+	uint32_t hashCopy; // Inserted into padding
+
 	fwDynamicArchetypeComponent* dynamicArchetypeComponent;
 	uint8_t assetType;
 	uint8_t pad4;
@@ -203,51 +245,42 @@ public:
 	// +100
 	uint32_t assetIndex;
 
-	// +104
-	char m_pad[53];
-	uint8_t miType : 5;
+	uint16_t numRefs : 15;
+	uint16_t isModelMissing : 1;
+
+	uint16_t assignedStreamingSlot;
+
+	char m_pad6E[4];
 };
 
-namespace rage
-{
-using fwArchetype = ::fwArchetype;
-
-struct fwModelId
-{
-	union
-	{
-		uint32_t value;
-
-		struct
-		{
-			uint16_t modelIndex;
-			uint16_t mapTypesIndex : 12;
-			uint16_t flags : 4;
-		};
-	};
-
-	fwModelId()
-		: modelIndex(0xFFFF), mapTypesIndex(0xFFF), flags(0)
-	{
-	}
-
-	fwModelId(uint32_t idx)
-		: value(idx)
-	{
-	}
-};
-
-static_assert(sizeof(fwModelId) == 4);
-
+static_assert(sizeof(fwArchetype) == 0x70);
 
 class STREAMING_EXPORT fwArchetypeManager
 {
 public:
 	static fwArchetype* GetArchetypeFromHashKey(uint32_t hash, fwModelId& id);
 
-	static fwArchetype* GetArchetypeFromHashKeySafe(uint32_t hash, fwModelId& id);
+	static const fwModelId& LookupModelId(fwArchetype* archetype);
+
+	static void UnregisterStreamedArchetype(fwArchetype* archetype);
+
+	static uint16_t RegisterPermanentArchetype(fwArchetype* archetype, uint32_t mapTypeDefIndex, bool bMemLock);
+	static uint16_t RegisterStreamedArchetype(fwArchetype* archetype, uint32_t mapTypeDefIndex);
+
+	static streaming::strStreamingModule* GetStreamingModule();
 };
+
 }
+
+using fwArchetype = rage::fwArchetype;
+
+struct CBaseModelInfo : fwArchetype
+{
+	char m_pad[45];
+	uint8_t miType : 5;
+
+	// and other stuff
+};
 
 namespace rage
 {
@@ -458,6 +491,8 @@ public:
 		return this->IsOfType(typeHash);
 	}
 
+	void ProtectStreamedArchetype();
+
 private:
 	template<typename TMember>
 	inline static TMember get_member(void* ptr)
@@ -544,15 +579,30 @@ public:
 		return Vector3(m_transform._41, m_transform._42, m_transform._43);
 	}
 
-	inline void* GetNetObject() const
-	{
-		static_assert(offsetof(fwEntity, m_netObject) == 208, "wrong GetNetObject");
-		return m_netObject;
-	}
-
 	inline uint8_t GetType() const
 	{
 		return m_entityType;
+	}
+
+	inline uint8_t GetProtectedFlags() const
+	{
+		return m_protectedFlags;
+	}
+
+	bool IsDynamicEntity() const
+	{
+		return (GetType() >= 2) && (GetType() <= 5);
+	}
+	
+	inline void* GetNetObject() const
+	{
+		static_assert(offsetof(fwEntity, m_netObject) == 208, "wrong GetNetObject");
+		return IsDynamicEntity() ? m_netObject : nullptr;
+	}
+
+	inline uint8_t GetOwnedBy() const
+	{
+		return (*(uint32_t*)((char*)this + 0xC8) >> 24) & 0x1F; // CEntity
 	}
 
 private:
@@ -561,10 +611,11 @@ private:
 	char m_pad2[8];
 	fwArchetype* m_archetype;
 	uint8_t m_entityType;
-	char m_pad3[96 - 41];
+	uint8_t m_protectedFlags;
+	char m_pad3[54];
 	Matrix4x4 m_transform;
 	char m_pad4[48];
-	void* m_netObject;
+	void* m_netObject; // CDynamicEntity
 };
 
 STREAMING_EXPORT class VehicleSeatManager

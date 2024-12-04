@@ -9,6 +9,8 @@
 #include <ICoreGameInit.h>
 #include <CrossBuildRuntime.h>
 
+extern void ValidateHeaps();
+
 static std::unordered_map<uint32_t, std::string> g_initFunctionNames;
 
 namespace rage
@@ -95,6 +97,8 @@ namespace rage
 
 	void gameSkeleton::RunInitFunctions(InitFunctionType type)
 	{
+		ValidateHeaps();
+
 		trace(__FUNCTION__ ": Running %s init functions\n", InitFunctionTypeToString(type));
 
 		OnInitFunctionStart(type);
@@ -112,6 +116,8 @@ namespace rage
 
 					for (int index : entry->functions)
 					{
+						ValidateHeaps();
+
 						auto func = m_initFunctions[index];
 
 						if (OnInitFunctionInvoking(type, i, func))
@@ -130,6 +136,8 @@ namespace rage
 						OnInitFunctionInvoked(type, func);
 
 						++i;
+
+						ValidateHeaps();
 					}
 
 					OnInitFunctionEndOrder(type, entry->order);
@@ -138,6 +146,8 @@ namespace rage
 		}
 
 		OnInitFunctionEnd(type);
+
+		ValidateHeaps();
 
 		trace(__FUNCTION__ ": Done running %s init functions!\n", InitFunctionTypeToString(type));
 	}

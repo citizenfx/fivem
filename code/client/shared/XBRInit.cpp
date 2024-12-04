@@ -6,13 +6,15 @@
 #include <HostSharedData.h>
 #include <CfxState.h>
 
+#include <shellapi.h>
+
 namespace xbr
 {
 int GetRequestedGameBuildInit()
 {
 	constexpr const std::pair<std::wstring_view, int> buildNumbers[] = {
 #define EXPAND(_, __, x) \
-	{ BOOST_PP_WSTRINGIZE(BOOST_PP_CAT(b, x)), x },
+	{ BOOST_PP_WSTRINGIZE(BOOST_PP_CAT(-b, x)), x },
 
 		BOOST_PP_SEQ_FOR_EACH(EXPAND, , GAME_BUILDS)
 
@@ -24,12 +26,19 @@ int GetRequestedGameBuildInit()
 	// TODO: replace with default game build defined in CrossBuildRuntime.h.
 	auto buildNumber = 1604;
 
-	for (auto [build, number] : buildNumbers)
+	int argc;
+	wchar_t** wargv = CommandLineToArgvW(cli.data(), &argc);
+	for (int i = 1; i < argc; i++)
 	{
-		if (cli.find(build) != std::string_view::npos)
+		std::wstring_view arg = wargv[i];
+
+		for (auto [build, number] : buildNumbers)
 		{
-			buildNumber = number;
-			break;
+			if (arg == build)
+			{
+				buildNumber = number;
+				break;
+			}
 		}
 	}
 

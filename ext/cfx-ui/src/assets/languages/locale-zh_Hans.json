@@ -102,6 +102,5 @@
     "#Global_OpenLinkInBrowser": "在浏览器中打开链接",
     "#AuthForm_Success_Welcome": "欢迎，",
     "#AuthForm_External_Instruction": "单击然后在浏览器中授权",
-    "#AuthForm_Success_Continue": "继续",
-    "#AuthForm_External_Initialize": "通过浏览器登录"
+    "#AuthForm_Success_Continue": "继续"
 }
