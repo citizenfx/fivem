@@ -56,6 +56,11 @@ static hook::cdecl_stub<bool(void*)> isDriverAPlayer([]
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 ? 83 BE ? ? ? ? ? 75 ? F3 0F 59 35"));
 });
 
+static hook::cdecl_stub<void(void*, int)> setTrainState([]
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 4C 89 AF ? ? ? ? 49 8B 0F"));
+});
+
 struct PatternPair
 {
 	std::string_view pattern;
@@ -317,6 +322,10 @@ static bool* g_trainsForceDoorsOpen;
 static int TrainDoorCountOffset;
 static int TrainDoorArrayPointerOffset;
 static int TrainFlagOffset;
+static int TrainStateOffset;
+static int TrainCruiseSpeedOffset;
+static int TrainSpeedOffset;
+
 constexpr int TrainStopAtStationsFlag = 4;
 
 static int VehicleRepairMethodVtableOffset;
@@ -591,6 +600,9 @@ static HookFunction initFunction([]()
 		LightMultiplierGetOffset = *hook::get_pattern<uint32_t>("00 00 48 8B CE F3 0F 59 ? ? ? 00 00 F3 41", 9);
 		VehicleRepairMethodVtableOffset = *hook::get_pattern<uint32_t>("C1 E8 19 A8 01 74 ? 48 8B 81", -14);
 		TrainFlagOffset = *hook::get_pattern<uint32_t>("80 8B ? ? ? ? ? 8B 05 ? ? ? ? FF C8", 2);
+		TrainStateOffset = *hook::get_pattern<uint32_t>("89 91 ? ? ? ? 80 3D ? ? ? ? ? 0F 84", 2);
+		TrainCruiseSpeedOffset = *hook::get_pattern<uint32_t>("C7 87 ? ? ? ? ? ? ? ? E8 ? ? ? ? 4C 89 AF", 2);
+		TrainSpeedOffset = *hook::get_pattern<uint32_t>("4C 89 AF ? ? ? ? 44 89 AF ? ? ? ? 4C 89 AF ? ? ? ? 49 8B 0E", 3);
 	}
 
 	{
@@ -1472,6 +1484,27 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("SET_TRAIN_STOP_AT_STATIONS", std::bind(writeVehicleMemoryBit<&TrainFlagOffset, TrainStopAtStationsFlag>, _1, "SET_TRAIN_STOP_AT_STATIONS"));
 
 	fx::ScriptEngine::RegisterNativeHandler("DOES_TRAIN_STOP_AT_STATIONS", std::bind(readVehicleMemoryBit<&TrainFlagOffset, TrainStopAtStationsFlag>, _1, "DOES_TRAIN_STOP_AT_STATIONS"));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_DIRECTION", std::bind(readVehicleMemoryBit<&TrainFlagOffset, 3>, _1, "GET_TRAIN_DIRECTION"));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_STATE", std::bind(readVehicleMemory<int, &TrainStateOffset>, _1, "GET_TRAIN_STATE")); 
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_CRUISE_SPEED", std::bind(readVehicleMemory<float, &TrainCruiseSpeedOffset>, _1, "GET_TRAIN_CRUISE_SPEED"));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_SPEED", std::bind(readVehicleMemory<float, &TrainSpeedOffset>, _1, "GET_TRAIN_SPEED"));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_TRAIN_STATE", makeTrainFunction([](fx::ScriptContext& context, fwEntity* train)
+	{
+		int state = context.GetArgument<int>(1);
+
+		if (state < 0 || state > 5)
+		{
+			return;
+		}
+
+		// This resets a timer used to ensure train states don't get stuck for too long. 
+		setTrainState(train, state);
+	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_X_OFFSET", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
 	{
