@@ -269,7 +269,7 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 			m_apm->gain_control()->set_stream_analog_level(int(audioLevel * 255.0f));
 		}
 
-		int numVoice = 0;
+		bool hasVoice = false;
 
 		for (int off = 0; off < frameSize; off += 10)
 		{
@@ -304,6 +304,12 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 			}
 #endif
 
+			// if we're using music speech intent we should always try to send voice
+			if (g_curInputIntentMode == InputIntentMode::MUSIC)
+			{
+				hasVoice = true;
+			}
+
 			// is this voice?
 			webrtc::AudioFrame frame;
 			frame.num_channels_ = 1;
@@ -318,13 +324,13 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 
 			if (m_apm->voice_detection()->stream_has_voice())
 			{
-				numVoice++;
+				hasVoice = true;
 			}
 
 			memcpy(&m_resampledBytes[frameStart], frame.data_, 480 * sizeof(int16_t));
 		}
 
-		if (m_mode == MumbleActivationMode::VoiceActivity && numVoice < 1)
+		if (m_mode == MumbleActivationMode::VoiceActivity && !hasVoice)
 		{
 			m_isTalking = false;
 			m_audioLevel = 0.0f;
