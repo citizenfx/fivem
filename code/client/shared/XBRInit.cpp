@@ -23,8 +23,7 @@ int GetRequestedGameBuildInit()
 
 	auto sharedData = CfxState::Get();
 	std::wstring_view cli = (sharedData->initCommandLine[0]) ? sharedData->initCommandLine : GetCommandLineW();
-	// TODO: replace with default game build defined in CrossBuildRuntime.h.
-	auto buildNumber = 1604;
+	auto buildNumber = GetDefaultGameBuild();
 
 	int argc;
 	wchar_t** wargv = CommandLineToArgvW(cli.data(), &argc);

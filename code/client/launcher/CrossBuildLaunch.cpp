@@ -10,29 +10,6 @@
 
 void XBR_EarlySelect()
 {
-	uint32_t defaultBuild =
-#ifdef GTA_FIVE
-		1604
-#elif defined(IS_RDR3)
-		1311
-#elif defined(GTA_NY)
-		43
-#else
-		0
-#endif
-		;
-
-	// specify a different saved build for first runs in release to save download time for first launch
-	uint32_t initialBuild = defaultBuild;
-
-#ifndef _DEBUG
-#ifdef GTA_FIVE
-	initialBuild = 2699;
-#elif defined(IS_RDR3)
-	initialBuild = 1491;
-#endif
-#endif
-
 	// we *can't* call xbr:: APIs here since they'll `static`-initialize and break GameCache later
 	uint32_t builds[] = {
 #define EXPAND(_, __, x) x,
@@ -64,10 +41,10 @@ void XBR_EarlySelect()
 	if (!buildFlagFound && state->IsMasterProcess())
 	{
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
-		auto retainedBuild = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", initialBuild, fpath.c_str());
+		auto retainedBuild = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", xbr::GetDefaultGameBuild(), fpath.c_str());
 
 		// If there is no explicit build flag and retained build is not default - add flag to command line.
-		if (retainedBuild != defaultBuild)
+		if (retainedBuild != xbr::GetDefaultGameBuild())
 		{
 			wcscat(state->initCommandLine, va(L" -b%d", retainedBuild));
 		}
