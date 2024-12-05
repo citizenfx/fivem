@@ -18,6 +18,7 @@
 #include "RageParser.h"
 #include "Resource.h"
 #include "ScriptWarnings.h"
+#include <Train.h>
 
 static void BlockForbiddenNatives()
 {
@@ -484,11 +485,67 @@ static void FixIsBitSet()
 	});
 }
 
+static hook::cdecl_stub<bool(uint32_t* mi)> hasModelLoaded([]()
+{
+	return hook::get_call(hook::get_pattern("25 FF FF FF 3F 89 45 6F E8 ? ? ? ? 84 C0", 8));
+});
+
+static rage::CTrainConfigData* g_trainConfigData;
+
+static void FixMissionTrain()
+{
+	constexpr uint64_t CREATE_MISSION_TRAIN = 0x63C6CCA8E68AE8C8;
+
+	auto handler = fx::ScriptEngine::GetNativeHandler(CREATE_MISSION_TRAIN);
+	if (!handler)
+	{
+		return;
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler(CREATE_MISSION_TRAIN, [handler](fx::ScriptContext& ctx)
+	{
+		auto variation = ctx.GetArgument<int>(0);
+
+		if (variation < 0 || variation >= g_trainConfigData->m_trainConfigs.GetCount())
+		{
+			fx::scripting::Warningf("natives", "Invalid train variation index was passed to CREATE_MISSION_TRAIN (%i), should be from 0 to %i\n", variation, g_trainConfigData->m_trainConfigs.GetCount() - 1);
+			ctx.SetResult<int>(0);
+			return;
+		}
+
+		rage::CTrainConfig config = g_trainConfigData->m_trainConfigs.Get(variation);
+
+		// Prevent the native from executing if one any of the required models are not in memory
+		for (auto& carriage : config.m_carriages)
+		{
+			rage::fwModelId idx{ 0 };
+			rage::fwArchetypeManager::GetArchetypeFromHashKey(carriage.m_hash, idx);
+			if (!hasModelLoaded(&idx.value))
+			{
+				fx::scripting::Warningf("natives", "Failed to spawn mission train as carriage hash '%i' is not loaded\n", carriage.m_hash);
+				ctx.SetResult<int>(0);
+				return;
+			}	
+		}
+
+		// Prevent the native from executing if there are no tracks available. This won't crash the game but can give a confusing error.
+		if (rage::CTrainTrack::AreAllTracksDisabled())
+		{
+			fx::scripting::Warningf("natives", "Failed to spawn mission train as there are no tracks enabled\n");
+			ctx.SetResult<int>(0);
+			return;
+		}
+
+		handler(ctx);
+	});
+}
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
 	g_maxHudColours = *hook::get_pattern<int32_t>("81 F9 ? ? ? ? 77 5A 48 89 5C 24", 2);
 	g_numMarkerTypes = *hook::get_pattern<int32_t>("BE FF FF FF DF 41 BF 00 00 FF 0F 41 BC FF FF FF BF", -4);
+	g_trainConfigData = hook::get_address<rage::CTrainConfigData*>(hook::get_pattern<rage::CTrainConfigData>("4C 8B 05 ? ? ? ? 0F 29 74 24 ? 48 8D 3C 40", 3));
 
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
@@ -522,6 +579,8 @@ static HookFunction hookFunction([]()
 		FixDrawMarker();
 
 		FixApplyForceToEntity();
+
+		FixMissionTrain();
 
 		if (xbr::IsGameBuildOrGreater<2612>())
 		{
