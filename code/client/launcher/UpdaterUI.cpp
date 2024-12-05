@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include <CommCtrl.h>
+#include <ctime>
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
 #include <shobjidl.h>
@@ -1384,7 +1385,12 @@ void UI_CreateWindow()
 		{
 			auto sc = ui.FindName(L"Overlay").as<winrt::Windows::UI::Xaml::Controls::SwapChainPanel>();
 
-			if (_time64(NULL) < 1675206000)
+			auto time = std::time(nullptr);
+			auto datetime = std::localtime(&time);
+			auto month = datetime->tm_mon + 1;
+
+			// Snow effect for December and January
+			if (month == 12 || month == 1)
 			{
 				InitializeRenderOverlay(sc, g_dpi.ScaleX(wwidth), g_dpi.ScaleY(wheight));
 			}
