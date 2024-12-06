@@ -360,6 +360,12 @@ void MumbleClient::Initialize()
 						m_inFlightTcpPings += 1;
 						MumbleProto::Ping ping;
 						ping.set_timestamp(msec().count());
+
+						ping.set_good(m_crypto.m_localGood);
+						ping.set_late(m_crypto.m_localLate);
+						ping.set_lost(m_crypto.m_localLost);
+						ping.set_resync(m_crypto.m_localResync);
+
 						ping.set_tcp_ping_avg(m_tcpPingAverage);
 						ping.set_tcp_ping_var(m_tcpPingVariance);
 						ping.set_tcp_packets(m_tcpPingCount);
@@ -367,6 +373,7 @@ void MumbleClient::Initialize()
 						ping.set_udp_ping_avg(m_udpPingAverage);
 						ping.set_udp_ping_var(m_udpPingVariance);
 						ping.set_udp_packets(m_udpPingCount);
+
 
 						Send(MumbleMessageType::Ping, ping);
 					}
@@ -730,7 +737,7 @@ void MumbleClient::SendVoice(const char* buf, size_t size)
 
 void MumbleClient::SendUDP(const char* buf, size_t size)
 {
-	if (!m_crypto.GetRef())
+	if (!m_crypto.IsInitialized())
 	{
 		return;
 	}
@@ -744,7 +751,7 @@ void MumbleClient::SendUDP(const char* buf, size_t size)
 	// Encoded packets can be at maximum of 1024 bytes long, if we send anything larger than this mumble will drop the packet
 	// https://mumble-protocol.readthedocs.io/en/latest/voice_data.html#packet-format
 	auto outBuf = std::make_shared<std::unique_ptr<char[]>>(new char[kMaxUdpPacket]);
-	m_crypto->Encrypt((const uint8_t*)buf, (uint8_t*)outBuf->get(), size);
+	m_crypto.Encrypt((const uint8_t*)buf, (uint8_t*)outBuf->get(), size);
 
 	m_loop->EnqueueCallback([this, outBuf, size]()
 	{
@@ -754,7 +761,7 @@ void MumbleClient::SendUDP(const char* buf, size_t size)
 
 void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 {
-	if (!m_crypto.GetRef())
+	if (!m_crypto.IsInitialized())
 	{
 		return;
 	}
@@ -769,7 +776,7 @@ void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 
 
 	uint8_t outBuf[kMaxUdpPacket];
-	if (!m_crypto->Decrypt(buf, outBuf, size))
+	if (!m_crypto.Decrypt(buf, outBuf, size))
 	{
 		return;
 	}
@@ -955,7 +962,7 @@ MumbleConnectionInfo* MumbleClient::GetConnectionInfo()
 void MumbleClient::HandlePing(const MumbleProto::Ping& ping)
 {
 	m_inFlightTcpPings = 0;
-	if (m_crypto.GetRef())
+	if (m_crypto.IsInitialized())
 	{
 		// Mimic mumbles behavior for pings
 		m_crypto.m_remoteGood = ping.good();
@@ -963,12 +970,12 @@ void MumbleClient::HandlePing(const MumbleProto::Ping& ping)
 		m_crypto.m_remoteLost = ping.lost();
 		m_crypto.m_remoteResync = ping.resync();
 
-		if (m_hasUdp && m_crypto.m_remoteGood == 0 && (msec() - m_lastUdp) > 2s)
+		if (m_hasUdp && (m_crypto.m_remoteGood == 0 || m_crypto.m_localGood == 0) && (msec() - m_lastUdp) > 2s)
 		{
 			console::PrintWarning("mumble", "UDP packets can *not* be received. Switching to TCP tunnel mode.\n");
 			m_hasUdp = false;
 		}
-		else if (!m_hasUdp && m_crypto.m_remoteGood > 3)
+		else if (!m_hasUdp && m_crypto.m_remoteGood > 3 && m_crypto.m_localGood > 3)
 		{
 			console::Printf("mumble", "UDP packets can be received. Switching to UDP mode.\n");
 			m_hasUdp = true;
