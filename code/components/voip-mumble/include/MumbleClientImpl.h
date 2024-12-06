@@ -195,6 +195,8 @@ private:
 
 	int m_voiceTarget;
 
+	bool m_hasUdp = false;
+
 	std::chrono::milliseconds m_lastUdp;
 
 	std::chrono::milliseconds m_nextPing;

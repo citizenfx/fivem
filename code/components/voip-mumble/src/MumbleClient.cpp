@@ -24,8 +24,9 @@ static __declspec(thread) MumbleClient* g_currentMumbleClient;
 
 using namespace std::chrono_literals;
 
-constexpr const auto kUDPTimeout = 10000ms;
-constexpr const auto kUDPPingInterval = 1000ms;
+constexpr auto kUDPTimeout = 10000ms;
+constexpr auto kUDPPingInterval = 1000ms;
+constexpr uint16_t kMaxUdpPacket = 1024;
 
 inline std::chrono::milliseconds msec()
 {
@@ -45,7 +46,6 @@ void MumbleClient::Initialize()
 
 	m_loop->EnqueueCallback([this]()
 	{
-
 		m_udp = m_loop->Get()->resource<uvw::UDPHandle>();
 
 		m_udp->on<uvw::UDPDataEvent>([this](const uvw::UDPDataEvent& ev, uvw::UDPHandle& udp)
@@ -156,7 +156,6 @@ void MumbleClient::Initialize()
 				}
 			});
 
-
 			const auto& address = m_connectionInfo.address;
 			m_tcp->connect(*address.GetSocketAddress());
 			m_state.Reset();
@@ -169,9 +168,10 @@ void MumbleClient::Initialize()
 		{
 			static bool hadUDP = false;
 			static bool warnedUDP = false;
-			bool hasUDP = ((msec() - m_lastUdp) <= kUDPTimeout);
+			// TODO: Use the MumbleProto::Ping packets to tell if we have a bad crypt state so we can set this in cases UDP packets also aren't being set from the server
+			m_hasUdp = ((msec() - m_lastUdp) <= kUDPTimeout);
 			
-			if (hasUDP && !hadUDP)
+			if (m_hasUdp && !hadUDP)
 			{
 				if (warnedUDP)
 				{
@@ -181,7 +181,7 @@ void MumbleClient::Initialize()
 				warnedUDP = true;
 				hadUDP = true;
 			}
-			else if (!hasUDP && hadUDP)
+			else if (!m_hasUdp && hadUDP)
 			{
 				if (warnedUDP)
 				{
@@ -190,7 +190,6 @@ void MumbleClient::Initialize()
 
 				warnedUDP = true;
 				hadUDP = false;
-
 			}
 
 			auto lockedIsActive = [this]()
@@ -385,6 +384,7 @@ void MumbleClient::Initialize()
 						Send(MumbleMessageType::Ping, ping);
 					}
 
+					// NOTE: We want to send pings even if we don't have UDP, as these will (eventually) reinitialize us on the mumble server
 					{
 						char pingBuf[64] = { 0 };
 
@@ -461,7 +461,6 @@ concurrency::task<void> MumbleClient::DisconnectAsync()
 			m_tlsClient->close();
 		}
 	}
-
 	auto tcs = concurrency::task_completion_event<void>{};
 
 	m_loop->EnqueueCallback([this, tcs]()
@@ -732,15 +731,14 @@ void MumbleClient::SetListenerMatrix(float position[3], float front[3], float up
 
 void MumbleClient::SendVoice(const char* buf, size_t size)
 {
-	if ((msec() - m_lastUdp) > kUDPTimeout)
+	// If we don't have UDP then we should send the packets over a TCP tunnel
+	if (!m_hasUdp)
 	{
 		Send(MumbleMessageType::UDPTunnel, buf, size);
+		return;
 	}
 	
-	if (m_lastUdp != 0ms)
-	{
-		SendUDP(buf, size);
-	}
+	SendUDP(buf, size);
 }
 
 void MumbleClient::SendUDP(const char* buf, size_t size)
@@ -750,12 +748,15 @@ void MumbleClient::SendUDP(const char* buf, size_t size)
 		return;
 	}
 
-	if (size > 8000)
+	if (size > kMaxUdpPacket)
 	{
+		trace("We tried to send a packet that was too large for mumble, max packet size is %d bytes, tried to send %d bytes\n", kMaxUdpPacket, size);
 		return;
 	}
 
-	auto outBuf = std::make_shared<std::unique_ptr<char[]>>(new char[8192]);
+	// Encoded packets can be at maximum of 1024 bytes long, if we send anything larger than this mumble will drop the packet
+	// https://mumble-protocol.readthedocs.io/en/latest/voice_data.html#packet-format
+	auto outBuf = std::make_shared<std::unique_ptr<char[]>>(new char[kMaxUdpPacket]);
 	m_crypto->Encrypt((const uint8_t*)buf, (uint8_t*)outBuf->get(), size);
 
 	m_loop->EnqueueCallback([this, outBuf, size]()
@@ -771,12 +772,16 @@ void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 		return;
 	}
 
-	if (size > 8000)
+	// valid packets should only be 1024 bytes long
+	// https://mumble-protocol.readthedocs.io/en/latest/voice_data.html#packet-format
+	if (size > kMaxUdpPacket)
 	{
+		trace("We recieved a packet that was too large, max packet size is %d bytes, got sent %d bytes\n", kMaxUdpPacket, size);
 		return;
 	}
 
-	uint8_t outBuf[8192];
+
+	uint8_t outBuf[kMaxUdpPacket];
 	if (!m_crypto->Decrypt(buf, outBuf, size))
 	{
 		return;
