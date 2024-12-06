@@ -47,6 +47,9 @@ static InputIntentMode g_lastIntentMode = InputIntentMode::SPEECH;
 void MumbleAudioInput::Initialize()
 {
 	m_bitrateVar = std::make_shared<ConVar<int>>("voice_inBitrate", ConVar_None, m_curBitrate, &m_curBitrate);
+	// NOTE: If the maximum here is ever increased we need to properly split audio packets into smaller buffers so we don't send packets
+	// that are to large to the server, for FiveM mumble sending too large of a packet will result in the client being dropped, in the mumble-server
+	// implementation this will just cause the packet to be ignored.
 	m_bitrateVar->GetHelper()->SetConstraints(16000, 128000);
 
 	m_denoiseVar = std::make_shared<ConVar<bool>>("voice_enableNoiseSuppression", ConVar_Archive, m_denoise, &m_denoise);
@@ -404,6 +407,8 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 	SendQueuedOpusPackets();
 }
 
+constexpr uint16_t kMaxUdpPacket = 1024;
+
 void MumbleAudioInput::EnqueueOpusPacket(std::string&& packet, int numFrames)
 {
 	m_opusPackets.push({ std::move(packet), numFrames });
@@ -423,14 +428,20 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 
 		const auto& [packet, frames] = packetChunk;
 
-		char outBuf[16384];
+		// Maximum size of Opus audio frames is 8191, but we *can't* actually send that much, FiveMs mumble will drop the player, while other implementations will just ignore the packet.
+		// This should be split into multiple packets for higher voice bitrates.
+		// https://mumble-protocol.readthedocs.io/en/latest/voice_data.html#packet-format 
+		// https://mumble-protocol.readthedocs.io/en/latest/voice_data.html#opus-audio-frames
+		char outBuf[kMaxUdpPacket];
 		PacketDataStream buffer(outBuf, sizeof(outBuf));
 
 		buffer.append((4 << 5) | (m_client->GetVoiceTarget() & 31));
 
 		buffer << m_sequence;
 
-		bool bTerminate = false;
+		// This fixed stuttering a while back 
+		// https://github.com/citizenfx/fivem/commit/6b341dc0d71a63a8992c18afe8e6048418978adc
+		constexpr bool bTerminate = false;
 
 		buffer << (packet.size() | (bTerminate ? (1 << 13) : 0));
 		buffer.append(packet.c_str(), packet.size());
