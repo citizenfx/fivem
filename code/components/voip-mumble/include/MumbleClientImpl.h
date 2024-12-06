@@ -72,8 +72,12 @@ public:
 class MumbleCrypto : public fwRefCountable
 {
 public:
-	virtual void Encrypt(const uint8_t* plain, uint8_t* cipher, size_t length) = 0;
+	uint32_t m_remoteGood;
+	uint32_t m_remoteLate;
+	uint32_t m_remoteLost;
+	uint32_t m_remoteResync;
 
+	virtual void Encrypt(const uint8_t* plain, uint8_t* cipher, size_t length) = 0;
 	virtual bool Decrypt(const uint8_t* cipher, uint8_t* plain, size_t length) = 0;
 };
 

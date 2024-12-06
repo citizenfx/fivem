@@ -24,7 +24,7 @@ static __declspec(thread) MumbleClient* g_currentMumbleClient;
 
 using namespace std::chrono_literals;
 
-constexpr auto kUDPTimeout = 10000ms;
+constexpr auto kUDPTimeout = 5000ms;
 constexpr auto kUDPPingInterval = 1000ms;
 constexpr uint16_t kMaxUdpPacket = 1024;
 
@@ -166,30 +166,10 @@ void MumbleClient::Initialize()
 		m_idleTimer = m_loop->Get()->resource<uvw::TimerHandle>();
 		m_idleTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
 		{
-			static bool hadUDP = false;
-			static bool warnedUDP = false;
-			// TODO: Use the MumbleProto::Ping packets to tell if we have a bad crypt state so we can set this in cases UDP packets also aren't being set from the server
-			m_hasUdp = ((msec() - m_lastUdp) <= kUDPTimeout);
-			
-			if (m_hasUdp && !hadUDP)
+			if (m_hasUdp && (msec() - m_lastUdp) > kUDPTimeout)
 			{
-				if (warnedUDP)
-				{
-					console::Printf("mumble", "UDP packets can be received. Switching to UDP mode.\n");
-				}
-
-				warnedUDP = true;
-				hadUDP = true;
-			}
-			else if (!m_hasUdp && hadUDP)
-			{
-				if (warnedUDP)
-				{
-					console::PrintWarning("mumble", "UDP packets can *not* be received. Switching to TCP tunnel mode.\n");
-				}
-
-				warnedUDP = true;
-				hadUDP = false;
+				m_hasUdp = false;
+				console::PrintWarning("mumble", "Server isn't responding to UDP packets, swapping to TCP.\n");
 			}
 
 			auto lockedIsActive = [this]()
@@ -967,6 +947,26 @@ MumbleConnectionInfo* MumbleClient::GetConnectionInfo()
 
 void MumbleClient::HandlePing(const MumbleProto::Ping& ping)
 {
+	if (m_crypto.GetRef())
+	{
+		// Mimic mumbles behavior for pings
+		m_crypto.m_remoteGood = ping.good();
+		m_crypto.m_remoteLate = ping.late();
+		m_crypto.m_remoteLost = ping.lost();
+		m_crypto.m_remoteResync = ping.resync();
+
+		if (m_hasUdp && m_crypto.m_remoteGood == 0 && (msec() - m_lastUdp) > 2s)
+		{
+			console::PrintWarning("mumble", "UDP packets can *not* be received. Switching to TCP tunnel mode.\n");
+			m_hasUdp = false;
+		}
+		else if (!m_hasUdp && m_crypto.m_remoteGood > 3)
+		{
+			console::Printf("mumble", "UDP packets can be received. Switching to UDP mode.\n");
+			m_hasUdp = true;
+		}
+	}
+
 	m_tcpPingCount++;
 
 	if (ping.has_timestamp())
