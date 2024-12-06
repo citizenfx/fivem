@@ -199,6 +199,7 @@ private:
 
 	int m_voiceTarget;
 
+	uint16_t m_inFlightTcpPings = 0;
 	bool m_hasUdp = false;
 
 	std::chrono::milliseconds m_lastUdp;

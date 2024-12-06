@@ -351,6 +351,13 @@ void MumbleClient::Initialize()
 				if (msec() > m_nextPing)
 				{
 					{
+						// only log once at 4 pings
+						if (m_inFlightTcpPings == 4)
+						{
+							console::PrintWarning("mumble", "Server is not responding to TCP pings\n");
+						}
+
+						m_inFlightTcpPings += 1;
 						MumbleProto::Ping ping;
 						ping.set_timestamp(msec().count());
 						ping.set_tcp_ping_avg(m_tcpPingAverage);
@@ -947,6 +954,7 @@ MumbleConnectionInfo* MumbleClient::GetConnectionInfo()
 
 void MumbleClient::HandlePing(const MumbleProto::Ping& ping)
 {
+	m_inFlightTcpPings = 0;
 	if (m_crypto.GetRef())
 	{
 		// Mimic mumbles behavior for pings
