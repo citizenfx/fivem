@@ -163,6 +163,16 @@ inline bool Is3323()
 
 	return value;
 }
+
+inline bool Is3407()
+{
+	static bool value = ([]()
+	{
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3407) || fx::GetEnforcedGameBuildNumber() >= 3407;
+	})();
+
+	return value;
+}
 #elif defined(STATE_RDR3)
 inline bool Is1311()
 {

@@ -4,6 +4,8 @@
 #include <Hooking.Stubs.h>
 #include <Hooking.FlexStruct.h>
 
+#include "CrossBuildRuntime.h"
+
 static void (*orig_CPedVariationStream__ApplyStreamPedFiles)(hook::FlexStruct* pPed, void* pNewVarData, void* pPSGfx);
 static uint32_t off_CPed__m_CClothController;
 
@@ -35,6 +37,11 @@ static void CPedVariationStream__ApplyStreamPedFiles(hook::FlexStruct* pPed, voi
 
 static HookFunction hookFunction([]
 {
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		return;
+	}
+
 	orig_CPedVariationStream__ApplyStreamPedFiles = hook::trampoline(hook::get_call(hook::get_pattern("4C 8B C3 48 8B D6 E8 ? ? ? ? 48 8B D7", 6)), &CPedVariationStream__ApplyStreamPedFiles);
 
 	off_CPed__m_CClothController = *(uint32_t*)hook::get_pattern<char>("40 88 B8 ? ? ? ? 4A 89 BC E6", 11);

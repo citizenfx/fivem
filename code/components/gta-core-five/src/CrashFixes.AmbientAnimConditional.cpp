@@ -4,6 +4,8 @@
 #include <Hooking.h>
 #include <Hooking.Stubs.h>
 
+#include "CrossBuildRuntime.h"
+
 static int32_t allocationSize = 0;
 static int32_t allocationAlign = 0;
 static void* (*g_allocateTask)(void* allocator, uint64_t size, uint64_t align);
@@ -31,6 +33,11 @@ void* CTaskAmbientClipsCtor(void* memAllocated, uintptr_t unk1, uintptr_t condGr
 
 static HookFunction hookFunction([]
 {
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		return;
+	}
+
 	auto createCloneFsmAlloc = hook::get_pattern<uint8_t>("48 8B 0D ? ? ? ? BA ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 48 85 C0 75 ? B9 ? ? ? ? E8 ? ? ? ? EB ? 44 8B 4D");
 	
 	allocator = *(int32_t*)(createCloneFsmAlloc + 3) + createCloneFsmAlloc + 7;

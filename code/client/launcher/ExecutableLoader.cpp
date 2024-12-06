@@ -39,6 +39,8 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 	{
 		const char* name = GetTargetRVA<char>(descriptor->Name);
 
+		m_moduleNames.push_back(name);
+
 		HMODULE module = ResolveLibrary(name);
 
 		if (!module)

@@ -322,7 +322,7 @@ static HookFunction hookFunction([]()
 	}
 
 	{
-		WeaponDamageModifierOffset = *hook::get_pattern<int>("48 85 C9 74 ? F3 0F 10 81 ? ? ? ? F3 0F 59 81", 9);
+		WeaponDamageModifierOffset = *hook::get_pattern<int>("48 8B 0C F8 89 B1", 6);
 		WeaponAnimationOverrideOffset = *hook::get_pattern<int>("8B 9F ? ? ? ? 85 DB 75 3E", 2);
 		WeaponRecoilShakeAmplitudeOffset = *hook::get_pattern<int>("48 8B 47 40 F3 0F 10 B0 ? ? ? ?", 8);
 
@@ -503,7 +503,7 @@ static HookFunction hookFunction([]()
 	// Disable auto-reloads
 	{
 		MH_Initialize();
-		MH_CreateHook(hook::get_pattern("40 53 48 83 EC 20 4C 8B 49 40 33 DB"), WantsReload, (void**)&origWantsReload);
+		MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 0F 85 ? ? ? ? 8A 86 ? ? ? ? 41 84 C5")), WantsReload, (void**)&origWantsReload);
 		MH_CreateHook(hook::get_address<LPVOID>(hook::get_pattern("45 33 C9 45 33 C0 48 8B D0 48 8B CB E8 ? ? ? ? 48 83 C4 40", 12), 1, 5), CPedEquippedWeapon_SetupAsWeapon, (void**)&origSetupAsWeapon);
 		MH_EnableHook(MH_ALL_HOOKS);
 

@@ -5,6 +5,7 @@
 #include "CrossBuildRuntime.h"
 #include "Hooking.h"
 #include "Hooking.Invoke.h"
+#include "Hooking.FlexStruct.h"
 #include "ICoreGameInit.h"
 #include "MinHook.h"
 
@@ -36,6 +37,15 @@ static hook::thiscall_stub<void(rage::netPlayerMgrBase*, CNetGamePlayer*)> g_net
 #endif
 });
 
+static hook::thiscall_stub<CNetGamePlayer*(rage::netPlayerMgrBase*)> g_netPlayerMgrBase_GetMyPlayer([]
+{
+#ifdef GTA_FIVE
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 89 44 24 ? 48 85 C0 0F 84 ? ? ? ? 41 8B 8F"));
+#else // IS_RDR3
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 4C 8B E0 48 85 C0 74 ? 48 8B C8 E8 ? ? ? ? 48 8B E8"));
+#endif
+});
+
 namespace rage
 {
 #ifdef GTA_FIVE
@@ -58,12 +68,7 @@ namespace rage
 
 	CNetGamePlayer* netPlayerMgrBase::GetLocalPlayer()
 	{
-#ifdef GTA_FIVE
-		const int offset = (xbr::IsGameBuildOrGreater<2944>() ? 240 : 232);
-		return *(CNetGamePlayer**)((uint64_t)this + offset);
-#elif IS_RDR3
-		return *(CNetGamePlayer**)((uint64_t)this + 232);
-#endif
+		return g_netPlayerMgrBase_GetMyPlayer(this);
 	}
 
 	CNetGamePlayer* GetLocalPlayer()
@@ -112,6 +117,7 @@ static HookFunction hookFunction([]()
 #endif
 	}
 
+	// Player manager
 #ifdef GTA_FIVE
 	g_playerMgr = *hook::get_address<rage::netPlayerMgrBase**>(hook::get_pattern("40 80 FF 20 72 B3 48 8B 0D", 9));
 #elif IS_RDR3

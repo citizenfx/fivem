@@ -206,6 +206,7 @@ protected:
 	const char*				m_pszExitMessage;
 
 public:
+	virtual void __dummyMethod1()															{}
 	virtual ~scrThread()																	{}
 	virtual eThreadState	Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)		= 0;
 	virtual eThreadState	Run(uint32_t opsToExecute)										= 0;
@@ -240,6 +241,23 @@ protected:
 	char pad_b2699[8];
 
 public:
+	GtaThread() 
+	{
+		if (!xbr::IsGameBuildOrGreater<3407>())
+		{
+			auto vtable = *(void***)this;
+			DWORD oldProtect;
+			VirtualProtect(vtable, 5 * 8, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+			for (int i = 0; i < 5; i++)
+			{
+				vtable[i] = vtable[i + 1];
+			}
+
+			VirtualProtect(vtable, 5 * 8, oldProtect, &oldProtect);
+		}
+	}
+
 	virtual void					DoRun() = 0;
 
 	virtual rage::eThreadState		Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount);

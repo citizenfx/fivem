@@ -6,6 +6,8 @@
 
 #include <jitasm.h>
 
+#include "CrossBuildRuntime.h"
+
 uint32_t taskEntityOffset = 0;
 uint32_t dynamicEntityComponentOffset = 0;
 uint32_t animDirectorOffset = 0;
@@ -101,6 +103,11 @@ void CTaskParachute_SetParachuteTintIndex(hook::FlexStruct* self)
 
 static HookFunction hookFunction([]
 {
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		return;
+	}
+
 	g_CTaskParachuteObject_UpdateFSM = hook::trampoline(hook::get_pattern<void>("48 83 EC ? 85 D2 0F 88 ? ? ? ? 75 ? 45 85 C0 75 ? 48 8B 41"), &CTaskParachuteObject_UpdateFSM);
 	g_CTaskParachute_SetParachuteTintIndex = hook::trampoline(hook::get_pattern<void>("48 89 5C 24 ? 57 48 83 EC ? 48 8B 81 ? ? ? ? 48 8B D9 48 85 C0 74 ? 48 8B 40"), &CTaskParachute_SetParachuteTintIndex);
 

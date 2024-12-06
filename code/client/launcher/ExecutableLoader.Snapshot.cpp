@@ -31,6 +31,11 @@ inline uintptr_t GetTriggerEP()
 		return ep;
 	}
 
+	if (xbr::IsGameBuild<3407>())
+	{
+		return 0x14185CFAC;
+	}
+
 	if (xbr::IsGameBuild<3323>())
 	{
 		return 0x1418492F0;
@@ -192,6 +197,20 @@ static LONG CALLBACK SnapshotVEH(PEXCEPTION_POINTERS pointers)
 		IMAGE_DOS_HEADER* header = GetTargetRVA<IMAGE_DOS_HEADER>(0);
 		IMAGE_NT_HEADERS* ntHeader = GetTargetRVA<IMAGE_NT_HEADERS>(header->e_lfanew);
 		IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(ntHeader);
+
+		IMAGE_DATA_DIRECTORY* importDirectory = &ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+
+		auto descriptor = GetTargetRVA<IMAGE_IMPORT_DESCRIPTOR>(importDirectory->VirtualAddress);
+
+		int i = 0;
+		while (descriptor->Name)
+		{
+			char* name = GetTargetRVA<char>(descriptor->Name);
+			const char* realName = ExecutableLoader::m_moduleNames[i++].c_str();
+			memcpy(name, realName, strlen(realName) + 1);
+
+			descriptor++;
+		}
 
 		FILE* f = _wfopen(MakeRelativeCitPath(fmt::sprintf(L"data\\cache\\executable_snapshot_%x.bin", ntHeader->OptionalHeader.AddressOfEntryPoint)).c_str(), L"wb");
 
@@ -357,6 +376,20 @@ static LONG CALLBACK DumpVEH(PEXCEPTION_POINTERS pointers)
 		IMAGE_DOS_HEADER* header = GetTargetRVA<IMAGE_DOS_HEADER>(0);
 		IMAGE_NT_HEADERS* ntHeader = GetTargetRVA<IMAGE_NT_HEADERS>(header->e_lfanew);
 		IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(ntHeader);
+
+		IMAGE_DATA_DIRECTORY* importDirectory = &ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+
+		auto descriptor = GetTargetRVA<IMAGE_IMPORT_DESCRIPTOR>(importDirectory->VirtualAddress);
+
+		int i = 0;
+		while (descriptor->Name)
+		{
+			char* name = GetTargetRVA<char>(descriptor->Name);
+			const char* realName = ExecutableLoader::m_moduleNames[i++].c_str();
+			memcpy(name, realName, strlen(realName) + 1);
+
+			descriptor++;
+		}
 
 		FILE* f = _wfopen(g_dumpFileName.c_str(), L"wb");
 
