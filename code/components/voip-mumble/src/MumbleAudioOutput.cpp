@@ -717,7 +717,9 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 		sendDescriptors[1].pOutputVoice = m_submixVoice;
 	}
 
-	const XAUDIO2_VOICE_SENDS sendList = { (m_submixVoice) ? 2 : 1, sendDescriptors };
+	uint32_t sendCount = (m_submixVoice) ? 2 : 1;
+
+	const XAUDIO2_VOICE_SENDS sendList = { sendCount , sendDescriptors };
 
 	IXAudio2SourceVoice* voice = nullptr;
 	HRESULT hr = xa2->CreateSourceVoice(&voice, &format, 0, 2.0f, state.get(), &sendList);
