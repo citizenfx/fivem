@@ -778,6 +778,7 @@ void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 	uint8_t outBuf[kMaxUdpPacket];
 	if (!m_crypto.Decrypt(buf, outBuf, size))
 	{
+		console::DPrintf("mumble", "Failed to decrypt packet\n");
 		return;
 	}
 

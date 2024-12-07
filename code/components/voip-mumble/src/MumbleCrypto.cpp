@@ -34,6 +34,7 @@ bool MumbleCrypto::Decrypt(const uint8_t* cipher, uint8_t* plain, size_t length)
 {
 	if (length < 4)
 	{
+		console::DPrintf("mumble", "Tried to decrypt packet but it didn't have headers\n");
 		return false;
 	}
 
