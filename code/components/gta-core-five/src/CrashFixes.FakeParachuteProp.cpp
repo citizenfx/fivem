@@ -134,7 +134,7 @@ static HookFunction hookFunction([]
 				mov(al, byte_ptr[rax + 0xA]);		//
 				and(al, 0xF);						//
 				cmp(al, 3);							//        if ( ((shader + 0xA) & 0xF) == 3 /* vehicle */ )
-				jz("fail");							//        {
+				jnz("fail");						//        {
 													//
 				mov(rax, retSuccess);				//
 				jmp(rax);							//            [run original code]
