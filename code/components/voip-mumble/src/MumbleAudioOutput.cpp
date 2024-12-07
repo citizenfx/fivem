@@ -1499,15 +1499,6 @@ void MumbleAudioOutput::SetAudioDevice(const std::string& deviceId)
 
 	{
 		std::unique_lock<std::shared_mutex> _(m_clientsMutex);
-
-		for (auto& client : m_clients)
-		{
-			if (client.second)
-			{
-				m_ids.push_back(client.first);
-			}
-		}
-
 		// delete all clients
 		m_clients.clear();
 	}
@@ -1515,12 +1506,10 @@ void MumbleAudioOutput::SetAudioDevice(const std::string& deviceId)
 	// reinitialize audio device
 	InitializeAudioDevice();
 
-	// recreate clients
-	for (auto& client : m_ids)
+	m_client->GetState().ForAllUsers([this](const std::shared_ptr<MumbleUser>& user)
 	{
-		MumbleUser fakeUser(client);
-		HandleClientConnect(fakeUser);
-	}
+		HandleClientConnect(*user);
+	});
 }
 
 void MumbleAudioOutput::SetDistance(float distance)
