@@ -400,8 +400,8 @@ static InitFunction initFunction([]()
 		auto srvEndpoints = instance->AddVariable<std::string>("sv_endpoints", ConVar_None, "");
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
-		g_enforcedGameBuild = "1604";
-		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, "1604", &g_enforcedGameBuild);
+		g_enforcedGameBuild = xbr::GetDefaultGTA5BuildString();
+		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, xbr::GetDefaultGTA5BuildString(), &g_enforcedGameBuild);
 
 		g_replaceExecutable = true;
 		auto replaceExecutableVar = instance->AddVariable<bool>("sv_replaceExeToSwitchBuilds", ConVar_ReadOnly | ConVar_ServerInfo, true, &g_replaceExecutable);
@@ -442,9 +442,9 @@ static InitFunction initFunction([]()
 		{
 			if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::RDR3)
 			{
-				if (g_enforcedGameBuild == "1604")
+				if (g_enforcedGameBuild == xbr::GetDefaultGTA5BuildString())
 				{
-					enforceGameBuildVar->GetHelper()->SetRawValue("1311");
+					enforceGameBuildVar->GetHelper()->SetRawValue(xbr::GetDefaultRDR3BuildString());
 				}
 			}
 
