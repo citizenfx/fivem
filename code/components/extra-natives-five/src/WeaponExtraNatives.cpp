@@ -548,4 +548,10 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 29 8B 47 34"));
 		g_origIsPedWeaponAimingBlocked = hook::trampoline(location, &IsPedWeaponAimingBlocked);
 	}
+
+	// Disable weapon status copy over the network. I.e. return to 3095 behavior.
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		hook::put<uint8_t>(hook::get_pattern("74 ? 88 87 ? ? ? ? 80 BE"), 0xEB);
+	}
 });
