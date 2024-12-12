@@ -1323,7 +1323,7 @@ struct CPedGameStateDataNode
 			weapon = state.buffer.Read<int>(32);
 			if (Is3258())
 			{
-				auto weaponUnk = state.buffer.Read<uint8_t>(3);
+				auto weaponState = state.buffer.Read<uint8_t>(3);
 			}
 		}
 
