@@ -9,6 +9,7 @@
 #include <Local.h>
 
 #include <array>
+#include <vector>
 
 #include <ScriptEngine.h>
 #include <Hooking.h>
@@ -17,6 +18,31 @@
 #include "RageParser.h"
 #include "Resource.h"
 #include "ScriptWarnings.h"
+
+static void BlockForbiddenNatives()
+{
+	std::vector<uint64_t> nativesToBlock = rage::scrEngine::GetBlockedNatives();
+	for (auto native: nativesToBlock)
+	{
+		auto origHandler = fx::ScriptEngine::GetNativeHandler(native);
+		if (!origHandler)
+		{
+			continue;
+		}
+
+		fx::ScriptEngine::RegisterNativeHandler(native, [=](fx::ScriptContext& ctx)
+		{
+			if (rage::scrEngine::GetStoryMode())
+			{
+				(*origHandler)(ctx);
+			}
+			else
+			{
+				ctx.SetResult<uintptr_t>(0);
+			}
+		});
+	}
+}
 
 static void FixVehicleWindowNatives()
 {
@@ -453,6 +479,26 @@ static void FixApplyForceToEntity()
 	});
 }
 
+static void FixIsBitSet()
+{
+	constexpr const uint64_t nativeHash = 0xE2D0C323A1AE5D85; // IS_BIT_SET
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [](fx::ScriptContext& ctx)
+	{
+		bool result = false;
+
+		auto value = ctx.GetArgument<uint32_t>(0);
+		auto offset = ctx.GetArgument<int>(1);
+
+		if (offset < 32)
+		{
+			result = (value & (1 << offset)) != 0;
+		}
+
+		ctx.SetResult<int>(result);
+	});
+}
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
@@ -461,6 +507,8 @@ static HookFunction hookFunction([]()
 
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
+		BlockForbiddenNatives();
+
 		// Most of vehicle window related natives have no checks for passed window index is valid
 		// for specified vehicle, passing wrong values lead to native execution exception.
 		FixVehicleWindowNatives();
@@ -489,5 +537,11 @@ static HookFunction hookFunction([]()
 		FixDrawMarker();
 
 		FixApplyForceToEntity();
+
+		if (xbr::IsGameBuildOrGreater<2612>())
+		{
+			// IS_BIT_SET is missing in b2612+, re-adding for compatibility
+			FixIsBitSet();
+		}
 	});
 });

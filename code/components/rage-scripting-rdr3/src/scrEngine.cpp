@@ -10,12 +10,15 @@
 #include "CrossLibraryInterfaces.h"
 #include "Hooking.h"
 
+#include <CrossBuildRuntime.h>
+
 #include <sysAllocator.h>
 
 #include <MinHook.h>
 #include <ICoreGameInit.h>
 
 #include <unordered_set>
+#include <unordered_map>
 
 #if __has_include("scrEngineStubs.h")
 #include <scrEngineStubs.h>
@@ -25,6 +28,25 @@ inline void HandlerFilter(void* handler)
 
 }
 #endif
+
+static std::unordered_map<uint64_t, int> g_nativeBlockedBeforeBuild = {
+	// Natives that are banned on all builds.
+
+	{0xF2DD2298B3AF23E2, std::numeric_limits<int>::max()}, // STRING_TO_INT
+	{0x7D1D4A3602B6AD4E, std::numeric_limits<int>::max()}, // CLEAR_BIT
+	{0x324DC1CEF57F31E6, std::numeric_limits<int>::max()}, // SET_BITS_IN_RANGE
+	{0xF73FBE4845C43B5B, std::numeric_limits<int>::max()}, // SET_BIT
+	{0xF7AC7DC0DEE7C9BE, std::numeric_limits<int>::max()}, // COPY_SCRIPT_STRUCT
+	{0x56B7291FB953DD51, std::numeric_limits<int>::max()}, // DATAFILE_CREATE
+	{0x9FB90EEDEA9F2D5C, std::numeric_limits<int>::max()}, // DATAFILE_DELETE
+	{0x604B8ED1A482F9DF, std::numeric_limits<int>::max()}, // DATAFILE_DELETE_REQUESTED_FILE
+	{0xBBD8CF823CAE557C, std::numeric_limits<int>::max()}, // DATAFILE_GET_FILE_DICT
+	{0x17279C820464CEE0, std::numeric_limits<int>::max()}, // DATAFILE_HAS_LOADED_FILE_DATA
+	{0xE60100389E50EADE, std::numeric_limits<int>::max()}, // DATAFILE_HAS_VALID_FILE_DATA
+	{0x46102A0989AD80B5, std::numeric_limits<int>::max()}, // DATAFILE_SELECT_ACTIVE_FILE
+	{0x790EC421078F5C4E, std::numeric_limits<int>::max()}, // DATAFILE_UGC_SELECT_DATA
+	{0xA5834834CA8FD7FC, std::numeric_limits<int>::max()}  // DATAFILE_WATCH_REQUEST_ID
+};
 
 fwEvent<> rage::scrEngine::OnScriptInit;
 fwEvent<bool&> rage::scrEngine::CheckNativeScriptAllowed;
@@ -325,6 +347,25 @@ void scrEngine::RegisterNativeHandler(uint64_t nativeIdentifier, NativeHandler h
 	g_nativeHandlers.push_back(std::make_pair(nativeIdentifier, handler));
 }
 
+bool scrEngine::ShouldBlockNative(uint64_t hash)
+{
+	auto it = g_nativeBlockedBeforeBuild.find(hash);
+	return it != g_nativeBlockedBeforeBuild.end() && xbr::GetRequestedGameBuild() < it->second;
+}
+
+std::vector<uint64_t> scrEngine::GetBlockedNatives()
+{
+	std::vector<uint64_t> blockedNatives;
+	for (auto [hash, _]: g_nativeBlockedBeforeBuild)
+	{
+		if (scrEngine::ShouldBlockNative(hash))
+		{
+			blockedNatives.push_back(hash);
+		}
+	}
+	return blockedNatives;
+}
+
 void OnScriptReInit()
 {
 	for (auto& entry : g_onScriptInitQueue)
@@ -407,14 +448,7 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 				{
 					handler = (scrEngine::NativeHandler)/*DecodePointer(*/table->handlers[i]/*)*/;
 					HandlerFilter(&handler);
-
-					if (handler)
-					{
-						#include "BlockedNatives.h"
-					}
-
 					g_fastPathMap.insert({ NativeHash{ origHash }, handler });
-
 					break;
 				}
 			}
