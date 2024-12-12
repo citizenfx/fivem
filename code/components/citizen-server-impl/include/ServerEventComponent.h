@@ -14,7 +14,7 @@ namespace fx
 	class ServerEventComponent : public fwRefCountable, public IAttached<ServerInstanceBase>
 	{
 	public:
-		virtual void TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc = std::optional<std::string_view>());
+		virtual void TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc = std::optional<std::string_view>(), bool reliable = true);
 
 		inline virtual void AttachToObject(ServerInstanceBase* object) override
 		{

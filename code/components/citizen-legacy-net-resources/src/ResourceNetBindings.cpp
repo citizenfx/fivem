@@ -236,6 +236,25 @@ namespace fx
 	ConVar<bool> g_enableEventReassembly("sv_enableNetEventReassembly", ConVar_Replicated, true, EnableEventReassemblyChanged);
 }
 
+namespace
+{
+	void TriggerServerEventInternal(fx::ScriptContext& context, bool reliable)
+	{
+		std::string_view eventName = context.GetArgument<const char*>(0);
+		size_t payloadSize = context.GetArgument<uint32_t>(2);
+
+		std::string_view eventPayload = std::string_view(context.GetArgument<const char*>(1), payloadSize);
+
+		g_netLibrary->OnTriggerServerEvent(eventName, eventPayload);
+
+		net::packet::ClientServerEventPacket clientServerEventPacket;
+		// null terminated event name
+		clientServerEventPacket.data.eventName = { reinterpret_cast<uint8_t*>(const_cast<char*>(context.GetArgument<const char*>(0))), eventName.size() + 1 };
+		clientServerEventPacket.data.eventData = { reinterpret_cast<uint8_t*>(const_cast<char*>(eventPayload.data())), eventPayload.size() };
+		g_netLibrary->SendNetPacket(clientServerEventPacket, reliable);
+	}
+}
+
 void NetLibraryResourcesComponent::UpdateOneResource()
 {
 	if (!m_resourceUpdateQueue.empty())
@@ -729,20 +748,14 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 		}
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_SERVER_EVENT_INTERNAL", [netLibrary](fx::ScriptContext& context)
+	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_UNRELIABLE_SERVER_EVENT_INTERNAL", [](fx::ScriptContext& context)
 	{
-		std::string_view eventName = context.GetArgument<const char*>(0);
-		size_t payloadSize = context.GetArgument<uint32_t>(2);
+		TriggerServerEventInternal(context, false);
+	});
 
-		std::string_view eventPayload = std::string_view(context.GetArgument<const char*>(1), payloadSize);
-
-		netLibrary->OnTriggerServerEvent(eventName, eventPayload);
-
-		net::packet::ClientServerEventPacket clientServerEventPacket;
-		// null terminated event name
-		clientServerEventPacket.data.eventName = {reinterpret_cast<uint8_t*>(const_cast<char*>(context.GetArgument<const char*>(0))), eventName.size() + 1};
-		clientServerEventPacket.data.eventData = {reinterpret_cast<uint8_t*>(const_cast<char*>(eventPayload.data())), eventPayload.size()};
-		netLibrary->SendNetPacket(clientServerEventPacket);
+	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_SERVER_EVENT_INTERNAL", [](fx::ScriptContext& context)
+	{
+		TriggerServerEventInternal(context, true);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("REQUEST_RESOURCE_FILE_SET", [this](fx::ScriptContext& context)
