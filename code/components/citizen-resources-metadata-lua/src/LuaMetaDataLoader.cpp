@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "Resource.h"
 #include "ResourceMetaDataComponent.h"
+#include <CoreConsole.h>
 
 #include "VFSManager.h"
 
@@ -227,6 +228,30 @@ std::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDataC
 		lua_pushnil(m_luaState);
 		lua_setglobal(m_luaState, removeThat);
 	}
+
+	lua_pushcfunction(m_luaState, [](lua_State* L)
+	{
+		const char* varName = lua_tostring(L, 1);
+		const char* defaultValue = lua_tostring(L, 2);
+
+		if (!varName)
+		{
+			lua_pushstring(L, defaultValue);
+			return 1;
+		}
+
+		const auto var = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw(varName);
+		if (!var)
+		{
+			lua_pushstring(L, defaultValue);
+			return 1;
+		}
+
+		lua_pushstring(L, var->GetValue().c_str());
+
+		return 1;
+	});
+	lua_setglobal(m_luaState, "GetConvar");
 
 	auto fileNameAttempts = { "fxmanifest.lua"s, "__resource.lua"s };
 	bool attemptResults[] = { true, true };
