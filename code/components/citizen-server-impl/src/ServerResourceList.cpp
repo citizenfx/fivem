@@ -75,7 +75,7 @@ void ServerResourceList::ScanResources(const std::string& resourceRoot, ScanResu
 				}
 
 				// common things to skip
-				if (findData.name == ".git")
+				if (findData.name == ".git" || findData.name == ".github")
 				{
 					continue;
 				}
