@@ -26,6 +26,9 @@
 #include <lua_cmsgpacklib.h>
 #include <lua_rapidjsonlib.h>
 #include <lmprof_lib.h>
+
+#include "LuaFXLib.h"
+#include "VFSManager.h"
 #if LUA_VERSION_NUM == 504
 #include <lglmlib.hpp>
 #endif
@@ -164,16 +167,16 @@ static const luaL_Reg lualibs[] = {
 	{ LUA_TABLIBNAME, luaopen_table },
 	{ LUA_STRLIBNAME, luaopen_string },
 	{ LUA_MATHLIBNAME, luaopen_math },
-	{ LUA_DBLIBNAME, luaopen_debug },
 	{ LUA_COLIBNAME, luaopen_coroutine },
 	{ LUA_UTF8LIBNAME, luaopen_utf8 },
+	{ LUA_FX_DEBUGLIBNAME, fx::lua_fx_opendebug },
 #ifdef IS_FXSERVER
-	{ LUA_IOLIBNAME, luaopen_io },
-	{ LUA_OSLIBNAME, luaopen_os },
+	{ LUA_FX_IOLIBNAME, fx::lua_fx_openio },
+	{ LUA_FX_OSLIBNAME, fx::lua_fx_openos },
 #endif
 	{ "msgpack", luaopen_cmsgpack },
 	{ "json", luaopen_rapidjson },
-	{ NULL, NULL }
+	{ nullptr, nullptr }
 };
 
 /// <summary>
@@ -1888,6 +1891,16 @@ bool LuaScriptRuntime::IScriptProfiler_Tick(bool begin)
 		}
 	}
 	return false;
+}
+
+const luaL_Reg* LuaScriptRuntime::GetCitizenLibs()
+{
+	return g_citizenLib;
+}
+
+const luaL_Reg* LuaScriptRuntime::GetLuaLibs()
+{
+	return lualibs;
 }
 
 result_t LuaScriptRuntime::SetupFxProfiler(void* obj, int32_t resourceId)
