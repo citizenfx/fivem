@@ -146,59 +146,62 @@ local eventHandlers = {}
 local deserializingNetEvent = false
 
 Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
-	-- set the event source
-	local lastSource = _G.source
-	_G.source = eventSource
-
 	-- try finding an event handler for the event
 	local eventHandlerEntry = eventHandlers[eventName]
 
+	-- as the event has no handlers, return early.
+	if not (eventHandlerEntry and eventHandlerEntry.handlers) then
+		return
+	end
+
+	-- set the event source
+	local lastSource = _G.source
+	_G.source = eventSource
+	
 	-- deserialize the event structure (so that we end up adding references to delete later on)
 	local data = msgpack_unpack(eventPayload)
+	
+	-- if this is a net event and we don't allow this event to be triggered from the network, return
+	if eventSource:sub(1, 3) == 'net' then
+		if not eventHandlerEntry.safeForNet then
+			Citizen.Trace('event ' .. eventName .. " was not safe for net\n")
 
-	if eventHandlerEntry and eventHandlerEntry.handlers then
-		-- if this is a net event and we don't allow this event to be triggered from the network, return
-		if eventSource:sub(1, 3) == 'net' then
-			if not eventHandlerEntry.safeForNet then
-				Citizen.Trace('event ' .. eventName .. " was not safe for net\n")
+			_G.source = lastSource
+			return
+		end
 
-				_G.source = lastSource
-				return
+		deserializingNetEvent = { source = eventSource }
+		_G.source = tonumber(eventSource:sub(5))
+	elseif isDuplicityVersion and eventSource:sub(1, 12) == 'internal-net' then
+		deserializingNetEvent = { source = eventSource:sub(10) }
+		_G.source = tonumber(eventSource:sub(14))
+	end
+
+	-- return an empty table if the data is nil
+	if not data then
+		data = {}
+	end
+
+	-- reset serialization
+	deserializingNetEvent = nil
+
+	-- if this is a table...
+	if type(data) == 'table' then
+		-- loop through all the event handlers
+		for k, handler in pairs(eventHandlerEntry.handlers) do
+			local handlerFn = handler
+			local handlerMT = getmetatable(handlerFn)
+
+			if handlerMT and handlerMT.__call then
+				handlerFn = handlerMT.__call
 			end
 
-			deserializingNetEvent = { source = eventSource }
-			_G.source = tonumber(eventSource:sub(5))
-		elseif isDuplicityVersion and eventSource:sub(1, 12) == 'internal-net' then
-			deserializingNetEvent = { source = eventSource:sub(10) }
-			_G.source = tonumber(eventSource:sub(14))
-		end
-
-		-- return an empty table if the data is nil
-		if not data then
-			data = {}
-		end
-
-		-- reset serialization
-		deserializingNetEvent = nil
-
-		-- if this is a table...
-		if type(data) == 'table' then
-			-- loop through all the event handlers
-			for k, handler in pairs(eventHandlerEntry.handlers) do
-				local handlerFn = handler
-				local handlerMT = getmetatable(handlerFn)
-
-				if handlerMT and handlerMT.__call then
-					handlerFn = handlerMT.__call
-				end
-
-				if type(handlerFn) == 'function' then
-					local di = debug_getinfo(handlerFn)
-				
-					Citizen.CreateThreadNow(function()
-						handler(table_unpack(data))
-					end, ('event %s [%s[%d..%d]]'):format(eventName, di.short_src, di.linedefined, di.lastlinedefined))
-				end
+			if type(handlerFn) == 'function' then
+				local di = debug_getinfo(handlerFn)
+			
+				Citizen.CreateThreadNow(function()
+					handler(table_unpack(data))
+				end, ('event %s [%s[%d..%d]]'):format(eventName, di.short_src, di.linedefined, di.lastlinedefined))
 			end
 		end
 	end
