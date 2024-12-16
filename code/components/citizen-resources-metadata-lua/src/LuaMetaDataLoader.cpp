@@ -229,29 +229,17 @@ std::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDataC
 		lua_setglobal(m_luaState, removeThat);
 	}
 
-	lua_pushcfunction(m_luaState, [](lua_State* L)
+	const auto varMan = console::GetDefaultContext()->GetVariableManager();
+	const char* globalVar[] = { "gamename", "servername" };
+
+	for (auto varName : globalVar)
 	{
-		const char* varName = lua_tostring(L, 1);
-		const char* defaultValue = lua_tostring(L, 2);
-
-		if (!varName)
-		{
-			lua_pushstring(L, defaultValue);
-			return 1;
+		const auto var = varMan->FindEntryRaw(varName);
+		if (var) {
+			lua_pushstring(m_luaState, var->GetValue().c_str());
+			lua_setglobal(m_luaState, varName);
 		}
-
-		const auto var = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw(varName);
-		if (!var)
-		{
-			lua_pushstring(L, defaultValue);
-			return 1;
-		}
-
-		lua_pushstring(L, var->GetValue().c_str());
-
-		return 1;
-	});
-	lua_setglobal(m_luaState, "GetConvar");
+	}
 
 	auto fileNameAttempts = { "fxmanifest.lua"s, "__resource.lua"s };
 	bool attemptResults[] = { true, true };
