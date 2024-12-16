@@ -1352,28 +1352,25 @@ static void V8_GetMetaField(const v8::FunctionCallbackInfo<v8::Value>& args)
 	args.GetReturnValue().Set(External::New(GetV8Isolate(), ScriptNativeContext::GetMetaField(field)));
 }
 
-template<MetaField field, bool init>
+template<MetaField field>
 static void V8_GetPointerField(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
 
 	uintptr_t value = 0;
 
-	if (init)
+	auto arg = args[0];
+
+	if constexpr (field == MetaField::PointerValueInteger)
 	{
-		auto arg = args[0];
-
-		if constexpr (field == MetaField::ResultAsInteger)
-		{
-			value = (uint64_t)arg->IntegerValue(runtime->GetContext()).ToChecked();
-		}
-		else if constexpr (field == MetaField::ResultAsFloat)
-		{
-			float fvalue = static_cast<float>(arg->NumberValue(runtime->GetContext()).ToChecked());
-			value = *reinterpret_cast<uint32_t*>(&value);
-		}
+		value = (uint64_t)arg->IntegerValue(runtime->GetContext()).ToChecked();
 	}
-
+	else if constexpr (field == MetaField::PointerValueFloat)
+	{
+		float fvalue = static_cast<float>(arg->NumberValue(runtime->GetContext()).ToChecked());
+		value = *reinterpret_cast<uint32_t*>(&value);
+	}
+	
 	args.GetReturnValue().Set(External::New(GetV8Isolate(), ScriptNativeContext::GetPointerField(field, value)));
 }
 
@@ -1553,11 +1550,11 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "submitBoundaryEnd", V8_SubmitBoundaryEnd },
 	{ "setStackTraceFunction", V8_SetStackTraceRoutine },
 	// metafields
-	{ "pointerValueIntInitialized", V8_GetPointerField<MetaField::ResultAsInteger, true> },
-	{ "pointerValueFloatInitialized", V8_GetPointerField<MetaField::ResultAsFloat, true> },
-	{ "pointerValueInt", V8_GetPointerField<MetaField::ResultAsInteger, false> },
-	{ "pointerValueFloat", V8_GetPointerField<MetaField::ResultAsFloat, false> },
-	{ "pointerValueVector", V8_GetPointerField<MetaField::ResultAsVector, false> },
+	{ "pointerValueIntInitialized", V8_GetPointerField<MetaField::PointerValueInteger> },
+	{ "pointerValueFloatInitialized", V8_GetPointerField<MetaField::PointerValueFloat> },
+	{ "pointerValueInt", V8_GetMetaField<MetaField::PointerValueInteger> },
+	{ "pointerValueFloat", V8_GetMetaField<MetaField::PointerValueFloat> },
+	{ "pointerValueVector", V8_GetMetaField<MetaField::PointerValueVector> },
 	{ "returnResultAnyway", V8_GetMetaField<MetaField::ReturnResultAnyway> },
 	{ "resultAsInteger", V8_GetMetaField<MetaField::ResultAsInteger> },
 	{ "resultAsLong", V8_GetMetaField<MetaField::ResultAsLong> },

@@ -266,7 +266,7 @@ void ScriptNativeContext::PushReturnValue(MetaField field, const uintptr_t* valu
 		ScriptError("too many return value arguments");
 	}
 
-	int slots = (field == MetaField::ResultAsVector) ? 3 : 1;
+	int slots = (field == MetaField::PointerValueVector) ? 3 : 1;
 	size_t size = slots * sizeof(uintptr_t);
 
 	// COMPAT: Some code uses PointerValue arguments to act as struct output fields, so we need them to be stored contiguously in memory.
@@ -295,6 +295,14 @@ void ScriptNativeContext::PushMetaPointer(uint8_t* ptr)
 		// switch on the metafield
 		switch (metaField)
 		{
+			case MetaField::PointerValueInteger:
+			case MetaField::PointerValueFloat:
+			case MetaField::PointerValueVector:
+			{
+				PushReturnValue(metaField, nullptr);
+				break;
+			}
+
 			case MetaField::ReturnResultAnyway:
 				// We are going to return the result anyway if they've given us the type.
 				if (rettypes[0] == MetaField::Max)
@@ -317,7 +325,7 @@ void ScriptNativeContext::PushMetaPointer(uint8_t* ptr)
 	{
 		PointerField* field = reinterpret_cast<PointerField*>(ptr);
 
-		if (field->type == MetaField::ResultAsInteger || field->type == MetaField::ResultAsFloat || field->type == MetaField::ResultAsVector)
+		if (field->type == MetaField::PointerValueInteger || field->type == MetaField::PointerValueFloat || field->type == MetaField::PointerValueVector)
 		{
 			PushReturnValue(field->type, field->value);
 		}
@@ -670,7 +678,7 @@ void* ScriptNativeContext::GetMetaField(MetaField field)
 
 void* ScriptNativeContext::GetPointerField(MetaField type, uintptr_t value)
 {
-	assert(type == MetaField::ResultAsInteger || type == MetaField::ResultAsFloat || type == MetaField::ResultAsVector);
+	assert(type == MetaField::PointerValueInteger || type == MetaField::PointerValueFloat || type == MetaField::PointerValueVector);
 
 	PointerField* entry = &s_pointerFields[s_pointerFieldIndex];
 	s_pointerFieldIndex = (s_pointerFieldIndex + 1) % std::size(s_pointerFields);
