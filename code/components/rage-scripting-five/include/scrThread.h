@@ -129,6 +129,11 @@ public:
 		return m_pArgs;
 	}
 
+	inline void* GetResultBuffer()
+	{
+		return m_pReturn;
+	}
+
 	// copy vector3 pointer results to the initial argument
 	inline void SetVectorResults()
 	{

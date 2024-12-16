@@ -163,7 +163,7 @@ public:
 
 	virtual std::shared_ptr<RcdStream> OpenStream(const std::string& fileName, bool readOnly) override;
 
-	virtual std::shared_ptr<RcdStream> CreateStream(const std::string& fileName) override;
+	virtual std::shared_ptr<RcdStream> CreateStream(const std::string& fileName, bool createIfExists = true) override;
 
 	virtual std::shared_ptr<RcdBulkStream> OpenBulkStream(const std::string& fileName, uint64_t* ptr) override;
 

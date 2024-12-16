@@ -259,7 +259,7 @@ std::shared_ptr<RcdStream> ResourceCacheDeviceV2::OpenStream(const std::string& 
 	return std::make_shared<RcdStream>(static_cast<RcdFetcher*>(this), fileName);
 }
 
-std::shared_ptr<RcdStream> ResourceCacheDeviceV2::CreateStream(const std::string& fileName)
+std::shared_ptr<RcdStream> ResourceCacheDeviceV2::CreateStream(const std::string& fileName, bool createIfExists)
 {
 	return {};
 }

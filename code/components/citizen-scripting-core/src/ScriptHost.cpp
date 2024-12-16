@@ -298,7 +298,7 @@ result_t SAFE_BUFFERS TestScriptHost::InvokeNative(fxNativeContext & context)
 {
 #if SCRT_HAS_CALLNATIVEHANDLER
 	// prepare an invocation context
-	fx::ScriptContextRaw scriptContext(context.arguments, context.numArguments);
+	fx::ScriptContextRaw scriptContext(context.arguments, context.arguments, context.numArguments);
 
 	// call the native handler
 	try
@@ -314,12 +314,12 @@ result_t SAFE_BUFFERS TestScriptHost::InvokeNative(fxNativeContext & context)
 	}
 #else
 	// get a native handler for the identifier
-	auto nativeHandler = ScriptEngine::GetNativeHandler(context.nativeIdentifier);
+	auto nativeHandler = ScriptEngine::GetNativeHandlerPtr(context.nativeIdentifier);
 
 	if (nativeHandler)
 	{
 		// prepare an invocation context
-		fx::ScriptContextRaw scriptContext(context.arguments, context.numArguments);
+		fx::ScriptContextRaw scriptContext(context.arguments, context.arguments, context.numArguments);
 		
 		// invoke the native handler
 		try

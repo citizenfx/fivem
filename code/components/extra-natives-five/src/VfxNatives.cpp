@@ -44,13 +44,12 @@ static hook::cdecl_stub<bool(CVehicle*, int, rage::Vec4V*, rage::Vec4V*)> _getLo
 static void UpdateGetEntityBonePosition()
 {
 	constexpr uint64_t GET_ENTITY_BONE_POSITION = 0x46F8696933A63C9B;
-	const auto originalHandler = fx::ScriptEngine::GetNativeHandler(GET_ENTITY_BONE_POSITION);
-	if (!originalHandler)
+	const auto handler = fx::ScriptEngine::GetNativeHandler(GET_ENTITY_BONE_POSITION);
+	if (!handler)
 	{
 		return;
 	}
 
-	const auto handler = *originalHandler;
 	fx::ScriptEngine::RegisterNativeHandler(GET_ENTITY_BONE_POSITION, [handler](fx::ScriptContext& context)
 	{
 		if (!g_scriptExhaustBones)

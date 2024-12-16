@@ -54,7 +54,7 @@ static void RedirectNoppedTextNatives()
 
 		fx::ScriptEngine::RegisterNativeHandler(native.first, [=](fx::ScriptContext& ctx)
 		{
-			(*targetHandler)(ctx);
+			targetHandler(ctx);
 		});
 	}
 }
@@ -109,14 +109,12 @@ static void FixPedCombatAttributes()
 
 	constexpr const uint64_t nativeHash = 0x9F7794730795E019; // SET_PED_COMBAT_ATTRIBUTES
 
-	auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
 
-	if (!originalHandler)
+	if (!handler)
 	{
 		return;
 	}
-
-	auto handler = *originalHandler;
 
 	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 	{

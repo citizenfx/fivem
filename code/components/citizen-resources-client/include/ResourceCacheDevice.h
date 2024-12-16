@@ -136,7 +136,7 @@ protected:
 	}
 
 public:
-	virtual THandle Open(const std::string& fileName, bool readOnly) override;
+	virtual THandle Open(const std::string& fileName, bool readOnly, bool append = false) override;
 
 	virtual THandle OpenBulk(const std::string& fileName, uint64_t* ptr) override;
 
@@ -165,4 +165,8 @@ public:
 	virtual uint32_t GetAttributes(const std::string& filename) override;
 
 	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
+
+	std::string GetAbsolutePath() const override;
+
+	bool Flush(THandle handle) override;
 };

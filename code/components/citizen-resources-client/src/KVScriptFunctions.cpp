@@ -449,7 +449,7 @@ public:
 		return {};
 	}
 
-	virtual std::shared_ptr<KvpStream> CreateStream(const std::string& fileName) override
+	virtual std::shared_ptr<KvpStream> CreateStream(const std::string& fileName, bool createIfExists) override
 	{
 		return {};
 	}

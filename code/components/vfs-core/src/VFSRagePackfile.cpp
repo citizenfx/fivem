@@ -265,7 +265,7 @@ namespace vfs
 		return nullptr;
 	}
 
-	RagePackfile::THandle RagePackfile::Open(const std::string& fileName, bool readOnly)
+	RagePackfile::THandle RagePackfile::Open(const std::string& fileName, bool readOnly, bool append)
 	{
 		if (readOnly)
 		{
@@ -550,5 +550,10 @@ namespace vfs
 	void RagePackfile::SetPathPrefix(const std::string& pathPrefix)
 	{
 		m_pathPrefix = pathPrefix.substr(0, pathPrefix.find_last_not_of('/') + 1);
+	}
+
+	bool RagePackfile::Flush(THandle handle)
+	{
+		return true;
 	}
 }

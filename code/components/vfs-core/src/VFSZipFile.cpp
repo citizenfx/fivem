@@ -380,7 +380,7 @@ namespace vfs
 		return nullptr;
 	}
 
-	ZipFile::THandle ZipFile::Open(const std::string& fileName, bool readOnly)
+	ZipFile::THandle ZipFile::Open(const std::string& fileName, bool readOnly, bool append)
 	{
 		if (readOnly)
 		{
@@ -601,5 +601,10 @@ namespace vfs
 	void ZipFile::SetPathPrefix(const std::string& pathPrefix)
 	{
 		m_pathPrefix = pathPrefix.substr(0, pathPrefix.find_last_not_of('/') + 1);
+	}
+
+	bool ZipFile::Flush(THandle handle)
+	{
+		return true;
 	}
 }
