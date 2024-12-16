@@ -28,6 +28,9 @@ inline constexpr bool always_false_v = false;
 
 enum class MetaField : uint8_t
 {
+	PointerValueInteger,
+	PointerValueFloat,
+	PointerValueVector,
 	ReturnResultAnyway,
 	ResultAsInteger,
 	ResultAsLong,
@@ -328,11 +331,13 @@ CSCRC_INLINE void ScriptNativeContext::ProcessResult(Visitor&& visitor, const vo
 		}
 
 		case MetaField::ResultAsFloat:
+		case MetaField::PointerValueFloat:
 		{
 			return visitor(*static_cast<const float*>(value));
 		}
 
 		case MetaField::ResultAsVector:
+		case MetaField::PointerValueVector:
 		{
 			return visitor(*static_cast<const ScrVector*>(value));
 		}
@@ -343,6 +348,7 @@ CSCRC_INLINE void ScriptNativeContext::ProcessResult(Visitor&& visitor, const vo
 		}
 
 		case MetaField::ResultAsInteger:
+		case MetaField::PointerValueInteger:
 		{
 			return visitor(*static_cast<const int32_t*>(value));
 		}

@@ -744,29 +744,26 @@ static int Lua_ResultAsObject(lua_State* L)
 	return Lua_GetMetaField<MetaField::ResultAsObject>(L);
 }
 
-template<MetaField field, bool init>
+template<MetaField field>
 static int Lua_GetPointerField(lua_State* L)
 {
 	uintptr_t value = 0;
 
-	if (init)
-	{
-		const int type = lua_type(L, 1);
+	const int type = lua_type(L, 1);
 
-		// to prevent accidental passing of arguments like _r, we check if this is a userdata
-		if (type == LUA_TNIL || type == LUA_TLIGHTUSERDATA || type == LUA_TUSERDATA)
-		{
-			value = 0;
-		}
-		else if constexpr (field == MetaField::ResultAsInteger)
-		{
-			value = (uint64_t)luaL_checkinteger(L, 1);
-		}
-		else if constexpr (field == MetaField::ResultAsFloat)
-		{
-			float fvalue = static_cast<float>(luaL_checknumber(L, 1));
-			value = *reinterpret_cast<uint32_t*>(&value);
-		}
+	// to prevent accidental passing of arguments like _r, we check if this is a userdata
+	if (type == LUA_TNIL || type == LUA_TLIGHTUSERDATA || type == LUA_TUSERDATA)
+	{
+		value = 0;
+	}
+	else if constexpr (field == MetaField::PointerValueInteger)
+	{
+		value = (uint64_t)luaL_checkinteger(L, 1);
+	}
+	else if constexpr (field == MetaField::PointerValueFloat)
+	{
+		float fvalue = static_cast<float>(luaL_checknumber(L, 1));
+		value = *reinterpret_cast<uint32_t*>(&value);
 	}
 
 	lua_pushlightuserdata(L, ScriptNativeContext::GetPointerField(field, value));
@@ -1185,11 +1182,11 @@ static const struct luaL_Reg g_citizenLib[] = {
 	{ "SubmitBoundaryEnd", Lua_SubmitBoundaryEnd },
 	{ "SetStackTraceRoutine", Lua_SetStackTraceRoutine },
 	// metafields
-	{ "PointerValueIntInitialized", Lua_GetPointerField<MetaField::ResultAsInteger, true> },
-	{ "PointerValueFloatInitialized", Lua_GetPointerField<MetaField::ResultAsFloat, true> },
-	{ "PointerValueInt", Lua_GetPointerField<MetaField::ResultAsInteger, false> },
-	{ "PointerValueFloat", Lua_GetPointerField<MetaField::ResultAsFloat, false> },
-	{ "PointerValueVector", Lua_GetPointerField<MetaField::ResultAsVector, false> },
+	{ "PointerValueIntInitialized", Lua_GetPointerField<MetaField::PointerValueInteger> },
+	{ "PointerValueFloatInitialized", Lua_GetPointerField<MetaField::PointerValueFloat> },
+	{ "PointerValueInt", Lua_GetMetaField<MetaField::PointerValueInteger> },
+	{ "PointerValueFloat", Lua_GetMetaField<MetaField::PointerValueFloat> },
+	{ "PointerValueVector", Lua_GetMetaField<MetaField::PointerValueVector> },
 	{ "ReturnResultAnyway", Lua_GetMetaField<MetaField::ReturnResultAnyway> },
 	{ "ResultAsInteger", Lua_GetMetaField<MetaField::ResultAsInteger> },
 	{ "ResultAsLong", Lua_GetMetaField<MetaField::ResultAsLong> },
