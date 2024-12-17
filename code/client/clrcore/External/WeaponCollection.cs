@@ -10,7 +10,7 @@ using CitizenFX.Core.Native;
 namespace CitizenFX.Core
 #endif
 {
-	public sealed class WeaponCollection
+	public sealed class WeaponCollection : IEnumerable<Weapon>
 	{
 		#region Fields
 		Ped _owner;
@@ -20,6 +20,14 @@ namespace CitizenFX.Core
 		internal WeaponCollection(Ped owner)
 		{
 			_owner = owner;
+		}
+
+		public IEnumerator<Weapon> GetEnumerator()
+		{
+			foreach (Weapon weapon in _weapons.Values)
+			{
+				yield return weapon;
+			}
 		}
 
 		public Weapon this[WeaponHash hash]
