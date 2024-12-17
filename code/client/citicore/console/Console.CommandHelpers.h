@@ -7,6 +7,7 @@ class ConsoleCommand
 {
 private:
 	int m_token;
+	std::string m_resource = "internal";
 	ConsoleCommandManager* m_manager;
 
 public:
@@ -30,7 +31,7 @@ public:
 
 		using ConsoleCommandFunction = internal::ConsoleCommandFunction<decltype(functionRef)>;
 
-		m_token = m_manager->Register(name, [=](ConsoleExecutionContext& context) {
+		m_token = m_manager->Register(name, m_resource, [=](ConsoleExecutionContext& context) {
 			return ConsoleCommandFunction::Call(functionRef, context);
 		}, ConsoleCommandFunction::kNumArguments);
 	}
