@@ -38,8 +38,7 @@ Device::THandle LocalDevice::OpenBulk(const std::string& fileName, uint64_t* ptr
 
 Device::THandle LocalDevice::Create(const std::string& filename, bool createIfExists, bool append)
 {
-	mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
-	int flags = O_CREAT;	
+	int flags = O_CREAT|O_WRONLY;
 	if (createIfExists)
 	{
 		flags |= O_TRUNC;
@@ -50,7 +49,7 @@ Device::THandle LocalDevice::Create(const std::string& filename, bool createIfEx
 		flags |= O_APPEND;
 	}
 
-	int fd = open(filename.c_str(), flags, mode);
+	int fd = open(filename.c_str(), flags, 0755);
 
 	if (fd < 0)
 	{
