@@ -268,6 +268,42 @@ int db_traceback(lua_State* L)
 	return 1;
 }
 
+int db_getparametersnames(lua_State* L)
+{
+	int arg;
+	lua_Debug ar;
+	lua_State* L1 = getthread(L, &arg);
+	luaL_checktype(L, arg + 1, LUA_TFUNCTION);
+	lua_pushvalue(L, arg + 1);
+	if (!lua_getinfo(L1, ">u", &ar)) /* Retrieve debug info */
+	{
+		lua_pushnil(L); /* Return nil if lua_getinfo fails */
+		return 1;
+	}
+	lua_pop(L, 1); /* Remove the function from the stack */
+	lua_newtable(L); /* Create a table to store parameter names */
+	int args = ar.nparams;
+	lua_pushvalue(L, arg + 1); /* Push the function onto the stack for lua_getlocal */
+	for (int i = 1; i <= args; ++i)
+	{
+		const char* name = lua_getlocal(L1, NULL, i); /* Get the parameter name */
+		if (name)
+		{
+			lua_pushstring(L, name);
+			lua_rawseti(L, -3, i);
+		}
+		else
+		{
+			lua_pushnil(L);
+			lua_rawseti(L, -3, i);
+		}
+	}
+
+	lua_pop(L1, 1); /* Remove the function from the stack */
+
+	return 1;
+}
+
 /*static int db_setcstacklimit (lua_State *L) {
   int limit = (int)luaL_checkinteger(L, 1);
   int res = lua_setcstacklimit(L, limit);
@@ -281,6 +317,7 @@ const luaL_Reg dblib[] = {
 	{"getupvalue", db_getupvalue},
 	{"setmetatable", db_setmetatable},
 	{"traceback", db_traceback},
+	{"getnparams", db_getparametersnames},
 	//{"setcstacklimit", db_setcstacklimit},
 	{nullptr, nullptr}
 };
