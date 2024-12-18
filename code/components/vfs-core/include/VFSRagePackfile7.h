@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <VFSDevice.h>
 #include <zlib.h>
 
@@ -87,7 +88,7 @@ namespace vfs
 
 		virtual ~RagePackfile7() override;
 
-		virtual THandle Open(const std::string& fileName, bool readOnly) override;
+		virtual THandle Open(const std::string& fileName, bool readOnly, bool append = false) override;
 
 		virtual THandle OpenBulk(const std::string& fileName, uint64_t* ptr) override;
 
@@ -114,6 +115,13 @@ namespace vfs
 		virtual void SetPathPrefix(const std::string& pathPrefix) override;
 
 		virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
+
+		virtual std::string GetAbsolutePath() const override
+		{
+			return m_pathPrefix;
+		}
+
+		bool Flush(THandle handle) override;
 
 	public:
 		bool OpenArchive(const std::string& archivePath, bool needsEncryption = false);

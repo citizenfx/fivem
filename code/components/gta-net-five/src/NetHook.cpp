@@ -1905,7 +1905,7 @@ static HookFunction hookFunction([] ()
 		{
 			context.SetArgument(7, context.GetArgument<int>(7) | 1);
 
-			(*origCreatePickup)(context);
+			origCreatePickup(context);
 		});
 	});
 

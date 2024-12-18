@@ -62,13 +62,12 @@ static void EditIsTaskActive()
 {
 	constexpr uint64_t GET_IS_TASK_ACTIVE = 0xB0760331C7AA4155;
 
-	const auto originalHandler = fx::ScriptEngine::GetNativeHandler(GET_IS_TASK_ACTIVE);
-	if (!originalHandler)
+	const auto handler = fx::ScriptEngine::GetNativeHandler(GET_IS_TASK_ACTIVE);
+	if (!handler)
 	{
 		return;
 	}
 
-	const auto handler = *originalHandler;
 	fx::ScriptEngine::RegisterNativeHandler(GET_IS_TASK_ACTIVE, [handler](fx::ScriptContext& ctx)
 	{
 		constexpr int32_t TASK_COMBAT_ROLL = 0x3;

@@ -797,8 +797,8 @@ static void _filterVoiceChatConfig(void* engine, char* config)
 
 #include <LabSound/extended/LabSound.h>
 
-static boost::optional<fx::TNativeHandler> getPlayerName;
-static boost::optional<fx::TNativeHandler> getServerId;
+static fx::TNativeHandler getPlayerName;
+static fx::TNativeHandler getServerId;
 
 static std::shared_ptr<lab::AudioContext> getAudioContext(int playerId)
 {
@@ -1331,7 +1331,7 @@ static HookFunction hookFunction([]()
 		{
 			if (!g_mumble.connected)
 			{
-				(*origIsTalking)(context);
+				origIsTalking(context);
 				return;
 			}
 
@@ -1351,7 +1351,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0xEF6212C2EFEF1A23, [=](fx::ScriptContext& context)
 		{
-			(*origSetChannel)(context);
+			origSetChannel(context);
 
 			if (g_mumble.connected)
 			{
@@ -1361,7 +1361,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0xE036A705F989E049, [=](fx::ScriptContext& context)
 		{
-			(*origClearChannel)(context);
+			origClearChannel(context);
 
 			if (g_mumble.connected)
 			{
@@ -1374,7 +1374,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0xCBF12D65F95AD686, [=](fx::ScriptContext& context)
 		{
-			(*origSetProximity)(context);
+			origSetProximity(context);
 
 			float dist = context.GetArgument<float>(0);
 
@@ -1383,7 +1383,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0x84F0F13120B4E098, [=](fx::ScriptContext& context)
 		{
-			(*origGetProximity)(context);
+			origGetProximity(context);
 
 			float proximity = g_mumbleClient->GetAudioDistance();
 
@@ -1394,7 +1394,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0xBABEC9E69A91C57B, [origSetVoiceActive](fx::ScriptContext& context)
 		{
-			(*origSetVoiceActive)(context);
+			origSetVoiceActive(context);
 
 			g_voiceActiveByScript = context.GetArgument<bool>(0);
 		});

@@ -7,9 +7,10 @@ namespace CitizenFX.Core
 {
 	[StructLayout(LayoutKind.Sequential)]
 	[Serializable, SecurityCritical]
-	internal struct fxScriptContext
+	internal struct fxScriptContext // fx::ScriptContext
 	{
 		public unsafe ulong* functionDataPtr;
+		public unsafe ulong* retDataPtr;
 
 		public int numArguments;
 		public int numResults;
@@ -19,7 +20,8 @@ namespace CitizenFX.Core
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal unsafe void Initialize(ulong* data, int argCount)
 		{
-			functionDataPtr =  data;
+			functionDataPtr = data;
+			retDataPtr = data;
 			numArguments = argCount;
 			numResults = 0;
 		}
@@ -27,7 +29,7 @@ namespace CitizenFX.Core
 
 	[StructLayout(LayoutKind.Sequential)]
 	[Serializable, SecurityCritical]
-	internal unsafe struct RageScriptContext
+	internal unsafe struct RageScriptContext // rage::scrNativeCallContext
 	{
 		public ulong* functionDataPtr;
 		public int numArguments;

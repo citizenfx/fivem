@@ -48,6 +48,8 @@ EOF
 	lua5.3 codegen.lua inp/natives_global.lua cs_v2 server >/src/code/client/clrcore-v2/Native/NativesServer.cs
 
 	lua5.3 codegen.lua inp/natives_global.lua rpc server >/opt/cfx-server/citizen/scripting/rpc_natives.json
+
+	lua5.3 codegen.lua inp/natives_global.lua pointer_args server >/src/code/components/citizen-scripting-core/src/NativeTypesServer.h
 fi
 
 ## SETUP-CUTOFF

@@ -10,6 +10,21 @@ int main(const int argc, char* argv[])
 
 	loader->Initialize();
 
+	ComponentLoader::GetInstance()->ForAllComponents([&](fwRefContainer<ComponentData> componentData)
+	{
+		for (auto& instance : componentData->GetInstances())
+		{
+			// only initialize the vfs server implementation for now, because it is required for lua sandboxing tests
+			if (componentData->GetName() != "vfs:impl:server")
+			{
+				continue;
+			}
+
+			instance->SetCommandLine(argc, argv);
+			instance->Initialize();
+		}
+	});
+
 	Catch::Session session;
 	const int returnCode = session.applyCommandLine(argc, argv);
 	if (returnCode != 0)

@@ -416,7 +416,7 @@ static HookFunction hookFunction([]()
 
 	// default international keyboard mode to on
 	// (this will always use a US layout to map VKEY scan codes, instead of using the local layout)
-	//hook::put<uint8_t>(hook::get_pattern("8D 48 EF 41 3B CE 76 0C", 6), 0xEB);
+	hook::put<uint8_t>(hook::get_pattern("8D 48 ? 83 F9 ? 76 ? 83 F8 ? 75 ? B0", 6), 0xEB);
 
 	// fix repeated ClipCursor calls (causing DWM load)
 	hook::iat("user32.dll", ClipCursorWrap, "ClipCursor");

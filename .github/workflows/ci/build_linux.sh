@@ -101,6 +101,8 @@ lua5.3 codegen.lua inp/natives_global.lua cs_v2 server > $ROOT_REPO/code/client/
 
 lua5.3 codegen.lua inp/natives_global.lua rpc server > ~/natives/cfx-server/citizen/scripting/rpc_natives.json
 
+lua5.3 codegen.lua inp/natives_global.lua pointer_args server >$ROOT_REPO/components/citizen-scripting-core/src/NativeTypesServer.h
+
 # done with natives
 
 # download and build premake

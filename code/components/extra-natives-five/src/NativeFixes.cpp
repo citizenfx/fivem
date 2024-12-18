@@ -9,6 +9,7 @@
 #include <Local.h>
 
 #include <array>
+#include <vector>
 
 #include <ScriptEngine.h>
 #include <Hooking.h>
@@ -17,6 +18,31 @@
 #include "RageParser.h"
 #include "Resource.h"
 #include "ScriptWarnings.h"
+
+static void BlockForbiddenNatives()
+{
+	std::vector<uint64_t> nativesToBlock = rage::scrEngine::GetBlockedNatives();
+	for (auto native: nativesToBlock)
+	{
+		auto origHandler = fx::ScriptEngine::GetNativeHandler(native);
+		if (!origHandler)
+		{
+			continue;
+		}
+
+		fx::ScriptEngine::RegisterNativeHandler(native, [=](fx::ScriptContext& ctx)
+		{
+			if (rage::scrEngine::GetStoryMode())
+			{
+				origHandler(ctx);
+			}
+			else
+			{
+				ctx.SetResult<uintptr_t>(0);
+			}
+		});
+	}
+}
 
 static void FixVehicleWindowNatives()
 {
@@ -51,7 +77,7 @@ static void FixVehicleWindowNatives()
 
 				if (windowIndex >= 0 && windowIndex <= 7)
 				{
-					return (*handler)(ctx);
+					return handler(ctx);
 				}
 			}
 
@@ -83,7 +109,7 @@ static void FixClockTimeOverrideNative()
 
 		if (hours < 24 && minutes < 60 && seconds < 60)
 		{
-			(*handler)(ctx);
+			handler(ctx);
 		}
 	});
 }
@@ -92,14 +118,12 @@ static void FixGetVehiclePedIsIn()
 {
 	constexpr const uint64_t nativeHash = 0x9A9112A0FE9A4713; // GET_VEHICLE_PED_IS_IN
 
-	auto handlerWrap = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
 
-	if (!handlerWrap)
+	if (!handler)
 	{
 		return;
 	}
-
-	auto handler = *handlerWrap;
 
 	auto location = hook::get_pattern<char>("80 8F ? ? ? ? 01 8B 86 ? ? ? ? C1 E8 1E");
 	static uint32_t PedFlagsOffset = *reinterpret_cast<uint32_t*>(location + 9);
@@ -158,13 +182,12 @@ static void FixClearPedBloodDamage()
 
 	constexpr const uint64_t nativeHash = 0x8FE22675A5A45817; // CLEAR_PED_BLOOD_DAMAGE
 
-	auto handlerWrap = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
 
-	if (!handlerWrap)
+	if (!handler)
 	{
 		return;
 	}
-	auto handler = *handlerWrap;
 
 	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 	{
@@ -191,14 +214,12 @@ static void FixSetPedFaceFeature()
 {
 	constexpr const uint64_t nativeHash = 0x71A5C1DBA060049E; // _SET_PED_FACE_FEATURE
 
-	auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
 
-	if (!originalHandler)
+	if (!handler)
 	{
 		return;
 	}
-
-	auto handler = *originalHandler;
 
 	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 	{
@@ -255,14 +276,12 @@ static void FixStartEntityFire()
 {
 	constexpr const uint64_t nativeHash = 0xF6A9D9708F6F23DF; // START_ENTITY_FIRE
 
-	auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
 
-	if (!originalHandler)
+	if (!handler)
 	{
 		return;
 	}
-
-	auto handler = *originalHandler;
 
 	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 	{
@@ -275,14 +294,12 @@ static void FixStopEntityFire()
 {
 	constexpr const uint64_t nativeHash = 0x7F0DD2EBBB651AFF; // STOP_ENTITY_FIRE
 
-	const auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
 
-	if (!originalHandler)
+	if (!handler)
 	{
 		return;
 	}
-
-	const auto handler = *originalHandler;
 
 	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 	{
@@ -345,14 +362,12 @@ static void FixPedCombatAttributes()
 
 	constexpr const uint64_t nativeHash = 0x9F7794730795E019; // SET_PED_COMBAT_ATTRIBUTES
 
-	auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
 
-	if (!originalHandler)
+	if (!handler)
 	{
 		return;
 	}
-
-	auto handler = *originalHandler;
 
 	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 	{
@@ -376,13 +391,12 @@ static void FixReplaceHudColour()
 
 	for (uint64_t nativeHash : { REPLACE_HUD_COLOUR, REPLACE_HUD_COLOUR_WITH_RGBA })
 	{
-		auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
-		if (!originalHandler)
+		auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+		if (!handler)
 		{
 			continue;
 		}
 
-		auto handler = *originalHandler;
 		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 		{
 			auto hudColorIndex = ctx.GetArgument<int32_t>(0);
@@ -405,13 +419,12 @@ static void FixDrawMarker()
 
 	for (uint64_t nativeHash : { DRAW_MARKER, DRAW_MARKER_EX })
 	{
-		auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
-		if (!originalHandler)
+		auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+		if (!handler)
 		{
 			continue;
 		}
 
-		auto handler = *originalHandler;
 		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 		{
 			auto markerType = ctx.GetArgument<int32_t>(0);
@@ -432,14 +445,12 @@ static void FixApplyForceToEntity()
 
 	constexpr const uint64_t nativeHash = 0xC5F68BE9613E2D18; // APPLY_FORCE_TO_ENTITY
 
-	const auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
 
-	if (!originalHandler)
+	if (!handler)
 	{
 		return;
 	}
-
-	const auto handler = *originalHandler;
 
 	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 	{
@@ -453,6 +464,26 @@ static void FixApplyForceToEntity()
 	});
 }
 
+static void FixIsBitSet()
+{
+	constexpr const uint64_t nativeHash = 0xE2D0C323A1AE5D85; // IS_BIT_SET
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [](fx::ScriptContext& ctx)
+	{
+		bool result = false;
+
+		auto value = ctx.GetArgument<uint32_t>(0);
+		auto offset = ctx.GetArgument<int>(1);
+
+		if (offset < 32)
+		{
+			result = (value & (1 << offset)) != 0;
+		}
+
+		ctx.SetResult<int>(result);
+	});
+}
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
@@ -461,6 +492,8 @@ static HookFunction hookFunction([]()
 
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
+		BlockForbiddenNatives();
+
 		// Most of vehicle window related natives have no checks for passed window index is valid
 		// for specified vehicle, passing wrong values lead to native execution exception.
 		FixVehicleWindowNatives();
@@ -489,5 +522,11 @@ static HookFunction hookFunction([]()
 		FixDrawMarker();
 
 		FixApplyForceToEntity();
+
+		if (xbr::IsGameBuildOrGreater<2612>())
+		{
+			// IS_BIT_SET is missing in b2612+, re-adding for compatibility
+			FixIsBitSet();
+		}
 	});
 });
