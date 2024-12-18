@@ -40,6 +40,7 @@ int GetRequestedGameBuildInit()
 			}
 		}
 	}
+	LocalFree(wargv);
 
 	return buildNumber;
 }
