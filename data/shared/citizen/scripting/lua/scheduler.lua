@@ -158,9 +158,6 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 	local lastSource = _G.source
 	_G.source = eventSource
 	
-	-- deserialize the event structure (so that we end up adding references to delete later on)
-	local data = msgpack_unpack(eventPayload)
-	
 	-- if this is a net event and we don't allow this event to be triggered from the network, return
 	if eventSource:sub(1, 3) == 'net' then
 		if not eventHandlerEntry.safeForNet then
@@ -177,11 +174,14 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 		_G.source = tonumber(eventSource:sub(14))
 	end
 
+	-- deserialize the event structure (so that we end up adding references to delete later on)
+	local data = msgpack_unpack(eventPayload)
+	
 	-- return an empty table if the data is nil
 	if not data then
 		data = {}
 	end
-
+		
 	-- reset serialization
 	deserializingNetEvent = nil
 
