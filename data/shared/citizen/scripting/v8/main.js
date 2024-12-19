@@ -1,5 +1,6 @@
 // CFX JS runtime
 /// <reference path="./natives_server.d.ts" />
+/// <reference path="./msgpack.d.ts" />
 
 const EXT_FUNCREF = 10;
 const EXT_LOCALFUNCREF = 11;
@@ -41,18 +42,34 @@ const EXT_LOCALFUNCREF = 11;
 	const nextRefIdx = () => refIndex++;
 	const refFunctionsMap = new Map();
 
-	const codec = msgpack.createCodec({
-		uint8array: true,
-		preset: false,
-		binarraybuffer: true
-	});
+	/** @type {import("./msgpack").Options} */
+	const packrOptions = {
+		// use "std::map" for the underlying msgpack type for compatibility
+		useRecords: false,
+		// allow Map, Set, and Error to be serialized
+		moreTypes: true,
+		// keep compatibility Lua/C#
+		encodeUndefinedAsNil: true,
+	}
 
-	const pack = data => msgpack.encode(data, { codec });
-	const unpack = data => msgpack.decode(data, { codec });
+	/** @type {import("./msgpack").Packr} */
+	const packr = new Packr(packrOptions);
+
+	addExtension({
+		Class: Function,
+		type: EXT_FUNCREF,
+		pack: refFunctionPacker,
+		unpack: refFunctionUnpacker
+	})
+
+
+	const pack = (value) => packr.pack(value);
+	const unpack = (packed_value) => packr.unpack(packed_value);
 
 	// store for use by natives.js
 	global.msgpack_pack = pack;
 	global.msgpack_unpack = unpack;
+	global.msgpack_packr = packr;
 
 	/**
 	 * @param {Function} refFunction
@@ -72,7 +89,7 @@ const EXT_LOCALFUNCREF = 11;
 	function refFunctionPacker(refFunction) {
 		const ref = Citizen.makeRefFunction(refFunction);
 
-		return ref;
+		return Buffer.from(ref);
 	}
 
 	function refFunctionUnpacker(refSerialized) {
@@ -133,12 +150,6 @@ const EXT_LOCALFUNCREF = 11;
 			});
 		};
 	}
-
-	const AsyncFunction = (async () => {}).constructor;
-	codec.addExtPacker(EXT_FUNCREF, AsyncFunction, refFunctionPacker);
-	codec.addExtPacker(EXT_FUNCREF, Function, refFunctionPacker);
-	codec.addExtUnpacker(EXT_FUNCREF, refFunctionUnpacker);
-	codec.addExtUnpacker(EXT_LOCALFUNCREF, refFunctionUnpacker);
 
 	/**
 	 * Deletes ref function
