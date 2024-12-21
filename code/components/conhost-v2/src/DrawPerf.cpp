@@ -206,7 +206,7 @@ static InitFunction initFunction([]()
 		if (!cpuQuery)
 		{
 			PdhOpenQuery(NULL, NULL, &cpuQuery);
-			PdhAddEnglishCounter(cpuQuery, L"\\Processor Information(_Total)\\% Processor Utility", NULL, &cpuTotal);
+			PdhAddEnglishCounter(cpuQuery, L"\\Processor Information(_Total)\\% Processor Time", NULL, &cpuTotal);
 			PdhCollectQueryData(cpuQuery);
 		}
 
