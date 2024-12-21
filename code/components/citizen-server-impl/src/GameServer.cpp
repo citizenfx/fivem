@@ -48,6 +48,7 @@
 #include <packethandlers/RequestObjectIdsPacketHandler.h>
 
 #include "ByteWriter.h"
+#include "FormData.h"
 #include "Frame.h"
 
 constexpr const char kDefaultServerList[] = "https://servers-ingress-live.fivem.net/ingress";
@@ -665,7 +666,7 @@ namespace fx
 					return;
 				}
 
-				auto postMap = ParsePOSTString(dataSpan);
+				auto postMap = net::DecodeFormData(dataSpan);
 				auto guid = postMap["guid"];
 				auto token = postMap["token"];
 

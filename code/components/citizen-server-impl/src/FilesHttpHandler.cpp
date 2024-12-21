@@ -14,6 +14,8 @@
 #include <array>
 #include <filesystem>
 
+#include "FormData.h"
+
 constexpr const size_t kFileSendSize = 128 * 1024;
 std::shared_ptr<ConVar<bool>> g_httpFileServerProxyOnly;
 
@@ -334,7 +336,7 @@ namespace fx
 					} while (resourceEnd != std::string::npos);
 
 					std::string filesPathDecoded;
-					UrlDecode(filesPath, filesPathDecoded);
+					net::UrlDecode(filesPath, filesPathDecoded);
 
 					auto queryOffset = filesPathDecoded.rfind('?');
 					if (queryOffset != std::string::npos)
