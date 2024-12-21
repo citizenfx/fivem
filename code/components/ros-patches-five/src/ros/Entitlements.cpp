@@ -38,6 +38,8 @@
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 
+#include "FormData.h"
+
 struct BuildData
 {
 	std::string version;
@@ -219,7 +221,7 @@ bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::arr
 
 static std::string GetRosTicket(const std::string& body)
 {
-	auto postData = ParsePOSTString(body);
+	auto postData = net::DecodeFormData(body);
 
 	std::string ticket;
 	std::string sessionTicket;
@@ -274,7 +276,7 @@ static InitFunction initFunction([] ()
 
 	mapper->AddGameService("entitlements.asmx/GetEntitlementBlock", [] (const std::string& body)
 	{
-		auto postData = ParsePOSTString(body);
+		auto postData = net::DecodeFormData(body);
 
 		auto accountId = ROS_DUMMY_ACCOUNT_ID;
 		auto machineHash = postData["machineHash"];
@@ -517,7 +519,7 @@ static InitFunction initFunction([] ()
 						auto th = json.value("thumbnail_height", 0);
 
 						std::string name;
-						UrlDecode(data.value("ContentName", ""), name);
+						net::UrlDecode(data.value("ContentName", ""), name);
 
 						auto b = nlohmann::json::object({
 							{ "category", 68 },
@@ -551,7 +553,7 @@ static InitFunction initFunction([] ()
 
 	mapper->AddGameService("ugc.asmx/CreateContent", [](const std::string& body)
 	{
-		auto postData = ParsePOSTString(body);
+		auto postData = net::DecodeFormData(body);
 		auto jsonData = nlohmann::json::parse(postData["paramsJson"]);
 
 		if (postData["contentType"] == "gta5photo")
@@ -626,7 +628,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 
 	mapper->AddGameService("App.asmx/GetBuildManifestFullNoAuth", [](const std::string& body)
 	{
-		auto postData = ParsePOSTString(body);
+		auto postData = net::DecodeFormData(body);
 
 		if (postData["branchAccessToken"].find("YAFA") != std::string::npos)
 		{
@@ -704,7 +706,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 
 	mapper->AddGameService("legalpolicies.asmx/GetAcceptedVersion", [](const std::string& body)
 	{
-		auto postData = ParsePOSTString(body);
+		auto postData = net::DecodeFormData(body);
 
 		return fmt::sprintf(R"(<?xml version="1.0" encoding="utf-8"?>
 <Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="http://services.ros.rockstargames.com/">
@@ -717,7 +719,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 
 	mapper->AddGameService("App.asmx/GetBuildManifestFull", [](const std::string& body)
 	{
-		auto postData = ParsePOSTString(body);
+		auto postData = net::DecodeFormData(body);
 
 		std::unordered_map<int, BuildData> buildInfo{};
 		std::string gameExe;

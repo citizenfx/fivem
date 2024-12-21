@@ -16,6 +16,9 @@
 
 #include "memdbgon.h"
 
+// todo: at some point remove import and net:base dependency
+#include "FormData.h"
+
 /// Lazy singleton
 class InternalHandlerMap : public nui::RPCHandlerManager, public std::unordered_map<std::string, nui::RPCHandlerManager::TEndpointFn>
 {
@@ -147,7 +150,7 @@ bool InternalRPCHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr
 
 			delete[] bytes;
 
-			postMap = ParsePOSTString(postDataString);
+			postMap = net::DecodeFormData(postDataString);
 		}
 	}
 

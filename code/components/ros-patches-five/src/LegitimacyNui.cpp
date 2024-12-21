@@ -18,6 +18,8 @@
 
 #include <CfxSubProcess.h>
 
+#include "FormData.h"
+
 enum class ScuiAuthFlow
 {
 	LegitimacyNui,
@@ -453,7 +455,7 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 			}
 
 			std::string responseDec;
-			UrlDecode(response, responseDec);
+			net::UrlDecode(response, responseDec);
 
 			std::istringstream stream(responseDec);
 
