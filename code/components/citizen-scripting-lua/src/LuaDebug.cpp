@@ -1,4 +1,4 @@
-﻿/*
+/*
 ** $Id: ldblib.c $
 ** Interface from Lua to its debug API
 ** See Copyright Notice in lua.h
@@ -228,6 +228,61 @@ int db_getinfo(lua_State* L)
 }
 #endif
 
+int db_getlocal(lua_State* L)
+{
+	int arg;
+	lua_State* L1 = getthread(L, &arg);
+	lua_Debug ar;
+	const char* name;
+	int nvar = (int)luaL_checkinteger(L, arg + 2); /* local-variable index */
+	if (lua_isfunction(L, arg + 1))
+	{ /* function argument? */
+		lua_pushvalue(L, arg + 1); /* push function */
+		lua_pushstring(L, lua_getlocal(L, NULL, nvar)); /* push local name */
+		return 1; /* return only name (there is no value) */
+	}
+	else
+	{ /* stack-level argument */
+		int level = (int)luaL_checkinteger(L, arg + 1);
+		if (!lua_getstack(L1, level, &ar)) /* out of range? */
+			return luaL_argerror(L, arg + 1, "level out of range");
+		checkstack(L, L1, 1);
+		name = lua_getlocal(L1, &ar, nvar);
+		if (name)
+		{
+			lua_xmove(L1, L, 1); /* move local value */
+			lua_pushstring(L, name); /* push name */
+			lua_rotate(L, -2, 1); /* re-order */
+			return 2;
+		}
+		else
+		{
+			lua_pushnil(L); /* no name (nor value) */
+			return 1;
+		}
+	}
+}
+
+int db_setlocal(lua_State* L)
+{
+	int arg;
+	const char* name;
+	lua_State* L1 = getthread(L, &arg);
+	lua_Debug ar;
+	int level = (int)luaL_checkinteger(L, arg + 1);
+	int nvar = (int)luaL_checkinteger(L, arg + 2);
+	if (!lua_getstack(L1, level, &ar)) /* out of range? */
+		return luaL_argerror(L, arg + 1, "level out of range");
+	luaL_checkany(L, arg + 3);
+	lua_settop(L, arg + 3);
+	checkstack(L, L1, 1);
+	lua_xmove(L, L1, 1);
+	name = lua_setlocal(L1, &ar, nvar);
+	if (name == NULL)
+		lua_pop(L1, 1); /* pop value (if not popped by 'lua_setlocal') */
+	lua_pushstring(L, name);
+	return 1;
+}
 
 /*
 ** get (if 'get' is true) or set an upvalue from a closure
@@ -247,6 +302,12 @@ int auxupvalue(lua_State* L, int get)
 int db_getupvalue(lua_State* L)
 {
 	return auxupvalue(L, 1);
+}
+
+int db_setupvalue(lua_State* L)
+{
+	luaL_checkany(L, 3);
+	return auxupvalue(L, 0);
 }
 
 int db_traceback(lua_State* L)
@@ -277,10 +338,13 @@ int db_traceback(lua_State* L)
 
 const luaL_Reg dblib[] = {
 	{"getinfo", db_getinfo},
-	{"getmetatable", db_getmetatable},
-	{"getupvalue", db_getupvalue},
-	{"setmetatable", db_setmetatable},
-	{"traceback", db_traceback},
+	{"getlocal", db_getlocal},
+    {"getmetatable", db_getmetatable},
+    {"getupvalue", db_getupvalue},
+    {"setupvalue", db_setupvalue},
+	{"setlocal", db_setlocal},
+    {"setmetatable", db_setmetatable},
+    {"traceback", db_traceback},
 	//{"setcstacklimit", db_setcstacklimit},
 	{nullptr, nullptr}
 };
