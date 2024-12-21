@@ -231,45 +231,6 @@ fwString url_encode(const fwString &value)
 	return fwString(escaped.str().c_str());
 }
 
-bool UrlDecode(const std::string& in, std::string& out, bool replacePlus)
-{
-	out.clear();
-	out.reserve(in.size());
-	for (std::size_t i = 0; i < in.size(); ++i)
-	{
-		if (in[i] == '%')
-		{
-			if (i + 3 <= in.size())
-			{
-				int value = 0;
-				std::istringstream is(in.substr(i + 1, 2));
-				if (is >> std::hex >> value)
-				{
-					out += static_cast<char>(value);
-					i += 2;
-				}
-				else
-				{
-					return false;
-				}
-			}
-			else
-			{
-				return false;
-			}
-		}
-		else if (in[i] == '+' && replacePlus)
-		{
-			out += ' ';
-		}
-		else
-		{
-			out += in[i];
-		}
-	}
-	return true;
-}
-
 std::string ToNarrow(std::wstring_view wide)
 {
 	std::string outVec;
@@ -310,52 +271,3 @@ std::wstring ToWide(std::string_view narrow)
 	return std::move(outVec);
 }
 
-std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString)
-{
-	std::map<std::string, std::string> postMap;
-
-	for (int i = 0; i < postDataString.size(); i++)
-	{
-		int keyIndex = 0;
-		int keyLen = 0;
-		for (int keyItr = i; keyItr < postDataString.size(); keyItr++)
-		{
-			if (postDataString[keyItr] == '=')
-			{
-				break;
-			}
-			keyLen++;
-		}
-
-		keyIndex = i;
-		i = (i + keyLen + 1);
-
-		int valueLen = 0;
-		for (int valueItr = i; valueItr < postDataString.size(); valueItr++)
-		{
-			if (postDataString[valueItr] == '&')
-			{
-				break;
-			}
-			valueLen++;
-		}
-
-		if (valueLen)
-		{
-			std::string key(&postDataString[keyIndex], keyLen);
-			std::string value(&postDataString[i], valueLen);
-
-			std::string keyDecoded;
-			std::string valueDecoded;
-
-			UrlDecode(key, keyDecoded);
-			UrlDecode(value, valueDecoded);
-
-			postMap[keyDecoded] = valueDecoded;
-		}
-
-		i += valueLen;
-	}
-
-	return postMap;
-}
