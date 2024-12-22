@@ -9,6 +9,8 @@
 
 #include <shared_mutex>
 
+#include <EASTL/unordered_map.h>
+
 namespace rl
 {
 	bool MessageBufferLengthHack::GetState()
@@ -89,7 +91,7 @@ private:
 private:
 	std::unordered_map<EventId, std::shared_ptr<SendEvent>> m_sendList;
 
-	std::map<std::tuple<int, EventId>, std::shared_ptr<ReceiveEvent>> m_receiveList;
+	std::unordered_map<int, std::unordered_map<EventId, std::shared_ptr<ReceiveEvent>>> m_receiveList;
 
 	std::unordered_map<int, Target> m_targets;
 
@@ -116,12 +118,11 @@ struct EventPacket
 
 	std::array<uint8_t, kFragmentSize> payload;
 
-public:
 	bool Parse(rl::MessageBufferView& buffer);
 
 	bool Unparse(rl::MessageBufferView& buffer);
 
-	inline bool IsAck()
+	bool IsAck() const
 	{
 		return thisBytes == 0;
 	}
@@ -139,7 +140,7 @@ bool EventPacket::Parse(rl::MessageBufferView& buffer)
 		return false;
 	}
 
-	eventId = ((uint64_t)eventIdHigh << 32) | eventIdLow;
+	eventId = (static_cast<uint64_t>(eventIdHigh) << 32) | eventIdLow;
 
 	if (!buffer.Read(kPacketSizeBits, &packetIdx))
 	{
@@ -155,10 +156,10 @@ bool EventPacket::Parse(rl::MessageBufferView& buffer)
 	{
 		return false;
 	}
-	
+
 	if (thisBytes > 0)
 	{
-		buffer.ReadBits(payload.data(), std::min(size_t(thisBytes), payload.size()) * 8);
+		buffer.ReadBits(payload.data(), std::min(static_cast<size_t>(thisBytes), payload.size()) * 8);
 	}
 
 	return true;
@@ -166,8 +167,8 @@ bool EventPacket::Parse(rl::MessageBufferView& buffer)
 
 bool EventPacket::Unparse(rl::MessageBufferView& buffer)
 {
-	buffer.Write(32, uint32_t(eventId & 0xFFFFFFFF));
-	buffer.Write(32, uint32_t(eventId >> 32));
+	buffer.Write(32, static_cast<uint32_t>(eventId & 0xFFFFFFFF));
+	buffer.Write(32, static_cast<uint32_t>(eventId >> 32));
 	buffer.Write(kPacketSizeBits, packetIdx);
 	buffer.Write(kPacketSizeBits, totalPackets);
 	buffer.Write(kFragmentSizeBits, thisBytes);
@@ -197,7 +198,7 @@ void EventReassemblyComponentImpl::SetSink(EventReassemblySink* sink)
 	m_sink = sink;
 }
 
-void EventReassemblyComponentImpl::RegisterTarget(int id, uint8_t maxPendingEvents)
+void EventReassemblyComponentImpl::RegisterTarget(const int id, const uint8_t maxPendingEvents)
 {
 	std::unique_lock lock(m_listMutex);
 	m_targets[id] = Target{id, maxPendingEvents};
@@ -210,10 +211,10 @@ void EventReassemblyComponentImpl::UnregisterTarget(int id)
 	if (m_targets.find(id) != m_targets.end())
 	{
 		m_targets.erase(id);
-
-		// drop any sends/receives from this target
-		m_receiveList.erase(m_receiveList.lower_bound({ id, 0 }), m_receiveList.upper_bound({ id, std::numeric_limits<EventId>::max() }));
 		
+		// drop any sends/receives from this target
+		m_receiveList.erase(id);
+
 		for (auto& [ _, sendPacket ] : m_sendList)
 		{
 			sendPacket->targetData.erase(id);
@@ -222,7 +223,7 @@ void EventReassemblyComponentImpl::UnregisterTarget(int id)
 	}
 }
 
-void EventReassemblyComponentImpl::TriggerEvent(int target, std::string_view eventName, std::string_view eventPayload, int bytesPerSecond)
+void EventReassemblyComponentImpl::TriggerEvent(const int target, const std::string_view eventName, const std::string_view eventPayload, int bytesPerSecond)
 {
 	// default BPS if it's 0/negative so we won't end up with weird calculation artifacts later on
 	if (bytesPerSecond <= 0)
@@ -260,7 +261,7 @@ void EventReassemblyComponentImpl::TriggerEvent(int target, std::string_view eve
 
 	rl::MessageBuffer payloadBuf(eventName.size() + sizeof(uint16_t) + eventPayload.size());
 
-	payloadBuf.Write(16, uint32_t(eventName.size()));
+	payloadBuf.Write(16, static_cast<uint32_t>(eventName.size()));
 	payloadBuf.WriteBits(eventName.data(), eventName.size() * 8);
 
 	memcpy(payloadBuf.GetBuffer().data() + (payloadBuf.GetCurrentBit() / 8), eventPayload.data(), eventPayload.size());
@@ -356,8 +357,8 @@ void EventReassemblyComponentImpl::NetworkTick()
 
 		for (auto& [ eventId, sendPacket ] : m_sendList)
 		{
-			double pps = (sendPacket->bytesPerSecond / (double)kFragmentSize);
-			std::chrono::milliseconds latency{ uint64_t(1000 / pps) };
+			double pps = (sendPacket->bytesPerSecond / static_cast<double>(kFragmentSize));
+			std::chrono::milliseconds latency{ static_cast<uint64_t>(1000 / pps) };
 
 			std::set<int> doneTargets;
 
@@ -384,7 +385,7 @@ void EventReassemblyComponentImpl::NetworkTick()
 						// All packets have been processed
 						bool hasAll = true;
 
-						auto bc = ackBits.size();
+						const auto bc = ackBits.size();
 
 						// check if any 'early' bits still need to be acked.
 						size_t firstPacketIdx = -1;
@@ -445,7 +446,7 @@ void EventReassemblyComponentImpl::NetworkTick()
 							rl::MessageBufferView view(net::Span<uint8_t>(buf, 1536));
 							packet.Unparse(view);
 
-							m_sink->SendPacket(target, std::string_view{ (char*)buf, view.GetDataLength() });
+							m_sink->SendPacket(target, std::string_view{ reinterpret_cast<char*>(buf), view.GetDataLength() });
 
 							// cut down time
 							if (resTime > latency)
@@ -490,15 +491,24 @@ void EventReassemblyComponentImpl::NetworkTick()
 		}
 
 		// Cleanup ReceiveEvents 2 minutes after completion (& last ACK).
-		static const std::chrono::milliseconds gc_time(120000);
-		for (auto it = m_receiveList.cbegin(); it != m_receiveList.cend(); /* no increment */)
+		static constexpr std::chrono::milliseconds gc_time(120000);
+		if (timeNow - m_lastCleanup >= gc_time)
 		{
-			if (it->second->completed && (timeNow - it->second->timeLastAck) >= gc_time)
+			m_lastCleanup = timeNow;
+			for (auto it = m_receiveList.begin(); it != m_receiveList.end(); /* no increment */)
 			{
-				it = m_receiveList.erase(it);
-			}
-			else
-			{
+				for (auto clientIt = it->second.begin(); clientIt != it->second.end(); /* no increment */)
+				{
+					if (clientIt->second->completed && (timeNow - clientIt->second->timeLastAck) >= gc_time)
+					{
+						// todo: test, might not work correctly
+						clientIt = it->second.erase(clientIt);
+					}
+					else
+					{
+						++clientIt;
+					}
+				}
 				++it;
 			}
 		}
@@ -554,11 +564,23 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 	{
 		std::unique_lock lock(m_listMutex);
 		// check if there is already a pending event with this id from the remote side
-		auto entryIt = m_receiveList.find({ source, packet.eventId });
+		auto clientIt = m_receiveList.find(source);
+		std::unordered_map<EventId, std::shared_ptr<ReceiveEvent>>* clientReceiveMap;
+		if (clientIt == m_receiveList.end())
+		{
+			clientReceiveMap = &m_receiveList.insert({source, std::unordered_map<EventId, std::shared_ptr<ReceiveEvent>>{}}).first->second;
+		}
+		else
+		{
+			clientReceiveMap = &clientIt->second;
+		}
 
 		std::shared_ptr<ReceiveEvent> receiveData;
 
-		if (entryIt == m_receiveList.end())
+		// , packet.eventId }
+
+		auto entryIt = clientReceiveMap->find(packet.eventId);
+		if (entryIt == clientReceiveMap->end())
 		{
 			// targets are protected by m_listMutex as well
 			auto target = m_targets.find(source);
@@ -590,7 +612,7 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 			receiveData->completed = false;
 			receiveData->timeLastAck = std::chrono::milliseconds{ 0 };
 
-			m_receiveList.insert({ { source, packet.eventId }, receiveData });
+			clientReceiveMap->insert({packet.eventId, receiveData});
 		}
 		else
 		{
@@ -614,7 +636,7 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 			packet.thisBytes = 0;
 			packet.Unparse(view);
 
-			m_sink->SendPacket(source, std::string_view{ (char*)buf, view.GetDataLength() });
+			m_sink->SendPacket(source, std::string_view{ reinterpret_cast<char*>(buf), view.GetDataLength() });
 			receiveData->timeLastAck = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 		}
 		// Still rebuilding event...,
