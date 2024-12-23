@@ -49,6 +49,7 @@
 
 #include <json.hpp>
 
+#include "NetBitVersion.h"
 #include "NetEvent.h"
 #include "NetEventPacketHandler.h"
 #include "ReassembledEventPacketHandler.h"
@@ -209,7 +210,14 @@ namespace fx
 		int bps = context.GetArgument<int>(3);
 
 		auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
-		reassembler->TriggerEvent(0, std::string_view{ eventName.c_str(), eventName.size() + 1 }, eventPayload, bps);
+		if (Instance<ICoreGameInit>::Get()->IsNetVersionOrHigher(net::NetBitVersion::netVersion5))
+		{
+			reassembler->TriggerEventV2(0, std::string_view{ eventName.c_str(), eventName.size() + 1 }, eventPayload, bps);
+		}
+		else
+		{
+			reassembler->TriggerEvent(0, std::string_view{ eventName.c_str(), eventName.size() + 1 }, eventPayload, bps);
+		}
 	}
 
 	void TriggerDisabledLatentServerEventInternal(fx::ScriptContext& context)
@@ -713,6 +721,7 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 	fx::EnableEventReassemblyChanged(fx::g_enableEventReassembly.GetHelper().get());
 
 	netLibrary->AddPacketHandler<fx::ReassembledEventPacketHandler>(true);
+	netLibrary->AddPacketHandler<fx::ReassembledEventPacketV2Handler>(true);
 	netLibrary->AddPacketHandler<fx::NetEventPacketHandler>(false);
 	netLibrary->AddPacketHandler<fx::ResourceStopPacketHandler>(false);
 	netLibrary->AddPacketHandler<fx::ResourceStartPacketHandler>(false);
@@ -830,11 +839,16 @@ static NetLibrary* g_netLibrary;
 
 static class : public fx::EventReassemblySink
 {
-	virtual void SendPacket(int target, std::string_view packet) override
+	void SendPacket(int target, std::string_view packet) override
 	{
 		net::packet::ReassembledEventPacket reassembled;
 		reassembled.data.data = net::Span{reinterpret_cast<uint8_t*>(const_cast<char*>(packet.data())), packet.size()};
 		g_netLibrary->SendNetPacket(reassembled, false);
+	}
+
+	void SendPacketV2(int target, net::packet::ReassembledEventV2Packet& packet) override
+	{
+		g_netLibrary->SendNetPacket(packet);
 	}
 } g_eventSink;
 
