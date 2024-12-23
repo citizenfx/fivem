@@ -476,14 +476,7 @@ static InitFunction initFunction([] ()
 			BottomLeft = 3,
 		};
 
-		static auto anchorPosBase = ([]()
-		{
-			if (launch::IsSDKGuest())
-				return AnchorPos::BottomRight;
-			}
-		})();
-
-		auto anchorPos = anchorPosBase;
+		auto anchorPos = AnchorPos::BottomRight;
 
 		// in the menu, we want it to always be on the bottom right
 		if (!inGame)
