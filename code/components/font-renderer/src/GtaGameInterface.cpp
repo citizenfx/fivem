@@ -479,16 +479,7 @@ static InitFunction initFunction([] ()
 		static auto anchorPosBase = ([]()
 		{
 			if (launch::IsSDKGuest())
-			{
 				return AnchorPos::BottomRight;
-			}
-			else
-			{
-				std::random_device rd;
-				std::mt19937 gen(rd());
-				std::uniform_int_distribution<> dis(0, 1); // 2/3 (top-left/bottom-left) don't exist anymore
-
-				return static_cast<AnchorPos>(dis(gen));
 			}
 		})();
 
