@@ -218,7 +218,7 @@ void EventReassemblyComponentImpl::UnregisterSendList(int target, std::unordered
 	}
 }
 
-void EventReassemblyComponentImpl::UnregisterTarget(int id)
+void EventReassemblyComponentImpl::UnregisterTarget(const int id)
 {
 	std::unique_lock lock(m_listMutex);
 
