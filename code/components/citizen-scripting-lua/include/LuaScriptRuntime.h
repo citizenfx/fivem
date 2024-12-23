@@ -307,8 +307,13 @@ public:
 
 	LUA_INLINE const char* GetResourceName()
 	{
-		char* resourceName = "";
+		static const char* emptyResourceName = "";
+		char* resourceName = nullptr;
 		m_resourceHost->GetResourceName(&resourceName);
+		if (!resourceName)
+		{
+			return emptyResourceName;
+		}
 
 		return resourceName;
 	}

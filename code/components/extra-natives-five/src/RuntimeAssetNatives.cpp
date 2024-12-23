@@ -47,6 +47,8 @@
 
 #include <concurrent_unordered_set.h>
 
+#include "FormData.h"
+
 using Microsoft::WRL::ComPtr;
 
 static hook::cdecl_stub<rage::five::pgDictionary<rage::grcTexture>*(void*, int)> textureDictionaryCtor([]()
@@ -385,7 +387,7 @@ static ComPtr<IWICBitmapSource> ImageToBitmapSource(std::string_view fileName)
 		fileNameString = fileNameString.substr(f + 7);
 
 		std::string decodedURL;
-		UrlDecode(fileNameString, decodedURL, false);
+		net::UrlDecode(fileNameString, decodedURL, false);
 
 		decodedURL.erase(std::remove_if(decodedURL.begin(), decodedURL.end(), [](char c)
 						 {

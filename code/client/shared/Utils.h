@@ -286,15 +286,12 @@ inline void LowerString(fwString& string)
 }
 
 fwString url_encode(const fwString &value);
-bool UrlDecode(const std::string& in, std::string& out, bool replacePlus = true);
 void CreateDirectoryAnyDepth(const char *path);
 
 void SetThreadName(int threadId, const char* threadName);
 
 std::wstring ToWide(std::string_view narrow);
 std::string ToNarrow(std::wstring_view wide);
-
-std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString);
 
 #ifdef COMPILING_CORE
 extern "C" bool DLL_EXPORT CoreIsDebuggerPresent();
