@@ -126,7 +126,7 @@ bool ScriptingFilesystemAllowWrite(const std::string& path)
 
 		fwRefContainer<Resource> resource = manager->GetResource(resourceName);
 		// if the resource is not initialized yet, we accept the write even when we can't check the author
-		if (!resource.GetRef())
+		if (!resource.GetRef() || resource->GetState() == ResourceState::Uninitialized)
 		{
 			return true;
 		}
