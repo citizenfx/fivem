@@ -299,6 +299,10 @@ void MigrateSessionCopy(char* target, char* source)
 
 static hook::cdecl_stub<bool()> isNetworkHost([] ()
 {
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		return hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 ? 44 38 3B 74"));
+	}
 	return hook::get_call(hook::pattern("48 8D 59 30 BE ? ? ? ? 48 8B CB E8 ? ? ? ? 48 81 C3").count(1).get(0).get<void>(0x33));
 });
 
@@ -316,7 +320,11 @@ static hook::cdecl_stub<void()> doPresenceStuff([] ()
 
 static hook::cdecl_stub<void(void*, /*ScSessionAddr**/ void*, int64_t, int, void*, int)> joinGame([] ()
 {
-	if (xbr::IsGameBuildOrGreater<2699>())
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		return hook::get_call(hook::get_pattern("4C 89 74 24 ? E8 ? ? ? ? EB ? 32 C0", 5));
+	}
+	else if (xbr::IsGameBuildOrGreater<2699>())
 	{
 		return hook::pattern("BF 01 00 00 00 45 8B F1 45 8B F8 4C 8B E2").count(1).get(0).get<void>(-0x26);
 	}
@@ -384,7 +392,7 @@ OnlineAddress* GetOurOnlineAddressRaw()
 
 static hook::cdecl_stub<bool()> isSessionStarted([] ()
 {
-	return hook::get_call(hook::get_pattern("8B 86 ? ? 00 00 C1 E8 05 84 C2", 13));
+	return hook::get_call(hook::get_pattern("8B 86 ? ? 00 00 C1 E8 05 84 C2", xbr::IsGameBuildOrGreater<3407>() ? 17 : 13));
 });
 
 // Network bail function definition changed in 2372
@@ -1619,7 +1627,11 @@ static HookFunction hookFunction([] ()
 	g_onlineAddress = (OnlineAddress*)(onlineAddressFunc + *(int32_t*)onlineAddressFunc + 4);
 
 	{
-		if (xbr::IsGameBuildOrGreater<3258>())
+		if (xbr::IsGameBuildOrGreater<3407>())
+		{
+			g_NetworkBail = hook::get_pattern("48 83 EC ? 80 3D ? ? ? ? ? C6 05 ? ? ? ? ? 0F 84", 0);
+		}
+		else if (xbr::IsGameBuildOrGreater<3258>())
 		{
 			g_NetworkBail = hook::get_pattern("40 55 48 8B EC 48 83 EC ? 80 3D ? ? ? ? ? C6 05", 0);
 		}
@@ -1911,7 +1923,14 @@ static HookFunction hookFunction([] ()
 
 	// always return 'true' from netObjectMgr duplicate script object ID checks
 	// (this function deletes network objects considered as duplicate)
-	hook::jump(hook::get_pattern("49 8B 0C 24 0F B6 51", -0x69), ReturnTrue);
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		hook::jump(hook::get_call(hook::get_pattern("48 8B D5 E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? B0", 3)), ReturnTrue);
+	}
+	else
+	{
+		hook::jump(hook::get_pattern("49 8B 0C 24 0F B6 51", -0x69), ReturnTrue);
+	}
 
 	// 1365 requirement: wait for SC to have inited before loading vehicle metadata
 	{

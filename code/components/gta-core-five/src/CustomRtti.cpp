@@ -339,13 +339,24 @@ static HookFunction hookFunction([] ()
 {
 	g_syncTreeDataNodesOffset = *(uint8_t*)hook::get_pattern("48 8D 4B ? 33 D2 41 B8 ? ? ? ? E8 ? ? ? ? 48 8D 8B ? ? ? ? 33 D2 41 B8 ? ? ? ? E8 ? ? ? ? 48 8B C3", 3);
 
+	void* CDynamicEntitySyncTreeBase = nullptr;
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		auto ctor = hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 05 ? ? ? ? 48 8D BB ? ? ? ? 48 89 03 48 8B CF E8 ? ? ? ? 48 8D 05"));
+		CDynamicEntitySyncTreeBase = hook::get_address<void*>(ctor, 14, 7);
+	}
+	else
+	{
+		CDynamicEntitySyncTreeBase = hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 89 07 48 8B CB E8 ? ? ? ? 33 C9"), 3, 7);
+	}
+
 	g_vtableToTypeNameMapping = {
 		{
 			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8B CF 48 89 07 8B 43"), 3, 7),
 			"CGameScriptId"
 		},
 		{
-			hook::get_address<void*>((intptr_t)hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 9F ? ? ? ? 48 8B CB E8 ? ? ? ? 48 8B 74 2")) + 0x8B, 3, 7),
+			hook::get_address<void*>((intptr_t)hook::get_call(xbr::IsGameBuildOrGreater<3407>() ? hook::get_pattern("48 89 33 E8 ? ? ? ? 48 8D 8F ? ? ? ? E8 ? ? ? ? 48 8B 5C 24", 3) : hook::get_pattern("E8 ? ? ? ? 48 8D 9F ? ? ? ? 48 8B CB E8 ? ? ? ? 48 8B 74 2")) + 0x8B, 3, 7),
 			"CGameScriptObjInfo"
 		},
 		{
@@ -357,7 +368,7 @@ static HookFunction hookFunction([] ()
 			"netSyncDataNode"
 		},
 		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 89 03 48 8D 9F ? ? ? ? 48 8B CB E8 ? ? ? ? 33 ED"), 3, 7),
+			hook::get_address<void*>(xbr::IsGameBuildOrGreater<3407>() ? hook::get_pattern("48 8D 05 ? ? ? ? 48 8D BD") : hook::get_pattern("48 8D 05 ? ? ? ? 48 89 03 48 8D 9F ? ? ? ? 48 8B CB E8 ? ? ? ? 33 ED"), 3, 7),
 			"CProjectBaseSyncParentNode"
 		},
 		{
@@ -365,15 +376,15 @@ static HookFunction hookFunction([] ()
 			"netSyncTree"
 		},
 		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 89 9F ? ? ? ? 48 89 07 48 89 AF"), 3, 7),
+			hook::get_address<void*>(xbr::IsGameBuildOrGreater<3407>() ? hook::get_pattern("48 8D 05 ? ? ? ? 89 9F ? ? ? ? 48 89 07 C6 87") : hook::get_pattern("48 8D 05 ? ? ? ? 89 9F ? ? ? ? 48 89 07 48 89 AF"), 3, 7),
 			"CProjectSyncTree"
 		},
 		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 89 07 48 8B CB E8 ? ? ? ? 33 ED"), 3, 7),
+			hook::get_address<void*>(xbr::IsGameBuildOrGreater<3407>() ? hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 89 07 48 8B CB E8 ? ? ? ? 33 C9") :  hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 89 07 48 8B CB E8 ? ? ? ? 33 ED"), 3, 7),
 			"CPhysicalSyncTreeBase"
 		},
 		{
-			hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 9F ? ? ? ? 48 89 07 48 8B CB E8 ? ? ? ? 33 C9"), 3, 7),
+			CDynamicEntitySyncTreeBase,
 			"CDynamicEntitySyncTreeBase"
 		},
 		{

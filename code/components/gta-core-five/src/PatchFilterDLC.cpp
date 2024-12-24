@@ -90,7 +90,19 @@ static std::unordered_set<std::string> g_badFiles{
 	"dlc_mp2024_01_G9EC:/x64/levels/gta5/interiors/int_placement_m24_1_g9ec.rpf",
 	"dlc_mp2024_01_G9EC:/x64/levels/gta5/interiors/m24_1_dlc_int_02.rpf",
 	"dlc_mp2024_01_G9EC:/x64/levels/mp2024_01_g9ec/vehiclemods/eurosx32hsw_mods.rpf",
-	"dlc_mp2024_01_G9EC:/x64/levels/mp2024_01_g9ec/vehiclemods/niobehsw_mods.rpf"
+	"dlc_mp2024_01_G9EC:/x64/levels/mp2024_01_g9ec/vehiclemods/niobehsw_mods.rpf",
+
+	"dlc_mp2024_02_G9EC:/x64/levels/mp2024_02_G9EC/vehiclemods/banshee3hsw_mods.rpf",
+	"dlc_mp2024_02_G9EC:/x64/levels/mp2024_02_G9EC/vehiclemods/firebolthsw_mods.rpf", 
+	"dlc_mp2024_02_G9EC:/common/data/weaponArchetypes.meta",
+	"dlc_mp2024_02_G9EC:/x64/models/cdimages/weapons.rpf",
+	"dlc_mp2024_02_G9EC:/common/data/shop_weapon.meta",
+	"dlc_mp2024_02_G9ECCRC:/common/data/ai/loadouts.meta",
+	"dlc_mp2024_02_G9ECCRC:/common/data/pedpersonality.meta",
+	"dlc_mp2024_02_G9ECCRC:/common/data/pickups.meta",
+	"dlc_mp2024_02_G9ECCRC:/common/data/ai/weapon_strickler.meta",
+	"dlc_mp2024_02_G9ECCRC:/common/data/ai/weaponanimations.meta",   
+	"dlc_mp2024_02_G9ECCRC:/common/data/ai/weaponcomponents.meta"
 };
 
 static void (*_applyChangeSetEntry)(ChangeSetEntry* entry);

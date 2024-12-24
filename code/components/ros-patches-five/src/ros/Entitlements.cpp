@@ -56,6 +56,7 @@ std::unordered_map<int, BuildData> buildInfoRDR3 = {
 };
 
 std::unordered_map<int, BuildData> buildInfoGTA5 = {
+	{ 3407, {"1.0.3407.0", 54341608, 107, "a947ba8627560835b4c28c9bb3c2ed2cbb5874cfec235e50e162ffc12e6455b2" } },
 	{ 3323, { "1.0.3323.0", 57496560, 105, "ed2322439789e7e8f94c8a1b3c1b80d4bcc48c86ed277d42dbf40fc28d412051" } },
 	{ 3258, { "1.0.3258.0", 56066032, 104, "9ec3afccec172a55712bede2dd41d2c330b6d803f9b61b723c8914616ef25aea" } },
 	{ 3095, { "1.0.3095.0", 49634800, 103, "4c663c738e184ea60b3c3208147c3815605d98d1802ec08107b2c22ac5f2c46d" } },
