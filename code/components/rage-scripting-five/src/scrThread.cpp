@@ -115,3 +115,70 @@ static hook::thiscall_stub<void(rage::scrNativeCallContext*)> setVectorResults([
 {
 	return hook::pattern("83 79 18 00 48 8B D1 74 4A FF 4A 18").count(1).get(0).get<void>();
 });
+
+uint64_t rage::scrThread::proxyMethod1(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4)
+{
+	return 0;
+}
+
+uint64_t rage::scrThread::proxyMethod2(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4)
+{
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		return 0;
+	}
+	else
+	{
+		return Reset((uint32_t)a1, (void*)a2, (uint32_t)a3);
+	}
+} // Reset or dtor
+
+uint64_t rage::scrThread::proxyMethod3(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4)
+{
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		return Reset((uint32_t)a1, (void*)a2, (uint32_t)a3);
+	}
+	else
+	{
+		return Run((uint32_t)a1);
+	}
+} // Run or Reset
+
+uint64_t rage::scrThread::proxyMethod4(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4)
+{
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		return Run((uint32_t)a1);
+	}
+	else
+	{
+		return Tick((uint32_t)a1);
+	}
+} // Run or Reset
+
+uint64_t rage::scrThread::proxyMethod5(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4)
+{
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		return Tick((uint32_t)a1);
+	}
+	else
+	{
+		Kill();
+		return 0;
+	}
+} // Tick or Run
+
+uint64_t rage::scrThread::proxyMethod6(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4)
+{
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		Kill();
+		return 0;
+	}
+	else
+	{
+		return 0;
+	}
+} // Kill or Tick
