@@ -819,7 +819,8 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 		}
 
 		net::packet::ClientServerCommandPacket serverCommand;
-		serverCommand.data.command = console::GetDefaultContext()->GetCommandManager()->GetRawCommand();
+		const std::string& commandName = console::GetDefaultContext()->GetCommandManager()->GetRawCommand();
+		serverCommand.data.command = std::string_view{commandName.data(), commandName.size()};
 		netLibrary->SendNetPacket(serverCommand);
 		return false;
 	},
