@@ -527,6 +527,7 @@ static InitFunction initFunction([]()
 		auto experimentalOneSyncPopulation = instance->AddVariable<bool>("sv_experimentalOneSyncPopulation", ConVar_None, true);
 		// todo: remove fx::ServerGameState::GetGameEventHandler, fx::ServerGameState::GetHandler and fx::ServerGameState::GetRequestControlEventHandler when experimentalNetEvents is enabled by default and no longer a experiment
 		auto experimentalNetEvents = instance->AddVariable<bool>("sv_experimentalNetGameEventHandler", ConVar_None, false);
+		auto experimentalNetEventReassembly = instance->AddVariable<bool>("sv_experimentalNetEventReassemblyHandler", ConVar_None, true);
 
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
@@ -700,8 +701,12 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			
-			if (experimentalNetEvents->GetValue())
+
+			if (experimentalNetEventReassembly->GetValue())
+			{
+				data["bitVersion"] = net::NetBitVersion::netVersion5;
+			}
+			else if (experimentalNetEvents->GetValue())
 			{
 				data["bitVersion"] = net::NetBitVersion::netVersion4;
 			}
