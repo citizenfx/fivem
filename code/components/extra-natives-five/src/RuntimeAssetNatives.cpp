@@ -202,7 +202,7 @@ void RuntimeTex::SetPixel(int x, int y, int r, int g, int b, int a)
 {
 	auto offset = (y * m_pitch) + (x * 4);
 
-	if (offset < 0 || offset >= m_backingPixels.size() - 4)
+	if (offset < 0 || offset > m_backingPixels.size() - 4)
 	{
 		return;
 	}
