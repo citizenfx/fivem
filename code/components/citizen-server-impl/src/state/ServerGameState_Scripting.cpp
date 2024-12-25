@@ -19,6 +19,12 @@ void DisownEntityScript(const fx::sync::SyncEntityPtr& entity);
 
 static void Init()
 {
+
+	static auto IsEntityValid = [](const fx::sync::SyncEntityPtr& entity) {
+		// if we're deleting or finalizing our deletion then we don't want to be included in the list
+		return entity && !entity->deleting && !entity->finalizing;
+	};
+
 	auto makeEntityFunction = [](auto fn, uintptr_t defaultValue = 0)
 	{
 		return [=](fx::ScriptContext& context)
@@ -43,7 +49,7 @@ static void Init()
 
 			auto entity = gameState->GetEntity(id);
 
-			if (!entity)
+			if (!IsEntityValid(entity))
 			{
 				throw std::runtime_error(va("Tried to access invalid entity: %d", id));
 
@@ -131,7 +137,7 @@ static void Init()
 
 		auto entity = gameState->GetEntity(id);
 
-		if (!entity)
+		if (!IsEntityValid(entity))
 		{
 			context.SetResult(false);
 			return;
@@ -163,7 +169,7 @@ static void Init()
 
 		auto entity = gameState->GetEntity(id);
 
-		if (!entity || entity->finalizing || entity->deleting)
+		if (!IsEntityValid(entity))
 		{
 			context.SetResult(false);
 			return;
@@ -197,7 +203,7 @@ static void Init()
 
 		auto entity = gameState->GetEntity(0, id);
 
-		if (!entity)
+		if (!IsEntityValid(entity))
 		{
 			context.SetResult(0);
 			return;
@@ -253,19 +259,36 @@ static void Init()
 
 		auto entity = gameState->GetEntity(id);
 
-		if (!entity)
+		if (!IsEntityValid(entity))
 		{
 			throw std::runtime_error(va("Tried to access invalid entity: %d", id));
 		}
 
-		auto orphanMode = context.GetArgument<int>(1);
+		int rawOrphanMode = context.GetArgument<int>(1);
 
-		if (orphanMode < 0 || orphanMode > fx::sync::KeepEntity)
+		if (rawOrphanMode < 0 || rawOrphanMode > fx::sync::KeepEntity)
 		{
-			throw std::runtime_error(va("Tried to set entities (%d) orphan mode to an invalid orphan mode: %d", id, orphanMode));
+			throw std::runtime_error(va("Tried to set entities (%d) orphan mode to an invalid orphan mode: %d", id, rawOrphanMode));
 		}
 
-		entity->orphanMode = static_cast<fx::sync::EntityOrphanMode>(orphanMode);
+
+		fx::sync::EntityOrphanMode entityOrphanMode = static_cast<fx::sync::EntityOrphanMode>(rawOrphanMode);
+
+#ifdef STATE_FIVE
+		if (entity->type == fx::sync::NetObjEntityType::Train)
+		{
+			// recursively apply orphan mode to all of the trains children/parents
+			gameState->IterateTrainLink(entity, [entityOrphanMode](fx::sync::SyncEntityPtr& train) {
+				train->orphanMode = entityOrphanMode;
+
+				return true;
+			});
+		}
+		else
+#endif
+		{
+			entity->orphanMode = entityOrphanMode;
+		}
 
 		// if they set the orphan mode to `DeleteOnOwnerDisconnect` and the entity already doesn't have an owner then treat this as a `DELETE_ENTITY` call
 		if (entity->orphanMode == fx::sync::DeleteOnOwnerDisconnect && entity->firstOwnerDropped)
@@ -1080,11 +1103,6 @@ static void Init()
 		return result;
 	}));
 
-	static auto IsEntityValid = [](const fx::sync::SyncEntityPtr& entity) {
-		// if we're deleting or finalizing our deletion then we don't want to be included in the list
-		return entity && !entity->deleting && !entity->finalizing;
-	};
-
 	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_POOL", [](fx::ScriptContext& context)
 	{
 		// get the current resource manager
@@ -1292,6 +1310,18 @@ static void Init()
 		auto gameState = instance->GetComponent<fx::ServerGameState>();
 
 		gameState->DeleteEntity(entity);
+
+		return 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("DELETE_TRAIN", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		// ignore the engine checks, this will recursively delete the entire train
+		gameState->DeleteEntity<true>(entity);
 
 		return 0;
 	}));

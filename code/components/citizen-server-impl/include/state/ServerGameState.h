@@ -868,7 +868,6 @@ enum EntityOrphanMode : uint8_t
 	DeleteOnOwnerDisconnect = 1,
 	KeepEntity = 2,
 };
-
 struct SyncEntityState
 {
 	using TData = std::variant<int, float, bool, std::string>;
@@ -1368,6 +1367,10 @@ public:
 	
 	void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds);
 
+#ifdef STATE_FIVE
+	void IterateTrainLink(const sync::SyncEntityPtr& train, std::function<bool(sync::SyncEntityPtr&)> fn, bool callOnInitialEntity = true);
+#endif
+
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
 
 	bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<StateBag>()> createStateBag) override;
@@ -1382,7 +1385,51 @@ private:
 	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
 
 public:
-	void DeleteEntity(const fx::sync::SyncEntityPtr& entity);
+
+	template<bool IgnoreTrainChecks = false>
+	void DeleteEntity(const fx::sync::SyncEntityPtr& entity)
+	{
+		if (entity->type == sync::NetObjEntityType::Player || !entity->syncTree)
+		{
+			return;
+		}
+
+		// can only be used on FiveM, RDR doesn't have its sync nodes filled out
+#ifdef STATE_FIVE
+		// this will be ignored by DELETE_TRAIN so calling on any part of the train will delete the entire thing
+		if constexpr (!IgnoreTrainChecks)
+		{
+
+			if (entity->type == sync::NetObjEntityType::Train;
+				auto trainState = entity->syncTree->GetTrainState())
+			{
+				// don't allow the deletion of carriages until we can modify sync node data and overwrite the linked forward/linked backwards state
+				if (trainState->engineCarriage && trainState->engineCarriage != entity->handle)
+				{
+					return;
+				}
+			}
+		}
+#endif
+
+		gscomms_execute_callback_on_sync_thread([=]()
+		{
+#ifdef STATE_FIVE
+			if (entity->type == sync::NetObjEntityType::Train)
+			{
+				// recursively delete every part of the train
+				IterateTrainLink(entity, [=](fx::sync::SyncEntityPtr& train)
+				{
+					RemoveClone({}, train->handle);
+
+					return true;
+				});
+				return;
+			}
+#endif
+			RemoveClone({}, entity->handle);
+		});
+	}
 
 	void ClearClientFromWorldGrid(const fx::ClientSharedPtr& targetClient);
 
