@@ -192,7 +192,7 @@ void ScriptTraceV(const char* string, fmt::printf_args formatList)
 	LuaScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
 }
 
-static int Lua_Print(lua_State* L)
+int Lua_Print(lua_State* L)
 {
 	const int n = lua_gettop(L); /* number of arguments */
 

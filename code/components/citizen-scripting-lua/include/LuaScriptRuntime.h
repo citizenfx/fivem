@@ -392,6 +392,8 @@ public:
 	NS_DECL_ISCRIPTWARNINGRUNTIME;
 };
 
+int Lua_Print(lua_State* L);
+
 void ScriptTraceV(const char* string, fmt::printf_args formatList);
 
 template<typename... TArgs>

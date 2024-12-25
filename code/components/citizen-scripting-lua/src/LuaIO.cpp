@@ -927,6 +927,11 @@ int LuaIOEmptyFlush(lua_State* L)
 	return luaL_fileresult(L, false, nullptr);
 }
 
+int LuaIOWrite(lua_State* L)
+{
+	return fx::Lua_Print(L);
+}
+
 /*
 ** functions for 'io' library
 */
@@ -942,7 +947,7 @@ const luaL_Reg iolib[] = {
 	{"tmpfile", LuaIOTempFile},
 	{"readdir", LuaIOReadDir},
 	{"type", io_type},
-	//{"write", io_write},
+	{"write", LuaIOWrite},
 	{nullptr, nullptr}
 };
 
