@@ -117,7 +117,7 @@ for _, v in pairs(_natives) do
                 argx = PAS_ARG_POINTER -- These are incorrectly labelled as intPtr
             elseif (a.type.name == 'object') then
                 argx = PAS_ARG_POINTER | PAS_ARG_BUFFER
-            elseif (a.type.name == 'charPtr') or (a.type.name == 'func') then
+            elseif (a.type.name == 'charPtr') or (a.type.name == 'func') or (gApiSet == 'server' and a.type.name == 'Player') then
                 argx = PAS_ARG_POINTER | PAS_ARG_STRING
             elseif a.pointer then
                 argx = PAS_ARG_POINTER
