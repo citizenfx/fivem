@@ -425,6 +425,36 @@ static InitFunction initFunction([] ()
 		context.SetResult(nui::HasFocusKeepInput());
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_NUI_ZINDEX", [](fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_FAILED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			return;
+		}
+
+		fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+		if (!resource)
+		{
+			return;
+		}
+
+		fwRefContainer<ResourceUI> resourceUI = resource->GetComponent<ResourceUI>();
+		if (!resourceUI.GetRef() || !resourceUI->HasFrame())
+		{
+			return;
+		}
+
+		if (resource->GetName().find('"') != std::string::npos)
+		{
+			return;
+		}
+
+		int zIndex = context.GetArgument<int>(0);
+		nui::PostRootMessage(fmt::sprintf(R"({ "type": "setZIndex", "frameName": "%s", "zIndex": "%d" })", resource->GetName(), zIndex));
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_NUI_FOCUS", [] (fx::ScriptContext& context)
 	{
 		fx::OMPtr<IScriptRuntime> runtime;
