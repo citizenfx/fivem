@@ -34,6 +34,7 @@ inline int GetPureLevel()
 			break;
 		}
 	}
+	LocalFree(wargv);
 
 	return pureLevel;
 }
