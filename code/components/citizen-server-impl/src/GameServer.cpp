@@ -1357,7 +1357,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(new fx::UdpInterceptor());
 
 		instance->SetComponent(
-			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2, ArrayUpdatePacketHandler, ReassembledEventPacketHandler, RequestObjectIdsPacketHandler, GameStateNAckPacketHandler, GameStateAckPacketHandler>(
+			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2, ArrayUpdatePacketHandler, ReassembledEventPacketHandler, ReassembledEventV2PacketHandler, RequestObjectIdsPacketHandler, GameStateNAckPacketHandler, GameStateAckPacketHandler>(
 				WithProcessTick<ThreadWait, GameServerTick>(
 					WithOutOfBand<GetInfoOutOfBand, GetStatusOutOfBand, RconOutOfBand>(
 						WithEndPoints(
