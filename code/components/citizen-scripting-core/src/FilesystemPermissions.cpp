@@ -88,12 +88,12 @@ bool ScriptingFilesystemAllowWrite(const std::string& path)
 		return false;
 	}
 
-	static std::unordered_set<std::filesystem::path> readonlyExtensions = {
+	static std::unordered_set<std::string> readonlyExtensions = {
 		".lua", ".dll", ".ts", ".js", ".mjs", ".cjs", ".cs"
 	};
 
 	const std::filesystem::path extension = std::filesystem::path(path).extension();
-	const bool restrictedModify = readonlyExtensions.count(extension);
+	const bool restrictedModify = readonlyExtensions.count(extension.string());
 
 	if (!restrictedModify)
 	{
