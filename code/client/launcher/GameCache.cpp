@@ -2337,6 +2337,16 @@ std::map<std::string, std::string> UpdateGameCache()
 	{
 		g_requiredEntries.push_back({ "update/x64/dlcpacks/mp2023_02/dlc.rpf", "22afecbf20f46f1a871f442b2822b120bb41fbbf", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1604741120 });
 	}
+
+	if (IsTargetGameBuildOrGreater<3258>())
+	{
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mp2024_01/dlc.rpf", "bf9efb4348cc95ecd2ab0bfd956768148c7b48bf", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1178773504 });
+	}
+
+	if (IsTargetGameBuildOrGreater<3407>())
+	{
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mp2024_02/dlc.rpf", "c15b71266137bddb93ad1197afeb35d54b6a21fe", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1183961088 });
+	}
 #elif IS_RDR3
 	for (auto [_, entry]: g_entriesToLoadPerBuild[GetTargetGameBuild()])
 	{
