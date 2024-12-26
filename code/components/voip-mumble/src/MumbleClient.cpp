@@ -24,8 +24,9 @@ static __declspec(thread) MumbleClient* g_currentMumbleClient;
 
 using namespace std::chrono_literals;
 
-constexpr const auto kUDPTimeout = 10000ms;
-constexpr const auto kUDPPingInterval = 1000ms;
+constexpr auto kUDPTimeout = 5000ms;
+constexpr auto kUDPPingInterval = 1000ms;
+constexpr uint16_t kMaxUdpPacket = 1024;
 
 inline std::chrono::milliseconds msec()
 {
@@ -45,42 +46,26 @@ void MumbleClient::Initialize()
 
 	m_loop->EnqueueCallback([this]()
 	{
-		auto recreateUDP = [this]()
+		m_udp = m_loop->Get()->resource<uvw::UDPHandle>();
+
+		m_udp->on<uvw::UDPDataEvent>([this](const uvw::UDPDataEvent& ev, uvw::UDPHandle& udp)
 		{
-			// if reconnecting, close the existing UDP handle so that servers that try to match source IP/port pairs won't be unhappy
-			if (m_udp)
+			std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
+
+			try
 			{
-				auto udp = std::move(m_udp);
-
-				udp->once<uvw::CloseEvent>([udp](const uvw::CloseEvent& ev, uvw::UDPHandle& self)
-				{
-					(void)udp;
-				});
-
-				udp->close();
+				HandleUDP(reinterpret_cast<const uint8_t*>(ev.data.get()), ev.length);
 			}
-
-			m_udp = m_loop->Get()->resource<uvw::UDPHandle>();
-
-			m_udp->on<uvw::UDPDataEvent>([this](const uvw::UDPDataEvent& ev, uvw::UDPHandle& udp)
+			catch (std::exception& e)
 			{
-				std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
+				trace("Mumble exception: %s\n", e.what());
+			}
+		});
 
-				try
-				{
-					HandleUDP(reinterpret_cast<const uint8_t*>(ev.data.get()), ev.length);
-				}
-				catch (std::exception& e)
-				{
-					trace("Mumble exception: %s\n", e.what());
-				}
-			});
-
-			m_udp->recv();
-		};
+		m_udp->recv();
 
 		m_connectTimer = m_loop->Get()->resource<uvw::TimerHandle>();
-		m_connectTimer->on<uvw::TimerEvent>([this, recreateUDP](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
+		m_connectTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
 		{
 			if (m_connectionInfo.isConnecting)
 			{
@@ -171,8 +156,6 @@ void MumbleClient::Initialize()
 				}
 			});
 
-			recreateUDP();
-
 			const auto& address = m_connectionInfo.address;
 			m_tcp->connect(*address.GetSocketAddress());
 			m_state.Reset();
@@ -181,34 +164,12 @@ void MumbleClient::Initialize()
 		});
 
 		m_idleTimer = m_loop->Get()->resource<uvw::TimerHandle>();
-		m_idleTimer->on<uvw::TimerEvent>([this, recreateUDP](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
+		m_idleTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
 		{
-			static bool hadUDP = false;
-			static bool warnedUDP = false;
-			bool hasUDP = ((msec() - m_lastUdp) <= kUDPTimeout);
-			
-			if (hasUDP && !hadUDP)
+			if (m_hasUdp && (msec() - m_lastUdp) > kUDPTimeout)
 			{
-				if (warnedUDP)
-				{
-					console::Printf("mumble", "UDP packets can be received. Switching to UDP mode.\n");
-				}
-
-				warnedUDP = true;
-				hadUDP = true;
-			}
-			else if (!hasUDP && hadUDP)
-			{
-				if (warnedUDP)
-				{
-					console::PrintWarning("mumble", "UDP packets can *not* be received. Switching to TCP tunnel mode.\n");
-				}
-
-				warnedUDP = true;
-				hadUDP = false;
-
-				// try to recreate UDP if need be
-				recreateUDP();
+				m_hasUdp = false;
+				console::PrintWarning("mumble", "Server isn't responding to UDP packets, swapping to TCP.\n");
 			}
 
 			auto lockedIsActive = [this]()
@@ -390,8 +351,21 @@ void MumbleClient::Initialize()
 				if (msec() > m_nextPing)
 				{
 					{
+						// only log once at 4 pings
+						if (m_inFlightTcpPings == 4)
+						{
+							console::PrintWarning("mumble", "Server is not responding to TCP pings\n");
+						}
+
+						m_inFlightTcpPings += 1;
 						MumbleProto::Ping ping;
 						ping.set_timestamp(msec().count());
+
+						ping.set_good(m_crypto.m_localGood);
+						ping.set_late(m_crypto.m_localLate);
+						ping.set_lost(m_crypto.m_localLost);
+						ping.set_resync(m_crypto.m_localResync);
+
 						ping.set_tcp_ping_avg(m_tcpPingAverage);
 						ping.set_tcp_ping_var(m_tcpPingVariance);
 						ping.set_tcp_packets(m_tcpPingCount);
@@ -400,9 +374,11 @@ void MumbleClient::Initialize()
 						ping.set_udp_ping_var(m_udpPingVariance);
 						ping.set_udp_packets(m_udpPingCount);
 
+
 						Send(MumbleMessageType::Ping, ping);
 					}
 
+					// NOTE: We want to send pings even if we don't have UDP, as these will (eventually) reinitialize us on the mumble server
 					{
 						char pingBuf[64] = { 0 };
 
@@ -479,7 +455,6 @@ concurrency::task<void> MumbleClient::DisconnectAsync()
 			m_tlsClient->close();
 		}
 	}
-
 	auto tcs = concurrency::task_completion_event<void>{};
 
 	m_loop->EnqueueCallback([this, tcs]()
@@ -750,31 +725,33 @@ void MumbleClient::SetListenerMatrix(float position[3], float front[3], float up
 
 void MumbleClient::SendVoice(const char* buf, size_t size)
 {
-	if ((msec() - m_lastUdp) > kUDPTimeout)
+	// If we don't have UDP then we should send the packets over a TCP tunnel
+	if (!m_hasUdp)
 	{
 		Send(MumbleMessageType::UDPTunnel, buf, size);
+		return;
 	}
 	
-	if (m_lastUdp != 0ms)
-	{
-		SendUDP(buf, size);
-	}
+	SendUDP(buf, size);
 }
 
 void MumbleClient::SendUDP(const char* buf, size_t size)
 {
-	if (!m_crypto.GetRef())
+	if (!m_crypto.IsInitialized())
 	{
 		return;
 	}
 
-	if (size > 8000)
+	if (size > kMaxUdpPacket)
 	{
+		trace("We tried to send a packet that was too large for mumble, max packet size is %d bytes, tried to send %d bytes\n", kMaxUdpPacket, size);
 		return;
 	}
 
-	auto outBuf = std::make_shared<std::unique_ptr<char[]>>(new char[8192]);
-	m_crypto->Encrypt((const uint8_t*)buf, (uint8_t*)outBuf->get(), size);
+	// Encoded packets can be at maximum of 1024 bytes long, if we send anything larger than this mumble will drop the packet
+	// https://mumble-protocol.readthedocs.io/en/latest/voice_data.html#packet-format
+	auto outBuf = std::make_shared<std::unique_ptr<char[]>>(new char[kMaxUdpPacket]);
+	m_crypto.Encrypt((const uint8_t*)buf, (uint8_t*)outBuf->get(), size);
 
 	m_loop->EnqueueCallback([this, outBuf, size]()
 	{
@@ -784,19 +761,24 @@ void MumbleClient::SendUDP(const char* buf, size_t size)
 
 void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 {
-	if (!m_crypto.GetRef())
+	if (!m_crypto.IsInitialized())
 	{
 		return;
 	}
 
-	if (size > 8000)
+	// valid packets should only be 1024 bytes long
+	// https://mumble-protocol.readthedocs.io/en/latest/voice_data.html#packet-format
+	if (size > kMaxUdpPacket)
 	{
+		trace("We recieved a packet that was too large, max packet size is %d bytes, got sent %d bytes\n", kMaxUdpPacket, size);
 		return;
 	}
 
-	uint8_t outBuf[8192];
-	if (!m_crypto->Decrypt(buf, outBuf, size))
+
+	uint8_t outBuf[kMaxUdpPacket];
+	if (!m_crypto.Decrypt(buf, outBuf, size))
 	{
+		console::DPrintf("mumble", "Failed to decrypt packet\n");
 		return;
 	}
 
@@ -980,6 +962,27 @@ MumbleConnectionInfo* MumbleClient::GetConnectionInfo()
 
 void MumbleClient::HandlePing(const MumbleProto::Ping& ping)
 {
+	m_inFlightTcpPings = 0;
+	if (m_crypto.IsInitialized())
+	{
+		// Mimic mumbles behavior for pings
+		m_crypto.m_remoteGood = ping.good();
+		m_crypto.m_remoteLate = ping.late();
+		m_crypto.m_remoteLost = ping.lost();
+		m_crypto.m_remoteResync = ping.resync();
+
+		if (m_hasUdp && (m_crypto.m_remoteGood == 0 || m_crypto.m_localGood == 0) && (msec() - m_lastUdp) > 2s)
+		{
+			console::PrintWarning("mumble", "UDP packets can *not* be received. Switching to TCP tunnel mode.\n");
+			m_hasUdp = false;
+		}
+		else if (!m_hasUdp && m_crypto.m_remoteGood > 3 && m_crypto.m_localGood > 3)
+		{
+			console::Printf("mumble", "UDP packets can be received. Switching to UDP mode.\n");
+			m_hasUdp = true;
+		}
+	}
+
 	m_tcpPingCount++;
 
 	if (ping.has_timestamp())
