@@ -212,7 +212,7 @@ namespace fx
 		auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
 		if (Instance<ICoreGameInit>::Get()->IsNetVersionOrHigher(net::NetBitVersion::netVersion5))
 		{
-			reassembler->TriggerEventV2(0, std::string_view{ eventName.c_str(), eventName.size() + 1 }, eventPayload, bps);
+			reassembler->TriggerEventV2(0, eventName, eventPayload, bps);
 		}
 		else
 		{

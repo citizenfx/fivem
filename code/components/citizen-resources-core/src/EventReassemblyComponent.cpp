@@ -394,7 +394,8 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 	static char eventName[65536];
 
 	std::string_view name;
-	std::string_view data;
+	// todo: replace with std::string_view when v1 protocol is removed
+	std::string data;
 	if (v2)
 	{
 		net::ByteReader reader {eventPayload.data(), readSize};
@@ -411,11 +412,11 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 		buffer.ReadBits(eventName, nameLength * 8);
 		eventName[nameLength] = '\0';
 
-		name = {eventName, nameLength};
-		data = {
+		name = {eventName, static_cast<size_t>(nameLength - 1)};
+		data = std::string(std::string_view{
 			reinterpret_cast<const char*>(buffer.GetBuffer().data() + (buffer.GetCurrentBit() / 8)),
 			buffer.GetBuffer().size() - (buffer.GetCurrentBit() / 8)
-		};
+		});
 	}
 
 	// convert the source net ID to a string
@@ -432,7 +433,7 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 	// and queue the event
 	eventManager->QueueEvent(
 		std::string(name),
-		std::string(data),
+		data,
 		sourceStr
 	);
 }

@@ -51,14 +51,25 @@ public:
 
 TEST_CASE("Reassembly client to server event test")
 {
-	std::string testEventName = fx::TestUtils::asciiRandom(10);
-	std::string testEventData = fx::TestUtils::asciiRandom(50);
+	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
+	serverInstance->SetComponent<fx::ResourceManager>(fx::ResourceManagerInstance::Create());
+	serverInstance->GetComponent<fx::ResourceManager>()->SetComponent<fx::ResourceEventManagerComponent>(
+		new fx::ResourceEventManagerComponent());
+	serverInstance->SetComponent(new fx::ClientRegistry());
+
+	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
+	client->SetNetId(1);
 
 	auto reassemblyComponentServer = fx::EventReassemblyComponent::Create();
+	serverInstance->GetComponent<fx::ResourceManager>()->SetComponent<fx::EventReassemblyComponent>(reassemblyComponentServer);
+	
+	std::string testEventName = fx::TestUtils::asciiRandom(10);
+	std::string testEventData = fx::TestUtils::asciiRandom(50);
+	
 	TestEventReassemblySink reassemblySinkServer;
 	reassemblyComponentServer->SetSink(&reassemblySinkServer);
 	// register client net id 1 target
-	reassemblyComponentServer->RegisterTarget(1, 0xFF);
+	reassemblyComponentServer->RegisterTarget(client->GetNetId(), 0xFF);
 
 	auto reassemblyComponentClient = fx::EventReassemblyComponent::Create();
 	TestEventReassemblySink reassemblySinkClient;
@@ -68,7 +79,7 @@ TEST_CASE("Reassembly client to server event test")
 
 	int serverTarget = 0;
 	int bytesPerSecond = 50000;
-	reassemblyComponentClient->TriggerEvent(serverTarget, testEventName, testEventData, bytesPerSecond);
+	reassemblyComponentClient->TriggerEvent(serverTarget, std::string_view{ testEventName.c_str(), testEventName.size() + 1 }, testEventData, bytesPerSecond);
 
 	// should be empty when network tick does not run
 	REQUIRE(reassemblySinkClient.packetQueue.empty() == true);
@@ -81,67 +92,26 @@ TEST_CASE("Reassembly client to server event test")
 
 	std::string packet = std::get<1>(reassemblySinkClient.packetQueue[0]);
 
-	rl::MessageBuffer buffer(packet.data(), packet.size());
+	std::string lastEventName;
+	std::string lastEventData;
+	std::string lastEventSource;
+	bool event = false;
+	serverInstance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>()->
+						OnQueueEvent.Connect([&event, &lastEventName, &lastEventData, &lastEventSource](const std::string& eventName, const std::string& eventData,
+												const std::string& eventSource)
+						{
+							event = true;
+							lastEventName = eventName;
+							lastEventData = eventData;
+							lastEventSource = eventSource;
+						});
 
-	uint32_t eventIdLow = 0;
-	uint32_t eventIdHigh = 0;
+	reassemblyComponentServer->HandlePacket(client->GetNetId(), packet);
 
-	if (!buffer.Read(32, &eventIdLow) || !buffer.Read(32, &eventIdHigh))
-	{
-		REQUIRE(false);
-	}
-
-	constexpr const uint32_t kPacketSizeBits = 17;
-	constexpr const uint32_t kFragmentSize = 1024 - 1;
-	constexpr const uint32_t kFragmentSizeBits = 10;
-	constexpr const uint32_t kMaxPacketSize = (1 << kPacketSizeBits) * kFragmentSize;
-
-	uint64_t eventId = ((uint64_t)eventIdHigh << 32) | eventIdLow;
-
-	uint32_t packetIdx;
-	uint32_t totalPackets;
-	uint32_t thisBytes;
-
-	std::array<uint8_t, kFragmentSize> payload;
-
-	if (!buffer.Read(kPacketSizeBits, &packetIdx))
-	{
-		REQUIRE(false);
-	}
-
-	if (!buffer.Read(kPacketSizeBits, &totalPackets))
-	{
-		REQUIRE(false);
-	}
-
-	if (!buffer.Read(kFragmentSizeBits, &thisBytes))
-	{
-		REQUIRE(false);
-	}
-
-	if (thisBytes > 0)
-	{
-		buffer.ReadBits(payload.data(), std::min(size_t(thisBytes), payload.size()) * 8);
-	}
-
-	REQUIRE(eventId == 0);
-	REQUIRE(packetIdx == 0);
-	REQUIRE(totalPackets == 1);
-	REQUIRE(thisBytes == testEventData.size() + testEventName.size() + 2);
-
-	rl::MessageBuffer payloadReader(payload.data(), thisBytes);
-
-	static char eventName[65536];
-
-	uint16_t nameLength = payloadReader.Read<uint16_t>(16);
-	payloadReader.ReadBits(eventName, nameLength * 8);
-	eventName[nameLength] = '\0';
-
-	REQUIRE(testEventName == std::string(eventName));
-	REQUIRE(testEventData == std::string{
-	        reinterpret_cast<const char*>(payloadReader.GetBuffer().data() + (payloadReader.GetCurrentBit() / 8)),
-	        payloadReader.GetBuffer().size() - (payloadReader.GetCurrentBit() / 8)
-	        });
+	REQUIRE(event == true);
+	REQUIRE(lastEventName == testEventName);
+	REQUIRE(lastEventData == lastEventData);
+	REQUIRE(lastEventSource == "net:" + std::to_string(client->GetNetId()));
 }
 
 TEST_CASE("Reassembly client packet v2 to server event test")
