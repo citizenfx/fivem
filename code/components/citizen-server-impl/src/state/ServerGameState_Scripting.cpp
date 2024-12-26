@@ -20,8 +20,11 @@ void DisownEntityScript(const fx::sync::SyncEntityPtr& entity);
 static void Init()
 {
 
+
+	// If the entity is in its deleting/finalizing state we should not allow access to them
+	// This should only be used for natives that are not expected to work when an entity is actively being deleted
+	// i.e. setters, getting entity by network id / does exist, or any pool getter natives
 	static auto IsEntityValid = [](const fx::sync::SyncEntityPtr& entity) {
-		// if we're deleting or finalizing our deletion then we don't want to be included in the list
 		return entity && !entity->deleting && !entity->finalizing;
 	};
 
@@ -49,7 +52,7 @@ static void Init()
 
 			auto entity = gameState->GetEntity(id);
 
-			if (!IsEntityValid(entity))
+			if (!entity)
 			{
 				throw std::runtime_error(va("Tried to access invalid entity: %d", id));
 
