@@ -16,7 +16,7 @@ export const Footer = observer(function Footer() {
     <Flex vertical alignToEnd gap="large" className={ui.cls.flexGrow}>
       <Flex gap="large">
         {!!hasFeaturedServer && (
-          <Box width="50%">
+          <Box width="75%">
             <FeaturedServerTile />
           </Box>
         )}
