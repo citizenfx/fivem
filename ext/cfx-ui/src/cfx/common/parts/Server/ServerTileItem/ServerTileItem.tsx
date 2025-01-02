@@ -51,8 +51,6 @@ export interface ServerTileItemProps {
   hideBanner?: boolean;
   hideDescription?: boolean;
 
-  noIconGlow?: boolean;
-
   placeControlsBelow?: boolean;
   elementPlacement?: ElementPlacements;
 }
@@ -65,7 +63,6 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
     hideBoost = false,
     hideBanner = false,
     hideDescription = false,
-    noIconGlow = false,
     placeControlsBelow = false,
     elementPlacement = ElementPlacements.Unknown,
   } = props;
@@ -144,7 +141,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
           <Flex fullWidth>
             {!hideIcon && (
               <Box height={10}>
-                <ServerIcon glow={!noIconGlow} type="list" server={server} loading={isLoading} />
+                <ServerIcon type="list" server={server} loading={isLoading} />
               </Box>
             )}
 
