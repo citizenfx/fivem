@@ -24,7 +24,6 @@ static __declspec(thread) MumbleClient* g_currentMumbleClient;
 
 using namespace std::chrono_literals;
 
-constexpr auto kUDPTimeout = 5000ms;
 constexpr auto kUDPPingInterval = 1000ms;
 constexpr uint16_t kMaxUdpPacket = 1024;
 
@@ -39,7 +38,6 @@ void MumbleClient::Initialize()
 
 	m_voiceTarget = 0;
 
-	m_lastUdp = {};
 	m_nextPing = {};
 
 	m_loop = Instance<net::UvLoopManager>::Get()->GetOrCreate("mumble");
@@ -116,6 +114,7 @@ void MumbleClient::Initialize()
 
 				// don't start idle timer here - it should only start after TLS handshake is done!
 
+				m_timeSinceJoin = msec();
 				m_connectionInfo.isConnected = true;
 			});
 
@@ -166,11 +165,6 @@ void MumbleClient::Initialize()
 		m_idleTimer = m_loop->Get()->resource<uvw::TimerHandle>();
 		m_idleTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
 		{
-			if (m_hasUdp && (msec() - m_lastUdp) > kUDPTimeout)
-			{
-				m_hasUdp = false;
-				console::PrintWarning("mumble", "Server isn't responding to UDP packets, swapping to TCP.\n");
-			}
 
 			auto lockedIsActive = [this]()
 			{
@@ -428,7 +422,6 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::P
 
 	m_tcpPingCount = 0;
 
-	m_lastUdp = {};
 
 	memset(m_tcpPings, 0, sizeof(m_tcpPings));
 
@@ -782,8 +775,6 @@ void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 		return;
 	}
 
-	// update UDP timestamp
-	m_lastUdp = msec();
 
 	// handle voice packet
 	HandleVoice(outBuf, size - 4);
@@ -971,10 +962,21 @@ void MumbleClient::HandlePing(const MumbleProto::Ping& ping)
 		m_crypto.m_remoteLost = ping.lost();
 		m_crypto.m_remoteResync = ping.resync();
 
-		if (m_hasUdp && (m_crypto.m_remoteGood == 0 || m_crypto.m_localGood == 0) && (msec() - m_lastUdp) > 2s)
+		if (m_hasUdp && (m_crypto.m_remoteGood == 0 || m_crypto.m_localGood == 0) && (msec() - m_timeSinceJoin) > 20s)
 		{
-			console::PrintWarning("mumble", "UDP packets can *not* be received. Switching to TCP tunnel mode.\n");
 			m_hasUdp = false;
+			if (m_crypto.m_remoteGood == 0 && m_crypto.m_localGood == 0)
+			{
+				console::PrintWarning("mumble", "The server couldn't send or receive the clients UDP packets. Switching to TCP mode.");
+			}
+			else if (m_crypto.m_remoteGood == 0)
+			{
+				console::PrintWarning("mumble", "The clients UDP packets are not being received by the server. Switching to TCP mode.");
+			}
+			else
+			{
+				console::PrintWarning("mumble", "The client isn't receiving UDP packets. Switching to TCP mode.");
+			}
 		}
 		else if (!m_hasUdp && m_crypto.m_remoteGood > 3 && m_crypto.m_localGood > 3)
 		{

@@ -239,7 +239,12 @@ private:
 
 	bool m_hasUdp = false;
 
-	std::chrono::milliseconds m_lastUdp;
+	bool m_udpTimedOut = false;
+
+	// the time in milliseconds since the player joined the mumble server
+	// This is used in for `Ping` packets to determine if we should allow the client to swap from UDP -> TCP
+	// By default we wont swap back to TCP for the first 20 seconds of the clients connection (only after we have UDP)
+	std::chrono::milliseconds m_timeSinceJoin;
 
 	std::chrono::milliseconds m_nextPing;
 
