@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 
 #if MONO_V2
@@ -28,6 +29,11 @@ namespace CitizenFX.Core
 			{
 				yield return weapon;
 			}
+		}
+
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return GetEnumerator();
 		}
 
 		public Weapon this[WeaponHash hash]
