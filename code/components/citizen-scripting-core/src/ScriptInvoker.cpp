@@ -73,11 +73,19 @@ static const bool g_StrictTypeInfo = false;
 
 static std::unordered_map<uint64_t, const uint32_t*, BitMixerHash> g_NativeTypes;
 
-#ifdef GTA_FIVE
 extern "C" DLL_IMPORT uint64_t MapNative(uint64_t inNative);
-#else
-#define MapNative(inNative) (inNative)
+
+static inline uint64_t SafeMapNative(uint64_t inNative)
+{
+#ifdef GTA_FIVE
+	if (!launch::IsSDK())
+	{
+		return MapNative(inNative);
+	}
 #endif
+
+	return inNative;
+}
 
 namespace pas
 {
@@ -138,7 +146,7 @@ static fx::TNativeHandler s_invalidNativeHandler = [](ScriptContext&)
 CSCRC_INLINE ScriptNativeHandler::ScriptNativeHandler(uint64_t hash)
 	: hash(hash)
 {
-	auto typeInfo = g_NativeTypes.find(MapNative(hash));
+	auto typeInfo = g_NativeTypes.find(SafeMapNative(hash));
 	type = (typeInfo != g_NativeTypes.end()) ? typeInfo->second : nullptr;
 
 	cache_index = s_cachedNativesArray.size();
@@ -699,7 +707,7 @@ static InitFunction initFunction([]
 	{
 		for (const auto& type : pas::native_types)
 		{
-			g_NativeTypes[MapNative(type.hash)] = type.typeInfo;
+			g_NativeTypes[SafeMapNative(type.hash)] = type.typeInfo;
 		}
 
 		g_EnforceTypeInfo = true;
