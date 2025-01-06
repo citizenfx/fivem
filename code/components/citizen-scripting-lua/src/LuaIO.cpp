@@ -270,6 +270,7 @@ int LuaIOOpen(lua_State* L)
 	if (mode.find('a') != std::string::npos)
 	{
 		append = true;
+		write = true;
 	}
 
 	if (mode.find('+') != std::string::npos)
