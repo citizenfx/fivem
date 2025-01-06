@@ -15,6 +15,11 @@ static int WeaponAnimationOverrideOffset;
 static int WeaponRecoilShakeAmplitudeOffset;
 static int ObjectWeaponOffset;
 
+static int PedOffset = 0x10;
+static int CurrentPitchOffset = 0x1CC;
+static int NetworkObjectOffset = 0xD0;
+static int IsCloneOffset = 0x4B;
+
 static uint16_t* g_weaponCount;
 static uint64_t** g_weaponList;
 
@@ -210,7 +215,7 @@ static bool __fastcall CPedEquippedWeapon_SetupAsWeapon( unsigned char* thisptr,
 static void* (*g_TransitionStageFunc)(void*, int);
 static void* CTaskGun_Stage1_1_TransitionStage(void* CTask, int newStage)
 {
-	CPed* ped = *(CPed**)(uintptr_t(CTask) + 16);
+	CPed* ped = *(CPed**)(uintptr_t(CTask) + PedOffset);
 
 	if (ped == getLocalPlayerPed() && attemptedSwap)
 	{
@@ -227,7 +232,7 @@ static uint32_t pedOffsetToWeaponMgr = 0;
 static GetWeaponFn GetWeapon = nullptr;
 static void* CTaskAimGunOnFoot_ProcessStages(unsigned char* thisptr, int stage, int substage)
 {
-	CPed* ped = *(CPed**)(thisptr + 16);
+	CPed* ped = *(CPed**)(thisptr + PedOffset);
 
 	if (!(g_SET_WEAPONS_NO_AUTOSWAP || g_SET_WEAPONS_NO_AUTORELOAD) || ped != getLocalPlayerPed())
 	{
@@ -254,7 +259,7 @@ static bool (*g_origShouldAim)(void*);
 //    -- Stage 16_1(action ready state) where it would normally transition to Stage 13(shooting state)
 static bool ShouldAim(void* cTaskMotionPed)
 {
-	void* taskPed = *(void**)((uintptr_t)cTaskMotionPed + 0x10);
+	void* taskPed = *(void**)((uintptr_t)cTaskMotionPed + PedOffset);
 	if (taskPed != getLocalPlayerPed())
 	{
 		goto orig;
@@ -312,6 +317,28 @@ static bool IsPedWeaponAimingBlocked(void* ped, void* coords, void* unk1, float 
 	return g_origIsPedWeaponAimingBlocked(ped, coords, unk1, unk2, unk3, unk4, unk5, unk6, unk7);
 }
 
+static void (*g_origComputePitchSignal)(void* task, float fUseTimeStep);
+static void ComputePitchSignal(void* task, float fUseTimeStep)
+{
+	void* ped = *(void**)((uintptr_t)task + PedOffset);
+	if (ped)
+	{
+		void* networkObject = *(void**)((uintptr_t)ped + NetworkObjectOffset);
+		if (networkObject)
+		{
+			bool isClone = *(bool*)((uintptr_t)networkObject + IsCloneOffset);
+			if (isClone)
+			{
+				// Do not smooth the pitch trajectory for network clone tasks.
+				// Setting current pitch to -1 ensures that the system will apply the desired pitch directly.
+				*(float*)((uintptr_t)task + CurrentPitchOffset) = -1;
+			}
+		}
+	}
+
+	g_origComputePitchSignal(task, fUseTimeStep);
+}
+
 static HookFunction hookFunction([]()
 {
 	{
@@ -322,11 +349,17 @@ static HookFunction hookFunction([]()
 	}
 
 	{
+		PedOffset = *hook::get_pattern<uint8_t>("48 89 58 ? 48 89 70 ? 57 48 81 EC ? ? ? ? 48 8B 71 ? 0F 29 70 ? 0F 29 78 ? 48 8B D9", 3);
+
 		WeaponDamageModifierOffset = *hook::get_pattern<int>("48 8B 0C F8 89 B1", 6);
 		WeaponAnimationOverrideOffset = *hook::get_pattern<int>("8B 9F ? ? ? ? 85 DB 75 3E", 2);
 		WeaponRecoilShakeAmplitudeOffset = *hook::get_pattern<int>("48 8B 47 40 F3 0F 10 B0 ? ? ? ?", 8);
 
 		ObjectWeaponOffset = *hook::get_pattern<int>("74 5C 48 83 BB ? ? ? ? 00 75 52", 5);
+
+		CurrentPitchOffset = *hook::get_pattern<uint32_t>("89 83 ? ? ? ? C7 83 ? ? ? ? ? ? ? ? 0F 28 74 24", 2);
+		NetworkObjectOffset = *hook::get_pattern<uint32_t>("48 8B 81 ? ? ? ? 48 85 C0 74 ? 80 78 ? ? 74 ? 8A 80 ? ? ? ? C0 E8", 3);
+		IsCloneOffset = *hook::get_pattern<uint16_t>("80 78 ? ? 74 ? 8A 80 ? ? ? ? C0 E8", 2);
 	}
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_DAMAGE_MODIFIER", [](fx::ScriptContext& context)
@@ -553,5 +586,13 @@ static HookFunction hookFunction([]()
 	if (xbr::IsGameBuildOrGreater<3258>())
 	{
 		hook::put<uint8_t>(hook::get_pattern("74 ? 88 87 ? ? ? ? 80 BE"), 0xEB);
+	}
+
+	// Disable pitch smoothing for network clones.
+	// This fixes a synchronization issue when spinning up a weapon with onesync turned off.
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 70 ? 57 48 81 EC ? ? ? ? 48 8B 71 ? 0F 29 70 ? 0F 29 78 ? 48 8B D9"), ComputePitchSignal, (void**)&g_origComputePitchSignal);
+		MH_EnableHook(MH_ALL_HOOKS);
 	}
 });
