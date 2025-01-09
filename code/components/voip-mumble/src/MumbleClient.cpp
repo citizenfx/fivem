@@ -165,7 +165,6 @@ void MumbleClient::Initialize()
 		m_idleTimer = m_loop->Get()->resource<uvw::TimerHandle>();
 		m_idleTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
 		{
-
 			auto lockedIsActive = [this]()
 			{
 				std::unique_lock _(m_clientMutex);
@@ -287,35 +286,31 @@ void MumbleClient::Initialize()
 						MumbleProto::VoiceTarget target;
 						target.set_id(idx);
 
-						for (auto& t : config.targets)
+						// Voice targets can all be set in a single target
+						auto vt = target.add_targets();
+						for (auto& userName : config.users)
 						{
-							auto vt = target.add_targets();
-
-							for (auto& userName : t.users)
+							m_state.ForAllUsers([this, &userName, &vt](const std::shared_ptr<MumbleUser>& user)
 							{
-								m_state.ForAllUsers([this, &userName, &vt](const std::shared_ptr<MumbleUser>& user)
+								if (user->GetName() == userName)
 								{
-									if (user->GetName() == userName)
-									{
-										vt->add_session(user->GetSessionId());
-									}
-								});
-							}
+									vt->add_session(user->GetSessionId());
+								}
+							});
+						}
+						
 
-							if (!t.channel.empty())
+						for (auto& channelName: config.channels)
+						{
+							for (auto& channelPair : m_state.GetChannels())
 							{
-								std::wstring wname = ToWide(t.channel);
-								for (auto& channelPair : m_state.GetChannels())
+								if (channelPair.second.GetName() == channelName)
 								{
-									if (channelPair.second.GetName() == wname)
-									{
-										vt->set_channel_id(channelPair.first);
-									}
+									// Channel targeting happens per channel, so we need to add a new target per channel
+									auto vt = target.add_targets();
+									vt->set_channel_id(channelPair.first);
 								}
 							}
-
-							vt->set_links(t.links);
-							vt->set_children(t.children);
 						}
 
 						Send(MumbleMessageType::VoiceTarget, target);
@@ -421,7 +416,6 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::P
 	m_tcpPingVariance = 0.0f;
 
 	m_tcpPingCount = 0;
-
 
 	memset(m_tcpPings, 0, sizeof(m_tcpPings));
 
@@ -774,7 +768,6 @@ void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 		console::DPrintf("mumble", "Failed to decrypt packet\n");
 		return;
 	}
-
 
 	// handle voice packet
 	HandleVoice(outBuf, size - 4);

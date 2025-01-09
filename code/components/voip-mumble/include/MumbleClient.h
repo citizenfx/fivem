@@ -49,22 +49,8 @@ enum class MumbleVoiceLikelihood
 
 struct VoiceTargetConfig
 {
-	struct Target
-	{
-		std::vector<std::wstring> users;
-		std::string channel;
-		// ACL is not supported in umurmur, so does not count
-		bool links;
-		bool children;
-
-		inline Target()
-			: links(false), children(false)
-		{
-
-		}
-	};
-
-	std::list<Target> targets;
+	std::set<std::wstring> users;
+	std::set<std::wstring> channels;
 };
 
 class IMumbleClient : public fwRefCountable
