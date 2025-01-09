@@ -10,7 +10,8 @@
 		"rage:input:five",
 		"rage:device:five",
 		"rage:graphics:five",
-		"vendor:minhook"
+		"vendor:minhook",
+		"scripting"
 	],
 	"provides": []
 }
