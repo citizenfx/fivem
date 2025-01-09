@@ -511,11 +511,11 @@
 						</Item>
 						<Item>
 							<PoolName>netGameEvent</PoolName>
-							<PoolSize value="511"/>
+							<PoolSize value="711"/>
 						</Item>
 						<Item>
 							<PoolName>atDNetEventNode</PoolName>
-							<PoolSize value="511"/>
+							<PoolSize value="711"/>
 						</Item>
 
 						<Item>
