@@ -242,6 +242,7 @@ static void writeVehicleMemory(fx::ScriptContext& context, std::string_view nn)
 }
 
 static float* PassengerMassPtr;
+static float* SnowGripFactor;
 
 static int StreamRenderGfxPtrOffset;
 static int HandlingDataPtrOffset;
@@ -773,6 +774,12 @@ static HookFunction initFunction([]()
 	{
 		auto location = hook::get_pattern<char>("F3 0F 59 3D ? ? ? ? F3 0F 58 3D ? ? ? ? 48 85 C9", 4);
 		PassengerMassPtr = hook::get_address<float*>(location);
+	}
+
+	{
+		SnowGripFactor = (float*)hook::AllocateStubMemory(4);
+		static uint8_t* location = hook::get_pattern<uint8_t>("F3 0F 5C C8 48 3B C8", 4);
+		hook::put<int32_t>(location, (intptr_t)SnowGripFactor - (intptr_t)location - 4);
 	}
 
 	{
@@ -1581,6 +1588,22 @@ static HookFunction initFunction([]()
 		context.SetResult<float>(*PassengerMassPtr);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_XMAS_SNOW_FACTOR", [](fx::ScriptContext& context)
+	{
+		float gripFactor = context.GetArgument<float>(0);
+
+		if (gripFactor < 0.0)
+		{
+			gripFactor = 0.0;
+		}
+		*SnowGripFactor = gripFactor;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_XMAS_SNOW_FACTOR", [](fx::ScriptContext& context)
+	{
+		context.SetResult<float>(*SnowGripFactor);
+	});
+
 	static struct : jitasm::Frontend
 	{
 		static bool ShouldSkipRepairFunc(fwEntity* VehPointer)
@@ -1660,6 +1683,7 @@ static HookFunction initFunction([]()
 		g_globalFuelConsumptionMultiplier = 1.f;
 
 		*PassengerMassPtr = 0.05f;
+		*SnowGripFactor = 0.2f;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context)
