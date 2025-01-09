@@ -637,18 +637,18 @@ struct CTrainGameStateDataNodeData
 	bool isEngine;
 	bool isCaboose;
 
-	bool unk12;
+	bool isMissionTrain;
 
 	bool direction;
 
-	bool unk14;
+	bool hasPassengerCarriages;
 
 	bool renderDerailed;
 
 	// 2372 {
-	bool unk198;
-	bool unk224;
-	bool unk199;
+	bool allowRemovalByPopulation;
+	bool highPrecisionBlending;
+	bool stopAtStations;
 	// }
 
 	bool forceDoorsOpen;
