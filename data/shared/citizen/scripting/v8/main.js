@@ -3,6 +3,9 @@
 
 const EXT_FUNCREF = 10;
 const EXT_LOCALFUNCREF = 11;
+const EXT_VECTOR2 = 20;
+const EXT_VECTOR3 = 21;
+const EXT_VECTOR4 = 22;
 
 (function (global) {
 	let boundaryIdx = 1;
@@ -49,6 +52,30 @@ const EXT_LOCALFUNCREF = 11;
 
 	const pack = data => msgpack.encode(data, { codec });
 	const unpack = data => msgpack.decode(data, { codec });
+	
+	const vectorUnpacker = (data) => {
+	  const buffer = Buffer.from(data);
+	
+	  return Array.from(
+	    new Float32Array(buffer.buffer, buffer.byteOffset, buffer.length / 4),
+	    (value) => Number(value.toPrecision(7))
+	  );
+	};
+	
+	addExtension({
+	  type: EXT_VECTOR2,
+	  unpack: vectorUnpacker,
+	});
+	
+	addExtension({
+	  type: EXT_VECTOR3,
+	  unpack: vectorUnpacker,
+	});
+	
+	addExtension({
+	  type: EXT_VECTOR4,
+	  unpack: vectorUnpacker,
+	});
 
 	// store for use by natives.js
 	global.msgpack_pack = pack;
