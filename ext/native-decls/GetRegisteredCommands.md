@@ -13,13 +13,32 @@ The data returned adheres to the following layout:
 ```
 [
 {
-"name": "cmdlist"
+"name": "cmdlist",
+"resource": "resource",
+"arity" = -1,
 },
 {
 "name": "command1"
+"resource": "resource_2",
+"arity" = -1,
 }
 ]
 ```
 
 ## Return value
 An object containing registered commands.
+
+## Example
+
+```lua
+RegisterCommand("showCommands", function()
+    local commands = GetRegisteredCommands()
+    print(("There is currently ^5%s^7 commands registered"):format(#commands))
+
+    local commandList = ""
+    for i=1, #commands do
+        commandlist = commandList + ("%s: %s (arguments: %s)\n"):format(commands[i].resource, commands[i].name, commands[i].arity)
+    end
+
+    print(commandList)
+end)

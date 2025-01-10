@@ -36,7 +36,7 @@ struct ConsoleExecutionContext
 	std::string contextRef;
 
 	inline ConsoleExecutionContext(const ProgramArguments&& arguments, const std::string& contextRef)
-	    : arguments(arguments), contextRef(contextRef)
+		: arguments(arguments), contextRef(contextRef)
 	{
 	}
 };
@@ -50,8 +50,8 @@ public:
 	{
 	}
 
-	inline CommandMetadata(const std::string& name, size_t arity)
-		: m_name(name), m_arity(arity)
+	inline CommandMetadata(const std::string& name, std::string resource, size_t arity)
+		: m_name(name), m_resource(resource), m_arity(arity)
 	{
 	}
 
@@ -65,6 +65,16 @@ public:
 		return m_name;
 	}
 
+	inline const auto GetResourceName() const
+	{
+		return m_resource;
+	}
+
+	inline const bool MatchResourceName(std::string resource) const
+	{
+		return m_resource == resource;
+	}
+
 	inline auto GetArity() const
 	{
 		return m_arity;
@@ -72,6 +82,7 @@ public:
 
 private:
 	std::string m_name;
+	std::string m_resource;
 	size_t m_arity = -1;
 };
 }
@@ -86,7 +97,7 @@ public:
 
 	virtual ~ConsoleCommandManager();
 
-	virtual int Register(const std::string& name, const THandler& handler, size_t arity = -1);
+	virtual int Register(const std::string& name, std::string resource, const THandler& handler, size_t arity = -1);
 
 	virtual void Unregister(int token);
 
@@ -114,12 +125,13 @@ private:
 	{
 		std::string name;
 		THandler function;
+		std::string resource;
 
 		int token;
 		size_t arity;
 
-		inline Entry(const std::string& name, const THandler& function, int token, size_t arity = -1)
-			: name(name), function(function), token(token), arity(arity)
+		inline Entry(const std::string& name, const THandler& function, std::string resource, int token, size_t arity = -1)
+			: name(name), function(function), resource(resource), token(token), arity(arity)
 		{
 		}
 	};
@@ -149,6 +161,7 @@ struct ConsoleArgumentTraits
 	using Greater = std::greater<TArgument>;
 	using Equal   = std::equal_to<TArgument>;
 };
+
 
 template <typename TArgument, typename TConstraint = void>
 struct ConsoleArgumentName
@@ -301,7 +314,7 @@ public:
 	ExternalContext(const std::any& any)
 		: std::any(any)
 	{
-		
+
 	}
 };
 #else
@@ -409,7 +422,6 @@ private:
 	}
 
 public:
-
 	// non-terminator iterator
 	template <size_t Iterator, size_t ArgIterator, typename TupleType>
 	static std::enable_if_t<(Iterator < sizeof...(Args)), bool> CallInternal(TFunc func, ConsoleExecutionContext& context, TupleType tuple)
