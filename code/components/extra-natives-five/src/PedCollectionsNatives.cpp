@@ -403,6 +403,12 @@ static HookFunction hookFunction([]()
 		// Call GET_PED_DRAWABLE_VARIATION to get global drawable index.
 		fx::ScriptEngine::CallNativeHandler(0x67F3780DD425D4FC, newContext);
 		int globalDrawableIndex = newContext.GetResult<int>();
+		if(globalDrawableIndex < 0)
+		{
+			context.SetResult<int>(-1);
+			return;
+		}
+
 		context.SetResult<int>(g_GetDlcDrawableIdx(variationInfoCollection, componentId, globalDrawableIndex));
 	});
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_DRAWABLE_VARIATION_COLLECTION_NAME", [](fx::ScriptContext& context)
@@ -422,7 +428,70 @@ static HookFunction hookFunction([]()
 		// Call GET_PED_DRAWABLE_VARIATION to get global drawable index.
 		fx::ScriptEngine::CallNativeHandler(0x67F3780DD425D4FC, newContext);
 		int globalDrawableIndex = newContext.GetResult<int>();
+		if(globalDrawableIndex < 0)
+		{
+			context.SetResult<const char*>(nullptr);
+			return;
+		}
+
 		auto variationInfo = g_GetVariationInfoFromDrawableIdx(variationInfoCollection, componentId, globalDrawableIndex);
+		if (!variationInfo)
+		{
+			context.SetResult<const char*>(nullptr);
+			return;
+		}
+
+		context.SetResult<const char*>(GetCollectionName(variationInfo));
+	});
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_PROP_COLLECTION_LOCAL_INDEX", [](fx::ScriptContext& context)
+	{
+		uint32_t pedId = context.GetArgument<uint32_t>(0);
+		int anchorPoint = context.GetArgument<int>(1);
+		auto variationInfoCollection = GetPedVariationInfoCollection(pedId);
+		if (!variationInfoCollection)
+		{
+			context.SetResult<int>(-1);
+			return;
+		}
+
+		fx::ScriptContextBuffer newContext;
+		newContext.Push(pedId);
+		newContext.Push(anchorPoint);
+		// Call GET_PED_PROP_INDEX to get global prop index.
+		fx::ScriptEngine::CallNativeHandler(0x898CC20EA75BACD8, newContext);
+		int globalPropIndex = newContext.GetResult<int>();
+		if(globalPropIndex < 0)
+		{
+			context.SetResult<int>(-1);
+			return;
+		}
+		
+		context.SetResult<int>(g_GetDlcPropIdx(variationInfoCollection, anchorPoint, globalPropIndex));
+	});
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_PROP_COLLECTION_NAME", [](fx::ScriptContext& context)
+	{
+		uint32_t pedId = context.GetArgument<uint32_t>(0);
+		int anchorPoint = context.GetArgument<int>(1);
+		auto variationInfoCollection = GetPedVariationInfoCollection(pedId);
+		if (!variationInfoCollection)
+		{
+			context.SetResult<const char*>(nullptr);
+			return;
+		}
+
+		fx::ScriptContextBuffer newContext;
+		newContext.Push(pedId);
+		newContext.Push(anchorPoint);
+		// Call GET_PED_PROP_INDEX to get global prop index.
+		fx::ScriptEngine::CallNativeHandler(0x898CC20EA75BACD8, newContext);
+		int globalPropIndex = newContext.GetResult<int>();
+		if(globalPropIndex < 0)
+		{
+			context.SetResult<const char*>(nullptr);
+			return;
+		}
+		
+		auto variationInfo = g_GetVariationInfoFromPropIdx(variationInfoCollection, anchorPoint, globalPropIndex);
 		if (!variationInfo)
 		{
 			context.SetResult<const char*>(nullptr);
