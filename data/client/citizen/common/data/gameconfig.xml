@@ -692,7 +692,7 @@
 						</Item>
 						<Item>
 							<PoolName>ropeData</PoolName>
-							<PoolSize value="24"/>
+							<PoolSize value="64"/>
 						</Item>
 					</Entries>
 				</PoolSizes>

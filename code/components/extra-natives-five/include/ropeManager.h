@@ -13,11 +13,13 @@ class grcTexture;
 class ropeData
 {
 public:
-	virtual ~ropeData() = 0;
+	ropeData();
 
-	virtual const char* GetName() = 0;
+	virtual ~ropeData() {}
 
-	virtual parStructure* parser_GetStructure() = 0;
+	void* operator new(size_t size);
+
+	void operator delete(void* pointer);
 
 	uint32_t numSections; // 0x8
 	float radius; // 0xC
@@ -42,6 +44,10 @@ class ropeDataManager
 {
 public:
 	virtual ~ropeDataManager() = 0;
+
+	void UnloadRopeTextures();
+
+	void Load();
 
 	atArray<ropeData*> typeData; // 0x8
 
