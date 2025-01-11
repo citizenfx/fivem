@@ -757,6 +757,12 @@ struct CPedMovementGroupNodeData
 	bool isRagdolling;
 };
 
+struct CPedAINodeData
+{
+	int relationShip;
+	int decisionMaker;
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -850,6 +856,8 @@ public:
 	virtual CBoatGameStateNodeData* GetBoatGameState() = 0;
 
 	virtual CPedMovementGroupNodeData* GetPedMovementGroup() = 0;
+
+	virtual CPedAINodeData* GetPedAI() = 0;
 
 	virtual void CalculatePosition() = 0;
 

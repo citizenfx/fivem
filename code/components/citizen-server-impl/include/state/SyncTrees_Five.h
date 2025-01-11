@@ -2468,7 +2468,18 @@ struct CPedMovementGroupDataNode
 	}
 };
 
-struct CPedAIDataNode { };
+struct CPedAIDataNode : GenericSerializeDataNode<CPedAIDataNode>
+{
+	CPedAINodeData data;
+
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
+	{
+		s.Serialize(32, data.relationShip);
+		s.Serialize(32, data.decisionMaker);
+		return true;
+	}
+};
 
 struct CPedAppearanceDataNode
 {
@@ -4067,6 +4078,13 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 	virtual CPedMovementGroupNodeData* GetPedMovementGroup() override
 	{
 		auto [hasNode, node] = this->template GetData<CPedMovementGroupDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CPedAINodeData* GetPedAI() override
+	{
+		auto [hasNode, node] = this->template GetData<CPedAIDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
