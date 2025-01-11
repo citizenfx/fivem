@@ -1862,6 +1862,12 @@ static void Init()
 		return 0;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_RELATIONSHIP_GROUP_HASH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto ped = entity->syncTree->GetPedAI();
+		return ped ? ped->relationShip : 0;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_SPEED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto v = entity->syncTree->GetVelocity();
