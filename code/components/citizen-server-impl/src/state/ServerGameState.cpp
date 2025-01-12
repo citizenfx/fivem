@@ -3246,19 +3246,24 @@ void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, const fx:
 
 auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const std::shared_ptr<sync::SyncTreeBase>& tree) -> fx::sync::SyncEntityPtr
 {
-	bool hadId = false;
-
 	int id = fx::IsLengthHack() ? (MaxObjectId - 1) : 8191;
 
 	{
+		bool valid = false;
 		std::unique_lock objectIdsLock(m_objectIdsMutex);
 
 		for (; id >= 1; id--)
 		{
 			if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
 			{
+				valid = true;
 				break;
 			}
+		}
+
+		if (!valid)
+		{
+			return {};
 		}
 
 		m_objectIdsSent.set(id);
