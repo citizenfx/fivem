@@ -330,7 +330,14 @@ static InitFunction initFunction([]()
 			auto sgs = ref->GetComponent<fx::ServerGameState>();
 			auto entity = sgs->CreateEntityFromTree(sync::NetObjEntityType::Automobile, tree);
 
-			ctx.SetResult(sgs->MakeScriptHandle(entity));
+			uint32_t guid = 0;
+
+			if (entity)
+			{
+				guid = sgs->MakeScriptHandle(entity);
+			}
+
+			ctx.SetResult(guid);
 		});
 
 		fx::ScriptEngine::RegisterNativeHandler("CREATE_VEHICLE_SERVER_SETTER", [ref](fx::ScriptContext& ctx)
@@ -426,7 +433,14 @@ static InitFunction initFunction([]()
 			auto sgs = ref->GetComponent<fx::ServerGameState>();
 			auto entity = sgs->CreateEntityFromTree(typeId, tree);
 
-			ctx.SetResult(sgs->MakeScriptHandle(entity));
+			uint32_t guid = 0;
+
+			if (entity)
+			{
+				guid = sgs->MakeScriptHandle(entity);
+			}
+
+			ctx.SetResult(guid);
 		});
 
 		fx::ScriptEngine::RegisterNativeHandler("CREATE_PED", [=](fx::ScriptContext& ctx)
@@ -450,7 +464,14 @@ static InitFunction initFunction([]()
 			auto sgs = ref->GetComponent<fx::ServerGameState>();
 			auto entity = sgs->CreateEntityFromTree(sync::NetObjEntityType::Ped, tree);
 
-			ctx.SetResult(sgs->MakeScriptHandle(entity));
+			uint32_t guid = 0;
+
+			if (entity)
+			{
+				guid = sgs->MakeScriptHandle(entity);
+			}
+
+			ctx.SetResult(guid);
 		});
 
 		fx::ScriptEngine::RegisterNativeHandler("CREATE_OBJECT_NO_OFFSET", [=](fx::ScriptContext& ctx)
@@ -474,7 +495,14 @@ static InitFunction initFunction([]()
 			auto sgs = ref->GetComponent<fx::ServerGameState>();
 			auto entity = sgs->CreateEntityFromTree(sync::NetObjEntityType::Object, tree);
 
-			ctx.SetResult(sgs->MakeScriptHandle(entity));
+			uint32_t guid = 0;
+
+			if (entity)
+			{
+				guid = sgs->MakeScriptHandle(entity);
+			}
+
+			ctx.SetResult(guid);
 		});
 	});
 });
