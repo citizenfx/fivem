@@ -327,6 +327,8 @@ struct CPedGameStateNodeData
 	bool actionModeEnabled;
 	bool isFlashlightOn;
 
+	int deathState;
+
 	inline CPedGameStateNodeData()
 		: lastVehicle(-1), lastVehicleSeat(-1), lastVehiclePedWasIn(-1)
 	{
@@ -742,6 +744,12 @@ struct CVehicleDamageStatusNodeData
 	bool windowsState[8];
 };
 
+struct CVehicleScriptGameStateNodeData
+{
+	bool isDrowning;
+	bool isVehicleInAir;
+};
+
 struct CBoatGameStateNodeData
 {
 	bool lockedToXY;
@@ -804,6 +812,8 @@ public:
 	virtual uint64_t GetPedGameStateFrameIndex() = 0;
 
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
+
+	virtual CVehicleScriptGameStateNodeData* GetVehicleGameScript() = 0;
 
 	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() = 0;
 
