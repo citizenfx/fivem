@@ -440,6 +440,7 @@ struct CPhysicalScriptGameStateDataNode { };
 
 struct CVehicleScriptGameStateDataNode
 {
+	CVehicleScriptGameStateNodeData data;
 	ePopType m_popType;
 
 	bool Parse(SyncParseState& state)
@@ -447,7 +448,7 @@ struct CVehicleScriptGameStateDataNode
 		// Strings pulled from X360 TU0
 		state.buffer.ReadBit(); // Has Freebies
 		state.buffer.ReadBit(); // Can Be Visibly Damaged
-		state.buffer.ReadBit(); // Is Drowning
+		data.isDrowning = state.buffer.ReadBit(); // Is Drowning
 		state.buffer.ReadBit(); // Part Of Convoy
 		state.buffer.ReadBit(); // Vehicle Can Be Targeted
 		state.buffer.ReadBit(); // Take Less Damage
@@ -491,7 +492,7 @@ struct CVehicleScriptGameStateDataNode
 			state.buffer.ReadBit();
 		}
 
-		state.buffer.ReadBit(); // "Is Vehicle In Air"
+		data.isVehicleInAir = state.buffer.ReadBit(); // "Is Vehicle In Air"
 		bool isParachuting = state.buffer.ReadBit();
 		if (isParachuting)
 		{
@@ -1324,7 +1325,7 @@ struct CPedGameStateDataNode
 		}
 
 		auto arrestState = state.buffer.Read<int>(1);
-		auto deathState = state.buffer.Read<int>(2);
+		data.deathState = state.buffer.Read<int>(2);
 
 		auto hasWeapon = state.buffer.ReadBit();
 		int weapon = 0;
