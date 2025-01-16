@@ -1,5 +1,4 @@
 #include "StdInc.h"
-#include "CrossLibraryInterfaces.h"
 #include "InputHook.h"
 #include "Hooking.h"
 
@@ -12,8 +11,12 @@
 
 #include <ICoreGameInit.h>
 #include <GlobalInput.h>
+#include <dinput.h>
 
 static WNDPROC origWndProc;
+
+typedef IDirectInputDeviceW* LPDIRECTINPUTDEVICEW;
+static LPDIRECTINPUTDEVICEW* g_diMouseDevice = nullptr;
 
 static bool g_isFocused = true;
 static bool g_enableSetCursorPos = false;
@@ -61,6 +64,16 @@ static void EnableFocus()
 	if (!g_isFocusStolen)
 	{
 		enableFocus();
+	}
+}
+
+static void (*recaptureLostDevices)();
+
+static void RecaptureLostDevices()
+{
+	if (!g_isFocusStolen)
+	{
+		recaptureLostDevices();
 	}
 }
 
@@ -149,6 +162,10 @@ void InputHook::SetGameMouseFocus(bool focus)
 
 	if (g_isFocusStolen)
 	{
+		if (*g_diMouseDevice)
+		{
+			(*g_diMouseDevice)->Unacquire();
+		}
 		memset(g_gameKeyArray, 0, 256);
 	}
 
@@ -719,6 +736,12 @@ static HookFunction hookFunction([]()
 	patternMatch = hook::pattern("74 0D 38 1D ? ? ? ? 74 05 E8 ? ? ? ? 33 C9 E8").count(1).get(0).get<void>(10);
 	hook::set_call(&enableFocus, patternMatch);
 	hook::call(patternMatch, EnableFocus);
+
+	patternMatch = hook::pattern("48 83 EC ? 8B 0D ? ? ? ? 85 C9 74 ? FF C9 74 ? FF C9 75").count(1).get(0).get<void>(53);
+	hook::set_call(&recaptureLostDevices, patternMatch);
+	hook::call(patternMatch, RecaptureLostDevices);
+
+	g_diMouseDevice = hook::get_address<LPDIRECTINPUTDEVICEW*>(hook::get_pattern("48 8B 0D ? ? ? ? 48 8B 01 FF 50 ? 83 F8 ? 7F ? 48 83 C4", 3));
 
 	// game key array
 	location = hook::pattern("BF 00 01 00 00 48 8D 1D ? ? ? ? 48 3B 05").count(1).get(0).get<char>(8);
