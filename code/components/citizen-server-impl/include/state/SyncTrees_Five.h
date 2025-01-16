@@ -4530,11 +4530,11 @@ using CPedSyncTree = SyncTree<
 			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosNavMeshNode, 4>
 		>,
 		ParentNode<
-			NodeIds<5, 0, 0>,
+			NodeIds<87, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
 			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
 			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<5, 0, 0>, CPedInventoryDataNode, 321>,
+			NodeWrapper<NodeIds<87, 0, 0>, CPedInventoryDataNode, 321>, // Changed from 5 to 87 in CloneManager.cpp
 			NodeWrapper<NodeIds<4, 4, 1>, CPedTaskSequenceDataNode, 1>
 		>
 	>
