@@ -149,6 +149,7 @@ void InputHook::SetGameMouseFocus(bool focus)
 
 	if (g_isFocusStolen)
 	{
+		rage::g_input.m_Buttons() = 0;
 		memset(g_gameKeyArray, 0, 256);
 	}
 
