@@ -1139,7 +1139,11 @@ static int Lua_CreateThreadNow(lua_State* L)
 
 	if (lua_gettop(L) >= 2)
 	{
-		name = lua_tostring(L, 2);
+		auto luaName = lua_tostring(L, 2);
+		if (luaName != nullptr)
+		{
+			name = luaName;
+		}
 	}
 
 	return Lua_CreateThreadInternal(L, true, 0, 1, name);
