@@ -1,7 +1,7 @@
 #pragma once
 
 #include <SharedInput.h>
-#include <CrossBuildRuntime.h>
+#include <d3d11.h>
 
 #ifndef COMPILING_RAGE_INPUT_FIVE
 #define INPUT_DECL __declspec(dllimport)
