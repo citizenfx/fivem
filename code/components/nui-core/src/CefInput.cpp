@@ -353,7 +353,7 @@ static HookFunction initFunction([] ()
 {
 	g_nuiGi->QueryMayLockCursor.Connect([](int& argPtr)
 	{
-		if (HasFocus() && !g_keepInput)
+		if (HasFocus() && g_hasCursor && !g_keepInput)
 		{
 			argPtr = 0;
 		}
