@@ -64,6 +64,8 @@ inline void FatalError(const char* string, const TArgs&... args)
 }
 #endif
 
+void AddCrashometry(const std::string& key, const std::string& value);
+
 void AddCrashometryV(const std::string& key, const std::string& format, fmt::printf_args value);
 
 template<typename... TArgs>

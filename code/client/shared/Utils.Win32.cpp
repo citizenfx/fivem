@@ -239,25 +239,28 @@ void SetThreadName(int dwThreadID, const char* threadName)
 	}
 }
 
-void AddCrashometryV(const std::string& key, const std::string& format, fmt::printf_args value)
+void AddCrashometry(const std::string& key, const std::string& value)
 {
-	std::string formatted = fmt::vsprintf(format, value);
-
 	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\crashometry").c_str(), L"ab");
 
 	if (f)
 	{
 		uint32_t keyLen = key.size();
-		uint32_t valLen = formatted.size();
+		uint32_t valLen = value.size();
 
 		fwrite(&keyLen, 1, sizeof(keyLen), f);
 		fwrite(&valLen, 1, sizeof(valLen), f);
 
 		fwrite(key.c_str(), 1, key.size(), f);
-		fwrite(formatted.c_str(), 1, formatted.size(), f);
+		fwrite(value.c_str(), 1, value.size(), f);
 
 		fclose(f);
 	}
+}
+
+void AddCrashometryV(const std::string& key, const std::string& format, fmt::printf_args value)
+{
+	AddCrashometry(key, fmt::vsprintf(format, value));
 }
 
 #if !defined(COMPILING_SHARED_LIBC)
