@@ -60,7 +60,7 @@ static HookFunction initFunction([]()
 
 		writePipe(0 /* HANDSHAKE */, json::object({
 			{ "v", 1},
-			{ "client_id", "382624125287399424"}
+			{ "client_id", "1228105632113229865"}
 		}));
 
 		auto closeConnection = [&writePipe, &hPipe]()
