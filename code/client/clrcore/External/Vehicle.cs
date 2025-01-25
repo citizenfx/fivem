@@ -1480,11 +1480,11 @@ namespace CitizenFX.Core
 			Vector3 currentPosition = Position;
 			Vector3 newPosition = new Vector3();
 			float heading = 0f;
-			compat_i32_i64 unkn = 0;
+			int totalLanes = 0;
 
 			for (int i = 1; i < 40; i++)
 			{
-				API.GetNthClosestVehicleNodeWithHeading(currentPosition.X, currentPosition.Y, currentPosition.Z, i, ref newPosition, ref heading, ref unkn, 1, 3f, 0f);
+				API.GetNthClosestVehicleNodeWithHeading(currentPosition.X, currentPosition.Y, currentPosition.Z, i, ref newPosition, ref heading, ref totalLanes, 1, 3f, 0f);
 				if (!API.IsPointObscuredByAMissionEntity(newPosition.X, newPosition.Y, newPosition.Z, 5f, 5f, 5f, 0))
 				{
 					Position = newPosition;
