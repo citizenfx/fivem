@@ -330,6 +330,16 @@ public:
 
 	lua_State* GetRunningThread();
 
+	lua_State* GetState()
+	{
+		return m_state.Get();
+	}
+
+	auto& GetPendingBookmarks()
+	{
+		return m_pendingBookmarks;
+	}
+
 	/// <summary>
 	/// Manage the fx::ProfilerComponent state while the script runtime is active
 	///
