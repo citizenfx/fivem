@@ -181,8 +181,8 @@ static HookFunction hookFunction([]()
 				sub(rsp, 0xD0);			 // rsp, 0xD0 (original code)
 
 				mov(r10, qword_ptr[rcx + 0x20]); // mov  r10, QWORD PTR [rcx+0x20] (m_boneCount)
-				movsxd(rdx, edx);				 // movsxd rdx, edx (boneIdx)
-				cmp(rdx, r10);			 // cmp  rdx, r10(boneIdx >= m_boneCount)
+				movsxd(r11, edx);				 // movsxd r11, edx (boneIdx)
+				cmp(r11, r10);			 // cmp  r11, r10(boneIdx >= m_boneCount)
 				jge("crash");
 				
 				mov(r10, retSuccess);			 // mov    r10, r8
