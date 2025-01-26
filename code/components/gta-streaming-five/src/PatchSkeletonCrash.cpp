@@ -162,6 +162,44 @@ static HookFunction hookFunction([]()
 		}
 	}
 
+	// crSkeleton::_GetGlobalMatrix (patch bone index out-of-bounds)
+	{
+		auto location = hook::get_pattern<char>("48 81 EC ? ? ? ? 4D 8B D0 4C 8B 41");
+
+		static struct : jitasm::Frontend
+		{
+			uintptr_t retSuccess;
+			uintptr_t retFail;
+
+			void Init(uintptr_t location)
+			{
+				retSuccess = location + 7;		 // mov    r10, r8
+			}
+
+			void InternalMain() override
+			{
+				sub(rsp, 0xD0);			 // rsp, 0xD0 (original code)
+
+				mov(r10, qword_ptr[rcx + 0x20]); // mov  r10, QWORD PTR [rcx+0x20] (m_boneCount)
+				movsxd(rdx, edx);				 // movsxd rdx, edx (boneIdx)
+				cmp(rdx, r10);			 // cmp  rdx, r10(boneIdx >= m_boneCount)
+				jge("crash");
+				
+				mov(r10, retSuccess);			 // mov    r10, r8
+				jmp(r10);						 // jmp    r10
+
+				L("crash");
+				add(rsp, 0xD0);			 // rsp, 0xD0 (Clean up stack)
+				pop(rbp);						 // pop   rbp (Restore base pointer)
+				ret();
+			}
+		} patchStub;
+
+		patchStub.Init(reinterpret_cast<intptr_t>(location));
+
+		hook::jump(location, patchStub.GetCode());
+	}
+
 #if 0
 	// fwEntity::_GetGlobalMatrix: If required hook the dynamic-dispatch bits.
 	{
