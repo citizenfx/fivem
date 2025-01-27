@@ -25,6 +25,7 @@
 #include <PrintListener.h>
 
 #include <ResourceStreamComponent.h>
+#include <ResourceConfigurationCacheComponent.h>
 #include <EventReassemblyComponent.h>
 
 #include <KeyedRateLimiter.h>
@@ -1058,6 +1059,9 @@ static InitFunction initFunction2([]()
 		tempStr = sf->GetCacheString();
 		
 		context.SetResult<const char*>(tempStr.c_str());
+
+		auto& configurationCache = resource->GetComponent<fx::ResourceConfigurationCacheComponent>();
+		configurationCache->Invalidate();
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_GAME_TYPE", [](fx::ScriptContext& context)
