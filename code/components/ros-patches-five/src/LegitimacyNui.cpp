@@ -746,6 +746,7 @@ head.appendChild(link);
 
 void SimpleHandler::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transition_type)
 {
+	frame->ExecuteJavaScript("window.rgscAddSubscription = () => {};", "https://rgl.rockstargames.com/temp.js", 0);
 }
 
 void SimpleHandler::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode)
