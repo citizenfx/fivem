@@ -11,6 +11,8 @@
 
 #include <botan/hash.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(crc24.h)
+
 namespace Botan {
 
 /**

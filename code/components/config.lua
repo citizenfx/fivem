@@ -64,6 +64,8 @@ else
 	component 'citizen-scripting-mono'
 	component 'citizen-scripting-mono-v2'
 
+	component 'legitimacy'
+
 	if _OPTIONS['game'] ~= 'ny' then
 		component 'citizen-scripting-v8client'
 		component 'citizen-scripting-v8node'
@@ -84,8 +86,6 @@ component 'rage-graphics-five'
 component 'rage-scripting-five'
 component 'rage-scripting-rdr3'
 component 'lovely-script'
-component 'ros-patches-five'
-component 'ros-patches-rdr3'
 
 component 'gta-net-five'
 component 'rage-input-five'
@@ -143,5 +143,4 @@ component 'gta-streaming-ny'
 component 'gta-core-ny'
 component 'citizen-level-loader-ny'
 component 'extra-natives-ny'
-component 'ros-patches-ny'
 component 'gta-net-ny'

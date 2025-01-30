@@ -266,10 +266,13 @@ int RealMain()
 
 	// initialize our initState instance
 	// this needs to be before *any* MakeRelativeCitPath use in main process
-	HostSharedData<CfxState> initState("CfxInitState");
+	auto initState = CfxState::Get();
 
 	// set link protocol, e.g. fivem or redm
 	initState->SetLinkProtocol(LINK_PROTOCOL);
+
+	// set product ID
+	initState->SetProductID(PRODUCT_ID);
 
 	// path environment appending of our primary directories
 	static wchar_t pathBuf[32768];
@@ -419,6 +422,7 @@ int RealMain()
 #endif
 
 	// crossbuildruntime is safe from this point on
+	initState->SetGameBuild(xbr::GetGameBuild());
 
 	// try loading TLS DLL a second time, and ensure it *is* loaded
 #if !defined(GTA_NY) && defined(LAUNCHER_PERSONALITY_GAME)

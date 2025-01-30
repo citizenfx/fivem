@@ -11,6 +11,8 @@
 #include <botan/pbkdf.h>
 #include <botan/hash.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(pbkdf1.h)
+
 namespace Botan {
 
 /**
