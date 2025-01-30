@@ -14,6 +14,8 @@
 #include <botan/mem_ops.h>
 #include <vector>
 
+BOTAN_FUTURE_INTERNAL_HEADER(loadstor.h)
+
 #if defined(BOTAN_TARGET_CPU_IS_BIG_ENDIAN)
    #define BOTAN_ENDIAN_N2L(x) reverse_bytes(x)
    #define BOTAN_ENDIAN_L2N(x) reverse_bytes(x)

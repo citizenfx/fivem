@@ -11,6 +11,7 @@
 #include <botan/x509cert.h>
 #include <botan/x509_crl.h>
 #include <chrono>
+#include <map>
 
 #if defined(BOTAN_HAS_SYSTEM_RNG)
   #include <botan/system_rng.h>

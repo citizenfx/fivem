@@ -12,7 +12,6 @@
 #include <botan/types.h>
 #include <botan/secmem.h>
 #include <botan/exceptn.h>
-#include <botan/loadstor.h>
 #include <iosfwd>
 
 namespace Botan {
@@ -57,6 +56,12 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @param n initial value of this BigInt
      */
      BigInt(uint64_t n);
+
+     /**
+     * Create BigInt of specified size, all zeros
+     * @param n size of the internal register in words
+     */
+     static BigInt with_capacity(size_t n);
 
      /**
      * Copy Constructor
@@ -136,6 +141,8 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
         {
         this->swap(other);
         }
+
+     ~BigInt() { const_time_unpoison(); }
 
      /**
      * Move assignment
@@ -497,11 +504,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @param n the offset to get a byte from
      * @result byte at offset n
      */
-     uint8_t byte_at(size_t n) const
-        {
-        return get_byte(sizeof(word) - (n % sizeof(word)) - 1,
-                        word_at(n / sizeof(word)));
-        }
+     uint8_t byte_at(size_t n) const;
 
      /**
      * Return the word at a specified position of the internal register
@@ -642,7 +645,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * Resize the vector to the minimum word size to hold the integer, or
      * min_size words, whichever is larger
      */
-     void shrink_to_fit(size_t min_size = 0)
+     void BOTAN_DEPRECATED("Use resize if required") shrink_to_fit(size_t min_size = 0)
         {
         m_data.shrink_to_fit(min_size);
         }
@@ -669,6 +672,18 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      void binary_encode(uint8_t buf[]) const;
 
      /**
+     * Store BigInt-value in a given byte array. If len is less than
+     * the size of the value, then it will be truncated. If len is
+     * greater than the size of the value, it will be zero-padded.
+     * If len exactly equals this->bytes(), this function behaves identically
+     * to binary_encode.
+     *
+     * @param buf destination byte array for the integer value
+     * @param len how many bytes to write
+     */
+     void binary_encode(uint8_t buf[], size_t len) const;
+
+     /**
      * Read integer value from a byte array with given size
      * @param buf byte array buffer containing the integer
      * @param length size of buf
@@ -676,10 +691,11 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      void binary_decode(const uint8_t buf[], size_t length);
 
      /**
-     * Read integer value from a byte array (secure_vector<uint8_t>)
-     * @param buf the array to load from
+     * Read integer value from a byte vector
+     * @param buf the vector to load from
      */
-     void binary_decode(const secure_vector<uint8_t>& buf)
+     template<typename Alloc>
+     void binary_decode(const std::vector<uint8_t, Alloc>& buf)
         {
         binary_decode(buf.data(), buf.size());
         }
@@ -687,7 +703,11 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      /**
      * @param base the base to measure the size for
      * @return size of this integer in base base
+     *
+     * Deprecated. This is only needed when using the `encode` and
+     * `encode_locked` functions, which are also deprecated.
      */
+     BOTAN_DEPRECATED("See comments on declaration")
      size_t encoded_size(Base base = Binary) const;
 
      /**
@@ -707,6 +727,17 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * Uses a masked operation to avoid side channels
      */
      void ct_cond_swap(bool predicate, BigInt& other);
+
+     /**
+     * If predicate is true add value to *this
+     */
+     void ct_cond_add(bool predicate, const BigInt& value);
+
+     /**
+     * Shift @p shift bits to the left, runtime is independent of
+     * the value of @p shift.
+     */
+     void ct_shift_left(size_t shift);
 
      /**
      * If predicate is true flip the sign of *this
@@ -772,7 +803,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @param buf destination byte array for the encoded integer
      * @param n the BigInt to use as integer source
      */
-     static void encode(uint8_t buf[], const BigInt& n)
+     static BOTAN_DEPRECATED("Use n.binary_encode") void encode(uint8_t buf[], const BigInt& n)
         {
         n.binary_encode(buf);
         }
@@ -793,17 +824,8 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @param buf the binary value to load
      * @result BigInt representing the integer in the byte array
      */
-     static BigInt decode(const secure_vector<uint8_t>& buf)
-        {
-        return BigInt(buf);
-        }
-
-     /**
-     * Create a BigInt from an integer in a byte array
-     * @param buf the binary value to load
-     * @result BigInt representing the integer in the byte array
-     */
-     static BigInt decode(const std::vector<uint8_t>& buf)
+     template<typename Alloc>
+     static BigInt decode(const std::vector<uint8_t, Alloc>& buf)
         {
         return BigInt(buf);
         }
@@ -813,7 +835,12 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @param n the BigInt to use as integer source
      * @param base number-base of resulting byte array representation
      * @result secure_vector of bytes containing the integer with given base
+     *
+     * Deprecated. If you need Binary, call the version of encode that doesn't
+     * take a Base. If you need Hex or Decimal output, use to_hex_string or
+     * to_dec_string resp.
      */
+     BOTAN_DEPRECATED("See comments on declaration")
      static std::vector<uint8_t> encode(const BigInt& n, Base base);
 
      /**
@@ -821,7 +848,12 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @param n the BigInt to use as integer source
      * @param base number-base of resulting byte array representation
      * @result secure_vector of bytes containing the integer with given base
+     *
+     * Deprecated. If you need Binary, call the version of encode_locked that
+     * doesn't take a Base. If you need Hex or Decimal output, use to_hex_string
+     * or to_dec_string resp.
      */
+     BOTAN_DEPRECATED("See comments on declaration")
      static secure_vector<uint8_t> encode_locked(const BigInt& n,
                                                  Base base);
 
@@ -831,7 +863,11 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * value with given base
      * @param n the BigInt to use as integer source
      * @param base number-base of resulting byte array representation
+     *
+     * Deprecated. If you need Binary, call binary_encode. If you need
+     * Hex or Decimal output, use to_hex_string or to_dec_string resp.
      */
+     BOTAN_DEPRECATED("See comments on declaration")
      static void encode(uint8_t buf[], const BigInt& n, Base base);
 
      /**
@@ -850,21 +886,8 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
      * @param base number-base of the integer in buf
      * @result BigInt representing the integer in the byte array
      */
-     static BigInt decode(const secure_vector<uint8_t>& buf,
-                          Base base)
-        {
-        if(base == Binary)
-           return BigInt(buf);
-        return BigInt::decode(buf.data(), buf.size(), base);
-        }
-
-     /**
-     * Create a BigInt from an integer in a byte array
-     * @param buf the binary value to load
-     * @param base number-base of the integer in buf
-     * @result BigInt representing the integer in the byte array
-     */
-     static BigInt decode(const std::vector<uint8_t>& buf, Base base)
+     template<typename Alloc>
+     static BigInt decode(const std::vector<uint8_t, Alloc>& buf, Base base)
         {
         if(base == Binary)
            return BigInt(buf);
@@ -892,9 +915,11 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
 
      /**
      * Set output = vec[idx].m_reg in constant time
-     * All words of vec must have the same size
+     *
+     * All elements of vec must have the same size, and output must be
+     * pre-allocated with the same size.
      */
-     static void const_time_lookup(
+     static void BOTAN_DEPRECATED("No longer in use") const_time_lookup(
         secure_vector<word>& output,
         const std::vector<BigInt>& vec,
         size_t idx);
@@ -937,7 +962,11 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
               {
               invalidate_sig_words();
               if(i >= m_reg.size())
+                 {
+                 if(w == 0)
+                    return;
                  grow_to(i + 1);
+                 }
               m_reg[i] = w;
               }
 
@@ -972,7 +1001,7 @@ class BOTAN_PUBLIC_API(2,0) BigInt final
                  {
                  const word mask = (static_cast<word>(1) << (n % BOTAN_MP_WORD_BITS)) - 1;
                  const size_t len = size() - (top_word + 1);
-                 if (len > 0)
+                 if(len > 0)
                     {
                     clear_mem(&m_reg[top_word+1], len);
                     }
@@ -1080,6 +1109,7 @@ BigInt BOTAN_PUBLIC_API(2,8) operator*(const BigInt& x, word y);
 inline BigInt operator*(word x, const BigInt& y) { return y*x; }
 
 BigInt BOTAN_PUBLIC_API(2,0) operator/(const BigInt& x, const BigInt& d);
+BigInt BOTAN_PUBLIC_API(2,0) operator/(const BigInt& x, word m);
 BigInt BOTAN_PUBLIC_API(2,0) operator%(const BigInt& x, const BigInt& m);
 word   BOTAN_PUBLIC_API(2,0) operator%(const BigInt& x, word m);
 BigInt BOTAN_PUBLIC_API(2,0) operator<<(const BigInt& x, size_t n);

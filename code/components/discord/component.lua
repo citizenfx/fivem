@@ -1,5 +1,5 @@
 return function()
 	filter {}
 
-	add_dependencies { 'ros-patches' }
+	add_dependencies { 'legitimacy' }
 end

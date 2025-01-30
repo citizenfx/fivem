@@ -11,6 +11,8 @@
 #include <botan/secmem.h>
 #include <string>
 
+BOTAN_FUTURE_INTERNAL_HEADER(eme.h)
+
 namespace Botan {
 
 class RandomNumberGenerator;
@@ -21,7 +23,7 @@ class RandomNumberGenerator;
 class BOTAN_PUBLIC_API(2,0) EME
    {
    public:
-      virtual ~EME() = default;
+      virtual ~EME() {}
 
       /**
       * Return the maximum input size in bytes we can support

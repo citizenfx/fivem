@@ -1,7 +1,16 @@
 return function()
 	filter {}
 	
-	add_dependencies { 'vendor:mbedtls', 'vendor:xz', 'vendor:zstd', 'vendor:hdiffpatch', 'vendor:openssl_crypto', 'vendor:tinyxml2-dll', 'ros-patches', 'vendor:botan' }
+	add_dependencies {
+		'vendor:mbedtls',
+		'vendor:xz',
+		'vendor:zstd',
+		'vendor:hdiffpatch',
+		'vendor:openssl_crypto',
+		'vendor:tinyxml2-dll',
+		'vendor:botan',
+		'legitimacy'
+	}
 
 	if _OPTIONS['game'] == 'five' then
 		add_dependencies { 'gta:streaming:five' }
