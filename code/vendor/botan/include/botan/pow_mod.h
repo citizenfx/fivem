@@ -10,24 +10,11 @@
 
 #include <botan/bigint.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(pow_mod.h)
+
 namespace Botan {
 
-/**
-* Modular Exponentiator Interface
-*/
-class BOTAN_PUBLIC_API(2,0) Modular_Exponentiator
-   {
-   public:
-      virtual void set_base(const BigInt&) = 0;
-      virtual void set_exponent(const BigInt&) = 0;
-      virtual BigInt execute() const = 0;
-      virtual Modular_Exponentiator* copy() const = 0;
-
-      Modular_Exponentiator() = default;
-      Modular_Exponentiator(const Modular_Exponentiator&) = default;
-      Modular_Exponentiator & operator=(const Modular_Exponentiator&) = default;
-      virtual ~Modular_Exponentiator() = default;
-   };
+class Modular_Exponentiator;
 
 /**
 * Modular Exponentiator Proxy
@@ -93,7 +80,7 @@ class BOTAN_PUBLIC_API(2,0) Power_Mod
                 Usage_Hints hints = NO_HINTS,
                 bool disable_montgomery_arith = false);
       Power_Mod(const Power_Mod&);
-      virtual ~Power_Mod() = default;
+      virtual ~Power_Mod();
    private:
       mutable std::unique_ptr<Modular_Exponentiator> m_core;
    };

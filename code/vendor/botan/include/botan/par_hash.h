@@ -11,6 +11,8 @@
 #include <botan/hash.h>
 #include <vector>
 
+BOTAN_FUTURE_INTERNAL_HEADER(par_hash.h)
+
 namespace Botan {
 
 /**

@@ -10,6 +10,8 @@
 
 #include <botan/mac.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(siphash.h)
+
 namespace Botan {
 
 class BOTAN_PUBLIC_API(2,0) SipHash final : public MessageAuthenticationCode

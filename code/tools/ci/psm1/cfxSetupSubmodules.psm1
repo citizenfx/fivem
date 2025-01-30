@@ -1,11 +1,13 @@
-using module .\cfxBuildContext.psm1
-
 function Invoke-SetupSubmodules {
     param(
-        [CfxBuildContext] $Context
+        [string] $Root
     )
 
-    Push-Location $Context.ProjectRoot
+    if (!(Test-Path $Root)) {
+        throw "Unable to setup submodule in $Root, path does not exist"
+    }
+
+    Push-Location $Root
         git submodule init | Out-Null
         git submodule sync | Out-Null
 
