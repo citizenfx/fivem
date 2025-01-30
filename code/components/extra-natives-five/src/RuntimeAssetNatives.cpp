@@ -47,6 +47,8 @@
 
 #include <concurrent_unordered_set.h>
 
+#include "FormData.h"
+
 using Microsoft::WRL::ComPtr;
 
 static hook::cdecl_stub<rage::five::pgDictionary<rage::grcTexture>*(void*, int)> textureDictionaryCtor([]()
@@ -200,7 +202,7 @@ void RuntimeTex::SetPixel(int x, int y, int r, int g, int b, int a)
 {
 	auto offset = (y * m_pitch) + (x * 4);
 
-	if (offset < 0 || offset >= m_backingPixels.size() - 4)
+	if (offset < 0 || offset > m_backingPixels.size() - 4)
 	{
 		return;
 	}
@@ -385,7 +387,7 @@ static ComPtr<IWICBitmapSource> ImageToBitmapSource(std::string_view fileName)
 		fileNameString = fileNameString.substr(f + 7);
 
 		std::string decodedURL;
-		UrlDecode(fileNameString, decodedURL, false);
+		net::UrlDecode(fileNameString, decodedURL, false);
 
 		decodedURL.erase(std::remove_if(decodedURL.begin(), decodedURL.end(), [](char c)
 						 {

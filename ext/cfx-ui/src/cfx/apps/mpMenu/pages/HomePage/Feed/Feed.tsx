@@ -45,7 +45,7 @@ export const Feed = observer(function Feed(props: FeedProps) {
   }, []);
 
   return (
-    <Island widthQ={50}>
+    <Island widthQ={75}>
       <Flex fullHeight vertical gap="none">
         <Pad>
           <Flex repell>

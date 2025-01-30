@@ -7,24 +7,18 @@
 
 #pragma once
 
-#include "fxNativeContext.h"
-
-#include "fxScripting.h"
-
-#include <stdexcept>
-
-#ifndef IS_FXSERVER
-#include <scrEngine.h>
-#endif
-
-// scrString corresponds to a binary string: may contain null-terminators, i.e,
-// lua_pushlstring != lua_pushstring, and/or non-UTF valid characters.
-#define SCRSTRING_MAGIC_BINARY 0xFEED1212
-
 #ifdef COMPILING_CITIZEN_SCRIPTING_CORE
 #define CSCRC_EXPORT DLL_EXPORT
 #else
 #define CSCRC_EXPORT DLL_IMPORT
+#endif
+
+#if defined(_MSC_VER)
+#define CSCRC_INLINE inline __forceinline
+#elif __has_attribute(__always_inline__)
+#define CSCRC_INLINE inline __attribute__((__always_inline__))
+#else
+#define CSCRC_INLINE inline
 #endif
 
 namespace fx::invoker
@@ -34,7 +28,7 @@ inline constexpr bool always_false_v = false;
 
 enum class MetaField : uint8_t
 {
-	PointerValueInt,
+	PointerValueInteger,
 	PointerValueFloat,
 	PointerValueVector,
 	ReturnResultAnyway,
@@ -53,11 +47,15 @@ struct ScrObject
 	uintptr_t length;
 };
 
+// scrString corresponds to a binary string: may contain null-terminators, i.e,
+// lua_pushlstring != lua_pushstring, and/or non-UTF valid characters.
 struct ScrString
 {
 	const char* str;
 	size_t len;
 	uint32_t magic;
+
+	static const uint32_t Signature = 0xFEED1212;
 };
 
 struct ScrVector
@@ -77,12 +75,6 @@ struct ScrVector
 	}
 };
 
-struct PointerField
-{
-	MetaField type;
-	uintptr_t value;
-};
-
 struct ArgumentType
 {
 	uint32_t Size : 29;
@@ -98,140 +90,228 @@ struct IsolatedBuffer
 	uint8_t* NativeBuffer;
 };
 
-struct CSCRC_EXPORT ScriptNativeContext : fxNativeContext
+class ScriptNativeHandler
 {
-	uintptr_t initialArguments[32];
-	ArgumentType types[32];
+public:
+	uint64_t hash = 0;
+	const uint32_t* type = nullptr;
+	size_t cache_index = SIZE_MAX;
 
-	uint32_t pointerMask = 0;
-	const uint32_t* typeInfo = nullptr;
+	ScriptNativeHandler(const ScriptNativeHandler&) = delete;
+	ScriptNativeHandler& operator=(const ScriptNativeHandler&) = delete;
 
-	uint8_t* isolatedBuffer = nullptr;
-	uint8_t* isolatedBufferEnd = nullptr;
+	CSCRC_EXPORT static const ScriptNativeHandler& FromHash(uint64_t hash);
+	CSCRC_EXPORT static const ScriptNativeHandler& FromCacheIndex(size_t index);
 
-	void* retvals[16];
-	MetaField rettypes[16];
-	int numReturnValues = 0; // return values and their types
-	MetaField returnValueCoercion = MetaField::Max; // coercion for the result value
+protected:
+	ScriptNativeHandler(uint64_t hash);
 
-	IsolatedBuffer isolatedBuffers[8];
-	int numIsolatedBuffers = 0;
+	CSCRC_EXPORT static std::vector<const ScriptNativeHandler*> s_cachedNativesArray;
+};
 
+class ScriptNativeContext
+{
+public:
 	ScriptNativeContext(uint64_t hash);
+	ScriptNativeContext(const ScriptNativeHandler& handler);
+
 	ScriptNativeContext(const ScriptNativeContext&) = delete;
 	ScriptNativeContext(ScriptNativeContext&&) = delete;
 
-	template<typename... Args>
-	[[nodiscard]] auto ScriptError(std::string_view string, const Args&... args);
+	size_t ReserveArgs(size_t nargs) const;
 
 	template<typename T>
-	void Push(const T& value, size_t size = 0);
+	void Push(T value);
 
-	void PushMetaPointer(uint8_t* ptr);
+	template<typename T>
+	void Push(T* value, size_t size);
 
-	void Invoke(IScriptHost& host);
+	// Does NOT check for overflow (use ReserveArgs)
+	template<typename T>
+	void PushAt(size_t index, T value);
 
-#ifndef IS_FXSERVER
-	void Invoke(rage::scrEngine::NativeHandler handler);
-#endif
+	// Does NOT check for overflow (use ReserveArgs)
+	template<typename T>
+	void PushAt(size_t index, T* value, size_t size);
+
+	CSCRC_EXPORT void PushMetaPointer(uint8_t* ptr);
+
+	CSCRC_EXPORT void Invoke();
 
 	template<typename Visitor>
-	void ProcessResults(Visitor&& visitor);
+	void ProcessResults(Visitor&& visitor) const;
 
-	static void* GetMetaField(MetaField field);
-	static void* GetPointerField(MetaField type, uintptr_t value);
+	[[noreturn]] CSCRC_EXPORT void ScriptError(const char* error) const;
+
+	template<typename... Args>
+	[[noreturn]] void ScriptErrorf(const char* format, const Args&... args) const;
+
+	CSCRC_EXPORT static void* GetMetaField(MetaField field);
+	CSCRC_EXPORT static void* GetPointerField(MetaField type, uintptr_t value);
 
 private:
-	void PushRaw(uintptr_t value, ArgumentType type);
+	const ScriptNativeHandler& info;
+
+	// Argument values and types
+	uintptr_t arguments[32];
+	ArgumentType types[32];
+
+	// Numver of arguments
+	size_t numArguments = 0;
+
+	// Are all arguments trivial (no pointers)?
+	bool trivial = true;
+
+	// Our allocated isolated buffer region
+	uint8_t* isolatedBuffer = nullptr;
+	uint8_t* isolatedBufferEnd = nullptr;
+
+	// Primary result value
+	uintptr_t results[4] = {};
+
+	// Addresses and types of values to return
+	void* retvals[16];
+	MetaField rettypes[16];
+	size_t numReturnValues = 0;
+
+	// Isolated buffers
+	IsolatedBuffer isolatedBuffers[8];
+	size_t numIsolatedBuffers = 0;
+
+	void PushRaw(size_t index, uintptr_t value, ArgumentType type);
 
 	void* AllocIsolatedData(const void* input, size_t size);
 
 	void PushReturnValue(MetaField field, const uintptr_t* value);
 
 	template<typename Visitor>
-	void ProcessResult(Visitor&& visitor, const void* value, MetaField type);
+	void ProcessResult(Visitor&& visitor, const void* value, MetaField type) const;
 
 	bool PreInvoke();
 	void PostInvoke();
 
 	bool CheckArguments();
 	void CheckResults();
-	void CheckPointerResult();
 
 	void IsolatePointer(int index);
 };
 
-template<typename... Args>
-inline auto ScriptNativeContext::ScriptError(std::string_view string, const Args&... args)
+CSCRC_INLINE const ScriptNativeHandler& ScriptNativeHandler::FromCacheIndex(size_t index)
 {
-	return std::runtime_error(va("native %016llx: %s", nativeIdentifier, vva(string, fmt::make_printf_args(args...))));
+	return *s_cachedNativesArray.at(index);
 }
 
-inline void ScriptNativeContext::PushRaw(uintptr_t value, ArgumentType type)
+CSCRC_INLINE ScriptNativeContext::ScriptNativeContext(uint64_t hash)
+	: ScriptNativeContext(ScriptNativeHandler::FromHash(hash))
 {
-	if (numArguments >= 32)
+}
+
+CSCRC_INLINE ScriptNativeContext::ScriptNativeContext(const ScriptNativeHandler& handler)
+	: info(handler)
+{
+	retvals[0] = results;
+	rettypes[0] = MetaField::Max;
+	numReturnValues = 1;
+}
+
+template<typename... Args>
+inline void ScriptNativeContext::ScriptErrorf(const char* format, const Args&... args) const
+{
+	ScriptError(vva(format, fmt::make_printf_args(args...)));
+}
+
+CSCRC_INLINE size_t ScriptNativeContext::ReserveArgs(size_t nargs) const
+{
+	size_t index = numArguments;
+	size_t space = std::size(arguments) - index;
+
+	if (space < nargs)
 	{
-		throw ScriptError("too many arguments");
+		ScriptError("too many arguments");
 	}
 
-	arguments[numArguments] = value;
-	types[numArguments] = type;
-	pointerMask |= (uint32_t)type.IsPointer << numArguments;
+	return index;
+}
 
-	++numArguments;
+CSCRC_INLINE void ScriptNativeContext::PushRaw(size_t index, uintptr_t value, ArgumentType type)
+{
+	arguments[index] = value;
+	types[index] = type;
+
+	if (type.IsPointer)
+	{
+		trivial = false;
+	}
+
+	numArguments = index + 1;
 }
 
 template<typename T>
-inline void ScriptNativeContext::Push(const T& value, size_t size)
+CSCRC_INLINE void ScriptNativeContext::Push(T value)
 {
-	using TVal = std::decay_t<decltype(value)>;
+	PushAt(ReserveArgs(1), value);
+}
+
+template<typename T>
+CSCRC_INLINE void ScriptNativeContext::Push(T* value, size_t size)
+{
+	PushAt(ReserveArgs(1), value, size);
+}
+
+template<typename T>
+CSCRC_INLINE void ScriptNativeContext::PushAt(size_t index, T value)
+{
+	using TVal = std::decay_t<T>;
 
 	uintptr_t raw = 0;
 
-	if constexpr (std::is_pointer_v<TVal>)
-	{
-		raw = reinterpret_cast<uintptr_t>(value);
-	}
-	else if constexpr (std::is_integral_v<TVal>)
+	if constexpr (std::is_integral_v<TVal>)
 	{
 		raw = (uintptr_t)(int64_t)value; // TODO: Limit native integers to 32 bits.
 	}
-	else if constexpr (std::is_same_v<TVal, float>)
+	else if constexpr (std::is_floating_point_v<TVal>)
 	{
-		raw = *reinterpret_cast<const uint32_t*>(&value);
+		float fvalue = static_cast<float>(value);
+		raw = *reinterpret_cast<const uint32_t*>(&fvalue);
 	}
 	else
 	{
 		static_assert(always_false_v<T>, "Invalid argument type");
 	}
 
+	PushRaw(index, raw, {});
+}
+
+template<typename T>
+CSCRC_INLINE void ScriptNativeContext::PushAt(size_t index, T* value, size_t size)
+{
+	uintptr_t raw = reinterpret_cast<uintptr_t>(value);
+
 	ArgumentType type{};
+
 	type.Size = size;
 	type.IsIsolated = false;
-	type.IsString = std::is_same_v<TVal, char*> || std::is_same_v<TVal, const char*>;
-	type.IsPointer = std::is_pointer_v<TVal>;
+	type.IsString = std::is_same_v<std::remove_const_t<T>, char>;
+	type.IsPointer = true;
 
-	PushRaw(raw, type);
+	PushRaw(index, raw, type);
 }
 
 template<typename Visitor>
-inline void ScriptNativeContext::ProcessResults(Visitor&& visitor)
+CSCRC_INLINE void ScriptNativeContext::ProcessResults(Visitor&& visitor) const
 {
 	// if no other result was requested, or we need to return the result anyway, push the primary result
-	if ((numReturnValues == 0) || (returnValueCoercion != MetaField::Max))
-	{
-		ProcessResult(visitor, arguments, returnValueCoercion);
-	}
+	int i = ((numReturnValues == 1) || (rettypes[0] != MetaField::Max)) ? 0 : 1;
 
 	// loop over the return value pointers
-	for (int i = 0; i < numReturnValues; ++i)
+	for (; i < numReturnValues; ++i)
 	{
 		ProcessResult(visitor, retvals[i], rettypes[i]);
 	}
 }
 
 template<typename Visitor>
-inline void ScriptNativeContext::ProcessResult(Visitor&& visitor, const void* value, MetaField type)
+CSCRC_INLINE void ScriptNativeContext::ProcessResult(Visitor&& visitor, const void* value, MetaField type) const
 {
 	// handle the type coercion
 	switch (type)
@@ -240,7 +320,7 @@ inline void ScriptNativeContext::ProcessResult(Visitor&& visitor, const void* va
 		{
 			auto strString = static_cast<const ScrString*>(value);
 
-			if (strString->str && strString->magic == SCRSTRING_MAGIC_BINARY)
+			if (strString->str && strString->magic == ScrString::Signature)
 			{
 				return visitor(*strString);
 			}
@@ -268,7 +348,7 @@ inline void ScriptNativeContext::ProcessResult(Visitor&& visitor, const void* va
 		}
 
 		case MetaField::ResultAsInteger:
-		case MetaField::PointerValueInt:
+		case MetaField::PointerValueInteger:
 		{
 			return visitor(*static_cast<const int32_t*>(value));
 		}

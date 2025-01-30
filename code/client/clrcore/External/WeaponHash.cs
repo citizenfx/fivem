@@ -102,7 +102,38 @@ namespace CitizenFX.Core
         //mpchristmas2018
         RayPistol = 0xAF3696A1,
         RayMinigun = 0xB62D1F67,
-        RayCarbine = 0x476BF155
+        RayCarbine = 0x476BF155,
+		//mpheist3
+		CeramicPistol = 0x2B5EF5EC,
+		HazardCan = 0xBA536372,
+		NacyRevolver = 0x917F6C8C,
+		Tranquilizer = 0x32A888BD,
+		//mpheist4
+		GadgetPistol = 0x57A4368C,
+		CombatShotgun = 0x5A96BA4,
+		MilitaryRifle = 0x9D1F17E6, 
+		//mpsecurity
+		HeavyRifle = 0xC78D71B4,
+		FertukuterCan = 0x184140A1,
+		Stungun_MP = 0x45CD9CF3,
+		EmpLauncher = 0xDB26713A,
+		//mpsum2
+		TacticalRifle = 0xD1D5F52B,
+		MetalDetector = 0xDBA2E809,
+		PrecisionRifle = 0x6E7DDDEC,
+		//mpchristmas3
+		CandyCane = 0x6589186A,
+		AcidPackage = 0xF7F1E25E,
+		PistolXM3 = 0x1BC4FDB9,
+		RailgunXM3 = 0xFEA23564,
+		//mp2023_01
+		TecPistol = 0x14E5AFD5,
+		//mp2023_02
+		BattleRifle = 0x72B66B11,
+		SnowLauncher = 0x3BF5575,
+		HackingDevice = 0x1CF5FA48,
+		//mp2024_01
+		Stunrod = 0xDAC00025
 	}
 
 	public enum VehicleWeaponHash

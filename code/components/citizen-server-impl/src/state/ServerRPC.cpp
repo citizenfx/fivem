@@ -635,7 +635,7 @@ static InitFunction initFunction([]()
 								// defer to original handler
 								if (origHandler)
 								{
-									return (*origHandler)(context);
+									return origHandler(context);
 								}
 							}
 						}

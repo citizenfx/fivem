@@ -85,4 +85,6 @@ public:
 	void LoadIntoModule(HMODULE module);
 
 	bool LoadSnapshot(IMAGE_NT_HEADERS* ntHeader);
+
+	inline static std::vector<std::string> m_moduleNames;
 };

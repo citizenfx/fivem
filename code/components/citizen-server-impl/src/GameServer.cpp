@@ -48,6 +48,7 @@
 #include <packethandlers/RequestObjectIdsPacketHandler.h>
 
 #include "ByteWriter.h"
+#include "FormData.h"
 #include "Frame.h"
 
 constexpr const char kDefaultServerList[] = "https://servers-ingress-live.fivem.net/ingress";
@@ -665,7 +666,7 @@ namespace fx
 					return;
 				}
 
-				auto postMap = ParsePOSTString(dataSpan);
+				auto postMap = net::DecodeFormData(dataSpan);
 				auto guid = postMap["guid"];
 				auto token = postMap["token"];
 
@@ -1356,7 +1357,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(new fx::UdpInterceptor());
 
 		instance->SetComponent(
-			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2, ArrayUpdatePacketHandler, ReassembledEventPacketHandler, RequestObjectIdsPacketHandler, GameStateNAckPacketHandler, GameStateAckPacketHandler>(
+			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2, NetGameEventPacketHandlerV2, ArrayUpdatePacketHandler, ReassembledEventPacketHandler, ReassembledEventV2PacketHandler, RequestObjectIdsPacketHandler, GameStateNAckPacketHandler, GameStateAckPacketHandler>(
 				WithProcessTick<ThreadWait, GameServerTick>(
 					WithOutOfBand<GetInfoOutOfBand, GetStatusOutOfBand, RconOutOfBand>(
 						WithEndPoints(

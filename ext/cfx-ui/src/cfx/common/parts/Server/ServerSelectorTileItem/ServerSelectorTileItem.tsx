@@ -72,7 +72,7 @@ export const ServerSelectorTileItem = observer(function ServerSelectorTileItem(p
 
           <Flex fullWidth>
             <Box height={10}>
-              <ServerIcon glow type="list" server={firstServer} />
+              <ServerIcon type="list" server={firstServer} />
             </Box>
 
             <FlexRestricter>
@@ -151,7 +151,7 @@ const ServerSelectorModal = observer(function ServerSelectorModal(props: ServerS
           <Flex vertical centered>
             <div />
             <div />
-            <ServerIcon server={firstServer} type="details" glow />
+            <ServerIcon server={firstServer} type="details" />
 
             <div />
 

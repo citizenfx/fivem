@@ -797,8 +797,8 @@ static void _filterVoiceChatConfig(void* engine, char* config)
 
 #include <LabSound/extended/LabSound.h>
 
-static boost::optional<fx::TNativeHandler> getPlayerName;
-static boost::optional<fx::TNativeHandler> getServerId;
+static fx::TNativeHandler getPlayerName;
+static fx::TNativeHandler getServerId;
 
 static std::shared_ptr<lab::AudioContext> getAudioContext(int playerId)
 {
@@ -1331,7 +1331,7 @@ static HookFunction hookFunction([]()
 		{
 			if (!g_mumble.connected)
 			{
-				(*origIsTalking)(context);
+				origIsTalking(context);
 				return;
 			}
 
@@ -1351,7 +1351,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0xEF6212C2EFEF1A23, [=](fx::ScriptContext& context)
 		{
-			(*origSetChannel)(context);
+			origSetChannel(context);
 
 			if (g_mumble.connected)
 			{
@@ -1361,7 +1361,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0xE036A705F989E049, [=](fx::ScriptContext& context)
 		{
-			(*origClearChannel)(context);
+			origClearChannel(context);
 
 			if (g_mumble.connected)
 			{
@@ -1374,7 +1374,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0xCBF12D65F95AD686, [=](fx::ScriptContext& context)
 		{
-			(*origSetProximity)(context);
+			origSetProximity(context);
 
 			float dist = context.GetArgument<float>(0);
 
@@ -1383,7 +1383,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0x84F0F13120B4E098, [=](fx::ScriptContext& context)
 		{
-			(*origGetProximity)(context);
+			origGetProximity(context);
 
 			float proximity = g_mumbleClient->GetAudioDistance();
 
@@ -1394,7 +1394,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0xBABEC9E69A91C57B, [origSetVoiceActive](fx::ScriptContext& context)
 		{
-			(*origSetVoiceActive)(context);
+			origSetVoiceActive(context);
 
 			g_voiceActiveByScript = context.GetArgument<bool>(0);
 		});
@@ -1408,7 +1408,7 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_call(hook::get_pattern("48 8B D0 E8 ? ? ? ? 40 8A F0 8B 8F", 3)), _isPlayerTalking, (void**)&g_origIsPlayerTalking);
 	MH_CreateHook(hook::get_call(hook::get_pattern("89 44 24 58 0F 29 44 24 40 E8", 9)), _filterVoiceChatConfig, (void**)&g_origInitVoiceEngine);
 	MH_CreateHook(hook::get_pattern("48 8B F8 48 85 C0 74 33 48 83 C3 30", -0x19), _getLocalAudioLevel, (void**)&g_origGetLocalAudioLevel);
-	MH_CreateHook(hook::get_pattern("80 78 05 00 B9", xbr::IsGameBuildOrGreater<3095>() ? -0x29 : -0x1B), _getPlayerHasHeadset, (void**)&g_origGetPlayerHasHeadset);
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 ? 48 8D 4D ? E8 ? ? ? ? 84 C0 75 ? 48 8D 55 ? 49 8B CF")), _getPlayerHasHeadset, (void**)&g_origGetPlayerHasHeadset);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 13 F3 0F 10 35")), _isAnyoneTalking, (void**)&g_origIsAnyoneTalking);
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 8A D8 45 84 ED 75 08")), _isPlayerTalking, (void**)&g_origIsPlayerTalking);

@@ -164,9 +164,11 @@ local function printReturnType(type)
 end
 
 local function printInvocationArguments(native)
-	local args = {
-		USE_SPLIT_LUA_DIRECT and 'fn' or native.hash
-	}
+	local args = {}
+
+	if not USE_SPLIT_LUA_DIRECT then
+		table.insert(args, native.hash)
+	end
 
 	if native.arguments then
 		for _, v in pairs(native.arguments) do
@@ -320,7 +322,7 @@ local function printNative(native)
 			local postCall = ''
 		
 			str = str .. printGatherArguments(native)		
-			str = str .. string.format("\treturn %s_in%s(%s)%s\n", preCall, USE_SPLIT_LUA_DIRECT and '2' or '', printInvocationArguments(native), postCall)
+			str = str .. string.format("\treturn %s%s(%s)%s\n", preCall, USE_SPLIT_LUA_DIRECT and 'fn' or '_in', printInvocationArguments(native), postCall)
 		end
 	
 		str = str .. "end\n"

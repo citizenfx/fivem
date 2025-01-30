@@ -18,6 +18,7 @@
 #include <ICoreGameInit.h>
 
 #include <unordered_set>
+#include <unordered_map>
 
 static bool storyMode;
 
@@ -29,6 +30,66 @@ inline void HandlerFilter(void* handler)
 
 }
 #endif
+
+static std::unordered_map<uint64_t, int> g_nativeBlockedBeforeBuild = {
+	// Natives that are banned on all builds.
+
+	{0x9BAE5AD2508DF078, std::numeric_limits<int>::max()}, // SET_INSTANCE_PRIORITY_MODE (prop density lowering)
+	{0x5A5F40FE637EB584, std::numeric_limits<int>::max()}, // STRING_TO_INT
+	{0xE80492A9AC099A93, std::numeric_limits<int>::max()}, // CLEAR_BIT
+	{0x8EF07E15701D61ED, std::numeric_limits<int>::max()}, // SET_BITS_IN_RANGE
+	{0x933D6A9EEC1BACD0, std::numeric_limits<int>::max()}, // SET_BIT
+	{0x213AEB2B90CBA7AC, std::numeric_limits<int>::max()}, // _COPY_MEMORY
+
+	// DATAFILE namespace
+
+	{0x6CC86E78358D5119, std::numeric_limits<int>::max()}, // DATAFILE_CLEAR_WATCH_LIST
+	{0xD27058A1CA2B13EE, std::numeric_limits<int>::max()}, // DATAFILE_CREATE
+	{0x9AB9C1CFC8862DFB, std::numeric_limits<int>::max()}, // DATAFILE_DELETE
+	{0x8F5EA1C01D65A100, std::numeric_limits<int>::max()}, // DATAFILE_DELETE_REQUESTED_FILE
+	{0xC55854C7D7274882, std::numeric_limits<int>::max()}, // DATAFILE_FLUSH_MISSION_HEADER
+	{0x906B778CA1DC72B6, std::numeric_limits<int>::max()}, // DATAFILE_GET_FILE_DICT
+	{0x15FF52B809DB2353, std::numeric_limits<int>::max()}, // DATAFILE_HAS_LOADED_FILE_DATA
+	{0xF8CC1EBE0B62E29F, std::numeric_limits<int>::max()}, // DATAFILE_HAS_VALID_FILE_DATA
+	{0xBEDB96A7584AA8CF, std::numeric_limits<int>::max()}, // DATAFILE_IS_SAVE_PENDING
+	{0xFCCAE5B92A830878, std::numeric_limits<int>::max()}, // DATAFILE_IS_VALID_REQUEST_ID
+	{0xC5238C011AF405E4, std::numeric_limits<int>::max()}, // DATAFILE_LOAD_OFFLINE_UGC
+	{0x22DA66936E0FFF37, std::numeric_limits<int>::max()}, // DATAFILE_SELECT_ACTIVE_FILE
+	{0x01095C95CD46B624, std::numeric_limits<int>::max()}, // DATAFILE_SELECT_CREATOR_STATS
+	{0xA69AC4ADE82B57A4, std::numeric_limits<int>::max()}, // DATAFILE_SELECT_UGC_DATA
+	{0x52818819057F2B40, std::numeric_limits<int>::max()}, // DATAFILE_SELECT_UGC_PLAYER_DATA
+	{0x9CB0BFA7A9342C3D, std::numeric_limits<int>::max()}, // DATAFILE_SELECT_UGC_STATS
+	{0x83BCCE3224735F05, std::numeric_limits<int>::max()}, // DATAFILE_START_SAVE_TO_CLOUD
+	{0x2ED61456317B8178, std::numeric_limits<int>::max()}, // DATAFILE_STORE_MISSION_HEADER
+	{0x4DFDD9EB705F8140, std::numeric_limits<int>::max()}, // DATAFILE_UPDATE_SAVE_TO_CLOUD
+	{0xAD6875BBC0FC899C, std::numeric_limits<int>::max()}, // DATAFILE_WATCH_REQUEST_ID
+
+	{0xF8B0F5A43E928C76, std::numeric_limits<int>::max()}, // DATAARRAY_ADD_BOOL
+	{0x6889498B3E19C797, std::numeric_limits<int>::max()}, // DATAARRAY_ADD_DICT
+	{0x57A995FD75D37F56, std::numeric_limits<int>::max()}, // DATAARRAY_ADD_FLOAT
+	{0xCABDB751D86FE93B, std::numeric_limits<int>::max()}, // DATAARRAY_ADD_INT
+	{0x2F0661C155AEEEAA, std::numeric_limits<int>::max()}, // DATAARRAY_ADD_STRING
+	{0x407F8D034F70F0C2, std::numeric_limits<int>::max()}, // DATAARRAY_ADD_VECTOR
+	{0x50C1B2874E50C114, std::numeric_limits<int>::max()}, // DATAARRAY_GET_BOOL
+	{0x065DB281590CEA2D, std::numeric_limits<int>::max()}, // DATAARRAY_GET_COUNT
+	{0x8B5FADCC4E3A145F, std::numeric_limits<int>::max()}, // DATAARRAY_GET_DICT
+	{0xC0C527B525D7CFB5, std::numeric_limits<int>::max()}, // DATAARRAY_GET_FLOAT
+	{0x3E5AE19425CD74BE, std::numeric_limits<int>::max()}, // DATAARRAY_GET_INT
+	{0xD3F2FFEB8D836F52, std::numeric_limits<int>::max()}, // DATAARRAY_GET_STRING
+	{0x3A0014ADB172A3C5, std::numeric_limits<int>::max()}, // DATAARRAY_GET_TYPE
+	{0x8D2064E5B64A628A, std::numeric_limits<int>::max()}, // DATAARRAY_GET_VECTOR
+
+	{0x6AD0BD5E087866CB, std::numeric_limits<int>::max()},
+	{0xA6EEF01087181EDD, std::numeric_limits<int>::max()},
+	{0xDBF860CF1DB8E599, std::numeric_limits<int>::max()},
+
+	// Natives that were introduces after a certain build and are closely coupled with the DLC content.
+	// When running new game executable with old DLC set - we have to explicitly disable these natives.
+
+	{0x5E1460624D194A38, 2189}, // SET_USE_ISLAND_MAP
+	{0x7E3F55ED251B76D3, 2189}, // _LOAD_GLOBAL_WATER_TYPE
+	{0x9A9D1BA639675CF1, 2189} // SET_ISLAND_ENABLED
+};
 
 fwEvent<> rage::scrEngine::OnScriptInit;
 fwEvent<bool&> rage::scrEngine::CheckNativeScriptAllowed;
@@ -371,6 +432,30 @@ void scrEngine::ReviveNativeHandler(uint64_t nativeIdentifier, NativeHandler han
 	}
 }
 
+bool scrEngine::ShouldBlockNative(uint64_t hash)
+{
+	auto it = g_nativeBlockedBeforeBuild.find(hash);
+	return it != g_nativeBlockedBeforeBuild.end() && xbr::GetRequestedGameBuild() < it->second;
+}
+
+std::vector<uint64_t> scrEngine::GetBlockedNatives()
+{
+	std::vector<uint64_t> blockedNatives;
+	for (auto [hash, _]: g_nativeBlockedBeforeBuild)
+	{
+		if (scrEngine::ShouldBlockNative(hash))
+		{
+			blockedNatives.push_back(hash);
+		}
+	}
+	return blockedNatives;
+}
+
+bool scrEngine::GetStoryMode()
+{
+	return storyMode;
+}
+
 static InitFunction initFunction([] ()
 {
 	scrEngine::OnScriptInit.Connect([] ()
@@ -411,14 +496,7 @@ scrEngine::NativeHandler GetNativeHandlerDo(uint64_t origHash, uint64_t hash)
 			{
 				handler = (scrEngine::NativeHandler) /*DecodePointer(*/ table->handlers[i] /*)*/;
 				HandlerFilter(&handler);
-
-				if (handler)
-				{
-					#include "BlockedNatives.h"
-				}
-
 				g_fastPathMap[NativeHash{ origHash }] = handler;
-
 				break;
 			}
 		}
@@ -503,31 +581,6 @@ static void StartupScriptWrap()
 
 	origStartupScript();
 }
-
-static InitFunction initFunction([]
-{
-	if (xbr::IsGameBuildOrGreater<2612>())
-	{
-		// IS_BIT_SET is missing in b2612+, re-adding for compatibility
-		rage::scrEngine::OnScriptInit.Connect([]()
-		{
-			rage::scrEngine::ReviveNativeHandler(0xE2D0C323A1AE5D85 /* 2545 hash */, [](rage::scrNativeCallContext* ctx)
-			{
-				bool result = false;
-
-				auto value = ctx->GetArgument<uint32_t>(0);
-				auto offset = ctx->GetArgument<int>(1);
-
-				if (offset < 32)
-				{
-					result = (value & (1 << offset)) != 0;
-				}
-
-				ctx->SetResult<int>(0, result);
-			});
-		});
-	}
-});
 
 static HookFunction hookFunction([] ()
 {

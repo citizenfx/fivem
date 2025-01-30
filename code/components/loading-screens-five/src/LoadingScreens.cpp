@@ -149,7 +149,7 @@ static HookFunction hookFunction([]()
 				return;
 			}
 
-			g_origShutdown = *handler;
+			g_origShutdown = handler;
 
 			fx::ScriptEngine::RegisterNativeHandler("SET_MANUAL_SHUTDOWN_LOADING_SCREEN_NUI", [](fx::ScriptContext& ctx)
 			{
@@ -160,14 +160,12 @@ static HookFunction hookFunction([]()
 
 			fx::ScriptEngine::RegisterNativeHandler("SHUTDOWN_LOADING_SCREEN_NUI", [=](fx::ScriptContext& ctx)
 			{
-				loadsThread.doSetup = true;
-
 				endLoadingScreens();
 			});
 
 			fx::ScriptEngine::RegisterNativeHandler(0x078EBE9809CCD637, [=](fx::ScriptContext& ctx)
 			{
-				(*handler)(ctx);
+				handler(ctx);
 
 				loadsThread.doSetup = true;
 				g_doDrawBelowLoadingScreens = false;
@@ -213,7 +211,7 @@ static HookFunction hookFunction([]()
 						return;
 					}
 
-					(*handler)(ctx);
+					handler(ctx);
 				});
 			}
 		}
@@ -242,7 +240,7 @@ static HookFunction hookFunction([]()
 					return;
 				}
 
-				(*handler)(ctx);
+				handler(ctx);
 			});
 
 			// override IS_SCREEN_FADING_OUT
@@ -250,7 +248,7 @@ static HookFunction hookFunction([]()
 
 			fx::ScriptEngine::RegisterNativeHandler(0x797AC7CB535BA28F, [=](fx::ScriptContext& ctx)
 			{
-				(*handlerIs)(ctx);
+				handlerIs(ctx);
 
 				if ((GetTickCount64() - fakeFadeOutTime) < fakeFadeOutLength)
 				{
@@ -276,7 +274,7 @@ static HookFunction hookFunction([]()
 					return;
 				}
 
-				(*handler)(ctx);
+				handler(ctx);
 			});
 
 			// override IS_SCREEN_FADING_IN
@@ -284,7 +282,7 @@ static HookFunction hookFunction([]()
 
 			fx::ScriptEngine::RegisterNativeHandler(0x5C544BC6C57AC575, [=](fx::ScriptContext& ctx)
 			{
-				(*handlerIs)(ctx);
+				handlerIs(ctx);
 
 				if ((GetTickCount64() - fakeFadeOutTime) < fakeFadeOutLength)
 				{
@@ -333,6 +331,14 @@ void LoadsThread::DoRun()
 {
 	if (ShouldSkipLoading())
 	{
+		if (doShutdown && !autoShutdownNui)
+		{
+			// SET_ENTITY_COORDS Init the player for RAGE sake
+			NativeInvoke::Invoke<0x06843DA7060A026B, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>(), 0.0f, 0.0f, 0.0f, false, false, false, false);
+
+			doShutdown = false;
+		}
+
 		return;
 	}
 

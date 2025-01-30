@@ -18,24 +18,33 @@ namespace xbr
 // When there's no entry for a specific major game build, revision "0" will be assumed in the relevant code.
 //
 
-// TODO: Replace with the default game build once we use latest game build as default instead of the 1604 one.
-inline unsigned int GetLatestStableGTA5Build()
+inline unsigned int GetDefaultGTA5Build()
 {
 	return 3258;
 }
 
-inline unsigned int GetLatestStableRDR3Build()
+inline unsigned int GetDefaultRDR3Build()
 {
 	return 1491;
 }
 
-#ifndef IS_FXSERVER
-inline unsigned int GetLatestStableGameBuild()
+#ifdef IS_FXSERVER
+inline const char* GetDefaultGTA5BuildString()
+{
+	return "3258";
+}
+
+inline const char* GetDefaultRDR3BuildString()
+{
+	return "1491";
+}
+#else
+inline unsigned int GetDefaultGameBuild()
 {
 #if defined(IS_RDR3)
-	return GetLatestStableRDR3Build();
+	return GetDefaultRDR3Build();
 #elif defined(GTA_FIVE)
-	return GetLatestStableGTA5Build();
+	return GetDefaultGTA5Build();
 #elif defined(GTA_NY)
 	return 43;
 #else
@@ -130,13 +139,13 @@ inline int GetGameBuild()
 	// For GTA5 we may want to ignore the CLI build request and use the latest build.
 	// In this case the requested build behavior will be achieved by partially loading old update.rpf files in UpdateRpfOverrideMount.cpp.
 #ifdef GTA_FIVE
-	if (!GetReplaceExecutable() && GetRequestedGameBuild() < GetLatestStableGameBuild())
+	if (!GetReplaceExecutable() && GetRequestedGameBuild() < GetDefaultGameBuild())
 	{
 		static int buildNumber = -1;
 
 		if (buildNumber == -1)
 		{
-			buildNumber = GetLatestStableGameBuild();
+			buildNumber = GetDefaultGameBuild();
 		}
 
 		return buildNumber;

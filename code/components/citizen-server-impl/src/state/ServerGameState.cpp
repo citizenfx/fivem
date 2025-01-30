@@ -1166,34 +1166,16 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				if (auto engine = GetTrain(this, trainState->engineCarriage))
 				{
-					{
+					IterateTrainLink(entity, [&isRelevant, isRelevantViaPos](sync::SyncEntityPtr& train) {
 						float position[3];
-						engine->syncTree->GetPosition(position);
+						train->syncTree->GetPosition(position);
 
 						glm::vec3 entityPosition(position[0], position[1], position[2]);
-						if (isRelevantViaPos(engine, entityPosition))
-						{
-							isRelevant = true;
-						}
-					}
+						isRelevant = isRelevantViaPos(train, entityPosition);
 
-					// if not via the engine, try the next-train chain
-					if (!isRelevant)
-					{
-						for (auto link = GetNextTrain(this, engine); link; link = GetNextTrain(this, link))
-						{
-							float position[3];
-							link->syncTree->GetPosition(position);
-
-							glm::vec3 entityPosition(position[0], position[1], position[2]);
-
-							if (isRelevantViaPos(link, entityPosition))
-							{
-								isRelevant = true;
-								break;
-							}
-						}
-					}
+						// if we're not still relevant then we should keep going
+						return !isRelevant;
+					});
 				}
 			}
 #endif
@@ -2645,6 +2627,65 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 	}
 }
 
+#ifdef STATE_FIVE
+/// <summary>
+/// Takes the initialTrain and if its the engine train, iterates down the train link from the train, if it's not then it will try to get the engine
+/// </summary>
+/// <param name="initialTrain">The initial to start the iteration from, this will get the engine entity internally, if the engine doesn't exist it will early return as there's no valid part in the link to start from.</param>
+/// <param name="fn">The function to call, if the function returns `true` it will keep iterating, if it returns `false` it will stop</param>
+/// <param name="callOnInitialEntity">Whether the function should do the `fn` call on the initialTrain</param>
+void ServerGameState::IterateTrainLink(const sync::SyncEntityPtr& initialTrain, std::function<bool(sync::SyncEntityPtr&)> fn, bool callOnInitialEntity)
+{
+	// for most stuff we want to call on the intial entity
+	if (callOnInitialEntity)
+	{
+		if (!fn(const_cast<sync::SyncEntityPtr&>(initialTrain)))
+		{
+			return;
+		}
+	}
+
+	if (auto trainState = initialTrain->syncTree->GetTrainState())
+	{
+		auto recurseTrain = [=](const fx::sync::SyncEntityPtr& train)
+		{
+			for (auto link = GetNextTrain(this, train); link; link = GetNextTrain(this, link))
+			{
+				// this is expected to make sure that the initial train & the link trains are not called twice
+				// since this could lead to double locking the client mutex in ReassignEntity
+				// we also ignore the train sent via the call to `recurseTrain` as we should've called `fn` before here
+				if (link->handle == initialTrain->handle)
+				{
+					continue;
+				}
+
+				// if the function returns true then we should stop iterating
+				if (!fn(link))
+				{
+					return;
+				}
+			}
+		};
+
+		if (trainState->isEngine)
+		{
+			recurseTrain(initialTrain);
+		}
+		else if (trainState->engineCarriage && trainState->engineCarriage != initialTrain->handle)
+		{
+			if (auto engine = GetTrain(this, trainState->engineCarriage))
+			{
+				if (!fn(engine))
+				{
+					return;
+				}
+				recurseTrain(engine);
+			}
+		}
+	}
+}
+#endif
+
 void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock)
 {
 	ReassignEntityInner(entityHandle, targetClient, std::move(lock));
@@ -2657,39 +2698,19 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 		// game code works as follows:
 		// -> if train isEngine, enumerate the entire list backwards and migrate that one along
 		// -> if not isEngine, migrate the engine
-		if (auto trainState = train->syncTree->GetTrainState())
-		{
-			auto reassignEngine = [this, &targetClient, entityHandle](const fx::sync::SyncEntityPtr& train)
-			{
-				for (auto link = GetNextTrain(this, train); link; link = GetNextTrain(this, link))
-				{
-					// this check should prevent the following two states:
-					// 1. double-locking clientMutex
-					// 2. reassigning the same entity twice
-					if (link->handle != entityHandle)
-					{
-						// we directly use ReassignEntityInner here to ensure no infinite recursion
-						ReassignEntityInner(link->handle, targetClient);
-					}
-				}
-			};
 
-			if (trainState->isEngine)
-			{
-				reassignEngine(train);
-			}
-			else if (trainState->engineCarriage && trainState->engineCarriage != entityHandle)
-			{
-				// reassign the engine carriage
-				ReassignEntityInner(trainState->engineCarriage, targetClient);
 
-				// get the engine and reassign based on that
-				if (auto engine = GetTrain(this, trainState->engineCarriage))
-				{
-					reassignEngine(engine);
-				}
-			}
-		}
+		// This call expects link-handle != entityHandle
+		// This will prevent
+		// 1. double-locking clientMutex
+		// 2. reassigning the same entity twice
+		IterateTrainLink(train, [=](const fx::sync::SyncEntityPtr& link) {
+
+			// we directly use ReassignEntityInner here to ensure no infinite recursion
+			ReassignEntityInner(link->handle, targetClient);
+
+			return true;
+		}, false);
 	}
 #endif
 }
@@ -3225,19 +3246,24 @@ void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, const fx:
 
 auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const std::shared_ptr<sync::SyncTreeBase>& tree) -> fx::sync::SyncEntityPtr
 {
-	bool hadId = false;
-
 	int id = fx::IsLengthHack() ? (MaxObjectId - 1) : 8191;
 
 	{
+		bool valid = false;
 		std::unique_lock objectIdsLock(m_objectIdsMutex);
 
 		for (; id >= 1; id--)
 		{
 			if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
 			{
+				valid = true;
 				break;
 			}
+		}
+
+		if (!valid)
+		{
+			return {};
 		}
 
 		m_objectIdsSent.set(id);
@@ -4399,16 +4425,6 @@ void ServerGameState::HandleGameStateAck(fx::ServerInstanceBase* instance, const
 	}
 }
 
-void ServerGameState::DeleteEntity(const fx::sync::SyncEntityPtr& entity)
-{
-	if (entity->type != sync::NetObjEntityType::Player && entity->syncTree)
-	{
-		gscomms_execute_callback_on_sync_thread([=]() 
-		{
-			RemoveClone({}, entity->handle);
-		});
-	}
-}
 
 void ServerGameState::SendPacket(int peer, net::packet::StateBagPacket& packet)
 {

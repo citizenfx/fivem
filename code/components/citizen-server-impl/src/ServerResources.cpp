@@ -256,7 +256,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 static class : public fx::EventReassemblySink
 {
 public:
-	virtual void SendPacket(int target, std::string_view packet) override
+	void SendPacket(const int target, std::string_view packet) override
 	{
 		auto client = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(target);
 
@@ -270,7 +270,31 @@ public:
 		}
 	}
 
-	virtual bool LimitEvent(int source) override
+	void SendPacketV2(const int target, net::packet::ReassembledEventV2Packet& packet) override
+	{
+		auto client = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(target);
+
+		if (!client)
+		{
+			return;
+		}
+
+		const size_t kPacketSize = net::SerializableComponent::GetSize(packet);
+
+		net::Buffer responseBuffer(kPacketSize);
+		net::ByteWriter writer{ responseBuffer.GetBuffer(), kPacketSize };
+		if (!packet.Process(writer))
+		{
+			trace("Serialization of the server reassembled event failed. Please report this error at https://github.com/citizenfx/fivem.\n");
+			return;
+		}
+
+		responseBuffer.Seek(writer.GetOffset());
+
+		client->SendPacket(1, responseBuffer);
+	}
+
+	bool LimitEvent(const int source) override
 	{
 		static fx::RateLimiterStore<uint32_t, false> netEventRateLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
 		static auto netEventRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEvent", fx::RateLimiterDefaults{ 50.f, 200.f });

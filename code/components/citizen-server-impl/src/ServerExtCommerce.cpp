@@ -471,6 +471,8 @@ private:
 	fx::Client* m_client;
 
 	bool m_commerceDataLoaded;
+	
+	std::chrono::milliseconds m_lastUpdate { 0 };
 
 	std::set<int> m_ownedSkus;
 
@@ -481,10 +483,17 @@ void ClientExtCommerceComponent::LoadCommerceData()
 {
 	auto userId = GetUserId();
 
-	if (m_commerceDataLoaded || !userId)
+	// If we already have our commerce data, only allow the server to refresh it every 10 seconds so we're not spamming requests
+	if (!userId || (m_commerceDataLoaded && (msec() - m_lastUpdate) < 10s))
 	{
 		return;
 	}
+
+	// Reset our commerce data state so we can properly wait for it to load again (in case this is a refresh)
+	m_commerceDataLoaded = false;
+	// don't allow the client to re-fetch while we're doing the request, this will be set again further down
+	// once the request is finished
+	m_lastUpdate = msec();
 
 	fwRefContainer<ClientExtCommerceComponent> thisRef(this);
 
@@ -564,6 +573,7 @@ std::optional<int> ClientExtCommerceComponent::GetUserId()
 
 void ClientExtCommerceComponent::SetSkus(std::set<int>&& list)
 {
+	m_lastUpdate = msec();
 	m_ownedSkus = std::move(list);
 	m_commerceDataLoaded = true;
 }

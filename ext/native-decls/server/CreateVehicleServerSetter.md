@@ -22,7 +22,7 @@ Unlike CREATE_AUTOMOBILE, this supports other vehicle types as well.
 * **heading**: Heading to face towards, in degrees.
 
 ## Return value
-A script handle for the vehicle.
+A script handle for the vehicle, or 0 if the vehicle failed to be created.
 
 ## Examples
 ```lua

@@ -8,175 +8,219 @@
 
 #include <array>
 
-class MumbleCryptoImpl : public MumbleCrypto
+
+void MumbleCrypto::Encrypt(const uint8_t* plain, uint8_t* cipher, size_t length)
 {
-public:
-	MumbleCryptoImpl(const std::string& key, const std::string& clientNonce, const std::string& serverNonce)
-		: m_late(0), m_lost(0), m_good(0)
+	// increase the IV
+	for (size_t i = 0; i < m_clientNonce.size(); i++)
 	{
-		memcpy(m_key.data(), key.c_str(), 16);
-		memcpy(m_clientNonce.data(), clientNonce.c_str(), 16);
-		memcpy(m_serverNonce.data(), serverNonce.c_str(), 16);
-
-		Botan::SymmetricKey keyData(reinterpret_cast<const uint8_t*>(m_key.data()), m_key.size());
-
-		m_cipher = Botan::BlockCipher::create("AES-128");
-		m_cipher->set_key(keyData);
-	}
-
-	virtual void Encrypt(const uint8_t* plain, uint8_t* cipher, size_t length) override
-	{
-		// increase the IV
-		for (size_t i = 0; i < m_clientNonce.size(); i++)
+		if (++m_clientNonce[i])
 		{
-			if (++m_clientNonce[i])
-			{
-				break;
-			}
+			break;
 		}
-
-		// encrypt
-		uint8_t tag[16];
-		OCBEncrypt(plain, cipher + 4, length, m_clientNonce.data(), tag);
-
-		cipher[0] = m_clientNonce[0];
-		cipher[1] = tag[0];
-		cipher[2] = tag[1];
-		cipher[3] = tag[2];
 	}
 
-	virtual bool Decrypt(const uint8_t * cipher, uint8_t * plain, size_t length) override
+	// encrypt
+	uint8_t tag[16];
+	OCBEncrypt(plain, cipher + 4, length, m_clientNonce.data(), tag);
+
+	cipher[0] = m_clientNonce[0];
+	cipher[1] = tag[0];
+	cipher[2] = tag[1];
+	cipher[3] = tag[2];
+}
+
+bool MumbleCrypto::Decrypt(const uint8_t* cipher, uint8_t* plain, size_t length)
+{
+	if (length < 4)
 	{
-		if (length < 4)
+		console::DPrintf("mumble", "Tried to decrypt packet but it didn't have headers\n");
+		return false;
+	}
+
+	unsigned int plain_length = length - 4;
+
+	unsigned char saveiv[16];
+	unsigned char ivbyte = cipher[0];
+	bool restore = false;
+	unsigned char tag[16];
+
+	int lost = 0;
+	int late = 0;
+
+	memcpy(saveiv, m_serverNonce.data(), 16);
+
+	if (((m_serverNonce[0] + 1) & 0xFF) == ivbyte)
+	{
+		// In order as expected.
+		if (ivbyte > m_serverNonce[0])
+		{
+			m_serverNonce[0] = ivbyte;
+		}
+		else if (ivbyte < m_serverNonce[0])
+		{
+			int i;
+			m_serverNonce[0] = ivbyte;
+			for (i = 1; i < 16; i++)
+				if (++m_serverNonce[i])
+					break;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	else
+	{
+		// This is either out of order or a repeat.
+
+		int diff = ivbyte - m_serverNonce[0];
+		if (diff > 128)
+			diff = diff - 256;
+		else if (diff < -128)
+			diff = diff + 256;
+
+		if ((ivbyte < m_serverNonce[0]) && (diff > -30) && (diff < 0))
+		{
+			// Late packet, but no wraparound.
+			late = 1;
+			lost = -1;
+			m_serverNonce[0] = ivbyte;
+			restore = true;
+		}
+		else if ((ivbyte > m_serverNonce[0]) && (diff > -30) && (diff < 0))
+		{
+			int i;
+			// Last was 0x02, here comes 0xff from last round
+			late = 1;
+			lost = -1;
+			m_serverNonce[0] = ivbyte;
+			for (i = 1; i < 16; i++)
+				if (m_serverNonce[i]--)
+					break;
+			restore = true;
+		}
+		else if ((ivbyte > m_serverNonce[0]) && (diff > 0))
+		{
+			// Lost a few packets, but beyond that we're good.
+			lost = ivbyte - m_serverNonce[0] - 1;
+			m_serverNonce[0] = ivbyte;
+		}
+		else if ((ivbyte < m_serverNonce[0]) && (diff > 0))
+		{
+			int i;
+			// Lost a few packets, and wrapped around
+			lost = 256 - m_serverNonce[0] + ivbyte - 1;
+			m_serverNonce[0] = ivbyte;
+			for (i = 1; i < 16; i++)
+				if (++m_serverNonce[i])
+					break;
+		}
+		else
 		{
 			return false;
 		}
 
-		unsigned int plain_length = length - 4;
-
-		unsigned char saveiv[16];
-		unsigned char ivbyte = cipher[0];
-		bool restore = false;
-		unsigned char tag[16];
-
-		int lost = 0;
-		int late = 0;
-
-		memcpy(saveiv, m_serverNonce.data(), 16);
-
-		if (((m_serverNonce[0] + 1) & 0xFF) == ivbyte) {
-			// In order as expected.
-			if (ivbyte > m_serverNonce[0]) {
-				m_serverNonce[0] = ivbyte;
-			}
-			else if (ivbyte < m_serverNonce[0]) {
-				int i;
-				m_serverNonce[0] = ivbyte;
-				for (i = 1; i < 16; i++)
-					if (++m_serverNonce[i])
-						break;
-			}
-			else {
-				return false;
-			}
-		}
-		else {
-			// This is either out of order or a repeat.
-
-			int diff = ivbyte - m_serverNonce[0];
-			if (diff > 128)
-				diff = diff - 256;
-			else if (diff < -128)
-				diff = diff + 256;
-
-			if ((ivbyte < m_serverNonce[0]) && (diff > -30) && (diff < 0)) {
-				// Late packet, but no wraparound.
-				late = 1;
-				lost = -1;
-				m_serverNonce[0] = ivbyte;
-				restore = true;
-			}
-			else if ((ivbyte > m_serverNonce[0]) && (diff > -30) && (diff < 0)) {
-				int i;
-				// Last was 0x02, here comes 0xff from last round
-				late = 1;
-				lost = -1;
-				m_serverNonce[0] = ivbyte;
-				for (i = 1; i < 16; i++)
-					if (m_serverNonce[i]--)
-						break;
-				restore = true;
-			}
-			else if ((ivbyte > m_serverNonce[0]) && (diff > 0)) {
-				// Lost a few packets, but beyond that we're good.
-				lost = ivbyte - m_serverNonce[0] - 1;
-				m_serverNonce[0] = ivbyte;
-			}
-			else if ((ivbyte < m_serverNonce[0]) && (diff > 0)) {
-				int i;
-				// Lost a few packets, and wrapped around
-				lost = 256 - m_serverNonce[0] + ivbyte - 1;
-				m_serverNonce[0] = ivbyte;
-				for (i = 1; i < 16; i++)
-					if (++m_serverNonce[i])
-						break;
-			}
-			else {
-				return false;
-			}
-
-			if (m_decryptHistory[m_serverNonce[0]] == m_serverNonce[1]) {
-				memcpy(m_serverNonce.data(), saveiv, 16);
-				return false;
-			}
-		}
-
-		OCBDecrypt(cipher + 4, plain, plain_length, m_serverNonce.data(), tag);
-
-		if (memcmp(tag, cipher + 1, 3) != 0) {
+		if (m_decryptHistory[m_serverNonce[0]] == m_serverNonce[1])
+		{
 			memcpy(m_serverNonce.data(), saveiv, 16);
 			return false;
 		}
-
-		m_decryptHistory[m_serverNonce[0]] = m_serverNonce[1];
-
-		if (restore)
-			memcpy(m_serverNonce.data(), saveiv, 16);
-
-		m_good++;
-		m_late += late;
-		m_lost += lost;
-
-		return true;
 	}
 
-private:
-	std::array<uint8_t, 16> m_key;
-	std::array<uint8_t, 16> m_clientNonce;
-	std::array<uint8_t, 16> m_serverNonce;
+	OCBDecrypt(cipher + 4, plain, plain_length, m_serverNonce.data(), tag);
 
-	uint8_t m_decryptHistory[0x100];
+	if (memcmp(tag, cipher + 1, 3) != 0)
+	{
+		memcpy(m_serverNonce.data(), saveiv, 16);
+		return false;
+	}
 
-	std::unique_ptr<Botan::BlockCipher> m_cipher;
+	m_decryptHistory[m_serverNonce[0]] = m_serverNonce[1];
 
-	uint32_t m_good;
-	uint32_t m_late;
-	uint32_t m_lost;
+	if (restore)
+		memcpy(m_serverNonce.data(), saveiv, 16);
 
-private:
-	void OCBEncrypt(const unsigned char *plain, unsigned char *encrypted, unsigned int len, const unsigned char *nonce, unsigned char *tag);
-	void OCBDecrypt(const unsigned char *encrypted, unsigned char *plain, unsigned int len, const unsigned char *nonce, unsigned char *tag);
-};
+	m_localGood++;
+	m_localLate += late;
+	m_localLost += lost;
+
+	return true;
+}
+
+std::string MumbleCrypto::GetClientNonce()
+{
+	return std::string{ m_clientNonce.begin(), m_clientNonce.end() };
+}
+
+
+bool MumbleCrypto::SetServerNonce(const std::string& serverNonce)
+{
+	if (serverNonce.length() != AES_BLOCK_SIZE) { return false; }
+	memcpy(m_serverNonce.data(), serverNonce.c_str(), AES_BLOCK_SIZE);
+	return true;
+}
+
+bool MumbleCrypto::SetKey(const std::string& key, const std::string& clientNonce, const std::string& serverNonce)
+{
+	if (key.length() != AES_BLOCK_SIZE || clientNonce.length() != AES_BLOCK_SIZE)
+	{
+		return false;
+	}
+
+	memcpy(m_key.data(), key.c_str(), AES_BLOCK_SIZE);
+	memcpy(m_clientNonce.data(), clientNonce.c_str(), AES_BLOCK_SIZE);
+	if (!SetServerNonce(serverNonce))
+	{
+		return false;
+	}
+	const Botan::SymmetricKey keyData(m_key.data(), m_key.size());
+
+	m_cipher = Botan::BlockCipher::create("AES-128");
+	m_cipher->set_key(keyData);
+	m_init = true;
+	return true;
+}
+
+// if crypto has been initialized
+bool MumbleCrypto::IsInitialized() const
+{
+	return m_init;
+}
 
 DEFINE_HANDLER(CryptSetup)
 {
 	auto client = MumbleClient::GetCurrent();
 
-	const auto& key = data.key();
-	const auto& clientNonce = data.client_nonce();
-	const auto& serverNonce = data.server_nonce();
-
-	client->SetCrypto(new MumbleCryptoImpl(key, clientNonce, serverNonce));
+	if (data.has_key() && data.has_client_nonce() && data.has_server_nonce())
+	{
+		const auto& key = data.key();
+		const auto& clientNonce = data.client_nonce();
+		const auto& serverNonce = data.server_nonce();
+		
+		if (!client->m_crypto.SetKey(key, clientNonce, serverNonce))
+		{
+			console::PrintError("mumble", "Server sent invalid data for mumble crypto setup.\n");
+		}
+	}
+	else if (data.has_server_nonce())
+	{
+		const auto& serverNonce = data.server_nonce();
+		if (client->m_crypto.SetServerNonce(serverNonce))
+		{
+			client->m_crypto.m_localResync++;
+		}
+		else
+		{
+			console::PrintWarning("mumble", "Server sent an invalid size server nonce.\n");
+		}
+	}
+	else 
+	{
+		MumbleProto::CryptSetup cryptSetup;
+		cryptSetup.set_client_nonce(client->m_crypto.GetClientNonce());
+		client->Send(MumbleMessageType::CryptSetup, cryptSetup);
+	}
 });
 
 #include <stdint.h>
@@ -223,7 +267,7 @@ static void inline ZERO(subblock *block) {
 		block[i] = 0;
 }
 
-void MumbleCryptoImpl::OCBEncrypt(const unsigned char *plain, unsigned char *encrypted, unsigned int len, const unsigned char *nonce, unsigned char *tag)
+void MumbleCrypto::OCBEncrypt(const unsigned char *plain, unsigned char *encrypted, unsigned int len, const unsigned char *nonce, unsigned char *tag)
 {
 	subblock checksum[BLOCKSIZE], delta[BLOCKSIZE], tmp[BLOCKSIZE], pad[BLOCKSIZE];
 
@@ -259,7 +303,7 @@ void MumbleCryptoImpl::OCBEncrypt(const unsigned char *plain, unsigned char *enc
 	m_cipher->encrypt((uint8_t*)tmp, (uint8_t*)tag);
 }
 
-void MumbleCryptoImpl::OCBDecrypt(const unsigned char *encrypted, unsigned char *plain, unsigned int len, const unsigned char *nonce, unsigned char *tag) {
+void MumbleCrypto::OCBDecrypt(const unsigned char *encrypted, unsigned char *plain, unsigned int len, const unsigned char *nonce, unsigned char *tag) {
 	subblock checksum[BLOCKSIZE], delta[BLOCKSIZE], tmp[BLOCKSIZE], pad[BLOCKSIZE];
 	// Initialize
 	m_cipher->encrypt((uint8_t*)nonce, (uint8_t*)delta);

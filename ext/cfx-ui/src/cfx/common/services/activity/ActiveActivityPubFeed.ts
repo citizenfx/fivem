@@ -171,8 +171,12 @@ export class ActiveActivityPubFeed {
       },
     });
 
-    if (!isObject<IActivityPubAccount>(account) || account.type !== 'Person') {
-      throw new Error(`Unknown or invalid account for pub ${this.id}`);
+    if (!isObject<IActivityPubAccount>(account)) {
+      throw new Error(`Invalid account response for pub ${this.id}`);
+    }
+
+    if (account.type !== 'Person' && account.type !== 'Service') {
+      throw new Error(`Unknown or invalid account type ${account.type} for pub ${this.id}`);
     }
 
     if (!account.outbox) {
@@ -254,7 +258,7 @@ export class ActiveActivityPubFeed {
 type nay = any;
 
 export interface IActivityPubAccount {
-  type: 'Person' | string;
+  type: 'Person' | 'Service' | string;
 
   outbox: string;
 

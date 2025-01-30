@@ -76,10 +76,13 @@ void MumbleUser::UpdateUser(MumbleProto::UserState& state)
 	{
 		m_currentChannelId = state.channel_id();
 	}
+
+	console::DPrintf("mumble", "%s joined channel %d\n", ConvertToUTF8(m_name), m_currentChannelId);
 }
 
 void MumbleClientState::ProcessUserState(MumbleProto::UserState& userState)
 {
+
 	std::shared_ptr<MumbleUser> createdUser;
 
 	if (userState.has_session())

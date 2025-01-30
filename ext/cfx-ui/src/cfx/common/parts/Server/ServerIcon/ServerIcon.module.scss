@@ -30,14 +30,6 @@
     }
   }
 
-  &.glow {
-    .icon {
-      position: absolute;
-
-      inset: 0;
-    }
-  }
-
   .icon {
     width: 100%;
     height: 100%;
@@ -56,22 +48,5 @@
     height: 100%;
 
     background-color: ui.color-token('server-icon-loader-background');
-  }
-
-  .blur {
-    position: absolute;
-
-    inset: 0;
-
-    img {
-      width: 100%;
-      height: 100%;
-
-      @include ui.border-radius('small');
-
-      filter: blur(20px) contrast(200%);
-
-      opacity: .5;
-    }
   }
 }

@@ -103,7 +103,7 @@ static void* CreateSimpleAllocatorHook(void* a1, void* a2, void* a3, int a4, int
 static HookFunction hookFunction([]()
 {
 	smpaCtor = hook::get_pattern("41 8B F9 48 89 01 49 63 F0 48 8B EA B9 07", -0x23);
-	hook::call(hook::get_pattern("44 8D 49 04 88 4C 24 20 44 8B C3", 0x11), CreateSimpleAllocatorHook);
+	hook::call(hook::get_pattern("44 8D 49 04 88 4C 24 20 44 8B ? 48 8B", 0x11), CreateSimpleAllocatorHook);
 
 	// allocation of fragment bone cache
 	auto loc = hook::get_pattern("48 89 1F 0F B7 5B 5E B8 40 00 00 00", 8);

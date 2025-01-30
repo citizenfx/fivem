@@ -129,6 +129,11 @@ public:
 		return m_pArgs;
 	}
 
+	inline void* GetResultBuffer()
+	{
+		return m_pReturn;
+	}
+
 	// copy vector3 pointer results to the initial argument
 	inline void SetVectorResults()
 	{
@@ -185,29 +190,38 @@ struct scrThreadContext
 
 static_assert(sizeof(scrThreadContext) == 168, "scrThreadContext has wrong size!");
 
-class 
+class
 #ifdef COMPILING_RAGE_SCRIPTING_FIVE
-	__declspec(dllexport)
+__declspec(dllexport)
 #endif
-	scrThread
+scrThread
 {
 protected:
-	scrThreadContext		m_Context;
-	void*					m_pStack; // should be +176 including vtable
-	void*					pad;
-	void*					pad2;
+	scrThreadContext m_Context;
+	void* m_pStack; // should be +176 including vtable
+	void* pad;
+	void* pad2;
 
 	// should be +200
-	const char*				m_pszExitMessage;
+	const char* m_pszExitMessage;
 
 public:
-	virtual ~scrThread()																	{}
-	virtual eThreadState	Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)		= 0;
-	virtual eThreadState	Run(uint32_t opsToExecute)										= 0;
-	virtual eThreadState	Tick(uint32_t opsToExecute)										= 0;
-	virtual void			Kill()															= 0;
+	virtual uint64_t proxyMethod1(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
+	virtual uint64_t proxyMethod2(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
+	virtual uint64_t proxyMethod3(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
+	virtual uint64_t proxyMethod4(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
+	virtual uint64_t proxyMethod5(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
+	virtual uint64_t proxyMethod6(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
 
-	scrThreadContext*		GetContext()													{ return &m_Context; }
+	virtual eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) = 0;
+	virtual eThreadState Run(uint32_t opsToExecute) = 0;
+	virtual eThreadState Tick(uint32_t opsToExecute) = 0;
+	virtual void Kill() = 0;
+
+	scrThreadContext* GetContext()
+	{
+		return &m_Context;
+	}
 };
 }
 
@@ -235,12 +249,12 @@ protected:
 	char pad_b2699[8];
 
 public:
-	virtual void					DoRun() = 0;
-
 	virtual rage::eThreadState		Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount);
 	virtual rage::eThreadState		Run(uint32_t opsToExecute);
 	virtual rage::eThreadState		Tick(uint32_t opsToExecute);
 	virtual void					Kill();
+
+	virtual void DoRun() = 0;
 
 	inline void SetScriptName(const char* name)
 	{

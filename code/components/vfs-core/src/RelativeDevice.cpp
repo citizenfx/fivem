@@ -17,9 +17,9 @@ RelativeDevice::RelativeDevice(const fwRefContainer<Device>& otherDevice, const 
 {
 }
 
-Device::THandle RelativeDevice::Open(const std::string& fileName, bool readOnly)
+Device::THandle RelativeDevice::Open(const std::string& fileName, bool readOnly, bool append)
 {
-	return m_otherDevice->Open(TranslatePath(fileName), readOnly);
+	return m_otherDevice->Open(TranslatePath(fileName), readOnly, append);
 }
 
 Device::THandle RelativeDevice::OpenBulk(const std::string& fileName, uint64_t* ptr)
@@ -27,9 +27,9 @@ Device::THandle RelativeDevice::OpenBulk(const std::string& fileName, uint64_t* 
 	return m_otherDevice->OpenBulk(TranslatePath(fileName), ptr);
 }
 
-Device::THandle RelativeDevice::Create(const std::string& filename)
+Device::THandle RelativeDevice::Create(const std::string& filename, bool createIfExists, bool append)
 {
-	return m_otherDevice->Create(TranslatePath(filename));
+	return m_otherDevice->Create(TranslatePath(filename), createIfExists, append);
 }
 
 size_t RelativeDevice::Read(THandle handle, void* outBuffer, size_t size)
@@ -138,5 +138,10 @@ bool RelativeDevice::ExtensionCtl(int controlIdx, void* controlData, size_t cont
 void RelativeDevice::SetPathPrefix(const std::string& pathPrefix)
 {
 	m_pathPrefix = pathPrefix;
+}
+
+bool RelativeDevice::Flush(THandle handle)
+{
+	return m_otherDevice->Flush(handle);
 }
 }
