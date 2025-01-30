@@ -381,7 +381,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 		{
 			constexpr uint8_t pathLength = net::force_consteval<int, std::string_view("/players.json").size()>;
 			skyr::v1::url_search_parameters searchParameters (std::string_view{path.data() + pathLength, path.size() - pathLength});
-			if (auto token = searchParameters.get("token"); token.has_value() && server->GetPlayersToken() == token.value())
+			if (auto token = searchParameters.get("token"); token.has_value() && !token.value().empty() && server->GetPlayersToken() == token.value())
 			{
 				authorizedRequest = true;
 			}

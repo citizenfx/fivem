@@ -27,6 +27,8 @@
 
 #include <lua.hpp>
 
+#include "ComponentExport.h"
+
 // Linkage specified in lua.hpp to include/link-against internal structure
 // definitions. Note, for ELF builds LUAI_FUNC will mark the function as hidden.
 // Lua5.4 is compiled as a C++ library.
@@ -82,12 +84,12 @@ private:
 	/// <summary>
 	/// Create a lua_State instance with a rpmalloc allocator.
 	/// </summary>
-	static lua_State* lua_rpmalloc_state(void*& opaque);
+	static COMPONENT_EXPORT(CITIZEN_SCRIPTING_LUA) lua_State* lua_rpmalloc_state(void*& opaque);
 
 	/// <summary>
 	/// Free/Dispose any additional resources associated with the Lua state.
 	/// </summary>
-	static void lua_rpmalloc_free(void* opaque);
+	static COMPONENT_EXPORT(CITIZEN_SCRIPTING_LUA) void lua_rpmalloc_free(void* opaque);
 
 	/// <summary>
 	/// Reference to the heap_t pointer. At the time of destruction lua_getallocf
@@ -305,8 +307,13 @@ public:
 
 	LUA_INLINE const char* GetResourceName()
 	{
-		char* resourceName = "";
+		static const char* emptyResourceName = "";
+		char* resourceName = nullptr;
 		m_resourceHost->GetResourceName(&resourceName);
+		if (!resourceName)
+		{
+			return emptyResourceName;
+		}
 
 		return resourceName;
 	}
@@ -332,6 +339,16 @@ public:
 	/// e.g., DeleteFunctionReference, it requires an active script runtime.
 	/// </summary>
 	bool IScriptProfiler_Tick(bool begin);
+
+#if LUA_VERSION_NUM == 503
+	// visible for testing
+	static COMPONENT_EXPORT(CITIZEN_SCRIPTING_LUA) const luaL_Reg* GetCitizenLibs();
+	static COMPONENT_EXPORT(CITIZEN_SCRIPTING_LUA) const luaL_Reg* GetLuaLibs();
+#else
+	// visible for testing
+	static COMPONENT_EXPORT(CITIZEN_SCRIPTING_LUA54) const luaL_Reg* GetCitizenLibs();
+	static COMPONENT_EXPORT(CITIZEN_SCRIPTING_LUA54) const luaL_Reg* GetLuaLibs();
+#endif
 
 private:
 	result_t LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile);
@@ -375,6 +392,8 @@ public:
 	NS_DECL_ISCRIPTWARNINGRUNTIME;
 };
 
+int Lua_Print(lua_State* L);
+
 void ScriptTraceV(const char* string, fmt::printf_args formatList);
 
 template<typename... TArgs>
@@ -383,4 +402,5 @@ LUA_INLINE void ScriptTrace(const char* string, const TArgs&... args)
 	ScriptTraceV(string, fmt::make_printf_args(args...));
 }
 }
+
 #endif

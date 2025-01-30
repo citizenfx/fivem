@@ -351,7 +351,7 @@ public:
 									fx::ScriptContextBuffer reqCtx;
 									reqCtx.Push(hash);
 
-									(*fx::ScriptEngine::GetNativeHandler(REQUEST_MODEL))(reqCtx);
+									fx::ScriptEngine::GetNativeHandler(REQUEST_MODEL)(reqCtx);
 								});
 
 								conditions.push_back([=]()
@@ -365,7 +365,7 @@ public:
 									fx::ScriptContextBuffer loadedCtx;
 									loadedCtx.Push(hash);
 
-									(*fx::ScriptEngine::GetNativeHandler(HAS_MODEL_LOADED))(loadedCtx);
+									fx::ScriptEngine::GetNativeHandler(HAS_MODEL_LOADED)(loadedCtx);
 
 									return loadedCtx.GetResult<bool>();
 								});
@@ -381,7 +381,7 @@ public:
 									fx::ScriptContextBuffer releaseCtx;
 									releaseCtx.Push(hash);
 
-									(*fx::ScriptEngine::GetNativeHandler(SET_MODEL_AS_NO_LONGER_NEEDED))(releaseCtx);
+									fx::ScriptEngine::GetNativeHandler(SET_MODEL_AS_NO_LONGER_NEEDED)(releaseCtx);
 								});
 							}
 
@@ -504,7 +504,7 @@ public:
 					{
 						try
 						{
-							CallHandler(*n, nativeHash, *executionCtx);
+							CallHandler(n, nativeHash, *executionCtx);
 						}
 						catch (std::exception& e)
 						{

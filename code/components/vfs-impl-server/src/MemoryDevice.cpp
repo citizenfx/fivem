@@ -9,7 +9,7 @@ class MemoryDevice : public Device
 public:
 	virtual ~MemoryDevice() override;
 
-	virtual THandle Open(const std::string& fileName, bool readOnly) override;
+	virtual THandle Open(const std::string& fileName, bool readOnly, bool append = false) override;
 
 	virtual THandle OpenBulk(const std::string& fileName, uint64_t* ptr) override;
 
@@ -35,6 +35,16 @@ public:
 
 	// Sets the path prefix for the device, which implementations should strip for generating a local path portion.
 	virtual void SetPathPrefix(const std::string& pathPrefix) override;
+
+	virtual std::string GetAbsolutePath() const override
+	{
+		return {};
+	}
+
+	bool Flush(THandle handle) override
+	{
+		return true;
+	}
 };
 
 struct MemoryHandle
@@ -49,7 +59,7 @@ MemoryDevice::~MemoryDevice()
 
 }
 
-Device::THandle MemoryDevice::Open(const std::string& fileName, bool readOnly)
+Device::THandle MemoryDevice::Open(const std::string& fileName, bool readOnly, bool append)
 {
 	if (!readOnly)
 	{

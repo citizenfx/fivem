@@ -3,6 +3,8 @@
 
 #include <LocalDevice.h>
 
+#include <filesystem>
+
 namespace vfs
 {
 ManagerServer::ManagerServer()
@@ -11,6 +13,48 @@ ManagerServer::ManagerServer()
 }
 
 fwRefContainer<Device> MakeMemoryDevice();
+
+fwRefContainer<Device> ManagerServer::FindDevice(const std::string& absolutePath, std::string& transformedPath)
+{
+	std::filesystem::path absolute(absolutePath);
+	std::string absoluteGenericString = std::filesystem::absolute(absolute).generic_string();
+	std::lock_guard<std::recursive_mutex> lock(m_mountMutex);
+
+	size_t longestPrefixLength = 0;
+	fwRefContainer<Device> foundDevice {nullptr};
+	for (const auto& mount : m_mounts)
+	{
+		for (const auto& device : mount.devices)
+		{
+			// check if the device has an absolute path
+			if (device->GetAbsolutePath().empty())
+			{
+				continue;
+			}
+
+			std::string deviceAbsolutePath = std::filesystem::absolute(std::filesystem::path(device->GetAbsolutePath())).generic_string();
+			size_t prefixLength = deviceAbsolutePath.size();
+
+			// find the device with the largest prefix length
+			if (longestPrefixLength > prefixLength)
+			{
+				continue;
+			}
+
+			// device matches if the path start is the same
+			// e.g. usr/local/bin starts with /usr/local/
+			if (absoluteGenericString.rfind(deviceAbsolutePath, 0) == 0)
+			{
+				longestPrefixLength = deviceAbsolutePath.size();
+				foundDevice = device;
+				// e.g. /usr/local/bin -> bin, @local/bin
+				transformedPath = mount.prefix + absoluteGenericString.substr(deviceAbsolutePath.size());
+			}
+		}
+	}
+
+	return foundDevice;
+}
 
 fwRefContainer<Device> ManagerServer::GetDevice(const std::string& path)
 {

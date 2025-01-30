@@ -55,9 +55,13 @@ public:
 
 	std::vector<uint8_t> ReadToEnd();
 
+	size_t ReadToEndBuffered(std::vector<uint8_t>& buffer);
+
 	inline Device::THandle GetHandle()
 	{
 		return m_handle;
 	}
+
+	bool Flush();
 };
 }

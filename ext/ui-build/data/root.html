@@ -55,6 +55,11 @@ registerPushFunction(function(type, ...args) {
 				handoverBlob = data.data;
 			} else if (data.type == 'setServerAddress') {
 				serverAddress = data.data;
+			} else if (data.type == 'setZIndex') {
+				const { frameName, zIndex } = data;
+				if (frameName in citFrames) {
+					citFrames[frameName].style.zIndex = zIndex;
+				}
 			}
 			break;
 		}

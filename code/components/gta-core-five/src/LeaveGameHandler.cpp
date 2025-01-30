@@ -44,8 +44,11 @@ static HookFunction hookFunction([]()
 	// pausemenu triggers
 	{
 		char* location;
-
-		if (xbr::IsGameBuildOrGreater<2802>())
+		if (xbr::IsGameBuildOrGreater<3407>())
+		{
+			location = hook::pattern("48 8D 8D ? ? ? ? BE ? ? ? ? 89 B5").count(1).get(0).get<char>(-5);
+		}
+		else if (xbr::IsGameBuildOrGreater<2802>())
 		{
 			location = hook::pattern("48 8D 8D 18 01 00 00 41 BE 74 26 B5 9F").count(1).get(0).get<char>(-5);
 		}

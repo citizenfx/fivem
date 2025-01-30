@@ -25,6 +25,42 @@
 #include "Utils.h"
 #include "om/core.h"
 
+namespace fx
+{
+enum class ConVarPermission: uint8_t
+{
+	None,
+	Read
+};
+
+typedef std::string ResourceName;
+typedef std::string ConVarName;
+
+struct ResourceTupleHash
+{
+	std::size_t operator()(const std::tuple<ResourceName, ConVarName>& t) const noexcept
+	{
+		return std::hash<ResourceName>()(std::get<0>(t)) ^ (std::hash<ConVarName>()(std::get<1>(t)) << 1);
+	}
+};
+
+struct ResourceTupleEqual
+{
+	bool operator()(const std::tuple<ResourceName, ConVarName>& t1, const std::tuple<ResourceName, ConVarName>& t2) const
+	{
+		return t1 == t2;
+	}
+};
+
+static bool g_permissionModifyAllowed{true};
+
+static std::unordered_map<std::tuple<ResourceName, ConVarName>, ConVarPermission, ResourceTupleHash, ResourceTupleEqual>
+g_permissions{};
+// for compatibility reasons only convars that get permissions setted are restricted
+// so they get added to this set for fast check if permission check is required
+static std::unordered_set<ConVarName> g_restrictedConVars {};
+}
+
 // copied from conhost-v2
 static std::regex MakeRegex(const std::string& pattern)
 {
@@ -64,6 +100,43 @@ bool IsConVarScriptRestricted(ConsoleVariableManager* varMan, const std::string&
 	return varMan->GetEntryFlags(varName) & ConVar_ScriptRestricted;
 }
 
+#if IS_FXSERVER
+bool CanReadConVar(const std::string& varName)
+{
+	if (!fx::g_restrictedConVars.count(varName))
+	{
+		return true;
+	}
+	
+	fx::OMPtr<IScriptRuntime> runtime;
+	std::string currentResourceName;
+	if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+	{
+		return false;
+	}
+
+	fx::Resource* resource = static_cast<fx::Resource*>(runtime->GetParentObject());
+
+	if (!resource)
+	{
+		return false;
+	}
+
+	auto permission = fx::g_permissions.find({resource->GetName(), varName});
+	if (permission == fx::g_permissions.end() || permission->second != fx::ConVarPermission::Read)
+	{
+		return false;
+	}
+
+	return true;
+}
+#else
+bool CanReadConVar(const std::string& varName)
+{
+	return true;
+}
+#endif
+
 template<typename T>
 void GetConVar(fx::ScriptContext& context)
 {
@@ -90,7 +163,6 @@ void GetConVar(fx::ScriptContext& context)
 		context.SetResult(defaultValue);
 		return;
 	}
-
 
 	static std::string varVal;
 
@@ -135,11 +207,43 @@ void GetConVar(fx::ScriptContext& context)
 		return;
 	}
 
+	if (!CanReadConVar(varName))
+	{
+		context.SetResult(defaultValue);
+		return;
+	}
+
 	context.SetResult(returnValue);
 }
 
 static InitFunction initFunction([]()
 {
+#if IS_FXSERVER
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	{
+		static ConsoleCommand addFSPermCmd("add_convar_permission", [](const std::string& resource, const std::string& operation, const std::string& conVar)
+		{
+			if (!fx::g_permissionModifyAllowed)
+			{
+				console::PrintWarning(_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
+				"add_convar_permission is only executable before the server finished execution.\n"
+				);
+				return;
+			}
+			
+			if (operation != "read")
+			{
+				// make operation configurable for future usage
+				return;
+			}
+
+			fx::g_restrictedConVars.insert(conVar);
+
+			fx::g_permissions[{resource, conVar}] = fx::ConVarPermission::Read;
+		});
+	});
+#endif
+	
 	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR", GetConVar<const char*>);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR_INT", GetConVar<int>);
@@ -176,6 +280,11 @@ static InitFunction initFunction([]()
 
 		auto cookie = varMan->OnConvarModified.Connect(make_shared_function([rm, variableRegex, cbRef = std::move(cbRef), varMan](const std::string& varName)
 		{
+			if (!CanReadConVar(varName))
+			{
+				return true;
+			}
+
 			if (IsConVarScriptRestricted(varMan, varName))
 			{
 				return true;

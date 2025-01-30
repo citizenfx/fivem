@@ -58,7 +58,7 @@ inline bool Is2060()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGTA5Build() >= 2060) || fx::GetEnforcedGameBuildNumber() >= 2060;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2060) || fx::GetEnforcedGameBuildNumber() >= 2060;
 	})();
 
 	return value;
@@ -68,7 +68,7 @@ inline bool Is2189()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGTA5Build() >= 2189) || fx::GetEnforcedGameBuildNumber() >= 2189;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2189) || fx::GetEnforcedGameBuildNumber() >= 2189;
 	})();
 
 	return value;
@@ -78,7 +78,7 @@ inline bool Is2372()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGTA5Build() >= 2372) || fx::GetEnforcedGameBuildNumber() >= 2372;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2372) || fx::GetEnforcedGameBuildNumber() >= 2372;
 	})();
 
 	return value;
@@ -88,7 +88,7 @@ inline bool Is2545()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGTA5Build() >= 2545) || fx::GetEnforcedGameBuildNumber() >= 2545;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2545) || fx::GetEnforcedGameBuildNumber() >= 2545;
 	})();
 
 	return value;
@@ -98,7 +98,7 @@ inline bool Is2612()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGTA5Build() >= 2612) || fx::GetEnforcedGameBuildNumber() >= 2612;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2612) || fx::GetEnforcedGameBuildNumber() >= 2612;
 	})();
 
 	return value;
@@ -108,7 +108,7 @@ inline bool Is2699()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGTA5Build() >= 2699) || fx::GetEnforcedGameBuildNumber() >= 2699;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2699) || fx::GetEnforcedGameBuildNumber() >= 2699;
 	})();
 
 	return value;
@@ -118,7 +118,7 @@ inline bool Is2802()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGTA5Build() >= 2802) || fx::GetEnforcedGameBuildNumber() >= 2802;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2802) || fx::GetEnforcedGameBuildNumber() >= 2802;
 	})();
 
 	return value;
@@ -128,7 +128,7 @@ inline bool Is2944()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGTA5Build() >= 2944) || fx::GetEnforcedGameBuildNumber() >= 2944;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2944) || fx::GetEnforcedGameBuildNumber() >= 2944;
 	})();
 
 	return value;
@@ -138,7 +138,7 @@ inline bool Is3095()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGTA5Build() >= 3095) || fx::GetEnforcedGameBuildNumber() >= 3095;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3095) || fx::GetEnforcedGameBuildNumber() >= 3095;
 	})();
 
 	return value;
@@ -148,7 +148,7 @@ inline bool Is3258()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGTA5Build() >= 3258) || fx::GetEnforcedGameBuildNumber() >= 3258;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3258) || fx::GetEnforcedGameBuildNumber() >= 3258;
 	})();
 
 	return value;
@@ -158,7 +158,17 @@ inline bool Is3323()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetLatestStableGTA5Build() >= 3323) || fx::GetEnforcedGameBuildNumber() >= 3323;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3323) || fx::GetEnforcedGameBuildNumber() >= 3323;
+	})();
+
+	return value;
+}
+
+inline bool Is3407()
+{
+	static bool value = ([]()
+	{
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3407) || fx::GetEnforcedGameBuildNumber() >= 3407;
 	})();
 
 	return value;
@@ -491,7 +501,7 @@ struct CVehicleGameStateNodeData
 	bool sirenOn;
 	int lockStatus;
 	int doorsOpen;
-	int doorPositions[1 << 7];
+	int doorPositions[7];
 	bool isStationary;
 	bool lightsOn;
 	bool highbeamsOn;
@@ -858,7 +868,6 @@ enum EntityOrphanMode : uint8_t
 	DeleteOnOwnerDisconnect = 1,
 	KeepEntity = 2,
 };
-
 struct SyncEntityState
 {
 	using TData = std::variant<int, float, bool, std::string>;
@@ -1358,6 +1367,10 @@ public:
 	
 	void GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_t numIds, std::vector<uint16_t>& freeIds);
 
+#ifdef STATE_FIVE
+	void IterateTrainLink(const sync::SyncEntityPtr& train, std::function<bool(sync::SyncEntityPtr&)> fn, bool callOnInitialEntity = true);
+#endif
+
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
 
 	bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<StateBag>()> createStateBag) override;
@@ -1372,7 +1385,51 @@ private:
 	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
 
 public:
-	void DeleteEntity(const fx::sync::SyncEntityPtr& entity);
+
+	template<bool IgnoreTrainChecks = false>
+	void DeleteEntity(const fx::sync::SyncEntityPtr& entity)
+	{
+		if (entity->type == sync::NetObjEntityType::Player || !entity->syncTree)
+		{
+			return;
+		}
+
+		// can only be used on FiveM, RDR doesn't have its sync nodes filled out
+#ifdef STATE_FIVE
+		// this will be ignored by DELETE_TRAIN so calling on any part of the train will delete the entire thing
+		if constexpr (!IgnoreTrainChecks)
+		{
+
+			if (entity->type == sync::NetObjEntityType::Train;
+				auto trainState = entity->syncTree->GetTrainState())
+			{
+				// don't allow the deletion of carriages until we can modify sync node data and overwrite the linked forward/linked backwards state
+				if (trainState->engineCarriage && trainState->engineCarriage != entity->handle)
+				{
+					return;
+				}
+			}
+		}
+#endif
+
+		gscomms_execute_callback_on_sync_thread([=]()
+		{
+#ifdef STATE_FIVE
+			if (entity->type == sync::NetObjEntityType::Train)
+			{
+				// recursively delete every part of the train
+				IterateTrainLink(entity, [=](fx::sync::SyncEntityPtr& train)
+				{
+					RemoveClone({}, train->handle);
+
+					return true;
+				});
+				return;
+			}
+#endif
+			RemoveClone({}, entity->handle);
+		});
+	}
 
 	void ClearClientFromWorldGrid(const fx::ClientSharedPtr& targetClient);
 

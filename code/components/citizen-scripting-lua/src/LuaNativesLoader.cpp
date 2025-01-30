@@ -46,7 +46,7 @@ static bool MountNatives(const std::string& name)
 class MarkerDevice : public vfs::Device
 {
 	// Inherited via Device
-	virtual THandle Open(const std::string& fileName, bool readOnly) override
+	virtual THandle Open(const std::string& fileName, bool readOnly, bool append = false) override
 	{
 		if (fileName == "n:m:a:r:k:e:r" && readOnly)
 		{
@@ -83,6 +83,16 @@ class MarkerDevice : public vfs::Device
 
 	virtual void FindClose(THandle handle) override
 	{
+	}
+
+	virtual std::string GetAbsolutePath() const override
+	{
+		return "";
+	}
+
+	bool Flush(THandle handle) override
+	{
+		return true;
 	}
 };
 

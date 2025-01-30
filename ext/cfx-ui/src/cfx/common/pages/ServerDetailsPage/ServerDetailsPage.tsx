@@ -107,7 +107,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                 <Pad size="xlarge">
                   <Flex gap="xlarge">
                     <Flex vertical>
-                      <ServerIcon glow type="details" server={server} />
+                      <ServerIcon type="details" server={server} />
 
                       <Flex centered className={s.decorator}>
                         {!!server.premium && (

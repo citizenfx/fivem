@@ -46,6 +46,8 @@ public:
 public:
 	virtual fwRefContainer<Device> GetDevice(const std::string& path) override;
 
+	virtual fwRefContainer<Device> FindDevice(const std::string& absolutePath, std::string& transformedPath) override;
+
 	virtual fwRefContainer<Device> GetNativeDevice(void* nativeDevice) override;
 
 	virtual void Mount(fwRefContainer<Device> device, const std::string& path) override;

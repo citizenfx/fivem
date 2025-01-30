@@ -90,8 +90,8 @@ struct DrawOriginStore
 
 static bool(*isGamePaused)();
 
-static int* g_frameDrawIndex1;
-static int* g_frameDrawIndex2;
+static int* g_renderBufferIndex;
+static int* g_updateBufferIndex;
 static DrawOriginStore* g_drawOriginStore;
 static uint32_t* g_scriptDrawOriginIndex;
 
@@ -121,8 +121,8 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern<char>("48 69 D0 10 04 00 00 48 8D 05 ? ? ? ? 48 03");
 
-		g_frameDrawIndex1 = hook::get_address<int*>(location - 20);
-		g_frameDrawIndex2 = hook::get_address<int*>(location - 7);
+		g_renderBufferIndex = hook::get_address<int*>(location - 20);
+		g_updateBufferIndex = hook::get_address<int*>(location - 7);
 		g_drawOriginStore = hook::get_address<DrawOriginStore*>(location + 10);
 
 		hook::set_call(&isGamePaused, location - 27);
@@ -147,10 +147,8 @@ static HookFunction hookFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_DRAW_ORIGIN", [](fx::ScriptContext& context)
 	{
-		auto drawIndex = *(isGamePaused() ? g_frameDrawIndex2 : g_frameDrawIndex1);
-
-		auto& store = g_drawOriginStore[drawIndex];
-		const auto index = store.m_count;
+		DrawOriginStore& store = g_drawOriginStore[*g_updateBufferIndex];
+		const uint32_t index = store.m_count;
 
 		if (index >= 32)
 		{

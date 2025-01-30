@@ -95,7 +95,7 @@ namespace fx
 			cxt.Push(ref.c_str());
 
 			static auto nativeHandler = ScriptEngine::GetNativeHandler(HashString("DUPLICATE_FUNCTION_REFERENCE"));
-			(*nativeHandler)(cxt);
+			nativeHandler(cxt);
 		}
 
 		FunctionRef(const FunctionRef&) = delete;
@@ -120,7 +120,7 @@ namespace fx
 				cxt.Push(m_ref.c_str());
 
 				static auto nativeHandler = ScriptEngine::GetNativeHandler(HashString("DELETE_FUNCTION_REFERENCE"));
-				(*nativeHandler)(cxt);
+				nativeHandler(cxt);
 			}
 		}
 

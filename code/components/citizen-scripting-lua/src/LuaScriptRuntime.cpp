@@ -26,6 +26,9 @@
 #include <lua_cmsgpacklib.h>
 #include <lua_rapidjsonlib.h>
 #include <lmprof_lib.h>
+
+#include "LuaFXLib.h"
+#include "VFSManager.h"
 #if LUA_VERSION_NUM == 504
 #include <lglmlib.hpp>
 #endif
@@ -164,16 +167,16 @@ static const luaL_Reg lualibs[] = {
 	{ LUA_TABLIBNAME, luaopen_table },
 	{ LUA_STRLIBNAME, luaopen_string },
 	{ LUA_MATHLIBNAME, luaopen_math },
-	{ LUA_DBLIBNAME, luaopen_debug },
 	{ LUA_COLIBNAME, luaopen_coroutine },
 	{ LUA_UTF8LIBNAME, luaopen_utf8 },
+	{ LUA_FX_DEBUGLIBNAME, fx::lua_fx_opendebug },
 #ifdef IS_FXSERVER
-	{ LUA_IOLIBNAME, luaopen_io },
-	{ LUA_OSLIBNAME, luaopen_os },
+	{ LUA_FX_IOLIBNAME, fx::lua_fx_openio },
+	{ LUA_FX_OSLIBNAME, fx::lua_fx_openos },
 #endif
 	{ "msgpack", luaopen_cmsgpack },
 	{ "json", luaopen_rapidjson },
-	{ NULL, NULL }
+	{ nullptr, nullptr }
 };
 
 /// <summary>
@@ -189,7 +192,7 @@ void ScriptTraceV(const char* string, fmt::printf_args formatList)
 	LuaScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
 }
 
-static int Lua_Print(lua_State* L)
+int Lua_Print(lua_State* L)
 {
 	const int n = lua_gettop(L); /* number of arguments */
 
@@ -753,7 +756,7 @@ static int Lua_GetPointerField(lua_State* L)
 	{
 		value = 0;
 	}
-	else if constexpr (field == MetaField::PointerValueInt)
+	else if constexpr (field == MetaField::PointerValueInteger)
 	{
 		value = (uint64_t)luaL_checkinteger(L, 1);
 	}
@@ -1179,9 +1182,9 @@ static const struct luaL_Reg g_citizenLib[] = {
 	{ "SubmitBoundaryEnd", Lua_SubmitBoundaryEnd },
 	{ "SetStackTraceRoutine", Lua_SetStackTraceRoutine },
 	// metafields
-	{ "PointerValueIntInitialized", Lua_GetPointerField<MetaField::PointerValueInt> },
+	{ "PointerValueIntInitialized", Lua_GetPointerField<MetaField::PointerValueInteger> },
 	{ "PointerValueFloatInitialized", Lua_GetPointerField<MetaField::PointerValueFloat> },
-	{ "PointerValueInt", Lua_GetMetaField<MetaField::PointerValueInt> },
+	{ "PointerValueInt", Lua_GetMetaField<MetaField::PointerValueInteger> },
 	{ "PointerValueFloat", Lua_GetMetaField<MetaField::PointerValueFloat> },
 	{ "PointerValueVector", Lua_GetMetaField<MetaField::PointerValueVector> },
 	{ "ReturnResultAnyway", Lua_GetMetaField<MetaField::ReturnResultAnyway> },
@@ -1887,6 +1890,16 @@ bool LuaScriptRuntime::IScriptProfiler_Tick(bool begin)
 	return false;
 }
 
+const luaL_Reg* LuaScriptRuntime::GetCitizenLibs()
+{
+	return g_citizenLib;
+}
+
+const luaL_Reg* LuaScriptRuntime::GetLuaLibs()
+{
+	return lualibs;
+}
+
 result_t LuaScriptRuntime::SetupFxProfiler(void* obj, int32_t resourceId)
 {
 	lua_State* L = m_state.Get();
@@ -2039,8 +2052,3 @@ FX_NEW_FACTORY(LuaScriptRuntime);
 FX_IMPLEMENTS(CLSID_LuaScriptRuntime, IScriptRuntime);
 FX_IMPLEMENTS(CLSID_LuaScriptRuntime, IScriptFileHandlingRuntime);
 }
-
-#if !defined(_DEBUG) && !defined(BUILD_LUA_SCRIPT_NATIVES)
-	#define BUILD_LUA_SCRIPT_NATIVES
-	#include "LuaScriptNatives.cpp"
-#endif

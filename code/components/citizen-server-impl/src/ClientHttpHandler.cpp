@@ -9,6 +9,8 @@
 #include <json.hpp>
 #include <rapidjson/writer.h>
 
+#include <FormData.h>
+
 using json = nlohmann::json;
 
 static std::shared_ptr<ConVar<bool>> g_threadedHttpVar;
@@ -52,7 +54,8 @@ namespace fx
 					return;
 				}
 
-				auto postMap = ParsePOSTString(std::string(postData.begin(), postData.end()));
+				std::string_view postDataStringView {reinterpret_cast<const char*>(postData.data()), postData.size()};
+				auto postMap = net::DecodeFormData(postDataStringView);
 
 				auto method = postMap.find("method");
 

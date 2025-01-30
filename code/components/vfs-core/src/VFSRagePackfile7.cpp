@@ -252,7 +252,7 @@ namespace vfs
 		return nullptr;
 	}
 
-	RagePackfile7::THandle RagePackfile7::Open(const std::string& fileName, bool readOnly)
+	RagePackfile7::THandle RagePackfile7::Open(const std::string& fileName, bool readOnly, bool append)
 	{
 		if (readOnly)
 		{
@@ -642,5 +642,10 @@ namespace vfs
 	void RagePackfile7::SetPathPrefix(const std::string& pathPrefix)
 	{
 		m_pathPrefix = pathPrefix.substr(0, pathPrefix.find_last_not_of('/') + 1);
+	}
+
+	bool RagePackfile7::Flush(THandle handle)
+	{
+		return true;
 	}
 }

@@ -26,6 +26,7 @@
 #include <thread>
 
 #include <uvw.hpp>
+#include <botan/block_cipher.h>
 
 namespace net
 {
@@ -69,12 +70,51 @@ public:
 	}
 };
 
+
+constexpr uint8_t AES_BLOCK_SIZE = 16;
+
 class MumbleCrypto : public fwRefCountable
 {
 public:
-	virtual void Encrypt(const uint8_t* plain, uint8_t* cipher, size_t length) = 0;
+	uint32_t m_remoteGood;
+	uint32_t m_remoteLate;
+	uint32_t m_remoteLost;
+	uint32_t m_remoteResync;
 
-	virtual bool Decrypt(const uint8_t* cipher, uint8_t* plain, size_t length) = 0;
+	uint32_t m_localGood;
+	uint32_t m_localLate;
+	uint32_t m_localLost;
+	uint32_t m_localResync;
+
+	void Encrypt(const uint8_t* plain, uint8_t* cipher, size_t length);
+	bool Decrypt(const uint8_t* cipher, uint8_t* plain, size_t length);
+	std::string GetClientNonce();
+
+	bool SetServerNonce(const std::string& serverNonce);
+	bool SetKey(const std::string& key, const std::string& clientNonce, const std::string& serverNonce);
+	bool IsInitialized() const;
+
+
+	MumbleCrypto()
+	{
+		memset(m_key.data(), 0, AES_BLOCK_SIZE);
+		memset(m_clientNonce.data(), 0, AES_BLOCK_SIZE);
+		memset(m_serverNonce.data(), 0, AES_BLOCK_SIZE);
+	}
+private:
+	std::array<uint8_t, 16> m_key;
+	std::array<uint8_t, 16> m_clientNonce;
+	std::array<uint8_t, 16> m_serverNonce;
+
+	bool m_init;
+
+	uint8_t m_decryptHistory[0x100];
+
+	std::unique_ptr<Botan::BlockCipher> m_cipher;
+
+private:
+	void OCBEncrypt(const unsigned char *plain, unsigned char *encrypted, unsigned int len, const unsigned char *nonce, unsigned char *tag);
+	void OCBDecrypt(const unsigned char *encrypted, unsigned char *plain, unsigned int len, const unsigned char *nonce, unsigned char *tag);
 };
 
 class MumbleClient : public IMumbleClient, public Botan::TLS::Callbacks
@@ -195,13 +235,20 @@ private:
 
 	int m_voiceTarget;
 
-	std::chrono::milliseconds m_lastUdp;
+	uint16_t m_inFlightTcpPings = 0;
+
+	bool m_hasUdp = false;
+
+	bool m_udpTimedOut = false;
+
+	// the time in milliseconds since the player joined the mumble server
+	// This is used in for `Ping` packets to determine if we should allow the client to swap from UDP -> TCP
+	// By default we wont swap back to TCP for the first 20 seconds of the clients connection (only after we have UDP)
+	std::chrono::milliseconds m_timeSinceJoin;
 
 	std::chrono::milliseconds m_nextPing;
 
 	TPositionHook m_positionHook;
-
-	fwRefContainer<MumbleCrypto> m_crypto;
 
 	std::string m_curManualChannel;
 
@@ -214,6 +261,8 @@ private:
 	std::map<int, VoiceTargetConfig> m_pendingVoiceTargetUpdates;
 
 public:
+	MumbleCrypto m_crypto;
+
 	static fwRefContainer<MumbleClient> GetCurrent();
 
 	inline int GetVoiceTarget() { return m_voiceTarget; }
@@ -243,11 +292,6 @@ public:
 	void HandleVoice(const uint8_t* data, size_t size);
 
 	void HandleUDP(const uint8_t* buf, size_t size);
-
-	inline void SetCrypto(const fwRefContainer<MumbleCrypto>& crypto)
-	{
-		m_crypto = crypto;
-	}
 
 	// Botan::TLS::Callbacks
 public:

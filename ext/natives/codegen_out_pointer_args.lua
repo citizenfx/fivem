@@ -14,38 +14,53 @@ PAS_RET_FLOAT = 2
 PAS_RET_LONG = 3
 PAS_RET_VECTOR3 = 4
 PAS_RET_STRING = 5
-PAS_RET_SCRSTRING = 6
-PAS_RET_SCROBJECT = 7
+PAS_RET_OBJECT = 7
 
 local typeSizes = {
     ['Vector3'] = 24,
 }
 
 local paramOverrides = {
-    ['CFX/SET_RUNTIME_TEXTURE_ARGB_DATA/buffer'] = PAS_ARG_POINTER | PAS_ARG_BUFFER,
-    ['CFX/SET_STATE_BAG_VALUE/valueData']        = PAS_ARG_POINTER | PAS_ARG_BUFFER,
+    ['CFX/SET_RUNTIME_TEXTURE_ARGB_DATA/1'] = PAS_ARG_POINTER | PAS_ARG_BUFFER, -- buffer
+    ['CFX/SET_STATE_BAG_VALUE/2']           = PAS_ARG_POINTER | PAS_ARG_BUFFER, -- valueData
+    ['CFX/PERFORM_HTTP_REQUEST_INTERNAL/0'] = PAS_ARG_POINTER | PAS_ARG_BUFFER, -- requestData
 
-    ['CFX/TRIGGER_CLIENT_EVENT_INTERNAL/eventPayload']          = PAS_ARG_POINTER | PAS_ARG_BUFFER,
-    ['CFX/TRIGGER_EVENT_INTERNAL/eventPayload']                 = PAS_ARG_POINTER | PAS_ARG_BUFFER,
-    ['CFX/TRIGGER_LATENT_CLIENT_EVENT_INTERNAL/eventPayload']   = PAS_ARG_POINTER | PAS_ARG_BUFFER,
-    ['CFX/TRIGGER_LATENT_SERVER_EVENT_INTERNAL/eventPayload']   = PAS_ARG_POINTER | PAS_ARG_BUFFER,
-    ['CFX/TRIGGER_SERVER_EVENT_INTERNAL/eventPayload']          = PAS_ARG_POINTER | PAS_ARG_BUFFER,
+    -- eventPayload
+    ['CFX/TRIGGER_CLIENT_EVENT_INTERNAL/2']          = PAS_ARG_POINTER | PAS_ARG_BUFFER,
+    ['CFX/TRIGGER_EVENT_INTERNAL/1']                 = PAS_ARG_POINTER | PAS_ARG_BUFFER,
+    ['CFX/TRIGGER_LATENT_CLIENT_EVENT_INTERNAL/2']   = PAS_ARG_POINTER | PAS_ARG_BUFFER,
+    ['CFX/TRIGGER_LATENT_SERVER_EVENT_INTERNAL/1']   = PAS_ARG_POINTER | PAS_ARG_BUFFER,
+    ['CFX/TRIGGER_SERVER_EVENT_INTERNAL/1']          = PAS_ARG_POINTER | PAS_ARG_BUFFER,
 
-    -- Matrix44
-    ['CFX/DRAW_GIZMO/matrixPtr']                = PAS_ARG_POINTER | 64,
-    ['CFX/GET_MAPDATA_ENTITY_MATRIX/matrixPtr'] = PAS_ARG_POINTER | 64,
+    -- Matrix44 / matrixPtr
+    ['CFX/DRAW_GIZMO/0']                = PAS_ARG_POINTER | 64,
+    ['CFX/GET_MAPDATA_ENTITY_MATRIX/2'] = PAS_ARG_POINTER | 64,
 
     -- scrArray
-    ['PED/GET_PED_NEARBY_PEDS/sizeAndPeds']         = PAS_ARG_POINTER,
-    ['PED/GET_PED_NEARBY_VEHICLES/sizeAndVehs']     = PAS_ARG_POINTER,
-    ['SCRIPT/TRIGGER_SCRIPT_EVENT/eventData']       = PAS_ARG_POINTER,
-    ['SCRIPT/_TRIGGER_SCRIPT_EVENT_2/eventData']    = PAS_ARG_POINTER,
-    ['VEHICLE/_GET_ALL_VEHICLES/vehArray']          = PAS_ARG_POINTER,
+    ['PED/GET_PED_NEARBY_PEDS/1']         = PAS_ARG_POINTER, -- sizeAndPeds
+    ['PED/GET_PED_NEARBY_VEHICLES/1']     = PAS_ARG_POINTER, -- sizeAndVehs
+    ['SCRIPT/TRIGGER_SCRIPT_EVENT/1']     = PAS_ARG_POINTER, -- eventData
+    ['SCRIPT/_TRIGGER_SCRIPT_EVENT_2/1']  = PAS_ARG_POINTER, -- eventData
+    ['VEHICLE/_GET_ALL_VEHICLES/0']       = PAS_ARG_POINTER, -- vehArray
     
-    ['PED/GET_PED_DRAWABLE_VARIATION/componentId']  = PAS_ARG_BOUND | 11,
-    ['PED/GET_PED_PALETTE_VARIATION/componentId']   = PAS_ARG_BOUND | 11,
-    ['PED/GET_PED_TEXTURE_VARIATION/componentId']   = PAS_ARG_BOUND | 11,
-    ['PED/SET_PED_COMPONENT_VARIATION/componentId'] = PAS_ARG_BOUND | 11,
+    -- componentId
+    ['PED/GET_PED_DRAWABLE_VARIATION/1']  = PAS_ARG_BOUND | 11,
+    ['PED/GET_PED_PALETTE_VARIATION/1']   = PAS_ARG_BOUND | 11,
+    ['PED/GET_PED_TEXTURE_VARIATION/1']   = PAS_ARG_BOUND | 11,
+    ['PED/SET_PED_COMPONENT_VARIATION/1'] = PAS_ARG_BOUND | 11,
+
+    -- windowIndex (FixVehicleWindowNatives)
+    ['VEHICLE/IS_VEHICLE_WINDOW_INTACT/1'] = PAS_ARG_BOUND | 7,
+    ['VEHICLE/FIX_VEHICLE_WINDOW/1']       = PAS_ARG_BOUND | 7,
+    ['VEHICLE/REMOVE_VEHICLE_WINDOW/1']    = PAS_ARG_BOUND | 7,
+    ['VEHICLE/ROLL_DOWN_WINDOW/1']         = PAS_ARG_BOUND | 7,
+    ['VEHICLE/ROLL_UP_WINDOW/1']           = PAS_ARG_BOUND | 7,
+    ['VEHICLE/SMASH_VEHICLE_WINDOW/1']     = PAS_ARG_BOUND | 7,
+
+    -- FixClockTimeOverrideNative
+    ['NETWORK/NETWORK_OVERRIDE_CLOCK_TIME/0'] = PAS_ARG_BOUND | 23, -- hours
+    ['NETWORK/NETWORK_OVERRIDE_CLOCK_TIME/1'] = PAS_ARG_BOUND | 59, -- minutes
+    ['NETWORK/NETWORK_OVERRIDE_CLOCK_TIME/2'] = PAS_ARG_BOUND | 59, -- seconds
 }
 
 local seen_types = {}
@@ -67,9 +82,7 @@ for _, v in pairs(_natives) do
         local rtype = PAS_RET_VOID
 
         if v.returns then
-            if (v.name == 'LOAD_RESOURCE_FILE') then
-                rtype = PAS_RET_SCRSTRING
-            elseif (v.returns.name == 'long') then
+            if (v.returns.name == 'long') then
                 rtype = PAS_RET_LONG
             elseif (v.returns.nativeType == 'int') or (v.returns.nativeType == 'bool') then
                 rtype = PAS_RET_INT
@@ -83,27 +96,28 @@ for _, v in pairs(_natives) do
                 rtype = PAS_RET_LONG
                 block = true
             elseif v.returns.name == 'object' then
-                rtype = PAS_RET_SCROBJECT
+                rtype = PAS_RET_OBJECT
             else
                 print('INVALID RETURN TYPE!', v.returns.name)
             end
         end
 
-        local args = { (#v.arguments) | (rtype << 8) }
+        local args = {}
         local trivial = true
-
-        -- Unnamed, and has arguments
         local unsafe = false
+        local i = 0
 
         for _, a in ipairs(v.arguments) do
             local argx = 0
-            local override = paramOverrides[('%s/%s/%s'):format(v.ns, v.name, a.name)]
+            local override = paramOverrides[('%s/%s/%s'):format(v.ns, v.name, #args)]
 
             if override ~= nil then
                 argx = override
             elseif (a.name == 'networkHandle') then
                 argx = PAS_ARG_POINTER -- These are incorrectly labelled as intPtr
-            elseif (a.type.name == 'charPtr') or (a.type.name == 'func') then
+            elseif (a.type.name == 'object') then
+                argx = PAS_ARG_POINTER | PAS_ARG_BUFFER
+            elseif (a.type.name == 'charPtr') or (a.type.name == 'func') or (gApiSet == 'server' and a.type.name == 'Player') then
                 argx = PAS_ARG_POINTER | PAS_ARG_STRING
             elseif a.pointer then
                 argx = PAS_ARG_POINTER
@@ -125,21 +139,27 @@ for _, v in pairs(_natives) do
             end
 
             table.insert(args, argx)
-            i = i + 1
+
+            if a.type.name == 'object' then
+                -- object is a pointer/length pair
+                table.insert(args, 0)
+            end
         end
-        
+
+        local flags = #args | (rtype << 8)
+    
         if block then
-            args[1] = args[1] | PAS_FLAG_BLOCKED -- Block this native
+            flags = flags | PAS_FLAG_BLOCKED -- Block this native
         end
 
         if unsafe then
-            args[1] = args[1] | PAS_FLAG_UNSAFE -- We don't trust the argument types
-            trivial = false
+            flags = flags | PAS_FLAG_UNSAFE -- We don't trust the argument types
+        elseif trivial then
+            flags = flags | PAS_FLAG_TRIVIAL -- None of the arguments are pointers
         end
-        
-        if trivial then
-            args[1] = args[1] | PAS_FLAG_TRIVIAL -- None of the arguments are pointers
-        end
+
+        -- Add the flags to the front of the data
+        table.insert(args, 1, flags)
 
         a = ''
 

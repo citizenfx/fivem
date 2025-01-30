@@ -15,9 +15,23 @@
 #include "RageParser.h"
 #include "ScriptWarnings.h"
 
+#include <vector>
+
 static bool* g_textCentre;
 static bool* g_textDropshadow;
 
+
+static void BlockForbiddenNatives()
+{
+	std::vector<uint64_t> nativesToBlock = rage::scrEngine::GetBlockedNatives();
+	for (auto native: nativesToBlock)
+	{
+		fx::ScriptEngine::RegisterNativeHandler(native, [](fx::ScriptContext& ctx)
+		{
+			ctx.SetResult<uintptr_t>(0);
+		});
+	}
+}
 
 static void RedirectNoppedTextNatives()
 {
@@ -40,7 +54,7 @@ static void RedirectNoppedTextNatives()
 
 		fx::ScriptEngine::RegisterNativeHandler(native.first, [=](fx::ScriptContext& ctx)
 		{
-			(*targetHandler)(ctx);
+			targetHandler(ctx);
 		});
 	}
 }
@@ -95,14 +109,12 @@ static void FixPedCombatAttributes()
 
 	constexpr const uint64_t nativeHash = 0x9F7794730795E019; // SET_PED_COMBAT_ATTRIBUTES
 
-	auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
 
-	if (!originalHandler)
+	if (!handler)
 	{
 		return;
 	}
-
-	auto handler = *originalHandler;
 
 	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 	{
@@ -130,6 +142,8 @@ static HookFunction hookFunction([]()
 
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
+		BlockForbiddenNatives();
+
 		// R* removed some text related natives since RDR3 1436.25 build.
 		// Redirecting original natives to their successors to keep cross build compatibility.
 		// Also re-implementing entirely removed natives.

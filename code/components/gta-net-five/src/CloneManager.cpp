@@ -1769,6 +1769,13 @@ static HookFunction hookFunctionSceneUpdateWorkaround([]()
 	MH_CreateHook(hook::get_pattern("F7 D3 21 58 10 0F", -0x3F), fwSceneUpdate__RemoveFromSceneUpdate_Track, (void**)&fwSceneUpdate__RemoveFromSceneUpdate);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
+
+static HookFunction hookFunctionModifySyncTrees([]()
+{
+	// Change to "mov r8d, ebx; nop;" (44 8B C3 90). ebx value is 87
+	// Change inventory node flags from MIGRATE_NODE to UPDATE_CREATE_NODE.
+	hook::put<uint32_t>(xbr::IsGameBuildOrGreater<3407>() ? hook::get_pattern("45 8D 47 ? 49 8D 96 ? ? ? ? 45 33 C9") : hook::get_pattern("44 8D 46 ? 45 33 C9 49 8B D4"), 0x90C38B44);
+});
 #endif
 
 void CloneManagerLocal::Update()

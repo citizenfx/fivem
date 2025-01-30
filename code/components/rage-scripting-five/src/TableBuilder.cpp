@@ -73,8 +73,11 @@ static void DoMapping()
 	char* buildString = (char*)(location + *(int32_t*)location + 4);
 
 	int versionIdx = -1;
-
-	if (strncmp(buildString, "Sep 10 2024", 11) == 0)
+	if (strncmp(buildString, "Dec  5 2024", 11) == 0)
+	{
+		versionIdx = 3407;
+	}
+	else if (strncmp(buildString, "Sep 10 2024", 11) == 0)
 	{
 		versionIdx = 3323;
 	}

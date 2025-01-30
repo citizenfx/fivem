@@ -163,7 +163,7 @@ const Item = observer(function Item(props: ItemProps) {
 
   return (
     <Interactive onClick={handleClick} className={itemClassName}>
-      <ServerIcon glow={active} type="list" server={server} className={s.icon} />
+      <ServerIcon type="list" server={server} className={s.icon} />
 
       <div className={s.title}>
         <ServerTitle truncated size="large" title={server.projectName || server.hostname} />
@@ -236,7 +236,7 @@ const Card = observer(function Card(props: CardProps) {
           <FlexRestricter vertical>
             <Flex fullHeight gap="xlarge">
               <Flex vertical>
-                <ServerIcon glow type="details" server={server} className={s.icon} />
+                <ServerIcon type="details" server={server} className={s.icon} />
 
                 <Flex centered>
                   {!!server.premium && (

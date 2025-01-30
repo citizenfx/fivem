@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <VFSDevice.h>
 
 namespace vfs
@@ -18,11 +19,11 @@ class
 
 	RelativeDevice(const fwRefContainer<Device>& otherDevice, const std::string& otherPrefix);
 
-	virtual THandle Open(const std::string& fileName, bool readOnly) override;
+	virtual THandle Open(const std::string& fileName, bool readOnly, bool append = false) override;
 
 	virtual THandle OpenBulk(const std::string& fileName, uint64_t* ptr) override;
 
-	virtual THandle Create(const std::string& filename) override;
+	virtual THandle Create(const std::string& filename, bool createIfExists = true, bool append = false) override;
 
 	virtual size_t Read(THandle handle, void* outBuffer, size_t size) override;
 
@@ -64,6 +65,13 @@ class
 
 	// Sets the path prefix for the device, which implementations should strip for generating a local path portion.
 	virtual void SetPathPrefix(const std::string& pathPrefix) override;
+
+	virtual std::string GetAbsolutePath() const override
+	{
+		return m_otherPrefix;
+	}
+
+	bool Flush(THandle handle) override;
 
   private:
 	fwRefContainer<Device> m_otherDevice;
