@@ -12,8 +12,6 @@
 #include <botan/secmem.h>
 #include <string>
 
-BOTAN_FUTURE_INTERNAL_HEADER(mode_pad.h)
-
 namespace Botan {
 
 /**
@@ -60,7 +58,7 @@ class BOTAN_PUBLIC_API(2,0) BlockCipherModePaddingMethod
       /**
       * virtual destructor
       */
-      virtual ~BlockCipherModePaddingMethod() {}
+      virtual ~BlockCipherModePaddingMethod() = default;
    };
 
 /**

@@ -13,15 +13,12 @@
 #include <botan/bigint.h>
 #include <memory>
 
-// Currently exposed in PointGFp
-//BOTAN_FUTURE_INTERNAL_HEADER(curve_gfp.h)
-
 namespace Botan {
 
 class BOTAN_UNSTABLE_API CurveGFp_Repr
    {
    public:
-      virtual ~CurveGFp_Repr() {}
+      virtual ~CurveGFp_Repr() = default;
 
       virtual const BigInt& get_p() const = 0;
       virtual const BigInt& get_a() const = 0;
@@ -163,7 +160,7 @@ class BOTAN_UNSTABLE_API CurveGFp final
          m_repr->from_curve_rep(x, ws);
          }
 
-      BigInt from_rep_to_tmp(const BigInt& x, secure_vector<word>& ws) const
+      BigInt from_rep(const BigInt& x, secure_vector<word>& ws) const
          {
          BigInt xt(x);
          m_repr->from_curve_rep(xt, ws);

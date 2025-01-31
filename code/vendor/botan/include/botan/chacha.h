@@ -10,8 +10,6 @@
 
 #include <botan/stream_cipher.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(chacha.h)
-
 namespace Botan {
 
 /**

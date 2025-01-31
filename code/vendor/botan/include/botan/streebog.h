@@ -10,8 +10,6 @@
 
 #include <botan/hash.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(streebog.h)
-
 namespace Botan {
 
 /**
@@ -26,7 +24,7 @@ class BOTAN_PUBLIC_API(2,2) Streebog : public HashFunction
       HashFunction* clone() const override { return new Streebog(m_output_bits); }
       void clear() override;
       std::string name() const override;
-      size_t hash_block_size() const override { return 64; }
+      size_t hash_block_size() const override { return 64; };
 
       std::unique_ptr<HashFunction> copy_state() const override;
 

@@ -11,8 +11,6 @@
 #include <botan/kdf.h>
 #include <botan/mac.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(prf_tls.h)
-
 namespace Botan {
 
 /**
@@ -29,12 +27,6 @@ class BOTAN_PUBLIC_API(2,0) TLS_PRF final : public KDF
                  const uint8_t secret[], size_t secret_len,
                  const uint8_t salt[], size_t salt_len,
                  const uint8_t label[], size_t label_len) const override;
-
-      TLS_PRF(std::unique_ptr<MessageAuthenticationCode> hmac_md5,
-              std::unique_ptr<MessageAuthenticationCode> hmac_sha1) :
-         m_hmac_md5(std::move(hmac_md5)),
-         m_hmac_sha1(std::move(hmac_sha1))
-         {}
 
       TLS_PRF();
    private:

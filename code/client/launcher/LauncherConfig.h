@@ -23,13 +23,11 @@
 #define CONTENT_NAME "paynefx"
 #define GAME_EXECUTABLE L"MaxPayne3.exe"
 #elif defined(GTA_FIVE)
-#define PRODUCT_ID CfxState::ProductID::FIVEM
 #define PRODUCT_NAME L"FiveM"
 #define GAME_EXECUTABLE L"GTA5.exe"
 #define CONTENT_NAME "fivereborn"
 #define LINK_PROTOCOL L"fivem"
 #elif defined(IS_RDR3)
-#define PRODUCT_ID CfxState::ProductID::REDM
 #define PRODUCT_NAME L"RedM"
 #define CONTENT_NAME "redm"
 #define GAME_EXECUTABLE L"RDR2.exe"

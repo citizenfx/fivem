@@ -12,14 +12,9 @@ inline static uintptr_t GetLauncherTriggerEP()
 {
 	if (getenv("CitizenFX_ToolMode"))
 	{
-		LPWSTR commandLine = GetCommandLineW();
-
-		// Case insensitive: name must match newCommandLine in LoopbackTcpServer
-		if (wcsstr(commandLine, L"Launcher.exe") != nullptr && wcsstr(commandLine, L"ros:legit") == nullptr)
+		if (wcsstr(GetCommandLineW(), L"launcher.exe"))
 		{
-			// Launcher.exe with
-			//	sha1 = f259de45c50f399d3e278fd39401ef51a3cc031a
-			//	sha256 = 0dbf58119cdd2d67e6ecee1e31be3f19827444df978f7df747064a870736bce4
+			// launcher.exe with sha256 hash 0dbf58119cdd2d67e6ecee1e31be3f19827444df978f7df747064a870736bce4
 			return 0x14020b70c;
 		}
 	}

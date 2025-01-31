@@ -44,7 +44,7 @@ class BOTAN_PUBLIC_API(2,0) Encryption
 
       virtual size_t ciphertext_length(size_t ptext_len) const = 0;
 
-      virtual ~Encryption() {}
+      virtual ~Encryption() = default;
    };
 
 /**
@@ -59,7 +59,7 @@ class BOTAN_PUBLIC_API(2,0) Decryption
 
       virtual size_t plaintext_length(size_t ctext_len) const = 0;
 
-      virtual ~Decryption() {}
+      virtual ~Decryption() = default;
    };
 
 /**
@@ -81,7 +81,7 @@ class BOTAN_PUBLIC_API(2,0) Verification
       */
       virtual bool is_valid_signature(const uint8_t sig[], size_t sig_len) = 0;
 
-      virtual ~Verification() {}
+      virtual ~Verification() = default;
    };
 
 /**
@@ -108,7 +108,7 @@ class BOTAN_PUBLIC_API(2,0) Signature
       */
       virtual size_t signature_length() const = 0;
 
-      virtual ~Signature() {}
+      virtual ~Signature() = default;
    };
 
 /**
@@ -123,7 +123,7 @@ class BOTAN_PUBLIC_API(2,0) Key_Agreement
 
       virtual size_t agreed_value_size() const = 0;
 
-      virtual ~Key_Agreement() {}
+      virtual ~Key_Agreement() = default;
    };
 
 /**
@@ -139,7 +139,7 @@ class BOTAN_PUBLIC_API(2,0) KEM_Encryption
                                const uint8_t salt[],
                                size_t salt_len) = 0;
 
-      virtual ~KEM_Encryption() {}
+      virtual ~KEM_Encryption() = default;
    };
 
 class BOTAN_PUBLIC_API(2,0) KEM_Decryption
@@ -151,7 +151,7 @@ class BOTAN_PUBLIC_API(2,0) KEM_Decryption
                                               const uint8_t salt[],
                                               size_t salt_len) = 0;
 
-      virtual ~KEM_Decryption() {}
+      virtual ~KEM_Decryption() = default;
    };
 
 }

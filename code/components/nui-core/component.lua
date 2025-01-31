@@ -10,7 +10,7 @@ else
 
 	includedirs { "../../../vendor/cef32/" }
 end
-links { "libcef_dll", "delayimp", "libGLESv2", "legitimacy" }
+links { "libcef_dll", "delayimp", "libGLESv2" }
 
 links { "libcef" }
 

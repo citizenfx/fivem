@@ -133,7 +133,7 @@ Component* DllGameComponent::CreateComponent()
 		// sanity check
 		if (m_path == L"adhesive.dll" && errorCode == ERROR_PROC_NOT_FOUND)
 		{
-			HMODULE rosFive = GetModuleHandle(L"legitimacy.dll");
+			HMODULE rosFive = GetModuleHandle(L"ros-patches-five.dll");
 
 			if (rosFive)
 			{

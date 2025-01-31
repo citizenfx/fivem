@@ -30,14 +30,20 @@ namespace Botan {
   #error BOTAN_MP_WORD_BITS must be 32 or 64
 #endif
 
-#if defined(BOTAN_USE_GCC_INLINE_ASM)
+#if defined(BOTAN_TARGET_ARCH_IS_X86_32) && (BOTAN_MP_WORD_BITS == 32)
 
-  #if defined(BOTAN_TARGET_ARCH_IS_X86_32) && (BOTAN_MP_WORD_BITS == 32)
+  #if defined(BOTAN_USE_GCC_INLINE_ASM)
     #define BOTAN_MP_USE_X86_32_ASM
-  #elif defined(BOTAN_TARGET_ARCH_IS_X86_64) && (BOTAN_MP_WORD_BITS == 64)
-    #define BOTAN_MP_USE_X86_64_ASM
+  #elif defined(BOTAN_BUILD_COMPILER_IS_MSVC)
+    #define BOTAN_MP_USE_X86_32_MSVC_ASM
   #endif
 
+#elif defined(BOTAN_TARGET_ARCH_IS_X86_64) && (BOTAN_MP_WORD_BITS == 64) && defined(BOTAN_USE_GCC_INLINE_ASM)
+  #define BOTAN_MP_USE_X86_64_ASM
+#endif
+
+#if defined(BOTAN_MP_USE_X86_32_ASM) || defined(BOTAN_MP_USE_X86_64_ASM)
+  #define ASM(x) x "\n\t"
 #endif
 
 /*
@@ -46,22 +52,22 @@ namespace Botan {
 inline word word_madd2(word a, word b, word* c)
    {
 #if defined(BOTAN_MP_USE_X86_32_ASM)
-   asm(R"(
-      mull %[b]
-      addl %[c],%[a]
-      adcl $0,%[carry]
-      )"
+   asm(
+      ASM("mull %[b]")
+      ASM("addl %[c],%[a]")
+      ASM("adcl $0,%[carry]")
+
       : [a]"=a"(a), [b]"=rm"(b), [carry]"=&d"(*c)
       : "0"(a), "1"(b), [c]"g"(*c) : "cc");
 
    return a;
 
 #elif defined(BOTAN_MP_USE_X86_64_ASM)
-      asm(R"(
-         mulq %[b]
-         addq %[c],%[a]
-         adcq $0,%[carry]
-      )"
+      asm(
+      ASM("mulq %[b]")
+      ASM("addq %[c],%[a]")
+      ASM("adcq $0,%[carry]")
+
       : [a]"=a"(a), [b]"=rm"(b), [carry]"=&d"(*c)
       : "0"(a), "1"(b), [c]"g"(*c) : "cc");
 
@@ -92,28 +98,30 @@ inline word word_madd2(word a, word b, word* c)
 inline word word_madd3(word a, word b, word c, word* d)
    {
 #if defined(BOTAN_MP_USE_X86_32_ASM)
-   asm(R"(
-      mull %[b]
+   asm(
+      ASM("mull %[b]")
 
-      addl %[c],%[a]
-      adcl $0,%[carry]
+      ASM("addl %[c],%[a]")
+      ASM("adcl $0,%[carry]")
 
-      addl %[d],%[a]
-      adcl $0,%[carry]
-      )"
+      ASM("addl %[d],%[a]")
+      ASM("adcl $0,%[carry]")
+
       : [a]"=a"(a), [b]"=rm"(b), [carry]"=&d"(*d)
       : "0"(a), "1"(b), [c]"g"(c), [d]"g"(*d) : "cc");
 
    return a;
 
 #elif defined(BOTAN_MP_USE_X86_64_ASM)
-   asm(R"(
-      mulq %[b]
-      addq %[c],%[a]
-      adcq $0,%[carry]
-      addq %[d],%[a]
-      adcq $0,%[carry]
-      )"
+   asm(
+      ASM("mulq %[b]")
+
+      ASM("addq %[c],%[a]")
+      ASM("adcq $0,%[carry]")
+
+      ASM("addq %[d],%[a]")
+      ASM("adcq $0,%[carry]")
+
       : [a]"=a"(a), [b]"=rm"(b), [carry]"=&d"(*d)
       : "0"(a), "1"(b), [c]"g"(c), [d]"g"(*d) : "cc");
 
@@ -140,6 +148,10 @@ inline word word_madd3(word a, word b, word c, word* d)
    return lo;
 #endif
    }
+
+#if defined(ASM)
+  #undef ASM
+#endif
 
 }
 

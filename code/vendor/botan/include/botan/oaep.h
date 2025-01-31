@@ -11,8 +11,6 @@
 #include <botan/eme.h>
 #include <botan/hash.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(oaep.h)
-
 namespace Botan {
 
 /**

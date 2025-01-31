@@ -56,7 +56,6 @@ class BOTAN_PUBLIC_API(2,0) Alert final
          BAD_CERTIFICATE_STATUS_RESPONSE = 113,
          BAD_CERTIFICATE_HASH_VALUE      = 114,
          UNKNOWN_PSK_IDENTITY            = 115,
-         CERTIFICATE_REQUIRED            = 116, // RFC 8446
 
          NO_APPLICATION_PROTOCOL         = 120, // RFC 7301
 

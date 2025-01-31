@@ -11,8 +11,6 @@
 
 #include <botan/aead.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(ocb.h)
-
 namespace Botan {
 
 class BlockCipher;
@@ -74,15 +72,13 @@ class BOTAN_PUBLIC_API(2,0) OCB_Mode : public AEAD_Mode
 
       void key_schedule(const uint8_t key[], size_t length) override;
 
-      const secure_vector<uint8_t>& update_nonce(const uint8_t nonce[], size_t nonce_len);
+      secure_vector<uint8_t> update_nonce(const uint8_t nonce[], size_t nonce_len);
 
       const size_t m_tag_size;
       const size_t m_block_size;
       const size_t m_par_blocks;
       secure_vector<uint8_t> m_last_nonce;
       secure_vector<uint8_t> m_stretch;
-      secure_vector<uint8_t> m_nonce_buf;
-      secure_vector<uint8_t> m_offset;
    };
 
 class BOTAN_PUBLIC_API(2,0) OCB_Encryption final : public OCB_Mode

@@ -53,7 +53,7 @@ class BOTAN_UNSTABLE_API Hello_Verify_Request final : public Handshake_Message
       std::vector<uint8_t> serialize() const override;
       Handshake_Type type() const override { return HELLO_VERIFY_REQUEST; }
 
-      const std::vector<uint8_t>& cookie() const { return m_cookie; }
+      std::vector<uint8_t> cookie() const { return m_cookie; }
 
       explicit Hello_Verify_Request(const std::vector<uint8_t>& buf);
 
@@ -94,13 +94,9 @@ class BOTAN_UNSTABLE_API Client_Hello final : public Handshake_Message
 
       Protocol_Version version() const { return m_version; }
 
-      std::vector<Protocol_Version> supported_versions() const;
-
       const std::vector<uint8_t>& random() const { return m_random; }
 
       const std::vector<uint8_t>& session_id() const { return m_session_id; }
-
-      const std::vector<uint8_t>& compression_methods() const { return m_comp_methods; }
 
       const std::vector<uint16_t>& ciphersuites() const { return m_suites; }
 
@@ -145,10 +141,6 @@ class BOTAN_UNSTABLE_API Client_Hello final : public Handshake_Message
       std::vector<uint16_t> srtp_profiles() const;
 
       void update_hello_cookie(const Hello_Verify_Request& hello_verify);
-
-      const std::vector<uint8_t>& cookie() const { return m_hello_cookie; }
-
-      std::vector<uint8_t> cookie_input_data() const;
 
       std::set<Handshake_Extension_Type> extension_types() const
          { return m_extensions.extension_types(); }
@@ -297,8 +289,6 @@ class BOTAN_UNSTABLE_API Server_Hello final : public Handshake_Message
          return false;
          }
 
-      bool random_signals_downgrade() const;
-
       Server_Hello(Handshake_IO& io,
                    Handshake_Hash& hash,
                    const Policy& policy,
@@ -397,9 +387,7 @@ class BOTAN_UNSTABLE_API Certificate_Status final : public Handshake_Message
    public:
       Handshake_Type type() const override { return CERTIFICATE_STATUS; }
 
-      //std::shared_ptr<const OCSP::Response> response() const { return m_response; }
-
-      const std::vector<uint8_t>& response() const { return m_response; }
+      std::shared_ptr<const OCSP::Response> response() const { return m_response; }
 
       Certificate_Status(const std::vector<uint8_t>& buf);
 
@@ -407,16 +395,9 @@ class BOTAN_UNSTABLE_API Certificate_Status final : public Handshake_Message
                          Handshake_Hash& hash,
                          std::shared_ptr<const OCSP::Response> response);
 
-      /*
-       * Create a Certificate_Status message using an already DER encoded OCSP response.
-       */
-      Certificate_Status(Handshake_IO& io,
-                         Handshake_Hash& hash,
-                         std::vector<uint8_t> const& raw_response_bytes );
-
    private:
       std::vector<uint8_t> serialize() const override;
-      std::vector<uint8_t> m_response;
+      std::shared_ptr<const OCSP::Response> m_response;
    };
 
 /**

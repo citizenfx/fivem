@@ -9,7 +9,6 @@
 #define BOTAN_WORKFACTOR_H_
 
 #include <botan/types.h>
-BOTAN_FUTURE_INTERNAL_HEADER(workfactor.h)
 
 namespace Botan {
 

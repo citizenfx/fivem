@@ -5,8 +5,7 @@
 		"fx[2]",
 		"net:base",
 		"vfs:core",
-		"vendor:minhook",
-		"legitimacy"
+		"vendor:minhook"
 	],
 	"provides": []
 }

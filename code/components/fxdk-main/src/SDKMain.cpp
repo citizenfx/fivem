@@ -27,7 +27,7 @@
 #include <RelativeDevice.h>
 
 #include <ReverseGameData.h>
-#include <SharedLegitimacyAPI.h>
+#include <LegitimacyAPI.h>
 
 #include <SDK.h>
 #include <SDKGameProcessManager.h>
@@ -384,7 +384,7 @@ void SdkMain()
 		}
 		else if (eventName == "sdk:getUserId")
 		{
-			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:setUserId", {}, "");
+			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:setUserId", {}, ros::GetEntitlementSource());
 		}
 		else if (eventName == "sdk:getBuildNumber")
 		{

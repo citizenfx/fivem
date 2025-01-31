@@ -38,11 +38,18 @@ class BOTAN_PUBLIC_API(2,2) Ed25519_PublicKey : public virtual Public_Key
       Ed25519_PublicKey(const AlgorithmIdentifier& alg_id,
                         const std::vector<uint8_t>& key_bits);
 
-      template<typename Alloc>
-      Ed25519_PublicKey(const std::vector<uint8_t, Alloc>& pub) :
-         Ed25519_PublicKey(pub.data(), pub.size()) {}
+      /**
+      * Create a Ed25519 Public Key.
+      * @param pub 32-byte raw public key
+      */
+      explicit Ed25519_PublicKey(const std::vector<uint8_t>& pub) : m_public(pub) {}
 
-      Ed25519_PublicKey(const uint8_t pub_key[], size_t len);
+      /**
+      * Create a Ed25519 Public Key.
+      * @param pub 32-byte raw public key
+      */
+      explicit Ed25519_PublicKey(const secure_vector<uint8_t>& pub) :
+         m_public(pub.begin(), pub.end()) {}
 
       std::unique_ptr<PK_Ops::Verification>
          create_verification_op(const std::string& params,
@@ -99,14 +106,12 @@ void ed25519_gen_keypair(uint8_t pk[32], uint8_t sk[64], const uint8_t seed[32])
 void ed25519_sign(uint8_t sig[64],
                   const uint8_t msg[],
                   size_t msg_len,
-                  const uint8_t sk[64],
-                  const uint8_t domain_sep[], size_t domain_sep_len);
+                  const uint8_t sk[64]);
 
 bool ed25519_verify(const uint8_t msg[],
                     size_t msg_len,
                     const uint8_t sig[64],
-                    const uint8_t pk[32],
-                    const uint8_t domain_sep[], size_t domain_sep_len);
+                    const uint8_t pk[32]);
 
 }
 

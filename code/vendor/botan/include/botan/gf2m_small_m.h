@@ -12,10 +12,8 @@
 #ifndef BOTAN_GF2M_SMALL_M_H_
 #define BOTAN_GF2M_SMALL_M_H_
 
-#include <botan/types.h>
 #include <vector>
-
-BOTAN_FUTURE_INTERNAL_HEADER(gf2m_small_m.h)
+#include <botan/types.h>
 
 namespace Botan {
 
@@ -170,6 +168,8 @@ class BOTAN_PUBLIC_API(2,0) GF2m_Field
 
       gf2m gf_div(gf2m x, gf2m y) const;
 
+      gf2m gf_pow(gf2m x, int i) const;
+
       gf2m gf_exp(gf2m i) const
          {
          return m_gf_exp_table.at(i); /* alpha^i */
@@ -185,7 +185,7 @@ class BOTAN_PUBLIC_API(2,0) GF2m_Field
          return m_gf_multiplicative_order;
          }
 
-      size_t get_extension_degree() const
+      gf2m get_extension_degree() const
          {
          return m_gf_extension_degree;
          }
@@ -206,8 +206,7 @@ class BOTAN_PUBLIC_API(2,0) GF2m_Field
          return static_cast<gf2m>(((d) & gf_ord()) + ((d) >> get_extension_degree()));
          }
 
-      const size_t m_gf_extension_degree;
-      const gf2m m_gf_multiplicative_order;
+      gf2m m_gf_extension_degree, m_gf_multiplicative_order;
       const std::vector<gf2m>& m_gf_log_table;
       const std::vector<gf2m>& m_gf_exp_table;
    };

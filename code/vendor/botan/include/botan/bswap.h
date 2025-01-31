@@ -15,8 +15,6 @@
   #include <stdlib.h>
 #endif
 
-BOTAN_FUTURE_INTERNAL_HEADER(bswap.h)
-
 namespace Botan {
 
 /**
@@ -24,7 +22,11 @@ namespace Botan {
 */
 inline uint16_t reverse_bytes(uint16_t val)
    {
+#if defined(BOTAN_BUILD_COMPILER_IS_GCC) || defined(BOTAN_BUILD_COMPILER_IS_CLANG) || defined(BOTAN_BUILD_COMPILER_IS_XLC)
+   return __builtin_bswap16(val);
+#else
    return static_cast<uint16_t>((val << 8) | (val >> 8));
+#endif
    }
 
 /**

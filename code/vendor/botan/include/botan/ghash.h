@@ -10,8 +10,6 @@
 
 #include <botan/sym_algo.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(ghash.h)
-
 namespace Botan {
 
 /**
@@ -24,15 +22,7 @@ class BOTAN_PUBLIC_API(2,0) GHASH final : public SymmetricAlgorithm
    public:
       void set_associated_data(const uint8_t ad[], size_t ad_len);
 
-      secure_vector<uint8_t> BOTAN_DEPRECATED("Use other impl")
-         nonce_hash(const uint8_t nonce[], size_t nonce_len)
-         {
-         secure_vector<uint8_t> y0(GCM_BS);
-         nonce_hash(y0, nonce, nonce_len);
-         return y0;
-         }
-
-      void nonce_hash(secure_vector<uint8_t>& y0, const uint8_t nonce[], size_t len);
+      secure_vector<uint8_t> nonce_hash(const uint8_t nonce[], size_t len);
 
       void start(const uint8_t nonce[], size_t len);
 
@@ -46,14 +36,7 @@ class BOTAN_PUBLIC_API(2,0) GHASH final : public SymmetricAlgorithm
       */
       void update_associated_data(const uint8_t ad[], size_t len);
 
-      secure_vector<uint8_t> BOTAN_DEPRECATED("Use version taking output params") final()
-         {
-         secure_vector<uint8_t> mac(GCM_BS);
-         final(mac.data(), mac.size());
-         return mac;
-         }
-
-      void final(uint8_t out[], size_t out_len);
+      secure_vector<uint8_t> final();
 
       Key_Length_Specification key_spec() const override
          { return Key_Length_Specification(16); }
@@ -72,26 +55,11 @@ class BOTAN_PUBLIC_API(2,0) GHASH final : public SymmetricAlgorithm
       void add_final_block(secure_vector<uint8_t>& x,
                            size_t ad_len, size_t pt_len);
    private:
-
-#if defined(BOTAN_HAS_GHASH_CLMUL_CPU)
-      static void ghash_precompute_cpu(const uint8_t H[16], uint64_t H_pow[4*2]);
-
-      static void ghash_multiply_cpu(uint8_t x[16],
-                                     const uint64_t H_pow[4*2],
-                                     const uint8_t input[], size_t blocks);
-#endif
-
-#if defined(BOTAN_HAS_GHASH_CLMUL_VPERM)
-      static void ghash_multiply_vperm(uint8_t x[16],
-                                       const uint64_t HM[256],
-                                       const uint8_t input[], size_t blocks);
-#endif
-
       void key_schedule(const uint8_t key[], size_t key_len) override;
 
-      void ghash_multiply(secure_vector<uint8_t>& x,
-                          const uint8_t input[],
-                          size_t blocks);
+      void gcm_multiply(secure_vector<uint8_t>& x,
+                        const uint8_t input[],
+                        size_t blocks);
 
       static const size_t GCM_BS = 16;
 

@@ -34,7 +34,7 @@ class BOTAN_TEST_API Socket
       /**
       * The socket will be closed upon destruction
       */
-      virtual ~Socket() {}
+      virtual ~Socket() = default;
 
       /**
       * Write to the socket. Blocks until all bytes sent.

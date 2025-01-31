@@ -71,7 +71,38 @@ template<typename T> using SecureVector = secure_vector<T>;
 template<typename T>
 std::vector<T> unlock(const secure_vector<T>& in)
    {
-   return std::vector<T>(in.begin(), in.end());
+   std::vector<T> out(in.size());
+   copy_mem(out.data(), in.data(), in.size());
+   return out;
+   }
+
+template<typename T, typename Alloc>
+size_t buffer_insert(std::vector<T, Alloc>& buf,
+                     size_t buf_offset,
+                     const T input[],
+                     size_t input_length)
+   {
+   BOTAN_ASSERT_NOMSG(buf_offset <= buf.size());
+   const size_t to_copy = std::min(input_length, buf.size() - buf_offset);
+   if(to_copy > 0)
+      {
+      copy_mem(&buf[buf_offset], input, to_copy);
+      }
+   return to_copy;
+   }
+
+template<typename T, typename Alloc, typename Alloc2>
+size_t buffer_insert(std::vector<T, Alloc>& buf,
+                     size_t buf_offset,
+                     const std::vector<T, Alloc2>& input)
+   {
+   BOTAN_ASSERT_NOMSG(buf_offset <= buf.size());
+   const size_t to_copy = std::min(input.size(), buf.size() - buf_offset);
+   if(to_copy > 0)
+      {
+      copy_mem(&buf[buf_offset], input.data(), to_copy);
+      }
+   return to_copy;
    }
 
 template<typename T, typename Alloc, typename Alloc2>
@@ -79,7 +110,12 @@ std::vector<T, Alloc>&
 operator+=(std::vector<T, Alloc>& out,
            const std::vector<T, Alloc2>& in)
    {
-   out.insert(out.end(), in.begin(), in.end());
+   const size_t copy_offset = out.size();
+   out.resize(out.size() + in.size());
+   if(in.size() > 0)
+      {
+      copy_mem(&out[copy_offset], in.data(), in.size());
+      }
    return out;
    }
 
@@ -94,7 +130,12 @@ template<typename T, typename Alloc, typename L>
 std::vector<T, Alloc>& operator+=(std::vector<T, Alloc>& out,
                                   const std::pair<const T*, L>& in)
    {
-   out.insert(out.end(), in.first, in.first + in.second);
+   const size_t copy_offset = out.size();
+   out.resize(out.size() + in.second);
+   if(in.second > 0)
+      {
+      copy_mem(&out[copy_offset], in.first, in.second);
+      }
    return out;
    }
 
@@ -102,7 +143,12 @@ template<typename T, typename Alloc, typename L>
 std::vector<T, Alloc>& operator+=(std::vector<T, Alloc>& out,
                                   const std::pair<T*, L>& in)
    {
-   out.insert(out.end(), in.first, in.first + in.second);
+   const size_t copy_offset = out.size();
+   out.resize(out.size() + in.second);
+   if(in.second > 0)
+      {
+      copy_mem(&out[copy_offset], in.first, in.second);
+      }
    return out;
    }
 

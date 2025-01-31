@@ -11,8 +11,6 @@
 
 #include <botan/mdx_hash.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(sha2_32.h)
-
 namespace Botan {
 
 /**
@@ -27,8 +25,6 @@ class BOTAN_PUBLIC_API(2,0) SHA_224 final : public MDx_HashFunction
       std::unique_ptr<HashFunction> copy_state() const override;
 
       void clear() override;
-
-      std::string provider() const override;
 
       SHA_224() : MDx_HashFunction(64, true, true), m_digest(8)
          { clear(); }
@@ -51,8 +47,6 @@ class BOTAN_PUBLIC_API(2,0) SHA_256 final : public MDx_HashFunction
       std::unique_ptr<HashFunction> copy_state() const override;
 
       void clear() override;
-
-      std::string provider() const override;
 
       SHA_256() : MDx_HashFunction(64, true, true), m_digest(8)
          { clear(); }

@@ -12,8 +12,6 @@
 #include <botan/secmem.h>
 #include <string>
 
-BOTAN_FUTURE_INTERNAL_HEADER(sha3.h)
-
 namespace Botan {
 
 /**
@@ -36,7 +34,6 @@ class BOTAN_PUBLIC_API(2,0) SHA_3 : public HashFunction
       std::unique_ptr<HashFunction> copy_state() const override;
       std::string name() const override;
       void clear() override;
-      std::string provider() const override;
 
       // Static functions for internal usage
 
@@ -85,10 +82,6 @@ class BOTAN_PUBLIC_API(2,0) SHA_3 : public HashFunction
    private:
       void add_data(const uint8_t input[], size_t length) override;
       void final_result(uint8_t out[]) override;
-
-#if defined(BOTAN_HAS_SHA3_BMI2)
-      static void permute_bmi2(uint64_t A[25]);
-#endif
 
       size_t m_output_bits, m_bitrate;
       secure_vector<uint64_t> m_S;

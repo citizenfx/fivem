@@ -19,18 +19,16 @@ namespace Botan {
 class BOTAN_PUBLIC_API(2,0) Certificate_Store
    {
    public:
-      virtual ~Certificate_Store();
+      virtual ~Certificate_Store() = default;
 
       /**
       * Find a certificate by Subject DN and (optionally) key identifier
       * @param subject_dn the subject's distinguished name
       * @param key_id an optional key id
       * @return a matching certificate or nullptr otherwise
-      * If more than one certificate in the certificate store matches, then
-      * a single value is selected arbitrarily.
       */
       virtual std::shared_ptr<const X509_Certificate>
-         find_cert(const X509_DN& subject_dn, const std::vector<uint8_t>& key_id) const;
+         find_cert(const X509_DN& subject_dn, const std::vector<uint8_t>& key_id) const = 0;
 
       /**
       * Find all certificates with a given Subject DN.
@@ -94,12 +92,6 @@ class BOTAN_PUBLIC_API(2,0) Certificate_Store_In_Memory final : public Certifica
       * Adds given certificate to the store.
       */
       explicit Certificate_Store_In_Memory(const X509_Certificate& cert);
-
-      /**
-      * Adds given certificate list to the store.
-      */
-      explicit Certificate_Store_In_Memory(std::vector<std::shared_ptr<const X509_Certificate>> certs)
-         : m_certs(std::move(certs)) {}
 
       /**
       * Create an empty store.

@@ -99,11 +99,6 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 {
 	//trace("map %s\n", ToNarrow(origFileName));
 
-	if (wcsstr(origFileName, L"title.rgl") != nullptr)
-	{
-		return origFileName;
-	}
-
 	for (const auto& fileName : g_socialClubDlls)
 	{
 		if (StrStrIW(origFileName, fileName.c_str()) != NULL)
@@ -268,11 +263,6 @@ static std::wstring MapRedirectedNtFilename(const wchar_t* origFileName)
 
 static bool IsMappedFilename(const std::wstring& fileName)
 {
-	if (fileName.find(L"title.rgl") != std::wstring::npos)
-	{
-		return false;
-	}
-
 	if (fileName.find(L"Files\\Rockstar Games\\Social Club") != std::string::npos ||
 		fileName.find(g_scFilesRoot) != std::string::npos ||
 		// weird case: some users have SHGetFolderPathW fail only sometimes into returning "X:\\" with a double backslash

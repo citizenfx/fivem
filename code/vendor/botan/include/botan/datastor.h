@@ -8,13 +8,12 @@
 #ifndef BOTAN_DATA_STORE_H_
 #define BOTAN_DATA_STORE_H_
 
-#include <botan/pkix_types.h>
+#include <botan/x509_dn.h>
+#include <botan/asn1_alt_name.h>
 #include <functional>
 #include <string>
 #include <vector>
 #include <map>
-
-BOTAN_FUTURE_INTERNAL_HEADER(datastor.h)
 
 namespace Botan {
 

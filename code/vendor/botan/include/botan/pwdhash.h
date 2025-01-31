@@ -24,7 +24,7 @@ namespace Botan {
 class BOTAN_PUBLIC_API(2,8) PasswordHash
    {
    public:
-      virtual ~PasswordHash() {}
+      virtual ~PasswordHash() = default;
 
       virtual std::string to_string() const = 0;
 
@@ -103,7 +103,7 @@ class BOTAN_PUBLIC_API(2,8) PasswordHashFamily
       */
       static std::vector<std::string> providers(const std::string& algo_spec);
 
-      virtual ~PasswordHashFamily() {}
+      virtual ~PasswordHashFamily() = default;
 
       /**
       * @return name of this PasswordHash

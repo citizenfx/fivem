@@ -8,7 +8,6 @@
 #define BOTAN_STATEFUL_RNG_H_
 
 #include <botan/rng.h>
-#include <botan/mutex.h>
 
 namespace Botan {
 
@@ -86,13 +85,6 @@ class BOTAN_PUBLIC_API(2,0) Stateful_RNG : public RandomNumberGenerator
       void reseed_from_rng(RandomNumberGenerator& rng,
                            size_t poll_bits = BOTAN_RNG_RESEED_POLL_BITS) override final;
 
-      void add_entropy(const uint8_t input[], size_t input_len) override final;
-
-      void randomize(uint8_t output[], size_t output_len) override final;
-
-      void randomize_with_input(uint8_t output[], size_t output_len,
-                                const uint8_t input[], size_t input_len) override final;
-
       /**
       * Overrides default implementation and also includes the current
       * process ID and the reseed counter.
@@ -127,23 +119,18 @@ class BOTAN_PUBLIC_API(2,0) Stateful_RNG : public RandomNumberGenerator
 
       size_t reseed_interval() const { return m_reseed_interval; }
 
-      void clear() override final;
+      void clear() override;
 
    protected:
       void reseed_check();
 
-      virtual void generate_output(uint8_t output[], size_t output_len,
-                                   const uint8_t input[], size_t input_len) = 0;
-
-      virtual void update(const uint8_t input[], size_t input_len) = 0;
-
-      virtual void clear_state() = 0;
+      /**
+      * Called by a subclass to notify that a reseed has been
+      * successfully performed.
+      */
+      void reset_reseed_counter() { m_reseed_counter = 1; }
 
    private:
-      void reset_reseed_counter();
-
-      mutable recursive_mutex_type m_mutex;
-
       // A non-owned and possibly null pointer to shared RNG
       RandomNumberGenerator* m_underlying_rng = nullptr;
 

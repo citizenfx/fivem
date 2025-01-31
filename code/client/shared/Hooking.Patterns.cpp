@@ -44,6 +44,23 @@ typedef basic_fnv_1<fnv_prime, fnv_offset_basis> fnv_1;
 
 namespace hook
 {
+	inline std::multimap<uint64_t, uintptr_t>& GetHints()
+	{
+		static struct RefSource
+		{
+			RefSource()
+			{
+				auto func = (decltype(hints)(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreGetPatternHints");
+
+				this->hints = func();
+			}
+
+			std::multimap<uint64_t, uintptr_t>* hints;
+		} hintsRef;
+
+		return *hintsRef.hints;
+	}
+
 	static void TransformPattern(std::string_view pattern, std::string& data, std::string& mask)
 	{
 		uint8_t tempDigit = 0;
@@ -123,72 +140,35 @@ namespace hook
 #if PATTERNS_USE_HINTS
 static void Citizen_PatternSaveHint(uint64_t hash, uintptr_t hint)
 {
-	static HMODULE legitimacy = NULL;
-	if (!legitimacy)
+	static auto exeRange = hook::executable_meta(GetModuleHandleW(NULL));
+	static auto unadjustedBegin = hook::get_unadjusted(exeRange.begin());
+	static auto unadjustedEnd = hook::get_unadjusted(exeRange.end());
+
+	if (hint < unadjustedBegin || hint >= unadjustedEnd)
 	{
-		legitimacy = LoadLibraryW(L"legitimacy.dll");
+		return;
 	}
 
-	if (legitimacy)
+	fwPlatformString hintsFile = MakeRelativeCitPath(ToWide(fmt::sprintf("data\\cache\\hints_%s.dat", xbr::GetCurrentGameBuildString())));
+	FILE* hints = _pfopen(hintsFile.c_str(), _P("ab"));
+
+	if (hints)
 	{
-		static void (*SecurityPatternSaveHint)(uint64_t hash, uintptr_t hint) = nullptr;
-		if (!SecurityPatternSaveHint)
-		{
-			SecurityPatternSaveHint = (decltype(SecurityPatternSaveHint))GetProcAddress(legitimacy, "SecurityPatternSaveHint");
-		}
+		fwrite(&hash, 1, sizeof(hash), hints);
+		fwrite(&hint, 1, sizeof(hint), hints);
 
-		if (SecurityPatternSaveHint)
-		{
-			SecurityPatternSaveHint(hash, hint);
-		}
+		fclose(hints);
 	}
-}
-
-static bool Citizen_PatternLoadHints(uint64_t hash, std::vector<uintptr_t>& hints)
-{
-	static HMODULE legitimacy = NULL;
-	
-	if (!legitimacy)
-	{
-		legitimacy = LoadLibraryW(L"legitimacy.dll");
-	}
-
-	if (legitimacy)
-	{
-		static bool (*SecurityPatternLoadHints)(uint64_t hash, uintptr_t* hints, size_t* hintsCount) = nullptr;
-		if (!SecurityPatternLoadHints)
-		{
-			SecurityPatternLoadHints = (decltype(SecurityPatternLoadHints))GetProcAddress(legitimacy, "SecurityPatternLoadHints");
-		}
-
-		if (SecurityPatternLoadHints)
-		{
-			size_t hintCount = 0;
-			const bool hintFound = SecurityPatternLoadHints(hash, nullptr, &hintCount);
-			if (!hintFound)
-			{
-				return false;
-			}
-
-			hints.resize(hintCount);
-			bool success = SecurityPatternLoadHints(hash, hints.data(), &hintCount) && hints.size() == hintCount;
-
-			return success;
-		}
-	}
-	return false;
 }
 #endif
+
 namespace hook
 {
 	void pattern::Initialize(const char* pattern, size_t length)
 	{
 		// get the hash for the base pattern
 #if PATTERNS_USE_HINTS
-		if (m_useHinting)
-		{
-			m_hash = fnv_1()(std::string_view(pattern, length));
-		}
+		m_hash = fnv_1()(std::string_view(pattern, length));
 #endif
 
 		// transform the base pattern from IDA format to canonical format
@@ -196,15 +176,16 @@ namespace hook
 
 #if PATTERNS_USE_HINTS
 		// if there's hints, try those first
-		if (m_module == GetModuleHandle(nullptr) && m_useHinting)
+		if (m_module == GetModuleHandle(nullptr))
 		{
-			std::vector<uintptr_t> hints;
-			if (Citizen_PatternLoadHints(m_hash, hints))
+			auto range = GetHints().equal_range(m_hash);
+
+			if (range.first != range.second)
 			{
-				for (const auto& hint : hints)
+				std::for_each(range.first, range.second, [&](const std::pair<uint64_t, uintptr_t>& hint)
 				{
-					ConsiderMatch(hook::get_adjusted(hint));
-				}
+					ConsiderMatch(hook::get_adjusted(hint.second));
+				});
 
 				// if the hints succeeded, we don't need to do anything more
 				if (!m_matches.empty())
@@ -230,15 +211,13 @@ namespace hook
 		auto matchSuccess = [&](uintptr_t address)
 		{
 #if PATTERNS_USE_HINTS
-			if (m_useHinting)
-			{
-				Citizen_PatternSaveHint(m_hash, hook::get_unadjusted(address));
-			}
+			GetHints().emplace(m_hash, hook::get_unadjusted(address));
+			Citizen_PatternSaveHint(m_hash, hook::get_unadjusted(address));
 #else
 			(void)address;
 #endif
 
-			return m_matches.size() == maxCount;
+			return (m_matches.size() == maxCount);
 		};
 
 		const uint8_t* pattern = reinterpret_cast<const uint8_t*>(m_bytes.c_str());
@@ -305,5 +284,22 @@ namespace hook
 
 		return true;
 	}
+
+#if PATTERNS_USE_HINTS
+	void pattern::hint(uint64_t hash, uintptr_t address)
+	{
+		auto range = GetHints().equal_range(hash);
+
+		for (auto it = range.first; it != range.second; it++)
+		{
+			if (it->second == address)
+			{
+				return;
+			}
+		}
+
+		GetHints().emplace(hash, address);
+	}
+#endif
 }
 #endif

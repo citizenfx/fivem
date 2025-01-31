@@ -23,7 +23,7 @@ class BOTAN_PUBLIC_API(2,0) DataSink : public Filter
    public:
       bool attachable() override { return false; }
       DataSink() = default;
-      virtual ~DataSink() {}
+      virtual ~DataSink() = default;
 
       DataSink& operator=(const DataSink&) = delete;
       DataSink(const DataSink&) = delete;

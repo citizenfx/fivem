@@ -10,8 +10,6 @@
 
 #include <botan/eme.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(eme_pkcs.h)
-
 namespace Botan {
 
 /**

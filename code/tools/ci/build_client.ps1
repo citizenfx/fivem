@@ -38,7 +38,7 @@ try {
     }.GetNewClosure()
 
     Invoke-LogSection "Submodules Setup" {
-        Invoke-SetupSubmodules -Root $ctx.ProjectRoot
+        Invoke-SetupSubmodules -Context $ctx
     }.GetNewClosure()
 
     Invoke-LogSection "CEF Setup" {

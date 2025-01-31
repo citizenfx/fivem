@@ -2,26 +2,23 @@
 #define BOTAN_BUILD_CONFIG_H_
 
 /*
-* Build configuration for Botan 2.19.5
-*
-* Automatically generated from
-* 'configure.py --amalgamation --cc=msvc --os=windows --disable-modules=win32_stats,pkcs11,sha1_x86,sha2_32_x86,shacal2_x86 --cc-min-version=19.10 --disable-avx2'
+* This file was automatically generated running
+* 'configure.py --amalgamation --cc=msvc --os=windows --disable-modules=win32_stats,pkcs11,sha1_x86,sha2_32_x86,shacal2_x86 --cc-min-version=19.10'
 *
 * Target
-*  - Compiler: cl  /EHs /GR /MD /bigobj /O2 /Oi
+*  - Compiler: cl /MD /bigobj /EHs /GR /D_ENABLE_EXTENDED_ALIGNED_STORAGE /O2 /Oi
 *  - Arch: x86_64
 *  - OS: windows
 */
 
 #define BOTAN_VERSION_MAJOR 2
-#define BOTAN_VERSION_MINOR 19
-#define BOTAN_VERSION_PATCH 5
-#define BOTAN_VERSION_DATESTAMP 20240708
+#define BOTAN_VERSION_MINOR 10
+#define BOTAN_VERSION_PATCH 0
+#define BOTAN_VERSION_DATESTAMP 0
 
+#define BOTAN_VERSION_RELEASE_TYPE "unreleased"
 
-#define BOTAN_VERSION_RELEASE_TYPE "release"
-
-#define BOTAN_VERSION_VC_REVISION "git:935055e839794a076d209c9e9a1e9cd2255aae01"
+#define BOTAN_VERSION_VC_REVISION "git:9ca22335edcb9800158f4691de20fa5d0f9cc849"
 
 #define BOTAN_DISTRIBUTION_INFO "unspecified"
 
@@ -30,11 +27,10 @@
 
 
 #define BOTAN_INSTALL_PREFIX R"(c:\Botan)"
-#define BOTAN_INSTALL_HEADER_DIR R"(include/botan-2)"
-#define BOTAN_INSTALL_LIB_DIR R"(c:\Botan\lib)"
-#define BOTAN_LIB_LINK "crypt32.lib ws2_32.lib"
-#define BOTAN_LINK_FLAGS ""
-
+#define BOTAN_INSTALL_HEADER_DIR "include/botan-2"
+#define BOTAN_INSTALL_LIB_DIR "lib"
+#define BOTAN_LIB_LINK "ws2_32.lib"
+#define BOTAN_LINK_FLAGS "/MD /bigobj"
 
 #ifndef BOTAN_DLL
   #define BOTAN_DLL __declspec(dllimport)
@@ -44,12 +40,9 @@
 
 #define BOTAN_TARGET_OS_IS_WINDOWS
 
-#define BOTAN_TARGET_OS_HAS_ATOMICS
-#define BOTAN_TARGET_OS_HAS_CERTIFICATE_STORE
 #define BOTAN_TARGET_OS_HAS_FILESYSTEM
 #define BOTAN_TARGET_OS_HAS_RTLGENRANDOM
 #define BOTAN_TARGET_OS_HAS_RTLSECUREZEROMEMORY
-#define BOTAN_TARGET_OS_HAS_THREAD_LOCAL
 #define BOTAN_TARGET_OS_HAS_THREADS
 #define BOTAN_TARGET_OS_HAS_VIRTUAL_LOCK
 #define BOTAN_TARGET_OS_HAS_WIN32
@@ -61,12 +54,19 @@
 
 
 
-#define BOTAN_TARGET_ARCH_IS_X86_64
-#define BOTAN_TARGET_CPU_IS_LITTLE_ENDIAN
-#define BOTAN_TARGET_CPU_IS_X86_FAMILY
-#define BOTAN_TARGET_CPU_HAS_NATIVE_64BIT
+#if defined (GTA_NY)
+#	define BOTAN_TARGET_ARCH_IS_X86_32
+#	define BOTAN_TARGET_CPU_IS_LITTLE_ENDIAN
+#	define BOTAN_TARGET_CPU_IS_X86_FAMILY
+#else
+#	define BOTAN_TARGET_ARCH_IS_X86_64
+#	define BOTAN_TARGET_CPU_IS_LITTLE_ENDIAN
+#	define BOTAN_TARGET_CPU_IS_X86_FAMILY
+#	define BOTAN_TARGET_CPU_HAS_NATIVE_64BIT
+#endif
 
 #define BOTAN_TARGET_SUPPORTS_AESNI
+#define BOTAN_TARGET_SUPPORTS_AVX2
 #define BOTAN_TARGET_SUPPORTS_BMI2
 #define BOTAN_TARGET_SUPPORTS_RDRAND
 #define BOTAN_TARGET_SUPPORTS_RDSEED
@@ -94,9 +94,8 @@
 #define BOTAN_HAS_AEAD_SIV 20131202
 #define BOTAN_HAS_AES 20131128
 #define BOTAN_HAS_AES_NI 20131128
-#define BOTAN_HAS_AES_VPERM 20190901
+#define BOTAN_HAS_AES_SSSE3 20131128
 #define BOTAN_HAS_ANSI_X919_MAC 20131128
-#define BOTAN_HAS_ARGON2 20210407
 #define BOTAN_HAS_ARIA 20170415
 #define BOTAN_HAS_ASN1 20171109
 #define BOTAN_HAS_AUTO_RNG 20161126
@@ -117,11 +116,9 @@
 #define BOTAN_HAS_CAST_256 20171203
 #define BOTAN_HAS_CBC_MAC 20131128
 #define BOTAN_HAS_CECPQ1 20161116
-#define BOTAN_HAS_CERTSTOR_FLATFILE 20190410
 #define BOTAN_HAS_CERTSTOR_SQL 20160818
-#define BOTAN_HAS_CERTSTOR_SYSTEM 20190411
-#define BOTAN_HAS_CERTSTOR_WINDOWS 20190430
 #define BOTAN_HAS_CHACHA 20180807
+#define BOTAN_HAS_CHACHA_AVX2 20180418
 #define BOTAN_HAS_CHACHA_RNG 20170728
 #define BOTAN_HAS_CHACHA_SIMD32 20181104
 #define BOTAN_HAS_CIPHER_MODES 20180124
@@ -143,7 +140,6 @@
 #define BOTAN_HAS_DSA 20131128
 #define BOTAN_HAS_DYNAMIC_LOADER 20160310
 #define BOTAN_HAS_ECC_GROUP 20170225
-#define BOTAN_HAS_ECC_KEY 20190801
 #define BOTAN_HAS_ECC_PUBLIC_KEY_CRYPTO 20131128
 #define BOTAN_HAS_ECDH 20131128
 #define BOTAN_HAS_ECDSA 20131128
@@ -154,7 +150,6 @@
 #define BOTAN_HAS_ED25519 20170607
 #define BOTAN_HAS_ELGAMAL 20131128
 #define BOTAN_HAS_EME_OAEP 20180305
-#define BOTAN_HAS_EME_PKCS1 20190426
 #define BOTAN_HAS_EME_PKCS1v15 20131128
 #define BOTAN_HAS_EME_RAW 20150313
 #define BOTAN_HAS_EMSA1 20131128
@@ -163,17 +158,16 @@
 #define BOTAN_HAS_EMSA_RAW 20131128
 #define BOTAN_HAS_EMSA_X931 20140118
 #define BOTAN_HAS_ENTROPY_SOURCE 20151120
+#define BOTAN_HAS_ENTROPY_SRC_RDRAND 20131128
 #define BOTAN_HAS_ENTROPY_SRC_RDSEED 20151218
-#define BOTAN_HAS_FFI 20210220
+#define BOTAN_HAS_FFI 20180713
 #define BOTAN_HAS_FILTERS 20160415
 #define BOTAN_HAS_FPE_FE1 20131128
-#define BOTAN_HAS_GHASH 20201002
-#define BOTAN_HAS_GHASH_CLMUL_CPU 20201002
-#define BOTAN_HAS_GHASH_CLMUL_VPERM 20201002
+#define BOTAN_HAS_GCM_CLMUL 20131227
+#define BOTAN_HAS_GCM_CLMUL_SSSE3 20171020
 #define BOTAN_HAS_GMAC 20160207
 #define BOTAN_HAS_GOST_28147_89 20131128
 #define BOTAN_HAS_GOST_34_10_2001 20131128
-#define BOTAN_HAS_GOST_34_10_2012 20190801
 #define BOTAN_HAS_GOST_34_11 20131128
 #define BOTAN_HAS_HASH 20180112
 #define BOTAN_HAS_HASH_ID 20131128
@@ -221,14 +215,12 @@
 #define BOTAN_HAS_PBKDF 20180902
 #define BOTAN_HAS_PBKDF1 20131128
 #define BOTAN_HAS_PBKDF2 20180902
-#define BOTAN_HAS_PBKDF_BCRYPT 20190531
 #define BOTAN_HAS_PEM_CODEC 20131128
 #define BOTAN_HAS_PGP_S2K 20170527
 #define BOTAN_HAS_PKCS5_PBES2 20141119
 #define BOTAN_HAS_PK_PADDING 20131128
 #define BOTAN_HAS_POLY1305 20141227
 #define BOTAN_HAS_POLY_DBL 20170927
-#define BOTAN_HAS_PROCESSOR_RNG 20200508
 #define BOTAN_HAS_PSK_DB 20171119
 #define BOTAN_HAS_PUBLIC_KEY_CRYPTO 20131128
 #define BOTAN_HAS_RC4 20131128
@@ -236,12 +228,12 @@
 #define BOTAN_HAS_RFC3394_KEYWRAP 20131128
 #define BOTAN_HAS_RFC6979_GENERATOR 20140321
 #define BOTAN_HAS_RIPEMD_160 20131128
-#define BOTAN_HAS_ROUGHTIME 20190220
 #define BOTAN_HAS_RSA 20160730
 #define BOTAN_HAS_SALSA20 20171114
 #define BOTAN_HAS_SCRYPT 20180902
 #define BOTAN_HAS_SEED 20131128
 #define BOTAN_HAS_SERPENT 20131128
+#define BOTAN_HAS_SERPENT_AVX2 20180824
 #define BOTAN_HAS_SERPENT_SIMD 20160903
 #define BOTAN_HAS_SHA1 20131128
 #define BOTAN_HAS_SHA1_SSE2 20160803
@@ -253,13 +245,13 @@
 #define BOTAN_HAS_SHAKE 20161009
 #define BOTAN_HAS_SHAKE_CIPHER 20161018
 #define BOTAN_HAS_SIMD_32 20131128
+#define BOTAN_HAS_SIMD_AVX2 20180824
 #define BOTAN_HAS_SIPHASH 20150110
 #define BOTAN_HAS_SKEIN_512 20131128
 #define BOTAN_HAS_SM2 20180801
 #define BOTAN_HAS_SM3 20170402
 #define BOTAN_HAS_SM4 20170716
 #define BOTAN_HAS_SOCKETS 20171216
-#define BOTAN_HAS_SODIUM_API 20190615
 #define BOTAN_HAS_SP800_108 20160128
 #define BOTAN_HAS_SP800_56A 20170501
 #define BOTAN_HAS_SP800_56C 20160211
@@ -268,14 +260,14 @@
 #define BOTAN_HAS_STREAM_CIPHER 20131128
 #define BOTAN_HAS_STREEBOG 20170623
 #define BOTAN_HAS_SYSTEM_RNG 20141202
-#define BOTAN_HAS_THREAD_UTILS 20190922
+#define BOTAN_HAS_THREAD_UTILS 20180112
 #define BOTAN_HAS_THREEFISH_512 20131224
+#define BOTAN_HAS_THREEFISH_512_AVX2 20160903
 #define BOTAN_HAS_THRESHOLD_SECRET_SHARING 20131128
 #define BOTAN_HAS_TIGER 20131128
-#define BOTAN_HAS_TLS 20191210
+#define BOTAN_HAS_TLS 20150319
 #define BOTAN_HAS_TLS_CBC 20161008
 #define BOTAN_HAS_TLS_SESSION_MANAGER_SQL_DB 20141219
-#define BOTAN_HAS_TLS_V10 20191109
 #define BOTAN_HAS_TLS_V10_PRF 20131128
 #define BOTAN_HAS_TLS_V12_PRF 20131128
 #define BOTAN_HAS_TOTP 20180816
@@ -287,11 +279,8 @@
 #define BOTAN_HAS_X509 20180911
 #define BOTAN_HAS_X509_CERTIFICATES 20151023
 #define BOTAN_HAS_X942_PRF 20131128
-#define BOTAN_HAS_XMSS_RFC8391 20201101
+#define BOTAN_HAS_XMSS 20161008
 #define BOTAN_HAS_XTEA 20131128
-#define BOTAN_HAS_ZFEC 20211211
-#define BOTAN_HAS_ZFEC_SSE2 20211211
-#define BOTAN_HAS_ZFEC_VPERM 20211211
 
 
 /*
@@ -321,20 +310,6 @@
 * if the OS would let us lock more
 */
 #define BOTAN_MLOCK_ALLOCATOR_MAX_LOCKED_KB 512
-
-/*
-* If BOTAN_MEM_POOL_USE_MMU_PROTECTIONS is defined, the Memory_Pool
-* class used for mlock'ed memory will use OS calls to set page
-* permissions so as to prohibit access to pages on the free list, then
-* enable read/write access when the page is set to be used. This will
-* turn (some) use after free bugs into a crash.
-*
-* The additional syscalls have a substantial performance impact, which
-* is why this option is not enabled by default.
-*/
-#if defined(BOTAN_HAS_VALGRIND) || defined(BOTAN_ENABLE_DEBUG_ASSERTS)
-   #define BOTAN_MEM_POOL_USE_MMU_PROTECTIONS
-#endif
 
 /*
 * If enabled uses memset via volatile function pointer to zero memory,
@@ -367,10 +342,13 @@
 
 /*
 * Specifies (in order) the list of entropy sources that will be used
-* to seed an in-memory RNG.
+* to seed an in-memory RNG. The first in the default list: "rdseed"
+* and "rdrand" do not count as contributing any entropy but are
+* included as they are fast and help protect against a seriously
+* broken system RNG.
 */
 #define BOTAN_ENTROPY_DEFAULT_SOURCES \
-   { "rdseed", "hwrng", "p9_darn", "getentropy", "dev_random", \
+   { "rdseed", "rdrand", "getentropy", "dev_random", \
      "system_rng", "proc_walk", "system_stats" }
 
 /* Multiplier on a block cipher's native parallelism */
@@ -397,6 +375,21 @@
 */
 #define BOTAN_SYSTEM_RNG_POLL_REQUEST 64
 #define BOTAN_SYSTEM_RNG_POLL_TIMEOUT_MS 20
+
+/*
+How many times to read from the RDRAND/RDSEED RNGs.
+Each read generates 32 bits of output
+*/
+#define BOTAN_ENTROPY_INTEL_RNG_POLLS 32
+
+// According to Intel, RDRAND is guaranteed to generate a random number within 10 retries on a working CPU
+#define BOTAN_ENTROPY_RDRAND_RETRIES 10
+
+/*
+* RdSeed is not guaranteed to generate a random number within a specific number of retries
+* Define the number of retries here
+*/
+#define BOTAN_ENTROPY_RDSEED_RETRIES 20
 
 /*
 * When a PBKDF is self-tuning parameters, it will attempt to take about this
@@ -429,11 +422,11 @@
   #elif defined(BOTAN_HAS_SHA1)
     #define BOTAN_AUTO_RNG_HMAC "HMAC(SHA-1)"
   #endif
-  /* Otherwise, no hash found: leave BOTAN_AUTO_RNG_HMAC undefined */
+  // Otherwise, no hash found: leave BOTAN_AUTO_RNG_HMAC undefined
 
 #endif
 
-/* Check for a common build problem */
+// Check for a common build problem:
 
 #if defined(BOTAN_TARGET_ARCH_IS_X86_64) && ((defined(_MSC_VER) && !defined(_WIN64)) || \
                                              (defined(__clang__) && !defined(__x86_64__)) || \

@@ -12,7 +12,6 @@
 #include <botan/aead.h>
 #include <botan/block_cipher.h>
 #include <botan/mac.h>
-#include <botan/tls_version.h>
 
 namespace Botan {
 
@@ -51,7 +50,7 @@ class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Mode : public AEAD_Mode
                              std::unique_ptr<MessageAuthenticationCode> mac,
                              size_t cipher_keylen,
                              size_t mac_keylen,
-                             Protocol_Version version,
+                             bool use_explicit_iv,
                              bool use_encrypt_then_mac);
 
       size_t cipher_keylen() const { return m_cipher_keylen; }
@@ -60,8 +59,6 @@ class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Mode : public AEAD_Mode
       size_t block_size() const { return m_block_size; }
 
       bool use_encrypt_then_mac() const { return m_use_encrypt_then_mac; }
-
-      bool is_datagram_protocol() const { return m_is_datagram; }
 
       Cipher_Mode& cbc() const { return *m_cbc; }
 
@@ -90,7 +87,6 @@ class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Mode : public AEAD_Mode
       size_t m_tag_size;
       size_t m_block_size;
       bool m_use_encrypt_then_mac;
-      bool m_is_datagram;
 
       std::unique_ptr<Cipher_Mode> m_cbc;
       std::unique_ptr<MessageAuthenticationCode> m_mac;
@@ -113,14 +109,14 @@ class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Encryption final : public TLS_CBC_HMAC_AE
                              std::unique_ptr<MessageAuthenticationCode> mac,
                              const size_t cipher_keylen,
                              const size_t mac_keylen,
-                             const Protocol_Version version,
+                             bool use_explicit_iv,
                              bool use_encrypt_then_mac) :
          TLS_CBC_HMAC_AEAD_Mode(ENCRYPTION,
                                 std::move(cipher),
                                 std::move(mac),
                                 cipher_keylen,
                                 mac_keylen,
-                                version,
+                                use_explicit_iv,
                                 use_encrypt_then_mac)
          {}
 
@@ -132,8 +128,7 @@ class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Encryption final : public TLS_CBC_HMAC_AE
 
       void finish(secure_vector<uint8_t>& final_block, size_t offset = 0) override;
    private:
-      void cbc_encrypt_record(secure_vector<uint8_t>& buffer, size_t offset,
-                              size_t padding_length);
+      void cbc_encrypt_record(uint8_t record_contents[], size_t record_len);
    };
 
 /**
@@ -148,14 +143,14 @@ class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Decryption final : public TLS_CBC_HMAC_AE
                                    std::unique_ptr<MessageAuthenticationCode> mac,
                                    const size_t cipher_keylen,
                                    const size_t mac_keylen,
-                                   const Protocol_Version version,
+                                   bool use_explicit_iv,
                                    bool use_encrypt_then_mac) :
          TLS_CBC_HMAC_AEAD_Mode(DECRYPTION,
                                 std::move(cipher),
                                 std::move(mac),
                                 cipher_keylen,
                                 mac_keylen,
-                                version,
+                                use_explicit_iv,
                                 use_encrypt_then_mac)
          {}
 

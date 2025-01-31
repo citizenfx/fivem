@@ -10,8 +10,6 @@
 
 #include <botan/stream_cipher.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(salsa20.h)
-
 namespace Botan {
 
 /**
@@ -35,7 +33,6 @@ class BOTAN_PUBLIC_API(2,0) Salsa20 final : public StreamCipher
       StreamCipher* clone() const override;
 
       static void salsa_core(uint8_t output[64], const uint32_t input[16], size_t rounds);
-      static void hsalsa20(uint32_t output[8], const uint32_t input[16]);
 
       void seek(uint64_t offset) override;
    private:

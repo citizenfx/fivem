@@ -12,8 +12,6 @@
 #include <botan/cipher_mode.h>
 #include <botan/block_cipher.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(xts.h)
-
 namespace Botan {
 
 /**
@@ -24,7 +22,7 @@ class BOTAN_PUBLIC_API(2,0) XTS_Mode : public Cipher_Mode
    public:
       std::string name() const override;
 
-      size_t update_granularity() const override { return m_cipher_parallelism; }
+      size_t update_granularity() const override;
 
       size_t minimum_final_size() const override;
 
@@ -49,17 +47,12 @@ class BOTAN_PUBLIC_API(2,0) XTS_Mode : public Cipher_Mode
 
       void update_tweak(size_t last_used);
 
-      size_t cipher_block_size() const { return m_cipher_block_size; }
-
    private:
       void start_msg(const uint8_t nonce[], size_t nonce_len) override;
       void key_schedule(const uint8_t key[], size_t length) override;
 
-      std::unique_ptr<BlockCipher> m_cipher;
-      std::unique_ptr<BlockCipher> m_tweak_cipher;
+      std::unique_ptr<BlockCipher> m_cipher, m_tweak_cipher;
       secure_vector<uint8_t> m_tweak;
-      const size_t m_cipher_block_size;
-      const size_t m_cipher_parallelism;
    };
 
 /**

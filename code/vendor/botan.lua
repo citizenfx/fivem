@@ -8,7 +8,6 @@ return {
 			includedirs { "vendor/botan_sv/include/", "vendor/botan_sv/include/external/" }
 		else
 			includedirs "vendor/botan/include/"
-			includedirs "vendor/botan/include/external/"
 		end
 	end,
 

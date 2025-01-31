@@ -42,12 +42,12 @@ inline gf2m lex_to_gray(gf2m lex)
    return (lex >> 1) ^ lex;
    }
 
-inline size_t bit_size_to_byte_size(size_t bit_size)
+inline uint32_t bit_size_to_byte_size(uint32_t bit_size)
    {
    return (bit_size - 1) / 8 + 1;
    }
 
-inline size_t bit_size_to_32bit_size(size_t bit_size)
+inline uint32_t bit_size_to_32bit_size(uint32_t bit_size)
    {
    return (bit_size - 1) / 32 + 1;
    }

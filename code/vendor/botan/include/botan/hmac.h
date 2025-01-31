@@ -11,8 +11,6 @@
 #include <botan/mac.h>
 #include <botan/hash.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(hmac.h)
-
 namespace Botan {
 
 /**
@@ -25,7 +23,7 @@ class BOTAN_PUBLIC_API(2,0) HMAC final : public MessageAuthenticationCode
       std::string name() const override;
       MessageAuthenticationCode* clone() const override;
 
-      size_t output_length() const override;
+      size_t output_length() const override { return m_hash->output_length(); }
 
       Key_Length_Specification key_spec() const override;
 
@@ -43,8 +41,6 @@ class BOTAN_PUBLIC_API(2,0) HMAC final : public MessageAuthenticationCode
 
       std::unique_ptr<HashFunction> m_hash;
       secure_vector<uint8_t> m_ikey, m_okey;
-      size_t m_hash_output_length;
-      size_t m_hash_block_size;
    };
 
 }

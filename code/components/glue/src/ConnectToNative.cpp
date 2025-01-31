@@ -55,8 +55,6 @@
 #include "CfxState.h"
 #include "GameInit.h"
 #include "CnlEndpoint.h"
-#include <SharedLegitimacyAPI.h>
-
 #include "PacketHandler.h"
 #include "PaymentRequest.h"
 
@@ -330,6 +328,8 @@ static void HandleAuthPayload(const std::string& payloadStr)
 	}
 }
 
+#include <LegitimacyAPI.h>
+
 static std::string g_discourseClientId;
 static std::string g_discourseUserToken;
 
@@ -380,7 +380,6 @@ static WRL::ComPtr<IShellLink> MakeShellLink(const ServerLink& link)
 
 		auto hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, hostData->GetInitialPid());
 		GetModuleFileNameEx(hProcess, NULL, imageFileName, std::size(imageFileName));
-		CloseHandle(hProcess);
 
 		psl->SetPath(imageFileName);
 		psl->SetArguments(fmt::sprintf(L"%s%s://connect/%s", buildArgument, hostData->GetLinkProtocol(), ToWide(link.url)).c_str());
@@ -1231,7 +1230,14 @@ static InitFunction initFunction([] ()
 				Instance<ICoreGameInit>::Get()->SetData("discourseUserToken", g_discourseUserToken);
 				Instance<ICoreGameInit>::Get()->SetData("discourseClientId", g_discourseClientId);
 
-				cfx::legitimacy::AuthenticateDiscourse(g_discourseClientId.c_str(), g_discourseUserToken.c_str(), [](bool success, const char* data, size_t size)
+				Instance<::HttpClient>::Get()->DoPostRequest(
+					CNL_ENDPOINT "api/validate/discourse",
+					{
+						{ "entitlementId", ros::GetEntitlementSource() },
+						{ "authToken", g_discourseUserToken },
+						{ "clientId", g_discourseClientId },
+					},
+					[](bool success, const char* data, size_t size)
 				{
 					if (success)
 					{
@@ -1256,6 +1262,7 @@ static InitFunction initFunction([] ()
 						}
 						catch (const std::exception& e)
 						{
+
 						}
 
 						if (hasEndUserPremium)

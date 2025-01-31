@@ -125,14 +125,6 @@ class BOTAN_PUBLIC_API(2,0) Policy
       virtual bool allow_server_initiated_renegotiation() const;
 
       /**
-      * If true, a request to renegotiate will close the connection with
-      * a fatal alert. Otherwise, a warning alert is sent.
-      */
-      virtual bool abort_connection_on_undesired_renegotiation() const;
-
-      virtual bool only_resume_with_exact_version() const;
-
-      /**
       * Allow TLS v1.0
       */
       virtual bool allow_tls10() const;
@@ -279,25 +271,6 @@ class BOTAN_PUBLIC_API(2,0) Policy
       virtual bool support_cert_status_message() const;
 
       /**
-      * Indicate if client certificate authentication is required.
-      * If true, then a cert will be requested and if the client does
-      * not send a certificate the connection will be closed.
-      */
-      virtual bool require_client_certificate_authentication() const;
-
-      /**
-      * Indicate if client certificate authentication is requested.
-      * If true, then a cert will be requested.
-      */
-      virtual bool request_client_certificate_authentication() const;
-
-      /**
-      * If true, then allow a DTLS client to restart a connection to the
-      * same server association as described in section 4.2.8 of the DTLS RFC
-      */
-      virtual bool allow_dtls_epoch0_restart() const;
-
-      /**
       * Return allowed ciphersuites, in order of preference
       */
       virtual std::vector<uint16_t> ciphersuite_list(Protocol_Version version,
@@ -319,14 +292,6 @@ class BOTAN_PUBLIC_API(2,0) Policy
       virtual size_t dtls_maximum_timeout() const;
 
       /**
-      * @return the maximum size of the certificate chain, in bytes.
-      * Return 0 to disable this and accept any size.
-      */
-      virtual size_t maximum_certificate_chain_size() const;
-
-      virtual bool allow_resumption_for_renegotiation() const;
-
-      /**
       * Convert this policy to a printable format.
       * @param o stream to be printed to
       */
@@ -338,7 +303,7 @@ class BOTAN_PUBLIC_API(2,0) Policy
       */
       std::string to_string() const;
 
-      virtual ~Policy() {}
+      virtual ~Policy() = default;
    };
 
 typedef Policy Default_Policy;
@@ -420,12 +385,12 @@ class BOTAN_PUBLIC_API(2,0) BSI_TR_02102_2 : public Policy
    public:
       std::vector<std::string> allowed_ciphers() const override
          {
-         return std::vector<std::string>({"AES-256/GCM", "AES-128/GCM", "AES-256/CCM", "AES-128/CCM", "AES-256", "AES-128"});
+         return std::vector<std::string>({"AES-256/GCM", "AES-128/GCM", "AES-256", "AES-128" });
          }
 
       std::vector<std::string> allowed_signature_hashes() const override
          {
-         return std::vector<std::string>({"SHA-512", "SHA-384", "SHA-256"});
+         return std::vector<std::string>({"SHA-384", "SHA-256"});
          }
 
       std::vector<std::string> allowed_macs() const override
@@ -435,7 +400,7 @@ class BOTAN_PUBLIC_API(2,0) BSI_TR_02102_2 : public Policy
 
       std::vector<std::string> allowed_key_exchange_methods() const override
          {
-         return std::vector<std::string>({"ECDH", "DH", "ECDHE_PSK", "DHE_PSK"});
+         return std::vector<std::string>({"ECDH", "DH", "PSK", "ECDHE_PSK", "DHE_PSK"});
          }
 
       std::vector<std::string> allowed_signature_methods() const override
@@ -451,6 +416,8 @@ class BOTAN_PUBLIC_API(2,0) BSI_TR_02102_2 : public Policy
             Group_Params::BRAINPOOL256R1,
             Group_Params::SECP384R1,
             Group_Params::SECP256R1,
+            Group_Params::FFDHE_8192,
+            Group_Params::FFDHE_6144,
             Group_Params::FFDHE_4096,
             Group_Params::FFDHE_3072,
             Group_Params::FFDHE_2048
@@ -557,8 +524,6 @@ class BOTAN_PUBLIC_API(2,0) Text_Policy : public Policy
       bool negotiate_encrypt_then_mac() const override;
 
       bool support_cert_status_message() const override;
-
-      bool require_client_certificate_authentication() const override;
 
       size_t minimum_ecdh_group_size() const override;
 

@@ -41,7 +41,7 @@ class BOTAN_PUBLIC_API(2,0) Handshake_Message
       */
       virtual std::vector<uint8_t> serialize() const = 0;
 
-      virtual ~Handshake_Message() {}
+      virtual ~Handshake_Message() = default;
    };
 
 }

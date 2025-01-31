@@ -46,7 +46,7 @@ class BOTAN_PUBLIC_API(2,0) EC_PublicKey : public virtual Public_Key
 
       EC_PublicKey(const EC_PublicKey& other) = default;
       EC_PublicKey& operator=(const EC_PublicKey& other) = default;
-      virtual ~EC_PublicKey() {}
+      virtual ~EC_PublicKey() = default;
 
       /**
       * Get the public point of this key.

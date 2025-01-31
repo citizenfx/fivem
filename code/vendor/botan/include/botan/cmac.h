@@ -11,8 +11,6 @@
 #include <botan/mac.h>
 #include <botan/block_cipher.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(cmac.h)
-
 namespace Botan {
 
 /**

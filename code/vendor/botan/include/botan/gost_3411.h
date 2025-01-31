@@ -11,8 +11,6 @@
 #include <botan/hash.h>
 #include <botan/gost_28147.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(gost_3411.h)
-
 namespace Botan {
 
 /**

@@ -7,7 +7,7 @@
 		"gta:core",
 		"rage:nutsnbolts",
 		"citizen:resources:core",
-		"legitimacy",
+		"ros-patches",
 		"scripting"
 	],
 	"provides": []

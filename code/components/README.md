@@ -84,6 +84,7 @@ CitizenFX implementation components.
 * [**rage-input-five/**](./rage-input-five): Wraps RAGE grcore input.
 * [**rage-nutsnbolts-five/**](./rage-nutsnbolts-five): Generic 'nuts and bolts' for RAGE.
 * [**rage-scripting-five/**](./rage-scripting-five): Wraps RAGE scripting.
+* [**ros-patches-five/**](./ros-patches-five): ROS compatibility.
 
 ### RDR2
 * [**citizen-level-loader-rdr3/**](./citizen-level-loader-rdr3): SP level loading support.
@@ -100,3 +101,4 @@ CitizenFX implementation components.
 * [**rage-input-rdr3/**](./rage-input-rdr3): ...
 * [**rage-nutsnbolts-rdr3/**](./rage-nutsnbolts-rdr3): ...
 * [**rage-scripting-rdr3/**](./rage-scripting-rdr3): ...
+* [**ros-patches-rdr3/**](./ros-patches-rdr3): Symlinked ROS compatibility.

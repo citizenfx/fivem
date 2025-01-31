@@ -8,7 +8,7 @@
 #ifndef BOTAN_X509_CERT_PATH_VALIDATION_H_
 #define BOTAN_X509_CERT_PATH_VALIDATION_H_
 
-#include <botan/pkix_enums.h>
+#include <botan/cert_status.h>
 #include <botan/x509cert.h>
 #include <botan/certstor.h>
 #include <botan/ocsp.h>
@@ -47,13 +47,10 @@ class BOTAN_PUBLIC_API(2,0) Path_Validation_Restrictions final
       *        128 bit strength requires ~3k bit RSA or P-256
       * @param ocsp_all_intermediates Make OCSP requests for all CAs as
       * well as end entity (if OCSP enabled in path validation request)
-      * @param max_ocsp_age maximum age of OCSP responses w/o next_update.
-      *        If zero, there is no maximum age
       */
       Path_Validation_Restrictions(bool require_rev = false,
                                    size_t minimum_key_strength = 110,
-                                   bool ocsp_all_intermediates = false,
-                                   std::chrono::seconds max_ocsp_age = std::chrono::seconds::zero());
+                                   bool ocsp_all_intermediates = false);
 
       /**
       * @param require_rev if true, revocation information is required
@@ -65,19 +62,15 @@ class BOTAN_PUBLIC_API(2,0) Path_Validation_Restrictions final
       * @param trusted_hashes a set of trusted hashes. Any signatures
       *        created using a hash other than one of these will be
       *        rejected.
-      * @param max_ocsp_age maximum age of OCSP responses w/o next_update.
-      *        If zero, there is no maximum age
       */
       Path_Validation_Restrictions(bool require_rev,
                                    size_t minimum_key_strength,
                                    bool ocsp_all_intermediates,
-                                   const std::set<std::string>& trusted_hashes,
-                                   std::chrono::seconds max_ocsp_age = std::chrono::seconds::zero()) :
+                                   const std::set<std::string>& trusted_hashes) :
          m_require_revocation_information(require_rev),
          m_ocsp_all_intermediates(ocsp_all_intermediates),
          m_trusted_hashes(trusted_hashes),
-         m_minimum_key_strength(minimum_key_strength),
-         m_max_ocsp_age(max_ocsp_age) {}
+         m_minimum_key_strength(minimum_key_strength) {}
 
       /**
       * @return whether revocation information is required
@@ -104,19 +97,11 @@ class BOTAN_PUBLIC_API(2,0) Path_Validation_Restrictions final
       size_t minimum_key_strength() const
          { return m_minimum_key_strength; }
 
-      /**
-      * @return maximum age of OCSP responses w/o next_update.
-      * If zero, there is no maximum age
-      */
-      std::chrono::seconds max_ocsp_age() const
-         { return m_max_ocsp_age; }
-
    private:
       bool m_require_revocation_information;
       bool m_ocsp_all_intermediates;
       std::set<std::string> m_trusted_hashes;
       size_t m_minimum_key_strength;
-      std::chrono::seconds m_max_ocsp_age;
    };
 
 /**
@@ -361,16 +346,13 @@ BOTAN_PUBLIC_API(2,0) check_chain(const std::vector<std::shared_ptr<const X509_C
 * @param certstores trusted roots
 * @param ref_time whatever time you want to perform the validation against
 * (normally current system clock)
-* @param max_ocsp_age maximum age of OCSP responses w/o next_update. If zero,
-* there is no maximum age
 * @return revocation status
 */
 CertificatePathStatusCodes
-BOTAN_PUBLIC_API(2, 0) check_ocsp(const std::vector<std::shared_ptr<const X509_Certificate>>& cert_path,
-                                  const std::vector<std::shared_ptr<const OCSP::Response>>& ocsp_responses,
-                                  const std::vector<Certificate_Store*>& certstores,
-                                  std::chrono::system_clock::time_point ref_time,
-                                  std::chrono::seconds max_ocsp_age = std::chrono::seconds::zero());
+BOTAN_PUBLIC_API(2,0) check_ocsp(const std::vector<std::shared_ptr<const X509_Certificate>>& cert_path,
+                     const std::vector<std::shared_ptr<const OCSP::Response>>& ocsp_responses,
+                     const std::vector<Certificate_Store*>& certstores,
+                     std::chrono::system_clock::time_point ref_time);
 
 /**
 * Check CRLs for revocation information
@@ -413,17 +395,14 @@ BOTAN_PUBLIC_API(2,0) check_crl(const std::vector<std::shared_ptr<const X509_Cer
 * may block for up to timeout*cert_path.size()*C for some small C.
 * @param ocsp_check_intermediate_CAs if true also performs OCSP on any intermediate
 * CA certificates. If false, only does OCSP on the end entity cert.
-* @param max_ocsp_age maximum age of OCSP responses w/o next_update. If zero,
-* there is no maximum age
 * @return revocation status
 */
 CertificatePathStatusCodes
-BOTAN_PUBLIC_API(2, 0) check_ocsp_online(const std::vector<std::shared_ptr<const X509_Certificate>>& cert_path,
-      const std::vector<Certificate_Store*>& trusted_certstores,
-      std::chrono::system_clock::time_point ref_time,
-      std::chrono::milliseconds timeout,
-      bool ocsp_check_intermediate_CAs,
-      std::chrono::seconds max_ocsp_age = std::chrono::seconds::zero());
+BOTAN_PUBLIC_API(2,0) check_ocsp_online(const std::vector<std::shared_ptr<const X509_Certificate>>& cert_path,
+                            const std::vector<Certificate_Store*>& trusted_certstores,
+                            std::chrono::system_clock::time_point ref_time,
+                            std::chrono::milliseconds timeout,
+                            bool ocsp_check_intermediate_CAs);
 
 /**
 * Check CRL using online (HTTP) access. Current version creates a thread and

@@ -1,5 +1,5 @@
 /*
-* BLAKE2b
+* Blake2b
 * (C) 2016 cynecx
 *
 * Botan is released under the Simplified BSD License (see license.txt)
@@ -12,20 +12,18 @@
 #include <string>
 #include <memory>
 
-BOTAN_FUTURE_INTERNAL_HEADER(blake2b.h)
-
 namespace Botan {
 
 /**
 * BLAKE2B
 */
-class BOTAN_PUBLIC_API(2,0) BLAKE2b final : public HashFunction
+class BOTAN_PUBLIC_API(2,0) Blake2b final : public HashFunction
    {
    public:
       /**
-      * @param output_bits the output size of BLAKE2b in bits
+      * @param output_bits the output size of Blake2b in bits
       */
-      explicit BLAKE2b(size_t output_bits = 512);
+      explicit Blake2b(size_t output_bits = 512);
 
       size_t hash_block_size() const override { return 128; }
       size_t output_length() const override { return m_output_bits / 8; }
@@ -52,8 +50,6 @@ class BOTAN_PUBLIC_API(2,0) BLAKE2b final : public HashFunction
       uint64_t m_T[2];
       uint64_t m_F[2];
    };
-
-typedef BLAKE2b Blake2b;
 
 }
 

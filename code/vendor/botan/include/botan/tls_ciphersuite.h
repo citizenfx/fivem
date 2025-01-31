@@ -10,7 +10,6 @@
 
 #include <botan/types.h>
 #include <botan/tls_algos.h>
-#include <botan/tls_version.h>
 #include <string>
 #include <vector>
 
@@ -30,13 +29,6 @@ class BOTAN_PUBLIC_API(2,0) Ciphersuite final
       * @return ciphersuite object
       */
       static Ciphersuite by_id(uint16_t suite);
-
-      /**
-      * Convert an SSL/TLS ciphersuite name to algorithm fields
-      * @param name the IANA name for the desired ciphersuite
-      * @return ciphersuite object
-      */
-      static Ciphersuite from_name(const std::string& name);
 
       /**
       * Returns true iff this suite is a known SCSV
@@ -114,8 +106,6 @@ class BOTAN_PUBLIC_API(2,0) Ciphersuite final
 
       size_t nonce_bytes_from_handshake() const;
 
-      size_t nonce_bytes_from_record(Protocol_Version version) const;
-
       Nonce_Format nonce_format() const { return m_nonce_format; }
 
       size_t mac_keylen() const { return m_mac_keylen; }
@@ -124,8 +114,6 @@ class BOTAN_PUBLIC_API(2,0) Ciphersuite final
       * @return true if this is a valid/known ciphersuite
       */
       bool valid() const { return m_usable; }
-
-      bool usable_in_version(Protocol_Version version) const;
 
       bool operator<(const Ciphersuite& o) const { return ciphersuite_code() < o.ciphersuite_code(); }
       bool operator<(const uint16_t c) const { return ciphersuite_code() < c; }

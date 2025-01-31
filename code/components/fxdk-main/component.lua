@@ -9,7 +9,7 @@ return function()
 
 	links { "libcef_dll", "delayimp", "libGLESv2" }
 	links { "libcef" }
-	add_dependencies { 'vendor:mojo', 'legitimacy' }
+	add_dependencies { 'vendor:mojo' }
 
 	filter {}
 	

@@ -12,7 +12,7 @@
 		"rage:nutsnbolts",
 		"citizen:resources:core",
 		"citizen:scripting:core",
-		"legitimacy",
+		"ros-patches",
 		"voip:mumble",
 		"vendor:websocketpp",
 		"vendor:protobuf_lite",

@@ -42,7 +42,7 @@ static std::optional<NvidiaConnectionInfo> GetNvidiaStateNew()
 	std::optional<NvidiaConnectionInfo> rv;
 	auto fileMapping = OpenFileMappingW(FILE_MAP_READ, FALSE, L"{8BA1E16C-FC54-4595-9782-E370A5FBE8DA}");
 
-	if (fileMapping)
+	if (fileMapping != 0 && fileMapping != INVALID_HANDLE_VALUE)
 	{
 		const void* data = MapViewOfFile(fileMapping, FILE_MAP_READ, 0, 0, 0);
 

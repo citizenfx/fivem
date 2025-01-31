@@ -11,8 +11,6 @@
 #include <botan/mac.h>
 #include <memory>
 
-BOTAN_FUTURE_INTERNAL_HEADER(poly1305.h)
-
 namespace Botan {
 
 /**

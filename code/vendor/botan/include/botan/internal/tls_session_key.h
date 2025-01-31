@@ -8,8 +8,7 @@
 #ifndef BOTAN_TLS_SESSION_KEYS_H_
 #define BOTAN_TLS_SESSION_KEYS_H_
 
-#include <botan/secmem.h>
-#include <botan/tls_magic.h>
+#include <botan/symkey.h>
 
 namespace Botan {
 
@@ -24,39 +23,39 @@ class Session_Keys final
    {
    public:
       /**
-      * @return client AEAD key
+      * @return client encipherment key
       */
-      const secure_vector<uint8_t>& client_aead_key() const { return m_c_aead; }
+      const SymmetricKey& client_cipher_key() const { return m_c_cipher; }
 
       /**
-      * @return server AEAD key
+      * @return client encipherment key
       */
-      const secure_vector<uint8_t>& server_aead_key() const { return m_s_aead; }
+      const SymmetricKey& server_cipher_key() const { return m_s_cipher; }
 
       /**
-      * @return client nonce
+      * @return client MAC key
       */
-      const std::vector<uint8_t>& client_nonce() const { return m_c_nonce; }
+      const SymmetricKey& client_mac_key() const { return m_c_mac; }
 
       /**
-      * @return server nonce
+      * @return server MAC key
       */
-      const std::vector<uint8_t>& server_nonce() const { return m_s_nonce; }
+      const SymmetricKey& server_mac_key() const { return m_s_mac; }
+
+      /**
+      * @return client IV
+      */
+      const InitializationVector& client_iv() const { return m_c_iv; }
+
+      /**
+      * @return server IV
+      */
+      const InitializationVector& server_iv() const { return m_s_iv; }
 
       /**
       * @return TLS master secret
       */
       const secure_vector<uint8_t>& master_secret() const { return m_master_sec; }
-
-      const secure_vector<uint8_t>& aead_key(Connection_Side side) const
-         {
-         return (side == Connection_Side::CLIENT) ? client_aead_key() : server_aead_key();
-         }
-
-      const std::vector<uint8_t>& nonce(Connection_Side side) const
-         {
-         return (side == Connection_Side::CLIENT) ? client_nonce() : server_nonce();
-         }
 
       Session_Keys() = default;
 
@@ -71,8 +70,8 @@ class Session_Keys final
 
    private:
       secure_vector<uint8_t> m_master_sec;
-      secure_vector<uint8_t> m_c_aead, m_s_aead;
-      std::vector<uint8_t> m_c_nonce, m_s_nonce;
+      SymmetricKey m_c_cipher, m_s_cipher, m_c_mac, m_s_mac;
+      InitializationVector m_c_iv, m_s_iv;
    };
 
 }

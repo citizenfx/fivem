@@ -13,8 +13,6 @@
 #include <string>
 #include <memory>
 
-BOTAN_FUTURE_INTERNAL_HEADER(skin_512.h)
-
 namespace Botan {
 
 /**

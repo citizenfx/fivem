@@ -261,7 +261,6 @@ extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 		wchar_t commandLine[MAX_PATH * 8];
 		if (_snwprintf(commandLine, _countof(commandLine), L"\"%s\" -dumpserver:%i -parentpid:%i", applicationName, (int)initEvent, hostData->GetInitialPid()) >= _countof(commandLine))
 		{
-			CloseHandle(initEvent);
 			return false;
 		}
 
@@ -288,10 +287,6 @@ extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 				trace("Could not register with breakpad server.\n");
 			}
 		}
-
-		// #TODO: Convention required for handle passed to CreateProcess as a
-		// argument pointer.
-		//CloseHandle(initEvent);
 	}
 
 	if (isDebugged)

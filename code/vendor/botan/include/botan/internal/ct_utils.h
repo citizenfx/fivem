@@ -183,30 +183,6 @@ class Mask
          return ~Mask<T>::is_lt(x, y);
          }
 
-      static Mask<T> is_within_range(T v, T l, T u)
-         {
-         //return Mask<T>::is_gte(v, l) & Mask<T>::is_lte(v, u);
-
-         const T v_lt_l = v^((v^l) | ((v-l)^v));
-         const T v_gt_u = u^((u^v) | ((u-v)^u));
-         const T either = v_lt_l | v_gt_u;
-         return ~Mask<T>(expand_top_bit(either));
-         }
-
-      static Mask<T> is_any_of(T v, std::initializer_list<T> accepted)
-         {
-         T accept = 0;
-
-         for(auto a: accepted)
-            {
-            const T diff = a ^ v;
-            const T eq_zero = ~diff & (diff - 1);
-            accept |= eq_zero;
-            }
-
-         return Mask<T>(expand_top_bit(accept));
-         }
-
       /**
       * AND-combine two masks
       */

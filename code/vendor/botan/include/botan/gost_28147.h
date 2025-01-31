@@ -10,8 +10,6 @@
 
 #include <botan/block_cipher.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(gost_28147.h)
-
 namespace Botan {
 
 /**

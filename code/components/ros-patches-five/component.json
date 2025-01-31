@@ -1,0 +1,17 @@
+{
+	"name": "ros-patches:five",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"vendor:minhook",
+		"vendor:boost_filesystem",
+		"vendor:boost_program_options",
+		"vendor:tinyxml2-dll",
+		"vendor:curl",
+		"vendor:cpr",
+		"vendor:botan",
+		"vendor:zlib",
+		"net:http-server"
+	],
+	"provides": []
+}

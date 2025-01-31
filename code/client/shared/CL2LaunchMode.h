@@ -107,8 +107,10 @@ inline const std::string& GetProductKey()
 	{
 #ifdef IS_FXSERVER
 		return "SV";
-#elif defined(GTA_FIVE) || defined(IS_RDR3)
-		return "CFXGame";
+#elif defined(GTA_FIVE)
+		return "Five";
+#elif defined(IS_RDR3)
+		return "RDR";
 #else
 		return "CFX";
 #endif

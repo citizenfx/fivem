@@ -515,7 +515,7 @@ bool SteamComponent::RunPresenceDummy()
 		exitProcess = true;
 
 		// if we opened the process...
-		if (processHandle)
+		if (processHandle != INVALID_HANDLE_VALUE)
 		{
 			// do we like the process?
 			trace("waiting for process to exit...\n");
@@ -530,7 +530,6 @@ bool SteamComponent::RunPresenceDummy()
 
 				if (gameData->childPid != currentPid)
 				{
-					CloseHandle(processHandle);
 					return true;
 				}
 			}
@@ -542,10 +541,6 @@ bool SteamComponent::RunPresenceDummy()
 
 			// log it
 			trace("process exited with %d!\n", exitCode);
-		}
-		else
-		{
-			trace("could not open game parent!\n");
 		}
 	}
 	else

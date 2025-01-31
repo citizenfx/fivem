@@ -23,6 +23,11 @@ BOTAN_PUBLIC_API(2,9) base58_encode(const uint8_t input[],
                                     size_t input_length);
 
 /**
+* Perform base58 encoding
+*
+* This is raw base58 encoding, without the checksum
+*/
+/**
 * Perform base58 encoding with checksum
 */
 std::string
@@ -41,6 +46,8 @@ BOTAN_PUBLIC_API(2,9) base58_decode(const char input[],
 
 /**
 * Perform base58 decoding with checksum
+*
+* This is raw base58 encoding, without the checksum
 */
 std::vector<uint8_t>
 BOTAN_PUBLIC_API(2,9) base58_check_decode(const char input[],

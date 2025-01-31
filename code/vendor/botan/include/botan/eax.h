@@ -14,8 +14,6 @@
 #include <botan/stream_cipher.h>
 #include <botan/mac.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(eax.h)
-
 namespace Botan {
 
 /**

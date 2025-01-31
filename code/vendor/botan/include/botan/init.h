@@ -13,8 +13,6 @@
 
 namespace Botan {
 
-BOTAN_DEPRECATED_HEADER(init.h)
-
 /*
 * Previously botan had state whose lifetime had to be explicitly
 * managed by the application. As of 1.11.14 this is no longer the

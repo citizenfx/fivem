@@ -8,7 +8,7 @@
 #ifndef BOTAN_TLS_PROTOCOL_VERSION_H_
 #define BOTAN_TLS_PROTOCOL_VERSION_H_
 
-#include <botan/types.h>
+#include <botan/loadstor.h>
 #include <string>
 
 namespace Botan {
@@ -48,20 +48,18 @@ class BOTAN_PUBLIC_API(2,0) Protocol_Version final
 
       Protocol_Version() : m_version(0) {}
 
-      explicit Protocol_Version(uint16_t code) : m_version(code) {}
-
       /**
       * @param named_version a specific named version of the protocol
       */
       Protocol_Version(Version_Code named_version) :
-         Protocol_Version(static_cast<uint16_t>(named_version)) {}
+         m_version(static_cast<uint16_t>(named_version)) {}
 
       /**
       * @param major the major version
       * @param minor the minor version
       */
       Protocol_Version(uint8_t major, uint8_t minor) :
-         Protocol_Version(static_cast<uint16_t>((static_cast<uint16_t>(major) << 8) | minor)) {}
+         m_version(static_cast<uint16_t>((static_cast<uint16_t>(major) << 8) | minor)) {}
 
       /**
       * @return true if this is a valid protocol version
@@ -76,17 +74,12 @@ class BOTAN_PUBLIC_API(2,0) Protocol_Version final
       /**
       * @return major version of the protocol version
       */
-      uint8_t major_version() const { return static_cast<uint8_t>(m_version >> 8); }
+      uint8_t major_version() const { return get_byte(0, m_version); }
 
       /**
       * @return minor version of the protocol version
       */
-      uint8_t minor_version() const { return static_cast<uint8_t>(m_version & 0xFF); }
-
-      /**
-      * @return the version code
-      */
-      uint16_t version_code() const { return m_version; }
+      uint8_t minor_version() const { return get_byte(1, m_version); }
 
       /**
       * @return human-readable description of this version

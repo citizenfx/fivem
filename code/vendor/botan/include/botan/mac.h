@@ -49,7 +49,7 @@ class BOTAN_PUBLIC_API(2,0) MessageAuthenticationCode : public Buffered_Computat
       */
       static std::vector<std::string> providers(const std::string& algo_spec);
 
-      virtual ~MessageAuthenticationCode() {}
+      virtual ~MessageAuthenticationCode() = default;
 
       /**
       * Prepare for processing a message under the specified nonce

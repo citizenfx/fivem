@@ -12,7 +12,7 @@
 #ifndef BOTAN_NEWHOPE_H_
 #define BOTAN_NEWHOPE_H_
 
-#include <botan/types.h>
+#include <botan/mem_ops.h>
 
 namespace Botan {
 
@@ -25,11 +25,11 @@ class RandomNumberGenerator;
 */
 
 // TODO: change to just a secure_vector
-class BOTAN_UNSTABLE_API newhope_poly final
+class newhope_poly final
    {
    public:
       uint16_t coeffs[1024];
-      ~newhope_poly();
+      ~newhope_poly() { secure_scrub_memory(coeffs, sizeof(coeffs)); }
    };
 
 enum Newhope_Params

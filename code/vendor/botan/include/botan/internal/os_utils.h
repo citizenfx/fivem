@@ -50,19 +50,6 @@ bool running_in_privileged_state();
 */
 uint64_t BOTAN_TEST_API get_cpu_cycle_counter();
 
-size_t BOTAN_TEST_API get_cpu_total();
-size_t BOTAN_TEST_API get_cpu_available();
-
-/**
-* Return the ELF auxiliary vector cooresponding to the given ID.
-* This only makes sense on Unix-like systems and is currently
-* only supported on Linux, Android, and FreeBSD.
-*
-* Returns zero if not supported on the current system or if
-* the id provided is not known.
-*/
-unsigned long get_auxval(unsigned long id);
-
 /*
 * @return best resolution timestamp available
 *
@@ -95,28 +82,19 @@ size_t get_memory_locking_limit();
 size_t system_page_size();
 
 /**
-* Read the value of an environment variable, setting it to value_out if it
-* exists.  Returns false and sets value_out to empty string if no such variable
-* is set. If the process seems to be running in a privileged state (such as
-* setuid) then always returns false and does not examine the environment.
+* Read the value of an environment variable. Return nullptr if
+* no such variable is set. If the process seems to be running in
+* a privileged state (such as setuid) then always returns nullptr,
+* similiar to glibc's secure_getenv.
 */
-bool read_env_variable(std::string& value_out, const std::string& var_name);
+const char* read_env_variable(const std::string& var_name);
 
 /**
-* Read the value of an environment variable and convert it to an
-* integer. If not set or conversion fails, returns the default value.
-*
-* If the process seems to be running in a privileged state (such as setuid)
-* then always returns nullptr, similiar to glibc's secure_getenv.
-*/
-size_t read_env_variable_sz(const std::string& var_name, size_t def_value = 0);
-
-/**
-* Request count pages of RAM which are locked into memory using mlock,
+* Request @count pages of RAM which are locked into memory using mlock,
 * VirtualLock, or some similar OS specific API. Free it with free_locked_pages.
 *
 * Returns an empty list on failure. This function is allowed to return fewer
-* than count pages.
+* than @count pages.
 *
 * The contents of the allocated pages are undefined.
 *
@@ -184,7 +162,7 @@ class BOTAN_UNSTABLE_API Echo_Suppression
       * Implicitly calls reenable_echo, but swallows/ignored all
       * errors which would leave the terminal in an invalid state.
       */
-      virtual ~Echo_Suppression() {}
+      virtual ~Echo_Suppression() = default;
    };
 
 /**

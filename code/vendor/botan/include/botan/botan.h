@@ -16,6 +16,12 @@
 * This header file will be removed in Botan 3.x
 */
 
+#if defined(__GNUC__)
+  #warning "botan/botan.h is deprecated"
+#elif defined(_MSC_VER)
+  #pragma message ("botan/botan.h is deprecated")
+#endif
+
 #include <botan/lookup.h>
 #include <botan/version.h>
 #include <botan/parsing.h>
@@ -35,7 +41,5 @@
   #include <botan/x509_key.h>
   #include <botan/pkcs8.h>
 #endif
-
-BOTAN_DEPRECATED_HEADER(botan.h)
 
 #endif

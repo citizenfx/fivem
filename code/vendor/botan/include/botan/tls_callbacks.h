@@ -31,7 +31,6 @@ namespace TLS {
 class Handshake_Message;
 class Policy;
 class Extensions;
-class Certificate_Status_Request;
 
 /**
 * Encapsulates the callbacks that a TLS channel will make which are due to
@@ -40,7 +39,7 @@ class Certificate_Status_Request;
 class BOTAN_PUBLIC_API(2,0) Callbacks
    {
    public:
-       virtual ~Callbacks() {}
+       virtual ~Callbacks() = default;
 
        /**
        * Mandatory callback: output function
@@ -137,31 +136,10 @@ class BOTAN_PUBLIC_API(2,0) Callbacks
        /**
        * Called by default `tls_verify_cert_chain` to get the timeout to use for OCSP
        * requests. Return 0 to disable online OCSP checks.
-       *
-       * This function should not be "const" since the implementation might need
-       * to perform some side effecting operation to compute the result.
        */
        virtual std::chrono::milliseconds tls_verify_cert_chain_ocsp_timeout() const
           {
           return std::chrono::milliseconds(0);
-          }
-
-      /**
-       * Called by the TLS server whenever the client included the
-       * status_request extension (see RFC 6066, a.k.a OCSP stapling)
-       * in the ClientHello.
-       *
-       * @return the encoded OCSP response to be sent to the client which
-       * indicates the revocation status of the server certificate. Return an
-       * empty vector to indicate that no response is available, and thus
-       * suppress the Certificate_Status message.
-       */
-       virtual std::vector<uint8_t> tls_provide_cert_status(const std::vector<X509_Certificate>& chain,
-                                                            const Certificate_Status_Request& csr)
-          {
-          BOTAN_UNUSED(chain);
-          BOTAN_UNUSED(csr);
-          return std::vector<uint8_t>();
           }
 
        /**
@@ -315,18 +293,6 @@ class BOTAN_PUBLIC_API(2,0) Callbacks
        * Default implementation uses the standard (IETF-defined) mappings.
        */
        virtual std::string tls_decode_group_param(Group_Params group_param);
-
-       /**
-       * Optional callback: return peer network identity
-       *
-       * There is no expected or specified format. The only expectation is this
-       * function will return a unique value. For example returning the peer
-       * host IP and port.
-       *
-       * This is used to bind the DTLS cookie to a particular network identity.
-       * It is only called if the dtls-cookie-secret PSK is also defined.
-       */
-       virtual std::string tls_peer_network_identity();
 
        /**
        * Optional callback: error logging. (not currently called)

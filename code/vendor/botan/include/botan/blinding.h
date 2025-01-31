@@ -12,8 +12,6 @@
 #include <botan/reducer.h>
 #include <functional>
 
-BOTAN_FUTURE_INTERNAL_HEADER(blinding.h)
-
 namespace Botan {
 
 class RandomNumberGenerator;

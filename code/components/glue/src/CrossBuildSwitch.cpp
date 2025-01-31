@@ -123,8 +123,6 @@ void TaskDialogEmulated(TASKDIALOGCONFIG* config, int* button, void*, void*)
 
 		g_buttonEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 		WaitForSingleObject(g_buttonEvent, INFINITE);
-		CloseHandle(g_buttonEvent);
-		g_buttonEvent = nullptr;
 
 		*button = g_buttonResponse ? IDYES : IDNO;
 	}

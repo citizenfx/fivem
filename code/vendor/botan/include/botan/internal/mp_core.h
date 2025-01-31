@@ -19,7 +19,9 @@
 
 namespace Botan {
 
-const word MP_WORD_MAX = ~static_cast<word>(0);
+const word MP_WORD_MASK = ~static_cast<word>(0);
+const word MP_WORD_TOP_BIT = static_cast<word>(1) << (8*sizeof(word) - 1);
+const word MP_WORD_MAX = MP_WORD_MASK;
 
 /*
 * If cond == 0, does nothing.
@@ -429,8 +431,7 @@ inline void bigint_shr1(word x[], size_t x_size,
    {
    const size_t top = x_size >= word_shift ? (x_size - word_shift) : 0;
 
-   if(top > 0)
-      copy_mem(x, x + word_shift, top);
+   copy_mem(x, x + word_shift, top);
    clear_mem(x + top, std::min(word_shift, x_size));
 
    const auto carry_mask = CT::Mask<word>::expand(bit_shift);
@@ -468,8 +469,7 @@ inline void bigint_shr2(word y[], const word x[], size_t x_size,
    {
    const size_t new_size = x_size < word_shift ? 0 : (x_size - word_shift);
 
-   if(new_size > 0)
-      copy_mem(y, x + word_shift, new_size);
+   copy_mem(y, x + word_shift, new_size);
 
    const auto carry_mask = CT::Mask<word>::expand(bit_shift);
    const size_t carry_shift = carry_mask.if_set_return(BOTAN_MP_WORD_BITS - bit_shift);
@@ -484,9 +484,9 @@ inline void bigint_shr2(word y[], const word x[], size_t x_size,
    }
 
 /*
-* Linear Multiply - returns the carry
+* Linear Multiply
 */
-inline word BOTAN_WARN_UNUSED_RESULT bigint_linmul2(word x[], size_t x_size, word y)
+inline void bigint_linmul2(word x[], size_t x_size, word y)
    {
    const size_t blocks = x_size - (x_size % 8);
 
@@ -498,7 +498,7 @@ inline word BOTAN_WARN_UNUSED_RESULT bigint_linmul2(word x[], size_t x_size, wor
    for(size_t i = blocks; i != x_size; ++i)
       x[i] = word_madd2(x[i], y, &carry);
 
-   return carry;
+   x[x_size] = carry;
    }
 
 inline void bigint_linmul3(word z[], const word x[], size_t x_size, word y)
@@ -658,9 +658,8 @@ bigint_sub_abs(word z[],
    const int32_t relative_size = bigint_cmp(x, x_size, y, y_size);
 
    // Swap if relative_size == -1
-   const bool need_swap = relative_size < 0;
-   CT::conditional_swap_ptr(need_swap, x, y);
-   CT::conditional_swap(need_swap, x_size, y_size);
+   CT::conditional_swap_ptr(relative_size < 0, x, y);
+   CT::conditional_swap(relative_size < 0, x_size, y_size);
 
    /*
    * We know at this point that x >= y so if y_size is larger than
@@ -724,7 +723,7 @@ inline word bigint_divop(word n1, word n0, word d)
       throw Invalid_Argument("bigint_divop divide by zero");
 
 #if defined(BOTAN_HAS_MP_DWORD)
-   return static_cast<word>(((static_cast<dword>(n1) << BOTAN_MP_WORD_BITS) | n0) / d);
+   return ((static_cast<dword>(n1) << BOTAN_MP_WORD_BITS) | n0) / d;
 #else
 
    word high = n1 % d;
@@ -732,7 +731,7 @@ inline word bigint_divop(word n1, word n0, word d)
 
    for(size_t i = 0; i != BOTAN_MP_WORD_BITS; ++i)
       {
-      const word high_top_bit = high >> (BOTAN_MP_WORD_BITS-1);
+      word high_top_bit = (high & MP_WORD_TOP_BIT);
 
       high <<= 1;
       high |= (n0 >> (BOTAN_MP_WORD_BITS-1-i)) & 1;

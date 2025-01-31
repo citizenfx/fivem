@@ -110,7 +110,7 @@ class BOTAN_PUBLIC_API(2,0) Server final : public Channel
       * tied to the session and a later renegotiation of the same
       * session can choose a new protocol.
       */
-      std::string application_protocol() const override { return m_next_protocol; }
+      std::string application_protocol() const { return m_next_protocol; }
 
    private:
       std::vector<X509_Certificate>
@@ -122,13 +122,11 @@ class BOTAN_PUBLIC_API(2,0) Server final : public Channel
       void process_handshake_msg(const Handshake_State* active_state,
                                  Handshake_State& pending_state,
                                  Handshake_Type type,
-                                 const std::vector<uint8_t>& contents,
-                                 bool epoch0_restart) override;
+                                 const std::vector<uint8_t>& contents) override;
 
       void process_client_hello_msg(const Handshake_State* active_state,
                                     Server_Handshake_State& pending_state,
-                                    const std::vector<uint8_t>& contents,
-                                    bool epoch0_restart);
+                                    const std::vector<uint8_t>& contents);
 
       void process_certificate_msg(Server_Handshake_State& pending_state,
                                    const std::vector<uint8_t>& contents);

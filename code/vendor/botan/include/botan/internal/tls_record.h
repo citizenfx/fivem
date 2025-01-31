@@ -42,11 +42,7 @@ class Connection_Cipher_State final
                               const Session_Keys& keys,
                               bool uses_encrypt_then_mac);
 
-      AEAD_Mode& aead()
-         {
-         BOTAN_ASSERT_NONNULL(m_aead.get());
-         return *m_aead.get();
-         }
+      AEAD_Mode* aead() { return m_aead.get(); }
 
       std::vector<uint8_t> aead_nonce(uint64_t seq, RandomNumberGenerator& rng);
 
@@ -72,96 +68,99 @@ class Connection_Cipher_State final
       std::unique_ptr<AEAD_Mode> m_aead;
 
       std::vector<uint8_t> m_nonce;
-      Nonce_Format m_nonce_format;
-      size_t m_nonce_bytes_from_handshake;
-      size_t m_nonce_bytes_from_record;
+      Nonce_Format m_nonce_format = Nonce_Format::CBC_MODE;
+      size_t m_nonce_bytes_from_handshake = 0;
+      size_t m_nonce_bytes_from_record = 0;
    };
 
-class Record_Header final
+class Record final
    {
    public:
-      Record_Header(uint64_t sequence,
-                    Protocol_Version version,
-                    Record_Type type) :
-         m_needed(0),
-         m_sequence(sequence),
-         m_version(version),
-         m_type(type)
-         {}
+      Record(secure_vector<uint8_t>& data,
+             uint64_t* sequence,
+             Protocol_Version* protocol_version,
+             Record_Type* type)
+         : m_data(data), m_sequence(sequence), m_protocol_version(protocol_version),
+           m_type(type), m_size(data.size()) {}
 
-      Record_Header(size_t needed) :
-         m_needed(needed),
-         m_sequence(0),
-         m_version(Protocol_Version()),
-         m_type(NO_RECORD)
-         {}
+      secure_vector<uint8_t>& get_data() { return m_data; }
 
-      size_t needed() const { return m_needed; }
+      Protocol_Version* get_protocol_version() { return m_protocol_version; }
 
-      Protocol_Version version() const
-         {
-         BOTAN_ASSERT_NOMSG(m_needed == 0);
-         return m_version;
-         }
+      uint64_t* get_sequence() { return m_sequence; }
 
-      uint64_t sequence() const
-         {
-         BOTAN_ASSERT_NOMSG(m_needed == 0);
-         return m_sequence;
-         }
+      Record_Type* get_type() { return m_type; }
 
-      uint16_t epoch() const
-         {
-         return static_cast<uint16_t>(sequence() >> 48);
-         }
-
-      Record_Type type() const
-         {
-         BOTAN_ASSERT_NOMSG(m_needed == 0);
-         return m_type;
-         }
+      size_t& get_size() { return m_size; }
 
    private:
-      size_t m_needed;
-      uint64_t m_sequence;
-      Protocol_Version m_version;
-      Record_Type m_type;
+      secure_vector<uint8_t>& m_data;
+      uint64_t* m_sequence;
+      Protocol_Version* m_protocol_version;
+      Record_Type* m_type;
+      size_t m_size;
    };
 
-/**
-* Create an initial (unencrypted) TLS handshake record
-* @param write_buffer the output record is placed here
-* @param record_type the record layer type
-* @param record_version the record layer version
-* @param record_sequence the record layer sequence number
-* @param message the record contents
-* @param message_len is size of message
-*/
-void write_unencrypted_record(secure_vector<uint8_t>& write_buffer,
-                              uint8_t record_type,
-                              Protocol_Version record_version,
-                              uint64_t record_sequence,
-                              const uint8_t* message,
-                              size_t message_len);
+class Record_Message final
+   {
+   public:
+      Record_Message(const uint8_t* data, size_t size)
+         : m_type(0), m_sequence(0), m_data(data), m_size(size) {}
+      Record_Message(uint8_t type, uint64_t sequence, const uint8_t* data, size_t size)
+         : m_type(type), m_sequence(sequence), m_data(data),
+           m_size(size) {}
+
+      uint8_t& get_type() { return m_type; }
+      uint64_t& get_sequence() { return m_sequence; }
+      const uint8_t* get_data() { return m_data; }
+      size_t& get_size() { return m_size; }
+
+   private:
+      uint8_t m_type;
+      uint64_t m_sequence;
+      const uint8_t* m_data;
+      size_t m_size;
+};
+
+class Record_Raw_Input final
+   {
+   public:
+      Record_Raw_Input(const uint8_t* data, size_t size, size_t& consumed,
+                       bool is_datagram)
+         : m_data(data), m_size(size), m_consumed(consumed),
+           m_is_datagram(is_datagram) {}
+
+      const uint8_t*& get_data() { return m_data; }
+
+      size_t& get_size() { return m_size; }
+
+      size_t& get_consumed() { return m_consumed; }
+      void set_consumed(size_t consumed) { m_consumed = consumed; }
+
+      bool is_datagram() { return m_is_datagram; }
+
+   private:
+      const uint8_t* m_data;
+      size_t m_size;
+      size_t& m_consumed;
+      bool m_is_datagram;
+   };
+
 
 /**
 * Create a TLS record
 * @param write_buffer the output record is placed here
-* @param record_type the record layer type
-* @param record_version the record layer version
-* @param record_sequence the record layer sequence number
-* @param message the record contents
-* @param message_len is size of message
+* @param rec_msg is the plaintext message
+* @param version is the protocol version
+* @param msg_sequence is the sequence number
 * @param cipherstate is the writing cipher state
 * @param rng is a random number generator
 */
 void write_record(secure_vector<uint8_t>& write_buffer,
-                  uint8_t record_type,
-                  Protocol_Version record_version,
-                  uint64_t record_sequence,
-                  const uint8_t* message,
-                  size_t message_len,
-                  Connection_Cipher_State& cipherstate,
+                  Record_Message rec_msg,
+                  Protocol_Version version,
+                  uint64_t msg_sequence,
+                  Connection_Cipher_State* cipherstate,
                   RandomNumberGenerator& rng);
 
 // epoch -> cipher state
@@ -171,15 +170,11 @@ typedef std::function<std::shared_ptr<Connection_Cipher_State> (uint16_t)> get_c
 * Decode a TLS record
 * @return zero if full message, else number of bytes still needed
 */
-Record_Header read_record(bool is_datagram,
-                          secure_vector<uint8_t>& read_buffer,
-                          const uint8_t input[],
-                          size_t input_len,
-                          size_t& consumed,
-                          secure_vector<uint8_t>& record_buf,
-                          Connection_Sequence_Numbers* sequence_numbers,
-                          get_cipherstate_fn get_cipherstate,
-                          bool allow_epoch0_restart);
+size_t read_record(secure_vector<uint8_t>& read_buffer,
+                   Record_Raw_Input& raw_input,
+                   Record& rec,
+                   Connection_Sequence_Numbers* sequence_numbers,
+                   get_cipherstate_fn get_cipherstate);
 
 }
 

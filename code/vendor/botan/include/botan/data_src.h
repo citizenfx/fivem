@@ -87,7 +87,7 @@ class BOTAN_PUBLIC_API(2,0) DataSource
       virtual size_t get_bytes_read() const = 0;
 
       DataSource() = default;
-      virtual ~DataSource() {}
+      virtual ~DataSource() = default;
       DataSource& operator=(const DataSource&) = delete;
       DataSource(const DataSource&) = delete;
    };

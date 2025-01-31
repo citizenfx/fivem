@@ -12,7 +12,7 @@
 #include <mutex>
 #include <mmsystem.h>
 #include <SteamComponentAPI.h>
-#include <SharedLegitimacyAPI.h>
+#include <LegitimacyAPI.h>
 #include <IteratorView.h>
 #include <optional>
 #include <random>

@@ -13,8 +13,6 @@
 #include <botan/hash.h>
 #include <botan/mac.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(sp800_56a.h)
-
 namespace Botan {
 
 /**

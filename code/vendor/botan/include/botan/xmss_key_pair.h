@@ -8,9 +8,11 @@
 #ifndef BOTAN_XMSS_KEY_PAIR_H_
 #define BOTAN_XMSS_KEY_PAIR_H_
 
-#include <botan/xmss.h>
-
-BOTAN_DEPRECATED_HEADER(xmss_key_pair.h)
+#include <botan/botan.h>
+#include <botan/xmss_parameters.h>
+#include <botan/xmss_wots_parameters.h>
+#include <botan/xmss_publickey.h>
+#include <botan/xmss_privatekey.h>
 
 namespace Botan {
 

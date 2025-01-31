@@ -42,7 +42,7 @@ class BOTAN_PUBLIC_API(2,0) GOST_3410_PublicKey : public virtual EC_PublicKey
       * Get this keys algorithm name.
       * @result this keys algorithm name
       */
-      std::string algo_name() const override;
+      std::string algo_name() const override { return "GOST-34.10"; }
 
       AlgorithmIdentifier algorithm_identifier() const override;
 
@@ -52,9 +52,6 @@ class BOTAN_PUBLIC_API(2,0) GOST_3410_PublicKey : public virtual EC_PublicKey
 
       size_t message_part_size() const override
          { return domain().get_order().bytes(); }
-
-      Signature_Format default_x509_signature_format() const override
-         { return IEEE_1363; }
 
       std::unique_ptr<PK_Ops::Verification>
          create_verification_op(const std::string& params,
@@ -67,8 +64,8 @@ class BOTAN_PUBLIC_API(2,0) GOST_3410_PublicKey : public virtual EC_PublicKey
 /**
 * GOST-34.10 Private Key
 */
-class BOTAN_PUBLIC_API(2,0) GOST_3410_PrivateKey final :
-   public GOST_3410_PublicKey, public EC_PrivateKey
+class BOTAN_PUBLIC_API(2,0) GOST_3410_PrivateKey final : public GOST_3410_PublicKey,
+                                       public EC_PrivateKey
    {
    public:
       /**
@@ -88,7 +85,8 @@ class BOTAN_PUBLIC_API(2,0) GOST_3410_PrivateKey final :
       */
       GOST_3410_PrivateKey(RandomNumberGenerator& rng,
                            const EC_Group& domain,
-                           const BigInt& x = 0);
+                           const BigInt& x = 0) :
+         EC_PrivateKey(rng, domain, x) {}
 
       AlgorithmIdentifier pkcs8_algorithm_identifier() const override
          { return EC_PublicKey::algorithm_identifier(); }

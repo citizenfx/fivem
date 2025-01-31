@@ -10,8 +10,6 @@
 
 #include <botan/pk_keys.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(keypair.h)
-
 namespace Botan {
 
 namespace KeyPair {

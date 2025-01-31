@@ -8,7 +8,6 @@
 #ifndef BOTAN_STL_COMPATIBILITY_H_
 #define BOTAN_STL_COMPATIBILITY_H_
 
-#include <botan/types.h>
 #include <memory>
 
 #if __cplusplus < 201402L
@@ -16,8 +15,6 @@
 #include <type_traits>
 #include <utility>
 #endif
-
-BOTAN_FUTURE_INTERNAL_HEADER(stl_compatability.h)
 
 namespace Botan
 {

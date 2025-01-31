@@ -8,8 +8,8 @@
 #ifndef BOTAN_SEMAPHORE_H_
 #define BOTAN_SEMAPHORE_H_
 
+#include <botan/mutex.h>
 #include <condition_variable>
-#include <mutex>
 
 namespace Botan {
 
@@ -25,7 +25,7 @@ class Semaphore final
    private:
       int m_value;
       int m_wakeups;
-      std::mutex m_mutex;
+      mutex_type m_mutex;
       std::condition_variable m_cond;
    };
 

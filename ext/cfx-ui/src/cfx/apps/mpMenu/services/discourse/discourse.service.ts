@@ -236,6 +236,7 @@ class DiscourseService implements IAccountService, AppContribution {
         'Content-Type': 'application/json',
         'User-Api-Client-Id': this.clientId,
         'User-Api-Key': this.authToken,
+        'Cfx-Entitlement-Ticket': await this.getOwnershipTicket(),
       },
       body: data
         ? JSON.stringify(data)
@@ -309,6 +310,12 @@ class DiscourseService implements IAccountService, AppContribution {
 
   private getLastNonce(): string {
     return window.localStorage.getItem(LSKeys.LAST_AUTH_NONCE) || '';
+  }
+
+  private async getOwnershipTicket(): Promise<string> {
+    await this.convarsService.whenPopulated();
+
+    return this.convarsService.get('cl_ownershipTicket');
   }
 
   private readonly handleExternalAuthPayload = async (data: { data: string }) => {

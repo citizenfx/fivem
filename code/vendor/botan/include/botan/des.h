@@ -10,8 +10,6 @@
 
 #include <botan/block_cipher.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(des.h)
-
 namespace Botan {
 
 /**
@@ -61,6 +59,11 @@ extern const uint32_t DES_SPBOX5[256];
 extern const uint32_t DES_SPBOX6[256];
 extern const uint32_t DES_SPBOX7[256];
 extern const uint32_t DES_SPBOX8[256];
+
+extern const uint64_t DES_IPTAB1[256];
+extern const uint64_t DES_IPTAB2[256];
+extern const uint64_t DES_FPTAB1[256];
+extern const uint64_t DES_FPTAB2[256];
 
 }
 

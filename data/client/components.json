@@ -4,7 +4,7 @@
 	"rage:device:five",
 	"rage:graphics:five",
 	"font-renderer",
-	"legitimacy",
+	"ros-patches:five",
 	"rage:scripting:five",
 	"debug:net",
 	"citizen:game:main",

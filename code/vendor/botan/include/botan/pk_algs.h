@@ -9,7 +9,7 @@
 #define BOTAN_PK_KEY_FACTORY_H_
 
 #include <botan/pk_keys.h>
-#include <botan/asn1_obj.h>
+#include <botan/alg_id.h>
 #include <memory>
 
 namespace Botan {

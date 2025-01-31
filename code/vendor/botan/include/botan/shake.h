@@ -12,8 +12,6 @@
 #include <botan/secmem.h>
 #include <string>
 
-BOTAN_FUTURE_INTERNAL_HEADER(shake.h)
-
 namespace Botan {
 
 /**

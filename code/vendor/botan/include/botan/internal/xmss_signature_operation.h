@@ -1,6 +1,6 @@
 /*
  * XMSS Signature Operation
- * (C) 2016,2017,2018 Matthias Gierlings
+ * (C) 2016,2017 Matthias Gierlings
  *
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
@@ -8,11 +8,17 @@
 #ifndef BOTAN_XMSS_SIGNATURE_OPERATION_H_
 #define BOTAN_XMSS_SIGNATURE_OPERATION_H_
 
+#include <cstddef>
+#include <string>
+#include <botan/secmem.h>
+#include <botan/types.h>
+#include <botan/xmss_parameters.h>
+#include <botan/xmss_privatekey.h>
+#include <botan/xmss_address.h>
+#include <botan/xmss_common_ops.h>
 #include <botan/pk_ops.h>
-#include <botan/xmss.h>
-#include <botan/internal/xmss_address.h>
 #include <botan/internal/xmss_signature.h>
-#include <botan/xmss_wots.h>
+#include <botan/xmss_wots_publickey.h>
 
 namespace Botan {
 
@@ -21,11 +27,13 @@ namespace Botan {
  * defined in:
  *
  * [1] XMSS: Extended Hash-Based Signatures,
- *     Request for Comments: 8391
- *     Release: May 2018.
- *     https://datatracker.ietf.org/doc/rfc8391/
+ *     draft-itrf-cfrg-xmss-hash-based-signatures-06
+ *     Release: July 2016.
+ *     https://datatracker.ietf.org/doc/
+ *     draft-irtf-cfrg-xmss-hash-based-signatures/?include_text=1
  **/
-class XMSS_Signature_Operation final : public virtual PK_Ops::Signature
+class XMSS_Signature_Operation final : public virtual PK_Ops::Signature,
+                                       public XMSS_Common_Ops
    {
    public:
       XMSS_Signature_Operation(const XMSS_PrivateKey& private_key);
@@ -76,10 +84,8 @@ class XMSS_Signature_Operation final : public virtual PK_Ops::Signature
       void initialize();
 
       XMSS_PrivateKey m_priv_key;
-      const XMSS_Parameters m_xmss_params;
-      XMSS_Hash m_hash;
       secure_vector<uint8_t> m_randomness;
-      uint32_t m_leaf_idx;
+      size_t m_leaf_idx;
       bool m_is_initialized;
    };
 

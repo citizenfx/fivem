@@ -14,8 +14,6 @@
 
 namespace Botan {
 
-BOTAN_FUTURE_INTERNAL_HEADER(keccak.h)
-
 /**
 * Keccak[1600], a SHA-3 candidate
 */

@@ -10,6 +10,4 @@
 
 #include <botan/sm2.h>
 
-BOTAN_DEPRECATED_HEADER(sm2_enc.h)
-
 #endif

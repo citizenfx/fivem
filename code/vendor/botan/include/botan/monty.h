@@ -8,7 +8,6 @@
 #define BOTAN_MONTY_INT_H_
 
 #include <botan/bigint.h>
-BOTAN_FUTURE_INTERNAL_HEADER(monty.h)
 
 namespace Botan {
 

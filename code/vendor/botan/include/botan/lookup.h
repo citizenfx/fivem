@@ -32,8 +32,6 @@
 
 namespace Botan {
 
-BOTAN_DEPRECATED_HEADER(lookup.h)
-
 /*
 * As of 1.11.26 this header is deprecated. Instead use the calls T::create and
 * T::providers (as demonstrated in the implementation below).

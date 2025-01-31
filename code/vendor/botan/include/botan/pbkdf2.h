@@ -13,8 +13,6 @@
 #include <botan/pwdhash.h>
 #include <botan/mac.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(pbkdf2.h)
-
 namespace Botan {
 
 BOTAN_PUBLIC_API(2,0) size_t pbkdf2(MessageAuthenticationCode& prf,

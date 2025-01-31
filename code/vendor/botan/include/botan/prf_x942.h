@@ -9,9 +9,6 @@
 #define BOTAN_ANSI_X942_PRF_H_
 
 #include <botan/kdf.h>
-#include <botan/asn1_obj.h>
-
-BOTAN_FUTURE_INTERNAL_HEADER(prf_x942.h)
 
 namespace Botan {
 
@@ -21,7 +18,7 @@ namespace Botan {
 class BOTAN_PUBLIC_API(2,0) X942_PRF final : public KDF
    {
    public:
-      std::string name() const override;
+      std::string name() const override { return "X9.42-PRF(" + m_key_wrap_oid + ")"; }
 
       KDF* clone() const override { return new X942_PRF(m_key_wrap_oid); }
 
@@ -30,11 +27,9 @@ class BOTAN_PUBLIC_API(2,0) X942_PRF final : public KDF
                  const uint8_t salt[], size_t salt_len,
                  const uint8_t label[], size_t label_len) const override;
 
-      explicit X942_PRF(const std::string& oid) : m_key_wrap_oid(OID::from_string(oid)) {}
-
-      explicit X942_PRF(const OID& oid) : m_key_wrap_oid(oid) {}
+      explicit X942_PRF(const std::string& oid);
    private:
-      OID m_key_wrap_oid;
+      std::string m_key_wrap_oid;
    };
 
 }

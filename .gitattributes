@@ -12,6 +12,7 @@ data/shared/citizen/scripting/lua/graph.lua linguist-vendored
 data/shared/citizen/scripting/lua/json.lua linguist-vendored
 
 code/client/clrref/System.Drawing.cs linguist-vendored
+code/components/ros-patches-five/include/EntitlementTables_*.h linguist-vendored
 code/client/clrcore/External/* linguist-vendored
 code/tools/dbg/pe*/** linguist-vendored
 

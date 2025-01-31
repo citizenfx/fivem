@@ -11,8 +11,6 @@
 #include <botan/emsa.h>
 #include <botan/hash.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(emsa1.h)
-
 namespace Botan {
 
 /**

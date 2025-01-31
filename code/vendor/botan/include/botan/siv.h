@@ -12,8 +12,6 @@
 #include <botan/aead.h>
 #include <botan/stream_cipher.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(siv.h)
-
 namespace Botan {
 
 class BlockCipher;
@@ -33,9 +31,7 @@ class BOTAN_PUBLIC_API(2,0) SIV_Mode : public AEAD_Mode
       * @param ad associated data
       * @param ad_len length of associated data in bytes
       */
-      void set_associated_data_n(size_t n, const uint8_t ad[], size_t ad_len) override;
-
-      size_t maximum_associated_data_inputs() const override;
+      void set_associated_data_n(size_t n, const uint8_t ad[], size_t ad_len);
 
       void set_associated_data(const uint8_t ad[], size_t ad_len) override
          {

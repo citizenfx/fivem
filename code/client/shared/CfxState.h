@@ -6,17 +6,9 @@
 
 struct CfxState
 {
-	enum class ProductID
-	{
-		INVALID,
-		FIVEM,
-		REDM,
-	};
-
 	int initialLauncherPid;
 	int initialGamePid;
 	int gamePid;
-	int gameBuild;
 
 	bool inJobObject;
 	bool running;
@@ -35,8 +27,6 @@ struct CfxState
 	// Link protocol name is used in app links like `fivem://connect/asdfgh`
 	wchar_t linkProtocol[32];
 
-	ProductID productId;
-
 	CfxState()
 	{
 		memset(initPathGame, 0, sizeof(initPathGame));
@@ -51,15 +41,12 @@ struct CfxState
 
 		running = true;
 		gamePid = 0;
-		gameBuild = -1;
 		ranPastInstaller = false;
 		inJobObject = false;
 		isReverseGame = false;
 
 		// initialize the game PID
 		gamePid = 0;
-
-		productId = ProductID::INVALID;
 	}
 
 	inline void SetLinkProtocol(const wchar_t* protocol)
@@ -76,29 +63,6 @@ struct CfxState
 	inline const wchar_t* GetLinkProtocol(const wchar_t* appendix)
 	{
 		return va(L"%s%s", GetLinkProtocol(), appendix);
-	}
-
-	inline void SetProductID(ProductID pid)
-	{
-		productId = pid;
-	}
-
-	inline ProductID GetProductID()
-	{
-		assert(productId != ProductID::INVALID);
-
-		return productId;
-	}
-
-	inline void SetGameBuild(const int build)
-	{
-		gameBuild = build;
-	}
-
-	inline int GetGameBuild()
-	{
-		assert(gameBuild != -1);
-		return gameBuild;
 	}
 
 	inline std::wstring GetInitPath()
@@ -189,41 +153,8 @@ struct CfxState
 		return (gamePid == GetCurrentProcessId());
 	}
 
-	inline bool IsFiveM()
-	{
-		return GetProductID() == ProductID::FIVEM;
-	}
-
-	inline bool IsRedM()
-	{
-		return GetProductID() == ProductID::REDM;
-	}
-
 	inline static auto Get()
 	{
 		return HostSharedData<CfxState>{ "CfxInitState" };
 	}
 };
-
-namespace cfx
-{
-	inline bool IsFiveM()
-	{
-		return CfxState::Get()->IsFiveM();
-	}
-
-	inline bool IsRedM()
-	{
-		return CfxState::Get()->IsRedM();
-	}
-
-	inline int GetGameBuild()
-	{
-		return CfxState::Get()->GetGameBuild();
-	}
-
-	inline bool IsMasterProcess()
-	{
-		return CfxState::Get()->IsMasterProcess();
-	}
-}

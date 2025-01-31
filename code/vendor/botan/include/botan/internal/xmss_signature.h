@@ -13,7 +13,7 @@
 #include <botan/types.h>
 #include <botan/secmem.h>
 #include <botan/xmss_parameters.h>
-#include <botan/xmss_wots.h>
+#include <botan/xmss_wots_publickey.h>
 
 namespace Botan {
 
@@ -105,19 +105,19 @@ class XMSS_Signature final
       /**
        * Generates a serialized representation of XMSS Signature by
        * concatenating the following elements in order:
-       * 4-byte leaf index, n-bytes randomness, ots_signature,
+       * 8-byte leaf index, n-bytes randomness, ots_signature,
        * authentication path.
        *
        * n is the element_size(), len equal to len(), h the tree height
        * defined by the chosen XMSS signature method.
        *
        * @return serialized signature, a sequence of
-       *         4+(len + h + 1)n bytes.
+       *         (len + h + 1)n bytes.
        **/
       secure_vector<uint8_t> bytes() const;
 
    private:
-      size_t m_leaf_idx;
+      uint64_t m_leaf_idx;
       secure_vector<uint8_t> m_randomness;
       XMSS_WOTS_PublicKey::TreeSignature m_tree_sig;
    };

@@ -104,17 +104,21 @@ class BOTAN_PUBLIC_API(2,3) ChaCha_RNG final : public Stateful_RNG
 
       std::string name() const override { return "ChaCha_RNG"; }
 
+      void clear() override;
+
+      void randomize(uint8_t output[], size_t output_len) override;
+
+      void randomize_with_input(uint8_t output[], size_t output_len,
+                                const uint8_t input[], size_t input_len) override;
+
+      void add_entropy(const uint8_t input[], size_t input_len) override;
+
       size_t security_level() const override;
 
       size_t max_number_of_bytes_per_request() const override { return 0; }
 
    private:
-      void update(const uint8_t input[], size_t input_len) override;
-
-      void generate_output(uint8_t output[], size_t output_len,
-                           const uint8_t input[], size_t input_len) override;
-
-      void clear_state() override;
+      void update(const uint8_t input[], size_t input_len);
 
       std::unique_ptr<MessageAuthenticationCode> m_hmac;
       std::unique_ptr<StreamCipher> m_chacha;

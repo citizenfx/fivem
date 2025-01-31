@@ -27,7 +27,7 @@ bool IsSteamRunning()
 	{
 		HANDLE steamProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
 
-		if (steamProcess)
+		if (steamProcess != INVALID_HANDLE_VALUE)
 		{
 			wchar_t imageName[512] = { 0 };
 			GetProcessImageFileNameW(steamProcess, imageName, std::size(imageName));

@@ -114,7 +114,7 @@ void ComponentLoader::InitializeWithString(std::string_view cacheBuf)
 		if (wcsstr(moduleName, L"_ROS"))
 		{
 			neededComponentsList = {
-				L"legitimacy",
+				L"ros-patches-five",
 				L"net-http-server",
 				L"net-tcp-server",
 				L"net-base",
@@ -282,7 +282,7 @@ static void LoadDependencies(ComponentLoader* loader, fwRefContainer<ComponentDa
 			}
 		}
 
-		if (!match && dependency.GetCategory() != "vendor" && dependency.GetCategory() != "legitimacy")
+		if (!match && dependency.GetCategory() != "vendor")
 		{
 			FatalError("Unable to resolve dependency for %s.\n", dependency.GetString().c_str());
 		}

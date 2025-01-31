@@ -12,12 +12,6 @@
 #include <botan/mac.h>
 #include <botan/kdf.h>
 
-/*
-* The definitions of HKDF, HKDF_Extract, HKDF_Expand will be made internal
-* in the future. However the function hkdf_expand_label will still be defined.
-*/
-//BOTAN_FUTURE_INTERNAL_HEADER(hkdf.h)
-
 namespace Botan {
 
 /**

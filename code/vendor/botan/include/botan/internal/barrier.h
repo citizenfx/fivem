@@ -8,7 +8,7 @@
 #ifndef BOTAN_UTIL_BARRIER_H_
 #define BOTAN_UTIL_BARRIER_H_
 
-#include <mutex>
+#include <botan/mutex.h>
 #include <condition_variable>
 
 namespace Botan {
@@ -31,9 +31,9 @@ class Barrier final
       void sync();
 
    private:
-      size_t m_value;
+      int m_value;
       size_t m_syncs;
-      std::mutex m_mutex;
+      mutex_type m_mutex;
       std::condition_variable m_cond;
    };
 

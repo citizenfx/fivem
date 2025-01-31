@@ -22,7 +22,7 @@ class BER_Decoder;
 class BOTAN_PUBLIC_API(2,4) ASN1_Formatter
    {
    public:
-      virtual ~ASN1_Formatter() {}
+      virtual ~ASN1_Formatter() = default;
 
       /**
       * @param print_context_specific if true, try to parse nested context specific data.

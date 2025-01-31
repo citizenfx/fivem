@@ -61,32 +61,6 @@ class BOTAN_PUBLIC_API(2,0) AEAD_Mode : public Cipher_Mode
       virtual void set_associated_data(const uint8_t ad[], size_t ad_len) = 0;
 
       /**
-      * Set associated data that is not included in the ciphertext but
-      * that should be authenticated. Must be called after set_key and
-      * before start.
-      *
-      * Unless reset by another call, the associated data is kept
-      * between messages. Thus, if the AD does not change, calling
-      * once (after set_key) is the optimum.
-      *
-      * Some AEADs (namely SIV) support multiple AD inputs. For
-      * all other modes only nominal AD input 0 is supported; all
-      * other values of i will cause an exception.
-      *
-      * @param ad the associated data
-      * @param ad_len length of add in bytes
-      */
-      virtual void set_associated_data_n(size_t i, const uint8_t ad[], size_t ad_len);
-
-      /**
-      * Returns the maximum supported number of associated data inputs which
-      * can be provided to set_associated_data_n
-      *
-      * If returns 0, then no associated data is supported.
-      */
-      virtual size_t maximum_associated_data_inputs() const { return 1; }
-
-      /**
       * Most AEADs require the key to be set prior to setting the AD
       * A few allow the AD to be set even before the cipher is keyed.
       * Such ciphers would return false from this function.
@@ -129,7 +103,7 @@ class BOTAN_PUBLIC_API(2,0) AEAD_Mode : public Cipher_Mode
       */
       size_t default_nonce_length() const override { return 12; }
 
-      virtual ~AEAD_Mode() {}
+      virtual ~AEAD_Mode() = default;
    };
 
 /**

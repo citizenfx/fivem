@@ -195,7 +195,7 @@ class BOTAN_PUBLIC_API(2,0) BlockCipher : public SymmetricAlgorithm
       */
       virtual BlockCipher* clone() const = 0;
 
-      virtual ~BlockCipher() {}
+      virtual ~BlockCipher() = default;
    };
 
 /**

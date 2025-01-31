@@ -116,14 +116,12 @@ inline size_t ctz(T n)
    }
 
 template<typename T>
-uint8_t ceil_log2(T x)
+size_t ceil_log2(T x)
    {
-   static_assert(sizeof(T) < 32, "Abnormally large scalar");
-
    if(x >> (sizeof(T)*8-1))
       return sizeof(T)*8;
 
-   uint8_t result = 0;
+   size_t result = 0;
    T compare = 1;
 
    while(compare < x)
@@ -145,25 +143,6 @@ inline size_t var_ctz32(uint32_t n)
 #else
    return ctz<uint32_t>(n);
 #endif
-   }
-
-template<typename T>
-inline T bit_permute_step(T x, T mask, size_t shift)
-   {
-   /*
-   See https://reflectionsonsecurity.wordpress.com/2014/05/11/efficient-bit-permutation-using-delta-swaps/
-   and http://programming.sirrida.de/bit_perm.html
-   */
-   const T swap = ((x >> shift) ^ x) & mask;
-   return (x ^ swap) ^ (swap << shift);
-   }
-
-template<typename T>
-inline void swap_bits(T& x, T& y, T mask, size_t shift)
-   {
-   const T swap = ((x >> shift) ^ y) & mask;
-   x ^= swap << shift;
-   y ^= swap;
    }
 
 }

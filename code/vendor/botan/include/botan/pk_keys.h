@@ -9,18 +9,14 @@
 #define BOTAN_PK_KEYS_H_
 
 #include <botan/secmem.h>
-#include <botan/asn1_obj.h>
+#include <botan/asn1_oid.h>
+#include <botan/alg_id.h>
 #include <botan/pk_ops_fwd.h>
 #include <string>
 
 namespace Botan {
 
 class RandomNumberGenerator;
-
-/**
-* The two types of signature format supported by Botan.
-*/
-enum Signature_Format { IEEE_1363, DER_SEQUENCE };
 
 /**
 * Public Key Base Class.
@@ -31,7 +27,7 @@ class BOTAN_PUBLIC_API(2,0) Public_Key
       Public_Key() =default;
       Public_Key(const Public_Key& other) = default;
       Public_Key& operator=(const Public_Key& other) = default;
-      virtual ~Public_Key() {}
+      virtual ~Public_Key() = default;
 
       /**
       * Get the name of the underlying public key scheme.
@@ -122,11 +118,6 @@ class BOTAN_PUBLIC_API(2,0) Public_Key
       */
       virtual size_t message_part_size() const { return 0; }
 
-      virtual Signature_Format default_x509_signature_format() const
-         {
-         return (this->message_parts() >= 2) ? DER_SEQUENCE : IEEE_1363;
-         }
-
       /**
       * This is an internal library function exposed on key types.
       * In almost all cases applications should use wrappers in pubkey.h
@@ -183,9 +174,7 @@ class BOTAN_PUBLIC_API(2,0) Private_Key : public virtual Public_Key
       Private_Key() = default;
       Private_Key(const Private_Key& other) = default;
       Private_Key& operator=(const Private_Key& other) = default;
-      virtual ~Private_Key() {}
-
-      virtual bool stateful_operation() const { return false; }
+      virtual ~Private_Key() = default;
 
       /**
       * @return BER encoded private key bits
@@ -301,7 +290,7 @@ class BOTAN_PUBLIC_API(2,0) PK_Key_Agreement_Key : public virtual Private_Key
       PK_Key_Agreement_Key() = default;
       PK_Key_Agreement_Key(const PK_Key_Agreement_Key&) = default;
       PK_Key_Agreement_Key& operator=(const PK_Key_Agreement_Key&) = default;
-      virtual ~PK_Key_Agreement_Key() {}
+      virtual ~PK_Key_Agreement_Key() = default;
    };
 
 /*

@@ -17,8 +17,6 @@
 #include <functional>
 #include <map>
 
-BOTAN_FUTURE_INTERNAL_HEADER(parsing.h)
-
 namespace Botan {
 
 /**
@@ -97,8 +95,7 @@ std::string string_join(const std::vector<std::string>& strs,
 * @param oid the OID in string form
 * @return OID components
 */
-BOTAN_PUBLIC_API(2,0) std::vector<uint32_t>
-BOTAN_DEPRECATED("Use OID::from_string(oid).get_components()") parse_asn1_oid(const std::string& oid);
+BOTAN_PUBLIC_API(2,0) std::vector<uint32_t> parse_asn1_oid(const std::string& oid);
 
 /**
 * Compare two names using the X.509 comparison algorithm
@@ -166,8 +163,6 @@ std::map<std::string, std::string> BOTAN_PUBLIC_API(2,0) read_cfg(std::istream& 
 std::map<std::string, std::string> BOTAN_PUBLIC_API(2,8) read_kv(const std::string& kv);
 
 std::string BOTAN_PUBLIC_API(2,0) clean_ws(const std::string& s);
-
-std::string tolower_string(const std::string& s);
 
 /**
 * Check if the given hostname is a match for the specified wildcard

@@ -12,8 +12,6 @@
 #include <botan/cipher_mode.h>
 #include <botan/block_cipher.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(cfb.h)
-
 namespace Botan {
 
 /**

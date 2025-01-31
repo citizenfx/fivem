@@ -9,7 +9,8 @@
 #define BOTAN_X509_OBJECT_H_
 
 #include <botan/asn1_obj.h>
-#include <botan/pkix_enums.h>
+#include <botan/alg_id.h>
+#include <botan/cert_status.h>
 #include <vector>
 
 namespace Botan {
@@ -113,7 +114,7 @@ class BOTAN_PUBLIC_API(2,0) X509_Object : public ASN1_Object
       virtual std::vector<std::string> alternate_PEM_labels() const
          { return std::vector<std::string>(); }
 
-      virtual ~X509_Object() {}
+      virtual ~X509_Object() = default;
 
       static std::unique_ptr<PK_Signer>
          choose_sig_format(AlgorithmIdentifier& sig_algo,

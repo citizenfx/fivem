@@ -15,6 +15,7 @@
 namespace Botan {
 
 class BigInt;
+class ASN1_Object;
 
 /**
 * General DER Encoding Object
@@ -51,14 +52,7 @@ class BOTAN_PUBLIC_API(2,0) DER_Encoder final
 
       secure_vector<uint8_t> get_contents();
 
-      /**
-      * Return the encoded contents as a std::vector
-      *
-      * If using this function, instead pass a std::vector to the
-      * contructor of DER_Encoder where the output will be placed. This
-      * avoids several unecessary copies.
-      */
-      std::vector<uint8_t> BOTAN_DEPRECATED("Use DER_Encoder(vector) instead") get_contents_unlocked();
+      std::vector<uint8_t> get_contents_unlocked();
 
       DER_Encoder& start_cons(ASN1_Tag type_tag,
                               ASN1_Tag class_tag = UNIVERSAL);

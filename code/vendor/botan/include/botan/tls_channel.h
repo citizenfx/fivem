@@ -49,11 +49,15 @@ class BOTAN_PUBLIC_API(2,0) Channel
       *
       * @param callbacks contains a set of callback function references
       *        required by the TLS endpoint.
+      *
       * @param session_manager manages session state
+      *
       * @param rng a random number generator
+      *
       * @param policy specifies other connection policy information
-      * @param is_server whether this is a server session or not
+      *
       * @param is_datagram whether this is a DTLS session
+      *
       * @param io_buf_sz This many bytes of memory will
       *        be preallocated for the read and write buffers. Smaller
       *        values just mean reallocations and copies are more likely.
@@ -62,7 +66,6 @@ class BOTAN_PUBLIC_API(2,0) Channel
               Session_Manager& session_manager,
               RandomNumberGenerator& rng,
               const Policy& policy,
-              bool is_server,
               bool is_datagram,
               size_t io_buf_sz = IO_BUF_DEFAULT_SIZE);
 
@@ -80,7 +83,6 @@ class BOTAN_PUBLIC_API(2,0) Channel
               Session_Manager& session_manager,
               RandomNumberGenerator& rng,
               const Policy& policy,
-              bool is_server,
               bool is_datagram,
               size_t io_buf_sz = IO_BUF_DEFAULT_SIZE);
 
@@ -158,6 +160,7 @@ class BOTAN_PUBLIC_API(2,0) Channel
       */
       bool is_closed() const;
 
+
       /**
       * @return certificate chain of the peer (may be empty)
       */
@@ -195,15 +198,12 @@ class BOTAN_PUBLIC_API(2,0) Channel
       */
       bool timeout_check();
 
-      virtual std::string application_protocol() const = 0;
-
    protected:
 
       virtual void process_handshake_msg(const Handshake_State* active_state,
                                          Handshake_State& pending_state,
                                          Handshake_Type type,
-                                         const std::vector<uint8_t>& contents,
-                                         bool epoch0_restart) = 0;
+                                         const std::vector<uint8_t>& contents) = 0;
 
       virtual void initiate_handshake(Handshake_State& state,
                                       bool force_full_renegotiation) = 0;
@@ -240,9 +240,6 @@ class BOTAN_PUBLIC_API(2,0) Channel
       bool save_session(const Session& session);
 
       Callbacks& callbacks() const { return m_callbacks; }
-
-      void reset_active_association_state();
-
    private:
       void init(size_t io_buf_sze);
 
@@ -257,13 +254,13 @@ class BOTAN_PUBLIC_API(2,0) Channel
       void write_record(Connection_Cipher_State* cipher_state,
                         uint16_t epoch, uint8_t type, const uint8_t input[], size_t length);
 
-      void reset_state();
-
       Connection_Sequence_Numbers& sequence_numbers() const;
 
       std::shared_ptr<Connection_Cipher_State> read_cipher_state_epoch(uint16_t epoch) const;
 
       std::shared_ptr<Connection_Cipher_State> write_cipher_state_epoch(uint16_t epoch) const;
+
+      void reset_state();
 
       const Handshake_State* active_state() const { return m_active_state.get(); }
 
@@ -273,15 +270,13 @@ class BOTAN_PUBLIC_API(2,0) Channel
       void process_handshake_ccs(const secure_vector<uint8_t>& record,
                                  uint64_t record_sequence,
                                  Record_Type record_type,
-                                 Protocol_Version record_version,
-                                 bool epoch0_restart);
+                                 Protocol_Version record_version);
 
       void process_application_data(uint64_t req_no, const secure_vector<uint8_t>& record);
 
       void process_alert(const secure_vector<uint8_t>& record);
 
-      const bool m_is_server;
-      const bool m_is_datagram;
+      bool m_is_datagram;
 
       /* callbacks */
       std::unique_ptr<Compat_Callbacks> m_compat_callbacks;
@@ -306,9 +301,6 @@ class BOTAN_PUBLIC_API(2,0) Channel
       /* I/O buffers */
       secure_vector<uint8_t> m_writebuf;
       secure_vector<uint8_t> m_readbuf;
-      secure_vector<uint8_t> m_record_buf;
-
-      bool m_has_been_closed;
    };
 
 }

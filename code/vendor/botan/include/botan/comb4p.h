@@ -10,8 +10,6 @@
 
 #include <botan/hash.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(comb4p.h)
-
 namespace Botan {
 
 /**

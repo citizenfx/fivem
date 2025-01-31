@@ -9,81 +9,16 @@
 #define BOTAN_X509_CRL_H_
 
 #include <botan/x509_obj.h>
-#include <botan/asn1_obj.h>
-#include <botan/pkix_enums.h>
+#include <botan/x509_dn.h>
+#include <botan/crl_ent.h>
 #include <vector>
 
 namespace Botan {
 
 class Extensions;
 class X509_Certificate;
-class X509_DN;
 
-struct CRL_Entry_Data;
 struct CRL_Data;
-
-/**
-* This class represents CRL entries
-*/
-class BOTAN_PUBLIC_API(2,0) CRL_Entry final : public ASN1_Object
-   {
-   public:
-      void encode_into(class DER_Encoder&) const override;
-      void decode_from(class BER_Decoder&) override;
-
-      /**
-      * Get the serial number of the certificate associated with this entry.
-      * @return certificate's serial number
-      */
-      const std::vector<uint8_t>& serial_number() const;
-
-      /**
-      * Get the revocation date of the certificate associated with this entry
-      * @return certificate's revocation date
-      */
-      const X509_Time& expire_time() const;
-
-      /**
-      * Get the entries reason code
-      * @return reason code
-      */
-      CRL_Code reason_code() const;
-
-      /**
-      * Get the extensions on this CRL entry
-      */
-      const Extensions& extensions() const;
-
-      /**
-      * Create uninitialized CRL_Entry object
-      */
-      CRL_Entry() = default;
-
-      /**
-      * Construct an CRL entry.
-      * @param cert the certificate to revoke
-      * @param reason the reason code to set in the entry
-      */
-      CRL_Entry(const X509_Certificate& cert,
-                CRL_Code reason = UNSPECIFIED);
-
-   private:
-      friend class X509_CRL;
-
-      const CRL_Entry_Data& data() const;
-
-      std::shared_ptr<CRL_Entry_Data> m_data;
-   };
-
-/**
-* Test two CRL entries for equality in all fields.
-*/
-BOTAN_PUBLIC_API(2,0) bool operator==(const CRL_Entry&, const CRL_Entry&);
-
-/**
-* Test two CRL entries for inequality in at least one field.
-*/
-BOTAN_PUBLIC_API(2,0) bool operator!=(const CRL_Entry&, const CRL_Entry&);
 
 /**
 * This class represents X.509 Certificate Revocation Lists (CRLs).

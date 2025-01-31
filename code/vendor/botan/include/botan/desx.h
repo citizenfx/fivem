@@ -10,8 +10,6 @@
 
 #include <botan/des.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(desx.h)
-
 namespace Botan {
 
 /**

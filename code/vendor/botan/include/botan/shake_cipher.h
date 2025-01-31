@@ -11,8 +11,6 @@
 #include <botan/stream_cipher.h>
 #include <botan/secmem.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(shake_cipher.h)
-
 namespace Botan {
 
 /**

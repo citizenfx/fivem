@@ -15,12 +15,6 @@ namespace Botan {
 class Montgomery_Params;
 class DL_Group_Data;
 
-enum class DL_Group_Source {
-   Builtin,
-   RandomlyGenerated,
-   ExternalSource,
-};
-
 /**
 * This class represents discrete logarithm groups. It holds a prime
 * modulus p, a generator g, and (optionally) a prime q which is a
@@ -57,18 +51,12 @@ class BOTAN_PUBLIC_API(2,0) DL_Group final
 
       /**
       * Construct a DL group that is registered in the configuration.
-      * @param name the name of the group, for example "modp/ietf/3072"
-      *
-      * @warning This constructor also accepts PEM inputs. This behavior is
-      * deprecated and will be removed in a future major release. Instead
-      * use DL_Group_from_PEM function
+      * @param name the name that is configured in the global configuration
+      * for the desired group. If no configuration file is specified,
+      * the default values from the file policy.cpp will be used. For instance,
+      * use "modp/ietf/3072".
       */
-      explicit DL_Group(const std::string& name);
-
-      /*
-      * Read a PEM representation
-      */
-      static DL_Group DL_Group_from_PEM(const std::string& pem);
+      DL_Group(const std::string& name);
 
       /**
       * Create a new group randomly.
@@ -121,7 +109,7 @@ class BOTAN_PUBLIC_API(2,0) DL_Group final
       * Decode a BER-encoded DL group param
       */
       template<typename Alloc>
-         DL_Group(const std::vector<uint8_t, Alloc>& ber, Format format) :
+      DL_Group(const std::vector<uint8_t, Alloc>& ber, Format format) :
          DL_Group(ber.data(), ber.size(), format) {}
 
       /**
@@ -311,8 +299,6 @@ class BOTAN_PUBLIC_API(2,0) DL_Group final
       * Decode a DER/BER encoded group into this instance.
       * @param ber a vector containing the DER/BER encoded group
       * @param format the format of the encoded group
-      *
-      * @warning avoid this. Instead use the DL_Group constructor
       */
       void BER_decode(const std::vector<uint8_t>& ber, Format format);
 
@@ -320,9 +306,7 @@ class BOTAN_PUBLIC_API(2,0) DL_Group final
       * Decode a PEM encoded group into this instance.
       * @param pem the PEM encoding of the group
       */
-      void BOTAN_DEPRECATED("Use DL_Group_from_PEM") PEM_decode(const std::string& pem);
-
-      DL_Group_Source source() const;
+      void PEM_decode(const std::string& pem);
 
       /**
       * Return PEM representation of named DL group
@@ -344,9 +328,7 @@ class BOTAN_PUBLIC_API(2,0) DL_Group final
                                                                const char* g_str);
 
       static std::shared_ptr<DL_Group_Data>
-         BER_decode_DL_group(const uint8_t data[], size_t data_len,
-                             DL_Group::Format format,
-                             DL_Group_Source source);
+         BER_decode_DL_group(const uint8_t data[], size_t data_len, DL_Group::Format format);
 
       const DL_Group_Data& data() const;
       std::shared_ptr<DL_Group_Data> m_data;

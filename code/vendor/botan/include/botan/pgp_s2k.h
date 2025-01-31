@@ -13,14 +13,6 @@
 #include <botan/pwdhash.h>
 #include <botan/hash.h>
 
-/*
-This header will not be fully internal - the RFC4880 count
-encoding functions will remain here. But the definition of
-OpenPGP_S2K will be made internal
-*/
-
-//BOTAN_FUTURE_INTERNAL_HEADER(pgp_s2k.h)
-
 namespace Botan {
 
 /**

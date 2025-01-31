@@ -14,7 +14,7 @@ namespace Botan {
 /**
 * Polynomial doubling in GF(2^n)
 */
-void BOTAN_TEST_API poly_double_n(uint8_t out[], const uint8_t in[], size_t n);
+void BOTAN_PUBLIC_API(2,3) poly_double_n(uint8_t out[], const uint8_t in[], size_t n);
 
 /**
 * Returns true iff poly_double_n is implemented for this size.
@@ -32,7 +32,7 @@ inline void poly_double_n(uint8_t buf[], size_t n)
 /*
 * Little endian convention - used for XTS
 */
-void BOTAN_TEST_API poly_double_n_le(uint8_t out[], const uint8_t in[], size_t n);
+void poly_double_n_le(uint8_t out[], const uint8_t in[], size_t n);
 
 }
 

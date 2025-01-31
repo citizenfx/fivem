@@ -255,7 +255,7 @@ static HookFunction initFunction([]()
 	// set base to the ROS ID as that's the default gamer handle value
 	// this needs patching, otherwise rlJoinSessionTask::Configure will complain that the alleged session host
 	// is not in the list of gamers in the session
-	auto hModule = GetModuleHandleW(L"legitimacy.dll");
+	auto hModule = GetModuleHandleW(L"ros-patches-rdr3.dll");
 	
 	if (hModule)
 	{

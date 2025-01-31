@@ -12,8 +12,6 @@
 #include <string>
 #include <memory>
 
-BOTAN_FUTURE_INTERNAL_HEADER(rfc6979.h)
-
 namespace Botan {
 
 class HMAC_DRBG;

@@ -82,25 +82,12 @@ int apply_fn(botan_struct<T, M>* o, const char* func_name, F func)
    if(o->magic_ok() == false)
       return BOTAN_FFI_ERROR_INVALID_OBJECT;
 
-   T* p = o->unsafe_get();
-   if(p == nullptr)
-      return BOTAN_FFI_ERROR_INVALID_OBJECT;
-
-   return ffi_guard_thunk(func_name, [&]() { return func(*p); });
+   return ffi_guard_thunk(func_name, [&]() { return func(*o->unsafe_get()); });
    }
 
-#define BOTAN_FFI_DO(T, obj, param, block)                \
+#define BOTAN_FFI_DO(T, obj, param, block)                              \
    apply_fn(obj, __func__,                                \
             [=](T& param) -> int { do { block } while(0); return BOTAN_FFI_SUCCESS; })
-
-/*
-* Like BOTAN_FFI_DO but with no trailing return with the expectation
-* that the block always returns a value. This exists because otherwise
-* MSVC warns about the dead return after the block in FFI_DO.
-*/
-#define BOTAN_FFI_RETURNING(T, obj, param, block)         \
-   apply_fn(obj, __func__,                                \
-            [=](T& param) -> int { do { block } while(0); })
 
 template<typename T, uint32_t M>
 int ffi_delete_object(botan_struct<T, M>* obj, const char* func_name)

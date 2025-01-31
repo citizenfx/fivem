@@ -12,15 +12,6 @@ end
 
 local json = require('json')
 
-local function delete_component_by_name(name)
-	for i, comp in ipairs(components) do
-		if comp.name == name then
-			table.remove(components, i)
-			return
-		end
-	end
-end
-
 -- declaration function for components (for components/config.lua)
 component = function(name)
 	local decoded
@@ -44,8 +35,6 @@ component = function(name)
 
 	if _G.inPrivates then
 		decoded.private = true
-
-		delete_component_by_name(name)
 	end
 
 	-- check if the project name ends in a known game name, and if we should ignore it
@@ -135,18 +124,6 @@ local function process_dependencies(list, basename, deps, hasDeps)
 			if match and not hasDeps[match.rawName] then
 				hasDeps[match.rawName] = true
 				table.insert(deps, { dep = match.rawName, data = match })
-
-				if match.bundled then
-					links { match.name .. '.lib' }
-
-					filter { 'configurations:Debug' }
-					libdirs { match.absPath .. '/debug'  }
-
-					filter { 'configurations:Release' }
-					libdirs { match.absPath .. '/release'  }
-
-					filter {}
-				end
 
 				match.tagged = true
 
@@ -267,116 +244,73 @@ local do_component = function(name, comp)
 	-- project itself
 	project(name)
 
-	if comp.bundled then
-		kind 'Utility'
+	language "C++"
+	kind "SharedLib"
 
-		local dllName = comp.name .. '.dll'
+	dependson { 'CitiCore' }
 
-		filter { 'configurations:Debug' }
-		files {
-			relPath .. '/debug/*.dll',
-			relPath .. '/debug/*.lib'
-		}
-		filter ('files:**/debug/' .. comp.name .. '.dll')
-		buildcommands {
-			('{COPY} %s/debug/%s %%{cfg.targetdir}'):format(comp.absPath, dllName),
-		}
-		buildoutputs {
-			('%%{cfg.targetdir}/%s'):format(dllName),
-		}
+	includedirs { "client/citicore/", relPath .. "/include/" }
+	files {
+		relPath .. "/src/**.cpp",
+		relPath .. "/src/**.cc",
+		relPath .. "/src/**.h",
+		relPath .. "/include/**.h",
+		"client/common/StdInc.cpp",
+		"client/common/Error.cpp"
+	}
 
-		filter {}
+	vpaths { ["z/common/*"] = "client/common/**", ["*"] = relPath .. "/**" }
 
-		filter { 'configurations:Release' }
-		files {
-			relPath .. '/release/*.dll',
-			relPath .. '/release/*.lib'
-		}
-		filter ('files:**/release/' .. comp.name .. '.dll')
-		buildcommands {
-			('{COPY} %s/release/%s %%{cfg.targetdir}'):format(comp.absPath, dllName),
-		}
-		buildoutputs {
-			('%%{cfg.targetdir}/%s'):format(dllName),
-		}
+	if not comp.private then
+		for k, repo in all_private_repos() do
+			local repoRel = path.getrelative(path.getabsolute(''), repo) .. '/components/' .. name
 
-		-- filter { 'files:**/' .. comp.name .. '.dll', 'configurations:Release' }
-		-- buildcommands {
-		-- 	('{COPY} %s/release/%s %%{cfg.targetdir}'):format(comp.absPath, dllName),
-		-- }
+			includedirs { repoRel .. '/include/' }
 
-		filter {}
+			files {
+				repoRel .. "/src/**.cpp",
+				repoRel .. "/src/**.cc",
+				repoRel .. "/src/**.h",
+				repoRel .. "/include/**.h",
+			}
+
+			vpaths {
+				["private/*"] = repoRel .. '/**'
+			}
+		end
 	end
 
-	if not comp.bundled then
-		language "C++"
-		kind "SharedLib"
+	files {
+		relPath .. "/include/**.idl",
+	}
 
-		dependson { 'CitiCore' }
+	defines { "COMPILING_" .. name:upper():gsub('-', '_'), "_CFX_COMPONENT_NAME=" .. name, 'HAS_LOCAL_H' }
 
-		includedirs { "client/citicore/", relPath .. "/include/" }
-		files {
-			relPath .. "/src/**.cpp",
-			relPath .. "/src/**.cc",
-			relPath .. "/src/**.h",
-			relPath .. "/include/**.h",
-			"client/common/StdInc.cpp",
-			"client/common/Error.cpp"
-		}
+	links { "Shared", "fmtlib" }
 
-		vpaths { ["z/common/*"] = "client/common/**", ["*"] = relPath .. "/**" }
+	-- HACKHACK: premake doesn't allow unsetting these
+	if name ~= 'adhesive' and name ~= 'fxdk-main' then
+		pchsource "client/common/StdInc.cpp"
+		pchheader "StdInc.h"
+	end
 
-		if not comp.private then
-			for k, repo in all_private_repos() do
-				local repoRel = path.getrelative(path.getabsolute(''), repo) .. '/components/' .. name
+	-- add dependency requirements
+	for k, v in ipairs(deps) do
+		local dep = v.dep
+		local data = v.data
 
-				includedirs { repoRel .. '/include/' }
+		filter {}
 
-				files {
-					repoRel .. "/src/**.cpp",
-					repoRel .. "/src/**.cc",
-					repoRel .. "/src/**.h",
-					repoRel .. "/include/**.h",
-				}
-
-				vpaths {
-					["private/*"] = repoRel .. '/**'
-				}
-			end
+		if not data.vendor or not data.vendor.dummy then
+			links { dep }
 		end
 
-		files {
-			relPath .. "/include/**.idl",
-		}
-
-		defines { "COMPILING_" .. name:upper():gsub('-', '_'), "_CFX_COMPONENT_NAME=" .. name, 'HAS_LOCAL_H' }
-
-		links { "Shared", "fmtlib" }
-
-		-- HACKHACK: premake doesn't allow unsetting these
-		if name ~= 'adhesive' and name ~= 'fxdk-main' and name ~= 'legitimacy' then
-			pchsource "client/common/StdInc.cpp"
-			pchheader "StdInc.h"
-		end
-
-		-- add dependency requirements
-		for k, v in ipairs(deps) do
-			local dep = v.dep
-			local data = v.data
-
-			filter {}
-
-			if not data.vendor or not data.vendor.dummy then
-				links { dep }
+		if data.vendor then
+			if data.vendor.include then
+				data.vendor.include()
 			end
-
-			if data.vendor then
-				if data.vendor.include then
-					data.vendor.include()
-				end
-			else
-				includedirs { 'components/' .. dep .. '/include/' }
-			end
+		else
+			includedirs { 'components/' .. dep .. '/include/' }
 		end
 	end
 
@@ -416,33 +350,31 @@ local do_component = function(name, comp)
 		end
 	end
 
-	if not comp.bundled then
-		filter { "system:windows" }
-			buildoptions "/MP"
+	filter { "system:windows" }
+		buildoptions "/MP"
 
-			files {
-				relPath .. "/component.rc",
-			}
+		files {
+			relPath .. "/component.rc",
+		}
 
-		filter { "system:not windows" }
-			files {
-				relPath .. "/component.json"
-			}
+	filter { "system:not windows" }
+		files {
+			relPath .. "/component.json"
+		}
 
-		filter { "system:not windows", "files:**/component.json" }
-			buildmessage 'Copying %{file.relpath}'
+	filter { "system:not windows", "files:**/component.json" }
+		buildmessage 'Copying %{file.relpath}'
 
-			buildcommands {
-				'{COPY} "%{file.relpath}" "%{cfg.targetdir}/lib' .. name .. '.json"'
-			}
+		buildcommands {
+			'{COPY} "%{file.relpath}" "%{cfg.targetdir}/lib' .. name .. '.json"'
+		}
 
-			buildoutputs {
-				"%{cfg.targetdir}/lib" .. name .. ".json"
-			}
+		buildoutputs {
+			"%{cfg.targetdir}/lib" .. name .. ".json"
+		}
 
-		filter()
-			vpaths { ["z/*"] = relPath .. "/component.rc" }
-	end
+	filter()
+		vpaths { ["z/*"] = relPath .. "/component.rc" }
 		
 	for _, v in ipairs(postCbs) do
 		if v then

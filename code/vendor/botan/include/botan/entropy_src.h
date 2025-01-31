@@ -50,7 +50,7 @@ class BOTAN_PUBLIC_API(2,0) Entropy_Source
       Entropy_Source(Entropy_Source&& other) = delete;
       Entropy_Source& operator=(const Entropy_Source& other) = delete;
 
-      virtual ~Entropy_Source() {}
+      virtual ~Entropy_Source() = default;
    };
 
 class BOTAN_PUBLIC_API(2,0) Entropy_Sources final

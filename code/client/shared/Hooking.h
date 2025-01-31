@@ -208,7 +208,7 @@ namespace
 	template<typename TOrdinal>
 	inline bool iat_matches_ordinal(uintptr_t* nameTableEntry, TOrdinal ordinal)
 	{
-		return false;
+		
 	}
 
 	template<>

@@ -45,9 +45,7 @@ inline uint32_t const_uint32()
 #endif
 
 #define GlobalError(f, ...) do { if (GlobalErrorReal(_CFX_FILE, __LINE__, const_uint32<fnv1a_t<4>::Hash(f)>(), f, ##__VA_ARGS__) < 0) { *(volatile int*)ERROR_CRASH_MAGIC = 0; } } while(false)
-#ifndef FatalError
 #define FatalError(f, ...) do { if (FatalErrorReal(_CFX_FILE, __LINE__, const_uint32<fnv1a_t<4>::Hash(f)>(), f, ##__VA_ARGS__) < 0) { *(volatile int*)ERROR_CRASH_MAGIC = 0; } } while(false)
-#endif
 #define FatalErrorNoExcept(f, ...) do { if (FatalErrorNoExceptReal(_CFX_FILE, 99999, const_uint32<fnv1a_t<4>::Hash(f)>(), f, ##__VA_ARGS__) < 0) { } } while(false)
 #else
 void GlobalErrorV(const char* string, fmt::printf_args formatList);

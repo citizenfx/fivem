@@ -23,6 +23,11 @@ namespace Botan {
 class RandomNumberGenerator;
 
 /**
+* The two types of signature format supported by Botan.
+*/
+enum Signature_Format { IEEE_1363, DER_SEQUENCE };
+
+/**
 * Public Key Encryptor
 * This is the primary interface for public key encryption
 */
@@ -68,7 +73,7 @@ class BOTAN_PUBLIC_API(2,0) PK_Encryptor
       virtual size_t ciphertext_length(size_t ctext_len) const = 0;
 
       PK_Encryptor() = default;
-      virtual ~PK_Encryptor() {}
+      virtual ~PK_Encryptor() = default;
 
       PK_Encryptor(const PK_Encryptor&) = delete;
       PK_Encryptor& operator=(const PK_Encryptor&) = delete;
@@ -148,7 +153,7 @@ class BOTAN_PUBLIC_API(2,0) PK_Decryptor
       virtual size_t plaintext_length(size_t ctext_len) const = 0;
 
       PK_Decryptor() = default;
-      virtual ~PK_Decryptor() {}
+      virtual ~PK_Decryptor() = default;
 
       PK_Decryptor(const PK_Decryptor&) = delete;
       PK_Decryptor& operator=(const PK_Decryptor&) = delete;

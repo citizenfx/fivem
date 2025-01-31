@@ -20,7 +20,7 @@ namespace Botan {
 class BOTAN_PUBLIC_API(2,0) KDF
    {
    public:
-      virtual ~KDF() {}
+      virtual ~KDF() = default;
 
       /**
       * Create an instance based on a name

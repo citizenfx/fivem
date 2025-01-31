@@ -98,7 +98,7 @@ class TLS_Data_Reader final
          const size_t num_elems =
             get_num_elems(len_bytes, sizeof(T), min_elems, max_elems);
 
-         return get_elem<T, std::vector<T>>(num_elems);
+         return get_elem<T, std::vector<T> >(num_elems);
          }
 
       template<typename T>
@@ -109,7 +109,7 @@ class TLS_Data_Reader final
          const size_t num_elems =
             get_num_elems(len_bytes, sizeof(T), min_elems, max_elems);
 
-         return get_elem<T, std::vector<T>>(num_elems);
+         return get_elem<T, std::vector<T> >(num_elems);
          }
 
       std::string get_string(size_t len_bytes,
@@ -125,7 +125,7 @@ class TLS_Data_Reader final
       template<typename T>
       std::vector<T> get_fixed(size_t size)
          {
-         return get_elem<T, std::vector<T>>(size);
+         return get_elem<T, std::vector<T> >(size);
          }
 
    private:

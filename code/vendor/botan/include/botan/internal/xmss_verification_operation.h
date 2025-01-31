@@ -8,8 +8,14 @@
 #ifndef BOTAN_XMSS_VERIFICATION_OPERATION_H_
 #define BOTAN_XMSS_VERIFICATION_OPERATION_H_
 
+#include <array>
+#include <cstddef>
+#include <iterator>
+#include <string>
+#include <botan/types.h>
+#include <botan/xmss_publickey.h>
+#include <botan/xmss_common_ops.h>
 #include <botan/pk_ops.h>
-#include <botan/xmss.h>
 #include <botan/internal/xmss_signature.h>
 
 namespace Botan {
@@ -18,7 +24,8 @@ namespace Botan {
  * Provides signature verification capabilities for Extended Hash-Based
  * Signatures (XMSS).
  **/
- class XMSS_Verification_Operation final : public virtual PK_Ops::Verification
+ class XMSS_Verification_Operation final : public virtual PK_Ops::Verification,
+                                           public XMSS_Common_Ops
    {
    public:
       XMSS_Verification_Operation(
@@ -61,8 +68,7 @@ namespace Botan {
                   const secure_vector<uint8_t>& msg,
                   const XMSS_PublicKey& pub_key);
 
-      const XMSS_PublicKey& m_pub_key;
-      XMSS_Hash m_hash;
+      XMSS_PublicKey m_pub_key;
       secure_vector<uint8_t> m_msg_buf;
    };
 

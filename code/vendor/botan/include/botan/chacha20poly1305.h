@@ -13,8 +13,6 @@
 #include <botan/stream_cipher.h>
 #include <botan/mac.h>
 
-BOTAN_FUTURE_INTERNAL_HEADER(chacha20poly1305.h)
-
 namespace Botan {
 
 /**

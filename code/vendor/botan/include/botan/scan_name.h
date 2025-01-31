@@ -12,8 +12,6 @@
 #include <string>
 #include <vector>
 
-BOTAN_FUTURE_INTERNAL_HEADER(scan_name.h)
-
 namespace Botan {
 
 /**
@@ -38,12 +36,7 @@ class BOTAN_PUBLIC_API(2,0) SCAN_Name final
       /**
       * @return original input string
       */
-      const std::string& to_string() const { return m_orig_algo_spec; }
-
-      BOTAN_DEPRECATED("Use SCAN_Name::to_string") const std::string& as_string() const
-         {
-         return this->to_string();
-         }
+      const std::string& as_string() const { return m_orig_algo_spec; }
 
       /**
       * @return algorithm name

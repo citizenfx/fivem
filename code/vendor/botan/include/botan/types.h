@@ -38,7 +38,7 @@ namespace Botan {
 * <dt>Stream Ciphers<dd>
 *        ChaCha, @ref CTR_BE "CTR", OFB, RC4, Salsa20
 * <dt>Hash Functions<dd>
-*        BLAKE2b, @ref GOST_34_11 "GOST 34.11", @ref Keccak_1600 "Keccak", MD4, MD5, @ref RIPEMD_160 "RIPEMD-160",
+*        Blake2b, @ref GOST_34_11 "GOST 34.11", @ref Keccak_1600 "Keccak", MD4, MD5, @ref RIPEMD_160 "RIPEMD-160",
 *        @ref SHA_160 "SHA-1", @ref SHA_224 "SHA-224", @ref SHA_256 "SHA-256", @ref SHA_384 "SHA-384",
 *        @ref SHA_512 "SHA-512", @ref Skein_512 "Skein-512", SM3, Streebog, Tiger, Whirlpool
 * <dt>Non-Cryptographic Checksums<dd>
@@ -46,13 +46,13 @@ namespace Botan {
 * <dt>Message Authentication Codes<dd>
 *        @ref CBC_MAC "CBC-MAC", CMAC, HMAC, Poly1305, SipHash, ANSI_X919_MAC
 * <dt>Random Number Generators<dd>
-*        AutoSeeded_RNG, HMAC_DRBG, Processor_RNG, System_RNG
+*        AutoSeeded_RNG, HMAC_DRBG, RDRAND_RNG, System_RNG
 * <dt>Key Derivation<dd>
 *        HKDF, @ref KDF1 "KDF1 (IEEE 1363)", @ref KDF1_18033 "KDF1 (ISO 18033-2)", @ref KDF2 "KDF2 (IEEE 1363)",
 *        @ref sp800_108.h "SP800-108", @ref SP800_56C "SP800-56C", @ref PKCS5_PBKDF1 "PBKDF1 (PKCS#5),
 *        @ref PKCS5_PBKDF2 "PBKDF2 (PKCS#5)"
 * <dt>Password Hashing<dd>
-*        @ref argon2.h "Argon2", @ref scrypt.h "scrypt", @ref bcrypt.h "bcrypt", @ref passhash9.h "passhash9"
+*        @ref bcrypt.h "bcrypt", @ref passhash9.h "passhash9"
 * <dt>Public Key Cryptosystems<dd>
 *        @ref dlies.h "DLIES", @ref ecies.h "ECIES", @ref elgamal.h "ElGamal"
 *        @ref rsa.h "RSA", @ref newhope.h "NewHope", @ref mceliece.h "McEliece" and @ref mceies.h "MCEIES",
@@ -99,13 +99,6 @@ using s32bit = std::int32_t;
 #else
   #error BOTAN_MP_WORD_BITS must be 32 or 64
 #endif
-
-/*
-* Should this assert fail on your system please contact the developers
-* for assistance in porting.
-*/
-static_assert(sizeof(std::size_t) == 8 || sizeof(std::size_t) == 4,
-              "This platform has an unexpected size for size_t");
 
 }
 

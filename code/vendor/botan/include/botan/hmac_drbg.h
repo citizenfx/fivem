@@ -34,11 +34,6 @@ class BOTAN_PUBLIC_API(2,0) HMAC_DRBG final : public Stateful_RNG
       explicit HMAC_DRBG(std::unique_ptr<MessageAuthenticationCode> prf);
 
       /**
-      * Constructor taking a string for the hash
-      */
-      explicit HMAC_DRBG(const std::string& hmac_hash);
-
-      /**
       * Initialize an HMAC_DRBG instance with the given MAC as PRF (normally HMAC)
       *
       * Automatic reseeding from @p underlying_rng will take place after
@@ -48,7 +43,7 @@ class BOTAN_PUBLIC_API(2,0) HMAC_DRBG final : public Stateful_RNG
       * @param underlying_rng is a reference to some RNG which will be used
       * to perform the periodic reseeding
       * @param reseed_interval specifies a limit of how many times
-      * the RNG will be called before automatic reseeding is performed (max. 2^24)
+      * the RNG will be called before automatic reseeding is performed
       * @param max_number_of_bytes_per_request requests that are in size higher
       * than max_number_of_bytes_per_request are treated as if multiple single
       * requests of max_number_of_bytes_per_request size had been made.
@@ -75,7 +70,7 @@ class BOTAN_PUBLIC_API(2,0) HMAC_DRBG final : public Stateful_RNG
       * @param prf MAC to use as a PRF
       * @param entropy_sources will be polled to perform reseeding periodically
       * @param reseed_interval specifies a limit of how many times
-      * the RNG will be called before automatic reseeding is performed (max. 2^24)
+      * the RNG will be called before automatic reseeding is performed.
       * @param max_number_of_bytes_per_request requests that are in size higher
       * than max_number_of_bytes_per_request are treated as if multiple single
       * requests of max_number_of_bytes_per_request size had been made.
@@ -105,7 +100,7 @@ class BOTAN_PUBLIC_API(2,0) HMAC_DRBG final : public Stateful_RNG
       * to perform the periodic reseeding
       * @param entropy_sources will be polled to perform reseeding periodically
       * @param reseed_interval specifies a limit of how many times
-      * the RNG will be called before automatic reseeding is performed (max. 2^24)
+      * the RNG will be called before automatic reseeding is performed.
       * @param max_number_of_bytes_per_request requests that are in size higher
       * than max_number_of_bytes_per_request are treated as if multiple single
       * requests of max_number_of_bytes_per_request size had been made.
@@ -124,7 +119,27 @@ class BOTAN_PUBLIC_API(2,0) HMAC_DRBG final : public Stateful_RNG
                 size_t reseed_interval = BOTAN_RNG_DEFAULT_RESEED_INTERVAL,
                 size_t max_number_of_bytes_per_request = 64 * 1024);
 
+      /**
+      * Constructor taking a string for the hash
+      */
+      explicit HMAC_DRBG(const std::string& hmac_hash) :
+         Stateful_RNG(),
+         m_mac(MessageAuthenticationCode::create_or_throw("HMAC(" + hmac_hash + ")")),
+         m_max_number_of_bytes_per_request(64 * 1024)
+         {
+         clear();
+         }
+
       std::string name() const override;
+
+      void clear() override;
+
+      void randomize(uint8_t output[], size_t output_len) override;
+
+      void randomize_with_input(uint8_t output[], size_t output_len,
+                                const uint8_t input[], size_t input_len) override;
+
+      void add_entropy(const uint8_t input[], size_t input_len) override;
 
       size_t security_level() const override;
 
@@ -132,17 +147,11 @@ class BOTAN_PUBLIC_API(2,0) HMAC_DRBG final : public Stateful_RNG
          { return m_max_number_of_bytes_per_request; }
 
    private:
-      void update(const uint8_t input[], size_t input_len) override;
-
-      void generate_output(uint8_t output[], size_t output_len,
-                           const uint8_t input[], size_t input_len) override;
-
-      void clear_state() override;
+      void update(const uint8_t input[], size_t input_len);
 
       std::unique_ptr<MessageAuthenticationCode> m_mac;
       secure_vector<uint8_t> m_V;
       const size_t m_max_number_of_bytes_per_request;
-      const size_t m_security_level;
    };
 
 }

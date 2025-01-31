@@ -16,8 +16,6 @@
 #include <functional>
 #include <chrono>
 
-BOTAN_FUTURE_INTERNAL_HEADER(http_util.h)
-
 namespace Botan {
 
 namespace HTTP {
@@ -72,7 +70,7 @@ class Response final
 
 BOTAN_PUBLIC_API(2,0) std::ostream& operator<<(std::ostream& o, const Response& resp);
 
-typedef std::function<std::string (const std::string&, const std::string&, const std::string&)> http_exch_fn;
+typedef std::function<std::string (const std::string&, const std::string&)> http_exch_fn;
 
 BOTAN_PUBLIC_API(2,0) Response http_sync(http_exch_fn fn,
                                          const std::string& verb,

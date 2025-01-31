@@ -13,6 +13,8 @@ namespace Botan {
 
 class Modular_Reducer;
 
+static const size_t PointGFp_SCALAR_BLINDING_BITS = 80;
+
 class PointGFp_Base_Point_Precompute final
    {
    public:
@@ -31,6 +33,7 @@ class PointGFp_Base_Point_Precompute final
       enum { WINDOW_SIZE = (1 << WINDOW_BITS) - 1 };
 
       const size_t m_p_words;
+      const size_t m_T_size;
 
       /*
       * This is a table of T_size * 3*p_word words
@@ -77,7 +80,6 @@ class PointGFp_Multi_Point_Precompute final
                          const BigInt& k2) const;
    private:
       std::vector<PointGFp> m_M;
-      bool m_no_infinity;
    };
 
 }
