@@ -633,6 +633,27 @@ static void Init()
 		return vn ? vn->isEngineStarting : false;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_IN_AIR", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vn = entity->syncTree->GetVehicleGameScript();
+
+		return vn ? vn->isVehicleInAir : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_DROWNING", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vn = entity->syncTree->GetVehicleGameScript();
+
+		return vn ? vn->isDrowning : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_DEATH_STATE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vn = entity->syncTree->GetPedGameState();
+
+		return vn ? vn->deathState : 0; 
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_HANDBRAKE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto vn = entity->syncTree->GetVehicleGameState();

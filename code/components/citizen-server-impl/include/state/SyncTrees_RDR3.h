@@ -1311,6 +1311,11 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 		return nullptr;
 	}
 
+	virtual CVehicleScriptGameStateNodeData* GetVehicleGameScript() override
+	{
+		return nullptr;
+	}
+
 	virtual void CalculatePosition() override
 	{
 		// TODO: cache it?
