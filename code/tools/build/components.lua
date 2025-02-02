@@ -306,7 +306,9 @@ local do_component = function(name, comp)
 		filter {}
 
 		if not data.vendor or not data.vendor.dummy then
-			links { dep }
+			if dep ~= 'vmprotect' then
+				links { dep }
+			end
 		end
 
 		if data.vendor then
