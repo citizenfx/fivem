@@ -1,5 +1,6 @@
 #include <StdInc.h>
 #include <Hooking.h>
+#include "Hooking.Stubs.h"
 #include <Streaming.h>
 
 static void* g_storeMgr;
@@ -225,6 +226,14 @@ namespace streaming
 	}
 }
 
+// This is to check the final size of the pools
+static void* (*g_fwBasePoolCtor)(void* self, int count, uint8_t* pPool, uint8_t* pFlags, const char* name, int redZone, int storageSize);
+static void* fwBasePoolCtor(void* self, int count, uint8_t* pPool, uint8_t* pFlags, const char* name, int redZone, int storageSize)
+{
+	trace("fwBasePoolCtor-> Count: %d, Pool: %p, Flags: %p, Name: %s, RedZone: %d, StorageSize: %d\n", count, pPool, pFlags, name, redZone, storageSize);
+	return g_fwBasePoolCtor(self, count, pPool, pFlags, name, redZone, storageSize);
+}
+
 static HookFunction hookFunction([] ()
 {
 	g_storeMgr = hook::get_address<void*>(hook::get_pattern<char>("74 1A 8B 15 ? ? ? ? 48 8D 0D ? ? ? ? 41", 11));
@@ -233,4 +242,30 @@ static HookFunction hookFunction([] ()
 
 	// start off fiCollection packfiles at 2, not 1
 	hook::put<uint32_t>(hook::get_pattern("41 0F B7 D2 4C 8D"), 0x01528D41); // lea    edx,[r10+0x1]
+
+	// Increase the fwPortalSceneGraphNode pool size
+	g_fwBasePoolCtor = hook::trampoline(hook::get_pattern("40 53 48 83 EC ? 8B 44 24 ? 83 61 ? ? 48 8B D9 4C 89 01"), fwBasePoolCtor);
+
+	auto portalSceneGraphNodeCtor = hook::get_pattern("C7 44 24 ? ? ? ? ? 4D 8B CD", 4);
+	auto portalClassSize = *reinterpret_cast<uint32_t*>(portalSceneGraphNodeCtor); // sizeof(fwPortalSceneGraphNode)
+	trace("portalClassSize size: %d\n", portalClassSize);
+
+	auto assignAstoreMemoryLocation = hook::get_pattern("B9 ? ? ? ? E8 ? ? ? ? BA ? ? ? ? 48 8B C8", 1);
+	uint32_t poolStorageFlagsSize = *reinterpret_cast<uint32_t*>(assignAstoreMemoryLocation);
+	trace("poolStorageFlagsSize: %d\n", poolStorageFlagsSize);
+	
+	uint32_t poolStorageSize = *reinterpret_cast<uint32_t*>((char*)assignAstoreMemoryLocation + 10);
+	trace("poolStorageSize: %d\n", poolStorageSize);
+
+	int poolAddition = 50; // The amount of additional pool entries to add
+	poolStorageFlagsSize += portalClassSize * poolAddition; // Here we only calculate the poolStorageSize because the flags are already added
+	poolStorageSize += portalClassSize * poolAddition;
+	trace("Final poolStorageFlagsSize: %d   poolStorageSize: %d \n", poolStorageFlagsSize, poolStorageSize);
+
+	hook::put<uint32_t>(assignAstoreMemoryLocation, poolStorageFlagsSize);
+	hook::put<uint32_t>((char*)assignAstoreMemoryLocation + 10, poolStorageSize);
+	
+	auto portalPoolCount = *reinterpret_cast<uint32_t*>((char*)portalSceneGraphNodeCtor + 8); // 400
+	trace("Final portalPoolCount: %d\n", portalPoolCount + poolAddition);
+	hook::put<uint32_t>((char*)portalSceneGraphNodeCtor + 8, portalPoolCount + poolAddition);
 });
