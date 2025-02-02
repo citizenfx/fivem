@@ -17,10 +17,22 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
-#include <mutex>
 
-//for srcObject..?
-//#include <ScriptSerialization.h>
+#include <locale>
+#include <codecvt>
+#include <string>
+#include <stdexcept>
+
+// for ntohl https://learn.microsoft.com/de-de/windows/win32/api/winsock/nf-winsock-ntohl
+#include <winsock.h>
+
+// to convert encoded json to utf-8 so nlohmann can parse it....
+#include <boost/locale.hpp>
+
+//#include <mutex>
+
+// for polyzones..
+#include <json.hpp>
 
 // We are using a grid-based collision detection system instead of quadtrees because:
 // - Insertion Speed: Adding 100,000 shapes took only ~0.085 seconds with the grid, 
@@ -39,7 +51,35 @@ static constexpr float CELL_SIZE = 500.0f; // 500x500 units per grid cell, no id
 #endif
 
 static constexpr float AUTO_INFINITE_THRESHOLD = 1000.0f; // Threshold to mark shapes as infinite
-static constexpr float MAX_INFINITE_SHAPE_DISTANCE = 10000.0f; // Maximum distance for infinite shapes
+static constexpr float MAX_INFINITE_SHAPE_DISTANCE = 1000.0f; // Maximum distance for infinite shapes, if we are further away then we don't check them at all!
+
+// copied from RuntimeAssetNatives.cpp
+//struct Vector2
+//{
+//	float x;
+//	float y;
+//
+//	Vector2(float x, float y, float z, float w)
+//		: x(x), y(y)
+//	{
+//	}
+//};
+
+struct Vector2
+{
+	float x;
+	float y;
+	Vector2()
+		: x(0.f), y(0.f)
+	{
+	}
+	Vector2(float x, float y)
+		: x(x), y(y)
+	{
+	}
+};
+
+// we need to define a custom vector3 struct for msgpack and somewhere in the stuff we include there already is a conflicting vector3 struct
 
 
 // Enumerate collision shape types
@@ -49,7 +89,8 @@ enum class ColShapeType
 	Cube, // 3D cube
 	Cylinder, // Cylindrical shape
 	Rectangle, // 2D rectangle (with bottomZ + height in Z)
-	Sphere // 3D sphere
+	Sphere, // 3D sphere
+	Polyzone, // Same as popular 'PolyZone' fivem resource
 };
 
 struct ColShape
@@ -67,13 +108,16 @@ struct ColShape
 	float minX, maxX;
 	float minY, maxY;
 
+	std::vector<Vector2> points; // For polyzones
+
 	// Constructor
 	ColShape(const std::string& shapeId, ColShapeType shapeType)
 		: id(shapeId), type(shapeType), pos1({ 0, 0, 0 }), pos2({ 0, 0, 0 }), radius(0.0f), height(0.0f), infinite(false),
-		  minX(0), maxX(0), minY(0), maxY(0), maxDistance(MAX_INFINITE_SHAPE_DISTANCE)
+		  minX(0), maxX(0), minY(0), maxY(0), maxDistance(MAX_INFINITE_SHAPE_DISTANCE), points()
 	{
 	}
 };
+
 
 // Class to manage collision shapes using an optimized grid-based approach
 class ColShapeManager
@@ -98,90 +142,13 @@ public:
 	bool CreateRectangle(const std::string& colShapeId, float x1, float y1, float x2, float y2, float height, bool infinite = false, float maxDistance = MAX_INFINITE_SHAPE_DISTANCE);
 	bool CreateSphere(const std::string& colShapeId, const Vector3& center, float radius, bool infinite = false, float maxDistance = MAX_INFINITE_SHAPE_DISTANCE);
 	bool DeleteColShape(const std::string& colShapeId);
+	bool CreatePolyzone(const std::string& colShapeId, const std::vector<Vector2>& points, float minZ, float maxZ, bool infinite = false, float maxDistance = MAX_INFINITE_SHAPE_DISTANCE);
 
 
 	bool Exists(const std::string& colShapeId);
 
 	// Update method to check player position and trigger events
-	void Update();
-
-
-	// const std::unordered_map<std::string, std::unique_ptr<ColShape>>& GetAllColShapes() const
-    // {
-    //     return colShapes_;
-    // }
-
-	//was my approach to make it possible to return the data to lua/c#/js, but no idea how to work with msgpack, maybe someone with more experience can help out?
-
-	//struct SerializableColShape
-	//{
-	//	std::string id;
-	//	std::string type;
-	//	float pos1_x;
-	//	float pos1_y;
-	//	float pos1_z;
-	//	float pos2_x;
-	//	float pos2_y;
-	//	float pos2_z;
-	//	float radius;
-	//	float height;
-	//	bool infinite;
-	//	float maxDistance;
-	//	float minX;
-	//	float maxX;
-	//	float minY;
-	//	float maxY;
-	//};
-
-	//std::vector<SerializableColShape> GetAllSerializableColShapes() const
-	//{
-	//	
-	//	std::vector<SerializableColShape> serializableColShapes;
-	//	for (const auto& [id, shapePtr] : colShapes_)
-	//	{
-	//		SerializableColShape scs;
-	//		scs.id = id;
-	//		switch (shapePtr->type)
-	//		{
-	//			case ColShapeType::Circle:
-	//				scs.type = "Circle";
-	//				break;
-	//			case ColShapeType::Cube:
-	//				scs.type = "Cube";
-	//				break;
-	//			case ColShapeType::Cylinder:
-	//				scs.type = "Cylinder";
-	//				break;
-	//			case ColShapeType::Rectangle:
-	//				scs.type = "Rectangle";
-	//				break;
-	//			case ColShapeType::Sphere:
-	//				scs.type = "Sphere";
-	//				break;
-	//			default:
-	//				scs.type = "Unknown";
-	//				break;
-	//		}
-	//		scs.pos1_x = shapePtr->pos1.x;
-	//		scs.pos1_y = shapePtr->pos1.y;
-	//		scs.pos1_z = shapePtr->pos1.z;
-	//		scs.pos2_x = shapePtr->pos2.x;
-	//		scs.pos2_y = shapePtr->pos2.y;
-	//		scs.pos2_z = shapePtr->pos2.z;
-	//		scs.radius = shapePtr->radius;
-	//		scs.height = shapePtr->height;
-	//		scs.infinite = shapePtr->infinite;
-	//		scs.maxDistance = shapePtr->maxDistance;
-	//		scs.minX = shapePtr->minX;
-	//		scs.maxX = shapePtr->maxX;
-	//		scs.minY = shapePtr->minY;
-	//		scs.maxY = shapePtr->maxY;
-
-	//		serializableColShapes.push_back(scs);
-	//	}
-
-	//	return serializableColShapes;
-	//}
+	inline void Update();
 
 
 private:
@@ -191,7 +158,7 @@ private:
 	void MaybeMarkInfinite(ColShape& shape);
 	void AddToGrid(ColShape* shape);
 	std::vector<ColShape*> GetColShapesForPosition(const Vector3& pos);
-	bool IsPointInColShape(const Vector3& p, const ColShape& shape);
+	inline bool IsPointInColShape(const Vector3& p, const ColShape& shape);
 
 	// Data Structures
 	std::unordered_map<std::string, std::unique_ptr<ColShape>> colShapes_; // colShapeId -> ColShape
@@ -206,7 +173,7 @@ private:
 	std::unordered_set<ColShape*> playerInsideColShapes_;
 
 
-	mutable std::mutex mutex_; 
+	//mutable std::mutex mutex_; removed cause we're not using threads anymore
 };
 
 
@@ -477,6 +444,62 @@ bool ColShapeManager::CreateSphere(const std::string& colShapeId, const Vector3&
 	return true;
 }
 
+
+bool ColShapeManager::CreatePolyzone(const std::string& colShapeId, const std::vector<Vector2>& points, float minZ, float maxZ, bool infinite, float maxDistance)
+
+{
+	if (this->Exists(colShapeId))
+		return false;
+
+	auto shape = std::make_unique<ColShape>(colShapeId, ColShapeType::Polyzone);
+	shape->points = points;
+
+	// We use pos1.z as minZ and height as (maxZ - minZ)
+	shape->pos1.z = minZ;
+	shape->height = maxZ - minZ;
+
+	// Compute the 2D bounding box from the points.
+	if (!points.empty())
+	{
+		float minX = points[0].x;
+		float maxX = points[0].x;
+		float minY = points[0].y;
+		float maxY = points[0].y;
+		for (const auto& pt : points)
+		{
+			minX = std::min(minX, pt.x);
+			maxX = std::max(maxX, pt.x);
+			minY = std::min(minY, pt.y);
+			maxY = std::max(maxY, pt.y);
+		}
+		shape->minX = minX;
+		shape->maxX = maxX;
+		shape->minY = minY;
+		shape->maxY = maxY;
+	}
+	else
+	{
+		return false;
+	}
+
+	MaybeMarkInfinite(*shape);
+
+	ColShape* rawPtr = shape.get();
+	colShapes_.emplace(colShapeId, std::move(shape));
+
+	if (!rawPtr->infinite)
+	{
+		AddToGrid(rawPtr);
+	}
+	else
+	{
+		infiniteShapes_.push_back(rawPtr);
+	}
+	return true;
+}
+
+
+
 // Delete a colShape by ID
 bool ColShapeManager::DeleteColShape(const std::string& colShapeId)
 {
@@ -557,7 +580,7 @@ std::vector<ColShape*> ColShapeManager::GetColShapesForPosition(const Vector3& p
 }
 
 // Check if a point is inside a given ColShape
-bool ColShapeManager::IsPointInColShape(const Vector3& p, const ColShape& shape)
+inline bool ColShapeManager::IsPointInColShape(const Vector3& p, const ColShape& shape)
 {
 	switch (shape.type)
 	{
@@ -617,13 +640,33 @@ bool ColShapeManager::IsPointInColShape(const Vector3& p, const ColShape& shape)
 			float rSq = shape.radius * shape.radius;
 			return distSq <= rSq;
 		}
+		case ColShapeType::Polyzone:
+		{
+			float bottomZ = shape.pos1.z;
+			float topZ = bottomZ + shape.height;
+			if (p.z < bottomZ || p.z > topZ)
+			{
+				//trace("Polyzone: Z out of bounds\n");
+				return false;
+			}
+			const std::vector<Vector2>& poly = shape.points;
+			bool inside = false;
+			for (size_t i = 0, j = poly.size() - 1; i < poly.size(); j = i++)
+			{
+				if (((poly[i].y > p.y) != (poly[j].y > p.y)) && (p.x < (poly[j].x - poly[i].x) * (p.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x))
+				{
+					inside = !inside;
+				}
+			}
+			return inside;
+		}
 		default:
 			return false;
 	}
 }
 
 // Update method to check player's current position against collision shapes
-void ColShapeManager::Update()
+inline void ColShapeManager::Update()
 {
 
 	static auto resman = Instance<fx::ResourceManager>::Get();
@@ -728,45 +771,13 @@ void ColShapeManager::Update()
 	}
 }
 
-class ColShapeThread
-{
-public:
-	ColShapeThread()
-		: shutdown_(false)
-	{
-	}
-
-	void Start()
-	{
-		thread_ = std::thread(&ColShapeThread::Run, this);
-	}
-
-	void Shutdown()
-	{
-		shutdown_ = true;
-		if (thread_.joinable())
-		{
-			thread_.join();
-		}
-	}
-
-private:
-	void Run()
-	{
-		while (!shutdown_)
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(updateIntervalMs));
-			ColShapeManager::Get().Update();
-		}
-	}
-
-	std::thread thread_;
-	std::atomic<bool> shutdown_;
-};
+// some limits for polyzone msgpack stuff
+static const uint32_t MAX_MSGPACK_SIZE = 1048576; 
+static const size_t MAX_VERTICES = 1000;
 
 static InitFunction initFunction([]()
 {
-	static ColShapeThread colShapeThread;
+	//static ColShapeThread colShapeThread;
 
 
 	// 
@@ -924,9 +935,178 @@ static InitFunction initFunction([]()
 		context.SetResult<bool>(success);
 	});
 
-	// Start the colshape thread once scripts are ready
-	rage::scrEngine::OnScriptInit.Connect([]()
+	// COLSHAPE_POLYZONE => Creates a 2D polygon shape
+	fx::ScriptEngine::RegisterNativeHandler("CREATE_COLSHAPE_POLYZONE", [](fx::ScriptContext& context)
 	{
-		colShapeThread.Start();
+		// Expect either 3 or 5 arguments:
+		//  [0] string:  colShapeId
+		//  [1] char*:    packed MessagePack data
+		//  [2] uint32_t: length of the packed data
+		// If 5 arguments:
+		//  [3] float: minZ
+		//  [4] float: maxZ
+		int argCount = context.GetArgumentCount();
+		trace("argcount is %d\n", argCount);
+
+		// Only allow 3 or 5.
+		if (argCount != 3 && argCount != 5)
+		{
+			trace("CREATE_COLSHAPE_POLYZONE: Invalid argument count. Must be 3 or 5.\n");
+			context.SetResult(false);
+			return;
+		}
+
+		std::string colShapeId = context.CheckArgument<const char*>(0);
+		const char* packedData = context.CheckArgument<const char*>(1);
+		uint32_t dataLen = context.GetArgument<uint32_t>(2);
+
+		// Optional Z bounds if argCount == 5
+		// essentially, if someone decides to not use arg 4 and 5 we want the "polyzone" to have "infinite height", so just some large numbers should do the trick.
+
+		float minZ, maxZ;
+
+		minZ = context.GetArgument<float>(3);
+		maxZ = context.GetArgument<float>(4);
+
+		if (minZ == 0.0f && maxZ == 0.0f)
+		{
+			// this should only be the case if param 4,5 are not used but for some WEIRD reason
+			// even when u leave them empty in lua this function still gets 5 parameters, so we just do this as an alternative!
+			minZ = -10000.0f;
+			maxZ = 10000.0f;
+		}
+
+		if (dataLen == 0 || dataLen > MAX_MSGPACK_SIZE)
+		{
+			trace("CREATE_COLSHAPE_POLYZONE: Data length %u out of range (max %u)\n", dataLen, MAX_MSGPACK_SIZE);
+			context.SetResult(false);
+			return;
+		}
+
+		msgpack::unpacked unpacked;
+		try
+		{
+			unpacked = msgpack::unpack(packedData, dataLen);
+		}
+		catch (const std::exception& e)
+		{
+			trace("CREATE_COLSHAPE_POLYZONE: Failed to unpack data: %s\n", e.what());
+			context.SetResult(false);
+			return;
+		}
+
+		msgpack::object obj = unpacked.get();
+		if (obj.type != msgpack::type::ARRAY)
+		{
+			trace("CREATE_COLSHAPE_POLYZONE: Expected an array of points.\n");
+			context.SetResult(false);
+			return;
+		}
+
+		if (obj.via.array.size > MAX_VERTICES)
+		{
+			trace("CREATE_COLSHAPE_POLYZONE: Too many vertices (%zu, max is %zu)\n",
+			obj.via.array.size, MAX_VERTICES);
+			context.SetResult(false);
+			return;
+		}
+
+		std::vector<Vector2> points;
+		points.reserve(obj.via.array.size);
+
+		for (size_t i = 0; i < obj.via.array.size; ++i)
+		{
+			msgpack::object& element = obj.via.array.ptr[i];
+			float x = 0.0f, y = 0.0f;
+
+			// makes it possible to have arrays in lua tables (if for some reason you want to do that, mostly you'd use x = 1, y = 2 or vector2(1,2) etc..)
+			if (element.type == msgpack::type::ARRAY)
+			{
+				// If array of [x,y] or [x,y,z]
+				auto& arr = element.via.array;
+				if (arr.size >= 2)
+				{
+					// x, y
+					x = arr.ptr[0].as<float>();
+					y = arr.ptr[1].as<float>();
+					// if arr.size == 3 => there's a z, but we ignore it
+				}
+				else
+				{
+					trace("CREATE_COLSHAPE_POLYZONE: Array element at %zu has <2 floats.\n", i);
+					context.SetResult(false);
+					return;
+				}
+			}
+			// this is essentially { x = 1.0, y= 2.0 }
+			else if (element.type == msgpack::type::MAP)
+			{
+				for (size_t j = 0; j < element.via.map.size; ++j)
+				{
+					auto& kv = element.via.map.ptr[j];
+					if (kv.key.type == msgpack::type::STR)
+					{
+						std::string key(kv.key.via.str.ptr, kv.key.via.str.size);
+						if (key == "x")
+							x = kv.val.as<float>();
+						if (key == "y")
+							y = kv.val.as<float>();
+					}
+				}
+			}
+			else if (element.type == msgpack::type::EXT)
+			{
+
+				int8_t extType = element.via.ext.type();
+				size_t dataSize = element.via.ext.size;
+				const char* dataPtr = element.via.ext.ptr;
+				
+				// just to make sure its vector2, vector3 or vector4
+				// vector2 is 20, found in MsgPackSerializer.cs in the clrcore project (packer.PackExtendedTypeValue(20, ms.ToArray());)
+				// vector3 is 21, vector 4 is 22 etc..
+				if (dataSize <= 16 && dataSize >= 8 && ((extType == 20 && dataSize == 8) || (extType == 21 && dataSize == 12) || (extType == 22 && dataSize == 16)))
+				{
+					// 14 08... it was something along these lines for vector2 when printed out so when we unpack we get the extType and Size that we don't need so we skip the first byte
+					dataPtr++; // skip the first byte
+					float x_val, y_val;
+					memcpy(&x_val, dataPtr, sizeof(float));
+					memcpy(&y_val, dataPtr + 4, sizeof(float));
+					x = x_val;
+					y = y_val;
+				}
+				else
+				{
+					trace("CREATE_COLSHAPE_POLYZONE: Unexpected EXT type or size at %zu\n", i);
+					context.SetResult(false);
+					return;
+				}
+			}
+			else
+			{
+				trace("CREATE_COLSHAPE_POLYZONE: Unexpected element type at index %zu\n", i);
+				context.SetResult(false);
+				return;
+			}
+
+			points.push_back(Vector2(x, y));
+		}
+		bool success = ColShapeManager::Get().CreatePolyzone(colShapeId, points, minZ, maxZ);
+		context.SetResult<bool>(success);
 	});
+
+
+	// use game thread instead of seperate thread as suggested by Heron
+	static auto lastUpdateTime = std::chrono::high_resolution_clock::now();
+	OnMainGameFrame.Connect([]()
+	{
+		auto now = std::chrono::high_resolution_clock::now();
+
+		if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastUpdateTime).count() >= updateIntervalMs)
+		{
+			lastUpdateTime = now;
+			ColShapeManager::Get().Update();
+		}
+	});
+
+
 });
