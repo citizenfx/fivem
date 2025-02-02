@@ -73,7 +73,7 @@
 				})
 			}
 			if (!source.buffer && source.constructor === ArrayBuffer)
-				source = typeof Buffer !== 'undefined' ? Buffer.from(source) : new Uint8Array(source);
+				source = /* typeof Buffer !== 'undefined' ? Buffer.from(source) : */ new Uint8Array(source); // msgpack-lite "uint8array" compatibility
 			if (typeof options === 'object') {
 				srcEnd = options.end || source.length;
 				position$1 = options.start || 0;
@@ -825,10 +825,10 @@
 
 
 	function readBin(length) {
-		return currentUnpackr.copyBuffers ?
+		return (currentUnpackr.copyBuffers ?
 			// specifically use the copying slice (not the node one)
 			Uint8Array.prototype.slice.call(src, position$1, position$1 += length) :
-			src.subarray(position$1, position$1 += length)
+			src.subarray(position$1, position$1 += length)).buffer; // msgpack-lite "binarraybuffer" compatibility
 	}
 	function readExt(length) {
 		let type = src[position$1++];
@@ -843,8 +843,28 @@
 				}
 			})
 		}
-		else
-			throw new Error('Unknown extension type ' + type)
+		else {
+			/**
+			 * msgpack-lite compatiblity
+			 * return a Bufferish buffer to allow custom handling in older scripts to work
+			 */
+			try {
+				const buffer = new Uint8Array(length);
+				
+				for (let i = 0; i < length; i++)
+					buffer[i] = src[position$1 + i];
+
+				position$1 += length; // ensure we reach the end of buffer
+
+				return {
+					buffer: Bufferish.from(buffer),
+					type
+				}
+			} catch(e) {
+				throw new Error(`Error occured decoding buffer of type ${type}: ${e}`)
+			}
+		}
+			// throw new Error('Unknown extension type ' + type)
 	}
 
 	var keyCache = new Array(4096);
@@ -1119,7 +1139,7 @@
 		textEncoder = new TextEncoder();
 	} catch (error) {}
 	let extensions, extensionClasses;
-	const hasNodeBuffer = typeof Buffer !== 'undefined';
+	const hasNodeBuffer = /* typeof Buffer !== 'undefined'; */ false; // msgpack-lite "uint8array" compatibility
 	const ByteArrayAllocate = hasNodeBuffer ?
 		function(length) { return Buffer.allocUnsafeSlow(length) } : Uint8Array;
 	const ByteArray = hasNodeBuffer ? Buffer : Uint8Array;

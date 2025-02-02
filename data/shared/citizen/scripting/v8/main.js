@@ -62,6 +62,12 @@ const EXT_LOCALFUNCREF = 11;
 		unpack: refFunctionUnpacker
 	})
 
+	addExtension({
+        Class: Function,
+        type: EXT_LOCALFUNCREF,
+        pack: refFunctionPacker,
+        unpack: refFunctionUnpacker
+    })
 
 	const pack = (value) => packr.pack(value);
 	const unpack = (packed_value) => packr.unpack(packed_value);
@@ -87,9 +93,7 @@ const EXT_LOCALFUNCREF = 11;
 	};
 
 	function refFunctionPacker(refFunction) {
-		const ref = Citizen.makeRefFunction(refFunction);
-
-		return Buffer.from(ref);
+		return Buffer.from(Citizen.makeRefFunction(refFunction));
 	}
 
 	function refFunctionUnpacker(refSerialized) {
