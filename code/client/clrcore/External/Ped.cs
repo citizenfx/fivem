@@ -1041,7 +1041,7 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				API.SetPedStealthMovement(Handle, value, null);
+				API.SetPedStealthMovement(Handle, value, "DEFAULT_ACTION");
 			}
 		}
 		public bool IsAmbientSpeechplaying
