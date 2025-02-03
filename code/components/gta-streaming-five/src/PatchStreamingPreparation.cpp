@@ -236,7 +236,7 @@ bool IsHandleCache(uint32_t handle, std::string* outFileName)
 
 	rage::fiCollection* collection = nullptr;
 
-	if ((handle >> 16) == 0)
+	if ((handle >> 16) == 0 || (handle >> 16) == 2)
 	{
 		collection = getRawStreamer();
 	}

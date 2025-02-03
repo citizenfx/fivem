@@ -1750,6 +1750,7 @@ namespace rage
 
 #ifdef GTA_FIVE
 extern bool GetRawStreamerForFile(const char* fileName, rage::fiCollection** collection);
+extern int GetCollectionIndexForFileName(const char* fileName);
 
 static hook::cdecl_stub<void(int, const char*)> initGfxTexture([]()
 {
@@ -1913,7 +1914,7 @@ static void LoadStreamingFiles(LoadType loadType)
 			if (GetRawStreamerForFile(file.c_str(), &customRawStreamer))
 			{
 				rawStreamer = customRawStreamer;
-				collectionId = 1;
+				collectionId = GetCollectionIndexForFileName(file.c_str());
 			}
 #endif
 
@@ -1955,7 +1956,7 @@ static void LoadStreamingFiles(LoadType loadType)
 					g_handleStack[fileId].push_front(entry.handle);
 
 					// only for 'real' rawStreamer (mod variant likely won't reregister)
-					if ((entry.handle >> 16) == 0)
+					if ((entry.handle >> 16) == 0 || (entry.handle >> 16) == 2)
 					{
 						rage::pgRawStreamerInvalidateEntry(entry.handle & 0xFFFF);
 					}
@@ -3304,8 +3305,12 @@ void* chunkyArrayAppend(hook::FlexStruct* self)
 static ConsoleCommand pgRawStreamer_AssetsCountCmd("assetscount", []()
 {
 	hook::FlexStruct* rawStreamerFlex = (hook::FlexStruct*)g_GetRawStreamer();
-	const int32_t loadedEntriesCount = rawStreamerFlex->Get<int32_t>(chunkyArrayOffset + chunkyArrayCountOffset);
+	int32_t loadedEntriesCount = rawStreamerFlex->Get<int32_t>(chunkyArrayOffset + chunkyArrayCountOffset);
 	trace("Total loaded assets in pgRawStreamer - %d/65535\n", loadedEntriesCount);
+
+	GetRawStreamerForFile("ytd", (rage::fiCollection**)&rawStreamerFlex);
+	loadedEntriesCount = rawStreamerFlex->Get<int32_t>(chunkyArrayOffset + chunkyArrayCountOffset);
+	trace("Total loaded assets in pgRawStreamer(ytd) - %d/65535\n", loadedEntriesCount);
 });
 
 const rage::chunkyArray<rage::pgRawEntry, 1024, 64>& rage::GetPgRawStreamerEntries()

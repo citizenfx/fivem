@@ -96,19 +96,55 @@ namespace rage
 
 static rage::fiCollection* (__thiscall* _rage_pgStreamer_ctor)(void*);
 
+int cutomStreamers = 1;
+rage::fiCollection* CreateRawStreamer()
+{
+	auto alloc8ed = rage::GetAllocator()->Allocate(2048, 16, 0);
+	auto stat = (char*)_rage_pgStreamer_ctor;
+	hook::put<int>(stat + 0x3F, *(int*)(stat + 0x3F) + (8 * cutomStreamers++));
+
+	return _rage_pgStreamer_ctor(alloc8ed);
+}
+
+int GetCollectionIndexForFileName(const char* fileName)
+{
+	if (strncmp(fileName, "faux_pack", 9) == 0 || strncmp(fileName, "addons:/", 8) == 0)
+	{
+		return 1;
+	}
+	else if (strstr(fileName, "ytd") == fileName + strlen(fileName) - 3)
+	{
+		return 2;
+	}
+
+	return 0;
+}
+
+int GetCollectionOrForFileName(const char* fileName)
+{
+	if (strncmp(fileName, "faux_pack", 9) == 0 || strncmp(fileName, "addons:/", 8) == 0)
+	{
+		return (1 << 16);
+	}
+	else if (strstr(fileName, "ytd") == fileName + strlen(fileName) - 3)
+	{
+		return (2 << 16);
+	}
+
+	return 0;
+}
+
 bool GetRawStreamerForFile(const char* fileName, rage::fiCollection** collection)
 {
 	if (strncmp(fileName, "faux_pack", 9) == 0 || strncmp(fileName, "addons:/", 8) == 0)
 	{
-		static auto fakeStreamer = ([]()
-		{
-			auto alloc8ed = rage::GetAllocator()->Allocate(2048, 16, 0);
-			auto stat = (char*)_rage_pgStreamer_ctor;
-			hook::put<int>(stat + 0x3F, *(int*)(stat + 0x3F) + 8);
-
-			return _rage_pgStreamer_ctor(alloc8ed);
-		})();
-
+		static auto fakeStreamer = CreateRawStreamer();
+		*collection = fakeStreamer;
+		return true;
+	}
+	else if (strstr(fileName, "ytd") == fileName + strlen(fileName) - 3)
+	{
+		static auto fakeStreamer = CreateRawStreamer();
 		*collection = fakeStreamer;
 		return true;
 	}
@@ -215,7 +251,7 @@ namespace streaming
 				}
 
 				uint8_t unkVal;
-				Manager::GetInstance()->RegisterObject(fileId, registerName, fileIdx | (1 << 16), 1, &unkVal, unkTrue, nullptr, false);
+				Manager::GetInstance()->RegisterObject(fileId, registerName, fileIdx | GetCollectionOrForFileName(fileName), 1, &unkVal, unkTrue, nullptr, false);
 			}
 
 			return fileId;
@@ -232,5 +268,5 @@ static HookFunction hookFunction([] ()
 	_rage_pgStreamer_ctor = (decltype(_rage_pgStreamer_ctor))hook::get_pattern("48 8B CB 33 D2 41 B8 00 02 00 00 E8", -0x29);
 
 	// start off fiCollection packfiles at 2, not 1
-	hook::put<uint32_t>(hook::get_pattern("41 0F B7 D2 4C 8D"), 0x01528D41); // lea    edx,[r10+0x1]
+	hook::put<uint32_t>(hook::get_pattern("41 0F B7 D2 4C 8D"), 0x02528D41); // lea    edx,[r10+0x1]
 });

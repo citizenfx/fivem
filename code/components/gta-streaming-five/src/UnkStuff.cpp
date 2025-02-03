@@ -63,7 +63,7 @@ static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, 
 	auto spf = streaming::GetStreamingPackfileByIndex(collectionIndex);
 	auto collection = (rage::fiCollection*)(spf ? spf->packfile : nullptr);
 
-	if (!collection && collectionIndex == 0)
+	if (!collection && (collectionIndex == 0 || collectionIndex == 2))
 	{
 		collection = getRawStreamer();
 	}

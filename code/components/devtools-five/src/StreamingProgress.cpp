@@ -121,7 +121,7 @@ static void StreamingProgress_Update()
 				collection = reinterpret_cast<rage::fiCollection*>(spf->packfile);
 			}
 
-			if (!collection && (data->handle >> 16) == 0)
+			if (!collection && ((data->handle >> 16) == 0 || (data->handle >> 16) == 2))
 			{
 				collection = getRawStreamer();
 			}
