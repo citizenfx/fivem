@@ -141,7 +141,12 @@ static InitFunction initFunction([] ()
 					return;
 				}
 
-				// restricted? if not, add the command
+				auto formattedResource = fmt::sprintf("resource.%s", resource->GetName());
+
+				// Always allow the registering resource to do things to its own commands, this allows them to add_ace without needing to do weird wrappers.
+				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ formattedResource }, se::Object{ "command." + commandName }, se::AccessType::Allow);
+
+				// If we're not restricted then allow everyone to use the command
 				if (!context.GetArgument<bool>(2))
 				{
 					seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "builtin.everyone" }, se::Object{ "command." + commandName }, se::AccessType::Allow);
@@ -164,9 +169,13 @@ static InitFunction initFunction([] ()
 					return true;
 				});
 
-				resource->OnStop.Connect([consoleCxt, commandToken]()
+				resource->OnStop.Connect([consoleCxt, commandToken, formattedResource, commandName]()
 				{
 					consoleCxt->GetCommandManager()->Unregister(commandToken);
+
+					// Once we unregister the command make sure we remove the default access
+					seGetCurrentContext()->RemoveAccessControlEntry(se::Principal{ "builtin.everyone" }, se::Object{ "command." + commandName }, se::AccessType::Allow);
+					seGetCurrentContext()->RemoveAccessControlEntry(se::Principal{ formattedResource }, se::Object{ "command." + commandName }, se::AccessType::Allow);
 				}, INT32_MAX);
 			}
 		}
