@@ -15,6 +15,11 @@
 bool StateBagPacketHandler::Process(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
                                    net::ByteReader& reader, fx::ENetPacketPtr& packet)
 {
+	if (instance->GetComponent<fx::ServerGameStatePublic>()->GetStateBagStrictMode())
+	{
+		return true;
+	}
+
 	const uint64_t offset = reader.GetOffset();
 	gscomms_execute_callback_on_sync_thread([instance, client, offset, packet]
 	{
@@ -176,6 +181,11 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 bool StateBagPacketHandlerV2::Process(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
                                      net::ByteReader& reader, fx::ENetPacketPtr& packet)
 {
+	if (instance->GetComponent<fx::ServerGameStatePublic>()->GetStateBagStrictMode())
+	{
+		return true;
+	}
+
 	const uint64_t offset = reader.GetOffset();
 	gscomms_execute_callback_on_sync_thread([instance, client, offset, packet]
 	{

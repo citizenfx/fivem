@@ -23,6 +23,8 @@
 
 #include <SharedFunction.h>
 
+#include "ScriptWarnings.h"
+
 struct CommandObject
 {
 	std::string name;
@@ -36,6 +38,11 @@ struct CommandObject
 
 	MSGPACK_DEFINE_MAP(name, arity);
 };
+
+namespace fx
+{
+ConVar<bool> g_stateBagStrictMode("sv_stateBagStrictMode", ConVar_Replicated, false);
+}
 
 static InitFunction initFunction([] ()
 {
@@ -324,6 +331,12 @@ static InitFunction initFunction([] ()
 		auto keyValue = context.CheckArgument<const char*>(2);
 		auto keySize = context.GetArgument<uint32_t>(3);
 		auto replicated = context.GetArgument<bool>(4);
+
+		if (replicated && fx::g_stateBagStrictMode.GetValue())
+		{
+			fx::scripting::Warningf("natives", "StateBags can't be modified from the client, because the StateBag strict mode is enabled. Disable it using setr sv_stateBagStrictMode false\n");
+			return;
+		}
 
 		auto rm = fx::ResourceManager::GetCurrent();
 		auto sbac = rm->GetComponent<fx::StateBagComponent>();
