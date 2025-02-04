@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 
 #include <filesystem>
 #include <lua.hpp>
@@ -379,16 +379,20 @@ int LuaIOPOpen(lua_State* L)
 	vfs::FindData fd;
 	auto handle = device->FindFirst(transformedPath, &fd);
 	std::list<std::string> files{};
-	if (handle != INVALID_DEVICE_HANDLE)
-	{
-		do
-		{
-			files.emplace_back(fd.name);
-		}
-		while (device->FindNext(handle, &fd));
 
-		device->FindClose(handle);
+	if (handle == INVALID_DEVICE_HANDLE)
+	{
+		errno = ENOENT;
+		return luaL_fileresult(L, 0, commandString);
 	}
+
+	do
+	{
+		files.emplace_back(fd.name);
+	}
+	while (device->FindNext(handle, &fd));
+
+	device->FindClose(handle);
 
 	LuaIODirectory* luaDirectory = LuaIONewDirectoryContent(L);
 	luaDirectory->size = files.size();
@@ -432,21 +436,25 @@ int LuaIOReadDir(lua_State* L)
 	vfs::FindData fd;
 	auto handle = device->FindFirst(directoryPath.generic_string(), &fd);
 	std::list<std::string> files{};
-	if (handle != INVALID_DEVICE_HANDLE)
+
+	if (handle == INVALID_DEVICE_HANDLE)
 	{
-		do
-		{
-			if (fd.name == "." || fd.name == "..")
-			{
-				continue;
-			}
-
-			files.emplace_back(fd.name);
-		}
-		while (device->FindNext(handle, &fd));
-
-		device->FindClose(handle);
+		errno = ENOENT;
+		return luaL_fileresult(L, 0, directoryPathString);
 	}
+
+	do
+	{
+		if (fd.name == "." || fd.name == "..")
+		{
+			continue;
+		}
+
+		files.emplace_back(fd.name);
+	}
+	while (device->FindNext(handle, &fd));
+
+	device->FindClose(handle);
 
 	LuaIODirectory* luaDirectory = LuaIONewDirectoryContent(L);
 	luaDirectory->size = files.size();
