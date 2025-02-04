@@ -5994,6 +5994,44 @@ struct CStopNetworkSyncedSceneEvent
 
 	MSGPACK_DEFINE_MAP(sceneId);
 };
+
+/*NETEV givePedScriptedTaskEvent SERVER
+/#*
+ * Triggered when a client requests to assign a scripted task to a remotely-controlled ped.
+ *
+ * @param sender - The network ID of the player initiating the event.
+ * @param data - The event data.
+ #/
+declare function givePedScriptedTaskEvent(sender: number, data: {
+	/#*
+	 * The network ID of the target ped receiving the task.
+	 #/
+	entityNetId: number,
+	/#*
+	 * The ID of the assigned task. See [GetIsTaskActive](https://docs.fivem.net/natives/?_0xB0760331C7AA4155)
+	 #/
+	taskId: number,
+	
+}): void;
+*/
+struct CGivePedScriptedTaskEvent
+{
+	uint16_t entityNetId;
+	uint16_t taskId;
+
+	void Parse(rl::MessageBufferView& buffer)
+	{
+		entityNetId = buffer.Read<uint16_t>(16);
+		taskId = buffer.Read<uint16_t>(10);
+	}
+
+	inline std::string GetName()
+	{
+		return "givePedScriptedTaskEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(entityNetId, taskId);
+};
 #endif
 
 #ifdef STATE_RDR3
@@ -7444,6 +7482,7 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 		case NETWORK_START_SYNCED_SCENE_EVENT: return GetHandler<CStartNetworkSyncedSceneEvent>(instance, client, std::move(buffer));
 		case NETWORK_UPDATE_SYNCED_SCENE_EVENT: return GetHandler<CUpdateNetworkSyncedSceneEvent>(instance, client, std::move(buffer));
 		case NETWORK_STOP_SYNCED_SCENE_EVENT: return GetHandler<CStopNetworkSyncedSceneEvent>(instance, client, std::move(buffer));
+		case GIVE_PED_SCRIPTED_TASK_EVENT: return GetHandler<CGivePedScriptedTaskEvent>(instance, client, std::move(buffer));
 		default:
 			break;
 	};
@@ -7571,6 +7610,7 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandlerWithEvent(const fx
 		case net::force_consteval<uint32_t, HashRageString("NETWORK_START_SYNCED_SCENE_EVENT")>: return GetHandlerWithEvent<CStartNetworkSyncedSceneEvent>(instance, client, netGameEvent);
 		case net::force_consteval<uint32_t, HashRageString("NETWORK_UPDATE_SYNCED_SCENE_EVENT")>: return GetHandlerWithEvent<CUpdateNetworkSyncedSceneEvent>(instance, client, netGameEvent);
 		case net::force_consteval<uint32_t, HashRageString("NETWORK_STOP_SYNCED_SCENE_EVENT")>: return GetHandlerWithEvent<CStopNetworkSyncedSceneEvent>(instance, client, netGameEvent);
+		case net::force_consteval<uint32_t, HashRageString("GIVE_PED_SCRIPTED_TASK_EVENT")>: return GetHandlerWithEvent<CGivePedScriptedTaskEvent>(instance, client, netGameEvent);
 		default:
 			break;
 	};
