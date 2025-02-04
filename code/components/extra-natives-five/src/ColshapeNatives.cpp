@@ -23,17 +23,6 @@
 #include <string>
 #include <stdexcept>
 
-// for ntohl https://learn.microsoft.com/de-de/windows/win32/api/winsock/nf-winsock-ntohl
-#include <winsock.h>
-
-// to convert encoded json to utf-8 so nlohmann can parse it....
-#include <boost/locale.hpp>
-
-//#include <mutex>
-
-// for polyzones..
-#include <json.hpp>
-
 // We are using a grid-based collision detection system instead of quadtrees because:
 // - Insertion Speed: Adding 100,000 shapes took only ~0.085 seconds with the grid, 
 //   whereas quadtrees were significantly slower. (45 seconds+, maybe it was my implementation though)
@@ -54,17 +43,6 @@ static constexpr float AUTO_INFINITE_THRESHOLD = 1000.0f; // Threshold to mark s
 static constexpr float MAX_INFINITE_SHAPE_DISTANCE = 1000.0f; // Maximum distance for infinite shapes, if we are further away then we don't check them at all!
 
 // copied from RuntimeAssetNatives.cpp
-//struct Vector2
-//{
-//	float x;
-//	float y;
-//
-//	Vector2(float x, float y, float z, float w)
-//		: x(x), y(y)
-//	{
-//	}
-//};
-
 struct Vector2
 {
 	float x;
@@ -78,9 +56,6 @@ struct Vector2
 	{
 	}
 };
-
-// we need to define a custom vector3 struct for msgpack and somewhere in the stuff we include there already is a conflicting vector3 struct
-
 
 // Enumerate collision shape types
 enum class ColShapeType
@@ -1066,8 +1041,7 @@ static InitFunction initFunction([]()
 				// vector3 is 21, vector 4 is 22 etc..
 				if (dataSize <= 16 && dataSize >= 8 && ((extType == 20 && dataSize == 8) || (extType == 21 && dataSize == 12) || (extType == 22 && dataSize == 16)))
 				{
-					// 14 08... it was something along these lines for vector2 when printed out so when we unpack we get the extType and Size that we don't need so we skip the first byte
-					dataPtr++; // skip the first byte
+					dataPtr++; // skip the first byte as it contains information about type/size which we don't need here
 					float x_val, y_val;
 					memcpy(&x_val, dataPtr, sizeof(float));
 					memcpy(&y_val, dataPtr + 4, sizeof(float));
