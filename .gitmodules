@@ -457,3 +457,6 @@
 [submodule "vendor/boost-submodules/boost-static-string"]
 	path = vendor/boost-submodules/boost-static-string
 	url = https://github.com/boostorg/static_string.git
+[submodule "vendor/AntiLag2-SDK"]
+	path = vendor/AntiLag2-SDK
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/AntiLag2-SDK

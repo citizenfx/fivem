@@ -309,6 +309,19 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
     },
   ],
   [
+    'amdAntiLag',
+    {
+      type: 'checkbox',
+
+      label: $L('#Settings_AmdAntiLag'),
+      description: $L('#Settings_AmdAntiLagDesc'),
+
+      ...convarAccessorsBoolean('game_useAmdAntiLag'),
+
+      visible: () => onlyForFiveM() && useService(IConvarService).getBoolean('game_amdAntiLagPresent'),
+    }
+  ],
+  [
     'discordRichPresence',
     {
       type: 'switch',

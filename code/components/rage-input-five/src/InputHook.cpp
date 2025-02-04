@@ -1,7 +1,7 @@
 #include "StdInc.h"
-#include "CrossLibraryInterfaces.h"
 #include "InputHook.h"
 #include "Hooking.h"
+#include "CoreConsole.h"
 
 #include <nutsnbolts.h>
 
@@ -12,6 +12,8 @@
 
 #include <ICoreGameInit.h>
 #include <GlobalInput.h>
+
+#include "ffx_antilag2_dx11.h"
 
 static WNDPROC origWndProc;
 
@@ -439,6 +441,9 @@ static HookFunction setOffsetsHookFunction([]()
 	DoPatchMouseScrollDelta();
 });
 
+static AMD::AntiLag2DX11::Context g_antiLagContext = {};
+static std::shared_ptr<ConVar<bool>> g_antiLagPresentConVar, g_antiLagEnabledConVar;
+
 static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 {
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
@@ -451,6 +456,10 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 	static bool lastBlockGameInput;
 	bool blockGameInput = !InputHook::QueryInputTarget(inputTargets);
 
+	if (g_antiLagPresentConVar->GetValue())
+	{
+		AMD::AntiLag2DX11::Update(&g_antiLagContext, g_antiLagEnabledConVar->GetValue(), 0);
+	}
 
 	curInput = ReverseGameInputState{ *rgd };
 
@@ -688,6 +697,13 @@ static int Return0()
 
 static HookFunction hookFunction([]()
 {
+	g_antiLagPresentConVar = std::make_shared<ConVar<bool>>("game_amdAntiLagPresent", ConVar_Internal | ConVar_ScriptRestricted, false);
+	g_antiLagEnabledConVar = std::make_shared<ConVar<bool>>("game_useAmdAntiLag", ConVar_Archive | ConVar_UserPref, true);
+	if (const auto antiLagInitResult = AMD::AntiLag2DX11::Initialize(&g_antiLagContext); antiLagInitResult == S_OK)
+	{
+		g_antiLagPresentConVar->GetHelper()->SetRawValue(true);
+	}
+
 	static int* captureCount = hook::get_address<int*>(hook::get_pattern("48 3B 05 ? ? ? ? 0F 45 CA 89 0D ? ? ? ? 48 83 C4 28", 12));
 
 	OnGameFrame.Connect([]()
