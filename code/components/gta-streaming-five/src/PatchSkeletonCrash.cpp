@@ -2,6 +2,7 @@
 
 #include <jitasm.h>
 #include <Hooking.h>
+#include "Hooking.Stubs.h"
 
 #include <CrossBuildRuntime.h>
 
@@ -33,6 +34,19 @@ static void GetGlobalMatrix(rage::crSkeleton* skeleton, uint32_t boneIndex, rage
 	else if (skeleton && skeleton->m_parent)
 	{
 		*outMatrix = *skeleton->m_parent;
+	}
+	else
+	{
+		*outMatrix = DirectX::XMMatrixIdentity();
+	}
+}
+
+static void (*g_getGlobalMatrixFuncPatch)(rage::crSkeleton*, uint32_t, rage::Mat34V*);
+static void GetGlobalMatrixFuncPatch(rage::crSkeleton* skeleton, const uint32_t boneIndex, rage::Mat34V* outMatrix)
+{
+	if (boneIndex < skeleton->m_boneCount)
+	{
+		g_getGlobalMatrixFuncPatch(skeleton, boneIndex, outMatrix);
 	}
 	else
 	{
@@ -106,6 +120,9 @@ static HookFunction hookFunction([]()
 			put_call(location, funcStub);
 		}
 	}
+
+	// crSkeleton::_GetGlobalMatrix (global boneIndex bounds-check)
+	g_getGlobalMatrixFuncPatch = hook::trampoline(hook::get_pattern("40 55 48 8D 6C 24 ? 48 81 EC ? ? ? ? 4D 8B D0"), GetGlobalMatrixFuncPatch);
 
 	// crSkeletonData::_GetGlobalTransform
 	{
