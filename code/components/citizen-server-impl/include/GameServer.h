@@ -75,6 +75,11 @@ namespace fx
 
 		virtual void DropClientv(const fx::ClientSharedPtr& client, const std::string& resourceName, ClientDropReason clientDropReason, const std::string& reason);
 
+		void DropClientWithReason(const fx::ClientSharedPtr& client, const std::string& resourceName, ClientDropReason clientDropReason, const std::string& reason)
+		{
+			DropClientv(client, resourceName, clientDropReason, reason);
+		}
+
 		template<typename... TArgs>
 		void DropClientWithReason(const fx::ClientSharedPtr& client, const std::string& resourceName, ClientDropReason clientDropReason, const std::string& reason, const TArgs&... args)
 		{
