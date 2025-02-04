@@ -39,6 +39,7 @@
 #include "DeferredInitializer.h"
 #include "EntitySystem.h"
 #include "GameValueStub.h"
+#include <CrashFixes.FakeParachuteProp.h>
 
 using namespace winrt::Windows::Gaming::Input;
 
@@ -1930,6 +1931,18 @@ static HookFunction initFunction([]()
 		{
 			context.SetResult<bool>(DoesVehicleUseFuel(vehicle));
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("ADD_AUTHORIZED_PARACHUTE_MODEL", [](fx::ScriptContext& context)
+	{
+		uint32_t modelHash = context.GetArgument<uint32_t>(0);
+		AddAuthorizedParachuteModel(modelHash);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("ADD_AUTHORIZED_PARACHUTE_PACK_MODEL", [](fx::ScriptContext& context)
+	{
+	uint32_t modelHash = context.GetArgument<uint32_t>(0);
+		AddAuthorizedParachutePackModel(modelHash);
 	});
 
 	MH_Initialize();
