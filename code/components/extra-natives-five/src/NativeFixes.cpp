@@ -19,6 +19,7 @@
 #include "Resource.h"
 #include "ScriptWarnings.h"
 #include <Train.h>
+#include "ropeManager.h"
 
 static void BlockForbiddenNatives()
 {
@@ -540,6 +541,35 @@ static void FixMissionTrain()
 	});
 }
 
+static void FixAddRopeNative()
+{
+	constexpr const uint64_t ADD_ROPE = 0xE832D760399EB220;
+	auto handler = fx::ScriptEngine::GetNativeHandler(ADD_ROPE);
+
+	if (!handler)
+	{
+		return;
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler(ADD_ROPE, [handler](fx::ScriptContext& ctx)
+	{
+		rage::ropeDataManager* manager = rage::ropeDataManager::GetInstance();
+		if (manager)
+		{
+			auto ropeIndex = ctx.GetArgument<int>(7);
+			if (ropeIndex >= 0 && ropeIndex < manager->typeData.GetCount())
+			{
+				return handler(ctx);
+			}
+			else
+			{
+				fx::scripting::Warningf("natives", "Invalid rope type was passed to ADD_ROPE (%d), should be from 0 to %d\n", ropeIndex, manager->typeData.GetCount() - 1);
+			}
+		}
+		ctx.SetResult(0);
+	});
+}
+
 // PatchVehicleHoodCamera.cpp
 enum eVehicleType : uint32_t
 {
@@ -657,6 +687,8 @@ static HookFunction hookFunction([]()
 		FixApplyForceToEntity();
 
 		FixMissionTrain();
+
+		FixAddRopeNative();
 
 		FixSetHeliRotorHealth();
 
