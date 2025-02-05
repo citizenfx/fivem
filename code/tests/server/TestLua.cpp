@@ -602,6 +602,25 @@ TEST_CASE("lua os.date")
 		}
 	}
 
+	WHEN ("os.date is called with timezone")
+	{
+		LoadAndRunCode(state, "main.lua", R""""(
+		result = os.date("%Z")
+)"""");
+
+		THEN ("result is the timezone")
+		{
+			// example output: "W. Europe Standard Time"
+			lua_getglobal(state, "result");
+			REQUIRE(lua_isstring(state, -1) == true);
+			size_t l{0};
+			const char* str = lua_tolstring(state, -1, &l);
+			REQUIRE(str);
+			REQUIRE(l > 5);
+			lua_pop(state, 1);
+		}
+	}
+
 	// todo: add more tests for os.date format
 }
 
