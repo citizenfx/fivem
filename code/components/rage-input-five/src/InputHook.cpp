@@ -165,6 +165,7 @@ void InputHook::SetGameMouseFocus(bool focus)
 
 	if (g_isFocusStolen)
 	{
+		rage::g_input.m_Buttons() = 0;
 		if (*g_diMouseDevice)
 		{
 			(*g_diMouseDevice)->Unacquire();
