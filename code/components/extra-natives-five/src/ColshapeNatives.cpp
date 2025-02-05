@@ -30,8 +30,19 @@
 
 // Define constants/convars
 #include <CoreConsole.h>
-static ConVar<float> colShapeMinBound("colShapeMinBound", ConVar_Archive, -10000.0f);
-static ConVar<float> colShapeMaxBound("colShapeMaxBound", ConVar_Archive, 10000.0f);
+
+
+#ifdef GTA_FIVE
+	static ConVar<float> colShapeMinBound("colShapeMinBound", ConVar_Archive, -10000.0f);
+	static ConVar<float> colShapeMaxBound("colShapeMaxBound", ConVar_Archive, 10000.0f);
+#elif defined(IS_RDR3) // rdr3 map is lager than gta5
+	static ConVar<float> colShapeMinBound("colShapeMinBound", ConVar_Archive, -15000.0f);
+	static ConVar<float> colShapeMaxBound("colShapeMaxBound", ConVar_Archive, 15000.0f);
+#else
+	static ConVar<float> colShapeMinBound("colShapeMinBound", ConVar_Archive, -10000.0f);
+	static ConVar<float> colShapeMaxBound("colShapeMaxBound", ConVar_Archive, 10000.0f);
+#endif
+
 
 static ConVar<float> colShapeCellSize("colShapeCellSize", ConVar_Archive, 500.0f);
 static ConVar<float> colShapeAutoInfiniteThreshold("colShapeAutoInfiniteThreshold", ConVar_Archive, 1000.0f);
@@ -179,42 +190,6 @@ private:
 	bool enabled_ = false; // default is false
 	int updateIntervalMs_ = 100; // 100ms update interval
 };
-
-// -------------------------------------------------------------------------
-// Implementation
-//ColShapeManager::ColShapeManager()
-//	: nextId_(1)
-//{
-////#ifdef GTA_FIVE
-////	minCx_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
-////	maxCx_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
-////	minCy_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
-////	maxCy_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
-////#elif defined(IS_RDR3)
-////	minCx_ = static_cast<int>(std::floor(-15000.0f / CELL_SIZE));
-////	maxCx_ = static_cast<int>(std::floor(15000.0f / CELL_SIZE));
-////	minCy_ = static_cast<int>(std::floor(-15000.0f / CELL_SIZE));
-////	maxCy_ = static_cast<int>(std::floor(15000.0f / CELL_SIZE));
-////#else
-////	minCx_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
-////	maxCx_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
-////	minCy_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
-////	maxCy_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
-////#endif
-//
-//	#ifdef GTA_FIVE
-//	static ConVar<int> colShapeMinBound("colShapeMinBound", ConVar_Archive, -10000);
-//	static ConVar<int> colShapeMaxBound("colShapeMaxBound", ConVar_Archive, 10000);
-//	#elif defined(IS_RDR3)
-//	static ConVar<int> colShapeMinBound("colShapeMinBound", ConVar_Archive, -15000);
-//	static ConVar<int> colShapeMaxBound("colShapeMaxBound", ConVar_Archive, 15000);
-//	#endif
-//
-//	numCellsX_ = maxCx_ - minCx_ + 1;
-//	numCellsY_ = maxCy_ - minCy_ + 1;
-//
-//	grid_.resize(numCellsX_ * numCellsY_);
-//}
 
 ColShapeManager::ColShapeManager()
 	: nextId_(1)
