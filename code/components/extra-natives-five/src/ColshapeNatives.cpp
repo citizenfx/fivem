@@ -24,25 +24,26 @@
 #include <stdexcept>
 
 // We are using a grid-based collision detection system instead of quadtrees because:
-// - Insertion Speed: Adding 100,000 shapes took only ~0.085 seconds with the grid, 
+// - Insertion Speed: Adding 100,000 shapes took only ~0.085 seconds with the grid,
 //   whereas quadtrees were significantly slower. (45 seconds+, maybe it was my implementation though)
 // - Sufficient Query Performance: Although quadtrees offer faster lookup times, the grid was very close and is "good enough" in my opinion.
 
-// Define constants
+// Define constants/convars
+#include <CoreConsole.h>
+static ConVar<float> colShapeMinBound("colShapeMinBound", ConVar_Archive, -10000.0f);
+static ConVar<float> colShapeMaxBound("colShapeMaxBound", ConVar_Archive, 10000.0f);
 
-// 50 should be fine (20 times a second)
-static constexpr int updateIntervalMs = 50;
+static ConVar<float> colShapeCellSize("colShapeCellSize", ConVar_Archive, 500.0f);
+static ConVar<float> colShapeAutoInfiniteThreshold("colShapeAutoInfiniteThreshold", ConVar_Archive, 1000.0f);
+static ConVar<float> colShapeMaxInfiniteShapeDistance("colShapeMaxInfiniteShapeDistance", ConVar_Archive, 1000.0f);
 
-#ifdef GTA_FIVE
-static constexpr float CELL_SIZE = 500.0f; // 500x500 units per grid cell, in my mind it made sense to choose something close to the ~412.0 onesync range?
-#elif defined(IS_RDR3)
-static constexpr float CELL_SIZE = 500.0f; // 500x500 units per grid cell, no idea for RDR3!
-#endif
+// cant be constexpr anymore but shouldnt matter
+static float CELL_SIZE = colShapeCellSize.GetValue();
+static float AUTO_INFINITE_THRESHOLD = colShapeAutoInfiniteThreshold.GetValue(); // Threshold to mark shapes as infinite, if they're bigger than this we move them to a seperate table
+static float MAX_INFINITE_SHAPE_DISTANCE = colShapeMaxInfiniteShapeDistance.GetValue(); // Maximum distance for infinite shapes, essentially at what "range" they should get ignored
 
-static constexpr float AUTO_INFINITE_THRESHOLD = 1000.0f; // Threshold to mark shapes as infinite
-static constexpr float MAX_INFINITE_SHAPE_DISTANCE = 1000.0f; // Maximum distance for infinite shapes, if we are further away then we don't check them at all!
-
-// copied from RuntimeAssetNatives.cpp
+// -------------------------------------------------------------------------
+// Basic Vector2 type
 struct Vector2
 {
 	float x;
@@ -62,124 +63,197 @@ enum class ColShapeType
 {
 	Circle, // 2D circle
 	Cube, // 3D cube
-	Cylinder, // Cylindrical shape
+	Cylinder, // Cylinder shape
 	Rectangle, // 2D rectangle (with bottomZ + height in Z)
 	Sphere, // 3D sphere
-	Polyzone, // Same as popular 'PolyZone' fivem resource
+	Polyzone, // 2D polygon with minZ/maxZ
 };
 
+// -------------------------------------------------------------------------
+// The main colshape data
 struct ColShape
 {
-	std::string id; // Unique identifier
+	int id; // auto-generated integer ID
 	ColShapeType type;
-	Vector3 pos1; // Center or first corner
-	Vector3 pos2; // Second corner for cubes/rectangles
-	float radius; // For circles, cylinders, spheres
-	float height; // For cylinders, rectangles
-	bool infinite; // Whether to skip the grid
-	float maxDistance; // Maximum distance for collision checks
+	Vector3 pos1; // center or first corner
+	Vector3 pos2; // second corner for cubes/rectangles
+	float radius; // circle, cylinder, sphere radius
+	float height; // cylinder, rectangle, or polyzone height
+	bool infinite; // whether to skip the grid
+	float maxDistance; // maximum distance for collision checks
 
-	// Bounding box in X and Y
+	// bounding box in X and Y
 	float minX, maxX;
 	float minY, maxY;
 
-	std::vector<Vector2> points; // For polyzones
+	std::vector<Vector2> points; // used by polyzones
 
-	// Constructor
-	ColShape(const std::string& shapeId, ColShapeType shapeType)
-		: id(shapeId), type(shapeType), pos1({ 0, 0, 0 }), pos2({ 0, 0, 0 }), radius(0.0f), height(0.0f), infinite(false),
-		  minX(0), maxX(0), minY(0), maxY(0), maxDistance(MAX_INFINITE_SHAPE_DISTANCE), points()
+	// constructor
+	ColShape(int shapeId, ColShapeType shapeType)
+		: id(shapeId),
+		  type(shapeType),
+		  pos1({ 0, 0, 0 }),
+		  pos2({ 0, 0, 0 }),
+		  radius(0.0f),
+		  height(0.0f),
+		  infinite(false),
+		  maxDistance(MAX_INFINITE_SHAPE_DISTANCE),
+		  minX(0), maxX(0),
+		  minY(0), maxY(0),
+		  points()
 	{
 	}
 };
 
-
+// -------------------------------------------------------------------------
 // Class to manage collision shapes using an optimized grid-based approach
 class ColShapeManager
 {
 public:
-	// Singleton instance accessor
+	// Singleton accessor
 	static ColShapeManager& Get()
 	{
 		static ColShapeManager instance;
 		return instance;
 	}
 
-	// Disable copy and move semantics
 	ColShapeManager(const ColShapeManager&) = delete;
 	ColShapeManager& operator=(const ColShapeManager&) = delete;
 
-	// Methods to create different types of collision shapes
-	bool CreateCircle(const std::string& colShapeId, const Vector3& center, float radius, bool infinite = false, float maxDistance = MAX_INFINITE_SHAPE_DISTANCE);
-	bool CreateCube(const std::string& colShapeId, const Vector3& pos1, const Vector3& pos2, bool infinite = false, float maxDistance = MAX_INFINITE_SHAPE_DISTANCE);
-	bool CreateCylinder(const std::string& colShapeId, const Vector3& center, float radius, float height, bool infinite = false, float maxDistance = MAX_INFINITE_SHAPE_DISTANCE);
-	bool CreateRectangleZ(const std::string& colShapeId, float x1, float y1, float x2, float y2, float bottomZ, float height, bool infinite = false, float maxDistance = MAX_INFINITE_SHAPE_DISTANCE);
-	bool CreateRectangle(const std::string& colShapeId, float x1, float y1, float x2, float y2, float height, bool infinite = false, float maxDistance = MAX_INFINITE_SHAPE_DISTANCE);
-	bool CreateSphere(const std::string& colShapeId, const Vector3& center, float radius, bool infinite = false, float maxDistance = MAX_INFINITE_SHAPE_DISTANCE);
-	bool DeleteColShape(const std::string& colShapeId);
-	bool CreatePolyzone(const std::string& colShapeId, const std::vector<Vector2>& points, float minZ, float maxZ, bool infinite = false, float maxDistance = MAX_INFINITE_SHAPE_DISTANCE);
+	// Creation methods
+	int CreateCircle(const Vector3& center, float radius);
+	int CreateCube(const Vector3& pos1, const Vector3& pos2);
+	int CreateCylinder(const Vector3& center, float radius, float height);
+	int CreateRectangleZ(float x1, float y1, float x2, float y2, float bottomZ, float height);
+	int CreateRectangle(float x1, float y1, float x2, float y2, float height); // alias
+	int CreateSphere(const Vector3& center, float radius);
+	int CreatePolyzone(const std::vector<Vector2>& points, float minZ, float maxZ);
 
+	bool DeleteColShape(int colShapeId);
+	bool Exists(int colShapeId);
 
-	bool Exists(const std::string& colShapeId);
+	void SetEnabled(bool enabled)
+	{
+		enabled_ = enabled;
+	}
+	void SetUpdateInterval(int intervalMs)
+	{
+		if (intervalMs < 0)
+			intervalMs = 0;
+		updateIntervalMs_ = intervalMs;
+	}
 
-	// Update method to check player position and trigger events
+	bool isEnabled() const
+	{
+		return enabled_;
+	}
+
+	int GetUpdateInterval() const
+	{
+		return updateIntervalMs_;
+	}
+	
+
 	inline void Update();
 
-
 private:
-	ColShapeManager(); // Private constructor for singleton
+	ColShapeManager();
 
-	// Helper methods
+	// Helpers
 	void MaybeMarkInfinite(ColShape& shape);
 	void AddToGrid(ColShape* shape);
 	std::vector<ColShape*> GetColShapesForPosition(const Vector3& pos);
 	inline bool IsPointInColShape(const Vector3& p, const ColShape& shape);
 
-	// Data Structures
-	std::unordered_map<std::string, std::unique_ptr<ColShape>> colShapes_; // colShapeId -> ColShape
-	std::vector<ColShape*> infiniteShapes_; // Shapes treated as infinite
+	// data
+	std::unordered_map<int, std::unique_ptr<ColShape>> colShapes_;
+	std::vector<ColShape*> infiniteShapes_;
 
-	// Grid Implementation: Flat 1D vector
 	int minCx_, maxCx_, minCy_, maxCy_;
 	int numCellsX_, numCellsY_;
 	std::vector<std::vector<ColShape*>> grid_; // [cx * numCellsY + cy] -> shapes
 
-	// Track which shapes the player is currently inside
 	std::unordered_set<ColShape*> playerInsideColShapes_;
 
-
-	//mutable std::mutex mutex_; removed cause we're not using threads anymore
+	int nextId_;
+	bool enabled_ = false; // default is false
+	int updateIntervalMs_ = 100; // 100ms update interval
 };
 
+// -------------------------------------------------------------------------
+// Implementation
+//ColShapeManager::ColShapeManager()
+//	: nextId_(1)
+//{
+////#ifdef GTA_FIVE
+////	minCx_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
+////	maxCx_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
+////	minCy_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
+////	maxCy_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
+////#elif defined(IS_RDR3)
+////	minCx_ = static_cast<int>(std::floor(-15000.0f / CELL_SIZE));
+////	maxCx_ = static_cast<int>(std::floor(15000.0f / CELL_SIZE));
+////	minCy_ = static_cast<int>(std::floor(-15000.0f / CELL_SIZE));
+////	maxCy_ = static_cast<int>(std::floor(15000.0f / CELL_SIZE));
+////#else
+////	minCx_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
+////	maxCx_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
+////	minCy_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
+////	maxCy_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
+////#endif
+//
+//	#ifdef GTA_FIVE
+//	static ConVar<int> colShapeMinBound("colShapeMinBound", ConVar_Archive, -10000);
+//	static ConVar<int> colShapeMaxBound("colShapeMaxBound", ConVar_Archive, 10000);
+//	#elif defined(IS_RDR3)
+//	static ConVar<int> colShapeMinBound("colShapeMinBound", ConVar_Archive, -15000);
+//	static ConVar<int> colShapeMaxBound("colShapeMaxBound", ConVar_Archive, 15000);
+//	#endif
+//
+//	numCellsX_ = maxCx_ - minCx_ + 1;
+//	numCellsY_ = maxCy_ - minCy_ + 1;
+//
+//	grid_.resize(numCellsX_ * numCellsY_);
+//}
 
 ColShapeManager::ColShapeManager()
+	: nextId_(1)
 {
-	// Im pretty confident on the values for GTA 5 (this is essentially map corners), i made it a little bit larger for RDR3 but am unsure if it's fine or not.
 	#ifdef GTA_FIVE
-		minCx_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
-		maxCx_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
-		minCy_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
-		maxCy_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
-	#elif IS_RDR3
-		minCx_ = static_cast<int>(std::floor(-15000.0f / CELL_SIZE));
-		maxCx_ = static_cast<int>(std::floor(15000.0f / CELL_SIZE));
-		minCy_ = static_cast<int>(std::floor(-15000.0f / CELL_SIZE));
-		maxCy_ = static_cast<int>(std::floor(15000.0f / CELL_SIZE));
-	#else // fallback i guess.
-		minCx_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
-		maxCx_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
-		minCy_ = static_cast<int>(std::floor(-10000.0f / CELL_SIZE));
-		maxCy_ = static_cast<int>(std::floor(10000.0f / CELL_SIZE));
+		// Use the ConVar values instead of the fixed -10000 / 10000
+		minCx_ = static_cast<int>(std::floor(static_cast<float>(colShapeMinBound.GetValue()) / CELL_SIZE));
+		maxCx_ = static_cast<int>(std::floor(static_cast<float>(colShapeMaxBound.GetValue()) / CELL_SIZE));
+		minCy_ = static_cast<int>(std::floor(static_cast<float>(colShapeMinBound.GetValue()) / CELL_SIZE));
+		maxCy_ = static_cast<int>(std::floor(static_cast<float>(colShapeMaxBound.GetValue()) / CELL_SIZE));
+	#elif defined(IS_RDR3)
+		// If you used different ConVar defaults for RDR3,
+		// they'll come from colShapeMinBound, colShapeMaxBound as well
+		minCx_ = static_cast<int>(std::floor(static_cast<float>(colShapeMinBound.GetValue()) / CELL_SIZE));
+		maxCx_ = static_cast<int>(std::floor(static_cast<float>(colShapeMaxBound.GetValue()) / CELL_SIZE));
+		minCy_ = static_cast<int>(std::floor(static_cast<float>(colShapeMinBound.GetValue()) / CELL_SIZE));
+		maxCy_ = static_cast<int>(std::floor(static_cast<float>(colShapeMaxBound.GetValue()) / CELL_SIZE));
+	#else
+		// fallback if needed
+		minCx_ = static_cast<int>(std::floor(static_cast<float>(colShapeMinBound.GetValue()) / CELL_SIZE));
+		maxCx_ = static_cast<int>(std::floor(static_cast<float>(colShapeMaxBound.GetValue()) / CELL_SIZE));
+		minCy_ = static_cast<int>(std::floor(static_cast<float>(colShapeMinBound.GetValue()) / CELL_SIZE));
+		maxCy_ = static_cast<int>(std::floor(static_cast<float>(colShapeMaxBound.GetValue()) / CELL_SIZE));
 	#endif
-
 	numCellsX_ = maxCx_ - minCx_ + 1;
 	numCellsY_ = maxCy_ - minCy_ + 1;
-
-	// Initialize the grid with empty vectors
-	grid_.resize(numCellsX_ * numCellsY_, std::vector<ColShape*>());
+	grid_.resize(numCellsX_ * numCellsY_);
 }
 
-// Helper to mark shapes as infinite based on size
+// -------------------------------------------------------------------------
+// Check if ID exists
+bool ColShapeManager::Exists(int colShapeId)
+{
+	auto it = colShapes_.find(colShapeId);
+	return (it != colShapes_.end());
+}
+
+// -------------------------------------------------------------------------
+// Helper: mark infinite if bounding box is huge
 void ColShapeManager::MaybeMarkInfinite(ColShape& shape)
 {
 	float width = shape.maxX - shape.minX;
@@ -191,14 +265,7 @@ void ColShapeManager::MaybeMarkInfinite(ColShape& shape)
 	}
 }
 
-// Helper to check if id is taken
-bool ColShapeManager::Exists(const std::string& colShapeId)
-{
-
-	return colShapes_.find(colShapeId) != colShapes_.end();
-}
-
-// Add a shape to the grid
+// -------------------------------------------------------------------------
 void ColShapeManager::AddToGrid(ColShape* shape)
 {
 	int startCx = static_cast<int>(std::floor(shape->minX / CELL_SIZE));
@@ -206,7 +273,7 @@ void ColShapeManager::AddToGrid(ColShape* shape)
 	int startCy = static_cast<int>(std::floor(shape->minY / CELL_SIZE));
 	int endCy = static_cast<int>(std::floor(shape->maxY / CELL_SIZE));
 
-	// Clamp to grid bounds
+	// clamp
 	startCx = std::max(startCx, minCx_);
 	endCx = std::min(endCx, maxCx_);
 	startCy = std::max(startCy, minCy_);
@@ -217,7 +284,7 @@ void ColShapeManager::AddToGrid(ColShape* shape)
 		for (int cy = startCy; cy <= endCy; ++cy)
 		{
 			int index = (cx - minCx_) * numCellsY_ + (cy - minCy_);
-			if (index >= 0 && index < static_cast<int>(grid_.size()))
+			if (index >= 0 && index < (int)grid_.size())
 			{
 				grid_[index].push_back(shape);
 			}
@@ -225,32 +292,27 @@ void ColShapeManager::AddToGrid(ColShape* shape)
 	}
 }
 
-// Create methods for different shapes
-bool ColShapeManager::CreateCircle(const std::string& colShapeId, const Vector3& center, float radius, bool infinite, float maxDistance)
+// -------------------------------------------------------------------------
+// Create Circle
+int ColShapeManager::CreateCircle(const Vector3& center, float radius)
 {
+	// You could decide to fail if radius <= 0, etc.
+	// if (radius <= 0.f) return -1;
 
-	if (this->Exists(colShapeId))
-		return false;
-
-	auto shape = std::make_unique<ColShape>(colShapeId, ColShapeType::Circle);
+	int newId = nextId_++;
+	auto shape = std::make_unique<ColShape>(newId, ColShapeType::Circle);
 	shape->pos1 = center;
 	shape->radius = radius;
-	if (infinite)
-	{
-		shape->maxDistance = maxDistance;
-	}
 
-	// Compute bounding box
 	shape->minX = center.x - radius;
 	shape->maxX = center.x + radius;
 	shape->minY = center.y - radius;
 	shape->maxY = center.y + radius;
 
-	// Auto-detect if bounding box is huge -> force infinite
 	MaybeMarkInfinite(*shape);
 
 	ColShape* rawPtr = shape.get();
-	colShapes_.emplace(colShapeId, std::move(shape));
+	colShapes_.emplace(newId, std::move(shape));
 
 	if (!rawPtr->infinite)
 	{
@@ -260,34 +322,28 @@ bool ColShapeManager::CreateCircle(const std::string& colShapeId, const Vector3&
 	{
 		infiniteShapes_.push_back(rawPtr);
 	}
-	return true;
+
+	return newId;
 }
 
-bool ColShapeManager::CreateCube(const std::string& colShapeId, const Vector3& pos1, const Vector3& pos2, bool infinite, float maxDistance)
+// -------------------------------------------------------------------------
+// Create Cube
+int ColShapeManager::CreateCube(const Vector3& pos1, const Vector3& pos2)
 {
-
-	if (this->Exists(colShapeId))
-		return false;
-
-	auto shape = std::make_unique<ColShape>(colShapeId, ColShapeType::Cube);
+	int newId = nextId_++;
+	auto shape = std::make_unique<ColShape>(newId, ColShapeType::Cube);
 	shape->pos1 = pos1;
 	shape->pos2 = pos2;
-	if (infinite)
-	{
-		shape->maxDistance = maxDistance;
-	}
 
-	// Compute bounding box
 	shape->minX = std::min(pos1.x, pos2.x);
 	shape->maxX = std::max(pos1.x, pos2.x);
 	shape->minY = std::min(pos1.y, pos2.y);
 	shape->maxY = std::max(pos1.y, pos2.y);
 
-	// Auto-detect if bounding box is huge -> force infinite
 	MaybeMarkInfinite(*shape);
 
 	ColShape* rawPtr = shape.get();
-	colShapes_.emplace(colShapeId, std::move(shape));
+	colShapes_.emplace(newId, std::move(shape));
 
 	if (!rawPtr->infinite)
 	{
@@ -297,35 +353,29 @@ bool ColShapeManager::CreateCube(const std::string& colShapeId, const Vector3& p
 	{
 		infiniteShapes_.push_back(rawPtr);
 	}
-	return true;
+
+	return newId;
 }
 
-bool ColShapeManager::CreateCylinder(const std::string& colShapeId, const Vector3& center, float radius, float height, bool infinite, float maxDistance)
+// -------------------------------------------------------------------------
+// Create Cylinder
+int ColShapeManager::CreateCylinder(const Vector3& center, float radius, float height)
 {
-
-	if (this->Exists(colShapeId))
-		return false;
-
-	auto shape = std::make_unique<ColShape>(colShapeId, ColShapeType::Cylinder);
+	int newId = nextId_++;
+	auto shape = std::make_unique<ColShape>(newId, ColShapeType::Cylinder);
 	shape->pos1 = center;
 	shape->radius = radius;
 	shape->height = height;
-	if (infinite)
-	{
-		shape->maxDistance = maxDistance;
-	}
 
-	// Compute bounding box
 	shape->minX = center.x - radius;
 	shape->maxX = center.x + radius;
 	shape->minY = center.y - radius;
 	shape->maxY = center.y + radius;
 
-	// Auto-detect if bounding box is huge -> force infinite
 	MaybeMarkInfinite(*shape);
 
 	ColShape* rawPtr = shape.get();
-	colShapes_.emplace(colShapeId, std::move(shape));
+	colShapes_.emplace(newId, std::move(shape));
 
 	if (!rawPtr->infinite)
 	{
@@ -335,35 +385,29 @@ bool ColShapeManager::CreateCylinder(const std::string& colShapeId, const Vector
 	{
 		infiniteShapes_.push_back(rawPtr);
 	}
-	return true;
+
+	return newId;
 }
 
-bool ColShapeManager::CreateRectangleZ(const std::string& colShapeId, float x1, float y1, float x2, float y2, float bottomZ, float height, bool infinite, float maxDistance)
+// -------------------------------------------------------------------------
+// Create Rectangle w/ explicit bottomZ
+int ColShapeManager::CreateRectangleZ(float x1, float y1, float x2, float y2, float bottomZ, float height)
 {
-
-	if (this->Exists(colShapeId))
-		return false;
-
-	auto shape = std::make_unique<ColShape>(colShapeId, ColShapeType::Rectangle);
+	int newId = nextId_++;
+	auto shape = std::make_unique<ColShape>(newId, ColShapeType::Rectangle);
 	shape->pos1 = { x1, y1, bottomZ };
 	shape->pos2 = { x2, y2, bottomZ };
 	shape->height = height;
-	if (infinite)
-	{
-		shape->maxDistance = maxDistance;
-	}
 
-	// Compute bounding box
 	shape->minX = std::min(x1, x2);
 	shape->maxX = std::max(x1, x2);
 	shape->minY = std::min(y1, y2);
 	shape->maxY = std::max(y1, y2);
 
-	// Auto-detect if bounding box is huge -> force infinite
 	MaybeMarkInfinite(*shape);
 
 	ColShape* rawPtr = shape.get();
-	colShapes_.emplace(colShapeId, std::move(shape));
+	colShapes_.emplace(newId, std::move(shape));
 
 	if (!rawPtr->infinite)
 	{
@@ -373,40 +417,35 @@ bool ColShapeManager::CreateRectangleZ(const std::string& colShapeId, float x1, 
 	{
 		infiniteShapes_.push_back(rawPtr);
 	}
-	return true;
+	return newId;
 }
 
-// Alias that defaults bottomZ = 0.0f
-bool ColShapeManager::CreateRectangle(const std::string& colShapeId, float x1, float y1, float x2, float y2, float height, bool infinite, float maxDistance)
+// -------------------------------------------------------------------------
+// Create Rectangle w/ default bottomZ=0
+int ColShapeManager::CreateRectangle(float x1, float y1, float x2, float y2, float height)
 {
-
-	return CreateRectangleZ(colShapeId, x1, y1, x2, y2, 0.0f, height, infinite, maxDistance);
+	// just call CreateRectangleZ with bottomZ = 0
+	return CreateRectangleZ(x1, y1, x2, y2, 0.0f, height);
 }
 
-bool ColShapeManager::CreateSphere(const std::string& colShapeId, const Vector3& center, float radius, bool infinite, float maxDistance)
+// -------------------------------------------------------------------------
+// Create Sphere
+int ColShapeManager::CreateSphere(const Vector3& center, float radius)
 {
-	if (this->Exists(colShapeId))
-		return false;
-
-	auto shape = std::make_unique<ColShape>(colShapeId, ColShapeType::Sphere);
+	int newId = nextId_++;
+	auto shape = std::make_unique<ColShape>(newId, ColShapeType::Sphere);
 	shape->pos1 = center;
 	shape->radius = radius;
-	if (infinite)
-	{
-		shape->maxDistance = maxDistance;
-	}
 
-	// Compute bounding box
 	shape->minX = center.x - radius;
 	shape->maxX = center.x + radius;
 	shape->minY = center.y - radius;
 	shape->maxY = center.y + radius;
 
-	// Auto-detect if bounding box is huge -> force infinite
 	MaybeMarkInfinite(*shape);
 
 	ColShape* rawPtr = shape.get();
-	colShapes_.emplace(colShapeId, std::move(shape));
+	colShapes_.emplace(newId, std::move(shape));
 
 	if (!rawPtr->infinite)
 	{
@@ -416,51 +455,49 @@ bool ColShapeManager::CreateSphere(const std::string& colShapeId, const Vector3&
 	{
 		infiniteShapes_.push_back(rawPtr);
 	}
-	return true;
+	return newId;
 }
 
-
-bool ColShapeManager::CreatePolyzone(const std::string& colShapeId, const std::vector<Vector2>& points, float minZ, float maxZ, bool infinite, float maxDistance)
-
+// -------------------------------------------------------------------------
+// Create Polyzone
+int ColShapeManager::CreatePolyzone(const std::vector<Vector2>& points, float minZ, float maxZ)
 {
-	if (this->Exists(colShapeId))
-		return false;
+	if (points.empty())
+	{
+		// no shape
+		return -1;
+	}
 
-	auto shape = std::make_unique<ColShape>(colShapeId, ColShapeType::Polyzone);
+	int newId = nextId_++;
+	auto shape = std::make_unique<ColShape>(newId, ColShapeType::Polyzone);
 	shape->points = points;
 
-	// We use pos1.z as minZ and height as (maxZ - minZ)
+	// store minZ in pos1.z, then store height as (maxZ - minZ)
 	shape->pos1.z = minZ;
-	shape->height = maxZ - minZ;
+	shape->height = (maxZ - minZ);
 
-	// Compute the 2D bounding box from the points.
-	if (!points.empty())
+	float minX = points[0].x;
+	float maxX = points[0].x;
+	float minY = points[0].y;
+	float maxY = points[0].y;
+
+	for (const auto& pt : points)
 	{
-		float minX = points[0].x;
-		float maxX = points[0].x;
-		float minY = points[0].y;
-		float maxY = points[0].y;
-		for (const auto& pt : points)
-		{
-			minX = std::min(minX, pt.x);
-			maxX = std::max(maxX, pt.x);
-			minY = std::min(minY, pt.y);
-			maxY = std::max(maxY, pt.y);
-		}
-		shape->minX = minX;
-		shape->maxX = maxX;
-		shape->minY = minY;
-		shape->maxY = maxY;
+		minX = std::min(minX, pt.x);
+		maxX = std::max(maxX, pt.x);
+		minY = std::min(minY, pt.y);
+		maxY = std::max(maxY, pt.y);
 	}
-	else
-	{
-		return false;
-	}
+
+	shape->minX = minX;
+	shape->maxX = maxX;
+	shape->minY = minY;
+	shape->maxY = maxY;
 
 	MaybeMarkInfinite(*shape);
 
 	ColShape* rawPtr = shape.get();
-	colShapes_.emplace(colShapeId, std::move(shape));
+	colShapes_.emplace(newId, std::move(shape));
 
 	if (!rawPtr->infinite)
 	{
@@ -470,25 +507,24 @@ bool ColShapeManager::CreatePolyzone(const std::string& colShapeId, const std::v
 	{
 		infiniteShapes_.push_back(rawPtr);
 	}
-	return true;
+
+	return newId;
 }
 
-
-
-// Delete a colShape by ID
-bool ColShapeManager::DeleteColShape(const std::string& colShapeId)
+// -------------------------------------------------------------------------
+// Delete a shape by ID
+bool ColShapeManager::DeleteColShape(int colShapeId)
 {
-
 	auto it = colShapes_.find(colShapeId);
 	if (it == colShapes_.end())
 	{
 		return false;
 	}
+
 	ColShape* shapePtr = it->second.get();
 
 	if (shapePtr->infinite)
 	{
-		// Remove from infiniteShapes_
 		auto eraseIt = std::find(infiniteShapes_.begin(), infiniteShapes_.end(), shapePtr);
 		if (eraseIt != infiniteShapes_.end())
 		{
@@ -497,13 +533,11 @@ bool ColShapeManager::DeleteColShape(const std::string& colShapeId)
 	}
 	else
 	{
-		// Remove from grid cells
 		int startCx = static_cast<int>(std::floor(shapePtr->minX / CELL_SIZE));
 		int endCx = static_cast<int>(std::floor(shapePtr->maxX / CELL_SIZE));
 		int startCy = static_cast<int>(std::floor(shapePtr->minY / CELL_SIZE));
 		int endCy = static_cast<int>(std::floor(shapePtr->maxY / CELL_SIZE));
 
-		// Clamp to grid bounds
 		startCx = std::max(startCx, minCx_);
 		endCx = std::min(endCx, maxCx_);
 		startCy = std::max(startCy, minCy_);
@@ -514,24 +548,24 @@ bool ColShapeManager::DeleteColShape(const std::string& colShapeId)
 			for (int cy = startCy; cy <= endCy; ++cy)
 			{
 				int index = (cx - minCx_) * numCellsY_ + (cy - minCy_);
-				if (index >= 0 && index < static_cast<int>(grid_.size()))
+				if (index >= 0 && index < (int)grid_.size())
 				{
 					auto& cellShapes = grid_[index];
-					cellShapes.erase(std::remove(cellShapes.begin(), cellShapes.end(), shapePtr), cellShapes.end());
+					cellShapes.erase(
+					std::remove(cellShapes.begin(), cellShapes.end(), shapePtr),
+					cellShapes.end());
 				}
 			}
 		}
 	}
 
-	// Remove from playerInsideColShapes_ if present
 	playerInsideColShapes_.erase(shapePtr);
-
-	// Remove from master map
 	colShapes_.erase(it);
 	return true;
 }
 
-// Get all shapes in the grid cell where the position is located, this is unlocked since it's called from Update which is locked already
+// -------------------------------------------------------------------------
+// Return shapes from the relevant grid cell
 std::vector<ColShape*> ColShapeManager::GetColShapesForPosition(const Vector3& pos)
 {
 	std::vector<ColShape*> result;
@@ -539,14 +573,14 @@ std::vector<ColShape*> ColShapeManager::GetColShapesForPosition(const Vector3& p
 	int cy = static_cast<int>(std::floor(pos.y / CELL_SIZE));
 
 	if (cx < minCx_ || cx > maxCx_ || cy < minCy_ || cy > maxCy_)
-		return result; // Out of grid bounds
+		return result;
 
 	int index = (cx - minCx_) * numCellsY_ + (cy - minCy_);
-	if (index >= 0 && index < static_cast<int>(grid_.size()))
+	if (index >= 0 && index < (int)grid_.size())
 	{
 		const auto& cellShapes = grid_[index];
 		result.reserve(cellShapes.size());
-		for (const auto& shape : cellShapes)
+		for (auto shape : cellShapes)
 		{
 			result.push_back(shape);
 		}
@@ -554,7 +588,8 @@ std::vector<ColShape*> ColShapeManager::GetColShapesForPosition(const Vector3& p
 	return result;
 }
 
-// Check if a point is inside a given ColShape
+// -------------------------------------------------------------------------
+// Check if a point is inside a given shape
 inline bool ColShapeManager::IsPointInColShape(const Vector3& p, const ColShape& shape)
 {
 	switch (shape.type)
@@ -620,18 +655,15 @@ inline bool ColShapeManager::IsPointInColShape(const Vector3& p, const ColShape&
 			float bottomZ = shape.pos1.z;
 			float topZ = bottomZ + shape.height;
 			if (p.z < bottomZ || p.z > topZ)
-			{
-				//trace("Polyzone: Z out of bounds\n");
 				return false;
-			}
-			const std::vector<Vector2>& poly = shape.points;
+
+			const auto& poly = shape.points;
 			bool inside = false;
 			for (size_t i = 0, j = poly.size() - 1; i < poly.size(); j = i++)
 			{
-				if (((poly[i].y > p.y) != (poly[j].y > p.y)) && (p.x < (poly[j].x - poly[i].x) * (p.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x))
-				{
+				bool intersect = ((poly[i].y > p.y) != (poly[j].y > p.y)) && (p.x < (poly[j].x - poly[i].x) * (p.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x);
+				if (intersect)
 					inside = !inside;
-				}
 			}
 			return inside;
 		}
@@ -640,43 +672,36 @@ inline bool ColShapeManager::IsPointInColShape(const Vector3& p, const ColShape&
 	}
 }
 
-// Update method to check player's current position against collision shapes
+// -------------------------------------------------------------------------
+// Main update
 inline void ColShapeManager::Update()
 {
-
 	static auto resman = Instance<fx::ResourceManager>::Get();
 	if (!resman)
 		return;
 
 	static auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
 
-	#ifdef GTA_FIVE
-		constexpr uint64_t HASH_PLAYER_PED_ID = 0xD80958FC74E988A6;
-		constexpr uint64_t HASH_GET_ENTITY_COORDS = 0x3FEF770D40960D5A;
-	#elif IS_RDR3
-		constexpr uint64_t HASH_PLAYER_PED_ID = 0xC190F27E12443814;
-		constexpr uint64_t HASH_GET_ENTITY_COORDS = 0xA86D5F069399F44D;
-	#endif
+#ifdef GTA_FIVE
+	constexpr uint64_t HASH_PLAYER_PED_ID = 0xD80958FC74E988A6;
+	constexpr uint64_t HASH_GET_ENTITY_COORDS = 0x3FEF770D40960D5A;
+#elif defined(IS_RDR3)
+	constexpr uint64_t HASH_PLAYER_PED_ID = 0xC190F27E12443814;
+	constexpr uint64_t HASH_GET_ENTITY_COORDS = 0xA86D5F069399F44D;
+#endif
 
 	static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(HASH_PLAYER_PED_ID);
 	static auto getEntityCoords = fx::ScriptEngine::GetNativeHandler(HASH_GET_ENTITY_COORDS);
 
 	int playerPedId = FxNativeInvoke::Invoke<int>(getPlayerPed);
 	if (playerPedId == 0)
-	{
 		return;
-	}
+
 	scrVector coords = FxNativeInvoke::Invoke<scrVector>(getEntityCoords, playerPedId, true);
 	Vector3 playerPos{ coords.x, coords.y, coords.z };
 
-	// Collect shapes in the relevant grid cell
+	// gather potential shapes from the grid
 	std::vector<ColShape*> currentInside;
-
-	// Determine grid cell
-	int cx = static_cast<int>(std::floor(playerPos.x / CELL_SIZE));
-	int cy = static_cast<int>(std::floor(playerPos.y / CELL_SIZE));
-
-	// Get shapes from grid
 	auto cellShapes = GetColShapesForPosition(playerPos);
 	currentInside.reserve(cellShapes.size());
 
@@ -688,17 +713,16 @@ inline void ColShapeManager::Update()
 		}
 	}
 
-	// Check infinite shapes
+	// check infinite shapes
 	for (ColShape* infShape : infiniteShapes_)
 	{
-		// Distance culling
 		float dx = playerPos.x - infShape->pos1.x;
 		float dy = playerPos.y - infShape->pos1.y;
 		float dz = playerPos.z - infShape->pos1.z;
 		float distanceSq = dx * dx + dy * dy + dz * dz;
 
 		if (distanceSq > (infShape->maxDistance * infShape->maxDistance))
-			continue; // Skip shapes beyond maxDistance
+			continue;
 
 		if (IsPointInColShape(playerPos, *infShape))
 		{
@@ -706,11 +730,11 @@ inline void ColShapeManager::Update()
 		}
 	}
 
-	// Determine newly entered and left shapes
+	// figure out newly entered / newly left
 	std::vector<ColShape*> newlyEntered;
 	std::vector<ColShape*> newlyLeft;
 
-	// Shapes that are now inside but weren't before
+	// shapes now inside but not previously
 	for (ColShape* shape : currentInside)
 	{
 		if (playerInsideColShapes_.find(shape) == playerInsideColShapes_.end())
@@ -719,7 +743,7 @@ inline void ColShapeManager::Update()
 		}
 	}
 
-	// Shapes that were inside before but aren't anymore
+	// shapes previously inside but not now
 	for (ColShape* shape : playerInsideColShapes_)
 	{
 		if (std::find(currentInside.begin(), currentInside.end(), shape) == currentInside.end())
@@ -728,34 +752,33 @@ inline void ColShapeManager::Update()
 		}
 	}
 
-	// Update the set of shapes the player is inside
+	// update the set
 	playerInsideColShapes_.clear();
 	for (ColShape* shape : currentInside)
 	{
 		playerInsideColShapes_.insert(shape);
 	}
 
-	// Trigger events
+	// trigger events
 	for (ColShape* shape : newlyEntered)
 	{
-		rec->QueueEvent2("onPlayerEnterColshape", {}, shape->id.c_str());
+		rec->QueueEvent2("onPlayerEnterColshape", {}, shape->id);
 	}
 	for (ColShape* shape : newlyLeft)
 	{
-		rec->QueueEvent2("onPlayerLeaveColshape", {}, shape->id.c_str());
+		rec->QueueEvent2("onPlayerLeaveColshape", {}, shape->id);
 	}
 }
 
-// some limits for polyzone msgpack stuff
-static const uint32_t MAX_MSGPACK_SIZE = 1048576; 
+// -------------------------------------------------------------------------
+// Polyzone creation limits
+static const uint32_t MAX_MSGPACK_SIZE = 1048576;
 static const size_t MAX_VERTICES = 1000;
 
+// -------------------------------------------------------------------------
+// Natives binding
 static InitFunction initFunction([]()
 {
-	//static ColShapeThread colShapeThread;
-
-
-	// 
 	fx::ScriptEngine::RegisterNativeHandler("DOES_COLSHAPE_EXIST", [](fx::ScriptContext& context)
 	{
 		if (context.GetArgumentCount() < 1)
@@ -765,137 +788,101 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		std::string colShapeId = context.CheckArgument<const char*>(0);
-
-		bool exists = ColShapeManager::Get().Exists(colShapeId);
-
-		context.SetResult(exists);
+		int shapeId = context.GetArgument<int>(0);
+		bool exists = ColShapeManager::Get().Exists(shapeId);
+		context.SetResult<bool>(exists);
 	});
 
-	// COLSHAPE_CIRCLE => Creates a 2D circle shape
 	fx::ScriptEngine::RegisterNativeHandler("CREATE_COLSHAPE_CIRCLE", [](fx::ScriptContext& context)
 	{
-		if (context.GetArgumentCount() < 5)
+		if (context.GetArgumentCount() < 4)
 		{
 			trace("CREATE_COLSHAPE_CIRCLE: Invalid argument count\n");
-			context.SetResult(false);
+			context.SetResult<int>(-1);
 			return;
 		}
-		// Args: colShapeId, x, y, z, radius, (bool infinite)
-		std::string colShapeId = context.CheckArgument<const char*>(0);
-		float x = context.GetArgument<float>(1);
-		float y = context.GetArgument<float>(2);
-		float z = context.GetArgument<float>(3);
-		float radius = context.GetArgument<float>(4);
+		float x = context.GetArgument<float>(0);
+		float y = context.GetArgument<float>(1);
+		float z = context.GetArgument<float>(2);
+		float radius = context.GetArgument<float>(3);
 
-		bool infinite = false; // this used to be a parameter but I've changed it to automatically determine
-
-		Vector3 center{ x, y, z };
-		bool success = ColShapeManager::Get().CreateCircle(colShapeId, center, radius, infinite);
-		context.SetResult<bool>(success);
+		int newId = ColShapeManager::Get().CreateCircle({ x, y, z }, radius);
+		context.SetResult<int>(newId);
 	});
 
-	// COLSHAPE_CUBE => Creates a 3D cube shape
 	fx::ScriptEngine::RegisterNativeHandler("CREATE_COLSHAPE_CUBE", [](fx::ScriptContext& context)
-	{
-		// Args: colShapeId, x1, y1, z1, x2, y2, z2, (bool infinite)
-
-		if (context.GetArgumentCount() < 7)
-		{
-			trace("CREATE_COLSHAPE_CUBE: Invalid argument count\n");
-			context.SetResult(false);
-			return;
-		}
-
-		std::string colShapeId = context.CheckArgument<const char*>(0);
-		float x1 = context.GetArgument<float>(1);
-		float y1 = context.GetArgument<float>(2);
-		float z1 = context.GetArgument<float>(3);
-		float x2 = context.GetArgument<float>(4);
-		float y2 = context.GetArgument<float>(5);
-		float z2 = context.GetArgument<float>(6);
-
-		bool infinite = false;
-
-		Vector3 pos1{ x1, y1, z1 };
-		Vector3 pos2{ x2, y2, z2 };
-		bool success = ColShapeManager::Get().CreateCube(colShapeId, pos1, pos2, infinite);
-		context.SetResult<bool>(success);
-	});
-
-	// COLSHAPE_CYLINDER => Creates a cylinder shape
-	fx::ScriptEngine::RegisterNativeHandler("CREATE_COLSHAPE_CYLINDER", [](fx::ScriptContext& context)
 	{
 		if (context.GetArgumentCount() < 6)
 		{
-			trace("CREATE_COLSHAPE_CYLINDER: Invalid argument count\n");
-			context.SetResult(false);
+			trace("CREATE_COLSHAPE_CUBE: Invalid argument count\n");
+			context.SetResult<int>(-1);
 			return;
 		}
-
-		// Args: colShapeId, x, y, z, radius, height, (bool infinite)
-		std::string colShapeId = context.CheckArgument<const char*>(0);
-		float x = context.GetArgument<float>(1);
-		float y = context.GetArgument<float>(2);
-		float z = context.GetArgument<float>(3);
-		float radius = context.GetArgument<float>(4);
-		float height = context.GetArgument<float>(5);
-
-		bool infinite = false;
-
-		Vector3 center{ x, y, z };
-		bool success = ColShapeManager::Get().CreateCylinder(colShapeId, center, radius, height, infinite);
-		context.SetResult<bool>(success);
-	});
-
-	// COLSHAPE_RECTANGLE => Creates a rectangle with bottomZ and height in Z
-	fx::ScriptEngine::RegisterNativeHandler("CREATE_COLSHAPE_RECTANGLE", [](fx::ScriptContext& context)
-	{
-		if (context.GetArgumentCount() < 7)
-		{
-			trace("CREATE_COLSHAPE_RECTANGLE: Invalid argument count\n");
-			context.SetResult(false);
-			return;
-		}
-		// Args: colShapeId, x1, y1, x2, y2, bottomZ, height, (bool infinite)
-		std::string colShapeId = context.CheckArgument<const char*>(0);
-		float x1 = context.GetArgument<float>(1);
-		float y1 = context.GetArgument<float>(2);
+		float x1 = context.GetArgument<float>(0);
+		float y1 = context.GetArgument<float>(1);
+		float z1 = context.GetArgument<float>(2);
 		float x2 = context.GetArgument<float>(3);
 		float y2 = context.GetArgument<float>(4);
-		float bottomZ = context.GetArgument<float>(5);
-		float height = context.GetArgument<float>(6);
+		float z2 = context.GetArgument<float>(5);
 
-		bool infinite = false;
-
-		bool success = ColShapeManager::Get().CreateRectangleZ(colShapeId, x1, y1, x2, y2, bottomZ, height, infinite);
-		context.SetResult<bool>(success);
+		int newId = ColShapeManager::Get().CreateCube({ x1, y1, z1 }, { x2, y2, z2 });
+		context.SetResult<int>(newId);
 	});
 
-	// COLSHAPE_SPHERE => Creates a 3D sphere shape
-	fx::ScriptEngine::RegisterNativeHandler("CREATE_COLSHAPE_SPHERE", [](fx::ScriptContext& context)
+	fx::ScriptEngine::RegisterNativeHandler("CREATE_COLSHAPE_CYLINDER", [](fx::ScriptContext& context)
 	{
 		if (context.GetArgumentCount() < 5)
 		{
-			trace("CREATE_COLSHAPE_SPHERE: Invalid argument count\n");
-			context.SetResult(false);
+			trace("CREATE_COLSHAPE_CYLINDER: Invalid argument count\n");
+			context.SetResult<int>(-1);
 			return;
 		}
-		// Args: colShapeId, x, y, z, radius, (bool infinite)
-		std::string colShapeId = context.CheckArgument<const char*>(0);
-		float x = context.GetArgument<float>(1);
-		float y = context.GetArgument<float>(2);
-		float z = context.GetArgument<float>(3);
-		float radius = context.GetArgument<float>(4);
 
-		bool infinite = false;
-
-		Vector3 center{ x, y, z };
-		bool success = ColShapeManager::Get().CreateSphere(colShapeId, center, radius, infinite);
-		context.SetResult<bool>(success);
+		float x = context.GetArgument<float>(0);
+		float y = context.GetArgument<float>(1);
+		float z = context.GetArgument<float>(2);
+		float radius = context.GetArgument<float>(3);
+		float height = context.GetArgument<float>(4);
+		int newId = ColShapeManager::Get().CreateCylinder({ x, y, z }, radius, height);
+		context.SetResult<int>(newId);
 	});
 
-	// COLSHAPE_DELETE => Deletes a colShape by ID
+	fx::ScriptEngine::RegisterNativeHandler("CREATE_COLSHAPE_RECTANGLE", [](fx::ScriptContext& context)
+	{
+		if (context.GetArgumentCount() < 6)
+		{
+			trace("CREATE_COLSHAPE_RECTANGLE: Invalid argument count\n");
+			context.SetResult<int>(-1);
+			return;
+		}
+		float x1 = context.GetArgument<float>(0);
+		float y1 = context.GetArgument<float>(1);
+		float x2 = context.GetArgument<float>(2);
+		float y2 = context.GetArgument<float>(3);
+		float bottomZ = context.GetArgument<float>(4);
+		float height = context.GetArgument<float>(5);
+
+		int newId = ColShapeManager::Get().CreateRectangleZ(x1, y1, x2, y2, bottomZ, height);
+		context.SetResult<int>(newId);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("CREATE_COLSHAPE_SPHERE", [](fx::ScriptContext& context)
+	{
+		if (context.GetArgumentCount() < 4)
+		{
+			trace("CREATE_COLSHAPE_SPHERE: Invalid argument count\n");
+			context.SetResult<int>(-1);
+			return;
+		}
+		float x = context.GetArgument<float>(0);
+		float y = context.GetArgument<float>(1);
+		float z = context.GetArgument<float>(2);
+		float radius = context.GetArgument<float>(3);
+
+		int newId = ColShapeManager::Get().CreateSphere({ x, y, z }, radius);
+		context.SetResult<int>(newId);
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("DELETE_COLSHAPE", [](fx::ScriptContext& context)
 	{
 		if (context.GetArgumentCount() < 1)
@@ -904,57 +891,45 @@ static InitFunction initFunction([]()
 			context.SetResult(false);
 			return;
 		}
-		// Args: colShapeId
-		std::string colShapeId = context.CheckArgument<const char*>(0);
-		bool success = ColShapeManager::Get().DeleteColShape(colShapeId);
+		int shapeId = context.GetArgument<int>(0);
+		bool success = ColShapeManager::Get().DeleteColShape(shapeId);
 		context.SetResult<bool>(success);
 	});
 
-	// COLSHAPE_POLYZONE => Creates a 2D polygon shape
 	fx::ScriptEngine::RegisterNativeHandler("CREATE_COLSHAPE_POLYZONE", [](fx::ScriptContext& context)
 	{
-		// Expect either 3 or 5 arguments:
-		//  [0] string:  colShapeId
-		//  [1] char*:    packed MessagePack data
-		//  [2] uint32_t: length of the packed data
-		// If 5 arguments:
-		//  [3] float: minZ
-		//  [4] float: maxZ
 		int argCount = context.GetArgumentCount();
-		trace("argcount is %d\n", argCount);
-
-		// Only allow 3 or 5.
-		if (argCount != 3 && argCount != 5)
+		if (argCount != 2 && argCount != 4)
 		{
-			trace("CREATE_COLSHAPE_POLYZONE: Invalid argument count. Must be 3 or 5.\n");
-			context.SetResult(false);
+			trace("CREATE_COLSHAPE_POLYZONE: Invalid argument count. Must be 2 or 4.\n");
+			context.SetResult<int>(-1);
 			return;
 		}
 
-		std::string colShapeId = context.CheckArgument<const char*>(0);
-		const char* packedData = context.CheckArgument<const char*>(1);
-		uint32_t dataLen = context.GetArgument<uint32_t>(2);
+		const char* packedData = context.CheckArgument<const char*>(0);
+		uint32_t dataLen = context.GetArgument<uint32_t>(1);
 
-		// Optional Z bounds if argCount == 5
-		// essentially, if someone decides to not use arg 4 and 5 we want the "polyzone" to have "infinite height", so just some large numbers should do the trick.
+		// default Z range
+		float minZ = -10000.0f;
+		float maxZ = 10000.0f;
 
-		float minZ, maxZ;
-
-		minZ = context.GetArgument<float>(3);
-		maxZ = context.GetArgument<float>(4);
-
-		if (minZ == 0.0f && maxZ == 0.0f)
+		if (argCount == 4)
 		{
-			// this should only be the case if param 4,5 are not used but for some WEIRD reason
-			// even when u leave them empty in lua this function still gets 5 parameters, so we just do this as an alternative!
-			minZ = -10000.0f;
-			maxZ = 10000.0f;
+			minZ = context.GetArgument<float>(2);
+			maxZ = context.GetArgument<float>(3);
+			// looks like this gets set to 0 if not provided.
+			if (minZ == 0.0f && maxZ == 0.0f)
+			{
+				// essentially ignore z if left out.
+				minZ = -10000.0f;
+				maxZ = 10000.0f;
+			}
 		}
 
 		if (dataLen == 0 || dataLen > MAX_MSGPACK_SIZE)
 		{
-			trace("CREATE_COLSHAPE_POLYZONE: Data length %u out of range (max %u)\n", dataLen, MAX_MSGPACK_SIZE);
-			context.SetResult(false);
+			trace("CREATE_COLSHAPE_POLYZONE: dataLen=%u out of range (max %u)\n", dataLen, MAX_MSGPACK_SIZE);
+			context.SetResult<int>(-1);
 			return;
 		}
 
@@ -965,24 +940,24 @@ static InitFunction initFunction([]()
 		}
 		catch (const std::exception& e)
 		{
-			trace("CREATE_COLSHAPE_POLYZONE: Failed to unpack data: %s\n", e.what());
-			context.SetResult(false);
+			trace("CREATE_COLSHAPE_POLYZONE: Failed to unpack: %s\n", e.what());
+			context.SetResult<int>(-1);
 			return;
 		}
 
 		msgpack::object obj = unpacked.get();
 		if (obj.type != msgpack::type::ARRAY)
 		{
-			trace("CREATE_COLSHAPE_POLYZONE: Expected an array of points.\n");
-			context.SetResult(false);
+			trace("CREATE_COLSHAPE_POLYZONE: Expected array of points.\n");
+			context.SetResult<int>(-1);
 			return;
 		}
 
 		if (obj.via.array.size > MAX_VERTICES)
 		{
-			trace("CREATE_COLSHAPE_POLYZONE: Too many vertices (%zu, max is %zu)\n",
+			trace("CREATE_COLSHAPE_POLYZONE: Too many vertices (%zu, max %zu)\n",
 			obj.via.array.size, MAX_VERTICES);
-			context.SetResult(false);
+			context.SetResult<int>(-1);
 			return;
 		}
 
@@ -992,28 +967,23 @@ static InitFunction initFunction([]()
 		for (size_t i = 0; i < obj.via.array.size; ++i)
 		{
 			msgpack::object& element = obj.via.array.ptr[i];
-			float x = 0.0f, y = 0.0f;
+			float x = 0.f, y = 0.f;
 
-			// makes it possible to have arrays in lua tables (if for some reason you want to do that, mostly you'd use x = 1, y = 2 or vector2(1,2) etc..)
 			if (element.type == msgpack::type::ARRAY)
 			{
-				// If array of [x,y] or [x,y,z]
 				auto& arr = element.via.array;
 				if (arr.size >= 2)
 				{
-					// x, y
 					x = arr.ptr[0].as<float>();
 					y = arr.ptr[1].as<float>();
-					// if arr.size == 3 => there's a z, but we ignore it
 				}
 				else
 				{
-					trace("CREATE_COLSHAPE_POLYZONE: Array element at %zu has <2 floats.\n", i);
-					context.SetResult(false);
+					trace("CREATE_COLSHAPE_POLYZONE: array[%zu] has <2 floats.\n", i);
+					context.SetResult<int>(-1);
 					return;
 				}
 			}
-			// this is essentially { x = 1.0, y= 2.0 }
 			else if (element.type == msgpack::type::MAP)
 			{
 				for (size_t j = 0; j < element.via.map.size; ++j)
@@ -1031,56 +1001,96 @@ static InitFunction initFunction([]()
 			}
 			else if (element.type == msgpack::type::EXT)
 			{
-
 				int8_t extType = element.via.ext.type();
-				size_t dataSize = element.via.ext.size;
+				size_t sz = element.via.ext.size;
 				const char* dataPtr = element.via.ext.ptr;
-				
-				// just to make sure its vector2, vector3 or vector4
-				// vector2 is 20, found in MsgPackSerializer.cs in the clrcore project (packer.PackExtendedTypeValue(20, ms.ToArray());)
-				// vector3 is 21, vector 4 is 22 etc..
-				if (dataSize <= 16 && dataSize >= 8 && ((extType == 20 && dataSize == 8) || (extType == 21 && dataSize == 12) || (extType == 22 && dataSize == 16)))
+
+				// vector2 => extType=20, size=8
+				// vector3 => extType=21, size=12
+				// vector4 => extType=22, size=16
+				if ((extType == 20 && sz == 8) || (extType == 21 && sz == 12) || (extType == 22 && sz == 16))
 				{
-					dataPtr++; // skip the first byte as it contains information about type/size which we don't need here
-					float x_val, y_val;
-					memcpy(&x_val, dataPtr, sizeof(float));
-					memcpy(&y_val, dataPtr + 4, sizeof(float));
-					x = x_val;
-					y = y_val;
+					// skip first byte cause serializer included it
+					dataPtr++;
+					float xx, yy;
+					memcpy(&xx, dataPtr + 0, 4);
+					memcpy(&yy, dataPtr + 4, 4);
+					x = xx;
+					y = yy;
 				}
 				else
 				{
-					trace("CREATE_COLSHAPE_POLYZONE: Unexpected EXT type or size at %zu\n", i);
-					context.SetResult(false);
+					trace("CREATE_COLSHAPE_POLYZONE: Unexpected EXT type/size at %zu\n", i);
+					context.SetResult<int>(-1);
 					return;
 				}
 			}
 			else
 			{
 				trace("CREATE_COLSHAPE_POLYZONE: Unexpected element type at index %zu\n", i);
-				context.SetResult(false);
+				context.SetResult<int>(-1);
 				return;
 			}
 
 			points.push_back(Vector2(x, y));
 		}
-		bool success = ColShapeManager::Get().CreatePolyzone(colShapeId, points, minZ, maxZ);
+
+		int newId = ColShapeManager::Get().CreatePolyzone(points, minZ, maxZ);
+		context.SetResult<int>(newId);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DELETE_COLSHAPE", [](fx::ScriptContext& context)
+	{
+		if (context.GetArgumentCount() < 1)
+		{
+			trace("DELETE_COLSHAPE: Invalid argument count\n");
+			context.SetResult(false);
+			return;
+		}
+		int shapeId = context.GetArgument<int>(0);
+		bool success = ColShapeManager::Get().DeleteColShape(shapeId);
 		context.SetResult<bool>(success);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_COLSHAPE_SYSTEM_ENABLED", [](fx::ScriptContext& context)
+	{
+		if (context.GetArgumentCount() < 1)
+		{
+			trace("SET_COLSHAPE_SYSTEM_ENABLED: Invalid argument count\n");
+			return;
+		}
+		bool enabled = context.GetArgument<bool>(0);
+		ColShapeManager::Get().SetEnabled(enabled);
+	});
 
-	// use game thread instead of seperate thread as suggested by Heron
+	fx::ScriptEngine::RegisterNativeHandler("GET_IS_COLSHAPE_SYSTEM_ENABLED", [](fx::ScriptContext& context) {
+		context.SetResult(ColShapeManager::Get().isEnabled());
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_COLSHAPE_SYSTEM_UPDATE_INTERVAL", [](fx::ScriptContext& context)
+	{
+		if (context.GetArgumentCount() < 1)
+		{
+			trace("SET_COLSHAPE_SYSTEM_UPDATE_INTERVAL: Invalid argument count\n");
+			return;
+		}
+
+		int intervalMs = context.GetArgument<int>(0);
+		ColShapeManager::Get().SetUpdateInterval(intervalMs);
+	});
+
 	static auto lastUpdateTime = std::chrono::high_resolution_clock::now();
 	OnMainGameFrame.Connect([]()
 	{
-		auto now = std::chrono::high_resolution_clock::now();
+		static auto* colshapeMgr = &ColShapeManager::Get();
+		if (!colshapeMgr->isEnabled())
+			return;
 
-		if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastUpdateTime).count() >= updateIntervalMs)
+		auto now = std::chrono::high_resolution_clock::now();
+		if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastUpdateTime).count() >= colshapeMgr->GetUpdateInterval())
 		{
 			lastUpdateTime = now;
-			ColShapeManager::Get().Update();
+			colshapeMgr->Update();
 		}
 	});
-
-
 });

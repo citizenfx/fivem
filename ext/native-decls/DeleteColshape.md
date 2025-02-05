@@ -4,11 +4,15 @@ apiset: client
 game: gta5
 ---
 ## DELETE_COLSHAPE
+
 ```c
-bool DELETE_COLSHAPE(char* colShapeId);
+bool DELETE_COLSHAPE(int colShapeId);
 ```
-Deletes a colshape by identifier
+
+Deletes a colshape by its unique identifier
+
 ## Parameters
 * **colShapeId**: The Identifier of the colshape to be deleted.
+
 ## Return value
 true if deleted successfully, false if it didn't exist in the first place
