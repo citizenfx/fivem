@@ -22,11 +22,12 @@ namespace rage
 {
 	using Mat34V = DirectX::XMMATRIX;
 	using Vec4V = DirectX::XMVECTOR;
+	using Vec3V = DirectX::XMVECTOR;
 }
 
-static hook::cdecl_stub<void(void*, Vector3*, float, uint32_t, float, float, Vector3*, float, float, float, uint16_t)> addLightCorona([]()
+static hook::cdecl_stub<void(void*, rage::Vec3V*, float, uint32_t, float, float, rage::Vec3V*, float, float, float, uint16_t)> addLightCorona([]()
 {
-	return hook::get_call(hook::get_pattern("F3 0F 11 44 24 28 F3 0F 11 7C 24 20 E8 ? ? ? ? E8", 12));
+	return hook::get_pattern("44 89 4C 24 ? 48 83 EC ? 0F 29 74 24");
 });
 
 static void* g_coronas;
@@ -145,8 +146,8 @@ static InitFunction initFunction([]()
 		float outerAngle = context.GetArgument<float>(15);
 		uint16_t flags = context.GetArgument<uint16_t>(16);
 
-		Vector3 position = { x, y, z };
-		Vector3 direction = { directionX, directionY, directionZ };
+		rage::Vec3V position = DirectX::XMVectorSet(x, y, z, 0.0f);
+		rage::Vec3V direction = DirectX::XMVectorSet(directionX, directionY, directionZ, 0.0f);
 
 		addLightCorona(g_coronas, &position, size, color, intensity, zBias, &direction, viewThreshold, innerAngle, outerAngle, flags);
 	});
