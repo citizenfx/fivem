@@ -997,12 +997,12 @@ static InitFunction initFunction([]()
 						for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
 						{
 							int assetsIndex = row + 1;
-							if (!assets[assetsIndex].name)
+							if (!assets[assetsIndex].fileName)
 							{
 								continue;
 							}
 
-							const std::string name = assets[assetsIndex].name;
+							const std::string name = assets[assetsIndex].fileName;
 							if (!name._Starts_with(search))
 							{
 								continue;
@@ -1012,7 +1012,7 @@ static InitFunction initFunction([]()
 
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::Text("%s", assets[assetsIndex].name);
+							ImGui::Text("%s", assets[assetsIndex].fileName);
 							ImGui::TableNextColumn();
 							ImGui::Text("%s", datetime.c_str());
 						}

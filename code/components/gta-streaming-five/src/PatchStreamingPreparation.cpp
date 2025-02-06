@@ -32,11 +32,6 @@ static int (*g_origHandleObjectLoad)(streaming::Manager*, int, int, int*, int, i
 static std::unordered_map<std::string, std::tuple<rage::fiDevice*, uint64_t, uint64_t>> g_handleMap;
 static std::unordered_map<std::string, int> g_failures;
 
-hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
-{
-	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00 8B D8 E8", -5));
-});
-
 struct SemaAwaiter
 {
 	bool operator()(void* sema) const
@@ -236,9 +231,9 @@ bool IsHandleCache(uint32_t handle, std::string* outFileName)
 
 	rage::fiCollection* collection = nullptr;
 
-	if ((handle >> 16) == 0 || (handle >> 16) == 2)
+	if (streaming::IsRawHandle(handle))
 	{
-		collection = getRawStreamer();
+		collection = streaming::GetRawStreamerByIndex(streaming::GetCollectionIndex(handle));
 	}
 
 	bool isCache = false;
@@ -248,7 +243,7 @@ bool IsHandleCache(uint32_t handle, std::string* outFileName)
 		char fileNameBuffer[1024];
 		strcpy(fileNameBuffer, "CfxRequest");
 
-		collection->GetEntryNameToBuffer(handle & 0xFFFF, fileNameBuffer, sizeof(fileNameBuffer));
+		collection->GetEntryNameToBuffer(streaming::GetEntryIndex(handle), fileNameBuffer, sizeof(fileNameBuffer));
 
 		if (strncmp(fileNameBuffer, "cache:/", 7) == 0)
 		{
