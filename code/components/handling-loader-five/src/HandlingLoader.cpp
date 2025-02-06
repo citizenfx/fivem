@@ -334,17 +334,17 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 				switch (member->m_definition->type)
 				{
 					case rage::parMemberType::Float:
-						setFloatField(handlingChar, offset, context.CheckArgument<float>(3), handlingField);
+						setFloatField(handlingChar, offset, context.GetArgument<float>(3), handlingField);
 						break;
 
 					case rage::parMemberType::UInt8:
-						*(uint8_t*)(handlingChar + offset) = uint8_t(context.CheckArgument<int>(3));
+						*(uint8_t*)(handlingChar + offset) = uint8_t(context.GetArgument<int>(3));
 						break;
 
 					case rage::parMemberType::UInt32:
 						// every string field (so far) is parsed to an int in memory
 					case rage::parMemberType::String:
-						setIntField(handlingChar, offset, context.CheckArgument<int>(3), handlingField);
+						setIntField(handlingChar, offset, context.GetArgument<int>(3), handlingField);
 						break;
 
 					case rage::parMemberType::Vector3_Padded:
