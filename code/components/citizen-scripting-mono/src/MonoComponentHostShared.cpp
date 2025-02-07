@@ -98,7 +98,7 @@ void MonoComponentHostShared::Initialize()
 
 #ifndef IS_FXSERVER
 		mono_security_enable_core_clr();
-		mono_security_core_clr_set_options(MONO_SECURITY_CORE_CLR_OPTIONS_DEFAULT);
+		mono_security_core_clr_set_options((MonoSecurityCoreCLROptions)(MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_DELEGATE | MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_REFLECTION));
 		mono_security_set_core_clr_platform_callback(CoreCLRIsTrustedCode);
 
 		mono_profiler_install(&s_monoProfiler, ProfilerShutDown);
