@@ -7,7 +7,7 @@
 #include <IteratorView.h>
 
 ConsoleCommandManager::ConsoleCommandManager(console::Context* parentContext)
-    : m_parentContext(parentContext), m_curToken(0)
+: m_parentContext(parentContext), m_curToken(0)
 {
 }
 
@@ -15,12 +15,12 @@ ConsoleCommandManager::~ConsoleCommandManager()
 {
 }
 
-int ConsoleCommandManager::Register(const std::string& name, const THandler& handler, size_t arity)
+int ConsoleCommandManager::Register(const std::string& name, std::string resource, const THandler& handler, size_t arity)
 {
 	std::unique_lock<std::shared_mutex> lock(m_mutex);
 
 	int token = m_curToken.fetch_add(1);
-	m_entries.insert({name, Entry{name, handler, token, arity}});
+	m_entries.insert({name, Entry{name, handler, resource, token, arity} });
 
 	return token;
 }
@@ -55,7 +55,7 @@ void ConsoleCommandManager::Invoke(const std::string& commandString, const std::
 		return;
 	}
 
-	std::string command        = arguments.Shift();
+	std::string command    = arguments.Shift();
 
 	m_rawCommand = commandString;
 
@@ -167,7 +167,7 @@ void ConsoleCommandManager::ForAllCommands2(const std::function<void(const conso
 		// loop through the commands
 		for (auto& command : m_entries)
 		{
-			console::CommandMetadata md{ command.first, command.second.arity };
+			console::CommandMetadata md{ command.first, command.second.resource, command.second.arity };
 			callback(md);
 		}
 	}

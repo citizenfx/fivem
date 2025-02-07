@@ -96,6 +96,11 @@ public:
 	{
 		gameStateAckLastCall.emplace(client, buffer.GetFrameIndex(), std::vector<net::packet::ClientGameStateNAck::IgnoreListEntry>{ buffer.GetIgnoreList().begin(), buffer.GetIgnoreList().end() }, std::vector<uint16_t>{ buffer.GetRecreateList().begin(), buffer.GetRecreateList().end() });
 	}
+
+	bool GetStateBagStrictMode() const override
+	{
+		return false;
+	}
 };
 
 fx::ServerGameStatePublic* fx::ServerGameStatePublicInstance::Create()

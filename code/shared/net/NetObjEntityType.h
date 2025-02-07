@@ -79,7 +79,7 @@ namespace fx::sync
 #endif
 #if defined(STATE_RDR3) || defined(IS_RDR3)
 			case NetObjEntityType::Animal: return "CNetObjAnimal";
-			case NetObjEntityType::DraftVeh: return "CNetObjDraftVeh";
+			case NetObjEntityType::DraftVeh: return "CNetObjDraftVehicle";
 			case NetObjEntityType::StatsTracker: return "CNetObjStatsTracker";
 			case NetObjEntityType::PropSet: return "CNetObjPropSet";
 			case NetObjEntityType::AnimScene: return "CNetObjAnimScene";

@@ -1670,6 +1670,62 @@ static void Init()
 		return resultVector;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("IS_PLAYER_IN_FREE_CAM_MODE", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		if (const auto& syncTree = entity->syncTree)
+		{
+			if (const auto camData = syncTree->GetPlayerCamera(); camData->camMode != 0)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_FOCUS_POS", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		scrVector resultVec = {};
+		const auto& syncTree = entity->syncTree;
+
+		if (!syncTree)
+		{
+			return resultVec;
+		}
+
+		const auto camData = syncTree->GetPlayerCamera();
+
+		if (!camData)
+		{
+			return resultVec;
+		}
+
+		float playerPos[3];
+		syncTree->GetPosition(playerPos);
+
+		switch (camData->camMode)
+		{
+			case 0:
+			default:
+				resultVec.x = playerPos[0];
+				resultVec.y = playerPos[1];
+				resultVec.z = playerPos[2];
+				break;
+			case 1:
+				resultVec.x = camData->freeCamPosX;
+				resultVec.y = camData->freeCamPosX;
+				resultVec.z = camData->freeCamPosZ;
+				break;
+			case 2:
+				resultVec.x = playerPos[0] + camData->camOffX;
+				resultVec.y = playerPos[1] + camData->camOffY;
+				resultVec.z = playerPos[2] + camData->camOffZ;
+				break;
+		}
+
+		return resultVec;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_CARRIAGE_ENGINE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto train = entity->syncTree->GetTrainState();
@@ -1879,6 +1935,12 @@ static void Init()
 #endif
 
 		return 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_RELATIONSHIP_GROUP_HASH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto ped = entity->syncTree->GetPedAI();
+		return ped ? ped->relationShip : 0;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_SPEED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)

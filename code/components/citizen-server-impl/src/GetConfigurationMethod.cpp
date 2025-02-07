@@ -4,6 +4,7 @@
 #include <ResourceFilesComponent.h>
 #include <ResourceStreamComponent.h>
 #include <ResourceMetaDataComponent.h>
+#include <ResourceConfigurationCacheComponent.h>
 
 #include <Client.h>
 #include <ClientRegistry.h>
@@ -41,13 +42,20 @@ static InitFunction initFunction([]()
 
 			std::unique_lock<std::shared_mutex> lock(fileServerLock);
 			fileServers.push_back(std::move(entry));
+
+			auto resourceManager = fx::ResourceManager::GetCurrent();
+			resourceManager->ForAllResources([](const fwRefContainer<fx::Resource>& resource)
+			{
+				auto& configurationCache = resource->GetComponent<fx::ResourceConfigurationCacheComponent>();
+				configurationCache->Invalidate();
+			});
 		});
 
 		static auto removeFileServerCmd = instance->AddCommand("fileserver_remove", [](const std::string& resourcePattern)
 		{
 			std::unique_lock<std::shared_mutex> lock(fileServerLock);
 
-			for (auto it = fileServers.begin(); it != fileServers.end(); )
+			for (auto it = fileServers.begin(); it != fileServers.end();)
 			{
 				if (it->reString == resourcePattern)
 				{
@@ -58,6 +66,13 @@ static InitFunction initFunction([]()
 					it++;
 				}
 			}
+
+			auto resourceManager = fx::ResourceManager::GetCurrent();
+			resourceManager->ForAllResources([](const fwRefContainer<fx::Resource>& resource)
+			{
+				auto& configurationCache = resource->GetComponent<fx::ResourceConfigurationCacheComponent>();
+				configurationCache->Invalidate();
+			});
 		});
 
 		static auto listFileServerCmd = instance->AddCommand("fileserver_list", []()
@@ -74,6 +89,7 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getConfiguration", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const fx::ClientMethodRegistry::TCallbackFast& cb)
 		{
+			// todo: log thread
 			auto ra = request->GetRemoteAddress();
 			auto token = request->GetHeader("X-CitizenFX-Token");
 
@@ -138,15 +154,22 @@ static InitFunction initFunction([]()
 			{
 				std::string_view filterValues = resourceIt->second;
 
-				int lastPos = 0;
-				int pos = -1;
+				size_t lastPos = 0;
+				size_t pos = -1;
 
-				do 
+				do
 				{
 					lastPos = pos + 1;
 					pos = filterValues.find_first_of(';', pos + 1);
 
-					auto thisValue = filterValues.substr(lastPos, (pos - lastPos));
+					auto thisValue = filterValues.substr(lastPos, pos - lastPos);
+
+					// empty values are not valid
+					if (thisValue.empty())
+					{
+						// do not continue filter inserting
+						break;
+					}
 
 					filters.insert(thisValue);
 				} while (pos != std::string::npos);
@@ -156,16 +179,19 @@ static InitFunction initFunction([]()
 
 			auto appendResource = [&](const fwRefContainer<fx::Resource>& resource)
 			{
-				if (resourceNames.find(resource->GetName()) != resourceNames.end())
+				// filtering out duplicates
+				if (!resourceNames.insert(resource->GetName()).second)
 				{
 					return;
 				}
 
+				// client only requested a specific resource configuration
 				if (!filters.empty() && filters.find(resource->GetName()) == filters.end())
 				{
 					return;
 				}
 
+				// filtering out none started resources
 				if (resource->GetState() != fx::ResourceState::Started && resource->GetState() != fx::ResourceState::Starting)
 				{
 					return;
@@ -174,77 +200,30 @@ static InitFunction initFunction([]()
 				auto metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 				auto iv = metaData->GetEntries("server_only");
 
+				// do not send server_only resources to the client
 				if (iv.begin() != iv.end())
 				{
 					return;
 				}
 
-				resourceNames.insert(resource->GetName());
-
-				rapidjson::Value resourceFiles;
-				resourceFiles.SetObject();
-
-				fwRefContainer<fx::ResourceFilesComponent> files = resource->GetComponent<fx::ResourceFilesComponent>();
-
-				for (const auto& entry : files->GetFileHashPairs())
-				{
-					auto key = rapidjson::Value{ entry.first.c_str(), static_cast<rapidjson::SizeType>(entry.first.length()), retval.GetAllocator() };
-					auto value = rapidjson::Value{ entry.second.c_str(), static_cast<rapidjson::SizeType>(entry.second.length()), retval.GetAllocator() };
-
-					resourceFiles.AddMember(std::move(key), std::move(value), retval.GetAllocator());
-				}
-
-				rapidjson::Value resourceStreamFiles;
-				resourceStreamFiles.SetObject();
-
-				fwRefContainer<fx::ResourceStreamComponent> streamFiles = resource->GetComponent<fx::ResourceStreamComponent>();
-
-				for (const auto& entry : streamFiles->GetStreamingList())
-				{
-					if (!entry.second.isAutoScan)
-					{
-						continue;
-					}
-
-					rapidjson::Value obj;
-					obj.SetObject();
-
-					obj.AddMember("hash", rapidjson::Value{ entry.second.hashString, retval.GetAllocator() }, retval.GetAllocator());
-					obj.AddMember("rscFlags", rapidjson::Value{ entry.second.rscFlags }, retval.GetAllocator());
-					obj.AddMember("rscVersion", rapidjson::Value{ entry.second.rscVersion }, retval.GetAllocator());
-					obj.AddMember("size", rapidjson::Value{ entry.second.size }, retval.GetAllocator());
-
-					if (entry.second.isResource)
-					{
-						obj.AddMember("rscPagesVirtual", rapidjson::Value{ entry.second.rscPagesVirtual }, retval.GetAllocator());
-						obj.AddMember("rscPagesPhysical", rapidjson::Value{ entry.second.rscPagesPhysical }, retval.GetAllocator());
-					}
-
-					auto key = rapidjson::Value{ entry.first.c_str(), static_cast<rapidjson::SizeType>(entry.first.length()), retval.GetAllocator() };
-					resourceStreamFiles.AddMember(std::move(key), std::move(obj), retval.GetAllocator());
-				}
-
-				rapidjson::Value obj;
-				obj.SetObject();
-
-				obj.AddMember("name", rapidjson::StringRef(resource->GetName().c_str(), resource->GetName().length()), retval.GetAllocator());
-				obj.AddMember("files", std::move(resourceFiles), retval.GetAllocator());
-				obj.AddMember("streamFiles", std::move(resourceStreamFiles), retval.GetAllocator());
-
+				auto& configurationCache = resource->GetComponent<fx::ResourceConfigurationCacheComponent>();
+				rapidjson::Value configurationObj(rapidjson::kObjectType);
+				configurationCache->GetConfiguration(configurationObj, retval.GetAllocator(), [](const std::string& resourceName)
 				{
 					std::unique_lock<std::shared_mutex> lock(fileServerLock);
 
 					for (const auto& entry : fileServers)
 					{
-						if (std::regex_match(resource->GetName(), entry.re))
+						if (std::regex_match(resourceName, entry.re))
 						{
-							obj.AddMember("fileServer", rapidjson::Value{ entry.url.c_str(), static_cast<rapidjson::SizeType>(entry.url.length()), retval.GetAllocator() }, retval.GetAllocator());
-							break;
+							return std::optional{entry.url};
 						}
 					}
-				}
 
-				resources.PushBack(std::move(obj), retval.GetAllocator());
+					return std::optional<std::string>{};
+				});
+
+				resources.PushBack(configurationObj, retval.GetAllocator());
 			};
 
 			// first append in start order
@@ -278,5 +257,6 @@ static InitFunction initFunction([]()
 
 			cb(nil);
 		});
-	}, 5000);
+	},
+	5000);
 });

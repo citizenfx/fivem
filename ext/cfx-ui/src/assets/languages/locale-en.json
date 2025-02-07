@@ -123,6 +123,8 @@
   "#Settings_FixedSizeNUIDesc": "Force in-server UI to 1920x1080 resolution, scaled/letterboxed to fit (for servers with UI assuming 1920x1080)",
   "#Settings_NoiseSuppression": "Voice chat noise suppression",
   "#Settings_NoiseSuppressionDesc": "Enable background noise suppression (using RNNoise) for the built-in voice chat",
+  "#Settings_AmdAntiLag": "AMD Anti-Lag 2",
+  "#Settings_AmdAntiLagDesc": "AMD Anti-Lag 2 reduces system latency for improved responsiveness.",
   "#Settings_DiscordRichPresence": "Discord activity status",
   "#Settings_DiscordRichPresenceDesc": "Displays the server you're currently connected to and allows servers to display a custom activity status on your Discord profile.",
   "#Settings_ConnectedProfiles": "Linked identities",

@@ -19,6 +19,7 @@
 #include "Resource.h"
 #include "ScriptWarnings.h"
 #include <Train.h>
+#include "ropeManager.h"
 
 static void BlockForbiddenNatives()
 {
@@ -540,12 +541,117 @@ static void FixMissionTrain()
 	});
 }
 
+static void FixAddRopeNative()
+{
+	constexpr const uint64_t ADD_ROPE = 0xE832D760399EB220;
+	auto handler = fx::ScriptEngine::GetNativeHandler(ADD_ROPE);
+
+	if (!handler)
+	{
+		return;
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler(ADD_ROPE, [handler](fx::ScriptContext& ctx)
+	{
+		rage::ropeDataManager* manager = rage::ropeDataManager::GetInstance();
+		if (manager)
+		{
+			auto ropeIndex = ctx.GetArgument<int>(7);
+			if (ropeIndex >= 0 && ropeIndex < manager->typeData.GetCount())
+			{
+				return handler(ctx);
+			}
+			else
+			{
+				fx::scripting::Warningf("natives", "Invalid rope type was passed to ADD_ROPE (%d), should be from 0 to %d\n", ropeIndex, manager->typeData.GetCount() - 1);
+			}
+		}
+		ctx.SetResult(0);
+	});
+}
+
+// PatchVehicleHoodCamera.cpp
+enum eVehicleType : uint32_t
+{
+	VEHICLE_TYPE_CAR = 0,
+	VEHICLE_TYPE_PLANE,
+	VEHICLE_TYPE_TRAILER,
+	VEHICLE_TYPE_QUADBIKE,
+	VEHICLE_TYPE_DRAFT,
+	VEHICLE_TYPE_SUBMARINECAR,
+	VEHICLE_TYPE_AMPHIBIOUS_AUTOMOBILE,
+	VEHICLE_TYPE_AMPHIBIOUS_QUADBIKE,
+	VEHICLE_TYPE_HELI,
+	VEHICLE_TYPE_BLIMP,
+	VEHICLE_TYPE_AUTOGYRO,
+	VEHICLE_TYPE_BIKE,
+	VEHICLE_TYPE_BICYCLE,
+	VEHICLE_TYPE_BOAT,
+	VEHICLE_TYPE_TRAIN,
+	VEHICLE_TYPE_SUBMARINE,
+};
+
+static int g_vehicleTypeOffset;
+
+using CHeli_BreakOffRotor_t = void(__fastcall*)(fwEntity* heli);
+static CHeli_BreakOffRotor_t CHeli_BreakOffMainRotor;
+static CHeli_BreakOffRotor_t CHeli_BreakOffTailRotor;
+
+static void SetHeliRotorHealthHandler(const uint64_t nativeHash, void(*breakOffRotorFunc)(rage::fwEntity*))
+{
+	auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!handler)
+	{
+		return;
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler, breakOffRotorFunc](fx::ScriptContext& ctx)
+	{
+		handler(ctx);
+
+		const auto rotorHealth = ctx.GetArgument<float>(1);
+		if (rotorHealth > 0.0f && !std::isnan(rotorHealth))
+		{
+			return;
+		}
+
+		const auto vehicleHandle = ctx.GetArgument<uint32_t>(0);
+		const auto vehicle = rage::fwScriptGuid::GetBaseFromGuid(vehicleHandle);
+		if (vehicle && vehicle->IsOfType<CVehicle>())
+		{
+			const auto vehicleType = *reinterpret_cast<eVehicleType*>((char*)vehicle + g_vehicleTypeOffset);
+			if (vehicleType == VEHICLE_TYPE_HELI || vehicleType == VEHICLE_TYPE_BLIMP)
+			{
+				breakOffRotorFunc(vehicle);
+			}
+		}
+	});
+}
+
+static void FixSetHeliRotorHealth()
+{
+	constexpr uint64_t nativeHash = 0x4056EA1105F5ABD7; // _SET_HELI_MAIN_ROTOR_HEALTH
+	constexpr uint64_t nativeHash2 = 0xFE205F38AAA58E5B; // _SET_HELI_TAIL_ROTOR_HEALTH
+
+	SetHeliRotorHealthHandler(nativeHash, CHeli_BreakOffMainRotor);
+	SetHeliRotorHealthHandler(nativeHash2, CHeli_BreakOffTailRotor);
+}
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
 	g_maxHudColours = *hook::get_pattern<int32_t>("81 F9 ? ? ? ? 77 5A 48 89 5C 24", 2);
 	g_numMarkerTypes = *hook::get_pattern<int32_t>("BE FF FF FF DF 41 BF 00 00 FF 0F 41 BC FF FF FF BF", -4);
 	g_trainConfigData = hook::get_address<rage::CTrainConfigData*>(hook::get_pattern<rage::CTrainConfigData>("4C 8B 05 ? ? ? ? 0F 29 74 24 ? 48 8D 3C 40", 3));
+
+	// Stolen from "VehicleExtraNatives.cpp"
+	g_vehicleTypeOffset = *hook::get_pattern<int>("41 83 BF ? ? ? ? 0B 74", 3);
+
+	void* breakOffMainRotorAddress = hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B B1 ? ? ? ? 0F BE B9 ? ? ? ? 48 8B D9 48 85 F6 0F 84");
+	CHeli_BreakOffMainRotor = reinterpret_cast<CHeli_BreakOffRotor_t>(breakOffMainRotorAddress);
+	void* breakOffTailRotorAddress = hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B B1 ? ? ? ? 0F BE B9 ? ? ? ? 48 8B D9 48 85 F6 74");
+	CHeli_BreakOffTailRotor = reinterpret_cast<CHeli_BreakOffRotor_t>(breakOffTailRotorAddress);
 
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
@@ -581,6 +687,10 @@ static HookFunction hookFunction([]()
 		FixApplyForceToEntity();
 
 		FixMissionTrain();
+
+		FixAddRopeNative();
+
+		FixSetHeliRotorHealth();
 
 		if (xbr::IsGameBuildOrGreater<2612>())
 		{

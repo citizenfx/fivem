@@ -757,6 +757,12 @@ struct CPedMovementGroupNodeData
 	bool isRagdolling;
 };
 
+struct CPedAINodeData
+{
+	int relationShip;
+	int decisionMaker;
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -850,6 +856,8 @@ public:
 	virtual CBoatGameStateNodeData* GetBoatGameState() = 0;
 
 	virtual CPedMovementGroupNodeData* GetPedMovementGroup() = 0;
+
+	virtual CPedAINodeData* GetPedAI() = 0;
 
 	virtual void CalculatePosition() = 0;
 
@@ -1445,6 +1453,11 @@ public:
 		m_entityLockdownMode = mode;
 	}
 
+	bool GetStateBagStrictMode() const override
+	{
+		return m_stateBagStrictMode;
+	}
+
 	EntityLockdownMode GetEntityLockdownMode(const fx::ClientSharedPtr& client);
 	void SetEntityLockdownMode(int bucket, EntityLockdownMode mode);
 
@@ -1623,6 +1636,7 @@ private:
 	std::shared_ptr<fx::StateBag> m_globalBag;
 
 	std::shared_ptr<ConVar<EntityLockdownMode>> m_lockdownModeVar;
+	std::shared_ptr<ConVar<bool>> m_stateBagStrictModeVar;
 
 	//private:
 public:
@@ -1634,6 +1648,8 @@ public:
 
 	EntityLockdownMode m_entityLockdownMode;
 	SyncStyle m_syncStyle = SyncStyle::NAK;
+
+	bool m_stateBagStrictMode {false};
 };
 
 // for use in sync trees

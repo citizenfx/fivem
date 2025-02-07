@@ -1,7 +1,7 @@
 #include "StdInc.h"
-#include "CrossLibraryInterfaces.h"
 #include "InputHook.h"
 #include "Hooking.h"
+#include "CoreConsole.h"
 
 #include <nutsnbolts.h>
 
@@ -12,8 +12,14 @@
 
 #include <ICoreGameInit.h>
 #include <GlobalInput.h>
+#include <dinput.h>
+
+#include "ffx_antilag2_dx11.h"
 
 static WNDPROC origWndProc;
+
+typedef IDirectInputDeviceW* LPDIRECTINPUTDEVICEW;
+static LPDIRECTINPUTDEVICEW* g_diMouseDevice = nullptr;
 
 static bool g_isFocused = true;
 static bool g_enableSetCursorPos = false;
@@ -61,6 +67,16 @@ static void EnableFocus()
 	if (!g_isFocusStolen)
 	{
 		enableFocus();
+	}
+}
+
+static void (*recaptureLostDevices)();
+
+static void RecaptureLostDevices()
+{
+	if (!g_isFocusStolen)
+	{
+		recaptureLostDevices();
 	}
 }
 
@@ -149,6 +165,11 @@ void InputHook::SetGameMouseFocus(bool focus)
 
 	if (g_isFocusStolen)
 	{
+		rage::g_input.m_Buttons() = 0;
+		if (*g_diMouseDevice)
+		{
+			(*g_diMouseDevice)->Unacquire();
+		}
 		memset(g_gameKeyArray, 0, 256);
 	}
 
@@ -439,6 +460,9 @@ static HookFunction setOffsetsHookFunction([]()
 	DoPatchMouseScrollDelta();
 });
 
+static AMD::AntiLag2DX11::Context g_antiLagContext = {};
+static std::shared_ptr<ConVar<bool>> g_antiLagPresentConVar, g_antiLagEnabledConVar;
+
 static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 {
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
@@ -451,6 +475,10 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 	static bool lastBlockGameInput;
 	bool blockGameInput = !InputHook::QueryInputTarget(inputTargets);
 
+	if (g_antiLagPresentConVar->GetValue())
+	{
+		AMD::AntiLag2DX11::Update(&g_antiLagContext, g_antiLagEnabledConVar->GetValue(), 0);
+	}
 
 	curInput = ReverseGameInputState{ *rgd };
 
@@ -688,6 +716,13 @@ static int Return0()
 
 static HookFunction hookFunction([]()
 {
+	g_antiLagPresentConVar = std::make_shared<ConVar<bool>>("game_amdAntiLagPresent", ConVar_Internal | ConVar_ScriptRestricted, false);
+	g_antiLagEnabledConVar = std::make_shared<ConVar<bool>>("game_useAmdAntiLag", ConVar_Archive | ConVar_UserPref, true);
+	if (const auto antiLagInitResult = AMD::AntiLag2DX11::Initialize(&g_antiLagContext); antiLagInitResult == S_OK)
+	{
+		g_antiLagPresentConVar->GetHelper()->SetRawValue(true);
+	}
+
 	static int* captureCount = hook::get_address<int*>(hook::get_pattern("48 3B 05 ? ? ? ? 0F 45 CA 89 0D ? ? ? ? 48 83 C4 28", 12));
 
 	OnGameFrame.Connect([]()
@@ -719,6 +754,12 @@ static HookFunction hookFunction([]()
 	patternMatch = hook::pattern("74 0D 38 1D ? ? ? ? 74 05 E8 ? ? ? ? 33 C9 E8").count(1).get(0).get<void>(10);
 	hook::set_call(&enableFocus, patternMatch);
 	hook::call(patternMatch, EnableFocus);
+
+	patternMatch = hook::pattern("48 83 EC ? 8B 0D ? ? ? ? 85 C9 74 ? FF C9 74 ? FF C9 75").count(1).get(0).get<void>(53);
+	hook::set_call(&recaptureLostDevices, patternMatch);
+	hook::call(patternMatch, RecaptureLostDevices);
+
+	g_diMouseDevice = hook::get_address<LPDIRECTINPUTDEVICEW*>(hook::get_pattern("48 8B 0D ? ? ? ? 48 8B 01 FF 50 ? 83 F8 ? 7F ? 48 83 C4", 3));
 
 	// game key array
 	location = hook::pattern("BF 00 01 00 00 48 8D 1D ? ? ? ? 48 3B 05").count(1).get(0).get<char>(8);

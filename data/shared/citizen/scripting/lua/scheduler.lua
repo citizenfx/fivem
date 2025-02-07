@@ -135,6 +135,7 @@ end)
 Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 SetTimeout = Citizen.SetTimeout
+ClearTimeout = Citizen.ClearTimeout
 
 --[[
 

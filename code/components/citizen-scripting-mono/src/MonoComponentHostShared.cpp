@@ -115,7 +115,7 @@ void MonoComponentHostShared::Initialize()
 		{
 #ifdef _WIN32
 			"--soft-breakpoints",
-			"--optimize=peephole,cfold,inline,consprop,copyprop,deadce,branch,linears,intrins,loop,exception,cmov,gshared,simd,alias-analysis,float32,unsafe"
+			"--optimize=peephole,cfold,inline,consprop,copyprop,deadce,branch,linears,intrins,loop,exception,cmov,gshared,simd,alias-analysis,float32"
 #else
 			"--use-fallback-tls"
 #endif

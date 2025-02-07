@@ -1119,7 +1119,8 @@ static int Lua_CreateThreadInternal(lua_State* L, bool now, int timeout, int fun
 	if (!now)
 	{
 		luaRuntime->ScheduleBookmarkSoon(ref, -timeout);
-		return 0;
+		lua_pushinteger(L, ref);
+		return 1;
 	}
 	else
 	{
@@ -1151,6 +1152,32 @@ static int Lua_SetTimeout(lua_State* L)
 	return Lua_CreateThreadInternal(L, false, timeout, 2);
 }
 
+static int Lua_ClearTimeout(lua_State* L)
+{
+	int bookmark = luaL_checkinteger(L, 1);
+
+	auto& luaRuntime = fx::LuaScriptRuntime::GetCurrent();
+	lua_State* runtimeState = luaRuntime->GetState();
+
+	bool removed = false;
+
+	auto& pending = luaRuntime->GetPendingBookmarks();
+	for (auto it = pending.begin(); it != pending.end(); ++it)
+	{
+		if (std::get<0>(*it) == static_cast<uint64_t>(bookmark))
+		{
+			pending.erase(it);
+
+			luaL_unref(runtimeState, LUA_REGISTRYINDEX, bookmark);
+			removed = true;
+			break;
+		}
+	}
+
+	lua_pushboolean(L, removed);
+	return 1;
+}
+
 static int Lua_Noop(lua_State* L)
 {
 	return 0;
@@ -1165,6 +1192,7 @@ static const struct luaL_Reg g_citizenLib[] = {
 	{ "CreateThreadNow", Lua_CreateThreadNow },
 	{ "Wait", Lua_Wait },
 	{ "SetTimeout", Lua_SetTimeout },
+	{ "ClearTimeout", Lua_ClearTimeout },
 	{ "InvokeNative", Lua_InvokeNative },
 #ifndef IS_FXSERVER
 	{ "GetNative", Lua_GetNativeHandler },

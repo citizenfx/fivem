@@ -23,19 +23,26 @@
 
 #include <SharedFunction.h>
 
+#include "ScriptWarnings.h"
+
 struct CommandObject
 {
 	std::string name;
+	std::string resource;
 	int32_t arity;
 
-	CommandObject(const std::string& name, size_t arity)
-		: name(name), arity(arity)
+	CommandObject(const std::string& name, std::string resource, size_t arity)
+		: name(name), resource(resource), arity(arity)
 	{
-
 	}
 
-	MSGPACK_DEFINE_MAP(name, arity);
+	MSGPACK_DEFINE_MAP(name, resource, arity);
 };
+
+namespace fx
+{
+ConVar<bool> g_stateBagStrictMode("sv_stateBagStrictMode", ConVar_Replicated, false);
+}
 
 static InitFunction initFunction([] ()
 {
@@ -125,6 +132,7 @@ static InitFunction initFunction([] ()
 			{
 				auto resourceManager = resource->GetManager();
 				auto consoleCxt = resourceManager->GetComponent<console::Context>();
+				std::string resourceName = resource->GetName();
 
 				outerRefs[commandName] = commandRef;
 
@@ -133,13 +141,18 @@ static InitFunction initFunction([] ()
 					return;
 				}
 
-				// restricted? if not, add the command
+				auto formattedResource = fmt::sprintf("resource.%s", resource->GetName());
+
+				// Always allow the registering resource to do things to its own commands, this allows them to add_ace without needing to do weird wrappers.
+				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ formattedResource }, se::Object{ "command." + commandName }, se::AccessType::Allow);
+
+				// If we're not restricted then allow everyone to use the command
 				if (!context.GetArgument<bool>(2))
 				{
 					seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "builtin.everyone" }, se::Object{ "command." + commandName }, se::AccessType::Allow);
 				}
 
-				int commandToken = consoleCxt->GetCommandManager()->Register(commandName, [=](ConsoleExecutionContext& context)
+				int commandToken = consoleCxt->GetCommandManager()->Register(commandName, resourceName, [=](ConsoleExecutionContext& context)
 				{
 					try
 					{
@@ -156,9 +169,13 @@ static InitFunction initFunction([] ()
 					return true;
 				});
 
-				resource->OnStop.Connect([consoleCxt, commandToken]()
+				resource->OnStop.Connect([consoleCxt, commandToken, formattedResource, commandName]()
 				{
 					consoleCxt->GetCommandManager()->Unregister(commandToken);
+
+					// Once we unregister the command make sure we remove the default access
+					seGetCurrentContext()->RemoveAccessControlEntry(se::Principal{ "builtin.everyone" }, se::Object{ "command." + commandName }, se::AccessType::Allow);
+					seGetCurrentContext()->RemoveAccessControlEntry(se::Principal{ formattedResource }, se::Object{ "command." + commandName }, se::AccessType::Allow);
 				}, INT32_MAX);
 			}
 		}
@@ -181,12 +198,36 @@ static InitFunction initFunction([] ()
 
 				consoleCxt->GetCommandManager()->ForAllCommands2([&commandList](const console::CommandMetadata& command)
 				{
-					commandList.emplace_back(command.GetName(), (command.GetArity() == -1) ? -1 : int32_t(command.GetArity()));
+					commandList.emplace_back(command.GetName(), command.GetResourceName(), (command.GetArity() == -1) ? -1 : int32_t(command.GetArity()));
 				});
 
 				context.SetResult(fx::SerializeObject(commandList));
 			}
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_COMMANDS", [](fx::ScriptContext& context)
+	{
+		std::string resourceName = context.CheckArgument<const char*>(0);
+		std::vector<CommandObject> commandList;
+
+		// find the resource
+		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(resourceName);
+		auto consoleCxt = resourceManager->GetComponent<console::Context>();
+
+		if (resource.GetRef())
+		{
+			consoleCxt->GetCommandManager()->ForAllCommands2([&commandList, &resourceName](const console::CommandMetadata& command)
+			{
+				if (command.MatchResourceName(resourceName))
+				{
+					commandList.emplace_back(command.GetName(), command.GetResourceName(), (command.GetArity() == -1) ? -1 : int32_t(command.GetArity()));
+				}
+			});
+		}
+
+		context.SetResult(fx::SerializeObject(commandList));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_INSTANCE_ID", [](fx::ScriptContext& context)
@@ -324,6 +365,12 @@ static InitFunction initFunction([] ()
 		auto keyValue = context.CheckArgument<const char*>(2);
 		auto keySize = context.GetArgument<uint32_t>(3);
 		auto replicated = context.GetArgument<bool>(4);
+
+		if (replicated && fx::g_stateBagStrictMode.GetValue())
+		{
+			fx::scripting::Warningf("natives", "StateBags can't be modified from the client, because the StateBag strict mode is enabled. Disable it using setr sv_stateBagStrictMode false\n");
+			return;
+		}
 
 		auto rm = fx::ResourceManager::GetCurrent();
 		auto sbac = rm->GetComponent<fx::StateBagComponent>();

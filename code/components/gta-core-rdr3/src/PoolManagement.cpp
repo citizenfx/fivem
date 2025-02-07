@@ -207,8 +207,10 @@ static const char* poolEntriesTable[] = {
 	"CNetObjAnimScene",
 	"CNetObjCombatDirector",
 	"CNetObjDoor",
+	"CNetObjDraftVehicle",
 	"CNetObjGroupScenario",
 	"CNetObjGuardZone",
+	"CNetObjHorse"
 	"CNetObjHerd",
 	"CNetObjIncident",
 	"CNetObjObject",
