@@ -517,6 +517,7 @@ static const char* poolEntriesTable[] = {
 	"MaxTrainScenarioPoints",
 	"MaxUnguardedRequests",
 	"MaxVisibleClothCount",
+	"MaxDoorExtensions"
 	"MetaDataStore",
 	"MotionStore",
 	"mvPageBufferSize",
