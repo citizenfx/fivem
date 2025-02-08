@@ -3555,7 +3555,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 				{
 					// Trigger an event when the entity is deleted due to creation failure
 					auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
-					evComponent->TriggerEvent2("entityCreationFailed", {}, MakeScriptHandle(entity), reason);
+					evComponent->TriggerEvent2("entityCreationFailed", {}, MakeScriptHandle(entity), reason, client->GetNetId());
 				}
 
 				data->entitiesToDestroy[entityPair] = { entity, { false, false } };
