@@ -8,124 +8,52 @@
 // of 6016 entries, once there are more AMVs than the bitset size, it starts reading/writing out-of-bounds. This causes
 // the AMVs to start blinking and can potentially crash.
 // 
-// Here we replace that bitset with a dynamic bitset resized to fit the capacity of all the AMV pools.
+// Here we increase the size of that bitset to fit the capacity of all the AMV pools.
 //
-
-static std::vector<bool> enabledAMVs[2]; // double-buffered, one for render thread and another one for update thread
-
-static void AMVInitEnabledBitset()
-{
-	const size_t totalAMVs = rage::GetPoolBase("CAmbientMaskVolume")->GetSize() +
-							 rage::GetPoolBase("CAmbientMaskVolumeDoor")->GetSize() +
-							 rage::GetPoolBase("CAmbientMaskVolumeEntity")->GetSize();
-	enabledAMVs[0].clear();
-	enabledAMVs[1].clear();
-	enabledAMVs[0].resize(totalAMVs, false);
-	enabledAMVs[1].resize(totalAMVs, false);
-}
-
-static void AMVSetEnabled(uint16_t amvIndex, bool enable, uint32_t bufferIndex)
-{
-	enabledAMVs[bufferIndex][amvIndex] = enable;
-}
-
-static bool AMVIsEnabled(uint16_t amvIndex, uint32_t bufferIndex)
-{
-	return enabledAMVs[bufferIndex][amvIndex];
-}
-
-static void AMVPresentEnabledBitset(uint32_t srcBufferIndex)
-{
-	// copy update buffer to render buffer
-	const uint32_t dstBufferIndex = 1 - srcBufferIndex;
-	enabledAMVs[dstBufferIndex] = enabledAMVs[srcBufferIndex];
-}
 
 static HookFunction hookFunction([]()
 {
-	// AMV init
+	// keep in sync with gameconfig
+	constexpr size_t CAmbientMaskVolume_PoolSize = 6686;
+	constexpr size_t CAmbientMaskVolumeDoor_PoolSize = 1850;
+	constexpr size_t CAmbientMaskVolumeEntity_PoolSize = 150;
+
+	constexpr size_t TotalAMVs = CAmbientMaskVolume_PoolSize + CAmbientMaskVolumeDoor_PoolSize + CAmbientMaskVolumeEntity_PoolSize;
+	constexpr size_t BitsetNumBlocks = TotalAMVs / 32;
+	constexpr size_t BitsetNumBytes = BitsetNumBlocks * sizeof(uint32_t);
+
+	// x2 because the bitset is double-buffered, one for render thread and another one for update thread
+	uint32_t* amvEnabledBitsetReplacement =  reinterpret_cast<uint32_t*>(hook::AllocateStubMemory(BitsetNumBytes * 2));
+	memset(amvEnabledBitsetReplacement, 0, BitsetNumBytes * 2);
+
+	// AMVInit
 	{
-		auto location = hook::get_pattern<char>("48 8D 0D ? ? ? ? E8 ? ? ? ? 8A 05 ? ? ? ? 84 C0 75 ? 49 8B CC");
-		hook::nop(location, 12);
-		hook::call_rcx(location, AMVInitEnabledBitset);
+		auto location = hook::get_pattern<uint8_t>("41 B8 ? ? ? ? 44 89 25");
+		hook::put<int32_t>(location + 2, BitsetNumBytes * 2);
+		hook::put<int32_t>(location + 0x10, (intptr_t)amvEnabledBitsetReplacement - (intptr_t)location - 0x10 - 4);
 	}
 
-	// AMV set enabled
+	// AMVIsEnabled
 	{
-		static struct : jitasm::Frontend
-		{
-			void InternalMain() override
-			{
-				//  eax = buffer index
-				//   cx = AMV index
-				// r10b = enable
-
-				sub(rsp, 0x28);
-				
-				// cx already correct
-				mov(dl, r10b);
-				mov(r8d, eax);
-				mov(rax, reinterpret_cast<uintptr_t>(AMVSetEnabled));
-				call(rax);
-
-				add(rsp, 0x28);
-
-				ret();
-			}
-		} amvSetEnabledStub;
-
-		auto location = hook::get_pattern<char>("4C 69 C0 ? ? ? ? 0F B7 C9");
-		hook::jump_rdx(location, amvSetEnabledStub.GetCode());
+		
+		auto location = hook::get_pattern<uint8_t>("48 69 C8 ? ? ? ? 44 8B C2");
+		hook::put<int32_t>(location + 3, BitsetNumBlocks);
+		hook::put<int32_t>(location + 0xD, (intptr_t)amvEnabledBitsetReplacement - (intptr_t)location - 0xD - 4);
 	}
 
-	// AMV is enabled
+	// AMVSetEnabled
 	{
-		static struct : jitasm::Frontend
-		{
-			void InternalMain() override
-			{
-				// eax = buffer index
-				//  cx = AMV index
-
-				sub(rsp, 0x28);
-
-				// cx already correct
-				mov(edx, eax);
-				mov(rax, reinterpret_cast<uintptr_t>(AMVIsEnabled));
-				call(rax);
-
-				add(rsp, 0x28);
-
-				ret();
-			}
-		} amvIsEnabledStub;
-
-		auto location = hook::get_pattern<char>("0F B7 D1 48 69 C8");
-		hook::jump_rdx(location, amvIsEnabledStub.GetCode());
+		auto location = hook::get_pattern<uint8_t>("4C 69 C0 ? ? ? ? 0F B7 C9");
+		hook::put<int32_t>(location + 3, BitsetNumBytes);
+		hook::put<int32_t>(location + 0xD, (intptr_t)amvEnabledBitsetReplacement - (intptr_t)location - 0xD - 4);
 	}
 
-	// AMV present buffer
+	// AMVPresentBuffer
 	{
-		static struct : jitasm::Frontend
-		{
-			void InternalMain() override
-			{
-				// r10d = source buffer index
-				
-				sub(rsp, 0x20);
-
-				mov(ecx, r10d);
-				mov(rax, reinterpret_cast<uintptr_t>(AMVPresentEnabledBitset));
-				call(rax);
-
-				add(rsp, 0x20);
-
-				ret();
-			}
-		} amvPresentBufferStub;
-
-		auto location = hook::get_pattern<char>("41 8B C2 45 2B C1 48 69 D0");
-		hook::nop(location, 0xAD);
-		hook::call(location, amvPresentBufferStub.GetCode());
+		auto location = hook::get_pattern<uint8_t>("48 69 D0 ? ? ? ? 41 8B C0");
+		hook::put<int32_t>(location + 3, BitsetNumBytes);
+		hook::put<int32_t>(location + 0x14, BitsetNumBytes);
+		hook::put<int32_t>(location + 0x19, BitsetNumBlocks / 32); // number of iterations, each one processes 32 blocks
+		hook::put<int32_t>(location + 0xD, (intptr_t)amvEnabledBitsetReplacement - (intptr_t)location - 0xD - 4);
 	}
 });

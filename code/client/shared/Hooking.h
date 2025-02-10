@@ -719,12 +719,6 @@ inline void jump_rcx(AT address, T func)
 	jump_reg<1>(address, func);
 }
 
-template<typename T, typename AT>
-inline void jump_rdx(AT address, T func)
-{
-	jump_reg<2>(address, func);
-}
-
 template<int Register, typename T, typename AT>
 inline std::enable_if_t<(Register < 8 && Register >= 0)> call_reg(AT address, T func)
 {
