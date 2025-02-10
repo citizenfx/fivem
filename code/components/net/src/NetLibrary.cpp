@@ -1868,7 +1868,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					int buildRef = 0;
 
 					// Special build 1 with all DLCs turned off can not be achieved by replacing the executable. There is no executable for that build.
-					bool replaceExecutable = info["vars"].value("sv_replaceExeToSwitchBuilds", "true") != std::string("false") && val != std::string("1");
+					bool replaceExecutable = info["vars"].value("sv_replaceExeToSwitchBuilds", "false") != std::string("false") && val != std::string("1");
 
 					if (!val.empty())
 					{
@@ -1912,7 +1912,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #if defined(GTA_FIVE)
 					if (buildRef == 0 && xbr::GetRequestedGameBuild() != xbr::GetDefaultGameBuild())
 					{
-						OnRequestBuildSwitch(xbr::GetDefaultGameBuild(), 0, L"", true);
+						OnRequestBuildSwitch(xbr::GetDefaultGameBuild(), 0, L"", false);
 						m_connectionState = CS_IDLE;
 						return;
 					}
