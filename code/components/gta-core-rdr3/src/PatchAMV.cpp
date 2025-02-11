@@ -19,7 +19,14 @@ static HookFunction hookFunction([]()
 	constexpr size_t CAmbientMaskVolumeEntity_PoolSize = 150;
 
 	constexpr size_t TotalAMVs = CAmbientMaskVolume_PoolSize + CAmbientMaskVolumeDoor_PoolSize + CAmbientMaskVolumeEntity_PoolSize;
-	constexpr size_t BitsetNumBlocks = TotalAMVs / 32;
+
+	// Due to how AMVPresentBuffer is compiled, the number of blocks needs to match the form (N*32+28). AMVPresentBuffer copies the bitset
+	// from update thread to the render thread bitset. The copy loop is vectorized to copy 32 blocks per iteration, then has an epilogue to
+	// copy the remaining 28 blocks, which works out for the original 188 blocks. When resizing the bitset we need to pad the number of blocks
+	// so it doesn't read/write out-of-bounds.
+	constexpr size_t BitsetNumBlocksNoPadding = (TotalAMVs + 31) / 32; // minimum number of 32-bit blocks needed by the AMVs
+	constexpr size_t BitsetPresentCopyNumIterations = (BitsetNumBlocksNoPadding - 28 + 31) / 32; // smallest N such that (N*32+28) >= BitsetNumBlocksNoPadding
+	constexpr size_t BitsetNumBlocks = BitsetPresentCopyNumIterations * 32 + 28;
 	constexpr size_t BitsetNumBytes = BitsetNumBlocks * sizeof(uint32_t);
 
 	// x2 because the bitset is double-buffered, one for render thread and another one for update thread
@@ -53,7 +60,7 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern<uint8_t>("48 69 D0 ? ? ? ? 41 8B C0");
 		hook::put<int32_t>(location + 3, BitsetNumBytes);
 		hook::put<int32_t>(location + 0x14, BitsetNumBytes);
-		hook::put<int32_t>(location + 0x19, BitsetNumBlocks / 32); // number of iterations, each one processes 32 blocks
+		hook::put<int32_t>(location + 0x19, BitsetPresentCopyNumIterations);
 		hook::put<int32_t>(location + 0xD, (intptr_t)amvEnabledBitsetReplacement - (intptr_t)location - 0xD - 4);
 	}
 });
