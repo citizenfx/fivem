@@ -5747,12 +5747,11 @@ struct CNetworkPtFXEvent
 
 struct CRequestNetworkSyncedSceneEvent
 {
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 	}
 
 	inline std::string GetName()
@@ -5839,7 +5838,7 @@ private:
 	};
 
 public:
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 	uint32_t startTime;
 
 	bool isActive;
@@ -5873,9 +5872,7 @@ public:
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Synced scene IDs are 13 bits in length, but since it's not an object ID, it's conflicting
-		// with our length-hack logic... We're working around this issue by reading these 13 bits in two parts.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 
 		startTime = buffer.Read<uint32_t>(32);
 
@@ -5958,13 +5955,12 @@ public:
 
 struct CUpdateNetworkSyncedSceneEvent
 {
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 	float rate;
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 
 		rate = (buffer.Read<uint8_t>(8) / 255.0f) * 2.0f;
 	}
@@ -5979,12 +5975,11 @@ struct CUpdateNetworkSyncedSceneEvent
 
 struct CStopNetworkSyncedSceneEvent
 {
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 	}
 
 	inline std::string GetName()
