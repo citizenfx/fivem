@@ -38,9 +38,6 @@
 [submodule "vendor/rapidjson"]
 	path = vendor/rapidjson
 	url = https://github.com/miloyip/rapidjson.git
-[submodule "vendor/libuv"]
-	path = vendor/libuv
-	url = https://github.com/citizenfx/libuv.git
 [submodule "vendor/fmtlib"]
 	path = vendor/fmtlib
 	url = https://github.com/fmtlib/fmt.git
@@ -56,9 +53,6 @@
 [submodule "vendor/tbb"]
 	path = vendor/tbb
 	url = https://github.com/citizenfx/oneTBB.git
-[submodule "vendor/cpprestsdk"]
-	path = vendor/cpprestsdk
-	url = https://github.com/Microsoft/cpprestsdk.git
 [submodule "vendor/discord-rpc"]
 	path = vendor/discord-rpc
 	url = https://github.com/citizenfx/discord-rpc.git
@@ -457,6 +451,12 @@
 [submodule "vendor/boost-submodules/boost-static-string"]
 	path = vendor/boost-submodules/boost-static-string
 	url = https://github.com/boostorg/static_string.git
+[submodule "vendor/libnode/node"]
+	path = vendor/libnode/node
+	url = https://github.com/nodejs/node.git
+[submodule "vendor/v8/12.4/source"]
+	path = vendor/v8/12.4/source
+	url = https://github.com/v8/v8.git
 [submodule "vendor/AntiLag2-SDK"]
 	path = vendor/AntiLag2-SDK
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/AntiLag2-SDK

@@ -1,7 +1,8 @@
 local baseURL = 'https://content.cfx.re/mirrors'
 
 local version = ...
-local baseVersion = version:match('%d+%.%d+')
+local majorVersion, minorVersion = version:match("^(%d+)%.(%d+)")
+local baseVersion = ('%s.%s'):format(majorVersion, minorVersion)
 
 return {
 	include = function()

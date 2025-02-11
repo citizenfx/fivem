@@ -1,7 +1,10 @@
 local isNode = ...
 
 return function()
-	defines { 'V8_VERSION=93' }
+	filter {}
+	defines { 
+		'V8_9_3'
+	}
 	add_dependencies { 'vendor:v8-93' }
 
 	if os.istarget('windows') then
