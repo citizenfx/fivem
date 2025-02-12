@@ -478,7 +478,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 	{
 		lastProfile = json;
 
-		auto baseUrl = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("web_baseUrl");
+		auto baseUrl = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("sv_listingIPOverride");
 			
 		if (baseUrl)
 		{
