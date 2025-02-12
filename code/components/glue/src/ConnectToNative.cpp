@@ -152,6 +152,8 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 		SaveBuildNumber(xbr::GetDefaultGameBuild());
 	}
 
+	SaveBuildNumber(build);
+
 	SavePureLevel(pureLevel);
 
 	SaveGameSettings(poolSizesIncreaseSetting, replaceExecutable);
