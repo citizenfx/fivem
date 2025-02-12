@@ -86,9 +86,7 @@ static std::unordered_map<uint64_t, int> g_nativeBlockedBeforeBuild = {
 	// Natives that were introduces after a certain build and are closely coupled with the DLC content.
 	// When running new game executable with old DLC set - we have to explicitly disable these natives.
 
-	{0x5E1460624D194A38, 2189}, // SET_USE_ISLAND_MAP
-	{0x7E3F55ED251B76D3, 2189}, // _LOAD_GLOBAL_WATER_TYPE
-	{0x9A9D1BA639675CF1, 2189} // SET_ISLAND_ENABLED
+	{0x5E1460624D194A38, 2189} // SET_USE_ISLAND_MAP
 };
 
 fwEvent<> rage::scrEngine::OnScriptInit;
