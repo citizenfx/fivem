@@ -146,6 +146,7 @@ static const char* poolEntriesTable[] = {
 	"CDecalExtensionComponent",
 	"CDefaultCrimeInfo",
 	"CDogItem",
+	"CDoorExtension",
 	"CDynamicEntityAnimationComponent",
 	"CEmotionalLocoHelper",
 	"CEntityGameInfoComponent",
