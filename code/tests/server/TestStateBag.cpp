@@ -11,6 +11,8 @@
 #include "ConsoleContextInstance.h"
 #include "ENetPacketInstance.h"
 #include "ResourceManagerInstance.h"
+#include "state/ServerGameStatePublic.h"
+#include "ServerGameStatePublicInstance.h"
 #include "ServerInstance.h"
 #include "TestUtils.h"
 #include "packethandlers/StateBagPacketHandler.h"
@@ -196,6 +198,8 @@ TEST_CASE("State Bag handler v2 test")
 	serverInstance->SetComponent<fx::ResourceManager>(resourceManager);
 	resourceManager->SetComponent<fx::StateBagComponent>(stateBagComponentCreateOldDataServer);
 	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
+	fwRefContainer<fx::ServerGameStatePublic> serverGameState = fx::ServerGameStatePublicInstance::Create();
+	serverInstance->SetComponent(serverGameState);
 
 	testInterfaceNewData->Reset();
 
@@ -243,6 +247,8 @@ TEST_CASE("State Bag handler v1 test")
 	serverInstance->SetComponent<fx::ResourceManager>(resourceManager);
 	resourceManager->SetComponent<fx::StateBagComponent>(stateBagComponentCreateOldDataServer);
 	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
+	fwRefContainer<fx::ServerGameStatePublic> serverGameState = fx::ServerGameStatePublicInstance::Create();
+	serverInstance->SetComponent(serverGameState);
 
 	testInterfaceOldData->Reset();
 
