@@ -52,7 +52,7 @@ bool GetReplaceExecutableInit()
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
-		replaceExecutable = (GetPrivateProfileInt(L"Game", L"ReplaceExecutable", 0, fpath.c_str()) != 0);
+		replaceExecutable = (GetPrivateProfileInt(L"Game", L"ReplaceExecutable", 1, fpath.c_str()) != 0);
 	}
 
 	return replaceExecutable;
