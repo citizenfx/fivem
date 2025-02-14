@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "SerializableComponent.h"
 #include "SerializableProperty.h"
@@ -15,7 +15,7 @@ class ClientMumbleMessage : public SerializableComponent
 public:
 	// voip-server-mumble/src/messages.h:messageType_t
 	SerializableProperty<uint16_t, void, true, true> type;
-	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedBigBytesArray<0, 8192>, true, true> data;
+	SerializableProperty<Span<uint8_t>, storage_type::ConstrainedBigBytesArray<1, 8192>, true, true> data;
 
 	template<typename T>
 	SerializableResult Process(T& stream)
