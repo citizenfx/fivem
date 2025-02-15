@@ -1912,7 +1912,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #if defined(GTA_FIVE)
 					if (buildRef == 0 && xbr::GetRequestedGameBuild() != xbr::GetDefaultGameBuild())
 					{
-						OnRequestBuildSwitch(xbr::GetDefaultGameBuild(), 0, L"", true);
+						OnRequestBuildSwitch(xbr::GetDefaultGameBuild(), 0, L"", replaceExecutable);
 						m_connectionState = CS_IDLE;
 						return;
 					}
