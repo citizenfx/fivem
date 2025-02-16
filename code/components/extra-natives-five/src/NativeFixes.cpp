@@ -19,6 +19,7 @@
 #include "Resource.h"
 #include "ScriptWarnings.h"
 #include <Train.h>
+#include <CrashFixes.FakeParachuteProp.h>
 #include "ropeManager.h"
 
 static void BlockForbiddenNatives()
@@ -638,6 +639,52 @@ static void FixSetHeliRotorHealth()
 	SetHeliRotorHealthHandler(nativeHash2, CHeli_BreakOffTailRotor);
 }
 
+static void FixSetPlayerParachuteModelOverride()
+{
+	// Make SET_PLAYER_PARACHUTE_MODEL_OVERRIDE() use a whitelist of model hashes.
+	// This prevents a vulnerability that could cause a client to crash.
+
+	constexpr const uint64_t nativeHash = 0x977DB4641F6FC3DB; // SET_PLAYER_PARACHUTE_MODEL_OVERRIDE
+
+	const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	if (!handler)
+	{
+		return;
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	{
+		uint32_t modelHash = ctx.GetArgument<uint32_t>(1);
+		if (IsParachuteModelAuthorized(modelHash))
+		{
+			handler(ctx);
+		}
+	});
+}
+
+static void FixSetPlayerParachutePackModelOverride()
+{
+	// Make SET_PLAYER_PARACHUTE_PACK_MODEL_OVERRIDE() use a whitelist of model hashes.
+	// This prevents a vulnerability that could cause a client to crash.
+
+	constexpr const uint64_t nativeHash = 0xDC80A4C2F18A2B64; // SET_PLAYER_PARACHUTE_PACK_MODEL_OVERRIDE
+
+	const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	if (!handler)
+	{
+		return;
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	{
+		uint32_t modelHash = ctx.GetArgument<uint32_t>(1);
+		if (IsParachutePackModelAuthorized(modelHash))
+		{
+			handler(ctx);
+		}
+	});
+}
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
@@ -691,6 +738,9 @@ static HookFunction hookFunction([]()
 		FixAddRopeNative();
 
 		FixSetHeliRotorHealth();
+
+		FixSetPlayerParachuteModelOverride();
+		FixSetPlayerParachutePackModelOverride();
 
 		if (xbr::IsGameBuildOrGreater<2612>())
 		{

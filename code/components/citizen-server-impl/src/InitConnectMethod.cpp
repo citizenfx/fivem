@@ -403,8 +403,8 @@ static InitFunction initFunction([]()
 		g_enforcedGameBuild = xbr::GetDefaultGTA5BuildString();
 		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, xbr::GetDefaultGTA5BuildString(), &g_enforcedGameBuild);
 
-		g_replaceExecutable = true;
-		auto replaceExecutableVar = instance->AddVariable<bool>("sv_replaceExeToSwitchBuilds", ConVar_ReadOnly | ConVar_ServerInfo, true, &g_replaceExecutable);
+		g_replaceExecutable = false;
+		auto replaceExecutableVar = instance->AddVariable<bool>("sv_replaceExeToSwitchBuilds", ConVar_ReadOnly | ConVar_ServerInfo, false, &g_replaceExecutable);
 
 		auto poolSizesIncrease = std::make_shared<std::unordered_map<std::string, uint32_t>>();
 		auto poolSizesIncreaseVar = instance->AddVariable<std::string>("sv_poolSizesIncrease", ConVar_ServerInfo | ConVar_Internal, "");
