@@ -105,7 +105,8 @@ namespace fx
 			return peer->roundTripTime;
 		}
 
-		virtual int GetPingVariance() override
+		// Used by the scripting API to get useful statistics
+		virtual uint32_t GetENetStatistics(ENetPeerStatistics statisticType)
 		{
 			auto peer = GetPeer();
 
@@ -114,7 +115,29 @@ namespace fx
 				return 0;
 			}
 
-			return peer->roundTripTimeVariance;
+			switch (statisticType)
+			{
+				case PacketLoss:
+					return peer->packetLoss;
+				case PacketLossVariance:
+					return peer->packetLossVariance;
+				case PacketLossEpoch:
+					return peer->packetLossEpoch;
+				case RoundTripTime:
+					return peer->roundTripTime;
+				case RoundTripTimeVariance:
+					return peer->roundTripTimeVariance;
+				case LastRoundTripTime:
+					return peer->lastRoundTripTime;
+				case LastRoundTripTimeVariance:
+					return peer->lastRoundTripTimeVariance;
+				case PacketThrottleEpoch:
+					return peer->packetThrottleEpoch;
+				case PacketsSent:
+					return peer->packetsSent;
+				default:
+					return 0;
+			}
 		}
 
 		virtual net::PeerAddress GetAddress() override
