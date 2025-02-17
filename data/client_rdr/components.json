@@ -29,6 +29,7 @@
 	"citizen:scripting:mono-v2",
 	"citizen:scripting:v8client",
 	"citizen:scripting:v8node",
+	"citizen:scripting:v8-v12.4",
 	"gta:core:rdr3",
 	"http-client",
 	"pool-sizes-state",

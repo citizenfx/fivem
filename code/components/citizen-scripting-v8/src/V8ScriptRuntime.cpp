@@ -2023,12 +2023,32 @@ int V8ScriptRuntime::GetInstanceId()
 
 int32_t V8ScriptRuntime::HandlesFile(char* fileName, IScriptHostWithResourceData* metadata)
 {
+#ifdef V8_12_2
+	constexpr bool isInLegacyRuntime = false;
+#else
+	constexpr bool isInLegacyRuntime = true;
+#endif
 	if (!UseThis())
 	{
 		return false;
 	}
 
-	return strstr(fileName, ".js") != 0;
+	const auto isJS = strstr(fileName, ".js");
+	if (!isJS)
+	{
+		return false;
+	}
+
+	char* versionStr = "16";
+	metadata->GetResourceMetaData("node_version", 0, &versionStr);
+
+	const bool useLegacyRuntime = !strcmp("16", versionStr);
+
+	if (useLegacyRuntime == isInLegacyRuntime)
+	{
+		return true;
+	}
+	return false;
 }
 
 struct FakeScope
@@ -2278,6 +2298,17 @@ static thread_local std::stack<std::unique_ptr<BasePushEnvironment>> g_envStack;
 
 void V8ScriptGlobals::Initialize()
 {
+#ifdef V8_NODE
+	for (int i = 0; i < g_argc; ++i)
+	{
+		// Don't initialize anything if started in --start-node mode with Node20
+		if (strcmp(g_argv[i], "--fork-node22") == 0)
+		{
+			return;
+		}
+	}
+#endif
+
 	if (m_inited)
 	{
 		return;
@@ -2291,6 +2322,8 @@ void V8ScriptGlobals::Initialize()
 		return;
 	}
 
+// We don't need snapshots for new V8 because it's embedded
+#ifndef V8_12_2
 #ifdef _WIN32
 	// initialize startup data
 	auto readBlob = [=](const std::wstring& name, std::vector<char>& outBlob)
@@ -2330,6 +2363,7 @@ void V8ScriptGlobals::Initialize()
 		fclose(f);
 	};
 
+
 	readBlob(L"snapshot_blob.bin", m_snapshotBlob);
 
 	static StartupData snapshotBlob;
@@ -2337,6 +2371,7 @@ void V8ScriptGlobals::Initialize()
 	snapshotBlob.raw_size = m_snapshotBlob.size();
 
 	V8::SetSnapshotDataBlob(&snapshotBlob);
+#endif
 
 #endif
 
@@ -2347,6 +2382,11 @@ void V8ScriptGlobals::Initialize()
 	if (UseNode())
 	{
 		bool isStartNode = (g_argc >= 2 && strcmp(g_argv[1], "--start-node") == 0);
+		if(isStartNode && g_argc > 2 && strcmp(g_argv[2], "--fork-node22") == 0)
+		{
+			isStartNode = false;
+		}
+
 		bool isFxNode = (g_argc >= 1 && strstr(g_argv[0], "FXNode.exe") != nullptr);
 
 		if (isStartNode || isFxNode)
@@ -2456,12 +2496,15 @@ void V8ScriptGlobals::Initialize()
 	const char* flags = "--turbo-inline-js-wasm-calls --expose_gc --harmony-top-level-await";
 	V8::SetFlagsFromString(flags, strlen(flags));
 
+//icudtl.dat also embedded in our V8 12.2
+#ifndef V8_12_2
 	auto icuDataPath = MakeRelativeCitPath(fmt::sprintf(_P("citizen/scripting/v8/%d.%d/icudtl.dat"), V8_MAJOR_VERSION, V8_MINOR_VERSION));
 
 #ifdef _WIN32
 	V8::InitializeICUDefaultLocation(ToNarrow(MakeRelativeCitPath(L"dummy")).c_str(), ToNarrow(icuDataPath).c_str());
 #else
 	V8::InitializeICU(icuDataPath.c_str());
+#endif
 #endif
 
 	// initialize global V8
@@ -2516,7 +2559,11 @@ void V8ScriptGlobals::Initialize()
 	m_isolate->SetPromiseRejectCallback([](PromiseRejectMessage message)
 	{
 		Local<Promise> promise = message.GetPromise();
+#ifndef V8_12_2
 		Local<Context> context = promise->CreationContext();
+#else
+		Local<Context> context = promise->GetCreationContext().ToLocalChecked();
+#endif
 
 		auto embedderData = context->GetEmbedderData(16);
 
@@ -2529,6 +2576,7 @@ void V8ScriptGlobals::Initialize()
 		auto scRT = reinterpret_cast<V8ScriptRuntime*>(external->Value());
 
 		scRT->HandlePromiseRejection(message);
+
 	});
 #else
 	m_isolate->SetPromiseRejectCallback(node::PromiseRejectCallback);
@@ -2643,6 +2691,8 @@ static int uv_exepath_custom(char*, int)
 	return -1;
 }
 
+
+#ifndef V8_12_2
 static decltype(&fopen) g_origFopen;
 
 static FILE* fopen_wrap(const char* name, const char* mode)
@@ -2656,6 +2706,7 @@ static FILE* fopen_wrap(const char* name, const char* mode)
 
 	return g_origFopen(name, mode);
 }
+#endif
 
 static decltype(&uv_spawn) uv_spawn_orig;
 
@@ -2681,10 +2732,12 @@ void Component_RunPreInit()
 	MH_CreateHook(sp, uv_spawn_custom, (void**)&uv_spawn_orig);
 	MH_EnableHook(sp);
 
+#ifndef V8_12_2
 	// fopen utf-8 bugfix (for icudt?.dat)
 	auto fopen_ep = GetProcAddress(GetModuleHandleW(L"ucrtbase.dll"), "fopen");
 	MH_CreateHook(fopen_ep, fopen_wrap, (void**)&g_origFopen);
 	MH_EnableHook(fopen_ep);
+#endif
 
 	fx::g_v8.Initialize();
 }
@@ -2758,12 +2811,14 @@ V8ScriptGlobals::~V8ScriptGlobals()
 
 #ifndef V8_NODE
 // {9C26844A-7AF4-4A3B-995A-3B1692E958AC}
-FX_DEFINE_GUID(CLSID_V8ScriptRuntime,
-	0x9c26844A, 0x7af4, 0x4a3b, 0x99, 0x5a, 0x3b, 0x16, 0x92, 0xe9, 0x58, 0xac);
+#ifdef V8_12_2
+FX_DEFINE_GUID(CLSID_V8ScriptRuntime, 0x9c26844A, 0x7af4, 0x4a3b, 0x99, 0x5a, 0x3b, 0x16, 0x92, 0xe9, 0x58, 0xad);
+#else
+FX_DEFINE_GUID(CLSID_V8ScriptRuntime, 0x9c26844A, 0x7af4, 0x4a3b, 0x99, 0x5a, 0x3b, 0x16, 0x92, 0xe9, 0x58, 0xac);
+#endif
 #else
 // {9C26844B-7AF4-4A3B-995A-3B1692E958AC}
-FX_DEFINE_GUID(CLSID_V8ScriptRuntime,
-	0x9c26844B, 0x7af4, 0x4a3b, 0x99, 0x5a, 0x3b, 0x16, 0x92, 0xe9, 0x58, 0xac);
+FX_DEFINE_GUID(CLSID_V8ScriptRuntime, 0x9c26844B, 0x7af4, 0x4a3b, 0x99, 0x5a, 0x3b, 0x16, 0x92, 0xe9, 0x58, 0xac);
 #endif
 
 
