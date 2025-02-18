@@ -276,11 +276,11 @@ TEST_CASE("read tcp stream")
 	GIVEN("three mumble message")
 	{
 		REQUIRE(net::SerializableComponent::GetMaxSize<net::packet::ClientMumbleMessage>() == 2 + 4 + 8192);
-		REQUIRE(net::SerializableComponent::GetMinSize<net::packet::ClientMumbleMessage>() == 2 + 4);
+		REQUIRE(net::SerializableComponent::GetMinSize<net::packet::ClientMumbleMessage>() == 2 + 4 + 1);
 		std::vector<uint8_t> receiveBuffer(net::SerializableComponent::GetMaxSize<net::packet::ClientMumbleMessage>() * 10);
-		std::vector<uint8_t> clientData1(GENERATE(8192, 0));
-		std::vector<uint8_t> clientData2(GENERATE(8192, 0));
-		std::vector<uint8_t> clientData3(GENERATE(8192, 0));
+		std::vector<uint8_t> clientData1(GENERATE(8192, 1));
+		std::vector<uint8_t> clientData2(GENERATE(8192, 1));
+		std::vector<uint8_t> clientData3(GENERATE(8192, 01));
 		uint8_t clientType1 = fx::TestUtils::u64Random(UINT8_MAX);
 		uint8_t clientType2 = fx::TestUtils::u64Random(UINT8_MAX);
 		uint8_t clientType3 = fx::TestUtils::u64Random(UINT8_MAX);
@@ -323,14 +323,7 @@ TEST_CASE("read tcp stream")
 
 			REQUIRE(res == true);
 			// when the 3th data is empty the + 6 allows reading it fully
-			if (!clientData3.empty())
-			{
-				REQUIRE(receivedMessages.size() == 2);
-			}
-			else
-			{
-				REQUIRE(receivedMessages.size() == 3);
-			}
+			REQUIRE(receivedMessages.size() == 2);
 
 			REQUIRE(receivedMessages[0].type.GetValue() == clientType1);
 			REQUIRE(receivedMessages[1].type.GetValue() == clientType2);
@@ -338,31 +331,29 @@ TEST_CASE("read tcp stream")
 			REQUIRE(receivedMessages[1].data.GetValue() == net::Span<uint8_t>(clientData2.data(), clientData2.size()));
 			receivedMessages.clear();
 			// remaining data,if data is not empty
-			if (!clientData3.empty())
+			
+			REQUIRE(clientData3.empty() == false);
+			REQUIRE(offsetAfter - offsetBefore == clientData3.size() + 6);
+			REQUIRE(streamByteReader.GetRemainingDataSize() == 6);
+
+			receiveBufferSpan = { receiveBuffer.data() + writer.GetOffset(), offsetAfter - offsetBefore - 6 };
+			REQUIRE(receiveBufferSpan.size() == clientData3.size());
+			REQUIRE(*reinterpret_cast<const uint16_t*>(streamByteReader.GetData()) == net::ntohs(clientType3));
+			REQUIRE(*reinterpret_cast<const uint32_t*>(streamByteReader.GetData() + 2) == net::ntohl(clientData3.size()));
+			res = streamByteReader.Push<net::packet::ClientMumbleMessage>(receiveBufferSpan, [&](net::packet::ClientMumbleMessage& clientMumbleMessage)
 			{
-				REQUIRE(clientData3.empty() == false);
-				REQUIRE(offsetAfter - offsetBefore == clientData3.size() + 6);
-				REQUIRE(streamByteReader.GetRemainingDataSize() == 6);
+				receivedMessages.push_back(clientMumbleMessage);
+			});
 
-				receiveBufferSpan = { receiveBuffer.data() + writer.GetOffset(), offsetAfter - offsetBefore - 6 };
-				REQUIRE(receiveBufferSpan.size() == clientData3.size());
-				REQUIRE(*reinterpret_cast<const uint16_t*>(streamByteReader.GetData()) == net::ntohs(clientType3));
-				REQUIRE(*reinterpret_cast<const uint32_t*>(streamByteReader.GetData() + 2) == net::ntohl(clientData3.size()));
-				res = streamByteReader.Push<net::packet::ClientMumbleMessage>(receiveBufferSpan, [&](net::packet::ClientMumbleMessage& clientMumbleMessage)
-				{
-					receivedMessages.push_back(clientMumbleMessage);
-				});
-
-				REQUIRE(res == true);
-				REQUIRE(receivedMessages.size() == 1);
-				REQUIRE(receivedMessages[0].type.GetValue() == clientType3);
-				REQUIRE(receivedMessages[0].data.GetValue() == net::Span{clientData3.data(), clientData3.size()});
-				REQUIRE(streamByteReader.GetRemainingDataSize() == 0);
-				REQUIRE(receiveBufferSpan.size() == 0);
-				// ensure data is within the same buffer
-				REQUIRE(*(uint16_t*)(receivedMessages[0].data.GetValue().data() - 6) == net::htons(clientType3));
-				REQUIRE(*(uint32_t*)(receivedMessages[0].data.GetValue().data() - 4) == net::htonl(clientData3.size()));
-			}
+			REQUIRE(res == true);
+			REQUIRE(receivedMessages.size() == 1);
+			REQUIRE(receivedMessages[0].type.GetValue() == clientType3);
+			REQUIRE(receivedMessages[0].data.GetValue() == net::Span{clientData3.data(), clientData3.size()});
+			REQUIRE(streamByteReader.GetRemainingDataSize() == 0);
+			REQUIRE(receiveBufferSpan.size() == 0);
+			// ensure data is within the same buffer
+			REQUIRE(*(uint16_t*)(receivedMessages[0].data.GetValue().data() - 6) == net::htons(clientType3));
+			REQUIRE(*(uint32_t*)(receivedMessages[0].data.GetValue().data() - 4) == net::htonl(clientData3.size()));
 		}
 	}
 	GIVEN("too large message")
@@ -389,15 +380,8 @@ TEST_CASE("read tcp stream")
 		{
 			net::packet::ClientMumbleMessage& clientMumbleMessage = receivedMessages.emplace_back();
 			clientMumbleMessage.type.SetValue(fx::TestUtils::u64Random(UINT16_MAX - 1));
-			const uint32_t size = fx::TestUtils::u64Random(8192);
-			if (size > 0)
-			{
-				clientMumbleMessage.data.SetValue({ receiveBuffer.data() + 6 + writer.GetOffset(), size });
-			}
-			else
-			{
-				clientMumbleMessage.data.SetValue({ nullptr, 0 });
-			}
+			const uint32_t size = fx::TestUtils::u64Random(8191) + 1;
+			clientMumbleMessage.data.SetValue({ receiveBuffer.data() + 6 + writer.GetOffset(), size });
 
 			REQUIRE(clientMumbleMessage.Process(writer) == net::SerializableResult::Success);
 		}

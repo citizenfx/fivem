@@ -338,7 +338,7 @@ int GetField(lua_State* L, const char* key, int d)
 	return res;
 }
 
-const char* CheckTimeOption (lua_State* L, const char* conv, ptrdiff_t convlen, char* buff)
+const char* CheckTimeOption(lua_State* L, const char* conv, ptrdiff_t convlen, char* buff)
 {
 	const char* option = LUA_STRFTIMEOPTIONS;
 	int oplen = 1;  /* length of options being checked */
@@ -402,13 +402,19 @@ int LuaOSDate(lua_State* L)
 		return 1;
 	}
 
-	char cc[4];  /* buffer for individual conversion specifiers */
+	char cc[4] {};  /* buffer for individual conversion specifiers */
 	luaL_Buffer b;
 	cc[0] = '%';
 	luaL_buffinit(L, &b);
 	const char *se = s + slen;  /* 's' end */
 	while (s < se)
 	{
+		/* null terminator ends string */
+		if (*s == '\0')
+		{
+			break;
+		}
+
 		/* not a conversion specifier? */
 		if (*s != '%')
 		{
@@ -420,10 +426,11 @@ int LuaOSDate(lua_State* L)
 			s++;  /* skip '%' */
 			if (s == se)
 			{
+				// % last symbol
 				break;
 			}
 
-			s = CheckTimeOption(L, s, se - s, cc + 1);  /* copy specifier to 'cc' */
+			s = CheckTimeOption(L, s, se - s, &cc[1]);  /* copy specifier to 'cc' */
 			size_t resLen = strftime(buff, SIZETIMEFMT, cc, stm);
 			luaL_addsize(&b, resLen);
 		}
