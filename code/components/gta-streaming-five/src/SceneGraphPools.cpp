@@ -111,13 +111,16 @@ static HookFunction hookFunction([]()
 	hook::put<uint32_t>((char*)clearVisDataLocation + 20, sceneNodeCount * 4);
 
 	// Change pool size of FIRST_ROOM_SCENE_NODE_INDEX
-	
 	std::initializer_list<PatternPair> roomSceneNodeIndexLocations = {
-		{ "41 BC ? ? ? ? 0F BA E0 ? 73 ? 0F BA E0", 2 }, // AddVisibility
-		{ "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 41 BB", 61 } // ProcessEntityContainer
+		{ "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 56 48 83 EC ? 4C 8B 91", 77 }, // AddVisibility
+		{ "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 41 BB", 61 }, // ProcessEntityContainer
+		{ "0F B7 42 ? 41 B8 ? ? ? ? 33 D2", 6 } // GetGbufScreenQuadPair
 	};
 	for(auto& entry : roomSceneNodeIndexLocations)
 	{
-		hook::put<uint32_t>(hook::get_pattern(entry.pattern, entry.offset), 1151);
+		hook::put<uint32_t>(hook::get_pattern(entry.pattern, entry.offset),
+			pools[eSceneGraphPool::FW_EXTERIOR_SCENE_GRAPH_NODE].poolSize +
+			pools[eSceneGraphPool::FW_STREAMED_SCENE_GRAPH_NODE].poolSize +
+			pools[eSceneGraphPool::FW_INTERIOR_SCENE_GRAPH_NODE].poolSize - 1);
 	}
 });
