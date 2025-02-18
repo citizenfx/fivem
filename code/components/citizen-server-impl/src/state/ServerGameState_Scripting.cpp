@@ -1713,7 +1713,7 @@ static void Init()
 				break;
 			case 1:
 				resultVec.x = camData->freeCamPosX;
-				resultVec.y = camData->freeCamPosX;
+				resultVec.y = camData->freeCamPosY;
 				resultVec.z = camData->freeCamPosZ;
 				break;
 			case 2:

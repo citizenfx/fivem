@@ -88,10 +88,16 @@ int utf8main(int argc, char* argv[])
 }
 
 #ifdef _WIN32
+#include <io.h>
+#include <fcntl.h>
+
 // Supplementary wmain procedure for Windows builds, this is needed to receive non-ANSI characters in argv[]
 // Standard main(int argc, char* argv[]) treats input as ANSI instead of UTF8, turning non-ANSI characters into '?'
 int wmain(int argc, wchar_t* argv[])
 {
+	// reserve FD3 for txAdmin
+	_open("nul", _O_WRONLY);
+
 	static std::vector<std::string> argvStrs;
 	static std::vector<char*> argvRefs;
 

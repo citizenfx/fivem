@@ -1375,16 +1375,20 @@ static InitFunction initFunction([]()
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
-		auto consoleCtx = instance->GetComponent<console::Context>();
+		Instance<net::UvLoopManager>::Get()->GetOrCreate("svMain")->EnqueueCallback([instance]() 
+		{			
+			se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+			auto consoleCtx = instance->GetComponent<console::Context>();
 
-		// start sessionmanager
-		if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::RDR3)
-		{
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
-		}
-		else
-		{
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
-		}
+			if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::RDR3)
+			{
+				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+			}
+			else
+			{
+				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
+			}
+		});
+
 	}, INT32_MAX);
 });

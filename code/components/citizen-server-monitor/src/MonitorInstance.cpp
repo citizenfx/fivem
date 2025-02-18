@@ -36,6 +36,8 @@
 #include <skyr/url.hpp>
 #include <skyr/percent_encode.hpp>
 
+#include "UvLoopManager.h"
+
 #ifdef _WIN32
 #include <MinHook.h>
 
@@ -269,7 +271,7 @@ namespace fx
 		SetComponent(resourceManager);
 
 		// add local resources
-		auto addResource = [&](std::string_view resourceName)
+		auto addResource = [resourceManager](std::string_view resourceName)
 		{
 			std::string systemResourceRoot(g_citizenDir->GetValue() + "/system_resources/");
 
@@ -282,24 +284,23 @@ namespace fx
 
 			return resourceManager->AddResource(url.href()).get();
 		};
-
-		addResource("monitor")->Start();
-
-		// setup ticks
-		using namespace std::chrono_literals;
-
-		auto loop = GetComponent<fx::TcpListenManager>()->GetTcpStack()->GetWrapLoop();
-		m_tickTimer = loop->resource<uvw::TimerHandle>();
-
-		m_tickTimer->on<uvw::TimerEvent>([this, resourceManager](const uvw::TimerEvent& ev, uvw::TimerHandle& timer)
+		
+		Instance<net::UvLoopManager>::Get()->GetOrCreate("svMain")->EnqueueCallback([this, resourceManager, addResource]()
 		{
-			OnMonitorTick(this);
+			addResource("monitor")->Start();
 
-			resourceManager->MakeCurrent();
-			resourceManager->Tick();
+			// setup ticks
+			using namespace std::chrono_literals;
+
+			uv_timer_init(GetComponent<fx::TcpListenManager>()->GetTcpStack()->GetLoop(), &m_tickTimer);
+			uv_timer_start(&m_tickTimer, UvPersistentCallback(&m_tickTimer, [this, resourceManager](uv_timer_t* timer)
+			{
+				OnMonitorTick(this);
+
+				resourceManager->MakeCurrent();
+				resourceManager->Tick();
+			}), 0, 50);
 		});
-
-		m_tickTimer->start(0ms, 50ms);
 	}
 }
 
