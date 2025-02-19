@@ -5,11 +5,13 @@ import {
   Modal,
   Text,
   noop,
+  linkify
 } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
-import { $L, useL10n } from 'cfx/common/services/intl/l10n';
-import { nl2brx } from 'cfx/utils/nl2br';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { nl2br } from 'cfx/utils/nl2br';
+import { html2react } from 'cfx/utils/html2react';
 
 import { ConnectState } from '../../services/servers/connect/state';
 
@@ -17,7 +19,7 @@ type ConnectStatusProps = {
   state: ConnectState.Status;
 
   onCancel?(): void;
-};
+}; 
 export const ConnectStatus = observer(function ConnectStatus(props: ConnectStatusProps) {
   const {
     state,
@@ -25,7 +27,7 @@ export const ConnectStatus = observer(function ConnectStatus(props: ConnectStatu
     onCancel = noop,
   } = props;
 
-  const message = useL10n('#Servers_Message', state);
+  const { message } = state;
 
   return (
     <>
@@ -33,7 +35,7 @@ export const ConnectStatus = observer(function ConnectStatus(props: ConnectStatu
         <Flex vertical gap="large">
           <Text size="xlarge">{$L('#Servers_Connecting')}</Text>
 
-          {nl2brx(message)}
+          {html2react(linkify(nl2br(message)))}
         </Flex>
       </Pad>
 
