@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include <Hooking.h>
+#include <jitasm.h>
 #include <mutex>
 
 struct PatternPair;
@@ -47,9 +48,20 @@ struct PatternPair
 	int offset;
 };
 
+static std::unordered_map<void*, std::unique_ptr<uint8_t[]>> skyPortalFlagMap;
+
+static uint8_t* getSkyPortalFlagAddress(void* self)
+{
+	auto& arrayPtr = skyPortalFlagMap[self];
+    
+	if (!arrayPtr) {
+		arrayPtr = std::make_unique<uint8_t[]>((pools[eSceneGraphPool::FW_PORTAL_SCENE_GRAPH_NODE].poolSize + 7) / 8);
+	}
+	return arrayPtr.get();
+}
+
 static HookFunction hookFunction([]()
 {
-	// +85
 	assert(pools[eSceneGraphPool::FW_FIXED_ENTITY_CONTAINER].poolSize <= 64 && "The pool size of FW_FIXED_ENTITY_CONTAINER can't be greater than 64");
 	auto initPoolsLocation = hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? BA ? ? ? ? B9"); // 48 8D B3 ? ? ? ? 48 8B FB
 	auto assignStorageLocation = hook::get_pattern("48 8B C1 48 89 0D ? ? ? ? 48 81 C1");
@@ -77,7 +89,7 @@ static HookFunction hookFunction([]()
 	 * above you can see the instruction "mov edi, 40h" and the argument is passed as "lea edx, [rdi-X]",
 	 * we calculate this value X based on the pool size we want, by default the poolSize is 2, X is 3Eh because 64 - 2 = 62(3E)
 	 */
-	hook::put((char*)initPoolsLocation + 256, (uint8_t)(64 - pools[eSceneGraphPool::FW_FIXED_ENTITY_CONTAINER].poolSize));
+	hook::put((char*)initPoolsLocation + 253, (uint8_t)(64 - pools[eSceneGraphPool::FW_FIXED_ENTITY_CONTAINER].poolSize));
 	hook::put((char*)initPoolsLocation + 336, pools[eSceneGraphPool::FW_SO_A_ENTITY_CONTAINER].poolSize);
 	// We skip the pool size of FW_EXTERIOR_SCENE_GRAPH_NODE because it can't be changed due to the limitations in the memory offsets when allocating the pools
 	hook::put((char*)initPoolsLocation + 484, pools[eSceneGraphPool::FW_STREAMED_SCENE_GRAPH_NODE].poolSize);
@@ -123,4 +135,88 @@ static HookFunction hookFunction([]()
 			pools[eSceneGraphPool::FW_STREAMED_SCENE_GRAPH_NODE].poolSize +
 			pools[eSceneGraphPool::FW_INTERIOR_SCENE_GRAPH_NODE].poolSize - 1);
 	}
+
+	// Patch AddSkyPortal
+	auto addSkyPortalLocation = hook::get_pattern("83 B9 ? ? ? ? ? 4C 8B CA 4C 8B C1");
+	static struct : jitasm::Frontend
+	{
+		void InternalMain() override
+		{
+			push(r12);
+			push(rcx);
+			push(rdx);
+			push(rax);
+			mov(rax, (uintptr_t)getSkyPortalFlagAddress);
+			call(rax);
+			mov(r12, rax); // The final address of the sky portal flag array
+			pop(rax);
+			pop(rdx);
+			pop(rcx);
+			
+			cmp(dword_ptr[rcx+0x200], 0x3F);
+			mov(r9, rdx);
+			mov(r8, rcx);
+			ja("return");
+			movzx(eax, word_ptr[rdx+0x12]);
+			mov(ecx, 0x57F);
+			sub(ax, cx);
+			movzx(ecx, ax);
+			and(ecx, 0x80000007);
+			jge("a");
+			dec(ecx);
+			or(ecx, 0x0FFFFFFF8);
+			inc(ecx);
+
+			L("a");
+			movzx(r10d, ax);
+			mov(edx, 1);
+			shr(r10, 3);
+			shl(edx, cl);
+			mov(r11b, byte_ptr[r10+r12]); // The sky portal flag + r10
+			test(r11b, dl);
+			jnz("return");
+			mov(eax, 1);
+			shl(al, cl);
+			or(al, r11b);
+			or(al, r11b);
+			mov(byte_ptr[r10+r12], al); // The sky portal flag + r10
+			movsxd(rax, dword_ptr[r8+0x200]);
+			mov(qword_ptr[r8+rax*8], r9);
+			inc(dword_ptr[r8+0x200]);
+
+			L("return");
+			pop(r12);
+			ret();
+		}
+	} addSkyPortalLocationStub;
+	
+	hook::nop(addSkyPortalLocation, 108);
+	hook::jump(addSkyPortalLocation, addSkyPortalLocationStub.GetCode());
+
+	// Patch SetIsSkyPortalVisInterior
+	auto fwScanNodesRunLocation = hook::get_pattern("44 8D 42 ? 48 81 C1 ? ? ? ? E8 ? ? ? ? 45 33 C9");
+	static struct : jitasm::Frontend
+	{
+		intptr_t location;
+		void Init(intptr_t location)
+		{
+			this->location = location + 23;
+		}
+		
+		void InternalMain() override
+		{
+			lea(r8d, dword_ptr[rdx+0x32]);
+			add(rcx, 0x37C);
+			mov(rax, (uintptr_t)memset);
+			call(rax);
+			xor(r9d, r9d);
+			lea(r8d, dword_ptr[r9+1]);
+			mov(rax, this->location);
+			jmp(rax);
+		}
+	} fwScanNodesRunStub;
+	
+	hook::nop(fwScanNodesRunLocation, 23);
+	fwScanNodesRunStub.Init(reinterpret_cast<intptr_t>(fwScanNodesRunLocation));
+	hook::jump(fwScanNodesRunLocation, fwScanNodesRunStub.GetCode());
 });
