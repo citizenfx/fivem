@@ -27,7 +27,7 @@ export const ConnectStatus = observer(function ConnectStatus(props: ConnectStatu
     onCancel = noop,
   } = props;
 
-  const { message } = state;
+  const { message, cancelable } = state;
 
   return (
     <>
@@ -40,7 +40,7 @@ export const ConnectStatus = observer(function ConnectStatus(props: ConnectStatu
       </Pad>
 
       <Modal.Footer>
-        <Button text={$L('#Servers_CancelOverlay')} disabled={!state.cancelable} onClick={onCancel} />
+        <Button text={$L('#Servers_CancelOverlay')} disabled={!cancelable} onClick={onCancel} />
       </Modal.Footer>
     </>
   );
