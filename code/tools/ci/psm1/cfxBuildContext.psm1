@@ -163,7 +163,7 @@ function Get-CfxBuildContext {
             $ctx.IS_REDM = $true
 
             $ctx.ProductName = "redm"
-            $ctx.ProductExeName = "CitiLaunch.exe"
+            $ctx.ProductExeName = "RedM.exe"
             $ctx.PremakeGameName = "rdr3"
             $ctx.SentryProjectName = Get-EnvOrDefault $env:CFX_SENTRY_PROJECT_NAME_REDM "redm"
 
