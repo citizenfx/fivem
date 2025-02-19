@@ -11,6 +11,27 @@
 
 namespace rage
 {
+	template<typename T, uint32_t chunkSize, uint32_t chunksCountUnused>
+	struct chunkyArray
+	{
+		chunkyArray(): count(0)
+		{
+		}
+
+		T& operator[](uint32_t index)
+		{
+			return memory[index / chunkSize][index % chunkSize];
+		}
+
+		uint32_t GetCount()
+		{
+			return count;
+		}
+
+		T* memory[chunksCountUnused];
+		uint32_t count;
+	};
+
 	class fiCollection : public fiDevice
 	{
 	public:
@@ -24,7 +45,15 @@ namespace rage
 			uint32_t virtFlags;
 			uint32_t physFlags;
 		};
+		
+		struct RawEntry
+		{
+			char m_pad[32];
+			const char* fileName;
+		};
 
+		char m_pad[1448];
+		chunkyArray<RawEntry, 1024, 64> m_entries;
 	public:
 		virtual void m_0() = 0;
 
