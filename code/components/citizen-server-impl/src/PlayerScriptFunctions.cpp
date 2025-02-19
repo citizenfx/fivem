@@ -116,6 +116,27 @@ static void CreatePlayerCommands()
 		return int(peer->GetPing());
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_PEER_STATISTICS", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		const int peerStatistic = context.GetArgument<uint8_t>(1);
+
+		if (peerStatistic >= fx::ENetPeerStatistics::MAX)
+		{
+			throw std::runtime_error(va("Argument 1 is out of range, max peer statistics is %d, got %d", fx::ENetPeerStatistics::MAX - 1, peerStatistic));
+		}
+
+		fx::NetPeerStackBuffer stackBuffer;
+		gscomms_get_peer(client->GetPeer(), stackBuffer);
+		auto peer = stackBuffer.GetBase();
+
+		if (!peer)
+		{
+			return 0;
+		}
+
+		return static_cast<int>(peer->GetENetStatistics(static_cast<fx::ENetPeerStatistics>(peerStatistic)));
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_LAST_MSG", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		return (msec() - client->GetLastSeen()).count();
