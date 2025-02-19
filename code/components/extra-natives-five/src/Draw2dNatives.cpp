@@ -13,7 +13,7 @@ static hook::cdecl_stub<char*(void*)> _allocateDrawRect([]()
 
 static hook::cdecl_stub<void(void*, float a2, float a3, float a4, float a5)> _setDrawRectCoords([]()
 {
-	return hook::get_call(hook::get_pattern("F3 44 0F 59 0D ? ? ? ? E8 ? ? ? ? 33 FF", 0x45));
+	return hook::get_call(hook::get_pattern("F3 44 0F 59 0D ? ? ? ? E8 ? ? ? ? 33 FF", xbr::IsGameBuildOrGreater<3407>() ? 0x4A : 0x45));
 });
 
 static InitFunction initFunction([]()
