@@ -37,7 +37,7 @@ static hook::cdecl_stub<void()> initScriptImBuffer([]()
 	return hook::get_pattern("48 89 5C 24 ? 57 48 83 EC 20 0F B7 05 ? ? ? ? 33 FF");
 });
 
-static void(*g_origRenderScriptIm)();
+static void (*g_origRenderScriptIm)();
 static void RenderScriptIm()
 {
 	// The game never uses this buffer itself, but it *may* be changed in the future updates.
@@ -88,7 +88,7 @@ struct DrawOriginStore
 	char pad_404[12];
 };
 
-static bool(*isGamePaused)();
+static bool (*isGamePaused)();
 
 static int* g_renderBufferIndex;
 static int* g_updateBufferIndex;
@@ -106,6 +106,9 @@ struct WorldhorizonManager
 static WorldhorizonManager* g_worldhorizonMgr;
 
 CViewportGame** g_viewportGame;
+
+static int* g_screenWidth = 0;
+static int* g_screenHeight = 0;
 
 static HookFunction hookFunction([]()
 {
@@ -143,6 +146,13 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern("33 C9 E8 ? ? ? ? E8 ? ? ? ? 33 C9 E8 ? ? ? ? 0F", -0x28);
 		g_origRenderScriptIm = hook::trampoline(location, RenderScriptIm);
+	}
+
+	{
+		auto location = hook::get_pattern<char>("89 05 ? ? ? ? 89 0D ? ? ? ? F3 0F 5E");
+
+		g_screenWidth = hook::get_address<int*>(location + 2);
+		g_screenHeight = hook::get_address<int*>(location + 8);
 	}
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_DRAW_ORIGIN", [](fx::ScriptContext& context)
@@ -312,5 +322,30 @@ static HookFunction hookFunction([]()
 		normalOut->x = XMVectorGetX(normalVector);
 		normalOut->y = XMVectorGetY(normalVector);
 		normalOut->z = XMVectorGetZ(normalVector);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_CURRENT_SCREEN_RESOLUTION", [](fx::ScriptContext& context)
+	{
+		const bool isNullPointer = g_screenWidth == nullptr || g_screenHeight == nullptr;
+		if (isNullPointer)
+		{
+			context.SetResult<bool>(false);
+			return;
+		}
+
+		const int width = *g_screenWidth;
+		const int height = *g_screenHeight;
+
+		const bool isInvalidRes = width == 0 || height == 0;
+		if (isInvalidRes)
+		{
+			context.SetResult<bool>(false);
+			return;
+		}
+
+		*context.GetArgument<int*>(0) = width;
+		*context.GetArgument<int*>(1) = height;
+
+		context.SetResult<bool>(true);
 	});
 });
