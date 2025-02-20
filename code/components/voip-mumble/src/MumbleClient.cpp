@@ -258,11 +258,18 @@ void MumbleClient::Initialize()
 						}
 					}
 
-					if (!addChannelListenIds.empty() || !removeChannelListenIds.empty())
+					if (!addChannelListenIds.empty() || !removeChannelListenIds.empty()
+						|| m_selfDeafened != m_lastSelfDeafened || m_selfMuted != m_lastSelfMuted)
 					{
+						m_lastSelfDeafened = m_selfDeafened;
+						m_lastSelfMuted = m_selfMuted;
+						
 						// send updated listens
 						MumbleProto::UserState state;
 						state.set_session(m_state.GetSession());
+
+						state.set_self_deaf(m_selfDeafened);
+						state.set_self_mute(m_selfMuted);
 
 						for (auto id : addChannelListenIds)
 						{
@@ -479,6 +486,28 @@ concurrency::task<void> MumbleClient::DisconnectAsync()
 	return concurrency::task<void>(tcs);
 }
 
+void MumbleClient::SetSelfMuted(bool muted)
+{
+	m_selfMuted = muted;
+}
+
+void MumbleClient::SetSelfDeafened(bool muted)
+{
+	m_selfDeafened = muted;
+}
+
+void MumbleClient::MutePlayerLocally(uint32_t sessionId, bool muted)
+{
+	if (!muted)
+	{
+		m_locallyMutedPlayers.erase(sessionId);
+	}
+	else
+	{
+		m_locallyMutedPlayers.insert(sessionId);
+	}
+}
+
 void MumbleClient::SetActivationMode(MumbleActivationMode mode)
 {
 	return m_audioInput.SetActivationMode(mode);
@@ -655,6 +684,29 @@ std::string MumbleClient::GetVoiceChannelFromServerId(uint32_t serverId)
 	return retString;
 }
 
+uint32_t MumbleClient::GetPlayerSessionFromName(std::string& playerName)
+{
+	uint32_t sessionId = 0;
+
+	m_state.ForAllUsers([this, playerName, &sessionId](const std::shared_ptr<MumbleUser>& user)
+	{
+		if (sessionId != 0)
+		{
+			return;
+		}
+
+		if (user)
+		{
+			if (user->GetName() == playerName)
+			{
+				sessionId = user->GetSessionId();
+			}
+		}
+	});
+
+	return sessionId;
+}
+
 bool MumbleClient::DoesChannelExist(const std::string& channelName)
 {
 	for (const auto& channel : m_state.GetChannels())
@@ -757,7 +809,7 @@ void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 	// https://mumble-protocol.readthedocs.io/en/latest/voice_data.html#packet-format
 	if (size > kMaxUdpPacket)
 	{
-		trace("We recieved a packet that was too large, max packet size is %d bytes, got sent %d bytes\n", kMaxUdpPacket, size);
+		trace("We received a packet that was too large, max packet size is %d bytes, got sent %d bytes\n", kMaxUdpPacket, size);
 		return;
 	}
 
@@ -855,7 +907,18 @@ void MumbleClient::HandleVoice(const uint8_t* data, size_t size)
 		return;
 	}
 
-	auto user = this->GetState().GetUser(uint32_t(sessionId));
+	auto session = static_cast<uint32_t>(sessionId);
+	
+	// If we have the player muted locally then we just ignore their voice packet
+	if (m_locallyMutedPlayers.find(session) != m_locallyMutedPlayers.end())
+	{
+		// don't leak the memory, this would normally be removed by the jitter buffer way further down in
+		// the call stack, so we'll do it here ourselves
+		delete[] data;
+		return;
+	}
+
+	auto user = this->GetState().GetUser(session);
 
 	if (!user)
 	{
