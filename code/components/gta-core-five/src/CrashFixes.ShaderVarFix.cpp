@@ -20,8 +20,5 @@ static void shaderGroup_SetVar(hook::FlexStruct* self, uint64_t a2, uint64_t a3)
 
 static HookFunction hookFunction([]()
 {
-	if (xbr::IsGameBuildOrGreater<3407>())
-	{
-		orig_shaderGroup_SetVar = hook::trampoline(hook::get_pattern("85 D2 0F 84 ? ? ? ? 48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 56 48 83 EC ? 8D 42"), shaderGroup_SetVar);
-	}
+	orig_shaderGroup_SetVar = hook::trampoline(hook::get_pattern("85 D2 0F 84 ? ? ? ? 48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 56 48 83 EC ? 8D 42"), shaderGroup_SetVar);
 });
