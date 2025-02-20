@@ -1,5 +1,6 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 
+#include <filesystem>
 #include <lua.hpp>
 #include <lua_cmsgpacklib.h>
 
@@ -154,6 +155,55 @@ int LuaOSExecute(lua_State* L)
 	lua_pushstring(L, what);
 	lua_pushinteger(L, stat);
 	return 3; /* return true/nil,what,code */
+}
+
+int LuaOSCreateDir(lua_State* L)
+{
+	const char* directoryPathString = luaL_checkstring(L, 1);
+	std::filesystem::path directoryPath = directoryPathString;
+	// ensure that the path ends with a path separator
+	directoryPath /= "";
+
+	std::string path = directoryPath.generic_string();
+	fwRefContainer<vfs::Device> device = vfs::GetDevice(path);
+	if (!device.GetRef())
+	{
+		std::string directoryAbsolutePath = std::filesystem::absolute(std::filesystem::path(directoryPath)).string();
+		std::string transformedPath;
+		device = vfs::FindDevice(directoryAbsolutePath, transformedPath);
+		if (device.GetRef())
+		{
+			path = transformedPath;
+		}
+	}
+
+	if (!device.GetRef())
+	{
+		return luaL_fileresult(L, 0, directoryPathString);
+	}
+
+	vfs::FindData fd;
+	auto handle = device->FindFirst(path, &fd);
+	if (handle != INVALID_DEVICE_HANDLE)
+	{
+		lua_pushnil(L);
+		lua_pushfstring(L, "%s: %s", directoryPathString, "Directory already exists.");
+		lua_pushinteger(L, 1);
+		return 3;
+	}
+
+	if (!device->CreateDirectory(path))
+	{
+		lua_pushnil(L);
+		lua_pushfstring(L, "%s: %s", directoryPathString, "Failed to create directory");
+		lua_pushinteger(L, 1);
+		device->FindClose(handle);
+		return 3;
+	}
+
+	lua_pushboolean(L, true);
+	device->FindClose(handle);
+	return 1;
 }
 
 int LuaOSRemove(lua_State* L)
@@ -514,6 +564,7 @@ const luaL_Reg systemLibs[] = {
 	{"difftime", LuaOSDiffTime},
 	{"execute", LuaOSExecute},
 	{"getenv", LuaOSGetEnv},
+	{"createdir", LuaOSCreateDir},
 	{"remove", LuaOSRemove},
 	{"rename", LuaOSRename},
 	{"setlocale", LuaOSSetLocale},
