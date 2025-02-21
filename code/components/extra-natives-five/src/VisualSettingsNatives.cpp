@@ -114,6 +114,25 @@ static InitFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_VISUAL_SETTING_FLOAT", [](fx::ScriptContext& context)
+	{
+		const char* settingName = context.CheckArgument<const char*>(0);
+		auto settingHash = HashString(settingName);
+
+		for (int i = 0; i < g_visualSettings->entries.GetCount(); ++i)
+		{
+			const VisualSettingsEntry& entry = g_visualSettings->entries[i];
+			if (entry.entryHash == settingHash)
+			{
+				context.SetResult<float>(entry.value);
+				return;
+			}
+		}
+
+		std::string error = va("Visual setting '%s' doesn't exist.", settingName);
+		throw std::runtime_error(error);
+	});
+
 	OnMainGameFrame.Connect([=]()
 	{
 		std::function<void()> func;
