@@ -29,6 +29,21 @@ static HookFunction hookFunction([]()
 			g_uiMinimap_SetType(g_uiMinimap, minimapType);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_MINIMAP_TYPE", [](fx::ScriptContext& context)
+    {
+		uint8_t* pMinimapType = hook::get_address<uint8_t*>(hook::get_pattern<uint8_t>("20 14 EF 43 01 00 00 00 10 62 ? ? 00 00 00 00 ?", 12));
+
+		if (!pMinimapType)
+		{
+			context.SetResult<int>(-1);
+			return;
+		}
+
+		uint8_t minimapType = *pMinimapType;
+
+		context.SetResult<int>(minimapType);
+    });
+
 	/*
 	{
 		char* location = hook::get_pattern<char>("48 81 C1 ? ? ? ? 33 D2 E8 ? ? ? ? 83 FE 02", 3);
