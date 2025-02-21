@@ -2730,7 +2730,7 @@ static void DisplayRawStreamerError [[noreturn]] (rage::fiCollection* streamer, 
 		}
 	}
 
-	FatalError("Invalid pgRawStreamer call - %s.\nStreaming index: %d\n%s", why, index, extraData);
+	FatalError("Invalid pgRawStreamer call - %s.\nStreaming index: %d\n%s\n\nIf this issue persists make sure to remove incompatible asi mods.", why, index, extraData);
 }
 
 static void ValidateRawStreamerReq(rage::fiCollection* streamer, uint16_t index)
