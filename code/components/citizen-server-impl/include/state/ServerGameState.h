@@ -921,6 +921,9 @@ struct SyncEntityState
 	bool wantsReassign = false;
 	bool firstOwnerDropped = false;
 	EntityOrphanMode orphanMode = EntityOrphanMode::DeleteWhenNotRelevant;
+#ifdef STATE_FIVE
+	bool allowRemoteSyncedScenes = false;
+#endif
 
 	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
 
