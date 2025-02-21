@@ -3,6 +3,8 @@
 #include <jitasm.h>
 #include <mutex>
 
+#include "Hooking.Stubs.h"
+
 struct PatternPair;
 
 enum class eSceneGraphPool
@@ -48,16 +50,52 @@ struct PatternPair
 	int offset;
 };
 
-static std::unordered_map<void*, std::unique_ptr<uint8_t[]>> skyPortalFlagMap;
+std::unique_ptr<uint8_t[]> skyPortalFlagArray = std::make_unique<uint8_t[]>((pools[eSceneGraphPool::FW_PORTAL_SCENE_GRAPH_NODE].poolSize + 7) / 8);
 
-static uint8_t* getSkyPortalFlagAddress(void* self)
+namespace rage
 {
-	auto& arrayPtr = skyPortalFlagMap[self];
-    
-	if (!arrayPtr) {
-		arrayPtr = std::make_unique<uint8_t[]>((pools[eSceneGraphPool::FW_PORTAL_SCENE_GRAPH_NODE].poolSize + 7) / 8);
+	struct fwFlags
+	{
+		uint8_t m_flags;
+	};
+	struct alignas(8) fwSceneGraphNode
+	{
+		rage::fwSceneGraphNode* m_next;
+		rage::fwSceneGraphNode* m_firstChild;
+		uint8_t m_type;
+		rage::fwFlags m_flags;
+		uint16_t m_index;
+	};
+	struct fwPortalSceneGraphNode : fwSceneGraphNode {};
+	struct alignas(16) fwScanResultsSkyPortals
+	{
+		fwPortalSceneGraphNode* m_skyPortals[64];
+		int m_skyPortalCount;
+		uint8_t m_skyPortalFlags[50];
+	};
+}
+
+static int FIRST_PORTAL_SCENE_NODE_INDEX =
+	pools[eSceneGraphPool::FW_EXTERIOR_SCENE_GRAPH_NODE].poolSize +
+	pools[eSceneGraphPool::FW_STREAMED_SCENE_GRAPH_NODE].poolSize +
+	pools[eSceneGraphPool::FW_INTERIOR_SCENE_GRAPH_NODE].poolSize +
+	pools[eSceneGraphPool::FW_ROOM_SCENE_GRAPH_NODE].poolSize;
+
+static void AddSkyPortal(rage::fwScanResultsSkyPortals* self, rage::fwPortalSceneGraphNode* skyPortalNode)
+{
+	__int64 v3;
+	__int8 v4;
+	if(self->m_skyPortalCount <= 63)
+	{
+		uint16_t portalIndex = skyPortalNode->m_index - FIRST_PORTAL_SCENE_NODE_INDEX;
+		v3 = (unsigned __int64)portalIndex >> 3;
+		v4 = skyPortalFlagArray[v3];
+		if(((unsigned __int8)(1 << (portalIndex & 7)) & v4) == 0)
+		{
+			skyPortalFlagArray[v3] = v4 | (1 << (portalIndex & 7));
+			self->m_skyPortals[self->m_skyPortalCount++] = skyPortalNode;
+		}
 	}
-	return arrayPtr.get();
 }
 
 static HookFunction hookFunction([]()
@@ -138,74 +176,23 @@ static HookFunction hookFunction([]()
 
 	// Patch AddSkyPortal
 	auto addSkyPortalLocation = hook::get_pattern("83 B9 ? ? ? ? ? 4C 8B CA 4C 8B C1");
-	static struct : jitasm::Frontend
-	{
-		void InternalMain() override
-		{
-			push(r12);
-			push(rcx);
-			push(rdx);
-			push(rax);
-			mov(rax, (uintptr_t)getSkyPortalFlagAddress);
-			call(rax);
-			mov(r12, rax); // The final address of the sky portal flag array
-			pop(rax);
-			pop(rdx);
-			pop(rcx);
-			
-			cmp(dword_ptr[rcx+0x200], 0x3F);
-			mov(r9, rdx);
-			mov(r8, rcx);
-			ja("return");
-			movzx(eax, word_ptr[rdx+0x12]);
-			mov(ecx, 0x57F);
-			sub(ax, cx);
-			movzx(ecx, ax);
-			and(ecx, 0x80000007);
-			jge("a");
-			dec(ecx);
-			or(ecx, 0x0FFFFFFF8);
-			inc(ecx);
-
-			L("a");
-			movzx(r10d, ax);
-			mov(edx, 1);
-			shr(r10, 3);
-			shl(edx, cl);
-			mov(r11b, byte_ptr[r10+r12]); // The sky portal flag + r10
-			test(r11b, dl);
-			jnz("return");
-			mov(eax, 1);
-			shl(al, cl);
-			or(al, r11b);
-			or(al, r11b);
-			mov(byte_ptr[r10+r12], al); // The sky portal flag + r10
-			movsxd(rax, dword_ptr[r8+0x200]);
-			mov(qword_ptr[r8+rax*8], r9);
-			inc(dword_ptr[r8+0x200]);
-
-			L("return");
-			pop(r12);
-			ret();
-		}
-	} addSkyPortalLocationStub;
-	
-	hook::nop(addSkyPortalLocation, 108);
-	hook::jump(addSkyPortalLocation, addSkyPortalLocationStub.GetCode());
+	hook::trampoline(addSkyPortalLocation, AddSkyPortal);
 
 	// Patch SetIsSkyPortalVisInterior
-	auto fwScanNodesRunLocation = hook::get_pattern("44 8D 42 ? 48 81 C1 ? ? ? ? E8 ? ? ? ? 45 33 C9");
+	auto fwScanNodesRunLocation = hook::get_pattern("48 8B 8B ? ? ? ? 33 D2 44 89 89");
 	static struct : jitasm::Frontend
 	{
 		intptr_t location;
 		void Init(intptr_t location)
 		{
-			this->location = location + 23;
+			this->location = location + 39;
 		}
 		
 		void InternalMain() override
 		{
-			lea(r8d, dword_ptr[rdx+0x32]);
+			mov(rcx, reinterpret_cast<uintptr_t>(skyPortalFlagArray.get()));
+			xor(edx, edx);
+			mov(r8, static_cast<size_t>(FIRST_PORTAL_SCENE_NODE_INDEX));
 			add(rcx, 0x37C);
 			mov(rax, (uintptr_t)memset);
 			call(rax);
@@ -216,7 +203,7 @@ static HookFunction hookFunction([]()
 		}
 	} fwScanNodesRunStub;
 	
-	hook::nop(fwScanNodesRunLocation, 23);
+	hook::nop(fwScanNodesRunLocation, 39);
 	fwScanNodesRunStub.Init(reinterpret_cast<intptr_t>(fwScanNodesRunLocation));
 	hook::jump(fwScanNodesRunLocation, fwScanNodesRunStub.GetCode());
 });
