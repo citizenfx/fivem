@@ -28,7 +28,7 @@ namespace fx
 
 		virtual net::PeerAddress GetAddress() = 0;
 
-		virtual void OnSendConnectOK() = 0;
+		virtual void OnSendConnectOK(uint32_t timeout) = 0;
 	};
 	using NetPeerStackBuffer = FixedBuffer<NetPeerBase, 32>;
 
@@ -75,6 +75,8 @@ namespace fx
 		{
 			return false;
 		}
+
+		virtual void SetPeerTimeout(uint32_t timeout) = 0;
 	};
 
 	fwRefContainer<GameServerNetBase> CreateGSNet(fx::GameServer* server);
