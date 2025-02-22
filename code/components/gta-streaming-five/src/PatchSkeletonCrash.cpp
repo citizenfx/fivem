@@ -179,6 +179,40 @@ static HookFunction hookFunction([]()
 		}
 	}
 
+	// CPedWeaponManager::SwitchToRagdoll
+	{
+		static struct : jitasm::Frontend
+		{
+			intptr_t retSuccess = 0;
+			intptr_t retFail = 0;
+
+			void Init(intptr_t success, intptr_t fail)
+			{
+				this->retSuccess = success;
+				this->retFail = fail;
+			}
+
+			virtual void InternalMain() override
+			{
+				cmp(r13, -1); // Check if the index of the bone map is -1 that represents a invalid position
+				je("fail");
+				mov(rdx, qword_ptr[rcx+0xA0]); // Original code
+				mov(rax, this->retSuccess);
+				jmp(rax);
+				L("fail");
+				mov(rax, this->retFail);
+				jmp(rax);
+			}
+		} patchStub;
+		
+		auto location = hook::get_pattern("48 8B 91 ? ? ? ? 48 8D 8D");
+		hook::nop(location, 7);
+		const auto successPtr = reinterpret_cast<intptr_t>(location) + 7;
+		const auto failPtr = successPtr + 19;
+		patchStub.Init(successPtr, failPtr);
+		hook::jump(location, patchStub.GetCode());
+	}
+
 #if 0
 	// fwEntity::_GetGlobalMatrix: If required hook the dynamic-dispatch bits.
 	{
