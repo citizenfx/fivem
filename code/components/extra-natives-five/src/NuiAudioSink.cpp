@@ -1307,7 +1307,7 @@ extern "C"
 class MumbleAudioEntityBase
 {
 public:
-	MumbleAudioEntityBase(const std::wstring& name)
+	MumbleAudioEntityBase(const std::string& name)
 		: m_position(rage::Vec3V{ 0.f, 0.f, 0.f }),
 		  m_positionForce(rage::Vec3V{ 0.f, 0.f, 0.f }),
 		  m_buffer(nullptr),
@@ -1389,7 +1389,7 @@ protected:
 
 	CPed* m_ped;
 
-	std::wstring m_name;
+	std::string m_name;
 
 	std::function<void(int)> m_poller;
 };
@@ -1398,7 +1398,7 @@ template<int Build>
 class MumbleAudioEntity : public rage::audEntity<Build>, public MumbleAudioEntityBase, public std::enable_shared_from_this<MumbleAudioEntity<Build>>
 {
 public:
-	MumbleAudioEntity(const std::wstring& name)
+	MumbleAudioEntity(const std::string& name)
 		: MumbleAudioEntityBase(name)
 	{
 	}
@@ -1821,7 +1821,7 @@ class MumbleAudioSink : public IMumbleAudioSink
 public:
 	void Process();
 
-	MumbleAudioSink(const std::wstring& name);
+	MumbleAudioSink(const std::string& name);
 	virtual ~MumbleAudioSink() override;
 
 	virtual void SetPollHandler(const std::function<void(int)>& poller) override;
@@ -1833,7 +1833,7 @@ public:
 	void Reset();
 
 private:
-	std::wstring m_name;
+	std::string m_name;
 	int m_serverId;
 
 	/// <summary>
@@ -1860,11 +1860,9 @@ static std::set<MumbleAudioSink*> g_sinks;
 static std::shared_mutex g_submixMutex;
 static std::map<int, int> g_submixIds;
 
-MumbleAudioSink::MumbleAudioSink(const std::wstring& name)
-	: m_serverId(-1), m_position(rage::Vec3V{ 0.f, 0.f, 0.f }), m_distance(5.0f), m_overrideVolume(-1.0f), m_name(name)
+MumbleAudioSink::MumbleAudioSink(const std::string& userName)
+	: m_serverId(-1), m_position(rage::Vec3V{ 0.f, 0.f, 0.f }), m_distance(5.0f), m_overrideVolume(-1.0f), m_name(userName)
 {
-	auto userName = ToNarrow(name);
-
 	if (userName.length() >= 2)
 	{
 		int serverId = atoi(userName.substr(1, userName.length() - 1).c_str());
@@ -2888,7 +2886,7 @@ static InitFunction initFunction([]()
 		ProcessAudioSinks();
 	});
 
-	OnGetMumbleAudioSink.Connect([](const std::wstring& name, fwRefContainer<IMumbleAudioSink>* sink)
+	OnGetMumbleAudioSink.Connect([](const std::string& name, fwRefContainer<IMumbleAudioSink>* sink)
 	{
 		fwRefContainer<MumbleAudioSink> ref = new MumbleAudioSink(name);
 		*sink = ref;

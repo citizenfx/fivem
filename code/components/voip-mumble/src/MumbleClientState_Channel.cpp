@@ -30,12 +30,12 @@ void MumbleChannel::UpdateChannel(MumbleProto::ChannelState& state)
 
 	if (state.has_name())
 	{
-		m_channelName = ConvertFromUTF8(state.name());
+		m_channelName = state.name();
 	}
 
 	if (state.has_description())
 	{
-		m_channelDescription = ConvertFromUTF8(state.description());
+		m_channelDescription = state.description();
 		m_hasDescription = true;
 	}
 

@@ -19,11 +19,11 @@ private:
 
 	MumbleClient* m_client;
 
-	std::wstring m_channelName;
+	std::string m_channelName;
 
 	bool m_hasDescription;
 
-	std::wstring m_channelDescription;
+	std::string m_channelDescription;
 
 	std::string m_descriptionHash;
 
@@ -32,11 +32,11 @@ private:
 public:
 	MumbleChannel(MumbleClient* client, MumbleProto::ChannelState& channelState);
 
-	inline std::wstring GetName() const { return m_channelName; }
+	inline std::string GetName() const { return m_channelName; }
 
 	inline bool HasDescription() const { return m_hasDescription; }
 
-	inline std::wstring GetDescription() const { return m_channelDescription; }
+	inline std::string GetDescription() const { return m_channelDescription; }
 
 	inline bool IsTemporary() const { return m_temporary; }
 
@@ -52,7 +52,7 @@ private:
 
 	uint32_t m_serverId;
 
-	std::wstring m_name;
+	std::string m_name;
 
 	uint32_t m_currentChannelId;
 
@@ -78,7 +78,7 @@ public:
 
 	inline uint32_t GetServerId() const { return m_serverId; }
 
-	inline std::wstring GetName() const { return m_name; }
+	inline std::string GetName() const { return m_name; }
 
 	inline uint32_t GetChannelId() const { return m_currentChannelId; }
 
@@ -92,7 +92,7 @@ private:
 
 	uint32_t m_session;
 
-	std::wstring m_username;
+	std::string m_username;
 
 	std::map<uint32_t, MumbleChannel> m_channels;
 
@@ -105,16 +105,16 @@ public:
 	{
 		m_client = nullptr;
 		m_session = 0;
-		m_username = L"";
+		m_username = "";
 		m_channels.clear();
 		m_users.clear();
 	}
 
 	inline void SetClient(MumbleClient* client) { m_client = client; }
 
-	inline void SetUsername(std::wstring& value) { m_username = value; }
+	inline void SetUsername(const std::string& value) { m_username = value; }
 
-	inline std::wstring GetUsername() { return m_username; }
+	inline std::string GetUsername() { return m_username; }
 
 	inline void SetSession(uint32_t sessionId) { m_session = sessionId; }
 

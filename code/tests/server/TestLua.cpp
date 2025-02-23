@@ -621,7 +621,24 @@ TEST_CASE("lua os.date")
 		}
 	}
 
-	// todo: add more tests for os.date format
+	WHEN ("os.date is called with Z to indicate zen time")
+	{
+		LoadAndRunCode(state, "main.lua",
+		R""""(
+		result = os.date("!%Y-%m-%dT%H:%M:%SZ")
+)"""");
+
+		THEN ("result is the formatted time with a Z in the end")
+		{
+			lua_getglobal(state, "result");
+			REQUIRE(lua_isstring(state, -1) == true);
+			size_t l{0};
+			const char* str = lua_tolstring(state, -1, &l);
+			REQUIRE(str);
+			REQUIRE(l == std::string_view("0000-00-00T00:00:00Z").size());
+			lua_pop(state, 1);
+		}
+	}
 }
 
 TEST_CASE("lua os.difftime")

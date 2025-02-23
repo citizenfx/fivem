@@ -639,7 +639,7 @@ static InitFunction initFunction([]()
 						rage::fiCollection* collection = (rage::fiCollection*)spf->packfile;
 
 						char nameBuffer[256] = { 0 };
-						collection->GetEntryNameToBuffer(data->handle & 0xFFFF, nameBuffer, 255);
+						collection->GetEntryNameToBuffer(streaming::GetEntryIndex(data->handle), nameBuffer, 255);
 
 						entryName = nameBuffer;
 					}

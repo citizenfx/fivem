@@ -40,13 +40,13 @@ static hook::thiscall_stub<rage::strLocalIndex(streaming::strStreamingModule*, c
 static rage::fwEntity* (*g_origConstructEntity)(fwEntityDef* entityDef, int mapDataIdx, rage::fwArchetype* archetype, void* unkId);
 static int g_curEntityIndex;
 
-static auto IsMapDataCustom(int localIdx)
+static auto IsMapDataFromRawStreamer(int localIdx)
 {
 	static auto mapDataStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");
 	auto strIdx = mapDataStore->baseIdx + localIdx;
 
 	const auto& strEntry = streaming::Manager::GetInstance()->Entries[strIdx];
-	return (strEntry.handle & 0xFFFF) < 2;
+	return streaming::GetCollectionIndex(strEntry.handle) < 3;
 }
 
 class MapDataOwnerExtension : public rage::fwExtension
@@ -72,7 +72,7 @@ public:
 		}
 
 		// custom entries are either in pgRawStreamer 0 or our custom variant at 1
-		if (IsMapDataCustom(mapDataIdx))
+		if (IsMapDataFromRawStreamer(mapDataIdx))
 		{
 			this->isCustom = true;
 		}
@@ -300,7 +300,7 @@ static int GetEntityDefFromMapData(int mapData, uint32_t internalIndex)
 		}
 
 		// if not found, and this is custom, just return the index
-		if (IsMapDataCustom(mapData))
+		if (IsMapDataFromRawStreamer(mapData))
 		{
 			if (internalIndex < mapDataContents->numEntities)
 			{

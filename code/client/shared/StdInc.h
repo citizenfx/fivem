@@ -113,6 +113,7 @@
 #include <codecvt>
 #include <thread>
 #include <mutex> // for once_flag on GCC
+#include <chrono>
 
 // our common includes
 #define COMPONENT_EXPORT

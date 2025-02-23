@@ -11,6 +11,27 @@
 
 namespace rage
 {
+	template<typename T, uint32_t chunkSize, uint32_t chunksCountUnused>
+	struct chunkyArray
+	{
+		chunkyArray(): count(0)
+		{
+		}
+
+		T& operator[](uint32_t index)
+		{
+			return memory[index / chunkSize][index % chunkSize];
+		}
+
+		uint32_t GetCount()
+		{
+			return count;
+		}
+
+		T* memory[chunksCountUnused];
+		uint32_t count;
+	};
+
 	class fiCollection : public fiDevice
 	{
 	public:
@@ -25,6 +46,17 @@ namespace rage
 			uint32_t physFlags;
 		};
 
+		struct RawEntry
+		{
+			FileEntry fe;
+			uint64_t timestamp;
+
+			const char* fileName;
+		};
+
+		char m_pad[1448];
+		chunkyArray<RawEntry, 1024, 64> m_entries;
+
 	public:
 		// UnInit
 		virtual void CloseCollection() = 0;
@@ -32,7 +64,7 @@ namespace rage
 		// OpenBulkFromHandle
 		virtual int64_t OpenCollectionEntry(uint16_t index, uint64_t* ptr) = 0;
 
-		virtual const FileEntry* GetEntry(uint16_t index) = 0;
+		virtual RawEntry* GetEntry(uint16_t index) = 0;
 
 		// GetEntryPhysicalSortKey
 		virtual int64_t Unk1(uint16_t index, bool flag) = 0;

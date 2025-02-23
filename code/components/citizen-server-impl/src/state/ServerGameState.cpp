@@ -2636,6 +2636,11 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 /// <param name="callOnInitialEntity">Whether the function should do the `fn` call on the initialTrain</param>
 void ServerGameState::IterateTrainLink(const sync::SyncEntityPtr& initialTrain, std::function<bool(sync::SyncEntityPtr&)> fn, bool callOnInitialEntity)
 {
+	static constexpr uint16_t kMaxDuplicateEntityIds = 3;
+
+	static thread_local std::unordered_set<uint32_t> processedTrains{};
+	processedTrains.clear();
+
 	// for most stuff we want to call on the intial entity
 	if (callOnInitialEntity)
 	{
@@ -2645,21 +2650,25 @@ void ServerGameState::IterateTrainLink(const sync::SyncEntityPtr& initialTrain, 
 		}
 	}
 
-	if (auto trainState = initialTrain->syncTree->GetTrainState())
+	if (const auto trainState = initialTrain->syncTree->GetTrainState())
 	{
-		auto recurseTrain = [=](const fx::sync::SyncEntityPtr& train)
+		uint16_t duplicateEntityIds = 0;
+		auto recurseTrain = [this, &duplicateEntityIds, &fn](const fx::sync::SyncEntityPtr& train)
 		{
 			for (auto link = GetNextTrain(this, train); link; link = GetNextTrain(this, link))
 			{
-				// this is expected to make sure that the initial train & the link trains are not called twice
-				// since this could lead to double locking the client mutex in ReassignEntity
-				// we also ignore the train sent via the call to `recurseTrain` as we should've called `fn` before here
-				if (link->handle == initialTrain->handle)
+				// train links back to another train that has already been processed, this shouldn't happen.
+				if (!processedTrains.insert(link->handle).second)
 				{
+					// our linked trains are looped at least 3 times together
+					if (++duplicateEntityIds > kMaxDuplicateEntityIds)
+					{
+						return;
+					}
+
 					continue;
 				}
 
-				// if the function returns true then we should stop iterating
 				if (!fn(link))
 				{
 					return;
@@ -2670,8 +2679,10 @@ void ServerGameState::IterateTrainLink(const sync::SyncEntityPtr& initialTrain, 
 		if (trainState->isEngine)
 		{
 			recurseTrain(initialTrain);
+			return;
 		}
-		else if (trainState->engineCarriage && trainState->engineCarriage != initialTrain->handle)
+
+		if (trainState->engineCarriage && static_cast<uint32_t>(trainState->engineCarriage) != initialTrain->handle)
 		{
 			if (auto engine = GetTrain(this, trainState->engineCarriage))
 			{
@@ -2679,6 +2690,8 @@ void ServerGameState::IterateTrainLink(const sync::SyncEntityPtr& initialTrain, 
 				{
 					return;
 				}
+
+				processedTrains.insert(engine->handle);
 				recurseTrain(engine);
 			}
 		}

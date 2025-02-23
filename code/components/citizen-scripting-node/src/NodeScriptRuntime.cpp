@@ -263,6 +263,11 @@ result_t NodeScriptRuntime::Destroy()
 
 result_t NodeScriptRuntime::Tick()
 {
+	if (!m_tickRoutine)
+	{
+		return FX_S_OK;
+	}
+
 	if (!v8::Locker::IsLocked(GetIsolate()))
 	{
 		SharedPushEnvironment pushed(this);

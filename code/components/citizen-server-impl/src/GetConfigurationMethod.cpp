@@ -43,7 +43,12 @@ static InitFunction initFunction([]()
 			std::unique_lock<std::shared_mutex> lock(fileServerLock);
 			fileServers.push_back(std::move(entry));
 
-			auto resourceManager = fx::ResourceManager::GetCurrent();
+			const auto resourceManager = fx::ResourceManager::GetCurrent();
+			if (!resourceManager)
+			{
+				return;
+			}
+
 			resourceManager->ForAllResources([](const fwRefContainer<fx::Resource>& resource)
 			{
 				auto& configurationCache = resource->GetComponent<fx::ResourceConfigurationCacheComponent>();
@@ -67,7 +72,12 @@ static InitFunction initFunction([]()
 				}
 			}
 
-			auto resourceManager = fx::ResourceManager::GetCurrent();
+			const auto resourceManager = fx::ResourceManager::GetCurrent();
+			if (!resourceManager)
+			{
+				return;
+			}
+
 			resourceManager->ForAllResources([](const fwRefContainer<fx::Resource>& resource)
 			{
 				auto& configurationCache = resource->GetComponent<fx::ResourceConfigurationCacheComponent>();

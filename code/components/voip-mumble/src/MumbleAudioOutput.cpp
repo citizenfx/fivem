@@ -528,7 +528,7 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 }
 
 DLL_EXPORT
-fwEvent<const std::wstring&, fwRefContainer<IMumbleAudioSink>*>
+fwEvent<const std::string&, fwRefContainer<IMumbleAudioSink>*>
 OnGetMumbleAudioSink;
 
 DLL_EXPORT
@@ -1553,8 +1553,6 @@ void DuckingOptOut(WRL::ComPtr<IMMDevice> device);
 
 std::shared_ptr<lab::AudioContext> MumbleAudioOutput::GetAudioContext(const std::string& name)
 {
-	auto wideName = ToWide(name);
-
 	std::shared_lock<std::shared_mutex> _(m_clientsMutex);
 
 	for (auto& client : m_clients)
@@ -1566,7 +1564,7 @@ std::shared_ptr<lab::AudioContext> MumbleAudioOutput::GetAudioContext(const std:
 
 		auto user = m_client->GetState().GetUser(client.first);
 
-		if (!user || user->GetName() != wideName)
+		if (!user || user->GetName() != name)
 		{
 			continue;
 		}

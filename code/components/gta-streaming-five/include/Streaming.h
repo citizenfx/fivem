@@ -278,6 +278,24 @@ public:
 	STREAMING_EXPORT bool IsStreamerShuttingDown();
 
 	atArray<StreamingPackfileEntry>& GetStreamingPackfileArray();
+
+	STREAMING_EXPORT int GetRawStreamerForFile(const char* fileName, rage::fiCollection** collection);
+	STREAMING_EXPORT rage::fiCollection* GetRawStreamerByIndex(uint16_t idx);
+
+	inline uint16_t GetCollectionIndex(uint32_t handle)
+	{
+		return handle >> 16;
+	}
+
+	inline uint16_t GetEntryIndex(uint32_t handle)
+	{
+		return handle & 0xFFFF;
+	}
+
+	inline bool IsRawHandle(uint32_t handle)
+	{
+		return GetCollectionIndex(handle) < 2;
+	}
 }
 
 namespace rage
@@ -291,49 +309,7 @@ namespace rage
 
 namespace rage
 {
-
-#ifdef GTA_FIVE
-struct pgRawEntry
-{
-	char pad[16];
-	uint64_t timestamp;
-	const char* name;
-};
-static_assert(sizeof(pgRawEntry) == 32, "Wrong size of pgRawEntry for GTAV");
-static_assert(offsetof(pgRawEntry, name) == 0x18, "Wrong offset for asset name in pgRawEntry");
-#elif IS_RDR3
-struct pgRawEntry
-{
-	char pad[24];
-	uint64_t timestamp;
-	const char* name;
-};
-static_assert(sizeof(pgRawEntry) == 40, "Wrong size of pgRawEntry for RDR3");
-static_assert(offsetof(pgRawEntry, name) == 0x20, "Wrong offset for asset name in pgRawEntry");
-#endif
-
-template<typename T, uint32_t chunkSize, uint32_t chunksCountUnused>
-struct chunkyArray
-{
-	chunkyArray(): count(0)
-	{
-	}
-
-	T& operator[](uint32_t index)
-	{
-		return memory[index / chunkSize][index % chunkSize];
-	}
-
-	uint32_t GetCount()
-	{
-		return count;
-	}
-
-	T* memory[chunksCountUnused];
-	uint32_t count;
-};
-
-STREAMING_EXPORT const chunkyArray<pgRawEntry, 1024, 64>& GetPgRawStreamerEntries();
+	STREAMING_EXPORT const chunkyArray<rage::fiCollection::RawEntry, 1024, 64>& GetPgRawStreamerEntries();
 }
 
 #if 0
