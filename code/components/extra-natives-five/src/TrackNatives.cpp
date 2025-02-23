@@ -96,13 +96,16 @@ static hook::cdecl_stub<rage::CTrainTrack*(uint32_t)> CTrainTrack__getTrainTrack
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 33 DB 45 0F 57 DB"));
 });
 
+
+static int kMaxTracks = xbr::IsGameBuildOrGreater<2545>() ? 127 : 27;
+
 static int32_t FindClosestTrack(rage::Vector3& position, int8_t* outTrack)
 {
 	*outTrack = -1;
 	float closestDistance = std::numeric_limits<float>::infinity();
 	int closestNode = -1;
 
-	for (int i = 0; i < rage::CTrainTrack::kMaxTracks; i++)
+	for (int i = 0; i < kMaxTracks; i++)
 	{
 		rage::CTrainTrack* track = CTrainTrack__getTrainTrack(i);
 
@@ -132,7 +135,7 @@ static int32_t FindClosestTrack(rage::Vector3& position, int8_t* outTrack)
 static std::vector<scrTrackNodeInfo> GetTrackNodesInRadius(const float& x, const float& y, const float& z, float radius, bool includeDisabledTracks = false)
 {
 	std::vector<scrTrackNodeInfo> nearbyNodes;
-	for (int8_t i = 0; i < rage::CTrainTrack::kMaxTracks; i++)
+	for (int8_t i = 0; i < kMaxTracks; i++)
 	{
 		rage::CTrainTrack* track = CTrainTrack__getTrainTrack(i);
 
@@ -202,7 +205,7 @@ template<int ArgumentIndex>
 static rage::CTrainTrack* GetAndCheckTrack(fx::ScriptContext& context, std::string_view nn)
 {
 	int trackIndex = context.GetArgument<int>(ArgumentIndex);
-	if (trackIndex < 0 || trackIndex > rage::CTrainTrack::kMaxTracks)
+	if (trackIndex < 0 || trackIndex > kMaxTracks)
 	{
 		fx::scripting::Warningf("natives", "%s: Invalid track index %i\n", nn, trackIndex);
 		context.SetResult(0);
@@ -234,7 +237,7 @@ static rage::CTrackNode* GetAndCheckTrackNode(rage::CTrainTrack* track, int8_t t
 
 bool rage::CTrainTrack::AreAllTracksDisabled()
 {
-	for (int i = 0; i < rage::CTrainTrack::kMaxTracks; i++)
+	for (int i = 0; i < kMaxTracks; i++)
 	{
 		CTrainTrack* track = CTrainTrack__getTrainTrack(i);
 
@@ -447,11 +450,52 @@ static InitFunction initFunction([]()
 	});
 });
 
+static int32_t FindTrackFromNode(void* node)
+{
+	for (int i = 0; i < kMaxTracks; i++)
+	{
+		rage::CTrainTrack* track = CTrainTrack__getTrainTrack(i);
+
+		if (!track || !track->m_enabled)
+		{
+			continue;
+		}
+
+		void* maxNode = &track->m_nodes[track->m_nodeCount - 1];
+		if (node >= track->m_nodes && node <= maxNode)
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+static bool CTrain__IsTrackActive(int32_t trackIndex)
+{
+	if (trackIndex <= 0 || trackIndex > kMaxTracks)
+	{
+		return false;
+	}
+
+	rage::CTrainTrack* track = CTrainTrack__getTrainTrack(trackIndex);
+
+	if (!track || !track->m_enabled || !track->m_isActive)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 static HookFunction hookFunction([]()
 {
 	MH_Initialize();
 	// add missing enabled check for script created trains.
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 8B D8 E8 ? ? ? ? 44 8A CF")), FindClosestTrack, NULL);
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 4C 63 E0 41 83 FC ? 0F 84 ? ? ? ? 49 8B FC")), FindTrackFromNode, NULL);
+	// Doesn't account for negative indexes or disabled tracks.
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 ? 33 D2 8B CF")), CTrain__IsTrackActive, NULL);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	// Prevent game code from constantly setting the trains speed while in moving state if it has the "stopsAtStations" flag enabled from setting the train speed to the tracks max speed while moving.
