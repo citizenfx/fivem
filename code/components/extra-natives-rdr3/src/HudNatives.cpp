@@ -11,6 +11,12 @@ static hook::cdecl_stub<void(void*, char)> g_uiMinimap_SetType([]()
 	return hook::get_pattern("48 81 EC ? ? ? ? 8B F2 48 8B E9 E8", -16);
 });
 
+static hook::cdecl_stub<uint32_t(void*)> g_uiMinimap_GetType([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 83 F8 ? 74 ? 48 8D 15"));
+});
+
+
 static HookFunction hookFunction([]()
 {
 	{
@@ -30,19 +36,10 @@ static HookFunction hookFunction([]()
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_MINIMAP_TYPE", [](fx::ScriptContext& context)
-    {
-		uint8_t* pMinimapType = hook::get_address<uint8_t*>(hook::get_pattern<uint8_t>("20 14 EF 43 01 00 00 00 10 62 ? ? 00 00 00 00 ?", 12));
-
-		if (!pMinimapType)
-		{
-			context.SetResult<int>(-1);
-			return;
-		}
-
-		uint8_t minimapType = *pMinimapType;
-
+	{	
+		uint32_t minimapType = g_uiMinimap_GetType(g_uiMinimap);
 		context.SetResult<int>(minimapType);
-    });
+	});
 
 	/*
 	{
