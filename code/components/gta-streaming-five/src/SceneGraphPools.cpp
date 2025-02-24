@@ -192,7 +192,8 @@ static HookFunction hookFunction([]()
 		{
 			mov(rcx, reinterpret_cast<uintptr_t>(skyPortalFlagArray.get()));
 			xor(edx, edx);
-			mov(r8, static_cast<size_t>(FIRST_PORTAL_SCENE_NODE_INDEX));
+			mov(dword_ptr[rcx+0x378], r9d);
+			mov(r8d, static_cast<size_t>((pools[eSceneGraphPool::FW_PORTAL_SCENE_GRAPH_NODE].poolSize + 7) / 8));
 			add(rcx, 0x37C);
 			mov(rax, (uintptr_t)memset);
 			call(rax);
