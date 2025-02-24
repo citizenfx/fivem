@@ -38,12 +38,12 @@
 
 #include "CfxReleaseInfo.h"
 
-constexpr const auto kROSBlobEmailOffset = 8;
-constexpr const auto kROSBlobTicketOffset = 2800;
-constexpr const auto kROSBlobSessionTicketOffset = 3312;
-constexpr const auto kROSBlobAccountIdOffset = 3824;
-constexpr const auto kROSBlobUsernameOffset = 3751;
-constexpr const auto kROSBlobSessionKeyOffset = 4368;
+constexpr const auto kROSBlobEmailOffset = 8; // 0x8
+constexpr const auto kROSBlobTicketOffset = 2800; // 0xAF0
+constexpr const auto kROSBlobSessionTicketOffset = 3312; // 0xCF0
+constexpr const auto kROSBlobAccountIdOffset = 3824; // 0xEF0
+constexpr const auto kROSBlobUsernameOffset = 3751; // 0xEA7
+constexpr const auto kROSBlobSessionKeyOffset = 4480; // 0x1180
 
 template<typename... Ts>
 static auto PostAutoLogin(Ts&&... args)
