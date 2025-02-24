@@ -25,7 +25,7 @@ public:
 	inline static ptrdiff_t kTrackIndexOffset;
 	inline static ptrdiff_t kTrackNodeOffset;
 	inline static ptrdiff_t kTrainFlagsOffset;
-
+	inline static ptrdiff_t kTrainSpeedOffset;
 public:
 	inline int8_t GetTrackIndex()
 	{
@@ -42,7 +42,25 @@ public:
 	inline bool GetDirection()
 	{
 		auto location = reinterpret_cast<uint8_t*>(this) + kTrainFlagsOffset;
-		return (*(BYTE*)(this + kTrainFlagsOffset) & 8) != 0;
+		return (*(location) & 8) != 0;
+	}
+
+	inline bool IsEngine()
+	{
+		auto location = reinterpret_cast<uint8_t*>(this) + kTrainFlagsOffset;
+		return (*(location) & 2) != 0;
+	}
+
+	inline float GetVelocity()
+	{
+		auto location = reinterpret_cast<uint8_t*>(this) + kTrainSpeedOffset;
+		return *(float*)location;
+	}
+
+	inline void SetVelocity(float newVelocity)
+	{
+		auto location = reinterpret_cast<uint8_t*>(this) + kTrainSpeedOffset;
+		*(float*)location = newVelocity;
 	}
 
 	inline void SetTrackIndex(int8_t trackIndex)
@@ -169,6 +187,11 @@ static hook::cdecl_stub<CTrain* (CTrain*)> CTrain__GetBackwardCarriage([]()
 static bool (*g_CTrain__Update)(CTrain*, float);
 static bool CTrain__Update(CTrain* self, float unk)
 {
+	if (!self->IsEngine())
+	{
+		return g_CTrain__Update(self, unk);
+	}
+
 	const std::lock_guard _(g_trackJunctionLock);
 	for (const auto& data : g_trackJunctions)
 	{
@@ -181,6 +204,8 @@ static bool CTrain__Update(CTrain* self, float unk)
 			&& self->GetTrackNode() == data.onNode
 			&& self->GetDirection() == data.direction)
 		{
+			float velocity = self->GetVelocity();
+
 			// Iterate through all carriages to ensure the new trackIndex and node are applied
 			CTrain* train;
 			for (train = self; train; train = CTrain__GetBackwardCarriage(train))
@@ -192,6 +217,9 @@ static bool CTrain__Update(CTrain* self, float unk)
 			// Force the train to update coordinate
 			// The original update function call should smooth over the rest of the transition
 			CTrain__SetTrainCoord(self, data.newNode, -1);
+			// Keep the train's velocity the same prior to switching tracks. Not doing so may cause negative velocity in some instances.
+			self->SetVelocity(velocity);
+			break;
 		}
 	}
 
@@ -351,7 +379,7 @@ static InitFunction initFunction([]()
 		{
 			if (data.direction == direction && data.onTrack == trackIndex && data.newTrack == newTrackIndex && data.onNode == trackNode && data.newNode == newTrackNode)
 			{
-				fx::scripting::Warningf("natives", "REGISTER_TRACK_JUNCTION: Cannot register duplicate track junctions");
+				fx::scripting::Warningf("natives", "REGISTER_TRACK_JUNCTION: Cannot register duplicate track junctions\n");
 				context.SetResult<int>(-1);
 				return;
 			}
@@ -369,7 +397,7 @@ static InitFunction initFunction([]()
 
 		if (junctionIndex >= g_trackJunctions.size())
 		{
-			fx::scripting::Warningf("natives", "REMOVE_TRACK_JUNCTION: Invalid junction id (%i), should be from 0 to %i\n", junctionIndex, g_trackJunctions.size() - 1);
+			fx::scripting::Warningf("natives", "REMOVE_TRACK_JUNCTION: Invalid junction id (%i), should be from 0 to %i\n", junctionIndex, g_trackJunctions.size());
 			context.SetResult<bool>(false);
 			return;
 		}
@@ -463,6 +491,7 @@ static HookFunction hookFunction([]()
 		CTrain::kTrackNodeOffset = *hook::get_pattern<uint32_t>("E8 ? ? ? ? 40 8A F8 84 C0 75 ? 48 8B CB E8", -4);
 		CTrain::kTrackIndexOffset = *hook::get_pattern<uint32_t>("88 87 ? ? ? ? 48 85 F6 75", 2);
 		CTrain::kTrainFlagsOffset = *hook::get_pattern<uint32_t>("80 8B ? ? ? ? ? 8B 05 ? ? ? ? FF C8", 2);
+		CTrain::kTrainSpeedOffset = *hook::get_pattern<uint32_t>("4C 89 AF ? ? ? ? 44 89 AF ? ? ? ? 4C 89 AF ? ? ? ? 49 8B 0E", 3);
 	}
 
 	g_CTrain__Update = hook::trampoline(hook::get_call(hook::get_pattern("E8 ? ? ? ? 44 8A B5 ? ? ? ? 48 85 F6")), CTrain__Update);
