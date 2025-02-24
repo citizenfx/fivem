@@ -15,6 +15,7 @@ uint32_t taskEntityOffset = 0;
 uint32_t dynamicEntityComponentOffset = 0;
 uint32_t animDirectorOffset = 0;
 std::once_flag traceOnceFlag;
+std::once_flag traceOnceFlag2;
 
 uint32_t parachuteObjectOffset = 0;
 uint32_t drawHandlerOffset = 0;
@@ -208,8 +209,76 @@ void SanitizeParachuteNetEntity(void* syncEntity, uint16_t* entityId)
 	IsParachuteModelAuthorized(entity->m_archetype->hash) ? setEntityId(syncEntity, entityId) : setEntityId(syncEntity, &zero);
 }
 
+using SerialiseUnsigned_t = void(__fastcall*)(void*, uint32_t*, int64_t, uint64_t);
+static uint8_t SerialiseUnsigned_vtableIdx;
+
+// This lacks sanitization for the prop model, check against allowlist
+static void SerialiseUnsignedHook(void* serializer, uint32_t* value, int64_t numBits, uint64_t extraArg)
+{
+	void** vtable = *(void***)serializer;
+
+	auto SerialiseUnsigned = (SerialiseUnsigned_t)(vtable[SerialiseUnsigned_vtableIdx]);
+
+	SerialiseUnsigned(serializer, value, numBits, extraArg);
+
+	if (!IsParachutePackModelAuthorized(*value) && *value != HashString("xm_prop_x17_scuba_tank"))
+	{
+		std::call_once(traceOnceFlag2, []()
+		{
+			trace("Sanitized prop model in ClonedTakeOffPedVariationInfo\n");
+		});
+
+		// Set safe default value
+		*value = HashString("p_parachute_s");
+	}
+}
+
 static HookFunction hookFunction([]
 {
+	// ClonedTakeOffPedVariationInfo - Serialise - Patch serializer for prop model
+	{
+		static struct : jitasm::Frontend
+		{
+			intptr_t retAddress;
+
+			void Init(const intptr_t ret)
+			{
+				this->retAddress = ret;
+			}
+
+			void InternalMain() override
+			{
+				mov(rcx, rbx);
+				mov(rax, reinterpret_cast<uintptr_t>(&SerialiseUnsignedHook));
+				call(rax);
+
+				mov(rax, retAddress);
+				jmp(rax);
+			}
+		} patchStub;
+
+		auto location = hook::get_pattern("48 8B CB FF 50 ? 8B 45 ? 45 33 C9 89 47 ? 8B 47 ? 45 8D 46");
+
+		SerialiseUnsigned_vtableIdx = *(uint8_t*)((uintptr_t)location + 5) / sizeof(void*);
+
+		const auto ret = reinterpret_cast<intptr_t>(location) + 6;
+
+		patchStub.Init(ret);
+
+		hook::nop(location, 6);
+		hook::jump_rcx(location, patchStub.GetCode());
+	}
+
+	// Initialize the whitelists and make sure they get reset on disconnect
+	{
+		ResetWhitelists();
+
+		OnKillNetworkDone.Connect([]()
+		{
+			ResetWhitelists();
+		});
+	}
+
 	if (xbr::IsGameBuildOrGreater<3407>())
 	{
 		return;
@@ -234,15 +303,5 @@ static HookFunction hookFunction([]
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? 8A 46 ? 45 33 C9");
 		hook::call(location, SanitizeParachuteNetEntity);
-	}
-
-	// Initialize the whitelists and make sure they get reset on disconnect
-	{
-		ResetWhitelists();
-
-		OnKillNetworkDone.Connect([]()
-		{
-			ResetWhitelists();
-		});
 	}
 });
