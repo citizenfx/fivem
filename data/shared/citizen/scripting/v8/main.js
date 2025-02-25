@@ -3,6 +3,9 @@
 
 const EXT_FUNCREF = 10;
 const EXT_LOCALFUNCREF = 11;
+const EXT_VECTOR2 = 20;
+const EXT_VECTOR3 = 21;
+const EXT_VECTOR4 = 22;
 
 (function (global) {
 	let boundaryIdx = 1;
@@ -46,6 +49,16 @@ const EXT_LOCALFUNCREF = 11;
 		preset: false,
 		binarraybuffer: true
 	});
+
+	// Unpack a msgpack buffer into an array of vector components with preserved precision
+	const vectorUnpacker = (data => Array.from(new Float32Array(data.buffer), (v) => Number(v.toPrecision(7))));
+
+	// Vector2 unpacker
+	codec.addExtUnpacker(EXT_VECTOR2, vectorUnpacker);
+	// Vector3 unpacker
+	codec.addExtUnpacker(EXT_VECTOR3, vectorUnpacker);
+	// Vector4 unpacker
+	codec.addExtUnpacker(EXT_VECTOR4, vectorUnpacker);
 
 	const pack = data => msgpack.encode(data, { codec });
 	const unpack = data => msgpack.decode(data, { codec });
