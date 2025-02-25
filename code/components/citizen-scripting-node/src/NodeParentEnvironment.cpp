@@ -30,7 +30,8 @@ namespace fx::nodejs
 		// initialize node process
 		const std::vector<std::string> args = {
 			"--trace-warnings",
-			"--unhandled-rejections=warn"
+			"--unhandled-rejections=warn",
+			"--experimental-sqlite"
 		};
 
 		const auto result = node::InitializeOncePerProcess(args);

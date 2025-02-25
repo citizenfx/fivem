@@ -35,6 +35,12 @@ namespace fx::nodejs
 	void ScopeHandler::Initialize()
 	{
 		v8::SetScopeHandler([](v8::Isolate* isolate) {
+			// don't push the same isolate if its already on top of the stack
+			if (isolate == v8::Isolate::GetCurrent())
+			{
+				g_scopeStack.push(std::make_unique<BaseScope>());
+				return;
+			}
 			g_scopeStack.push(std::make_unique<LockerScope>(isolate));
 		},
 		[](v8::Isolate* isolate) {
