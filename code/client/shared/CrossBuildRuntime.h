@@ -18,12 +18,12 @@ namespace xbr
 // When there's no entry for a specific major game build, revision "0" will be assumed in the relevant code.
 //
 
-inline unsigned int GetDefaultGTA5Build()
+inline int GetDefaultGTA5Build()
 {
 	return 3258;
 }
 
-inline unsigned int GetDefaultRDR3Build()
+inline int GetDefaultRDR3Build()
 {
 	return 1491;
 }
@@ -39,7 +39,7 @@ inline const char* GetDefaultRDR3BuildString()
 	return "1491";
 }
 #else
-inline unsigned int GetDefaultGameBuild()
+inline int GetDefaultGameBuild()
 {
 #if defined(IS_RDR3)
 	return GetDefaultRDR3Build();

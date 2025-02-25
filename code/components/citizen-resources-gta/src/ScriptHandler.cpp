@@ -20,7 +20,7 @@ extern fwRefContainer<fx::ResourceManager> g_resourceManager;
 
 bool DLL_IMPORT UpdateScriptInitialization();
 
-class TestScriptThread : public GtaThread
+class TestScriptThread : public CfxThread
 {
 	virtual void DoRun() override
 	{
@@ -79,8 +79,8 @@ static InitFunction initFunction([] ()
 {
 	rage::scrEngine::OnScriptInit.Connect([] ()
 	{
-		rage::scrEngine::CreateThread(&thread);
-		g_resourceThread = &thread;
+		rage::scrEngine::CreateThread(thread.GetThread());
+		g_resourceThread = thread.GetThread();
 	});
 
 #ifdef IS_RDR3

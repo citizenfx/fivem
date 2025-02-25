@@ -49,34 +49,21 @@ void CoreRT_SetHardening(bool hardened)
 #endif
 }
 
-struct DummyThread : public GtaThread
+struct DummyThread : public CfxThread
 {
 	DummyThread(fx::Resource* resource)
 	{
-		rage::scrThreadContext* context = GetContext();
+		auto thread = GetThread();
+		rage::scrThreadContext* context = thread->GetContext();
 		context->ScriptHash = HashString(resource->GetName().c_str());
 		context->ThreadId = HashString(resource->GetName().c_str());
 
-		SetScriptName(resource->GetName().c_str());
+		thread->SetScriptName(resource->GetName().c_str());
 	}
 
 	virtual void DoRun() override
 	{
 
-	}
-
-	// zero-initialize the structure when new'd (to fix, for instance, 'can remove blips set by other scripts' defaulting to 0xCD)
-	void* operator new(size_t size)
-	{
-		void* data = malloc(size);
-		memset(data, 0, size);
-
-		return data;
-	}
-
-	void operator delete(void* ptr)
-	{
-		free(ptr);
 	}
 };
 
@@ -109,7 +96,7 @@ static void DeleteDummyThread(DummyThread** dummyThread)
 	{
 		if (*dummyThread)
 		{
-			OnDeleteResourceThread(*dummyThread);
+			OnDeleteResourceThread((*dummyThread)->GetThread());
 		}
 
 		delete *dummyThread;
@@ -122,7 +109,7 @@ static void DeleteDummyThread(DummyThread** dummyThread)
 	*dummyThread = nullptr;
 }
 
-static struct : GtaThread
+static struct : CfxThread
 {
 	virtual void DoRun() override
 	{
@@ -169,7 +156,7 @@ static InitFunction initFunction([] ()
 			{
 				g_lastThreads.push(rage::scrEngine::GetActiveThread());
 
-				rage::scrEngine::SetActiveThread(&g_globalLeftoverThread);
+				rage::scrEngine::SetActiveThread(g_globalLeftoverThread.GetThread());
 				return;
 			}
 
@@ -184,14 +171,12 @@ static InitFunction initFunction([] ()
 			{
 				data->dummyThread = new DummyThread(resource);
 
-				OnCreateResourceThread(data->dummyThread, resource->GetName());
-				CGameScriptHandlerMgr::GetInstance()->AttachScript(data->dummyThread);
+				OnCreateResourceThread(data->dummyThread->GetThread(), resource->GetName());
+
+				data->dummyThread->AttachScriptHandler();
 
 				setScriptNow = true;
 			}
-
-			// set the current script handler
-			GtaThread* gtaThread = data->dummyThread;
 
 			g_lastThreads.push(rage::scrEngine::GetActiveThread());
 
@@ -199,7 +184,7 @@ static InitFunction initFunction([] ()
 			g_scopes.emplace(true);
 #endif
 
-			rage::scrEngine::SetActiveThread(gtaThread);
+			rage::scrEngine::SetActiveThread(data->dummyThread->GetThread());
 
 			if (setScriptNow)
 			{
@@ -260,10 +245,9 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
-			if (data->dummyThread && data->dummyThread->GetScriptHandler())
+			if (data->dummyThread)
 			{
-				data->dummyThread->GetScriptHandler()->CleanupObjectList();
-				CGameScriptHandlerMgr::GetInstance()->DetachScript(data->dummyThread);
+				data->dummyThread->DetachScriptHandler();
 			}
 
 			// having the function content inlined causes a compiler ICE - so we do it separately

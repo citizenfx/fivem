@@ -661,7 +661,7 @@ static void HandleInitPlayerResultStub(void* mgr, void* status, void* reader)
 #include <scrEngine.h>
 #include <scrThread.h>
 
-static struct : GtaThread
+static struct : CfxThread
 {
 	virtual void DoRun() override
 	{
@@ -835,7 +835,7 @@ static HookFunction hookFunction([]()
 		case 2:
 		{
 			auto lastThread = rage::scrEngine::GetActiveThread();
-			rage::scrEngine::SetActiveThread(&fakeThread);
+			rage::scrEngine::SetActiveThread(fakeThread.GetThread());
 
 			// transition to mp
 			_transitionToState(0x73040199);
