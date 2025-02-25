@@ -23,7 +23,7 @@
 //
 
 const static int8_t kAlternatesSizeof = 8;
-const static int16_t kMaxNumAlternates = 160;
+const static int16_t kMaxNumAlternates = 512;
 
 struct AlternateVariationsSwitchAsset // 0x1BC82D17
 {
