@@ -41,7 +41,9 @@ struct CommandObject
 
 static InitFunction initFunction([] ()
 {
-	static ConVar<bool> stateBagStrictModeVar("sv_stateBagStrictMode", ConVar_Replicated, false);
+	#ifndef IS_FXSERVER
+		static ConVar<bool> stateBagStrictModeVar("sv_stateBagStrictMode", ConVar_Replicated, false);
+	#endif
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_CURRENT_RESOURCE_NAME", [] (fx::ScriptContext& context)
 	{
@@ -363,11 +365,13 @@ static InitFunction initFunction([] ()
 		auto keySize = context.GetArgument<uint32_t>(3);
 		auto replicated = context.GetArgument<bool>(4);
 
-		if (replicated && stateBagStrictModeVar.GetValue())
-		{
-			fx::scripting::Warningf("natives", "StateBags can't be modified from the client, because the StateBag strict mode is enabled. Disable it using setr sv_stateBagStrictMode false\n");
-			return;
-		}
+		#ifndef IS_FXSERVER
+			if (replicated && stateBagStrictModeVar.GetValue())
+			{
+				fx::scripting::Warningf("natives", "StateBags can't be modified from the client, because the StateBag strict mode is enabled. Disable it using setr sv_stateBagStrictMode false\n");
+				return;
+			}
+		#endif
 
 		auto rm = fx::ResourceManager::GetCurrent();
 		auto sbac = rm->GetComponent<fx::StateBagComponent>();
