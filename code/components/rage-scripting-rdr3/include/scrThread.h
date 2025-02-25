@@ -194,7 +194,7 @@ class
 	GtaThread :
 		public rage::scrThread
 {
-private:
+protected:
 	uint32_t m_nameHash; // 0x6D8
 	rage::scriptHandler* m_pScriptHandler; // 0x6E0
 	void* m_pNetcomponent; // 0x6E8
@@ -214,13 +214,6 @@ public:
 		SetScriptName("startup"); // cheat for some init-time checks
 	}
 
-	virtual void					DoRun() = 0;
-
-	virtual rage::eThreadState		Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount);
-	virtual rage::eThreadState		Run(uint32_t opsToExecute);
-	virtual rage::eThreadState		Tick(uint32_t opsToExecute);
-	virtual void					Kill();
-
 	inline void SetScriptName(const char* name)
 	{
 		m_nameHash = HashString(name);
@@ -234,3 +227,32 @@ public:
 static_assert(sizeof(rage::scrThread) == 1752, "scrThread has wrong size!");
 
 static_assert(sizeof(GtaThread) == 1928, "GtaThread has wrong size!");
+
+class RAGE_SCRIPTING_EXPORT CfxThread
+{
+public:
+	CfxThread();
+
+	virtual ~CfxThread();
+
+	virtual void Reset()
+	{
+	}
+
+	virtual void DoRun() = 0;
+
+	virtual void Kill()
+	{
+	}
+
+	void AttachScriptHandler();
+	void DetachScriptHandler();
+
+	GtaThread* GetThread()
+	{
+		return Thread;
+	}
+
+private:
+	GtaThread* Thread;
+};

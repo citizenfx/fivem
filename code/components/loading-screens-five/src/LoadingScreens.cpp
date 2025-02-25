@@ -90,19 +90,17 @@ extern fwEvent<int, void*, void*> OnInstrumentedFunctionCall;
 
 #include <scrEngine.h>
 
-class LoadsThread : public GtaThread
+class LoadsThread : public CfxThread
 {
 public:
 	virtual void DoRun() override;
 
-	virtual rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) override
+	virtual void Reset() override
 	{
 		doSetup = false;
 		doShutdown = false;
 		isShutdown = false;
 		sh = false;
-
-		return GtaThread::Reset(scriptHash, pArgs, argCount);
 	}
 
 public:
@@ -344,12 +342,12 @@ void LoadsThread::DoRun()
 
 	if (!sh)
 	{
-		CGameScriptHandlerMgr::GetInstance()->AttachScript(this);
+		AttachScriptHandler();
 
 		sh = true;
 	}
 
-	if (!GetScriptHandler())
+	if (!GetThread()->GetScriptHandler())
 	{
 		if (doSetup)
 		{
@@ -492,7 +490,7 @@ static InitFunction initFunction([] ()
 {
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
-		rage::scrEngine::CreateThread(&loadsThread);
+		rage::scrEngine::CreateThread(loadsThread.GetThread());
 	});
 
 	g_loadProfileConvar = std::make_shared<ConVar<bool>>("game_profileLoading", ConVar_UserPref, false);

@@ -11,8 +11,6 @@
 
 #include "Hooking.h"
 
-#include "Pool.h"
-
 #include <MinHook.h>
 
 #include <Error.h>
@@ -91,23 +89,6 @@ static HookFunction hookFunction([]()
 		}
 	}
 });
-
-// functions
-static hook::thiscall_stub<void(CGameScriptHandlerNetwork*, rage::scrThread*)> scriptHandlerNetwork__ctor([]()
-{
-	return hook::pattern("24 ? C6 87 DC 00 00 00 00 0C 01").count(1).get(0).get<void>(-0x39);
-});
-
-void* CGameScriptHandlerNetwork::operator new(size_t size)
-{
-	auto pool = rage::GetPoolBase("CGameScriptHandlerNetwork");
-	return rage::PoolAllocate(pool);
-}
-
-CGameScriptHandlerNetwork::CGameScriptHandlerNetwork(rage::scrThread* thread)
-{
-	scriptHandlerNetwork__ctor(this, thread);
-}
 
 static hook::thiscall_stub<void(void*, uint32_t*, void*)> setHashMap([]()
 {

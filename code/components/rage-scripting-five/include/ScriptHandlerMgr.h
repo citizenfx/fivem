@@ -7,10 +7,10 @@
 
 #pragma once
 
-#ifdef COMPILING_GTA_MISSION_CLEANUP_RDR3
-#define MISCLEAN_EXPORT DLL_EXPORT
+#ifdef COMPILING_RAGE_SCRIPTING_FIVE
+#define RAGE_SCRIPTING_EXPORT DLL_EXPORT
 #else
-#define MISCLEAN_EXPORT DLL_IMPORT
+#define RAGE_SCRIPTING_EXPORT DLL_IMPORT
 #endif
 
 #include <scrEngine.h>
@@ -119,7 +119,7 @@ namespace rage
 	};
 
 	// to allow construction
-	class MISCLEAN_EXPORT scriptHandlerImplemented : public scriptHandler
+	class RAGE_SCRIPTING_EXPORT scriptHandlerImplemented : public scriptHandler
 	{
 	public:
 		virtual ~scriptHandlerImplemented();
@@ -139,26 +139,16 @@ namespace rage
 
 		virtual inline void CreateNetComponent()
 		{
-
 		}
 	};
 }
 
-class MISCLEAN_EXPORT CGameScriptHandlerNetwork : public rage::scriptHandlerImplemented
-{
-public:
-	CGameScriptHandlerNetwork(rage::scrThread* thread);
-
-	// size is ignored as this is a pool allocator
-	void* operator new(size_t size);
-};
-
-class MISCLEAN_EXPORT CGameScriptHandlerMgr : public rage::scriptHandlerMgr
+class RAGE_SCRIPTING_EXPORT CGameScriptHandlerMgr : public rage::scriptHandlerMgr
 {
 private:
 	struct scriptHandlerHashMap
 	{
-		void MISCLEAN_EXPORT Set(uint32_t* hash, rage::scriptHandler** handler);
+		void RAGE_SCRIPTING_EXPORT Set(uint32_t* hash, rage::scriptHandler** handler);
 	};
 
 private:
@@ -179,14 +169,14 @@ public:
 	}
 };
 
-extern MISCLEAN_EXPORT fwEvent<rage::scrThread*, const std::string&> OnCreateResourceThread;
-extern MISCLEAN_EXPORT fwEvent<rage::scrThread*> OnDeleteResourceThread;
+extern RAGE_SCRIPTING_EXPORT fwEvent<rage::scrThread*, const std::string&> OnCreateResourceThread;
+extern RAGE_SCRIPTING_EXPORT fwEvent<rage::scrThread*> OnDeleteResourceThread;
 
 #define MISCLEAN_HAS_SCRIPT_PROCESS_TICK
 
 #include <optional>
 
-class MISCLEAN_EXPORT UpdatingScriptThreadsScope
+class RAGE_SCRIPTING_EXPORT UpdatingScriptThreadsScope
 {
 public:
 	explicit UpdatingScriptThreadsScope(bool newState);
