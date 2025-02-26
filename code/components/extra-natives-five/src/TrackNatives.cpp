@@ -337,6 +337,11 @@ static InitFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRACK_JUNCTION_COUNT", [](fx::ScriptContext& context)
+	{
+		context.SetResult<int>(g_trackJunctions.size());
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("REGISTER_TRACK_JUNCTION", [](fx::ScriptContext& context)
 	{
 		int8_t trackIndex = context.GetArgument<int8_t>(0);
@@ -423,6 +428,44 @@ static InitFunction initFunction([]()
 
 		g_trackJunctions[junctionIndex].isActive = state;
 		context.SetResult<bool>(true);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_TRACK_JUNCTION_ACTIVE", [](fx::ScriptContext& context)
+	{
+		size_t junctionIndex = context.GetArgument<size_t>(0);
+
+		const std::lock_guard _(g_trackJunctionLock);
+
+		if (junctionIndex >= g_trackJunctions.size())
+		{
+			fx::scripting::Warningf("natives", "IS_TRACK_JUNCTION_ACTIVE: Invalid junction id (%i) provided. There are %i registered junctions\n", junctionIndex, g_trackJunctions.size());
+			context.SetResult<bool>(false);
+			return;
+		}
+		
+		context.SetResult<bool>(g_trackJunctions[junctionIndex].isActive);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRACK_JUNCTION_INFO", [](fx::ScriptContext& context)
+	{
+		size_t junctionIndex = context.GetArgument<size_t>(0);
+
+		const std::lock_guard _(g_trackJunctionLock);
+
+		if (junctionIndex >= g_trackJunctions.size())
+		{
+			fx::scripting::Warningf("natives", "GET_TRACK_JUNCTION_INFO: Invalid junction id (%i) provided. There are %i registered junctions\n", junctionIndex, g_trackJunctions.size());
+			context.SetResult<bool>(false);
+			return;
+		}	
+
+		context.SetResult<bool>(true);
+
+		*context.GetArgument<int*>(1) = g_trackJunctions[junctionIndex].onTrack;
+		*context.GetArgument<uint32_t*>(2) = g_trackJunctions[junctionIndex].onNode;
+		*context.GetArgument<int*>(3) = g_trackJunctions[junctionIndex].newTrack;
+		*context.GetArgument<uint32_t*>(4) = g_trackJunctions[junctionIndex].newNode;
+		*context.GetArgument<bool*>(5) = g_trackJunctions[junctionIndex].direction;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_TRACK_NODE_COORDS", [](fx::ScriptContext& context)
