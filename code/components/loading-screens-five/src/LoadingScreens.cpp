@@ -28,10 +28,7 @@
 
 #include <CfxRect.h>
 #include <DrawCommands.h>
-
-#include <CrossBuildRuntime.h>
-
-#include <Error.h>
+#include "LoadingScreens.h"
 
 static std::shared_ptr<ConVar<bool>> g_loadProfileConvar;
 static std::map<uint64_t, std::chrono::milliseconds> g_loadTiming;
@@ -117,6 +114,7 @@ public:
 static LoadsThread loadsThread;
 
 static bool autoShutdownNui = true;
+bool showBusySpinner = true;
 static fx::TNativeHandler g_origShutdown;
 
 #include <nutsnbolts.h>
@@ -195,6 +193,7 @@ static HookFunction hookFunction([]()
 		{
 			endedLoadingScreens = false;
 			autoShutdownNui = true;
+			showBusySpinner = true;
 		});
 
 		{
@@ -555,6 +554,12 @@ static InitFunction initFunction([] ()
 				if (entriesTwo.begin() != entriesTwo.end())
 				{
 					autoShutdownNui = false;
+				}
+
+				entriesTwo = mdComponent->GetEntries("loadscreen_hide_busyspinner");
+				if (entriesTwo.begin() != entriesTwo.end())
+				{
+					showBusySpinner = false;
 				}
 
 				static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
