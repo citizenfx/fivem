@@ -305,6 +305,20 @@ static void Init()
 		return entity->orphanMode;
 	}));
 
+#ifdef STATE_FIVE
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_REMOTE_SYNCED_SCENES_ALLOWED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		entity->allowRemoteSyncedScenes = context.GetArgument<bool>(1);
+
+		return true;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_REMOTE_SYNCED_SCENES_ALLOWED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		return entity->allowRemoteSyncedScenes;
+	}));
+#endif
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_COORDS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		float position[3];
