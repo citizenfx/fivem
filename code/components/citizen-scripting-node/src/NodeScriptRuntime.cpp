@@ -240,6 +240,9 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 	
 result_t NodeScriptRuntime::Destroy()
 {
+	// seems like creating and destroying an isolate in the same tick causes a crash in some cases
+	uv_run(m_uvLoop, UV_RUN_NOWAIT);
+
 	m_eventRoutine = TEventRoutine();
 	m_tickRoutine = std::function<void()>();
 	m_callRefRoutine = TCallRefRoutine();
