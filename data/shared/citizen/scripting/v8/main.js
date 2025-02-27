@@ -1,5 +1,6 @@
 // CFX JS runtime
 /// <reference path="./natives_server.d.ts" />
+/// <reference path="./msgpack.d.ts" />
 
 const EXT_FUNCREF = 10;
 const EXT_LOCALFUNCREF = 11;
@@ -41,14 +42,39 @@ const EXT_LOCALFUNCREF = 11;
 	const nextRefIdx = () => refIndex++;
 	const refFunctionsMap = new Map();
 
-	const codec = msgpack.createCodec({
-		uint8array: true,
-		preset: false,
-		binarraybuffer: true
+	/** @type {import("./msgpack").Options} */
+	const packrOptions = {
+		// use "std::map" for the underlying msgpack type for compatibility
+		useRecords: false,
+		// do not allow Map, Set, and Error to be serialized (rdr3/protobuf compatibility)
+		moreTypes: false,
+		// keep compatibility Lua/C#
+		encodeUndefinedAsNil: true,
+		// copy the buffer rather than providing a slice/view of the buffer (rdr3/protobuf compatibility)
+		copyBuffers: true, 
+		// don't throw an error when an invalid date is provided (msgpack-lite compatibility)
+		onInvalidDate: true,
+	};
+
+	/** @type {import("./msgpack").Packr} */
+	const packr = new msgpackr.Packr(packrOptions);
+	global.msgpack_extend = msgpackr.addExtension;
+	delete global.msgpackr;
+
+	msgpack_extend({
+		Class: Function,
+		type: EXT_FUNCREF,
+		pack: refFunctionPacker,
+		unpack: refFunctionUnpacker,
 	});
 
-	const pack = data => msgpack.encode(data, { codec });
-	const unpack = data => msgpack.decode(data, { codec });
+	msgpack_extend({
+		type: EXT_LOCALFUNCREF,
+		unpack: refFunctionUnpacker,
+	});
+
+	const pack = (value) => packr.pack(value);
+	const unpack = (packed_value) => packr.unpack(packed_value);
 
 	// store for use by natives.js
 	global.msgpack_pack = pack;
@@ -69,10 +95,10 @@ const EXT_LOCALFUNCREF = 11;
 		return Citizen.canonicalizeRef(ref);
 	};
 
-	function refFunctionPacker(refFunction) {
-		const ref = Citizen.makeRefFunction(refFunction);
+	const Buffer = global.Buffer;
 
-		return ref;
+	function refFunctionPacker(refFunction) {
+		return Buffer.from(Citizen.makeRefFunction(refFunction));
 	}
 
 	function refFunctionUnpacker(refSerialized) {
@@ -133,12 +159,6 @@ const EXT_LOCALFUNCREF = 11;
 			});
 		};
 	}
-
-	const AsyncFunction = (async () => {}).constructor;
-	codec.addExtPacker(EXT_FUNCREF, AsyncFunction, refFunctionPacker);
-	codec.addExtPacker(EXT_FUNCREF, Function, refFunctionPacker);
-	codec.addExtUnpacker(EXT_FUNCREF, refFunctionUnpacker);
-	codec.addExtUnpacker(EXT_LOCALFUNCREF, refFunctionUnpacker);
 
 	/**
 	 * Deletes ref function
