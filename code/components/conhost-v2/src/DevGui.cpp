@@ -299,7 +299,6 @@ devgui_convar "Tools/Network/OneSync/Network SyncLog" netobjviewer_syncLog
 devgui_convar "Tools/Network/OneSync/Network Time" net_showTime
 devgui_convar "Tools/Network/Network Command Log" net_showCommands
 devgui_convar "Tools/Network/Network Event Log" netEventLog
-devgui_cmd "Tools/NUI/Open DevTools" nui_devTools
 )");
 	}
 #endif

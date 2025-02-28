@@ -51,6 +51,8 @@
 #include "DeferredInitializer.h"
 #include <Error.h>
 
+#include "DevToolsAPI.h"
+
 namespace nui
 {
 fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName);
@@ -1490,7 +1492,7 @@ void Initialize(nui::GameInterface* gi)
 		CefSettings cSettings;
 
 		cSettings.multi_threaded_message_loop = true;
-		cSettings.remote_debugging_port = 13172;
+		//cSettings.remote_debugging_port = 13172;
 		cSettings.windowless_rendering_enabled = true;
 		cSettings.log_severity = LOGSEVERITY_DEFAULT;
 		cSettings.background_color = 0;
@@ -1589,6 +1591,8 @@ void Initialize(nui::GameInterface* gi)
 	
 	static ConsoleCommand devtoolsCmd("nui_devtools", []()
 	{
+		return;
+
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
 
 		if (rootWindow.GetRef())
@@ -1609,6 +1613,8 @@ void Initialize(nui::GameInterface* gi)
 
 	static ConsoleCommand devtoolsWindowCmd("nui_devtools", [](const std::string& windowName)
 	{
+		return;
+
 		auto browser = nui::GetNUIWindowBrowser(windowName);
 
 		if (!browser)
@@ -1686,4 +1692,24 @@ std::wstring GetNUIStoragePath()
 	}
 
 	return MakeRelativeCitPath(fmt::sprintf(L"data\\nui-storage%s%s", ToWide(launch::GetPrefixedLaunchModeKey("-")), lmSuffix));
+}
+
+void OpenNuiDevTools()
+{
+	auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
+
+	if (rootWindow.GetRef())
+	{
+		auto browser = rootWindow->GetBrowser();
+
+		if (browser)
+		{
+			CefWindowInfo wi;
+			wi.SetAsPopup(NULL, "NUI DevTools");
+
+			CefBrowserSettings s;
+
+			browser->GetHost()->ShowDevTools(wi, new NUIClient(nullptr), s, {});
+		}
+	}
 }
