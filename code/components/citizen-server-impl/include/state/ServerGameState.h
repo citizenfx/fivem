@@ -573,6 +573,7 @@ struct CPedHealthNodeData
 	int armour;
 	uint32_t causeOfDeath;
 	int sourceOfDamage;
+	bool isDead;
 };
 
 struct CPedOrientationNodeData
@@ -868,6 +869,8 @@ public:
 	virtual bool GetScriptHash(uint32_t* scriptHash) = 0;
 
 	virtual bool IsEntityVisible(bool* visible) = 0;
+
+	virtual void SetPedDead(bool isDead) = 0;
 };
 
 enum EntityOrphanMode : uint8_t
