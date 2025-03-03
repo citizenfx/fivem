@@ -59,7 +59,7 @@
     "#Servers_CancelOverlay": "Avbryt",
     "#Servers_CloseOverlay": "Stäng",
     "#Servers_Info": "Info",
-    "#Servers_Error": "Ошибка (Fel)",
+    "#Servers_Error": "Fel",
     "#Servers_ConnectFailed": "Anslutning misslyckades",
     "#Servers_ConnectingTo": "Ansluter till {{ serverName }}...",
     "#Servers_Connecting": "Ansluter",

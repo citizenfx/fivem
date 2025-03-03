@@ -59,7 +59,7 @@
     "#Servers_CancelOverlay": "İptal",
     "#Servers_CloseOverlay": "Kapat",
     "#Servers_Info": "Bilgi",
-    "#Servers_Error": "Ошибка (Hata)",
+    "#Servers_Error": "Hata",
     "#Servers_ConnectFailed": "Bağlanılamadı",
     "#Servers_ConnectingTo": "{{ serverName }} bağlanılıyor...",
     "#Servers_Connecting": "Bağlanılıyor",

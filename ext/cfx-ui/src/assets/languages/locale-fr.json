@@ -19,7 +19,7 @@
     "#Servers_Connecting": "Connexion en cours",
     "#Servers_ConnectingTo": "Connexion en cours sur {{ serverName }}...",
     "#Servers_ConnectFailed": "Connexion échouée",
-    "#Servers_Error": "Ошибка (Erreur)",
+    "#Servers_Error": "Erreur",
     "#Servers_Info": "Info",
     "#Servers_CloseOverlay": "Fermer",
     "#Servers_CancelOverlay": "Retour",
