@@ -3,6 +3,8 @@ name: CI Build all products
 on:
   workflow_call:
 
+permissions: {}
+
 jobs:
   build_all:
     strategy:
@@ -40,8 +42,8 @@ jobs:
           # Call each git command individually, preventing unnecessary checkouts
           git init .
           git config core.symlinks true
-          git remote add origin https://github.com/$GITHUB_REPOSITORY.git
-          git pull origin $GITHUB_REF:PR_BRANCH --depth=1
+          git remote add origin ${{github.event.pull_request.head.repo.clone_url}}
+          git pull origin ${{github.event.pull_request.head.ref}} --depth=1
           git submodule update --jobs=$JOB_SLOTS --init --depth=1
         
       - name: Dependencies
