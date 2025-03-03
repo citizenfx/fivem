@@ -62,7 +62,7 @@
     "#Servers_CancelOverlay": "Avbryt",
     "#Servers_CloseOverlay": "Lukk",
     "#Servers_Info": "Info",
-    "#Servers_Error": "Ошибка (Feil)",
+    "#Servers_Error": "Feil",
     "#Servers_ConnectFailed": "Tilkobling mislyktes",
     "#Servers_ConnectingTo": "Kobler til {{ serverName }}...",
     "#Servers_Connecting": "Kobler til",
