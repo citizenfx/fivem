@@ -14,12 +14,17 @@ function Invoke-UploadServerSymbols {
 
     $symPackDir = $Context.getPathInBuildCache("symbols\sym-pack")
     $symUploadDir = $Context.getPathInBuildCache("symbols\sym-upload")
+    $symUploadDirLower = $Context.getPathInBuildCache("symbols\sym-upload2")
 
     Remove-Item -Force -Recurse $symUploadDir
     New-Item -ItemType Directory -Force $symUploadDir
 
     Remove-Item -Force -Recurse $symPackDir
     New-Item -ItemType Directory -Force $symPackDir
+
+    Remove-Item -Force -Recurse $symUploadDirLower
+    New-Item -ItemType Directory -Force $symUploadDirLower
+
 
     & $symstore add /o /f ($Context.MSBuildOutput) /s $symUploadDir /t "Cfx" /r
     Test-LastExitCode "Failed to upload symbols, symstore failed"
@@ -44,28 +49,30 @@ function Invoke-UploadServerSymbols {
     }
 
     # chdir to the directory to avoid converting path to what rsync would expect
-    Push-Location $symUploadDir
-        if ($Context.IsDryRun) {
-            Write-Output "DRY RUN: Would upload symbols"
-        } else {
-            # remember current PATH content
-            $oldEnvPath = $env:PATH
-    
-            # prepend PATH with MSYS2 bin dir so it can use it's own SSH
-            $msys2UsrBin = [IO.Path]::Combine($Tools.getMSYS2Root(), "usr\bin");
-            $env:PATH = "$msys2UsrBin;$env:PATH"
-    
-            & $rsync -r -a -v -e $env:RSH_SYMBOLS_COMMAND ./ $env:SSH_SYMBOLS_TARGET
-            if ($LASTEXITCODE -ne 0) {
-                $Context.addBuildWarning("Failed to upload symbols, rsync failed")
-            }
-    
-            # restore PATH
-            $env:PATH = $oldEnvPath
+    $items = Get-ChildItem -Path $symUploadDir -Recurse
+
+    foreach ($item in $items) {
+        $newName = $item.FullName.ToLower()
+
+        $destination = $newName -replace [regex]::Escape($symUploadDir), $symUploadDirLower
+
+        if ($item.PSIsContainer) {
+            New-Item -ItemType Directory -Path $destination -Force
+        }
+        else {
+            Copy-Item -Path $item.FullName -Destination $destination -Force
+        }
+    }
+
+    Push-Location $symUploadDirLower
+        & $env:MC_PATH mirror --overwrite ./ $env:SYMBOL_PATH
+        if ($LASTEXITCODE -ne 0) {
+            $Context.addBuildWarning("Failed to upload symbols, mc mirror failed")
         }
     Pop-Location
 
-    if ($Context.IsPublicBuild) {
-        Invoke-SentryUploadDif -Context $Context -Tools $Tools -Path $symPackDir
-    }
+
+    # if ($Context.IsPublicBuild) {
+    #     Invoke-SentryUploadDif -Context $Context -Tools $Tools -Path $symPackDir
+    # }
 }

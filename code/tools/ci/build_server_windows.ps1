@@ -61,9 +61,9 @@ try {
         Invoke-RunMSBuild -Context $ctx -Tools $tools
     }.GetNewClosure()
 
-    # Invoke-LogSection "Uploading symbols" {
-    #     Invoke-UploadServerSymbols -Context $ctx -Tools $tools
-    # }.GetNewClosure()
+    Invoke-LogSection "Uploading symbols" {
+        Invoke-UploadServerSymbols -Context $ctx -Tools $tools
+    }.GetNewClosure()
 
     Invoke-LogSection "Building system resources" {
         Invoke-BuildSystemResources -Context $ctx -Versions $versions
