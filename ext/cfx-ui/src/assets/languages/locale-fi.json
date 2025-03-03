@@ -20,7 +20,7 @@
     "#Servers_Connecting": "Yhdistetään",
     "#Servers_ConnectingTo": "Yhdistetään palvelimelle {{ serverName }}...",
     "#Servers_ConnectFailed": "Yhdistäminen epäonnistui",
-    "#Servers_Error": "Ошибка (Virhe)",
+    "#Servers_Error": "Virhe",
     "#Servers_Info": "Info",
     "#Servers_CloseOverlay": "Sulje",
     "#Servers_CancelOverlay": "Peruuta",

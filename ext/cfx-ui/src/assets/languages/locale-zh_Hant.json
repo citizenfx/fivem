@@ -59,7 +59,7 @@
     "#Servers_CancelOverlay": "取消",
     "#Servers_CloseOverlay": "關閉",
     "#Servers_Info": "資訊",
-    "#Servers_Error": "Ошибка (錯誤)",
+    "#Servers_Error": "錯誤",
     "#Servers_ConnectFailed": "連線失敗",
     "#Servers_ConnectingTo": "正在連線到 {{ serverName }} ...",
     "#Servers_Connecting": "正在連線中",
