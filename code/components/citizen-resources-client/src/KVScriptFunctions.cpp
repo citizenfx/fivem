@@ -188,14 +188,14 @@ struct SerializeValue<RawType>
 };
 
 template<typename T>
-static void GetResourceKvp_Impl(const std::string& key, fx::ScriptContext& context)
+static void GetResourceKvp_Impl(const std::string& key, bool external, fx::ScriptContext& context)
 {
 	auto db = EnsureDatabase();
 
 	std::string value;
 	if (db->Get(leveldb::ReadOptions{}, key, &value).IsNotFound())
 	{
-		context.SetResult<const char*>(nullptr);
+		context.SetResult<T>(context.GetArgument<T>(external ? 2 : 1));
 		return;
 	}
 
@@ -207,7 +207,7 @@ static void GetResourceKvp(fx::ScriptContext& context)
 {
 	auto key = FormatKey(context.CheckArgument<const char*>(0));
 
-	return GetResourceKvp_Impl<T>(key, context);
+	return GetResourceKvp_Impl<T>(key, false, context);
 }
 
 template<typename T>
@@ -215,7 +215,7 @@ static void GetExternalKvp(fx::ScriptContext& context)
 {
 	auto key = FormatKey(context.CheckArgument<const char*>(1), context.CheckArgument<const char*>(0));
 
-	return GetResourceKvp_Impl<T>(key, context);
+	return GetResourceKvp_Impl<T>(key, true, context);
 }
 
 #include <memory>
