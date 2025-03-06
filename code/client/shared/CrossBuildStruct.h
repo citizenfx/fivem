@@ -37,27 +37,27 @@ struct CombineVersions<VersionList<Version1, Versions1...>, VersionList<Version2
 {
 };
 
-template<template<int> typename Self, typename Versions>
+template<typename Self, template<int> typename Multi, typename Versions>
 struct CrossBuildVisitor
 {
 	template<typename Visitor>
-	static inline decltype(auto) Visit(void* ptr, Visitor&& vis)
+	static inline decltype(auto) Visit(Self* ptr, Visitor&& vis)
 	{
 		return Visit(ptr, std::forward<Visitor>(vis), xbr::GetGameBuild(), Versions{});
 	}
 
 	template<int Version, typename Visitor>
-	static inline decltype(auto) Visit(void* ptr, Visitor&& vis, int /*version*/, VersionList<Version>)
+	static inline decltype(auto) Visit(Self* ptr, Visitor&& vis, int /*version*/, VersionList<Version>)
 	{
-		return vis(static_cast<Self<Version>*>(ptr));
+		return vis(reinterpret_cast<Multi<Version>*>(ptr));
 	}
 
 	template<int Version1, int Version2, int... ExtraVersions, typename Visitor>
-	static inline decltype(auto) Visit(void* ptr, Visitor&& vis, int version, VersionList<Version1, Version2, ExtraVersions...>)
+	static inline decltype(auto) Visit(Self* ptr, Visitor&& vis, int version, VersionList<Version1, Version2, ExtraVersions...>)
 	{
 		if (version < Version2)
 		{
-			return vis(static_cast<Self<Version1>*>(ptr));
+			return vis(reinterpret_cast<Multi<Version1>*>(ptr));
 		}
 
 		return Visit(ptr, std::forward<Visitor>(vis), version, VersionList<Version2, ExtraVersions...>{});
@@ -71,18 +71,7 @@ template<typename Self, template<int Version> typename Multi, typename _Versions
 struct CrossBuildStructInfoBase
 {
 	using Versions = _Versions;
-	using Visitor = CrossBuildVisitor<Multi, Versions>;
-
-	template<typename... Args>
-	static inline decltype(auto) Create(Args&&... args)
-	{
-		return static_cast<Self*>(Visitor::Visit(nullptr, [&](auto p)
-		{
-			using RuntimeType = typename std::remove_pointer<decltype(p)>::type;
-
-			return static_cast<void*>(new RuntimeType(std::forward<Args>(args)...));
-		}));
-	}
+	using Visitor = CrossBuildVisitor<Self, Multi, Versions>;
 };
 
 template<typename Self, template<int Version> typename Multi, int... Versions>
@@ -110,7 +99,7 @@ inline decltype(auto) operator->*(Self* self, Func&& func)
 }
 
 template<typename T, typename... Args>
-static inline decltype(auto) CrossBuildNew(Args&&... args)
+static inline T* xbr_new(Args&&... args)
 {
 	return static_cast<T*>(nullptr)->*[&](auto p)
 	{
@@ -121,12 +110,15 @@ static inline decltype(auto) CrossBuildNew(Args&&... args)
 }
 
 template<typename T>
-static inline decltype(auto) CrossBuildDelete(T* ptr)
+static inline void xbr_delete(T* ptr)
 {
-	ptr->*[](auto self)
+	if (ptr)
 	{
-		delete self;
-	};
+		ptr->*[](auto self)
+		{
+			delete self;
+		};
+	}
 }
 
 #define XBV(...)                              \

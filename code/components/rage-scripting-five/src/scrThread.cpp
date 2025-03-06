@@ -308,13 +308,13 @@ struct CrossBuildStruct<CfxGtaThread>
 };
 
 CfxThread::CfxThread()
-	: Thread(CrossBuildNew<CfxGtaThread>(*this))
+	: Thread(xbr_new<CfxGtaThread>(*this))
 {
 }
 
 CfxThread::~CfxThread()
 {
-	CrossBuildDelete(Thread);
+	xbr_delete(Thread);
 }
 
 void CfxThread::AttachScriptHandler()
