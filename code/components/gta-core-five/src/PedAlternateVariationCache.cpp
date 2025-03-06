@@ -92,16 +92,24 @@ static void AddAlternateVariationsCacheEntry(TAlternateVariationsCache* cacheMap
 
 static void LoadAlternateVariationSwitches(TAlternateVariationsSwitchSet* switchSet, atArray<AlternateVariationsSwitchAsset>* outArray)
 {
-	uint16_t index = 0;
+	outArray->m_count = 0;
 
 	for (auto cacheEntry : *switchSet)
 	{
+		// outArray is stored on stack so we want
+		// to prevent atArray->Set from expanding it
+		// and possiblity causing issues
+		if (outArray->m_count >= outArray->GetSize())
+		{
+			trace("Overflowing alternates array max=%i dlcNameHash=%08X\n", outArray->GetSize(), cacheEntry->data.dlcNameHash);
+			continue;
+		}
+		
 		// rough but will work
 		auto switchAsset = *(AlternateVariationsSwitchAsset*)&cacheEntry->data;
-		outArray->Set(index++, std::move(switchAsset));
+		assert(outArray->m_count < outArray->GetSize());
+		outArray->Set(outArray->m_count++, std::move(switchAsset));
 	}
-
-	outArray->m_count = index;
 }
 
 static void ClearAlternateVariationsCache()
@@ -139,8 +147,6 @@ static bool GetAlternateVariationSwitchesByIndex(AlternateVariationsPed* pedEntr
 		return g_origGetAlternateVariationSwitchesByIndex(pedEntry, component, index, dlcNameHash, outArray);
 	}
 
-	outArray->m_count = 0;
-
 	if (auto cachedSwitches = GetAlternateVariationsCacheEntry(&g_cachedAlternatesByIndex, pedEntry->name, dlcNameHash, component, index))
 	{
 		LoadAlternateVariationSwitches(cachedSwitches, outArray);
@@ -157,8 +163,6 @@ static bool GetAlternateVariationSwitchesByAnchor(AlternateVariationsPed* pedEnt
 	{
 		return g_origGetAlternateVariationSwitchesByAnchor(pedEntry, component, anchor, dlcNameHash, outArray);
 	}
-
-	outArray->m_count = 0;
 
 	if (auto cachedSwitches = GetAlternateVariationsCacheEntry(&g_cachedAlternatesByAnchor, pedEntry->name, dlcNameHash, component, anchor))
 	{
