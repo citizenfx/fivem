@@ -5851,6 +5851,20 @@ private:
 		MSGPACK_DEFINE_MAP(nameHash, posX, posY, posZ, blendIn, blendOut, flags, animHash);
 	};
 
+	template<typename TEntityData>
+	static bool SanitizeEntity(fx::ServerGameState* sgs, const TEntityData& entityData, const uint32_t clientNetId)
+	{
+		const auto entity = sgs->GetEntity(0, entityData.objectId);
+		const auto owner = entity ? entity->GetClient() : fx::ClientSharedPtr{};
+
+		if (owner && clientNetId != owner->GetNetId() && !entity->allowRemoteSyncedScenes)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 public:
 	uint16_t sceneId;
 	uint32_t startTime;
@@ -5964,6 +5978,37 @@ public:
 	inline std::string GetName()
 	{
 		return "startNetworkSyncedSceneEvent";
+	}
+
+	bool Sanitize(fx::ServerGameState* sgs, const fx::ClientSharedPtr& client) const
+	{
+		const auto clientNetId = client->GetNetId();
+
+		const auto passedValidation = std::all_of(pedEntities.begin(), pedEntities.end(), [&sgs, clientNetId](const auto& pedEntity)
+		{
+			return SanitizeEntity<PedEntityData>(sgs, pedEntity, clientNetId);
+		}) && std::all_of(nonPedEntities.begin(), nonPedEntities.end(), [&sgs, clientNetId](const auto& nonPedEntity)
+		{
+			return SanitizeEntity<NonPedEntityData>(sgs, nonPedEntity, clientNetId);
+		});
+
+		if (!passedValidation)
+		{
+			static std::chrono::milliseconds lastWarn{ -120 * 1000 };
+
+			auto now = msec();
+
+			if ((now - lastWarn) > std::chrono::seconds{ 120 })
+			{
+				console::PrintWarning("sync", "A client (netID %d) tried to use NetworkStartSynchronisedScene, but it was rejected.\n"
+					"Synchronized Scenes that include remotely owned entities need to be allowlisted. To fix this, use \"SetEntityRemoteSyncedScenesAllowed(entityId, true)\".\n",
+					client->GetNetId());
+
+				lastWarn = now;
+			}
+		}
+
+		return passedValidation;
 	}
 
 	MSGPACK_DEFINE_MAP(sceneId, startTime, isActive, scenePosX, scenePosY, scenePosZ, sceneRotX, sceneRotY, sceneRotZ, sceneRotW, hasAttachEntity, attachEntityId, attachEntityBone, phaseToStopScene, rate, holdLastFrame, isLooped, phase, cameraAnimHash, animDictHash, pedEntities, nonPedEntities, mapEntities);
@@ -6798,6 +6843,18 @@ static constexpr auto HasTargetPlayerSetter(int) -> decltype(std::is_same_v<decl
 	return true;
 }
 
+template<typename TEvent>
+static constexpr auto HasSanitizer(char)
+{
+	return false;
+}
+
+template<typename TEvent>
+static constexpr auto HasSanitizer(int) -> decltype(std::is_same_v<decltype(std::declval<TEvent>().Sanitize(std::declval<fx::ServerGameState*>(), std::declval<const fx::ClientSharedPtr&>())), void>)
+{
+	return true;
+}
+
 // todo: remove when msgNetGameEventV2 is the default handler for game events
 template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer, const std::vector<uint16_t>& targetPlayers = {}) -> std::function<bool()>
@@ -6815,6 +6872,17 @@ inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedP
 	if (msgBuf.GetLength())
 	{
 		ev->Parse(msgBuf);
+
+		if constexpr (HasSanitizer<TEvent>(0))
+		{
+			if (!ev->Sanitize(instance->GetComponent<fx::ServerGameState>().GetRef(), client))
+			{
+				return []()
+				{
+					return false;
+				};
+			}
+		}
 	}
 
 	if constexpr (HasTargetPlayerSetter<TEvent>(0))
@@ -6837,6 +6905,17 @@ inline auto GetHandlerWithEvent(fx::ServerInstanceBase* instance, const fx::Clie
 	{
 		rl::MessageBufferView msgBuf { netGameEvent.data.GetValue() };
 		ev->Parse(msgBuf);
+
+		if constexpr (HasSanitizer<TEvent>(0))
+		{
+			if (!ev->Sanitize(instance->GetComponent<fx::ServerGameState>().GetRef(), client))
+			{
+				return []()
+				{
+					return false;
+				};
+			}
+		}
 	}
 
 	if constexpr (HasTargetPlayerSetter<TEvent>(0))
