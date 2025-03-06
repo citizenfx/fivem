@@ -190,11 +190,11 @@ static HookFunction hookFunction([]()
 		
 		void InternalMain() override
 		{
-			mov(rcx, reinterpret_cast<uintptr_t>(skyPortalFlagArray.get()));
+			mov(rcx, qword_ptr[rbx+0xC38]);
 			xor(edx, edx);
 			mov(dword_ptr[rcx+0x378], r9d);
 			mov(r8d, static_cast<size_t>((pools[eSceneGraphPool::FW_PORTAL_SCENE_GRAPH_NODE].poolSize + 7) / 8));
-			add(rcx, 0x37C);
+			mov(rcx, reinterpret_cast<uintptr_t>(skyPortalFlagArray.get()));
 			mov(rax, (uintptr_t)memset);
 			call(rax);
 			xor(r9d, r9d);
