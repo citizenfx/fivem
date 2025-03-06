@@ -39,7 +39,7 @@ enum NativeIdentifiers : uint64_t
 	DO_SCREEN_FADE_IN = 0x6A053CF596F67DF7
 };
 
-class SpawnThread : public GtaThread
+class SpawnThread : public CfxThread
 {
 private:
 	int m_doInitThingsIn;
@@ -50,11 +50,9 @@ public:
 		m_doInitThingsIn = 4;
 	}
 
-	virtual rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) override
+	virtual void Reset() override
 	{
 		m_doInitThingsIn = 4;
-
-		return GtaThread::Reset(scriptHash, pArgs, argCount);
 	}
 
 	virtual void DoRun() override
@@ -212,7 +210,7 @@ static void LoadLevel(const char* levelName)
 	{
 		if (!gameInit->HasVariable("storyMode")/* && !gameInit->HasVariable("localMode")*/)
 		{
-			rage::scrEngine::CreateThread(&spawnThread);
+			rage::scrEngine::CreateThread(spawnThread.GetThread());
 		}
 
 		gameInit->LoadGameFirstLaunch([]()

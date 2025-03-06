@@ -54,7 +54,7 @@ enum NativeIdentifiers : uint64_t
 	DO_SCREEN_FADE_IN = 0xD4E8E24955024033
 };
 
-class SpawnThread : public GtaThread
+class SpawnThread : public CfxThread
 {
 private:
 	bool m_doInityThings;
@@ -501,7 +501,7 @@ static InitFunction initFunction([] ()
 
 	rage::scrEngine::OnScriptInit.Connect([] ()
 	{
-		rage::scrEngine::CreateThread(&spawnThread);
+		rage::scrEngine::CreateThread(spawnThread.GetThread());
 	}, INT32_MAX);
 
 	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
