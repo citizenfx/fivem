@@ -83,16 +83,13 @@ static int FIRST_PORTAL_SCENE_NODE_INDEX =
 
 static void AddSkyPortal(rage::fwScanResultsSkyPortals* self, rage::fwPortalSceneGraphNode* skyPortalNode)
 {
-	__int64 v3;
-	__int8 v4;
-	if(self->m_skyPortalCount <= 63)
+	if(self->m_skyPortalCount >= 0 && self->m_skyPortalCount <= 63)
 	{
-		uint16_t portalIndex = skyPortalNode->m_index - FIRST_PORTAL_SCENE_NODE_INDEX;
-		v3 = (unsigned __int64)portalIndex >> 3;
-		v4 = skyPortalFlagArray[v3];
-		if(((unsigned __int8)(1 << (portalIndex & 7)) & v4) == 0)
+		const uint16_t nodeIndex = skyPortalNode->m_index - FIRST_PORTAL_SCENE_NODE_INDEX;
+		const uint8_t bitMask = 1 << (nodeIndex % 8);
+		if((skyPortalFlagArray[nodeIndex/8] & bitMask) == 0)
 		{
-			skyPortalFlagArray[v3] = v4 | (1 << (portalIndex & 7));
+			skyPortalFlagArray[nodeIndex/8] |= bitMask;
 			self->m_skyPortals[self->m_skyPortalCount++] = skyPortalNode;
 		}
 	}
