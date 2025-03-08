@@ -3,7 +3,8 @@ name: CI Build all products
 on:
   workflow_call:
 
-permissions: {}
+permissions:
+  packages: read
 
 jobs:
   build_all:
@@ -50,7 +51,15 @@ jobs:
         shell: bash
         run: |
           mkdir -p "$ROOT_DEP" && cd "$_" || exit 1
-        
+      
+      - name: Log in to the Container registry
+        if: ${{ matrix.builds[2] == 'linux' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Compile
         shell: bash
         run: |
