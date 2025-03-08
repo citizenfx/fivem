@@ -8,6 +8,7 @@
 #include <nutsnbolts.h>
 #include <CefOverlay.h>
 #include <DrawCommands.h>
+#include "LoadingScreens.h"
 
 #include <mmsystem.h>
 
@@ -479,7 +480,7 @@ static InitFunction initFunction([] ()
 {
 	OnLookAliveFrame.Connect([]()
 	{
-		if (nui::HasFrame("loadingScreen"))
+		if (nui::HasFrame("loadingScreen") && showBusySpinner)
 		{
 			if (*g_scaleformMgr)
 			{
