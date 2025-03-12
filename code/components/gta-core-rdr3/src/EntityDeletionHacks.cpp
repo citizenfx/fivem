@@ -34,22 +34,18 @@ public:
 
 class CPickup : public fwEntity
 {
-
 };
 
 class CObject : public fwEntity
 {
-
 };
 
 class CVehicle : public fwEntity
 {
-
 };
 
 class CPed : public fwEntity
 {
-
 };
 
 template<typename T>
@@ -75,7 +71,7 @@ static hook::cdecl_stub<fwEntity*(int handle)> getScriptEntity([]()
 	return hook::pattern("45 8B C1 41 C1 F8 08 45 38 0C 00 75 ? 8B 42 ? 41 0F AF C0").count(1).get(0).get<void>(-81);
 });
 
-static hook::cdecl_stub<void(fwEntity*)> deletePed([]()
+static hook::cdecl_stub<void(fwEntity*)> deletePedReal([]()
 {
 	return hook::get_pattern("84 D2 74 ? 48 8B 01 48 83 C4 28 48 FF A0", -9);
 });
@@ -100,7 +96,7 @@ static hook::cdecl_stub<void(fwEntity*, bool)> markAsNoLongerNeeded([]()
 	return hook::get_pattern("48 83 C1 10 E8 ? ? ? ? 48 8B D8 EB", -37);
 });
 
-static hook::cdecl_stub<netObject* (uint16_t id)> getNetObjById([]()
+static hook::cdecl_stub<netObject*(uint16_t id)> getNetObjById([]()
 {
 	return hook::get_call(hook::get_pattern("48 8B F8 8A 46 ? 3C 03 75", -13));
 });
@@ -124,6 +120,21 @@ static fwEntity* GetNetworkObject(int objectId)
 	}
 
 	return gameObject;
+}
+
+enum NativeIdentifiers : uint64_t
+{
+	GET_PLAYER_PED = 0x275F255ED201B937,
+};
+
+static void deletePed(int* entityRef, CPed* entity)
+{
+
+	uint32_t playerPedId = NativeInvoke::Invoke<GET_PLAYER_PED, uint32_t>(0xFF);
+
+	if (*entityRef == playerPedId)
+		return;
+	deletePedReal(entity);
 }
 
 static HookFunction hookFunction([]()
@@ -273,7 +284,7 @@ static HookFunction hookFunction([]()
 
 		if (entity)
 		{
-			deletePed(entity);
+			deletePed(entityRef, entity);
 		}
 
 		*entityRef = 0;
@@ -304,15 +315,15 @@ static HookFunction hookFunction([]()
 		{
 			switch (entity->entityType)
 			{
-			case 3:
-				deleteVehicle(entity);
-				break;
-			case 4:
-				deletePed(entity);
-				break;
-			case 5:
-				deleteObject(entity);
-				break;
+				case 3:
+					deleteVehicle(entity);
+					break;
+				case 4:
+					deletePed(entityRef, static_cast<CPed*>(entity));
+					break;
+				case 5:
+					deleteObject(entity);
+					break;
 			}
 		}
 
