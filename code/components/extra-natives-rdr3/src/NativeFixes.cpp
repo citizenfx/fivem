@@ -155,4 +155,11 @@ static HookFunction hookFunction([]()
 
 		FixPedCombatAttributes();
 	});
+
+	// GET_CLOSEST_OBJECT_OF_TYPE: avoid entities forced to be networked
+	{
+		// By default this native check if the entity is networked, if not it will make the entity networked and we don't want this native to change the network state of the entity to have the same behavior as in fivem
+		auto location = hook::get_pattern("48 85 C0 74 ? 40 38 78 ? 74 ? 8B 15");
+		hook::nop(location, 31);
+	}
 });
