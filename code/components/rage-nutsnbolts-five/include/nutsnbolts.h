@@ -15,6 +15,8 @@
 
 #define HAS_EARLY_GAME_FRAME
 
+extern NUTSNBOLTS_EXPORT DWORD g_mainThreadId;
+
 extern NUTSNBOLTS_EXPORT fwEvent<> OnLookAliveFrame;
 extern NUTSNBOLTS_EXPORT fwEvent<> OnGameFrame;
 extern NUTSNBOLTS_EXPORT fwEvent<> OnEarlyGameFrame;
