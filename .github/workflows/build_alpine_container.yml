@@ -23,6 +23,10 @@ jobs:
             sparse-checkout-cone-mode: true
             fetch-depth: 1
             submodules: false
+      - name: Convert repo name to lowercase
+        id: repo_name
+        run: echo "REPO_NAME_LOWER=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
@@ -33,19 +37,19 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.REPO_NAME_LOWER }}/${{ env.IMAGE_NAME }}
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@v6
         with:
           file: code/tools/ci/docker-builder/Dockerfile
           push: true
-          tags:  ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}:latest
+          tags:  ${{ env.REGISTRY }}/${{ env.REPO_NAME_LOWER }}/${{ env.IMAGE_NAME }}:latest
           labels: ${{ steps.meta.outputs.labels }}
       
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}
+          subject-name: ${{ env.REGISTRY }}/${{ env.REPO_NAME_LOWER }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
