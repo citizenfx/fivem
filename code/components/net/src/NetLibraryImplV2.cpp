@@ -30,6 +30,8 @@ public:
 
 	virtual void SendUnreliablePacket(uint32_t type, const char* buffer, size_t length) override;
 
+	virtual void SetPeerTimeout(uint32_t timeout) override;
+
 	virtual bool HasTimedOut() override;
 
 	virtual void Reset() override;
@@ -59,6 +61,8 @@ private:
 	bool m_timedOut;
 
 	uint32_t m_lastKeepaliveSent;
+
+	uint32_t m_peerTimeout = 30000;
 };
 
 static int g_maxMtu = 1300;
@@ -163,6 +167,15 @@ void NetLibraryImplV2::SendData(const NetAddress& netAddress, const char* data, 
 	enet_socket_send(m_host->socket, &addr, &buffer, 1);
 }
 
+void NetLibraryImplV2::SetPeerTimeout(uint32_t timeout)
+{
+	m_peerTimeout = timeout;
+	if (m_serverPeer)
+	{
+		enet_peer_timeout(m_serverPeer, 10000000, 10000000, m_peerTimeout);
+	}
+};
+
 extern int g_serverVersion;
 
 bool NetLibraryImplV2::HasTimedOut()
@@ -186,6 +199,7 @@ bool NetLibraryImplV2::IsDisconnected()
 void NetLibraryImplV2::Reset()
 {
 	m_timedOut = false;
+	m_peerTimeout = 30000;
 
 	if (m_serverPeer)
 	{
@@ -327,7 +341,7 @@ void NetLibraryImplV2::SendConnect(const std::string& token, const std::string& 
 	m_serverPeer = enet_host_connect(m_host, &addr, 2, HashString(token.c_str()));
 
 	// all-but-disable the backoff-based timeout, and set the hard timeout to 30 seconds (equivalent to server-side check!)
-	enet_peer_timeout(m_serverPeer, 10000000, 10000000, 30000);
+	enet_peer_timeout(m_serverPeer, 10000000, 10000000, m_peerTimeout);
 
 #ifdef _DEBUG
 	//enet_peer_timeout(m_serverPeer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
