@@ -660,7 +660,12 @@ static HookFunction initFunction([] ()
 						browser->GoForward();
 					}
 				}
+				suppressInput();
 			} break;
+			case WM_XBUTTONDOWN:
+			case WM_XBUTTONDBLCLK:
+				suppressInput();
+				break;
 			case WM_LBUTTONDOWN:
 			case WM_RBUTTONDOWN:
 			case WM_MBUTTONDOWN:
