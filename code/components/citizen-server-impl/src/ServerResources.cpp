@@ -742,8 +742,22 @@ static InitFunction initFunction([]()
 			}
 		});
 
-		static auto restartCommandRef = instance->AddCommand("restart", [=](const std::string& resourceName)
+		auto restartCommandRef = [=](const std::string& resourceName, const bool isPrintStoppedResource) 
 		{
+			if (resourceName.empty())
+				return;
+
+			if (isCategory(resourceName))
+			{
+				for (const auto& resource : findByComponent(resourceName))
+				{
+					auto conContext = instance->GetComponent<console::Context>();
+					conContext->ExecuteSingleCommandDirect(ProgramArguments{ "restart", resource, "false" });
+				}
+
+				return;
+			}
+
 			auto resource = resman->GetResource(resourceName);
 
 			if (!resource.GetRef())
@@ -754,14 +768,26 @@ static InitFunction initFunction([]()
 
 			if (resource->GetState() != fx::ResourceState::Started)
 			{
-				trace("Can't restart a stopped resource.\n");
+				if (isPrintStoppedResource)
+					trace("Can't restart a stopped resource.\n");
 				return;
 			}
 
 			auto conCtx = instance->GetComponent<console::Context>();
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
+		};
+
+		static auto restartCommand_0 = instance->AddCommand("restart", [restartCommandRef](const std::string& resourceName)
+		{
+			restartCommandRef(resourceName, true);
 		});
+
+		static auto restartCommand_1 = instance->AddCommand("restart", [restartCommandRef](const std::string& resourceName, const bool isPrintStoppedResource)
+		{
+			restartCommandRef(resourceName, isPrintStoppedResource);
+		});
+		
 
 #if defined(_DEBUG) && defined(_WIN32)
 		static auto openCommandRef = instance->AddCommand("open", [=](const std::string& resourceName)
