@@ -742,7 +742,7 @@ static InitFunction initFunction([]()
 			}
 		});
 
-		auto restartCommandRef = [=](const std::string& resourceName, const bool isPrintStopedResource) 
+		auto restartCommandRef = [=](const std::string& resourceName, const bool isPrintStoppedResource) 
 		{
 			if (resourceName.empty())
 				return;
@@ -768,7 +768,7 @@ static InitFunction initFunction([]()
 
 			if (resource->GetState() != fx::ResourceState::Started)
 			{
-				if (isPrintStopedResource)
+				if (isPrintStoppedResource)
 					trace("Can't restart a stopped resource.\n");
 				return;
 			}
@@ -783,9 +783,9 @@ static InitFunction initFunction([]()
 			restartCommandRef(resourceName, true);
 		});
 
-		static auto restartCommand_1 = instance->AddCommand("restart", [restartCommandRef](const std::string& resourceName, const bool isPrintStopedResource)
+		static auto restartCommand_1 = instance->AddCommand("restart", [restartCommandRef](const std::string& resourceName, const bool isPrintStoppedResource)
 		{
-			restartCommandRef(resourceName, isPrintStopedResource);
+			restartCommandRef(resourceName, isPrintStoppedResource);
 		});
 		
 
