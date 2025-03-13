@@ -144,7 +144,7 @@ namespace nui
 	{
 		if (!HasFocus() && hasFocus)
 		{
-			g_nuiGi->SetGameMouseFocus(false);
+			g_nuiGi->SetGameMouseFocus(false, hasCursor);
 		}
 		else if (!hasFocus && HasFocus())
 		{
