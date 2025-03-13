@@ -744,6 +744,20 @@ static InitFunction initFunction([]()
 
 		static auto restartCommandRef = instance->AddCommand("restart", [=](const std::string& resourceName)
 		{
+			if (resourceName.empty())
+				return;
+
+			if (isCategory(resourceName))
+			{
+				for (const auto& resource : findByComponent(resourceName))
+				{
+					auto conContext = instance->GetComponent<console::Context>();
+					conContext->ExecuteSingleCommandDirect(ProgramArguments{ "restart", resource });
+				}
+
+				return;
+			}
+
 			auto resource = resman->GetResource(resourceName);
 
 			if (!resource.GetRef())
@@ -752,6 +766,7 @@ static InitFunction initFunction([]()
 				return;
 			}
 
+			
 			if (resource->GetState() != fx::ResourceState::Started)
 			{
 				trace("Can't restart a stopped resource.\n");
