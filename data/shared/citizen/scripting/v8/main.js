@@ -54,6 +54,10 @@ const EXT_LOCALFUNCREF = 11;
 		copyBuffers: true, 
 		// don't throw an error when an invalid date is provided (msgpack-lite compatibility)
 		onInvalidDate: true,
+		// keep int64s as numbers rather then a BigInt (msgpack-lite compatibility)
+		int64AsType: 'number',
+		// Encode BigInt as a number. (msgpack-lite compatibility)
+		largeBigIntToFloat: true
 	};
 
 	/** @type {import("./msgpack").Packr} */
