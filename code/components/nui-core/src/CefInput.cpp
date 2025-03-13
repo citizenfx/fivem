@@ -20,6 +20,7 @@
 #include <console/Console.VariableHelpers.h>
 
 using nui::HasFocus;
+using nui::HasCursor;
 
 extern nui::GameInterface* g_nuiGi;
 
@@ -353,7 +354,7 @@ static HookFunction initFunction([] ()
 {
 	g_nuiGi->QueryMayLockCursor.Connect([](int& argPtr)
 	{
-		if (HasFocus() && g_hasCursor && !g_keepInput)
+		if (HasFocus() && HasCursor() && !g_keepInput)
 		{
 			argPtr = 0;
 		}
