@@ -39,6 +39,8 @@ private:
 
 	bool m_lastTargetMouseFocus = true;
 
+	bool m_flushMouse = true;
+
 public:
 	virtual void GetGameResolution(int* width, int* height) override;
 
@@ -61,17 +63,19 @@ public:
 
 	virtual void UnsetTexture() override;
 
-	virtual void SetGameMouseFocus(bool val) override
+	virtual void SetGameMouseFocus(bool val, bool flushMouse = true) override
 	{
 		m_targetMouseFocus = val;
+		m_flushMouse = flushMouse;
 	}
 
 	void UpdateMouseFocus()
 	{
 		if (m_targetMouseFocus != m_lastTargetMouseFocus)
 		{
-			InputHook::SetGameMouseFocus(m_targetMouseFocus);
+			InputHook::SetGameMouseFocus(m_targetMouseFocus, m_flushMouse);
 			m_lastTargetMouseFocus = m_targetMouseFocus;
+			m_flushMouse = true;
 		}
 	}
 

@@ -20,6 +20,7 @@
 #include <console/Console.VariableHelpers.h>
 
 using nui::HasFocus;
+using nui::HasCursor;
 
 extern nui::GameInterface* g_nuiGi;
 
@@ -143,7 +144,7 @@ namespace nui
 	{
 		if (!HasFocus() && hasFocus)
 		{
-			g_nuiGi->SetGameMouseFocus(false);
+			g_nuiGi->SetGameMouseFocus(false, hasCursor);
 		}
 		else if (!hasFocus && HasFocus())
 		{
@@ -353,7 +354,7 @@ static HookFunction initFunction([] ()
 {
 	g_nuiGi->QueryMayLockCursor.Connect([](int& argPtr)
 	{
-		if (HasFocus() && g_hasCursor && !g_keepInput)
+		if (HasFocus() && HasCursor() && !g_keepInput)
 		{
 			argPtr = 0;
 		}
@@ -659,7 +660,12 @@ static HookFunction initFunction([] ()
 						browser->GoForward();
 					}
 				}
+				suppressInput();
 			} break;
+			case WM_XBUTTONDOWN:
+			case WM_XBUTTONDBLCLK:
+				suppressInput();
+				break;
 			case WM_LBUTTONDOWN:
 			case WM_RBUTTONDOWN:
 			case WM_MBUTTONDOWN:
