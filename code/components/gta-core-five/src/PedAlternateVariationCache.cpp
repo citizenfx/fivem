@@ -92,8 +92,6 @@ static void AddAlternateVariationsCacheEntry(TAlternateVariationsCache* cacheMap
 
 static void LoadAlternateVariationSwitches(TAlternateVariationsSwitchSet* switchSet, atArray<AlternateVariationsSwitchAsset>* outArray)
 {
-	outArray->m_count = 0;
-
 	for (auto cacheEntry : *switchSet)
 	{
 		// outArray is stored on stack so we want
@@ -107,7 +105,6 @@ static void LoadAlternateVariationSwitches(TAlternateVariationsSwitchSet* switch
 		
 		// rough but will work
 		auto switchAsset = *(AlternateVariationsSwitchAsset*)&cacheEntry->data;
-		assert(outArray->m_count < outArray->GetSize());
 		outArray->Set(outArray->m_count++, std::move(switchAsset));
 	}
 }
@@ -147,6 +144,8 @@ static bool GetAlternateVariationSwitchesByIndex(AlternateVariationsPed* pedEntr
 		return g_origGetAlternateVariationSwitchesByIndex(pedEntry, component, index, dlcNameHash, outArray);
 	}
 
+	outArray->m_count = 0;
+
 	if (auto cachedSwitches = GetAlternateVariationsCacheEntry(&g_cachedAlternatesByIndex, pedEntry->name, dlcNameHash, component, index))
 	{
 		LoadAlternateVariationSwitches(cachedSwitches, outArray);
@@ -163,6 +162,8 @@ static bool GetAlternateVariationSwitchesByAnchor(AlternateVariationsPed* pedEnt
 	{
 		return g_origGetAlternateVariationSwitchesByAnchor(pedEntry, component, anchor, dlcNameHash, outArray);
 	}
+
+	outArray->m_count = 0;
 
 	if (auto cachedSwitches = GetAlternateVariationsCacheEntry(&g_cachedAlternatesByAnchor, pedEntry->name, dlcNameHash, component, anchor))
 	{
