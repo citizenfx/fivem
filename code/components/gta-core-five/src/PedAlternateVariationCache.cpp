@@ -22,6 +22,9 @@
 // We're fixing it by caching results beforehand, when the game loads variation data files.
 //
 
+const static int8_t kAlternatesSizeof = 8;
+const static int16_t kMaxNumAlternates = 512;
+
 struct AlternateVariationsSwitchAsset // 0x1BC82D17
 {
 	uint8_t component;
@@ -55,6 +58,12 @@ struct AlternateVariationsPed // 0xEF79CBDB
 struct CAlternateVariations
 {
 	atArray<AlternateVariationsPed> peds;
+};
+
+struct AlternatesVariationsPatternPair
+{
+	std::string_view pattern;
+	int arrayCapacityoffset;
 };
 
 using TAlternateVariationsSwitchSet = std::set<AlternateVariationsSwitch*>;
@@ -197,6 +206,12 @@ static void UnloadAlternateVariationsFile(void* data)
 	}
 }
 
+static size_t GetExpectedAlternatesAtArrayCapacityForBuild()
+{
+	if (xbr::IsGameBuildOrGreater<2189>()) return 160;
+	return 128;
+}
+
 static HookFunction initFunction([]()
 {
 	g_alternateVariations = hook::get_address<decltype(g_alternateVariations)>(hook::get_pattern("85 C0 7E 28 4C 8B 0D", 7));
@@ -217,4 +232,21 @@ static HookFunction initFunction([]()
 	{
 		ClearAlternateVariationsCache();
 	});
+
+	std::initializer_list<AlternatesVariationsPatternPair> alternateVariationsLocations = {
+		{ "B8 ? ? ? ? 48 2B E0 48 8D 4C 24 ? 8B 01 48 8B B6", 0x25 },
+		{ "B8 ? ? ? ? 48 2B E0 48 8D 4C 24 ? 8B 01 44 8B 4D", 0x22 },
+		{ "B8 ? ? ? ? 48 2B E0 48 8D 4C 24 ? 8B 01 4C 8B BB", 0x27 },
+		{ "B8 ? ? ? ? 48 2B E0 48 8D 44 24 ? 48 89 45 ? 8B 00 44 88 5D", 0x65 },
+		{ "B8 ? ? ? ? 48 2B E0 48 8D 4C 24 ? 8B 01 8B 9C B7", 0x28 }
+	};
+
+	for(auto& entry : alternateVariationsLocations)
+	{
+		auto location = hook::get_pattern<char>(entry.pattern);
+		auto prevAlternatesAtArrayCapacity = *(int16_t*)(location + entry.arrayCapacityoffset);
+		assert(prevAlternatesAtArrayCapacity == GetExpectedAlternatesAtArrayCapacityForBuild());
+		hook::put<uint32_t>(location + 0x1, kMaxNumAlternates * kAlternatesSizeof);
+		hook::put<int16_t>(location + entry.arrayCapacityoffset, kMaxNumAlternates);
+	}
 });
