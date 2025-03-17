@@ -155,4 +155,38 @@ static HookFunction hookFunction([]()
 
 		FixPedCombatAttributes();
 	});
+	
+	{
+		// Clears the "not visible" flags when disabling the conceal state (NETWORK_CONCEAL_PLAYER) for the player.
+		// This is necessary to make the player visible again after disabling the conceal state because, 
+		// before showing the entity again, the game checks that it does not have any "not visible" flags. 
+		// By default, the game does not clear these flags when executing this native function.
+		static struct : jitasm::Frontend
+		{
+			intptr_t location;
+			void Init(intptr_t location)
+			{
+				this->location = location + 10;
+			}
+			
+			void InternalMain() override
+			{
+				mov(r8b, 01);
+				lea(rdi, qword_ptr[r14+0x270]);
+				mov(rsi, qword_ptr[rdi]);
+				
+				and(dword_ptr[rdi+0x30], 0); // m_remoteVisibilityOverride->m_isNotVisibleFlags = 0;
+			
+				mov(r15, location);
+				jmp(r15); // Jump back to the original code
+			}
+		} patchStub;
+		auto location = hook::get_pattern("41 B0 ? 49 8D BE");
+		hook::nop(location, 13);
+		patchStub.Init(reinterpret_cast<intptr_t>(location));
+		hook::jump(location, patchStub.GetCode());
+		
+		// mov rax, [r14] (restore rax value from r14)
+		hook::put((char*)location + 10, 0x068B49);
+	}
 });
