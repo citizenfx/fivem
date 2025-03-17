@@ -171,7 +171,7 @@ namespace nui
 
 		virtual void UnsetTexture() = 0;
 
-		virtual void SetGameMouseFocus(bool val) = 0;
+		virtual void SetGameMouseFocus(bool val, bool flushMouse = true) = 0;
 
 		virtual HWND GetHWND() = 0;
 
