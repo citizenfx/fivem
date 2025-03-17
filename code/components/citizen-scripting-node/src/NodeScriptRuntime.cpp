@@ -255,8 +255,8 @@ result_t NodeScriptRuntime::Destroy()
 	node::EmitProcessBeforeExit(m_nodeEnvironment);
 	node::EmitProcessExit(m_nodeEnvironment);
 	node::Stop(m_nodeEnvironment);
-	node::FreeIsolateData(m_isolateData);
 	node::FreeEnvironment(m_nodeEnvironment);
+	node::FreeIsolateData(m_isolateData);
 
 	//uv_loop_close(m_uvLoop);
 	//delete m_uvLoop;
