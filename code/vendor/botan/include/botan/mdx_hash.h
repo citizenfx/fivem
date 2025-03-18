@@ -10,6 +10,8 @@
 
 #include <botan/hash.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(mdx_hash.h)
+
 namespace Botan {
 
 /**

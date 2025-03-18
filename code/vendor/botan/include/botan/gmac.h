@@ -11,6 +11,8 @@
 
 #include <botan/mac.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(gmac.h)
+
 namespace Botan {
 
 class BlockCipher;

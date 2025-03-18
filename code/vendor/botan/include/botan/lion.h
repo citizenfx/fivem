@@ -12,6 +12,8 @@
 #include <botan/stream_cipher.h>
 #include <botan/hash.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(lion.h)
+
 namespace Botan {
 
 /**
