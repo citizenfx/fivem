@@ -65,6 +65,18 @@ static hook::cdecl_stub<bool(void*, uint32_t*, int)> _netBuffer_ReadInteger([]()
 #endif
 });
 
+#ifdef IS_RDR3
+static hook::cdecl_stub<bool(void*, uint64_t, int)> _netBuffer_writeWord([]()
+{
+	return hook::get_pattern("48 8B 74 24 ? 48 83 C4 ? 5F C3 90 B4 ? 8B C4", -0x63);
+});
+
+static hook::cdecl_stub<bool(void*, uint8_t, int)> _netBuffer_writeByte([]()
+{
+	return hook::get_pattern("48 8B 5C 24 ? 40 8A C7 48 8B 74 24 ? 48 83 C4 ? 5F C3 90 49 48 89 5C 24", -0x5B);
+});
+#endif
+
 static void(*g_orig_netBuffer_ReadUnsigned)(void* a1, uint32_t* a2, int length, int a4);
 static void _netBuffer_ReadUnsigned(void* a1, uint32_t* a2, int length, int a4)
 {
@@ -105,10 +117,34 @@ namespace rage
 		return _netBuffer_ReadInteger(this, integer, bits);
 	}
 
+	bool datBitBuffer::ReadBit(bool* bit)
+	{
+		uint32_t result = 0;
+		if (ReadInteger(&result, 1))
+		{
+			*bit = (result == 1);
+			return true;
+		}
+	
+		return false;
+	}
+
 	bool datBitBuffer::WriteInteger(uint32_t integer, int bits)
 	{
 		return _netBuffer_WriteInteger(this, integer, bits);
 	}
+	
+#ifdef IS_RDR3
+	bool datBitBuffer::WriteWord(uint64_t integer, int bits)
+	{
+		return _netBuffer_writeWord(this, integer, bits);
+	}
+
+	bool datBitBuffer::WriteByte(uint8_t byte, int bits)
+	{
+		return _netBuffer_writeByte(this, byte, bits);
+	}
+#endif
 
 	bool datBitBuffer::WriteUns(uint32_t integer, int bits)
 	{
