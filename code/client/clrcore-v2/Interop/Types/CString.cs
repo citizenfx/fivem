@@ -451,73 +451,126 @@ namespace CitizenFX.Core
 		[SecurityCritical]
 		private static unsafe int UTF8EncodeLength(char* src, int length)
 		{
-			char* c = src, end = src + length;
-			length = 0;
-			while (c < end)
+			int byteCount = 0;
+			char* end = src + length;
+			while (src < end)
 			{
-				char c1 = *c++;
-				if (c1 <= 0x7F)
-					length++;
-				else if (c1 <= 0x7FF)
-					length += 2;
+				char c1 = *src;
+				if (c1 < 0x80)
+				{
+					// ASCII character: requires 1 byte in UTF8.
+					byteCount++;
+				}
+				else if (c1 < 0x800)
+				{
+					// Characters in the range [0x80, 0x7FF]: require 2 bytes in UTF8.
+					byteCount += 2;
+				}
+				else if (c1 >= 0xD800 && c1 <= 0xDBFF) // High surrogate
+				{
+					if (src + 1 < end)
+					{
+						char c2 = *(src + 1);
+						if (c2 >= 0xDC00 && c2 <= 0xDFFF)
+						{
+							// Valid surrogate pair: requires 4 bytes in UTF8.
+							byteCount += 4;
+							src++; // Skip the low surrogate as it's processed together with the high surrogate.
+						}
+						else
+						{
+							// Invalid surrogate pair: encode using replacement character U+FFFD (3 bytes).
+							byteCount += 3;
+						}
+					}
+					else
+					{
+						// Missing low surrogate: encode using replacement character U+FFFD (3 bytes).
+						byteCount += 3;
+					}
+				}
+				else if (c1 >= 0xDC00 && c1 <= 0xDFFF)
+				{
+					// Lone low surrogate: encode using replacement character U+FFFD (3 bytes).
+					byteCount += 3;
+				}
 				else
 				{
-					char c2 = *c++;
-					if (c1 <= 0xFFFF)
-						length += 3;
-					else if (c2 <= 0x10FF)
-						length += 4;
-					else
-						return length; // error
+					// All other BMP characters (non-surrogate): require 3 bytes in UTF8.
+					byteCount += 3;
 				}
+				src++;
 			}
-
-			return length;
+			return byteCount;
 		}
 
 		[SecurityCritical]
 		private static unsafe int UTF8Encode(byte* dst, char* src, int length)
 		{
-			byte* s = dst;
-			char* c = src, end = src + length;
-			while (c < end)
+			byte* start = dst;
+			char* end = src + length;
+			while (src < end)
 			{
-				char c1 = *c++;
-				if (c1 <= 0x7F)
+				char c1 = *src;
+				if (c1 < 0x80)
 				{
-					*s = (byte)c1;
-					s++;
+					// 1-byte ASCII: direct assignment.
+					*dst++ = (byte)c1;
 				}
-				else if (c1 <= 0x7FF)
+				else if (c1 < 0x800)
 				{
-					s[0] = (byte)(0xC0 | (c1 >> 6));            /* 110xxxxx */
-					s[1] = (byte)(0x80 | (c1 & 0x3F));          /* 10xxxxxx */
-					s += 2;
+					// 2-byte encoding for characters in the range [0x80, 0x7FF].
+					*dst++ = (byte)(0xC0 | (c1 >> 6));
+					*dst++ = (byte)(0x80 | (c1 & 0x3F));
+				}
+				else if (c1 >= 0xD800 && c1 <= 0xDBFF) // High surrogate
+				{
+					if (src + 1 < end)
+					{
+						char c2 = *(src + 1);
+						if (c2 >= 0xDC00 && c2 <= 0xDFFF)
+						{
+							// Valid surrogate pair: compute Unicode code point and encode in 4 bytes.
+							int codepoint = 0x10000 + (((c1 - 0xD800) << 10) | (c2 - 0xDC00));
+							*dst++ = (byte)(0xF0 | (codepoint >> 18));
+							*dst++ = (byte)(0x80 | ((codepoint >> 12) & 0x3F));
+							*dst++ = (byte)(0x80 | ((codepoint >> 6) & 0x3F));
+							*dst++ = (byte)(0x80 | (codepoint & 0x3F));
+							src++; // Skip the low surrogate as it has been processed.
+						}
+						else
+						{
+							// Invalid surrogate pair: encode replacement character U+FFFD (0xEF, 0xBF, 0xBD).
+							*dst++ = 0xEF;
+							*dst++ = 0xBF;
+							*dst++ = 0xBD;
+						}
+					}
+					else
+					{
+						// Missing low surrogate: encode replacement character U+FFFD.
+						*dst++ = 0xEF;
+						*dst++ = 0xBF;
+						*dst++ = 0xBD;
+					}
+				}
+				else if (c1 >= 0xDC00 && c1 <= 0xDFFF)
+				{
+					// Lone low surrogate: encode replacement character U+FFFD.
+					*dst++ = 0xEF;
+					*dst++ = 0xBF;
+					*dst++ = 0xBD;
 				}
 				else
 				{
-					char c2 = *c++;
-					if (c1 <= 0xFFFF)
-					{
-						s[0] = (byte)(0xE0 | (c2 >> 4 /*12-8*/));  /* 1110xxxx */
-						s[1] = (byte)(0x80 | ((c1 >> 6) & 0x3F));   /* 10xxxxxx */
-						s[2] = (byte)(0x80 | (c1 & 0x3F));          /* 10xxxxxx */
-						s += 3;
-					}
-					else if (c2 <= 0x10FF)
-					{
-						s[0] = (byte)(0xF0 | (c2 >> 10));          /* 11110xxx */
-						s[1] = (byte)(0x80 | ((c2 >> 4) & 0x3F));  /* 10xxxxxx */
-						s[2] = (byte)(0x80 | ((c1 >> 6) & 0x3F));   /* 10xxxxxx */
-						s[3] = (byte)(0x80 | (c1 & 0x3F));          /* 10xxxxxx */
-						s += 4;
-					}
-					else
-						return (int)(s - dst); // error
+					// 3-byte encoding for all other BMP characters.
+					*dst++ = (byte)(0xE0 | (c1 >> 12));
+					*dst++ = (byte)(0x80 | ((c1 >> 6) & 0x3F));
+					*dst++ = (byte)(0x80 | (c1 & 0x3F));
 				}
+				src++;
 			}
-
-			return (int)(s - dst);
+			return (int)(dst - start);
 		}
 
 		[SecurityCritical]
