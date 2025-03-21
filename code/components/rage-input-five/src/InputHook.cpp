@@ -448,8 +448,6 @@ static hook::cdecl_stub<bool(wchar_t, int)> ProcessWMChar([]()
 static ReverseGameInputState lastInput;
 static ReverseGameInputState curInput;
 
-static bool g_mainThreadId;
-
 #include <queue>
 
 extern void DoPatchMouseScrollDelta();
