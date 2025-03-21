@@ -752,6 +752,98 @@ const EXT_LOCALFUNCREF = 11;
 		global.LocalPlayer = Player(-1);
 	}
 
+	class Vector {
+		#length;
+	
+		constructor(...args) {
+			this.#length = args.length;
+			this.x = args[0];
+			this.y = args[1];
+		}
+	
+		*[Symbol.iterator]() {
+			yield this.x;
+			yield this.y;
+	
+			if (this.z !== undefined) yield this.z;
+			if (this.w !== undefined) yield this.w;
+		}
+	
+		get size() {
+			return this.#length;
+		}
+	}
+	
+	class Vector2 extends Vector {
+		static ext = 20;
+	
+		constructor(x, y = x) {
+			super(x, y);
+		}
+	}
+	
+	class Vector3 extends Vector {
+		static ext = 21;
+	
+		constructor(x, y = x, z = y) {
+			super(x, y, z);
+	
+			this.z = z;
+		}
+	}
+	
+	class Vector4 extends Vector {
+		static ext = 22;
+	
+		constructor(x, y = x, z = y, w = z) {
+			super(x, y, z, w);
+	
+			this.z = z;
+			this.w = w;
+		}
+	}
+
+	function vectorUnpacker(data) {
+		const buffer = Buffer.from(data);
+		const length = buffer.length / 4;
+		const float32 = new Float32Array(buffer.buffer, buffer.byteOffset, length);
+	
+		if (length === 2) return new Vector2(...float32);
+		if (length === 3) return new Vector3(...float32);
+		if (length === 4) return new Vector4(...float32);
+	}
+	
+	function vectorPacker(vec) {
+		const length = vec.size;
+		const float32 = new Float32Array(length);
+		let index = 0;
+	
+		for (const value of vec) float32[index++] = value;
+	
+		return new Uint8Array(float32.buffer);
+	}
+	
+	msgpack_extend({
+		type: Vector2.ext,
+		Class: Vector2,
+		pack: vectorPacker,
+		unpack: vectorUnpacker,
+	});
+	
+	msgpack_extend({
+		type: Vector3.ext,
+		Class: Vector3,
+		pack: vectorPacker,
+		unpack: vectorUnpacker,
+	});
+	
+	msgpack_extend({
+		type: Vector4.ext,
+		Class: Vector4,
+		pack: vectorPacker,
+		unpack: vectorUnpacker,
+	});
+
 	/*
 	BEGIN
 	https://github.com/errwischt/stacktrace-parser/blob/0121cc6e7d57495437818676f6b69be7d34c2fa7/src/stack-trace-parser.js
