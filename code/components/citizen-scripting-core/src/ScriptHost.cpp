@@ -112,6 +112,34 @@ static void RemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 	bookmarkRefs.resourceInsertionIterators.erase(scRT);
 }
 
+static void RemoveBookmark(IScriptTickRuntimeWithBookmarks* scRT, uint64_t bookmark)
+{
+	auto exIt = (bookmarkRefs.executing) ? bookmarkRefs.executingIt : nullptr;
+
+	auto list = &bookmarkRefs.list;
+
+	{
+		for (auto it = list->begin(); it != list->end();)
+		{
+			if (it->bookmark == bookmark)
+			{
+				if (exIt && *exIt == it)
+				{
+					*exIt = it = list->erase(it);
+				}
+				else
+				{
+					it = list->erase(it);
+				}
+			}
+			else
+			{
+				++it;
+			}
+		}
+	}
+}
+
 static void RunBookmarks()
 {
 	bookmarkRefs.executing = true;
@@ -500,6 +528,13 @@ result_t TestScriptHost::CreateBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 	::CreateBookmarks(scRT);
 	return FX_S_OK;
 }
+
+result_t TestScriptHost::RemoveBookmark(IScriptTickRuntimeWithBookmarks* scRT, uint64_t bookmark)
+{
+	::RemoveBookmark(scRT, bookmark);
+	return FX_S_OK;
+}
+
 
 result_t TestScriptHost::ScheduleBookmark(IScriptTickRuntimeWithBookmarks* scRT, uint64_t bookmark, int64_t deadline)
 {
