@@ -824,7 +824,7 @@ int Client_read_udp(int udpsock)
 		uint32_t *ping = (uint32_t *)encrypted;
 		ping[0] = htonl((uint32_t)PROTOCOL_VERSION);
 		ping[3] = htonl((uint32_t)clientcount);
-		ping[4] = htonl((uint32_t)getIntConf(MAX_CLIENTS));
+		ping[4] = htonl((uint32_t)getIntConf(MUMBLE_MAX_CLIENTS));
 		ping[5] = htonl((uint32_t)getIntConf(MAX_BANDWIDTH));
 
 		sendto(udpsock, (char*)encrypted, 6 * sizeof(uint32_t), 0, (struct sockaddr *)&from, fromlen);

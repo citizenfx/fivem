@@ -177,9 +177,9 @@ void Mh_handle_message(client_t *client, message_t *msg)
 			goto disconnect;
 		}
 
-		if (Client_count() >= getIntConf(MAX_CLIENTS)) {
+		if (Client_count() >= getIntConf(MUMBLE_MAX_CLIENTS)) {
 			char buf[64];
-			snprintf(buf, 64, "Server is full (max %d users)", getIntConf(MAX_CLIENTS));
+			snprintf(buf, 64, "Server is full (max %d users)", getIntConf(MUMBLE_MAX_CLIENTS));
 			sendServerReject(client, buf, MumbleProto::Reject_RejectType_ServerFull);
 			goto disconnect;
 		}
