@@ -8,6 +8,7 @@
 #include <nutsnbolts.h>
 #include <CefOverlay.h>
 #include <DrawCommands.h>
+#include "CoreConsole.h"
 
 #include <mmsystem.h>
 
@@ -477,9 +478,12 @@ static HookFunction hookFunctionSpinner([]()
 
 static InitFunction initFunction([] ()
 {
+	static bool showBusySpinner = true;
+	static ConVar showBusySpinnerConVar("sv_showBusySpinnerOnLoadingScreen", ConVar_Replicated, true, &showBusySpinner);
+
 	OnLookAliveFrame.Connect([]()
 	{
-		if (nui::HasFrame("loadingScreen"))
+		if (nui::HasFrame("loadingScreen") && showBusySpinner)
 		{
 			if (*g_scaleformMgr)
 			{
