@@ -284,4 +284,10 @@ static HookFunction hookFunctionNet([]()
 
 	// ignore collision-related archetype flag in /CREATE_OBJECT(_NO_OFFSET)?/
 	hook::nop(hook::get_pattern("8B 48 50 48 C1 E9 11 F6 C1 01 0F 84 ? ? 00 00 45", 10), 6);
+
+	// forces networked peds (like horses) attachment to draftveh to work
+	if (xbr::IsGameBuildOrGreater<1491>())
+	{
+		hook::nop(hook::get_pattern("48 83 BE E0 ? ? ? ? ? ? 48 85 C9"), 0xA);
+	}
 });
