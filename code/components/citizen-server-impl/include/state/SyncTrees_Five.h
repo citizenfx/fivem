@@ -979,18 +979,26 @@ struct CVehicleDamageStatusDataNode
 			}
 		}
 
-		bool anySirenBroken = state.buffer.ReadBit();
+      bool anySirenBroken = state.buffer.ReadBit();
 
-		if (anySirenBroken)
-		{
-			for (int i = 0; i < 20; i++)
-			{
-				bool sirenBroken = state.buffer.ReadBit();
-			}
-		}
+        if (anySirenBroken)
+        {
+            // Read 16-bit siren states at once, if necessary
+            for (int i = 0; i < 20; i++)
+            {
+                // Read 16 bits for each siren status if you need to check 16 bits at once
+                uint16_t sirenStatus = state.buffer.Read<uint16_t>(16);  // Reading a 16-bit value
 
-		return true;
-	}
+                // Process each bit of the 16-bit value (if needed)
+                for (int j = 0; j < 16; j++)
+                {
+                    bool sirenBroken = (sirenStatus & (1 << j)) != 0;  // Check if the bit is set
+                }
+            }
+        }
+
+        return true;
+    }
 };
 
 struct CVehicleComponentReservationDataNode { };
