@@ -357,34 +357,45 @@ static InitFunction initFunction([] ()
 		context.SetResult(fx::SerializeObject(msgpack::type::nil_t{}));
 	});
 
+	static std::unordered_set<std::string> allowedClientStateBags;
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_STATE_BAG_VALUE", [](fx::ScriptContext& context)
 	{
-		auto bagName = context.CheckArgument<const char*>(0);
-		auto keyName = context.CheckArgument<const char*>(1);
-		auto keyValue = context.CheckArgument<const char*>(2);
-		auto keySize = context.GetArgument<uint32_t>(3);
-		auto replicated = context.GetArgument<bool>(4);
+    	auto bagName = context.CheckArgument<const char*>(0);
+    	auto keyName = context.CheckArgument<const char*>(1);
+    	auto keyValue = context.CheckArgument<const char*>(2);
+    	auto keySize = context.GetArgument<uint32_t>(3);
+    	auto replicated = context.GetArgument<bool>(4);
 
-		#ifndef IS_FXSERVER
-			if (replicated && stateBagStrictModeVar.GetValue())
-			{
-				fx::scripting::Warningf("natives", "StateBags can't be modified from the client, because the StateBag strict mode is enabled. Disable it using setr sv_stateBagStrictMode false\n");
-				return;
-			}
-		#endif
+    	#ifndef IS_FXSERVER
+        	if (replicated && stateBagStrictModeVar.GetValue() && allowedClientStateBags.find(bagName) == allowedClientStateBags.end())
+        	{
+            	fx::scripting::Warningf("natives", "StateBag '%s' modification is restricted (sv_stateBagStrictMode enabled). Use 'ALLOW_CLIENT_STATE_BAG' to allow changes.\n", bagName);
+            	return;
+        	}
+    	#endif
 
-		auto rm = fx::ResourceManager::GetCurrent();
-		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+    	auto rm = fx::ResourceManager::GetCurrent();
+    	auto sbac = rm->GetComponent<fx::StateBagComponent>();
 
-		if (auto bag = sbac->GetStateBag(bagName); bag)
-		{
-			bag->SetKey(0, keyName, std::string_view{ keyValue, keySize }, replicated);
-			context.SetResult(true);
+    	if (auto bag = sbac->GetStateBag(bagName); bag)
+    	{
+        	bag->SetKey(0, keyName, std::string_view{ keyValue, keySize }, replicated);
+        	context.SetResult(true);
+        	return;
+    	}
 
-			return;
-		}
+    	context.SetResult(false);
+	});
 
-		context.SetResult(false);
+	fx::ScriptEngine::RegisterNativeHandler("ALLOW_CLIENT_STATE_BAG", [](fx::ScriptContext& context)
+	{
+    	#ifndef IS_FXSERVER
+        	return;
+    	#endif
+
+    	auto bagName = context.CheckArgument<const char*>(0);
+    	allowedClientStateBags.insert(bagName);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("ADD_STATE_BAG_CHANGE_HANDLER", [](fx::ScriptContext& context)
