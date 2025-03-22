@@ -1,0 +1,25 @@
+---
+ns: CFX
+apiset: server
+---
+## ALLOW_CLIENT_STATE_BAG
+
+```c
+void ALLOW_CLIENT_STATE_BAG(char* bagName);
+```
+
+Allows a specific state bag to be modified by the client when sv_stateBagStrictMode is enabled.
+
+By default, when sv_stateBagStrictMode is active, clients cannot modify state bags unless explicitly allowed.
+This function adds the specified state bag to the allowlist, enabling client-side modifications.
+
+## Parameters
+* **bagName**: The name of the state bag to allow client modifications on.
+
+## Return value
+This function does not return a value.
+
+## Examples
+```lua
+AllowClientStateBag("jailtime")
+```
