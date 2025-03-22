@@ -388,15 +388,13 @@ static InitFunction initFunction([] ()
     	context.SetResult(false);
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("ALLOW_CLIENT_STATE_BAG", [](fx::ScriptContext& context)
-	{
-    	#ifndef IS_FXSERVER
-        	return;
-    	#endif
-
-    	auto bagName = context.CheckArgument<const char*>(0);
-    	allowedClientStateBags.insert(bagName);
-	});
+	#ifdef IS_FXSERVER
+    	fx::ScriptEngine::RegisterNativeHandler("ALLOW_CLIENT_STATE_BAG", [](fx::ScriptContext& context)
+    	{
+        	auto bagName = context.CheckArgument<const char*>(0);
+        	allowedClientStateBags.insert(bagName);
+    	});
+	#endif
 
 	fx::ScriptEngine::RegisterNativeHandler("ADD_STATE_BAG_CHANGE_HANDLER", [](fx::ScriptContext& context)
 	{
