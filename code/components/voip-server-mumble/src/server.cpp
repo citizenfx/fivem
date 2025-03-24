@@ -38,6 +38,7 @@
 #include <stdlib.h>
 
 #include "client.h"
+#include "ClientRegistry.h"
 #include "conf.h"
 #include "log.h"
 #include "memory.h"
@@ -362,16 +363,28 @@ static void EnsureServerInitialized()
 
 std::shared_ptr<ConVar<bool>> mumble_disableServer;
 std::shared_ptr<ConVar<int>> mumble_maxClientsPerIP;
+std::shared_ptr<ConVar<bool>> mumble_allowExternalConnections;
+
 
 static InitFunction initFunction([]()
 {
 	mumble_disableServer = std::make_shared<ConVar<bool>>("mumble_disableServer", ConVar_None, false);
 	mumble_maxClientsPerIP = std::make_shared<ConVar<int>>("mumble_maxClientsPerIP", ConVar_None, 32);
+	mumble_allowExternalConnections = std::make_shared<ConVar<bool>>("mumble_allowExternalConnections", ConVar_None, false);
+
+	static fwRefContainer<fx::ClientRegistry> clientRegistry;
+
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	{
+		clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+	});
 
 	OnCreateTlsMultiplex.Connect([=](fwRefContainer<net::MultiplexTcpServer> multiplex)
 	{
 		if (mumble_disableServer->GetValue())
+		{
 			return;
+		}
 
 		EnsureServerInitialized();
 
@@ -401,12 +414,20 @@ static InitFunction initFunction([]()
 
 		server->SetConnectionCallback([=](fwRefContainer<net::TcpServerStream> stream)
 		{
+			auto hostIP = stream->GetPeerAddress().GetHost();
+
+			// client isn't connected to the mumble server->drop them
+			if (!mumble_allowExternalConnections->GetValue() && !clientRegistry->GetClientByTcpEndPoint(hostIP))
+			{
+				stream->Close();
+				return;
+			}
+
 			client_t* client;
 
 			{
 				std::lock_guard _(g_mumbleClientMutex);
 
-				auto hostIP = stream->GetPeerAddress().GetHost();
 				auto mapEntry = clientsPerIP.find(hostIP);
 				if (mapEntry != clientsPerIP.end())
 				{
@@ -536,13 +557,16 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		if (mumble_disableServer->GetValue())
+		{
 			return;
+		}
 
 		EnsureServerInitialized();
 
 		auto interceptor = instance->GetComponent<fx::UdpInterceptor>();
+		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-		interceptor->OnIntercept.Connect([interceptor](const net::PeerAddress& address, const uint8_t* data, size_t len, bool* intercepted)
+		interceptor->OnIntercept.Connect([interceptor, clientRegistry](const net::PeerAddress& address, const uint8_t* data, size_t len, bool* intercepted)
 		{
 			bool known = false;
 
@@ -550,26 +574,6 @@ static InitFunction initFunction([]()
 			{
 				return;
 			}
-
-			// is this a Mumble ping?
-			if (len == 12 && *(uint32_t*)data == 0)
-			{
-				uint32_t ping[6];
-				memcpy(ping, data, len);
-
-				ping[0] = htonl((uint32_t)((PROTVER_MAJOR << 16) | (PROTVER_MINOR << 8) | (PROTVER_PATCH)));
-				ping[3] = htonl((uint32_t)Client_count());
-				ping[4] = htonl((uint32_t)getIntConf(MAX_CLIENTS));
-				ping[5] = htonl((uint32_t)getIntConf(MAX_BANDWIDTH));
-
-				*intercepted = true;
-
-				interceptor->Send(address, ping, sizeof(ping));
-
-				return;
-			}
-
-			auto fromAddress = address.GetHostBytes();
 
 			// Mumble clients are expected to be connected to TCP already - if this is not a known Mumble TCP pair, mark and drop
 			client_t* client = nullptr;
@@ -587,19 +591,26 @@ static InitFunction initFunction([]()
 
 			if (!known)
 			{
-				// try finding a client for whom the packet will decrypt correctly
-				client_t* itr = nullptr;
 				bool found = false;
 
-				while (Client_iterate(&itr) != nullptr)
+				// there's no guarantee the TCP/UDP will be the same, but we don't store valid UDP sockets anywhere outside enet
+				if (mumble_allowExternalConnections->GetValue() || clientRegistry->GetClientByTcpEndPoint(address.GetHost()))
 				{
-					if (itr->remote_udp == net::PeerAddress{} &&
-						(itr->remote_tcp.GetHostBytes() == fromAddress ||
-						 itr->remote_tcp.GetHostBytesV6() == fromAddress))
-					{
-						known = true;
+					// allow the client to connect if they're in the registry
+					known = true;
 
-						// try decrypting the packet, maybe it'll be mumble
+					// try finding a client for whom the packet will decrypt correctly
+					client_t* itr = nullptr;
+
+					while (Client_iterate(&itr) != nullptr)
+					{
+						// if we already have a remote UDP we don't want to try to decrypt
+						if (itr->remote_udp != net::PeerAddress{})
+						{
+							continue;
+						}
+
+						// try decrypting the packet, maybe the crypt info will match the client
 						if (checkDecrypt(itr, data, buffer, std::min(len, sizeof(buffer))))
 						{
 							// it's mumble!
@@ -607,6 +618,13 @@ static InitFunction initFunction([]()
 
 							found = true;
 
+							// mumble! let's mark it
+							SetMumbleAddress(address, true);
+
+							itr->remote_udp = address;
+							itr->interceptor = interceptor.GetRef();
+
+							client = itr;
 							break;
 						}
 					}
@@ -635,13 +653,6 @@ static InitFunction initFunction([]()
 					retryPairs[address]++;
 					return;
 				}
-
-				// mumble! let's mark it
-				SetMumbleAddress(address, true);
-
-				itr->remote_udp = address;
-
-				client = itr;
 			}
 			else
 			{
@@ -673,8 +684,6 @@ static InitFunction initFunction([]()
 			{
 				return;
 			}
-
-			client->interceptor = interceptor.GetRef();
 
 			*intercepted = true;
 
