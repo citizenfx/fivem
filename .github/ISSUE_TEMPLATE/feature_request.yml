@@ -9,7 +9,7 @@ body:
     attributes:
       value: |
         Thank you for taking the time to fill out this feature request.
-        Only feature requests are accepted, so please refrain from submitting any other requests (including support requests).
+        Only feature requests are accepted, so please refrain from submitting any other requests (including support requests or security issues).
         
         \* Requests that fail to deliver the proper information may be closed without any feedback.
   
@@ -30,12 +30,12 @@ body:
       description: |
         To your knowledge how would you describe the importancy of this feature?
       options:
-        - Unknown
-        - Nice extra
         - Quality of Life (QoL)
         - Overall quality to the platform
         - Prerequisite for my project
         - Fatal (we can't use the platform without)
+        - Nice extra
+        - Unknown
   
   - type: textarea
     id: implementation
@@ -54,15 +54,17 @@ body:
       description: |
         Which of the following areas does this request apply to? Please mark all that apply.
       options:
+        - FiveM (Legacy)
         - FiveM
         - RedM
         - FXServer
-        - FxDK
         - 'OneSync'
         - 'Natives'
         - 'ScRT: Lua'
         - 'ScRT: C#'
+        - 'ScRT: C# (Mono v2)'
         - 'ScRT: JS'
+        - FxDK
     validations:
       required: true
   
