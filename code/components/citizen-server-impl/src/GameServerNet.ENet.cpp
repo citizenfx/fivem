@@ -133,8 +133,6 @@ namespace fx
 					return peer->lastRoundTripTimeVariance;
 				case PacketThrottleEpoch:
 					return peer->packetThrottleEpoch;
-				case PacketsSent:
-					return peer->packetsSent;
 				default:
 					return 0;
 			}
