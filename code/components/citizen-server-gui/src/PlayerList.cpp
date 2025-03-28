@@ -326,9 +326,8 @@ static void ShowPopout(std::string guid, PlayerListData* data)
 			}
 		}
 		ImGui::Columns(1);
-
-		ImGui::End();
 	}
+	ImGui::End();
 }
 
 static void SvPlayerList_Render(fx::ServerInstanceBase* instance)
@@ -338,7 +337,8 @@ static void SvPlayerList_Render(fx::ServerInstanceBase* instance)
 	// Lock Mutex Here, it's rarely contested
 	std::shared_lock lock(g_playerListDataMutex);
 
-	ImGui::BeginTable("##svplayerlist", 5 /*Column Num*/, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable);
+	if (ImGui::BeginTable("##svplayerlist", 5 /*Column Num*/, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
+	{
 		ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_PreferSortDescending);
 		ImGui::TableSetupColumn("Position", ImGuiTableColumnFlags_PreferSortDescending);
 		ImGui::TableSetupColumn("Time Online", ImGuiTableColumnFlags_PreferSortDescending);
@@ -385,5 +385,6 @@ static void SvPlayerList_Render(fx::ServerInstanceBase* instance)
 				ShowPopout(guid, &data);
 			}
 		}
-	ImGui::EndTable();
+		ImGui::EndTable();
+	}
 }

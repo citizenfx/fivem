@@ -480,6 +480,8 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 	DrawMiniConsole();
 
+	ConHost::OnDrawGui();
+
 	if (g_consoleFlag)
 	{
 		DrawDevGui();
@@ -490,8 +492,6 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	{
 		DrawWinConsole(&g_winConsole);
 	}
-
-	ConHost::OnDrawGui();
 
 	if (wasSmallFont)
 	{
