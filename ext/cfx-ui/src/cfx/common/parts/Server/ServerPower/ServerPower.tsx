@@ -1,8 +1,10 @@
-import { Icons, Flex, Title } from '@cfx-dev/ui-components';
+import { Flex, Icons, Title } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { $L } from 'cfx/common/services/intl/l10n';
 import { IServerView } from 'cfx/common/services/servers/types';
+
+import s from './ServerPower.module.scss';
 
 export interface ServerPowerProps {
   server: IServerView;
@@ -27,8 +29,10 @@ export const ServerPower = observer(function ServerPower(props: ServerPowerProps
     <Flex centered="axis" className={className}>
       {hasUpvote && (
         <Title fixedOn="bottom" title={$L('#Server_BoostPower_Title')}>
-          <Flex gap="thin">
-            {Icons.serverBoost}
+          <Flex centered gap="thin">
+            <span className={s.upvoteIcon}>
+              {Icons.upvotesRecurring}
+            </span>
             <span>{server.upvotePower}</span>
           </Flex>
         </Title>
@@ -36,8 +40,10 @@ export const ServerPower = observer(function ServerPower(props: ServerPowerProps
 
       {hasBurst && (
         <Title fixedOn="bottom" title={$L('#Server_BurstPower_Title')}>
-          <Flex gap="thin">
-            {Icons.serverBurst}
+          <Flex centered gap="thin">
+            <span className={s.burstIcon}>
+              {Icons.upvotesBurst}
+            </span>
             <span>{server.burstPower}</span>
           </Flex>
         </Title>

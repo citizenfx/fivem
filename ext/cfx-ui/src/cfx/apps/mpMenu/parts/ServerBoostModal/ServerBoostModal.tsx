@@ -35,14 +35,14 @@ export const ServerBoostModal = observer(function ServerBoostModal() {
     }
 
     case BoostUIState.NoAccount: {
-      node = 'You need to have a linked FiveM account in order to BOOST™ a server.';
+      node = 'You need to have a linked FiveM account in order to upvote a server.';
       break;
     }
 
     case BoostUIState.Success: {
       node = (
         <>
-          Your BOOST™ is now assigned to this server (with an admirable strength of{' '}
+          Your upvotes are now assigned to this server (with an admirable strength of{' '}
           {ServersBoostService.currentBoost?.power})!
           <br />
           <br />
@@ -64,7 +64,7 @@ export const ServerBoostModal = observer(function ServerBoostModal() {
 
   return (
     <Modal onClose={handleClose}>
-      <Modal.Header>Applying server BOOST™</Modal.Header>
+      <Modal.Header>Server Upvotes</Modal.Header>
 
       <Pad top bottom size="large">
         <Pad>
