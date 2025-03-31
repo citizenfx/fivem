@@ -2323,6 +2323,40 @@ static void Init()
 
 		context.SetResult(player);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("NETWORK_SET_ENTITY_OWNER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		int newOwnerNetId = context.GetArgument<int>(1);
+
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's client registry
+		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+		auto client = clientRegistry->GetClientByNetID(newOwnerNetId);
+
+		if (!client)
+		{
+			return false;
+		}
+
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		gameState->ReassignEntity(entity->handle, client);
+
+		auto newOwner = entity->GetLastOwner();
+
+		if (!newOwner)
+		{
+			return false;
+	    }
+
+		return newOwner->GetNetId() == newOwnerNetId;
+	}));
 }
 
 static InitFunction initFunction([]()
