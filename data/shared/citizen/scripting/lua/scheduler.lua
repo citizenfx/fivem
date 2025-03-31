@@ -13,12 +13,8 @@ local table_pack = table.pack
 local table_unpack = table.unpack
 local table_insert = table.insert
 
-local coroutine_create = coroutine.create
 local coroutine_yield = coroutine.yield
-local coroutine_resume = coroutine.resume
-local coroutine_status = coroutine.status
 local coroutine_running = coroutine.running
-local coroutine_close = coroutine.close or (function(c) end) -- 5.3 compatibility
 
 --[[ Custom extensions --]]
 local msgpack = msgpack
@@ -27,28 +23,9 @@ local msgpack_unpack = msgpack.unpack
 local msgpack_pack_args = msgpack.pack_args
 
 local Citizen = Citizen
-local Citizen_SubmitBoundaryStart = Citizen.SubmitBoundaryStart
 local Citizen_InvokeFunctionReference = Citizen.InvokeFunctionReference
-local GetGameTimer = GetGameTimer
-local ProfilerEnterScope = ProfilerEnterScope
-local ProfilerExitScope = ProfilerExitScope
 
-local hadThread = false
-local curTime = 0
-local hadProfiler = false
 local isDuplicityVersion = IsDuplicityVersion()
-
-local function _ProfilerEnterScope(name)
-	if hadProfiler then
-		ProfilerEnterScope(name)
-	end
-end
-
-local function _ProfilerExitScope()
-	if hadProfiler then
-		ProfilerExitScope()
-	end
-end
 
 -- setup msgpack compat
 msgpack.set_string('string_compat')
@@ -81,20 +58,20 @@ local function getBoundaryFunc(bfn, bid)
 			boundary = boundaryIdx + 1
 			boundaryIdx = boundary
 		end
-		
+
 		bfn(boundary, coroutine_running())
 
 		local wrap = function(...)
 			dummyUseBoundary(boundary)
-			
+
 			local v = table_pack(fn(...))
 			return table_unpack(v)
 		end
-		
+
 		local v = table_pack(wrap(...))
-		
+
 		bfn(boundary, nil)
-		
+
 		return table_unpack(v)
 	end
 end
@@ -195,7 +172,7 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 
 				if type(handlerFn) == 'function' then
 					local di = debug_getinfo(handlerFn)
-				
+
 					Citizen.CreateThreadNow(function()
 						handler(table_unpack(data))
 					end, ('event %s [%s[%d..%d]]'):format(eventName, di.short_src, di.linedefined, di.lastlinedefined))
@@ -216,10 +193,10 @@ Citizen.SetStackTraceRoutine(function(bs, ts, be, te)
 
 	local t
 	local n = 0
-	
+
 	local frames = {}
 	local skip = false
-	
+
 	if bs then
 		skip = true
 	end
@@ -236,31 +213,31 @@ Citizen.SetStackTraceRoutine(function(bs, ts, be, te)
 				if not stackTraceBoundaryIdx then
 					local b, v
 					local u = 1
-					
+
 					repeat
 						b, v = debug.getupvalue(t.func, u)
-						
+
 						if b == 'boundary' then
 							break
 						end
-						
+
 						u = u + 1
 					until not b
-					
+
 					stackTraceBoundaryIdx = u
 				end
-				
+
 				local _, boundary = debug.getupvalue(t.func, stackTraceBoundaryIdx)
-				
+
 				if boundary == bs then
 					skip = false
 				end
-				
+
 				if boundary == be then
 					break
 				end
 			end
-			
+
 			if not skip then
 				if t.source and t.source:sub(1, 1) ~= '=' and t.source:sub(1, 10) ~= '@citizen:/' then
 					table_insert(frames, {
@@ -270,11 +247,11 @@ Citizen.SetStackTraceRoutine(function(bs, ts, be, te)
 					})
 				end
 			end
-		
+
 			n = n + 1
 		end
 	until not t
-	
+
 	return msgpack_pack(frames)
 end)
 
@@ -284,13 +261,13 @@ function AddEventHandler(eventName, eventRoutine)
 	local tableEntry = eventHandlers[eventName]
 
 	if not tableEntry then
-		tableEntry = { }
+		tableEntry = {}
 
 		eventHandlers[eventName] = tableEntry
 	end
 
 	if not tableEntry.handlers then
-		tableEntry.handlers = { }
+		tableEntry.handlers = {}
 	end
 
 	eventKey = eventKey + 1
@@ -322,7 +299,7 @@ function RegisterNetEvent(eventName, cb)
 		local tableEntry = eventHandlers[eventName]
 
 		if not tableEntry then
-			tableEntry = { }
+			tableEntry = {}
 
 			eventHandlers[eventName] = tableEntry
 		end
@@ -349,7 +326,7 @@ if isDuplicityVersion then
 
 		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
-	
+
 	function TriggerLatentClientEvent(eventName, playerId, bps, ...)
 		local payload = msgpack_pack_args(...)
 
@@ -405,11 +382,11 @@ if isDuplicityVersion then
 
 	function PerformHttpRequest(url, cb, method, data, headers, options)
 		local followLocation = true
-		
+
 		if options and options.followLocation ~= nil then
 			followLocation = options.followLocation
 		end
-	
+
 		local t = {
 			url = url,
 			method = method or 'GET',
@@ -425,16 +402,16 @@ if isDuplicityVersion then
 		else
 			cb(0, nil, {}, 'Failure handling HTTP request')
 		end
-	end
 
-	function PerformHttpRequestAwait(url, method, data, headers, options)
-		local p = promise.new()
-		PerformHttpRequest(url, function(...)
-			p:resolve({...})
-		end, method, data, headers, options)
+		function PerformHttpRequestAwait(url, method, data, headers, options)
+			local p = promise.new()
+			PerformHttpRequest(url, function(...)
+				p:resolve({...})
+			end, method, data, headers, options)
 
-		Citizen.Await(p)
-		return table.unpack(p.value)
+			Citizen.Await(p)
+			return table.unpack(p.value)
+		end
 	end
 else
 	function TriggerServerEvent(eventName, ...)
@@ -442,7 +419,7 @@ else
 
 		return TriggerServerEventInternal(eventName, payload, payload:len())
 	end
-	
+
 	function TriggerLatentServerEvent(eventName, bps, ...)
 		local payload = msgpack_pack_args(...)
 
@@ -481,7 +458,7 @@ end
 
 local function doStackFormat(err)
 	local fst = FormatStackTrace()
-	
+
 	-- already recovering from an error
 	if not fst then
 		return nil
@@ -498,13 +475,13 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 
 		return msgpack_pack(nil)
 	end
-	
+
 	local ref = refPtr.func
 
 	local err
 	local retvals = false
 	local cb = {}
-	
+
 	local di = debug_getinfo(ref)
 
 	local waited = Citizen.CreateThreadNow(function()
@@ -530,11 +507,11 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 
 		return msgpack_pack(retvals)
 	else
-		return msgpack_pack({{
+		return msgpack_pack({ {
 			__cfx_async_retval = function(rvcb)
 				cb.cb = rvcb
 			end
-		}})
+		} })
 	end
 end)
 
@@ -552,10 +529,10 @@ end)
 
 Citizen.SetDeleteRefRoutine(function(refId)
 	local ref = funcRefs[refId]
-	
+
 	if ref then
 		ref.refs = ref.refs - 1
-		
+
 		if ref.refs <= 0 then
 			funcRefs[refId] = nil
 		end
@@ -574,7 +551,7 @@ if GetCurrentResourceName() == 'sessionmanager' then
 		local source = source
 
 		local eventTriggerFn = TriggerServerEvent
-		
+
 		if isDuplicityVersion then
 			eventTriggerFn = function(name, ...)
 				TriggerClientEvent(name, source, ...)
@@ -590,7 +567,7 @@ if GetCurrentResourceName() == 'sessionmanager' then
 				for k, v in pairs(o) do
 					if type(v) == 'table' and rawget(v, '__cfx_functionReference') then
 						o[k] = function(...)
-							return InvokeRpcEvent(source, rawget(v, '__cfx_functionReference'), {...})
+							return InvokeRpcEvent(source, rawget(v, '__cfx_functionReference'), { ... })
 						end
 					end
 
@@ -672,9 +649,7 @@ msgpack.extend_clear(EXT_FUNCREF, EXT_LOCALFUNCREF)
 
 -- RPC INVOCATION
 InvokeRpcEvent = function(source, ref, args)
-	if not coroutine_running() then
-		error('RPC delegates can only be invoked from a thread.', 2)
-	end
+	assert(coroutine_running(), 'RPC delegates can only be invoked from a thread.')
 
 	local src = source
 
@@ -756,7 +731,7 @@ funcref_mt = msgpack.extend({
 
 			return table_unpack(rvs)
 		else
-			return InvokeRpcEvent(tonumber(netSource.source:sub(5)), ref, {...})
+			return InvokeRpcEvent(tonumber(netSource.source:sub(5)), ref, { ... })
 		end
 	end,
 
@@ -773,7 +748,7 @@ funcref_mt = msgpack.extend({
 
 	__unpack = function(data, tag)
 		local ref = data
-		
+
 		-- add a reference
 		DuplicateFunctionReference(ref)
 
@@ -816,7 +791,7 @@ do
 
 	local numMetaData = GetNumResourceMetadata(resource, exportKey) or 0
 
-	for i = 0, numMetaData-1 do
+	for i = 0, numMetaData - 1 do
 		local exportName = GetResourceMetadata(resource, exportKey, i)
 
 		AddEventHandler(getExportEventName(resource, exportName), function(setCB)
@@ -913,7 +888,7 @@ if not isDuplicityVersion then
 
 	local cbHandler
 
---[==[
+	--[==[
 	local cbHandler = load([[
 		-- Lua 5.4: Create a to-be-closed variable to monitor the NUI callback handle.
 		local callback, body, resultCallback = ...
@@ -995,10 +970,10 @@ local function NewStateBag(es)
 					SetStateBagValue(es, s, payload, payload:len(), r)
 				end
 			end
-		
+
 			return GetStateBagValue(es, s)
 		end,
-		
+
 		__newindex = function(_, s, v)
 			local payload = msgpack_pack(v)
 			SetStateBagValue(es, s, payload, payload:len(), isDuplicityVersion)
@@ -1022,30 +997,30 @@ entityMT = {
 	__index = function(t, s)
 		if s == 'state' then
 			local es = GetEntityStateBagId(t.__data)
-			
+
 			if isDuplicityVersion then
 				EnsureEntityStateBag(t.__data)
 			end
-		
+
 			return NewStateBag(es)
 		end
-		
+
 		return nil
 	end,
-	
+
 	__newindex = function()
 		error('Setting values on Entity is not supported at this time.', 2)
 	end,
-	
+
 	__ext = EXT_ENTITY,
-	
+
 	__pack = function(self, t)
 		return tostring(NetworkGetNetworkIdFromEntity(self.__data))
 	end,
-	
+
 	__unpack = function(data, t)
 		local ref = NetworkGetEntityFromNetworkId(tonumber(data))
-		
+
 		return setmetatable({
 			__data = ref
 		}, entityMT)
@@ -1059,32 +1034,32 @@ playerMT = {
 	__index = function(t, s)
 		if s == 'state' then
 			local pid = t.__data
-			
+
 			if pid == -1 then
 				pid = GetPlayerServerId(PlayerId())
 			end
-			
+
 			local es = ('player:%d'):format(pid)
-		
+
 			return NewStateBag(es)
 		end
-		
+
 		return nil
 	end,
-	
+
 	__newindex = function()
 		error('Setting values on Player is not supported at this time.', 2)
 	end,
-	
+
 	__ext = EXT_PLAYER,
-	
+
 	__pack = function(self, t)
 		return tostring(self.__data)
 	end,
-	
+
 	__unpack = function(data, t)
 		local ref = tonumber(data)
-		
+
 		return setmetatable({
 			__data = ref
 		}, playerMT)
@@ -1099,7 +1074,7 @@ function Entity(ent)
 			__data = ent
 		}, entityMT)
 	end
-	
+
 	return ent
 end
 
@@ -1109,7 +1084,7 @@ function Player(ent)
 			__data = tonumber(ent)
 		}, playerMT)
 	end
-	
+
 	return ent
 end
 
