@@ -143,7 +143,7 @@ static InitFunction initFunction([]()
 			}
 		}
 
-		if (!metrics.empty() && ImGui::Begin("DrawPerf", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+		if (!metrics.empty() && ImGui::Begin("DrawPerf", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoFocusOnAppearing))
 		{
 			int i = 0;
 			float spacing = ImGui::GetStyle().ItemSpacing.x;
