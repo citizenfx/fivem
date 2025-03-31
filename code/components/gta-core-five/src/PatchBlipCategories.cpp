@@ -1,5 +1,7 @@
 #include "StdInc.h"
 
+#include "CrossBuildRuntime.h"
+
 #include <Hooking.h>
 #include <jitasm.h>
 
@@ -21,6 +23,11 @@ static const char* GetBlipCategoryName(const uint8_t category)
 
 static HookFunction hookFunction([]()
 {
+	if (!xbr::IsGameBuildOrGreater<2372>())
+	{
+		return;
+	}
+
 	// Game code expects const char*, so we need to allocate static memory for the category labels
 	InitializeCategoryNames();
 
