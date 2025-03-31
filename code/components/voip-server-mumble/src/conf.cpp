@@ -118,7 +118,7 @@ int getIntConf(param_t param)
 			return DEFAULT_BAN_LENGTH;
 		case MAX_BANDWIDTH:
 			return DEFAULT_MAX_BANDWIDTH;
-		case MUMBLE_MAX_CLIENTS:
+		case MAX_CLIENTS:
 		{
 			fwRefContainer<console::Context> consoleContext = g_serverInstance->GetComponent<console::Context>();
 			if (auto variableHandle = consoleContext->GetVariableManager()->FindEntryRaw("sv_maxClients"))
