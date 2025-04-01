@@ -552,6 +552,14 @@ void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 		return;
 	}
 
+	uint8_t vehicleEngineRunningFlags = readValue<uint8_t>(vehicle, VehicleEngineRunningFlagsOffset);
+    bool isEngineOn = vehicleEngineRunningFlags & VehicleFlagsEngineRunningFlag;
+
+	if (!isEngineOn)
+    {
+        return;
+    }
+
 	// Adjust fuel consumption rate so when g_globalFuelConsumptionMultiplier is 1 it gives reasonable fuel consumption speed.
 	const float NORMALIZE_GLOBAL_CONSUMPTION_RATE = 0.01f;
 	void* handling = readValue<void*>(vehicle, VehicleHandlingOffset);
@@ -563,8 +571,6 @@ void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 
 	if (newPetrolTankLevel <= 0.f)
 	{
-		uint8_t vehicleEngineRunningFlags = readValue<uint8_t>(vehicle, VehicleEngineRunningFlagsOffset);
-		bool isEngineOn = vehicleEngineRunningFlags & VehicleFlagsEngineRunningFlag;
 		if (isEngineOn)
 		{
 			switchEngineOff(vehicle, true);
