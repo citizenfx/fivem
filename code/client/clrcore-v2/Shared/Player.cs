@@ -11,11 +11,22 @@ namespace CitizenFX.Shared
 		internal Player()
 		{
 		}
-		
+
 		/// <summary>
 		/// Gets the handle of this player
 		/// </summary>
 		public int Handle => int.Parse(m_handle);
+
+		/// <summary>
+		/// Converts a <see cref="Player"/> to a <see cref="CString"/> using its <see langword="int"/> <see cref="Handle"/>.
+		/// </summary>
+		/// <param name="player">
+		/// The <see cref="Player"/> to convert.
+		/// </param>
+		public static implicit operator CString(Player player)
+		{
+			return player.Handle.ToString();
+		}
 #else
 	public abstract class Player : Core.Native.Input.Primitive
 	{
