@@ -105,6 +105,18 @@ namespace rage
 		return _netBuffer_ReadInteger(this, integer, bits);
 	}
 
+	bool datBitBuffer::ReadBit(bool* bit)
+	{
+		uint32_t result = 0;
+		if (ReadInteger(&result, 1))
+		{
+			*bit = (result == 1);
+			return true;
+		}
+	
+		return false;
+	}
+
 	bool datBitBuffer::WriteInteger(uint32_t integer, int bits)
 	{
 		return _netBuffer_WriteInteger(this, integer, bits);
