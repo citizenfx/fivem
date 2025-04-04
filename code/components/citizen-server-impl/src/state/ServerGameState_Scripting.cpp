@@ -2323,6 +2323,84 @@ static void Init()
 
 		context.SetResult(player);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITIES_IN_RADIUS", [](fx::ScriptContext& context)
+	{
+
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		float checkX = context.GetArgument<float>(0);
+		float checkY = context.GetArgument<float>(1);
+		float checkZ = context.GetArgument<float>(2);
+		float radius = context.GetArgument<float>(3);
+		float squaredMaxDistance = radius * radius;
+		int entityType = context.GetArgument<int>(4);
+		bool sortOutput = context.GetArgument<bool>(5);
+		fx::scrObject models = context.GetArgument<fx::scrObject>(6);
+
+		std::vector<int> modelList = fx::DeserializeObject<std::vector<int>>(models);
+		std::unordered_set<int> modelSet(modelList.begin(), modelList.end());
+
+		std::vector<std::pair<float, int>> entities;
+		std::shared_lock l(gameState->m_entityListMutex);
+
+		EntityType desiredType = EntityType::NoEntity;
+		if (entityType == 1)
+			desiredType = EntityType::Ped;
+		else if (entityType == 2)
+			desiredType = EntityType::Vehicle;
+		else if (entityType == 3)
+			desiredType = EntityType::Object;
+
+		for (auto& entity : gameState->m_entityList)
+		{
+			if (!IsEntityValid(entity) || GetEntityType(entity) != desiredType)
+				continue;
+
+			float position[3];
+			entity->syncTree->GetPosition(position);
+
+			float dx = position[0] - checkX;
+			float dy = position[1] - checkY;
+			float dz = position[2] - checkZ;
+			float distSq = dx * dx + dy * dy + dz * dz;
+
+			if (distSq >= squaredMaxDistance)
+				continue;
+
+			uint32_t modelHash = 0;
+			entity->syncTree->GetModelHash(&modelHash);
+
+			if (modelSet.empty() || modelSet.find(modelHash) != modelSet.end())
+			{
+				entities.push_back({ distSq, gameState->MakeScriptHandle(entity) });
+			}
+		}
+
+		if (sortOutput)
+		{
+			std::sort(entities.begin(), entities.end(), [](const auto& a, const auto& b)
+			{
+				return a.first < b.first;
+			});
+		}
+
+		std::vector<int> entityList;
+		entityList.reserve(entities.size());
+		for (auto& entry : entities)
+		{
+			entityList.push_back(entry.second);
+		}
+
+		context.SetResult(fx::SerializeObject(entityList));
+	});
 }
 
 static InitFunction initFunction([]()
