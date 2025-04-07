@@ -110,6 +110,13 @@ void ServerResourceList::ScanResources(const std::string& resourceRoot, ScanResu
 					else if (scannedNow.find(findData.name) == scannedNow.end())
 					{
 						const auto& resourceName = findData.name;
+
+						// ignore hidden folders
+						if (resourceName[0] == '.')
+						{
+							continue;
+						}
+
 						scannedNow.emplace(resourceName, resPath);
 
 						auto oldRes = m_manager->GetResource(resourceName, false);
