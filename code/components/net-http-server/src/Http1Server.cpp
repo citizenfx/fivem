@@ -16,6 +16,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string_view>
+#include <chrono>
 
 namespace net
 {
@@ -44,6 +45,22 @@ public:
 		m_clientStream->StartConnectionTimeout(timeout);
 	}
 
+	void WriteDateHeader(std::ostringstream& outData)
+	{
+		auto now = std::chrono::system_clock::now();
+		auto time = std::chrono::system_clock::to_time_t(now);
+		std::tm timeInfo;
+
+#ifdef WIN32
+		if (gmtime_s(&timeInfo, &time) == 0)
+#else
+		if (gmtime_r(&time, &timeInfo) != nullptr)
+#endif
+		{
+			outData << "Date: " << std::put_time(&timeInfo, "%a, %d %b %Y %H:%M:%S GMT") << "\r\n";
+		}
+	}
+
 	virtual void WriteHead(int statusCode, const std::string& statusMessage, const HeaderMap& headers) override
 	{
 		if (m_sentHeaders)
@@ -62,11 +79,7 @@ public:
 
 		if (usedHeaders.find("date") == usedHeaders.end())
 		{
-			std::time_t timeVal;
-			std::time(&timeVal);
-
-			std::tm time = *std::gmtime(&timeVal);
-			outData << "Date: " << std::put_time(&time, "%a, %d %b %Y %H:%M:%S GMT") << "\r\n";
+			WriteDateHeader(outData);
 		}
 
 		auto requestConnection = m_request->GetHeader("connection", "keep-alive");

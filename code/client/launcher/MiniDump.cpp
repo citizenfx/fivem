@@ -233,12 +233,20 @@ static void OnStartSession()
 
 	static std::string curChannel = GetUpdateChannel();
 
-	auto session = json::object({ { "sid", sid },
-	{ "did", userId },
-	{ "init", true },
-	{ "started", fmt::format("{:%Y-%m-%dT%H:%M:%S}Z", *std::gmtime(&t)) },
-	{ "attrs", json::object({ { "release", version },
-			   { "environment", curChannel } }) } });
+	auto session = json::object({
+		{ "sid", sid },
+		{ "did", userId },
+		{ "init", true },
+		{ "attrs", json::object({
+			{ "release", version },
+			{ "environment", curChannel }
+		}) }
+	});
+
+	tm time{};
+	if (gmtime_s(&time, &t) == 0) {
+		session["started"] = fmt::format("{:%Y-%m-%dT%H:%M:%S}Z", time);
+	}
 
 	UpdateSession(session);
 }
