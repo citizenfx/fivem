@@ -46,8 +46,9 @@ public:
 	void Kill() override;
 
 	CfxGtaThread(CfxThread& script)
-		: Script(script)
+		: GtaThread{}, Script(script)
 	{
+		SetScriptName("startup"); // cheat for some init-time checks
 	}
 
 	CfxThread& Script;
