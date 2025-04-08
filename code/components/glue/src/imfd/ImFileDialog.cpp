@@ -1149,10 +1149,15 @@ namespace ifd {
 
 					// date
 					ImGui::TableSetColumnIndex(1);
-					auto tm = std::localtime(&entry.DateModified);
-					if (tm != nullptr)
-						ImGui::Text("%d/%d/%d %02d:%02d", tm->tm_mon + 1, tm->tm_mday, 1900 + tm->tm_year, tm->tm_hour, tm->tm_min);
-					else ImGui::Text("---");
+					std::tm tm;
+					if (gmtime_s(&tm, &entry.DateModified) == 0)
+					{
+						ImGui::Text("%d/%d/%d %02d:%02d", tm.tm_mon + 1, tm.tm_mday, 1900 + tm.tm_year, tm.tm_hour, tm.tm_min);
+					}
+					else
+					{
+						ImGui::Text("---");
+					}
 
 					// size
 					ImGui::TableSetColumnIndex(2);
