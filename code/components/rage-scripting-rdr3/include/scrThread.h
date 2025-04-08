@@ -209,11 +209,6 @@ protected:
 	char shrug[107];
 	
 public:
-	inline GtaThread()
-	{
-		SetScriptName("startup"); // cheat for some init-time checks
-	}
-
 	inline void SetScriptName(const char* name)
 	{
 		m_nameHash = HashString(name);
