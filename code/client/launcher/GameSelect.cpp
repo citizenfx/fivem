@@ -152,6 +152,22 @@ std::optional<int> EnsureGamePath()
 
 		if (path[0] != L'\0')
 		{
+#if defined(GTA_FIVE)
+			// TEMP: Gen9 specific error, some users rename their .exe to bypass name checks
+			// Throw early to avoid unspecific error output
+			if (const std::wstring lastComponent = std::filesystem::path(path).filename().wstring();
+				lastComponent.find(L"V Enhanced") != std::wstring::npos || lastComponent.find(L"VEnhanced") != std::wstring::npos)
+			{
+				// Clear "wrong" path entry
+				WritePrivateProfileString(L"Game", pathKey, nullptr, fpath.c_str());
+
+				static constexpr auto GEN9_ERROR = L"Your selected game installation folder points to the Enhanced edition of GTA V, which is currently not supported by FiveM.\n\n"
+					L"Please select the installation folder for the Legacy version of GTA V.";
+				MessageBox(nullptr, GEN9_ERROR, PRODUCT_NAME, MB_OK | MB_ICONWARNING);
+			}
+			else
+			{
+#endif
 			// check stuff regarding the game executable
 			std::wstring gameExecutable = fmt::sprintf(L"%s\\%s", path, GAME_EXECUTABLE);
 
@@ -159,6 +175,9 @@ std::optional<int> EnsureGamePath()
 			{
 				return {};
 			}
+#if defined(GTA_FIVE)
+			}
+#endif
 		}
 	}
 
@@ -195,8 +214,56 @@ std::optional<int> EnsureGamePath()
 	fileDialog->SetFileTypes(1, &filter);
 
 #if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
+	auto proposeDirectory = [&fileDialog](const std::wstring& gameRoot, const std::vector<std::string>& filesToCheck)
+	{
+		WRL::ComPtr<IShellItem> item;
+
+		if (FAILED(SHCreateItemFromParsingName(gameRoot.c_str(), nullptr, IID_PPV_ARGS(&item))))
+		{
+			return false;
+		}
+
+		if (FAILED(fileDialog->SetFolder(item.Get())))
+		{
+			return false;
+		}
+
+		for (const auto& file : filesToCheck)
+		{
+			if (GetFileAttributesW((gameRoot + (L"\\" + ToWide(file))).c_str()) == INVALID_FILE_ATTRIBUTES)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	};
+
 	// set the default folder, if we can find one
 	{
+		std::vector<std::string> filesToCheck = {
+#if defined(GTA_FIVE)
+			"x64a.rpf",
+			"x64b.rpf",
+			"x64g.rpf",
+			"common.rpf",
+			"bink2w64.dll",
+			"x64\\audio\\audio_rel.rpf",
+			"GTA5.exe",
+			"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf",
+			"update\\x64\\dlcpacks\\mptuner\\dlc.rpf",
+			"update\\x64\\dlcpacks\\mpsum2\\dlc.rpf"
+#elif defined(IS_RDR3)
+			"common_0.rpf",
+			"appdata0_update.rpf",
+			"levels_7.rpf",
+			"RDR2.exe",
+			"x64\\dlcpacks\\mp007\\dlc.rpf"
+#elif defined(GTA_NY)
+			"pc/audio/sfx/general.rpf",
+#endif
+		};
+
 		wchar_t gameRootBuf[1024];
 		DWORD gameRootLength = sizeof(gameRootBuf);
 
@@ -213,37 +280,6 @@ std::optional<int> EnsureGamePath()
 #endif
 		};
 
-		auto proposeDirectory = [&](const std::wstring& gameRoot)
-		{
-			WRL::ComPtr<IShellItem> item;
-
-			if (SUCCEEDED(SHCreateItemFromParsingName(gameRoot.c_str(), nullptr, IID_PPV_ARGS(&item))))
-			{
-				auto checkFile = [&](const std::wstring& path)
-				{
-					return GetFileAttributesW((gameRoot + (L"\\" + path)).c_str()) != INVALID_FILE_ATTRIBUTES;
-				};
-
-				fileDialog->SetFolder(item.Get());
-
-#ifdef GTA_FIVE
-				if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") && checkFile(L"x64g.rpf") && checkFile(L"common.rpf") && checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") && checkFile(L"GTA5.exe") && checkFile(L"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf") &&
-					checkFile(L"update\\x64\\dlcpacks\\mptuner\\dlc.rpf") && checkFile(L"update\\x64\\dlcpacks\\mpsum2\\dlc.rpf"))
-#elif defined(IS_RDR3)
-				if (checkFile(L"common_0.rpf") && checkFile(L"appdata0_update.rpf") && checkFile(L"levels_7.rpf") && checkFile(L"RDR2.exe") && checkFile(L"x64\\dlcpacks\\mp007\\dlc.rpf"))
-#elif defined(GTA_NY)
-				if (checkFile(L"pc/audio/sfx/general.rpf"))
-#endif
-				{
-					WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
-
-					return true;
-				}
-			}
-
-			return false;
-		};
-
 		// try finding the MTL game path first
 		auto mtlGamePath = GetMtlGamePath(
 #if defined(GTA_FIVE)
@@ -257,8 +293,9 @@ std::optional<int> EnsureGamePath()
 
 		if (!mtlGamePath.empty())
 		{
-			if (proposeDirectory(ToWide(mtlGamePath)))
+			if (proposeDirectory(ToWide(mtlGamePath), filesToCheck))
 			{
+				WritePrivateProfileString(L"Game", pathKey, ToWide(mtlGamePath).c_str(), fpath.c_str());
 				return {};
 			}
 		}
@@ -274,9 +311,55 @@ std::optional<int> EnsureGamePath()
 				// strip \GTAV if needed
 				gameRoot = gameRoot.substr(0, gameRoot.length() - std::get<int>(folder));
 
-				if (proposeDirectory(gameRoot))
+				if (proposeDirectory(gameRoot, filesToCheck))
 				{
+					WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
 					return {};
+				}
+			}
+		}
+	}
+#endif
+
+#if defined(GTA_FIVE)
+	{
+		// TEMP: Gen9 specific warning, inform users about no Enhanced support early
+		std::vector<std::string> filesToCheck = {
+			"x64a.rpf",
+			"x64b.rpf",
+			"x64g.rpf",
+			"common.rpf",
+			"bink2w64.dll",
+			"x64\\audio\\audio_rel.rpf",
+			"GTA5_Enhanced.exe",
+			"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf",
+			"update\\x64\\dlcpacks\\mptuner\\dlc.rpf",
+			"update\\x64\\dlcpacks\\mpsum2\\dlc.rpf"
+		};
+
+		wchar_t gameRootBuf[1024];
+		DWORD gameRootLength = sizeof(gameRootBuf);
+
+		const std::tuple<std::wstring, std::wstring, int> folderAttemptsGen9[] = {
+			{ L"InstallFolder", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV Enhanced", 0 }, // RGL install
+			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTA V Enhanced", 0 },
+			{ L"InstallFolderEpic", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV Enhanced", 0 },
+			{ L"InstallFolderXboxPc", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV Enhanced", 0 } // Xbox Game Pass install
+		};
+
+		for (const auto& folder : folderAttemptsGen9)
+		{
+			if (RegGetValue(HKEY_LOCAL_MACHINE,std::get<1>(folder).c_str(), std::get<0>(folder).c_str(),
+				RRF_RT_REG_SZ, nullptr, gameRootBuf, &gameRootLength) == ERROR_SUCCESS)
+			{
+				std::wstring gameRoot(gameRootBuf);
+
+				if (proposeDirectory(gameRoot, filesToCheck))
+				{
+					static constexpr auto GEN9_ERROR = L"We could not detect a valid GTA V Legacy installation. However, we found a valid installation for GTA V Enhanced.\n\n"
+						L"Please ensure you have GTA V Legacy installed and select its installation folder in the file dialog after closing this message.";
+					MessageBox(nullptr, GEN9_ERROR, PRODUCT_NAME, MB_OK | MB_ICONWARNING);
+					break;
 				}
 			}
 		}
@@ -315,6 +398,18 @@ std::optional<int> EnsureGamePath()
 	// check if there's a game EXE in the path
 	std::wstring gamePath = resultPath;
 	auto exeNameLength = std::size(GAME_EXECUTABLE); // counts null terminator, but here we use that for a backslash
+
+#if defined(GTA_FIVE)
+	// TEMP: Gen9 specific error, some users rename their .exe to bypass name checks
+	if (const std::wstring lastComponent = std::filesystem::path(gamePath).parent_path().filename().wstring();
+		lastComponent.find(L"V Enhanced") != std::wstring::npos || lastComponent.find(L"VEnhanced") != std::wstring::npos)
+	{
+		static constexpr auto GEN9_ERROR = L"Your selected game installation folder points to the Enhanced edition of GTA V, which is currently not supported by FiveM.\n\n"
+			L"Please select the installation folder for the Legacy version of GTA V.";
+		MessageBox(nullptr, GEN9_ERROR, PRODUCT_NAME, MB_OK | MB_ICONWARNING);
+		return 0;
+	}
+#endif
 
 	if (gamePath.rfind(L"\\" GAME_EXECUTABLE) != (gamePath.length() - exeNameLength))
 	{
