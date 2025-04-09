@@ -152,6 +152,21 @@ std::optional<int> EnsureGamePath()
 
 		if (path[0] != L'\0')
 		{
+#if defined(GTA_FIVE)
+			// TEMP: Gen9 specific error, some users rename their .exe to bypass name checks
+			// Throw early to avoid unspecific error output
+			if (wcsstr(path, L"V Enhanced") != nullptr || wcsstr(path, L"VEnhanced") != nullptr)
+			{
+				// Clear "wrong" path entry
+				WritePrivateProfileString(L"Game", pathKey, nullptr, fpath.c_str());
+
+				static constexpr auto GEN9_ERROR = L"Your selected game installation folder points to the Enhanced edition of GTA V, which is currently not supported by FiveM.\n\n"
+				L"Please select the installation folder for the Legacy version of GTA V.";
+				MessageBox(nullptr, GEN9_ERROR, PRODUCT_NAME, MB_OK | MB_ICONWARNING);
+			}
+			else
+			{
+#endif
 			// check stuff regarding the game executable
 			std::wstring gameExecutable = fmt::sprintf(L"%s\\%s", path, GAME_EXECUTABLE);
 
@@ -159,6 +174,9 @@ std::optional<int> EnsureGamePath()
 			{
 				return {};
 			}
+#if defined(GTA_FIVE)
+			}
+#endif
 		}
 	}
 
@@ -283,6 +301,58 @@ std::optional<int> EnsureGamePath()
 	}
 #endif
 
+#if defined(GTA_FIVE)
+	{
+		// TEMP: Gen9 specific warning, inform users about no Enhanced support early
+		auto checkForBasicInstall = [&](const std::wstring& gameRoot)
+		{
+			WRL::ComPtr<IShellItem> item;
+
+			if (SUCCEEDED(SHCreateItemFromParsingName(gameRoot.c_str(), nullptr, IID_PPV_ARGS(&item))))
+			{
+				auto checkFile = [&](const std::wstring& path)
+				{
+					return GetFileAttributesW((gameRoot + (L"\\" + path)).c_str()) != INVALID_FILE_ATTRIBUTES;
+				};
+
+				if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") && checkFile(L"x64g.rpf") && checkFile(L"common.rpf") && checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") && checkFile(L"GTA5_Enhanced.exe") && checkFile(L"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf") && 
+					checkFile(L"update\\x64\\dlcpacks\\mptuner\\dlc.rpf") && checkFile(L"update\\x64\\dlcpacks\\mpsum2\\dlc.rpf"))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		};
+
+		wchar_t gameRootBuf[1024];
+		DWORD gameRootLength = sizeof(gameRootBuf);
+
+		const std::tuple<std::wstring, std::wstring, int> folderAttemptsGen9[] = {
+			{ L"InstallFolder", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV Enhanced", 0 }, // RGL install
+			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTA V Enhanced", 0 },
+			{ L"InstallFolderEpic", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV Enhanced", 0 }
+		};
+
+		for (const auto& folder : folderAttemptsGen9)
+		{
+			if (RegGetValue(HKEY_LOCAL_MACHINE,std::get<1>(folder).c_str(), std::get<0>(folder).c_str(),
+				RRF_RT_REG_SZ, nullptr, gameRootBuf, &gameRootLength) == ERROR_SUCCESS)
+			{
+				std::wstring gameRoot(gameRootBuf);
+
+				if (checkForBasicInstall(gameRoot))
+				{
+					static constexpr auto GEN9_ERROR = L"We could not detect a valid GTA V Legacy installation. However, we found a valid installation for GTA V Enhanced.\n\n"
+					L"Please ensure you have GTA V Legacy installed and select its installation folder in the file dialog after this message.";
+					MessageBox(nullptr, GEN9_ERROR, PRODUCT_NAME, MB_OK | MB_ICONWARNING);
+					break;
+				}
+			}
+		}
+	}
+#endif
+
 	hr = fileDialog->Show(nullptr);
 
 	if (FAILED(hr))
@@ -315,6 +385,17 @@ std::optional<int> EnsureGamePath()
 	// check if there's a game EXE in the path
 	std::wstring gamePath = resultPath;
 	auto exeNameLength = std::size(GAME_EXECUTABLE); // counts null terminator, but here we use that for a backslash
+
+#if defined(GTA_FIVE)
+	// TEMP: Gen9 specific error, some users rename their .exe to bypass name checks
+	if (gamePath.find(L"V Enhanced") != std::wstring::npos || gamePath.find(L"VEnhanced") != std::wstring::npos)
+	{
+		static constexpr auto GEN9_ERROR = L"Your selected game installation folder points to the Enhanced edition of GTA V, which is currently not supported by FiveM.\n\n"
+		L"Please select the installation folder for the Legacy version of GTA V.";
+		MessageBox(nullptr, GEN9_ERROR, PRODUCT_NAME, MB_OK | MB_ICONWARNING);
+		return 0;
+	}
+#endif
 
 	if (gamePath.rfind(L"\\" GAME_EXECUTABLE) != (gamePath.length() - exeNameLength))
 	{
