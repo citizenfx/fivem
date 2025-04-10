@@ -86,6 +86,8 @@ public:
 	uint32_t m_localLost;
 	uint32_t m_localResync;
 
+	std::chrono::milliseconds m_lastGoodUdp;
+
 	void Encrypt(const uint8_t* plain, uint8_t* cipher, size_t length);
 	bool Decrypt(const uint8_t* cipher, uint8_t* plain, size_t length);
 	std::string GetClientNonce();
