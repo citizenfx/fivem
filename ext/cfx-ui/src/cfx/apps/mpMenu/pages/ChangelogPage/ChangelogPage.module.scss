@@ -1,9 +1,79 @@
 .sticky {
   position: sticky;
-
   top: 0;
   left: 0;
   right: 0;
-
   z-index: 1;
+}
+
+.versionContainer {
+  margin-bottom: 24px;
+  scroll-margin-top: 20px;
+}
+
+.headerContainer {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.buildBadge {
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+
+.buildNumber {
+  color: white;
+  padding: 4px 10px;
+  font-weight: bold;
+}
+
+.buildDate {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #333;
+  padding: 4px 10px;
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+}
+
+.dateIcon {
+  margin-right: 4px;
+}
+
+.divider {
+  height: 1px;
+  flex: 1;
+  margin-left: 10px;
+}
+
+.loadingContainer {
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loadingText {
+  display: inline-block;
+}
+
+.loadingDots {
+  display: inline-block;
+  animation: loadingPulse 1.5s infinite;
+}
+
+@keyframes loadingPulse {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
 }

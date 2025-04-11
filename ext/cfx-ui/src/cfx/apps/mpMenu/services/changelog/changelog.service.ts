@@ -18,12 +18,15 @@ export function registerChangelogService(container: ServicesContainer) {
 
 const endpoint = 'https://changelogs-live.fivem.net/api/changelog';
 const lastSeenVersionsLSKey = 'changelogVersions';
+const MAX_VERSIONS_TO_PRELOAD = 5;
+const PRELOAD_BATCH_SIZE = 2;
 
 @injectable()
 class ChangelogService implements AppContribution {
-  private _versionsContent: Record<string, null | React.ReactNode> = {};
+  private _versionsContent: Record<string, undefined | null | React.ReactNode> = {};
 
   private _versionsContentLoadRequested: Record<string, true> = {};
+  private _versionsContentLoading: Record<string, boolean> = {};
 
   private _versions: string[] = [];
   get versions(): string[] {
@@ -43,17 +46,34 @@ class ChangelogService implements AppContribution {
 
   public selectedVersion = '';
 
-  public get selectedVersionContent(): React.ReactNode | null {
-    if (!this.selectedVersion) {
+  public getVersionContent(version: string): React.ReactNode | undefined | null {
+    if (!version || !this._versions.includes(version)) {
       return null;
     }
 
-    if (!this._versionsContentLoadRequested[this.selectedVersion]) {
-      this._versionsContentLoadRequested[this.selectedVersion] = true;
-      this.fetchVersionContent(this.selectedVersion);
+    if (this._versionsContentLoadRequested[version] && this._versionsContent[version] === undefined) {
+      return undefined;
     }
 
-    return this._versionsContent[this.selectedVersion];
+    if (!this._versionsContentLoadRequested[version]) {
+      this._versionsContentLoadRequested[version] = true;
+      this.fetchVersionContent(version);
+      return undefined;
+    }
+
+    return this._versionsContent[version];
+  }
+
+  public get selectedVersionContent(): React.ReactNode | undefined | null {
+    if (!this.selectedVersion) {
+      return null;
+    }
+    
+    return this.getVersionContent(this.selectedVersion);
+  }
+
+  public get hasAnyVersions(): boolean {
+    return this._versions.length > 0;
   }
 
   public get unreadVersionsCount(): number {
@@ -75,6 +95,7 @@ class ChangelogService implements AppContribution {
       // @ts-expect-error
       _versionsContent: observable.shallow,
       _versionsContentLoadRequested: observable.shallow,
+      _versionsContentLoading: observable.shallow,
       _lastSeenVersions: observable.struct,
     });
   }
@@ -87,8 +108,66 @@ class ChangelogService implements AppContribution {
   public readonly selectVersion = (version: string) => {
     if (this._versions.includes(version)) {
       this.selectedVersion = version;
+      
+      if (this._versionsContent[version] === undefined) {
+        this.fetchVersionContent(version, true);
+      }
+      
+      this.preloadAdjacentVersions(version);
     }
   };
+
+  private preloadAdjacentVersions(currentVersion: string) {
+    if (!currentVersion || !this._versions.includes(currentVersion)) {
+      return;
+    }
+    
+    const currentIndex = this._versions.indexOf(currentVersion);
+    const preloadIndexes: number[] = [];
+    
+    for (let i = 1; i <= 2; i++) {
+      if (currentIndex - i >= 0) {
+        preloadIndexes.push(currentIndex - i);
+      }
+      if (currentIndex + i < this._versions.length) {
+        preloadIndexes.push(currentIndex + i);
+      }
+    }
+    
+    preloadIndexes.forEach(index => {
+      const version = this._versions[index];
+      if (!this._versionsContentLoadRequested[version]) {
+        this._versionsContentLoadRequested[version] = true;
+        this.fetchVersionContent(version);
+      }
+    });
+  }
+
+  public preloadVersionContents(count: number = MAX_VERSIONS_TO_PRELOAD) {
+    const versionsToLoad = this._versions.slice(0, count);
+    
+    const initialVersions = versionsToLoad.slice(0, PRELOAD_BATCH_SIZE);
+    initialVersions.forEach(version => {
+      if (!this._versionsContentLoadRequested[version]) {
+        this._versionsContentLoadRequested[version] = true;
+        this.fetchVersionContent(version);
+      }
+    });
+    
+    const remainingVersions = versionsToLoad.slice(PRELOAD_BATCH_SIZE);
+    
+    remainingVersions.forEach((version, index) => {
+      const batchIndex = Math.floor(index / PRELOAD_BATCH_SIZE);
+      const delay = (batchIndex + 1) * 450;
+      
+      setTimeout(() => {
+        if (!this._versionsContentLoadRequested[version]) {
+          this._versionsContentLoadRequested[version] = true;
+          this.fetchVersionContent(version);
+        }
+      }, delay);
+    });
+  }
 
   public maybeMarkNewAsSeen() {
     if (this._markedNewAsSeen) {
@@ -127,6 +206,8 @@ class ChangelogService implements AppContribution {
 
       this.versions = versions.map((version) => String(version));
       this.selectVersion(this.versions[0]);
+      
+      this.preloadVersionContents();
 
       if (this._markedNewAsSeen) {
         this.updateLastSeenVersions();
@@ -138,18 +219,52 @@ class ChangelogService implements AppContribution {
     }
   }
 
-  private async fetchVersionContent(version: string) {
-    if (this._versionsContent[version] === null) {
+  private async fetchVersionContent(version: string, priority = false) {
+    if (this._versionsContent[version] !== undefined || this._versionsContentLoading[version]) {
       return;
     }
 
-    try {
-      const content = await fetcher.text(`${endpoint}/versions/${version}`);
+    this._versionsContentLoading[version] = true;
 
-      this.setVersionContent(version, html2react(content));
+    try {
+      let content;
+      if (priority && 'fetch' in window) {
+        content = await fetcher.text(`${endpoint}/versions/${version}`);
+      } else {
+        content = await fetcher.text(`${endpoint}/versions/${version}`);
+      }
+      
+      const dateMatch = content.match(/<h2>Build \d+ \(created on (.*?)\)<\/h2>/i);
+      const buildDate = dateMatch ? dateMatch[1] : null;
+      
+      if (buildDate) {
+        this._buildDates = this._buildDates || {};
+        this._buildDates[version] = buildDate;
+      }
+      
+      let processedContent = content.replace(/<h2>Build \d+ \(created on .*?\)<\/h2>/i, '').trim();
+      processedContent = processedContent.replace(/<h3>Detailed change list<\/h3>/i, '').trim();
+      const contentTextOnly = processedContent.replace(/<[^>]*>/g, '').trim();
+      
+      if (contentTextOnly.length < 10) {
+        const customMessage = '<div style="font-style: italic; padding: 4px 0;"><p style="font-size: 0.9em; margin: 0; color: #666;">Psst... this build has some changes, but they\'re our little secret! 🤫</p></div>';
+        this.setVersionContent(version, html2react(customMessage));
+      } else {
+        this.setVersionContent(version, html2react(processedContent));
+      }
     } catch (e) {
-      this.setVersionContent(version, `Failed to parse or load change logs for version ${version}`);
+      console.error('Error fetching version content:', e);
+      const errorMessage = '<div style="color: #d64646; padding: 10px;"><p>Failed to load changelog for this build.</p></div>';
+      this.setVersionContent(version, html2react(errorMessage));
+    } finally {
+      this._versionsContentLoading[version] = false;
     }
+  }
+  
+  private _buildDates: Record<string, string> = {};
+  
+  public getBuildDate(version: string): string | null {
+    return this._buildDates?.[version] || null;
   }
 
   private setVersionContent(version: string, content: null | React.ReactNode) {
