@@ -336,6 +336,43 @@ static void FixStopEntityFire()
 	});
 }
 
+static void FixBlipNatives()
+{
+	// Native hash and whether it should set a result.
+	// More natives might need to be added.
+	constexpr std::pair<uint64_t, bool> nativesToPatch[] = {
+        { 0x80EAD8E2E1D5D52E, false }, // ADD_TEXT_COMPONENT_SUBSTRING_BLIP_NAME
+        { 0xA6DB27D19ECBB7DA, true },  // DOES_BLIP_EXIST
+    };
+
+	for (const auto& native : nativesToPatch)
+	{
+		auto handler = fx::ScriptEngine::GetNativeHandler(native.first);
+
+		if (!handler)
+		{
+			continue;
+		}
+	
+		fx::ScriptEngine::RegisterNativeHandler(native.first, [=](fx::ScriptContext& ctx)
+		{
+			auto blipId = ctx.GetArgument<int>(0);
+			
+			if (blipId < 0)
+			{
+				if (native.second)
+				{
+					ctx.SetResult<bool>(false);
+				}
+
+				return;
+			}
+	
+			handler(ctx);
+		});
+	}
+}
+
 static void FixPedCombatAttributes()
 {
 	const auto structDef = rage::GetStructureDefinition("CCombatInfo");
@@ -724,6 +761,8 @@ static HookFunction hookFunction([]()
 		FixStartEntityFire();
 
 		FixStopEntityFire();
+
+		FixBlipNatives();
 
 		FixPedCombatAttributes();
 
