@@ -13,9 +13,8 @@
 
 #include "stdafx.h"
 #include "pplx/pplx.h"
+#include "pplx/threadpool.h"
 #include "sys/syscall.h"
-#include <functional>
-#include <thread_pool/thread_pool.hpp>
 
 #ifdef _WIN32
 #error "ERROR: This file should only be included in non-windows Build"
@@ -41,8 +40,7 @@ namespace details {
 
     _PPLXIMP void linux_scheduler::schedule(TaskProc_t proc, void* param)
     {
-        static tp::ThreadPool pool;
-        pool.post(std::bind(proc, param));
+        crossplat::threadpool::shared_instance().service().post(boost::bind(proc, param));
     }
 
 } // namespace details

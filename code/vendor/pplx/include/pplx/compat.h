@@ -40,70 +40,8 @@
 #include <assert.h>
 #define _ASSERTE(x) assert(x)
 
-#ifdef _In_
-#undef _In_
-#endif
-#define _In_
-
-#ifdef _Inout_
-#undef _Inout_
-#endif
-#define _Inout_
-
-#ifdef _Out_
-#undef _Out_
-#endif
-#define _Out_
-
-#ifdef _In_z_
-#undef _In_z_
-#endif
-#define _In_z_
-
-#ifdef _Out_z_
-#undef _Out_z_
-#endif
-#define _Out_z_
-
-#ifdef _Inout_z_
-#undef _Inout_z_
-#endif
-#define _Inout_z_
-
-#ifdef _In_opt_
-#undef _In_opt_
-#endif
-#define _In_opt_
-
-#ifdef _Out_opt_
-#undef _Out_opt_
-#endif
-#define _Out_opt_
-
-#ifdef _Inout_opt_
-#undef _Inout_opt_
-#endif
-#define _Inout_opt_
-
-#ifdef _Out_writes_
-#undef _Out_writes_
-#endif
-#define _Out_writes_(x)
-
-#ifdef _Out_writes_opt_
-#undef _Out_writes_opt_
-#endif
-#define _Out_writes_opt_(x)
-
-#ifdef _In_reads_
-#undef _In_reads_
-#endif
-#define _In_reads_(x)
-
-#ifdef _Inout_updates_bytes_
-#undef _Inout_updates_bytes_
-#endif
-#define _Inout_updates_bytes_(x)
+// No SAL on non Windows platforms
+#include "nosal.h"
 
 #if not defined __cdecl
 #if defined cdecl
@@ -112,11 +50,22 @@
 #define __cdecl
 #endif
 
+#if defined(__ANDROID__)
+// This is needed to disable the use of __thread inside the boost library.
+// Android does not support thread local storage -- if boost is included
+// without this macro defined, it will create references to __tls_get_addr
+// which (while able to link) will not be available at runtime and prevent
+// the .so from loading.
+#if not defined BOOST_ASIO_DISABLE_THREAD_KEYWORD_EXTENSION
+#define BOOST_ASIO_DISABLE_THREAD_KEYWORD_EXTENSION
+#endif
+#endif
+
 #ifdef __clang__
 #include <cstdio>
 #endif
 
-#endif
+#endif // defined(__APPLE__)
 
 #endif
 
