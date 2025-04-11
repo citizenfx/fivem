@@ -221,7 +221,7 @@ static InitFunction initFunction([]()
 			lastCpuQuery = timeGetTime();
 		}
 
-		return fmt::sprintf("CPU: %.0f%%", counterValCpu.doubleValue);
+		return fmt::sprintf("CPU: %.0f%%", std::min(counterValCpu.doubleValue, 100.0));
 	});
 
 	addDrawPerfModule("cl_drawGpuUsage", "GPU Usage", []() -> std::string
