@@ -709,7 +709,7 @@ struct CfxBigConsole : FiveMConsoleBase
 			return false;
 		}
 
-		if (channel == "cmd" || channel == "IO")
+		if (channel == "cmd" || channel == "IO" || channel == "loading-screens-rdr3")
 		{
 			return true;
 		}
@@ -914,7 +914,7 @@ static void EnsureConsoles()
 
 bool IsNonProduction()
 {
-#if !defined(GTA_FIVE) || defined(_DEBUG)
+#if (!defined(GTA_FIVE) && !defined(IS_RDR3)) || defined(_DEBUG)
 	return true;
 #else
 	static ConVar<int> moo("moo", ConVar_None, 0);
