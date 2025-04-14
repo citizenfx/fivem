@@ -389,15 +389,15 @@ static InitFunction initFunction([] ()
 		device->Mount("usermaps:/");
 	});
 
-	static ConsoleCommand loadLevelCommand("loadlevel", [](const std::string& level)
-	{
-		LoadLevel(level.c_str(), Mode::LEVEL_LOAD);
-	});
+	// static ConsoleCommand loadLevelCommand("loadlevel", [](const std::string& level)
+	// {
+	// 	LoadLevel(level.c_str(), Mode::LEVEL_LOAD);
+	// });
 
-	static ConsoleCommand storyModeyCommand("storymode", []()
-	{
-		LoadLevel("gta5", Mode::STORY_MODE);
-	});
+	// static ConsoleCommand storyModeyCommand("storymode", []()
+	// {
+	// 	LoadLevel("gta5", Mode::STORY_MODE);
+	// });
 
 	static ConsoleCommand editorModeCommand("replayEditor", []()
 	{
