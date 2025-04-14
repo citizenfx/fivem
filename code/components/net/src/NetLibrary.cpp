@@ -50,6 +50,7 @@
 using json = nlohmann::json;
 
 #include <Error.h>
+#include <net/ProtocolVersion.h>
 
 fwEvent<const std::string&> OnRichPresenceSetTemplate;
 fwEvent<int, const std::string&> OnRichPresenceSetValue;
@@ -954,7 +955,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	static fwMap<fwString, fwString> postMap;
 	postMap["method"] = "initConnect";
 	postMap["name"] = GetPlayerName();
-	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
+	postMap["protocol"] = va("%d", kNetworkProtocolVersion);
 
 #if defined(IS_RDR3)
 	std::string gameName = "rdr3";

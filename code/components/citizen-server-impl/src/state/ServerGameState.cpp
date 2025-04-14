@@ -3792,7 +3792,11 @@ static std::tuple<uint32_t, int> UncompressClonePacket(const net::Span<char>& bu
 
 	const static uint8_t dictBuffer[65536] = 
 	{
+#ifdef STATE_RDR3
+#include <state/dict_redm_20250412.h>
+#else
 #include <state/dict_five_20210329.h>
+#endif
 	};
 	int bufferLength = LZ4_decompress_safe_usingDict(reinterpret_cast<const char*>(readBuffer.GetData() + readBuffer.GetOffset()), bufferData.data(), readBuffer.GetRemaining(), bufferData.size(), reinterpret_cast<const char*>(dictBuffer), std::size(dictBuffer));
 
