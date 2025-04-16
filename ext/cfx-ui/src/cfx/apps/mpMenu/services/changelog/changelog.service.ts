@@ -223,43 +223,38 @@ class ChangelogService implements AppContribution {
     if (this._versionsContent[version] !== undefined || this._versionsContentLoading[version]) {
       return;
     }
-
-    this._versionsContentLoading[version] = true;
-
-    try {
-      let content;
-      if (priority && 'fetch' in window) {
-        content = await fetcher.text(`${endpoint}/versions/${version}`);
-      } else {
-        content = await fetcher.text(`${endpoint}/versions/${version}`);
-      }
-      
-      const dateMatch = content.match(/<h2>Build \d+ \(created on (.*?)\)<\/h2>/i);
-      const buildDate = dateMatch ? dateMatch[1] : null;
-      
-      if (buildDate) {
-        this._buildDates = this._buildDates || {};
-        this._buildDates[version] = buildDate;
-      }
-      
-      let processedContent = content.replace(/<h2>Build \d+ \(created on .*?\)<\/h2>/i, '').trim();
-      processedContent = processedContent.replace(/<h3>Detailed change list<\/h3>/i, '').trim();
-      const contentTextOnly = processedContent.replace(/<[^>]*>/g, '').trim();
-      
-      if (contentTextOnly.length < 10) {
-        const customMessage = '<div style="font-style: italic; padding: 4px 0;"><p style="font-size: 0.9em; margin: 0; color: #666;">Psst... this build has some changes, but they\'re our little secret! 🤫</p></div>';
-        this.setVersionContent(version, html2react(customMessage));
-      } else {
-        this.setVersionContent(version, html2react(processedContent));
-      }
-    } catch (e) {
-      console.error('Error fetching version content:', e);
-      const errorMessage = '<div style="color: #d64646; padding: 10px;"><p>Failed to load changelog for this build.</p></div>';
-      this.setVersionContent(version, html2react(errorMessage));
-    } finally {
-      this._versionsContentLoading[version] = false;
+  
+  this._versionsContentLoading[version] = true;
+  
+  try {
+    const content = await fetcher.text(`${endpoint}/versions/${version}`);
+    
+    const dateMatch = content.match(/<h2>Build \d+ \(created on (.*?)\)<\/h2>/i);
+    const buildDate = dateMatch ? dateMatch[1] : null;
+    
+    if (buildDate) {
+      this._buildDates = this._buildDates || {};
+      this._buildDates[version] = buildDate;
     }
+    
+    let processedContent = content.replace(/<h2>Build \d+ \(created on .*?\)<\/h2>/i, '').trim();
+    processedContent = processedContent.replace(/<h3>Detailed change list<\/h3>/i, '').trim();
+    const contentTextOnly = processedContent.replace(/<[^>]*>/g, '').trim();
+    
+    if (contentTextOnly.length < 10) {
+      const customMessage = '<div style="font-style: italic; padding: 4px 0;"><p style="font-size: 0.9em; margin: 0; color: #666;">Psst... this build has some changes, but they\'re our little secret! 🤫</p></div>';
+      this.setVersionContent(version, html2react(customMessage));
+    } else {
+      this.setVersionContent(version, html2react(processedContent));
+    }
+  } catch (e) {
+    console.error('Error fetching version content:', e);
+    const errorMessage = '<div style="color: #d64646; padding: 10px;"><p>Failed to load changelog for this build.</p></div>';
+    this.setVersionContent(version, html2react(errorMessage));
+  } finally {
+    this._versionsContentLoading[version] = false;
   }
+}
   
   private _buildDates: Record<string, string> = {};
   
