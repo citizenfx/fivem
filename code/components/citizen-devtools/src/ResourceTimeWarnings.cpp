@@ -10,6 +10,9 @@
 #ifndef IS_FXSERVER
 #include <Pool.h>
 #include <Streaming.h>
+#else
+#include <ScriptEngine.h>
+#include <ScriptSerialization.h>
 #endif
 
 #include <iomanip>
@@ -463,6 +466,26 @@ static InitFunction initFunction([]()
 				}
 			}
 		}, INT32_MIN);
+
+        fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_MONITOR_DATA", [](fx::ScriptContext& context)
+        {
+            if (gResourceMonitor.get() != nullptr)
+            {
+                auto& data = gResourceMonitor->GetResourceDatas();
+
+                std::vector<std::tuple<std::string, double, double, std::string, std::string>> arr;
+                for (const auto& [resourceName, avgTickMs, avgFrameFraction, memorySize, streamingUsage, recentTicks, avgTotalMs, recentTotals] : data)
+                {
+                    arr.emplace_back(std::tuple(resourceName, avgTickMs, avgFrameFraction, memorySize, streamingUsage));
+                }
+
+                context.SetResult(fx::SerializeObject(arr));
+            }
+            else
+            {
+                context.SetResult(nullptr);
+            }
+        });
 	});
 
 	fx::ResourceMonitor::OnWarning.Connect([](const std::string& warningText)
