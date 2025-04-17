@@ -612,7 +612,6 @@ int RealMain()
 #ifndef LAUNCHER_PERSONALITY_CHROME
 	LoadLibrary(MakeRelativeCitPath(L"botan.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
 
 	// laod V8 DLLs in case end users have these in a 'weird' directory
 	LoadLibrary(MakeRelativeCitPath(L"bin/icuuc.dll").c_str());
@@ -621,6 +620,8 @@ int RealMain()
 	LoadLibrary(MakeRelativeCitPath(L"v8_libbase.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"v8.dll").c_str());
 #endif
+
+	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
 
 	if (addDllDirectory)
 	{

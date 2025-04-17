@@ -1266,4 +1266,9 @@ static HookFunction hookFunction{[] ()
 		hook::nop(location, 5);
 		hook::jump(location, patchStub.GetCode());
 	}
+
+	// GTA V doesn't support horses, so peds lack a mount manager.
+	// If a mount ID is set (which shouldn't normally happen), it can cause crashes.
+	// NOP the call in CNetObjPed::Update that updates a ped's mount point to prevent this.
+	hook::nop(hook::get_pattern("E8 ? ? ? ? 48 8B CF E8 ? ? ? ? 0F B7 97"), 5);
 }};

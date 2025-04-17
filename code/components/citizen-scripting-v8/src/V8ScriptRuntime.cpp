@@ -134,7 +134,6 @@ extern char** g_argv;
 static const char* g_platformScripts[] = {
 	"citizen:/scripting/v8/console.js",
 	"citizen:/scripting/v8/timer.js",
-	"citizen:/scripting/v8/bufferish.js",
 	"citizen:/scripting/v8/msgpack.js",
 	"citizen:/scripting/v8/eventemitter2.js",
 	"citizen:/scripting/v8/main.js"

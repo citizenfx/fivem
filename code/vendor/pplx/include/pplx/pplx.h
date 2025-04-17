@@ -36,17 +36,21 @@
 #endif
 #endif
 
-#include "compat.h"
+#include "pplx/compat.h"
 
 // Use PPLx
 #ifdef _WIN32
-#include "pplxwin.h"
+#include "pplx/pplxwin.h"
+#elif defined(__APPLE__)
+#undef _PPLXIMP
+#define _PPLXIMP
+#include "pplx/pplxlinux.h"
 #else
-#include "pplxlinux.h"
+#include "pplx/pplxlinux.h"
 #endif // _WIN32
 
 // Common implementation across all the non-concrt versions
-#include "pplxcancellation_token.h"
+#include "pplx/pplxcancellation_token.h"
 #include <functional>
 
 // conditional expression is constant
@@ -92,7 +96,7 @@ namespace details
     struct _AutoDeleter
     {
         _AutoDeleter(_T *_PPtr) : _Ptr(_PPtr) {}
-        ~_AutoDeleter () { delete _Ptr; }
+        ~_AutoDeleter () { delete _Ptr; } 
         _T *_Ptr;
     };
 
@@ -127,13 +131,13 @@ namespace details
     // - Ability to wait on a work item
     // - Ability to cancel a work item
     // - Ability to inline work on invocation of RunAndWait
-    class _TaskCollectionImpl
+    class _TaskCollectionImpl 
     {
     public:
 
         typedef _TaskProcHandle _TaskProcHandle_t;
 
-        _TaskCollectionImpl(scheduler_ptr _PScheduler)
+        _TaskCollectionImpl(scheduler_ptr _PScheduler) 
             : _M_pScheduler(_PScheduler)
         {
         }

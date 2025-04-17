@@ -25,4 +25,25 @@ namespace fx
 
 		return packed;
 	}
+
+	template<typename T>
+	inline T DeserializeObject(const scrObject& obj, bool* outSuccess = nullptr)
+	{
+		T result {};
+		try
+		{
+			msgpack::unpacked unpacked;
+			msgpack::unpack(unpacked, obj.data, obj.length);
+			result = unpacked.get().as<T>();
+			if (outSuccess)
+				*outSuccess = true;
+		}
+		catch (...)
+		{
+			if (outSuccess)
+				*outSuccess = false;
+		}
+		return result;
+	}
+
 }
