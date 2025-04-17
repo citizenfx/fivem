@@ -496,8 +496,8 @@ static HookFunction hookFunction([]()
 	hook::jump(acquireTextureLocation, getTextureIdStub.GetCode());
 
 
-
-
+// remove this when push to produnction !!!
+#if 0
 	auto maxSerializeComponentCountLocation = hook::get_pattern<char>("41 B0 ? B2 ? 48 8B CF E8 ? ? ? ? 48 8B CF 48 89 AF", 2);
 	hook::put<uint8_t>(maxSerializeComponentCountLocation, 3); // set max serialize component count value
 
@@ -505,7 +505,7 @@ static HookFunction hookFunction([]()
 
 	auto serializeBitsCountLocation = hook::get_pattern<char>("41 B8 ? ? ? ? 44 8A 8E ? ? ? ? 49 8B D6 88 5C 24 ? 48 8B CF 48 89 5C 24 ? 48 89 5C 24 ? FF 90 ? ? ? ? 41 38 1E", 2);
 	hook::put<uint32_t>(serializeBitsCountLocation, 3); // 3 bits // extend serialize bits
-
+#endif
 
 	  
 	fx::ScriptEngine::RegisterNativeHandler("REMOVE_TEXTURE", [](fx::ScriptContext& context)
