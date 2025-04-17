@@ -206,6 +206,7 @@ std::optional<int> EnsureGamePath()
 			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV", 5 },
 			{ L"InstallFolderEpic", L"SOFTWARE\\Rockstar Games\\Grand Theft Auto V", 0 },
 			{ L"InstallFolderEpic", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", 0 },
+			{ L"InstallFolderXboxPc", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", 0 },
 #elif defined(IS_RDR3)
 			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Red Dead Redemption 2", strlen("Red Dead Redemption 2") },
 #elif defined(GTA_NY)
