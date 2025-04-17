@@ -988,25 +988,24 @@ static InitFunction initFunction([]()
 
 				if (assets.GetCount() > 1)
 				{
-					ImGuiListClipper clipper;
-					// -1 because 1st item in Entries always dummy in GTAV and RDR3
-					clipper.Begin(assets.GetCount() - 1);
+					std::vector<uint32_t> filteredIndices;
+					for (uint32_t i = 0; i < assets.GetCount(); i++)
+					{
+						if (assets[i].fileName && strstr(assets[i].fileName, search) != nullptr)
+						{
+							filteredIndices.push_back(i);
+						}
+					}
 
+					ImGuiListClipper clipper;
+
+					// -1 because 1st item in Entries always dummy in GTAV and RDR3
+					clipper.Begin(static_cast<int>(filteredIndices.size()));
 					while (clipper.Step())
 					{
-						for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
+						for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
 						{
-							int assetsIndex = row + 1;
-							if (!assets[assetsIndex].fileName)
-							{
-								continue;
-							}
-
-							const std::string name = assets[assetsIndex].fileName;
-							if (!name._Starts_with(search))
-							{
-								continue;
-							}
+							const uint32_t assetsIndex = filteredIndices[i];
 
 							const std::string datetime = PrettyFormatFileTime(assets[assetsIndex].timestamp);
 
@@ -1017,6 +1016,7 @@ static InitFunction initFunction([]()
 							ImGui::Text("%s", datetime.c_str());
 						}
 					}
+					clipper.End();
 				}
 
 				ImGui::EndTable();
