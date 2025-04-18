@@ -121,7 +121,7 @@ print("\treturn (flt === 0.0) ? flt : (flt + 0.0000001);")
 print("}\n")
 
 print("function _mfr(fn) {")
-print("\treturn Citizen.makeRefFunction(fn);")
+print("\treturn Citizen.getRefFunction(fn);")
 print("}\n")
 
 print("const _ENV = null;\n")

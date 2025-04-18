@@ -69,6 +69,17 @@ const EXT_LOCALFUNCREF = 11;
 		return Citizen.canonicalizeRef(ref);
 	};
 
+	/**
+	 * @param {Function} refFunction
+	 * @returns {string|null} the function reference, or null if the refFunction that was passed wasn't a function
+	 */
+	Citizen.getRefFunction = (refFunction) => {
+		if (typeof refFunction !== "function") {
+			return null;
+		}
+		return Citizen.makeRefFunction(refFunction);
+	}
+
 	function refFunctionPacker(refFunction) {
 		const ref = Citizen.makeRefFunction(refFunction);
 
