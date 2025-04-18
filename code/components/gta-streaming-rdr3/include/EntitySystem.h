@@ -166,6 +166,11 @@ public:
 		return m_archetype;
 	}
 
+	inline uint16_t GetUnkId() const
+	{
+		return m_unkId;
+	}
+
 private:
 	char m_pad[24]; // +8
 	fwArchetype* m_archetype; // +32
@@ -175,6 +180,8 @@ private:
 	rage::PreciseTransform m_transform; // +64
 	char m_pad4[96]; // +128
 	void* m_netObject; // +224
+	char m_pad5[24];
+	uint16_t m_unkId;
 };
 
 namespace rage
@@ -243,6 +250,10 @@ class CVehicle : public fwEntity
 };
 
 class CPed : public fwEntity
+{
+};
+
+class CPhysical : public fwEntity
 {
 };
 
