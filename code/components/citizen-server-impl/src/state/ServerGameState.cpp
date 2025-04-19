@@ -104,6 +104,9 @@ static bool g_networkedPhoneExplosionsEnabled;
 static std::shared_ptr<ConVar<bool>> g_networkedScriptEntityStatesEnabledVar;
 static bool g_networkedScriptEntityStatesEnabled;
 
+static std::shared_ptr<ConVar<bool>> g_protectServerEntitiesDeletionVar;
+static bool g_protectServerEntitiesDeletion;
+
 static std::shared_ptr<ConVar<int>> g_requestControlVar;
 static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
 
@@ -3172,6 +3175,13 @@ void ServerGameState::ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::
 		if (entity->uniqifier != uniqifier)
 		{
 			GS_LOG("%s: wrong uniqifier (%d - %d->%d)\n", __func__, objectId, uniqifier, entity->uniqifier);
+
+			return;
+		}
+
+		if (entity->IsOwnedByServerScript() && g_protectServerEntitiesDeletion)
+		{
+			GS_LOG("%s: entity is owned by server script %d\n", __func__, objectId);
 
 			return;
 		}
@@ -7781,6 +7791,8 @@ static InitFunction initFunction([]()
 
 		g_networkedPhoneExplosionsEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedPhoneExplosions", ConVar_None, false, &g_networkedPhoneExplosionsEnabled);
 
+		g_protectServerEntitiesDeletionVar = instance->AddVariable<bool>("sv_protectServerEntities", ConVar_Replicated, false, &g_protectServerEntitiesDeletion);
+
 		g_networkedScriptEntityStatesEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedScriptEntityStates", ConVar_None, true, &g_networkedScriptEntityStatesEnabled);
 
 		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::NoFilter, (int*)&g_requestControlFilterState);
@@ -7961,5 +7973,17 @@ static InitFunction initFunction([]()
 				routeEvent();
 			}
 		} });
+
+		auto consoleCtx = instance->GetComponent<console::Context>();
+
+		// start sessionmanager
+		if (gameServer->GetGameName() == fx::GameName::RDR3)
+		{
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+		}
+		else if (!g_oneSyncEnabledVar->GetValue() && g_oneSyncVar->GetValue() == fx::OneSyncState::Off)
+		{
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
+		}
 	}, 999999);
 });

@@ -143,7 +143,7 @@ static InitFunction initFunction([]()
 			}
 		}
 
-		if (!metrics.empty() && ImGui::Begin("DrawPerf", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+		if (!metrics.empty() && ImGui::Begin("DrawPerf", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoFocusOnAppearing))
 		{
 			int i = 0;
 			float spacing = ImGui::GetStyle().ItemSpacing.x;
@@ -221,7 +221,7 @@ static InitFunction initFunction([]()
 			lastCpuQuery = timeGetTime();
 		}
 
-		return fmt::sprintf("CPU: %.0f%%", counterValCpu.doubleValue);
+		return fmt::sprintf("CPU: %.0f%%", std::min(counterValCpu.doubleValue, 100.0));
 	});
 
 	addDrawPerfModule("cl_drawGpuUsage", "GPU Usage", []() -> std::string

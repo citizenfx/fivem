@@ -11,6 +11,7 @@
 		"vendor:curl",
 		"vendor:cpr",
 		"vendor:botan",
+		"vendor:mojo",
 		"vendor:zlib",
 		"net:http-server"
 	],

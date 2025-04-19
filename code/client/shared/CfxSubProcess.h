@@ -76,7 +76,7 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 	if ((origin.find(L"game") == 0 && origin != L"game_mtl") || processType == L"DumpServer")
 	{
 #if defined(GTA_FIVE) || defined(IS_RDR3)
-		auto buildNumber = xbr::GetRequestedGameBuild();
+		auto buildNumber = xbr::GetGameBuild();
 
 		if (buildNumber != xbr::GetDefaultGameBuild())
 		{
