@@ -29,6 +29,8 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "StdInc.h"
+#include "server.h"
+
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -38,6 +40,7 @@
 #include <stdlib.h>
 
 #include "client.h"
+#include "ClientRegistry.h"
 #include "conf.h"
 #include "log.h"
 #include "memory.h"
@@ -242,7 +245,7 @@ void Server_run()
 	//checkIPversions();
 
 	/* max clients + server sokets + client connecting that will be disconnected */
-	//pollfds = Memory_safeCalloc((getIntConf(MAX_CLIENTS) + nofServerSocks + 1) , sizeof(struct pollfd));
+	//pollfds = Memory_safeCalloc((getIntConf(MUMBLE_MAX_CLIENTS) + nofServerSocks + 1) , sizeof(struct pollfd));
 
 	/* Figure out bind address and port */
 	//struct sockaddr_storage** addresses = Server_setupAddressesAndPorts();
@@ -362,11 +365,13 @@ static void EnsureServerInitialized()
 
 std::shared_ptr<ConVar<bool>> mumble_disableServer;
 std::shared_ptr<ConVar<int>> mumble_maxClientsPerIP;
+std::shared_ptr<ConVar<bool>> mumble_allowExternalConnections;
 
 static InitFunction initFunction([]()
 {
 	mumble_disableServer = std::make_shared<ConVar<bool>>("mumble_disableServer", ConVar_None, false);
 	mumble_maxClientsPerIP = std::make_shared<ConVar<int>>("mumble_maxClientsPerIP", ConVar_None, 32);
+	mumble_allowExternalConnections = std::make_shared<ConVar<bool>>("mumble_allowExternalConnections", ConVar_None, false);
 
 	OnCreateTlsMultiplex.Connect([=](fwRefContainer<net::MultiplexTcpServer> multiplex)
 	{
@@ -493,6 +498,14 @@ static InitFunction initFunction([]()
 			stream->SetCloseCallback([=]()
 			{
 				ClearMumbleAddress(client->remote_udp);
+				if(!mumble_allowExternalConnections->GetValue())
+				{
+					int playerId = Client_getPlayerId(client, client->username);
+					if(playerId != -1)
+					{
+						g_clientIds.erase(playerId);
+					}
+				}
 
 				std::lock_guard _(g_mumbleClientMutex);
 				auto mapEntry = clientsPerIP.find(client->remote_tcp.GetHost());
@@ -559,7 +572,7 @@ static InitFunction initFunction([]()
 
 				ping[0] = htonl((uint32_t)((PROTVER_MAJOR << 16) | (PROTVER_MINOR << 8) | (PROTVER_PATCH)));
 				ping[3] = htonl((uint32_t)Client_count());
-				ping[4] = htonl((uint32_t)getIntConf(MAX_CLIENTS));
+				ping[4] = htonl((uint32_t)getIntConf(MUMBLE_MAX_CLIENTS));
 				ping[5] = htonl((uint32_t)getIntConf(MAX_BANDWIDTH));
 
 				*intercepted = true;
