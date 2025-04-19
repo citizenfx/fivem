@@ -136,6 +136,7 @@ Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 SetTimeout = Citizen.SetTimeout
 ClearTimeout = Citizen.ClearTimeout
+Trace = Citizen.Trace
 
 --[[
 
@@ -161,7 +162,7 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 		-- if this is a net event and we don't allow this event to be triggered from the network, return
 		if eventSource:sub(1, 3) == 'net' then
 			if not eventHandlerEntry.safeForNet then
-				Citizen.Trace('event ' .. eventName .. " was not safe for net\n")
+				Trace('event ' .. eventName .. " was not safe for net\n")
 
 				_G.source = lastSource
 				return
@@ -494,7 +495,7 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 	local refPtr = funcRefs[refId]
 
 	if not refPtr then
-		Citizen.Trace('Invalid ref call attempt: ' .. refId .. "\n")
+		Trace('Invalid ref call attempt: ' .. refId .. "\n")
 
 		return msgpack_pack(nil)
 	end
@@ -519,7 +520,7 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 		if cb.cb then
 			cb.cb(retvals, err)
 		elseif err then
-			Citizen.Trace(err)
+			Trace(err)
 		end
 	end, ('ref call [%s[%d..%d]]'):format(di.short_src, di.linedefined, di.lastlinedefined))
 
@@ -955,7 +956,7 @@ if not isDuplicityVersion then
 			local status, err = cbHandler(callback, body, resultCallback)
 
 			if err then
-				Citizen.Trace("error during NUI callback " .. type .. ": " .. tostring(err) .. "\n")
+				Trace("error during NUI callback " .. type .. ": " .. tostring(err) .. "\n")
 			end
 		end)
 	end
@@ -968,7 +969,7 @@ if not isDuplicityVersion then
 			local status, err = cbHandler(callback, body, resultCallback)
 
 			if err then
-				Citizen.Trace("error during NUI callback " .. type .. ": " .. tostring(err) .. "\n")
+				Trace("error during NUI callback " .. type .. ": " .. tostring(err) .. "\n")
 			end
 		end)
 	end
