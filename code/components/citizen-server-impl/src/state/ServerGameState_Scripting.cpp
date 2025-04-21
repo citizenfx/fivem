@@ -4,6 +4,7 @@
 #include <ServerInstanceBaseRef.h>
 #include <state/ServerGameState.h>
 
+#include <ResourceEventComponent.h>
 #include <ResourceManager.h>
 #include <ScriptEngine.h>
 #include <ScriptDeprecations.h>
@@ -1600,7 +1601,8 @@ static void Init()
 	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_ROUTING_BUCKET", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		if (context.GetArgumentCount() > 1)
-		{
+		{   
+			const char* player = context.GetArgument<char*>(0);
 			auto bucket = context.GetArgument<int>(1);
 
 			if (bucket >= 0)
@@ -1615,6 +1617,10 @@ static void Init()
 				auto gameState = instance->GetComponent<fx::ServerGameState>();
 
 				auto [lock, clientData] = gameState->ExternalGetClientData(client);
+
+				 // store old bucket for event
+				const auto oldBucket = clientData->routingBucket;
+
 				gameState->ClearClientFromWorldGrid(client);
 				clientData->routingBucket = bucket;
 				
@@ -1629,6 +1635,21 @@ static void Init()
 				{
 					playerEntity->routingBucket = bucket;
 				}
+
+				
+				auto eventManager = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
+				/*NETEV onPlayerBucketChange SERVER
+				/#*
+				 * Triggered when a routing bucket changed for a player on the server.
+				 *
+				 * @param player - The id of the player that changed bucket.
+				 * @param bucket - The new bucket that is placing the player into.
+				 * @param oldBucket - The old bucket where the player was previously in.
+				 *
+				 #/
+				  declare function onPlayerBucketChange(player: string, bucket: int, oldBucket: int): void;
+				*/
+				eventManager->TriggerEvent2("onPlayerBucketChange", {}, player, bucket, oldBucket);
 			}
 		}
 
@@ -1644,12 +1665,29 @@ static void Init()
 	{
 		if (context.GetArgumentCount() > 1)
 		{
+			char* ent = context.GetArgument<char*>(0);
 			auto bucket = context.GetArgument<int>(1);
+		 	int oldBucket = entity->routingBucket;
 
 			if (bucket >= 0)
 			{
 				entity->routingBucket = bucket;
 			}
+
+			auto resourceManager = fx::ResourceManager::GetCurrent();
+			auto eventManager = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
+			/*NETEV onEntityBucketChange SERVER
+			/#*
+			 * Triggered when a routing bucket changed for an entity on the server.
+			 *
+			 * @param entity - The entity id that changed bucket.
+			 * @param bucket - The new bucket that is placing the entity into.
+			 * @param oldBucket - The old bucket where the entity was previously in.
+			 *
+			#/
+			  declare function onEntityBucketChange(entity: string, bucket: int, oldBucket: int): void;
+			*/
+			eventManager->TriggerEvent2("onEntityBucketChange", {}, ent, bucket, oldBucket);
 		}
 
 		return true;
