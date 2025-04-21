@@ -166,6 +166,7 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 	{
 		// create a scope to hold handles we use here
 		SharedPushEnvironmentNoContext pushed(m_isolate);
+		fx::PushEnvironment fxenv(this);
 		
 		// create global state
 		v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_isolate);
