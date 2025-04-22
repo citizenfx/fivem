@@ -8,6 +8,7 @@
 #pragma once
 
 #include <console/Console.h>
+#include <fxScripting.h>
 
 namespace fx
 {
@@ -59,8 +60,6 @@ namespace fx
 	{
 		int hint;
 	};
-
-	class PushEnvironment;
 
 	// scope aware nodejs environment setup, from runtime
 	template<class C>
