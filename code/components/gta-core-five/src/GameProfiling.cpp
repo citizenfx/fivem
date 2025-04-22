@@ -73,13 +73,21 @@ static HookFunction hookFunction([]()
 	// render thread
 	{
 		MH_Initialize();
+#ifdef GTA_FIVE
 		MH_CreateHook(hook::get_pattern("41 57 48 83 EC 20 48 8D 99 50 04", -0x12), RenderFrame, (void**)&g_origRenderFrame);
+#else
+		MH_CreateHook(hook::get_pattern("83 A7 ? ? ? ? ? 33 C0 48 98 48 8B 74 C7", -71), RenderFrame, (void**)&g_origRenderFrame);
+#endif
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
 	// render thread wait sema
 	{
+#ifdef GTA_FIVE
 		auto location = hook::get_pattern("48 8B 4F 40 BA 01 00 00 00 48 8B D8", 12);
+#else
+		auto location = hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 4F 40 BA 01 00 00 00", 24);
+#endif
 
 		hook::set_call(&g_waitSema, location);
 		hook::call(location, WaitRenderSema);
