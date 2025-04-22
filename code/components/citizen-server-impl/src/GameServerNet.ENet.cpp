@@ -497,7 +497,12 @@ namespace fx
 			{
 				sharedPtrPool.destruct((NetBufferSharedPtr*)packet->userData);
 			};
-			enet_peer_send(peerPair->second, channel, packet);
+			if (enet_peer_send(peerPair->second, channel, packet) != 0)
+			{
+				enet_packet_destroy(packet);
+				console::DPrintf("enet", "Failed to send packet. Peer state: %d, channel: %d (channel cnt %d), data size: %d (max %d).\n",
+					peerPair->second->state, channel, peerPair->second->channelCount, packet->dataLength, peerPair->second->host->maximumPacketSize);
+			}
 		}
 
 		virtual void SendOutOfBand(const net::PeerAddress & to, const std::string_view & oob, bool prefix) override
