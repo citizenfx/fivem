@@ -177,7 +177,10 @@ namespace rage
 				uint32_t pad[24];
 			};
 
-			char pad[64];
+			char pad[0x10];
+			uint16_t width;
+			uint16_t height;
+			char pad2[44];
 			ImageData* image;
 		};
 
