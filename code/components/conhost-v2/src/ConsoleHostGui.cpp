@@ -291,6 +291,7 @@ struct CfxBigConsole : FiveMConsoleBase
 	ImVector<char*> History;
 	int HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.
 	ImVector<const char*> Commands;
+	ImVec2 PreviousWindowSize;
 
 	concurrency::concurrent_queue<std::string> CommandQueue;
 
@@ -307,6 +308,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		Commands.push_back("QUIT");
 		Commands.push_back("NETGRAPH");
 		Commands.push_back("STRDBG");
+		PreviousWindowSize = { 0, 0 };
 
 #ifndef IS_FXSERVER
 		AutoScrollEnabled = g_conAutoScroll->GetValue();
@@ -351,20 +353,33 @@ struct CfxBigConsole : FiveMConsoleBase
 
 	virtual bool StartWindow(const char* title, bool* p_open)
 	{
-		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + g_menuHeight));
-		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x,
+		ImVec2 viewportPos = ImGui::GetMainViewport()->Pos;
+		ImVec2 viewportSize = ImGui::GetMainViewport()->Size;
+		float windowPosY = viewportPos.y + g_menuHeight;
+		ImGui::SetNextWindowPos(ImVec2(viewportPos.x, windowPosY));
+
 #ifndef IS_FXSERVER
-										ImGui::GetFrameHeightWithSpacing() * 12.0f
+		const float forcedWidth = viewportSize.x;
+		const float initialHeight = ImGui::GetFrameHeightWithSpacing() * 12.0f;
+		ImVec2 initialSize(forcedWidth, initialHeight);
+		ImVec2 minSize(forcedWidth, initialHeight * 0.5f);
+		ImVec2 maxSize(forcedWidth, viewportSize.y - g_menuHeight);
+		ImGui::SetNextWindowSize(initialSize, ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSizeConstraints(minSize, maxSize);
 #else
-										ImGui::GetIO().DisplaySize.y - g_menuHeight
+		ImVec2 fullSize(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y - g_menuHeight);
+		ImGui::SetNextWindowSize(fullSize, ImGuiCond_Always);
 #endif
-								 ),
-		ImGuiCond_Always);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 4.0f, 3.0f });
 
-		constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
+		constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings
+#ifdef IS_FXSERVER
+		| ImGuiWindowFlags_NoResize;
+#endif
+		;
+
 		return ImGui::Begin(title, nullptr, flags);
 	}
 
@@ -496,6 +511,14 @@ struct CfxBigConsole : FiveMConsoleBase
 #endif
 
 			ImGui::EndTable();
+		}
+
+		// Check if the screen is being resized
+		const ImVec2 currentSize = ImGui::GetWindowSize();
+		if (AutoScrollEnabled && currentSize.y != PreviousWindowSize.y)
+		{
+			ScrollToBottom = true;
+			PreviousWindowSize = currentSize;
 		}
 
 		EndWindow();
