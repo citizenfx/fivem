@@ -45,6 +45,20 @@ static InitFunction initFunction([]()
 		g_scopeHandler.Initialize();
 	}
 
+	// trigger removing funcrefs on the *resource manager* so that it'll still happen when a runtime is destroyed
+	ResourceManager::OnInitializeInstance.Connect([](ResourceManager* manager)
+	{
+		manager->OnTick.Connect([]()
+		{
+			RefAndPersistent<NodeScriptRuntime>* deleteRef;
+
+			while (g_cleanUpFuncRefs.try_pop(reinterpret_cast<void*&>(deleteRef)))
+			{
+				delete deleteRef;
+			}
+		});
+	});
+
 	// initialize the parent node environment, should be done one time per process
 	result_t hr = g_nodeEnv.Initialize();
 	if (FX_FAILED(hr) || g_nodeEnv.IsStartNode())
