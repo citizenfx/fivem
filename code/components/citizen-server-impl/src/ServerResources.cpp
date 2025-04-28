@@ -853,6 +853,13 @@ static InitFunction initFunction([]()
 
 void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc)
 {
+	static uint32_t logThrottle = 0;
+	// 1+MB
+	if (dataLen >= 1000000 && (logThrottle++ < 5 || logThrottle % 100 == 0))
+	{
+		trace("Warning: sending large event %s (%u bytes). This may cause performance issues. Consider using latent events instead.\n", eventName, dataLen);
+	}
+
 	// build the target event
 	net::Buffer outBuffer;
 	outBuffer.Write(0x7337FD7A);
