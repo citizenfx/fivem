@@ -1665,7 +1665,7 @@ static void Init()
 	{
 		if (context.GetArgumentCount() > 1)
 		{
-			char* ent = context.GetArgument<char*>(0);
+			const auto ent = context.GetArgument<uint32_t>(0);
 			auto bucket = context.GetArgument<int>(1);
 		 	int oldBucket = entity->routingBucket;
 
