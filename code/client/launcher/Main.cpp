@@ -604,6 +604,11 @@ int RealMain()
 	// if not, system d3d10.dll etc. may load a d3d11.dll from search path anyway and this may be a 'weird' one
 	loadSystemDll(L"\\d3d11.dll");
 
+#ifdef IS_RDR3
+	// RedM attempts to load vulkan bundled with CEF first which on some systems leads to various issues
+	loadSystemDll(L"\\vulkan-1.dll");
+#endif
+
 	loadSystemDll(L"\\d3d9.dll");
 	loadSystemDll(L"\\d3d10.dll");
 	loadSystemDll(L"\\d3d10_1.dll");
