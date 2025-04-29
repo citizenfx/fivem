@@ -1,18 +1,17 @@
-import { noop } from '@cfx-dev/ui-components';
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-
-import { ServicesContainer, ServicesContainerContext } from 'cfx/base/servicesContainer';
-import { getAppService, registerAppService } from 'cfx/common/services/app/app.service';
+import React from "react";
+import { getAppService, registerAppService } from "cfx/common/services/app/app.service";
+import { ServicesContainer, ServicesContainerContext } from "cfx/base/servicesContainer";
+import { createRoot } from "react-dom/client";
+import { noop } from "cfx/utils/functional";
 
 export interface AppDefinition {
-  defineServices(container: ServicesContainer): void;
-  render(): React.ReactNode;
+  defineServices(container: ServicesContainer): void,
+  render(): React.ReactNode,
 
-  appNodeSelector?: string;
+  appNodeSelector?: string,
 
-  beforeRender?(container: ServicesContainer): void | Promise<void>;
-  afterRender?(container: ServicesContainer): void | Promise<void>;
+  beforeRender?(container: ServicesContainer): void | Promise<void>,
+  afterRender?(container: ServicesContainer): void | Promise<void>,
 }
 
 export async function startBrowserApp(definition: AppDefinition) {
@@ -26,7 +25,6 @@ export async function startBrowserApp(definition: AppDefinition) {
   } = definition;
 
   const $container = document.querySelector(appNodeSelector);
-
   if (!$container) {
     document.body.style.display = 'flex';
     document.body.style.alignItems = 'center';
@@ -34,8 +32,7 @@ export async function startBrowserApp(definition: AppDefinition) {
     document.body.style.backgroundColor = 'black';
     document.body.style.color = 'red';
 
-    // eslint-disable-next-line @stylistic/max-len
-    document.body.innerHTML = `<h1>Invalid HTML template, no ${appNodeSelector} node available, CFXUI app will not be rendered</h1>`;
+    document.body.innerHTML = '<h1>Invalid HTML template, no #cfxui-root node available, CFXUI app will not be rendered</h1>';
 
     return;
   }
@@ -80,6 +77,6 @@ export async function startBrowserApp(definition: AppDefinition) {
       {render()}
 
       <AfterRender />
-    </ServicesContainerContext.Provider>,
+    </ServicesContainerContext.Provider>
   );
 }

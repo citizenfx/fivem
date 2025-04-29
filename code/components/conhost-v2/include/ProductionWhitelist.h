@@ -5,6 +5,7 @@
 static std::vector<std::string> g_prodCommandsWhitelist{
 	"connect",
 	"quit",
+	"chup_manhinh",
 	"cl_drawFPS",
 	"bind",
 	"rbind",

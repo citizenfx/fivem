@@ -1,27 +1,29 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import * as $protobuf from 'protobufjs';
+import * as $protobuf from "protobufjs";
 /** Namespace master. */
 export namespace master {
+
   /** Properties of a Player. */
   interface IPlayer {
+
     /** Player name */
-    name?: string | null;
+    name?: (string | null);
 
     /** Player identifiers */
-    identifiers?: string[] | null;
+    identifiers?: (string[] | null);
 
     /** Player endpoint */
-    endpoint?: string | null;
+    endpoint?: (string | null);
 
     /** Player ping */
-    ping?: number | null;
+    ping?: (number | null);
 
     /** Player id */
-    id?: number | null;
+    id?: (number | null);
   }
 
   /** Represents a Player. */
   class Player implements IPlayer {
+
     /**
      * Constructs a new Player.
      * @param [properties] Properties to set
@@ -59,8 +61,7 @@ export namespace master {
     public static encode(message: master.IPlayer, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Encodes the specified Player message, length delimited.
-     * Does not implicitly {@link master.Player.verify|verify} messages.
+     * Encodes the specified Player message, length delimited. Does not implicitly {@link master.Player.verify|verify} messages.
      * @param message Player message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
@@ -75,7 +76,7 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decode(reader: $protobuf.Reader | Uint8Array, length?: number): master.Player;
+    public static decode(reader: ($protobuf.Reader | Uint8Array), length?: number): master.Player;
 
     /**
      * Decodes a Player message from the specified reader or buffer, length delimited.
@@ -84,14 +85,14 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decodeDelimited(reader: $protobuf.Reader | Uint8Array): master.Player;
+    public static decodeDelimited(reader: ($protobuf.Reader | Uint8Array)): master.Player;
 
     /**
      * Verifies a Player message.
      * @param message Plain object to verify
      * @returns `null` if valid, otherwise the reason why it is not
      */
-    public static verify(message: { [k: string]: any }): string | null;
+    public static verify(message: { [k: string]: any }): (string | null);
 
     /**
      * Creates a Player message from a plain object. Also converts values to their respective internal types.
@@ -117,54 +118,56 @@ export namespace master {
 
   /** Properties of a ServerData. */
   interface IServerData {
+
     /** ServerData svMaxclients */
-    svMaxclients?: number | null;
+    svMaxclients?: (number | null);
 
     /** ServerData clients */
-    clients?: number | null;
+    clients?: (number | null);
 
     /** ServerData protocol */
-    protocol?: number | null;
+    protocol?: (number | null);
 
     /** ServerData hostname */
-    hostname?: string | null;
+    hostname?: (string | null);
 
     /** ServerData gametype */
-    gametype?: string | null;
+    gametype?: (string | null);
 
     /** ServerData mapname */
-    mapname?: string | null;
+    mapname?: (string | null);
 
     /** ServerData resources */
-    resources?: string[] | null;
+    resources?: (string[] | null);
 
     /** ServerData server */
-    server?: string | null;
+    server?: (string | null);
 
     /** ServerData players */
-    players?: master.IPlayer[] | null;
+    players?: (master.IPlayer[] | null);
 
     /** ServerData iconVersion */
-    iconVersion?: number | null;
+    iconVersion?: (number | null);
 
     /** ServerData vars */
-    vars?: { [k: string]: string } | null;
+    vars?: ({ [k: string]: string } | null);
 
     /** ServerData enhancedHostSupport */
-    enhancedHostSupport?: boolean | null;
+    enhancedHostSupport?: (boolean | null);
 
     /** ServerData upvotePower */
-    upvotePower?: number | null;
+    upvotePower?: (number | null);
 
     /** ServerData burstPower */
-    burstPower?: number | null;
+    burstPower?: (number | null);
 
     /** ServerData connectEndPoints */
-    connectEndPoints?: string[] | null;
+    connectEndPoints?: (string[] | null);
   }
 
   /** Represents a ServerData. */
   class ServerData implements IServerData {
+
     /**
      * Constructs a new ServerData.
      * @param [properties] Properties to set
@@ -232,8 +235,7 @@ export namespace master {
     public static encode(message: master.IServerData, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Encodes the specified ServerData message,
-     * length delimited. Does not implicitly {@link master.ServerData.verify|verify} messages.
+     * Encodes the specified ServerData message, length delimited. Does not implicitly {@link master.ServerData.verify|verify} messages.
      * @param message ServerData message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
@@ -248,7 +250,7 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decode(reader: $protobuf.Reader | Uint8Array, length?: number): master.ServerData;
+    public static decode(reader: ($protobuf.Reader | Uint8Array), length?: number): master.ServerData;
 
     /**
      * Decodes a ServerData message from the specified reader or buffer, length delimited.
@@ -257,14 +259,14 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decodeDelimited(reader: $protobuf.Reader | Uint8Array): master.ServerData;
+    public static decodeDelimited(reader: ($protobuf.Reader | Uint8Array)): master.ServerData;
 
     /**
      * Verifies a ServerData message.
      * @param message Plain object to verify
      * @returns `null` if valid, otherwise the reason why it is not
      */
-    public static verify(message: { [k: string]: any }): string | null;
+    public static verify(message: { [k: string]: any }): (string | null);
 
     /**
      * Creates a ServerData message from a plain object. Also converts values to their respective internal types.
@@ -290,15 +292,17 @@ export namespace master {
 
   /** Properties of a Server. */
   interface IServer {
+
     /** Server EndPoint */
-    EndPoint?: string | null;
+    EndPoint?: (string | null);
 
     /** Server Data */
-    Data?: master.IServerData | null;
+    Data?: (master.IServerData | null);
   }
 
   /** Represents a Server. */
   class Server implements IServer {
+
     /**
      * Constructs a new Server.
      * @param [properties] Properties to set
@@ -309,7 +313,7 @@ export namespace master {
     public EndPoint: string;
 
     /** Server Data. */
-    public Data?: master.IServerData | null;
+    public Data?: (master.IServerData | null);
 
     /**
      * Creates a new Server instance using the specified properties.
@@ -327,8 +331,7 @@ export namespace master {
     public static encode(message: master.IServer, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Encodes the specified Server message,
-     * length delimited. Does not implicitly {@link master.Server.verify|verify} messages.
+     * Encodes the specified Server message, length delimited. Does not implicitly {@link master.Server.verify|verify} messages.
      * @param message Server message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
@@ -343,7 +346,7 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decode(reader: $protobuf.Reader | Uint8Array, length?: number): master.Server;
+    public static decode(reader: ($protobuf.Reader | Uint8Array), length?: number): master.Server;
 
     /**
      * Decodes a Server message from the specified reader or buffer, length delimited.
@@ -352,14 +355,14 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decodeDelimited(reader: $protobuf.Reader | Uint8Array): master.Server;
+    public static decodeDelimited(reader: ($protobuf.Reader | Uint8Array)): master.Server;
 
     /**
      * Verifies a Server message.
      * @param message Plain object to verify
      * @returns `null` if valid, otherwise the reason why it is not
      */
-    public static verify(message: { [k: string]: any }): string | null;
+    public static verify(message: { [k: string]: any }): (string | null);
 
     /**
      * Creates a Server message from a plain object. Also converts values to their respective internal types.
@@ -385,12 +388,14 @@ export namespace master {
 
   /** Properties of a Servers. */
   interface IServers {
+
     /** Servers servers */
-    servers?: master.IServer[] | null;
+    servers?: (master.IServer[] | null);
   }
 
   /** Represents a Servers. */
   class Servers implements IServers {
+
     /**
      * Constructs a new Servers.
      * @param [properties] Properties to set
@@ -416,8 +421,7 @@ export namespace master {
     public static encode(message: master.IServers, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Encodes the specified Servers message,
-     * length delimited. Does not implicitly {@link master.Servers.verify|verify} messages.
+     * Encodes the specified Servers message, length delimited. Does not implicitly {@link master.Servers.verify|verify} messages.
      * @param message Servers message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
@@ -432,7 +436,7 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decode(reader: $protobuf.Reader | Uint8Array, length?: number): master.Servers;
+    public static decode(reader: ($protobuf.Reader | Uint8Array), length?: number): master.Servers;
 
     /**
      * Decodes a Servers message from the specified reader or buffer, length delimited.
@@ -441,14 +445,14 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decodeDelimited(reader: $protobuf.Reader | Uint8Array): master.Servers;
+    public static decodeDelimited(reader: ($protobuf.Reader | Uint8Array)): master.Servers;
 
     /**
      * Verifies a Servers message.
      * @param message Plain object to verify
      * @returns `null` if valid, otherwise the reason why it is not
      */
-    public static verify(message: { [k: string]: any }): string | null;
+    public static verify(message: { [k: string]: any }): (string | null);
 
     /**
      * Creates a Servers message from a plain object. Also converts values to their respective internal types.
@@ -474,18 +478,20 @@ export namespace master {
 
   /** Properties of a ServerIcon. */
   interface IServerIcon {
+
     /** ServerIcon endPoint */
-    endPoint?: string | null;
+    endPoint?: (string | null);
 
     /** ServerIcon icon */
-    icon?: Uint8Array | null;
+    icon?: (Uint8Array | null);
 
     /** ServerIcon iconVersion */
-    iconVersion?: number | null;
+    iconVersion?: (number | null);
   }
 
   /** Represents a ServerIcon. */
   class ServerIcon implements IServerIcon {
+
     /**
      * Constructs a new ServerIcon.
      * @param [properties] Properties to set
@@ -517,8 +523,7 @@ export namespace master {
     public static encode(message: master.IServerIcon, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Encodes the specified ServerIcon message,
-     * length delimited. Does not implicitly {@link master.ServerIcon.verify|verify} messages.
+     * Encodes the specified ServerIcon message, length delimited. Does not implicitly {@link master.ServerIcon.verify|verify} messages.
      * @param message ServerIcon message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
@@ -533,7 +538,7 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decode(reader: $protobuf.Reader | Uint8Array, length?: number): master.ServerIcon;
+    public static decode(reader: ($protobuf.Reader | Uint8Array), length?: number): master.ServerIcon;
 
     /**
      * Decodes a ServerIcon message from the specified reader or buffer, length delimited.
@@ -542,14 +547,14 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decodeDelimited(reader: $protobuf.Reader | Uint8Array): master.ServerIcon;
+    public static decodeDelimited(reader: ($protobuf.Reader | Uint8Array)): master.ServerIcon;
 
     /**
      * Verifies a ServerIcon message.
      * @param message Plain object to verify
      * @returns `null` if valid, otherwise the reason why it is not
      */
-    public static verify(message: { [k: string]: any }): string | null;
+    public static verify(message: { [k: string]: any }): (string | null);
 
     /**
      * Creates a ServerIcon message from a plain object. Also converts values to their respective internal types.
@@ -575,12 +580,14 @@ export namespace master {
 
   /** Properties of a ServerIcons. */
   interface IServerIcons {
+
     /** ServerIcons icons */
-    icons?: master.IServerIcon[] | null;
+    icons?: (master.IServerIcon[] | null);
   }
 
   /** Represents a ServerIcons. */
   class ServerIcons implements IServerIcons {
+
     /**
      * Constructs a new ServerIcons.
      * @param [properties] Properties to set
@@ -606,8 +613,7 @@ export namespace master {
     public static encode(message: master.IServerIcons, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Encodes the specified ServerIcons message,
-     * length delimited. Does not implicitly {@link master.ServerIcons.verify|verify} messages.
+     * Encodes the specified ServerIcons message, length delimited. Does not implicitly {@link master.ServerIcons.verify|verify} messages.
      * @param message ServerIcons message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
@@ -622,7 +628,7 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decode(reader: $protobuf.Reader | Uint8Array, length?: number): master.ServerIcons;
+    public static decode(reader: ($protobuf.Reader | Uint8Array), length?: number): master.ServerIcons;
 
     /**
      * Decodes a ServerIcons message from the specified reader or buffer, length delimited.
@@ -631,14 +637,14 @@ export namespace master {
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decodeDelimited(reader: $protobuf.Reader | Uint8Array): master.ServerIcons;
+    public static decodeDelimited(reader: ($protobuf.Reader | Uint8Array)): master.ServerIcons;
 
     /**
      * Verifies a ServerIcons message.
      * @param message Plain object to verify
      * @returns `null` if valid, otherwise the reason why it is not
      */
-    public static verify(message: { [k: string]: any }): string | null;
+    public static verify(message: { [k: string]: any }): (string | null);
 
     /**
      * Creates a ServerIcons message from a plain object. Also converts values to their respective internal types.

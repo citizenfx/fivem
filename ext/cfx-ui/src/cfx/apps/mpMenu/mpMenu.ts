@@ -1,16 +1,14 @@
-import { makeAutoObservable } from 'mobx';
-
-import { GameName } from 'cfx/base/game';
 import { setCurrentGameBuild, setCurrentGameName, setCurrentGamePureLevel } from 'cfx/base/gameRuntime';
+import { GameName } from 'cfx/base/game';
 import { Deferred, timeout } from 'cfx/utils/async';
 import { IDisposable } from 'cfx/utils/disposable';
-import { MultiEventEmitter } from 'cfx/utils/eventEmitter';
+import { MultiEventEmitter } from "cfx/utils/eventEmitter";
 import { AwaitableValue } from 'cfx/utils/observable';
 import { RichEvent } from 'cfx/utils/types';
-
+import { makeAutoObservable } from 'mobx';
 import { IQueriedServerData } from './services/servers/source/types';
 
-const nuiWindow: typeof window & {
+const nuiWindow: (typeof window) & {
   nuiTargetGame: string;
   nuiTargetGameBuild: number;
   nuiTargetGamePureLevel: number;
@@ -22,11 +20,9 @@ const nuiWindow: typeof window & {
 
 // Set this as early as possible
 setCurrentGameName((nuiWindow.nuiTargetGame as GameName) || GameName.RedM);
-
 if (typeof nuiWindow.nuiTargetGameBuild === 'number') {
   setCurrentGameBuild(nuiWindow.nuiTargetGameBuild.toString());
 }
-
 if (typeof nuiWindow.nuiTargetGamePureLevel === 'number') {
   setCurrentGamePureLevel(nuiWindow.nuiTargetGamePureLevel.toString());
 }
@@ -37,6 +33,7 @@ const serverQueryRequests: Record<string, Deferred<any>> = {};
 
 class NicknameStore {
   private _nickname = window.localStorage.getItem('nickOverride') || '';
+
   get nickname(): string {
     return this._nickname;
   }
@@ -63,9 +60,7 @@ class NicknameStore {
 
 export namespace mpMenu {
   export function invokeNative(native: string, arg = '') {
-    if (__CFXUI_DEV__) {
-      console.log('Invoking native', native, JSON.stringify(arg));
-    }
+    console.log('Invoking native', native, JSON.stringify(arg));
 
     nuiWindow.invokeNative(native, arg);
   }
@@ -84,32 +79,20 @@ export namespace mpMenu {
     invokeNative('openUrl', url);
   }
 
-  let showGameWindowRequested = false;
-  export function showGameWindow() {
-    if (showGameWindowRequested) {
-      return;
-    }
-
-    showGameWindowRequested = true;
-
-    invokeNative('getMinModeInfo');
-  }
-
-  export function exit() {
-    invokeNative('exit');
-  }
-
   export const systemLanguages = [...new Set(nuiWindow.nuiSystemLanguages || ['en-us'])];
 
   export const computerName = new AwaitableValue('');
 
+  export const discordIdZ = new AwaitableValue<number>(0);
+
+  
   export const playerNickname = new NicknameStore();
-  export function getPlayerNickname() {
-    return playerNickname.nickname;
-  }
-  export function setPlayerNickname(nickname: string) {
-    playerNickname.nickname = nickname;
-  }
+  export function getPlayerNickname() { return playerNickname.nickname }
+  export function setPlayerNickname(nickname: string) { playerNickname.nickname = nickname }
+  
+  export const memberCounbt = new AwaitableValue<number>(0);
+  export function getPlayerCount() { return memberCounbt.value }
+  export function setPlayerCount(amount: number) { memberCounbt.value = amount }
 
   export async function selectFile(key: string): Promise<string> {
     return new Promise<string>((resolve) => {
@@ -147,20 +130,14 @@ export namespace mpMenu {
   }
 
   // Subscribe to wrapped events
-  on('setComputerName', (data: { data: string }) => {
-    computerName.value = data.data;
-  });
-  on(
-    'fileDialogResult',
-    ({
-      dialogKey,
-      result,
-    }: { dialogKey: string; result: string }) => fileSelectRequests[dialogKey]?.(result),
-  );
+  on('setComputerName', (data: { data: string }) => computerName.value = data.data);
+
+  on('discordIdZ', (data: { data: number }) =>  discordIdZ.value = data.data);
+    
+  on('fileDialogResult', ({ dialogKey, result }: { dialogKey: string, result: string }) => fileSelectRequests[dialogKey]?.(result));
 
   on('serverQueried', (data: any) => {
     const deferred = serverQueryRequests[data.queryCorrelation];
-
     if (!deferred) {
       return;
     }
@@ -172,7 +149,6 @@ export namespace mpMenu {
 
   on('queryFailed', (data: any) => {
     const deferred = serverQueryRequests[data.arg];
-
     if (!deferred) {
       return;
     }
@@ -183,14 +159,12 @@ export namespace mpMenu {
   });
 }
 
-window.addEventListener('message', (event: MessageEvent) => {
-  if (__CFXUI_DEV__) {
-    console.log('[WNDMSG]', event.data);
-  }
 
-  const {
-    data,
-  } = event;
+
+window.addEventListener('message', (event: MessageEvent) => {
+  console.log('[WNDMSG]', event.data);
+
+  const { data } = event;
 
   if (typeof data !== 'object') {
     return;

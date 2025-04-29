@@ -13,7 +13,7 @@
 // I wanted to put a funny story here, but this issue is pretty sad.
 //
 // Basically, AMD's 'Crimson' driver release ('15.11', not to be confused with 'Catalyst 15.11.1' which is actually an older branch) caused crashes in
-// the D3D11 UMD for a typical FiveM scenario, on a background thread used for *whatever* processing.
+// the D3D11 UMD for a typical VNGta scenario, on a background thread used for *whatever* processing.
 //
 // In a day-ish, this turned into the second most common crash in the crash statistics, affecting pretty much everyone with an AMD GPU who bothers
 // to update their drivers.

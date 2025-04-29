@@ -1,10 +1,10 @@
-import { BaseConfigurableServersList } from './lists/BaseConfigurableServersList';
-import { FavoriteServersList } from './lists/FavoriteServersList';
-import { HistoryServersList } from './lists/HistoryServersList';
-import { IServersList, ServersListType } from './lists/types';
-import { IAutocompleteIndex, IServerListSource } from './source/types';
-import { IPinnedServersConfig, IServerView, ServerViewDetailsLevel } from './types';
-import { defineService, useService } from '../../../base/servicesContainer';
+import { defineService, useService } from "../../../base/servicesContainer";
+import { BaseConfigurableServersList } from "./lists/BaseConfigurableServersList";
+import { FavoriteServersList } from "./lists/FavoriteServersList";
+import { HistoryServersList } from "./lists/HistoryServersList";
+import { IServersList, ServersListType } from "./lists/types";
+import { IAutocompleteIndex, IServerListSource } from "./source/types";
+import { IPinnedServersConfig, IServerView, ServerViewDetailsLevel } from "./types";
 
 export const IServersService = defineService<IServersService>('ServersService');
 export interface IServersService {

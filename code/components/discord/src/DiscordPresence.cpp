@@ -14,7 +14,7 @@
 #include <CfxState.h>
 
 #ifdef GTA_FIVE
-#define DEFAULT_APP_ID "382624125287399424"
+#define DEFAULT_APP_ID "1359776928873320488"
 #define DEFAULT_APP_ASSET "fivem_large"
 #elif defined(IS_RDR3)
 #define DEFAULT_APP_ID "879627773839278110"
@@ -63,6 +63,8 @@ static std::shared_ptr<ConVar<std::string>> g_richPresenceState;
 static std::string g_lastRichPresenceState = "disabled";
 
 static size_t g_onGameFrameCookie = -1;
+
+
 
 static void UpdatePresence()
 {
@@ -178,6 +180,7 @@ static void OnRichPresenceStateChange(internal::ConsoleVariableEntry<std::string
 		return;
 	}
 
+
 	if (g_lastRichPresenceState == "enabled")
 	{
 		OnGameFrame.Disconnect(g_onGameFrameCookie);
@@ -263,7 +266,7 @@ static InitFunction initFunction([]()
 		}
 	});
 
-	OnRichPresenceSetTemplate("In the menus\n");
+	OnRichPresenceSetTemplate("Launcher VNGta\n");
 
 	OnKillNetworkDone.Connect([]()
 	{
@@ -276,7 +279,7 @@ static InitFunction initFunction([]()
 		g_buttons = {};
 		g_richPresenceChanged = true;
 
-		OnRichPresenceSetTemplate("In the menus\n");
+		OnRichPresenceSetTemplate("In the menuss\n");
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_RICH_PRESENCE", [](fx::ScriptContext& context)

@@ -187,7 +187,7 @@ std::optional<int> EnsureGamePath()
 	opts |= FOS_FORCEFILESYSTEM;
 
 	fileDialog->SetOptions(opts);
-	fileDialog->SetTitle(L"Go to your game directory and select " GAME_EXECUTABLE L" to be able to launch " PRODUCT_NAME);
+	fileDialog->SetTitle(L"Hãy đi đến thư mục game của bạn và chọn " GAME_EXECUTABLE L" để có thể khởi chạy " PRODUCT_NAME);
 	
 	COMDLG_FILTERSPEC filter = { 0 };
 	filter.pszName = L"Game executables";
@@ -236,7 +236,6 @@ std::optional<int> EnsureGamePath()
 #endif
 				{
 					WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
-
 					return true;
 				}
 			}

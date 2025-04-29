@@ -1,6 +1,5 @@
-import { decode } from 'blurhash';
 import React from 'react';
-
+import { decode } from 'blurhash';
 import { Deferred } from './async';
 
 export function decodeBlurhashToURL(blurhash: string, width: number, height: number, punch = 1): Promise<string> {
@@ -15,7 +14,6 @@ export function decodeBlurhashToURL(blurhash: string, width: number, height: num
   canvas.height = height;
 
   const ctx = canvas.getContext('2d');
-
   if (!ctx) {
     deferred.reject(new Error('Failed to get 2D context'));
 
@@ -46,23 +44,23 @@ export function useBlurhash(blurhash: string, width: number, height: number, pun
   React.useEffect(() => {
     let isCancelled = false;
 
-    decodeBlurhashToURL(blurhash, width, height, punch).then((urlDecoded) => {
-      if (isCancelled) {
-        if (urlRef.current) {
-          URL.revokeObjectURL(urlRef.current);
+    decodeBlurhashToURL(blurhash, width, height, punch)
+      .then((url) => {
+        if (isCancelled) {
+          if (urlRef.current) {
+            URL.revokeObjectURL(urlRef.current);
+          }
+          return;
         }
 
-        return;
-      }
+        setUrl((oldUrl) => {
+          if (oldUrl) {
+            URL.revokeObjectURL(oldUrl);
+          }
 
-      setUrl((oldUrl) => {
-        if (oldUrl) {
-          URL.revokeObjectURL(oldUrl);
-        }
-
-        return urlDecoded;
+          return url;
+        });
       });
-    });
 
     return () => {
       isCancelled = true;

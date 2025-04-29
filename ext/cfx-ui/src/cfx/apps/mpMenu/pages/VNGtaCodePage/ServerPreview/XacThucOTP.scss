@@ -1,0 +1,123 @@
+h2 {
+    font-size: 3vh !important;
+    margin-bottom: 10px;
+    font-family: var(--font-family-primary) !important;
+    font-weight: 800 !important;
+}
+
+p {
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.otp-inputs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.otp-input {
+    width: 5vh;
+    height: 5vh;
+    text-align: center;
+    font-size: 2vh;
+    border: 2px solid #e74c3c;
+    border-radius: 5px;
+    background-color: #2c3e50;
+    color: #fff;
+}
+
+.otp-input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.otp-submit {
+    background: linear-gradient(to left, #a71707 60%, #a71100 100%);
+    color: #fff;
+    border: none;
+    padding: 1vh 5vh;
+    font-size: 2vh;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.5s ease-in-out;
+    font-family: var(--font-family-primary);
+    font-weight: 800 !important;
+}
+
+.otp-submit:hover {
+    background: linear-gradient(to left, #0000004b 60%, #ff9d01 100%);
+}
+
+.resend {
+    font-size: 14px;
+    margin-top: 4vh;
+}
+
+.resend span {
+    color: #3498db;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.otp-container {
+    text-align: center;
+    font-family: Arial, sans-serif;
+    color: #fff;
+    padding: 6vh 6vh 0 6vh;
+    background-color: #000000b0;
+    border-style: none;
+    position: relative;
+}
+
+/* Góc trên bên trái */
+.otp-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 12vh;
+    height: 3px;
+    background: linear-gradient(to right, #ff1900, transparent);
+}
+
+.otp-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 12vh;
+    background: linear-gradient(to bottom, #ff1900, transparent);
+}
+
+/* Sử dụng một lớp bọc thêm cho góc dưới bên phải */
+.otp-container .corner-right-bottom {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 12vh;
+    height: 12vh;
+    pointer-events: none; /* Để không ảnh hưởng tới các sự kiện click */
+}
+
+.otp-container .corner-right-bottom::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12vh;
+    height: 3px;
+    background: linear-gradient(to left, #ff1900, transparent);
+}
+
+.otp-container .corner-right-bottom::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 3px;
+    height: 12vh;
+    background: linear-gradient(to top, #ff1900, transparent);
+}

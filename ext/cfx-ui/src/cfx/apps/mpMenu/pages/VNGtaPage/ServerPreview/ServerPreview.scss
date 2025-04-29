@@ -1,0 +1,140 @@
+$textColor: #ffd98d;
+
+.swiper-slide-shadow-left {
+  clip-path: polygon(25% 0%, 100% 0%, 75% 100%, 0% 100%) !important;
+}
+.swiper-slide-shadow-right {
+  clip-path: polygon(25% 0%, 100% 0%, 75% 100%, 0% 100%) !important;
+}
+
+.disabled-server {
+    position: relative;
+    cursor: not-allowed;
+  }
+  
+  .disabled-image {
+    filter: grayscale(80%) brightness(50%);
+  }
+  
+  .server-status-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    background-color: rgba(255, 0, 0, 0.7);
+    padding: 8px 16px;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  .secip {
+    // font-size: 2.5vh !important;
+  }
+
+  .player-count {
+    color: #0dff00 !important;
+    font-weight: 800 !important;
+    font-size: 2.2vh !important;
+    text-shadow: 2px 0 #000000, -2px 0 #000000, 0 2px #000000, 0 -2px #000000,
+             1px 1px #000000, -1px -1px #000000, 1px -1px #000000, -1px 1px #000000;
+    letter-spacing: .2vh !important;
+    font-family: "Barlow", sans-serif !important;
+    
+  }
+
+  .server-status-info {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    padding: 8px 16px;
+    border-radius: 4px;
+    pointer-events: none;
+
+  }
+  
+  .server-status {
+    color: white;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  }
+  
+  .server-status-text {
+    color: #ff3333;
+    margin-top: 4px;
+  }
+
+.server-preview {
+    width: 100%;
+
+    .logo {
+        width: 12vh;
+        border-radius: 5px;
+    }
+
+    .title {
+        color: $textColor !important;
+        margin-bottom: 10px;
+        font-size: 4vh !important;
+        font-weight: 800 !important;
+    }
+
+    .title2 {
+        color: $textColor !important;
+        margin-bottom: 10px;
+        font-size: 3vh !important;
+        font-weight: 500 !important;
+    }
+
+    .servername {
+        color: $textColor !important;
+        margin-bottom: 10px;
+        font-size: 3vh !important;
+        font-family: "Barlow", sans-serif !important;
+    }
+    
+    .swiper-container {
+        width: inherit;
+        height: 52rem;
+        padding: 2rem 0;
+        position: relative;
+    }
+
+    .swiper-slide {
+        cursor: pointer;
+        width: 42rem;
+        height: 42rem;
+        position: relative;
+        
+        img {
+            width: 100%;
+            height: 100%;
+            // border-radius: 10px;
+            clip-path: polygon(25% 0%, 100% 0%, 75% 100%, 0% 100%);
+            object-fit: cover;
+        }
+
+        .play-container {
+            position: absolute;
+            bottom: 2vh;
+            z-index: 999;
+            // left: 26vh;
+            left: 25px;
+
+            .title {
+                color: $textColor !important;
+            }
+
+            .play-button {
+                &:hover {
+                    border-color: transparent;
+                    background-color: transparent;
+                }
+
+                color: $textColor;
+                font-size: 5rem;
+            }
+        }
+    }
+}

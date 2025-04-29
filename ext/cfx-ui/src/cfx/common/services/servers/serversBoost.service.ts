@@ -1,5 +1,5 @@
-import { IServerBoost } from './types';
-import { defineService, useService } from '../../../base/servicesContainer';
+import { defineService, useService } from "../../../base/servicesContainer";
+import { IServerBoost } from "./types";
 
 export const IServersBoostService = defineService<IServersBoostService>('ServersBoostServer');
 export interface IServersBoostService {

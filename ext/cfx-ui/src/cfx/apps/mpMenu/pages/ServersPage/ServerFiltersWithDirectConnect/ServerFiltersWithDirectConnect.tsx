@@ -1,54 +1,40 @@
-import {
-  Button,
-  Indicator,
-  Flex,
-  Shroud,
-  TextBlock,
-  ui,
-  useOutlet,
-  TITLE_OUTLET_ID,
-} from '@cfx-dev/ui-components';
-import { observer } from 'mobx-react-lite';
-import React from 'react';
-
-import { ServerFilters } from 'cfx/common/parts/Server/ServerFilters/ServerFilters';
-import { ServerTileItem } from 'cfx/common/parts/Server/ServerTileItem/ServerTileItem';
-import { ServerTitle } from 'cfx/common/parts/Server/ServerTitle/ServerTitle';
-import { ElementPlacements } from 'cfx/common/services/analytics/types';
-import { $L } from 'cfx/common/services/intl/l10n';
-import { ServerListConfigController } from 'cfx/common/services/servers/lists/ServerListConfigController';
-import { useWindowResize } from 'cfx/utils/hooks';
-
-import {
-  ServerFiltersWithDirectConnectController,
-  useServerFiltersWithDirectConnectController,
-} from './ServerFiltersWithDirectConnectController';
-
+import React from "react";
+import { ServerFilters } from "cfx/common/parts/Server/ServerFilters/ServerFilters";
+import { ServerListConfigController } from "cfx/common/services/servers/lists/ServerListConfigController";
+import { observer } from "mobx-react-lite";
+import { useWindowResize } from "cfx/utils/hooks";
+import { ui } from "cfx/ui/ui";
+import { ServerFiltersWithDirectConnectController, userServerFiltersWithDirectConnectController } from "./ServerFiltersWithDirectConnectController";
+import { Indicator } from "cfx/ui/Indicator/Indicator";
+import { TitleOutlet } from "cfx/ui/outlets";
+import { Shroud } from "cfx/ui/Shroud/Shroud";
+import { Flex } from "cfx/ui/Layout/Flex/Flex";
+import { TextBlock } from "cfx/ui/Text/Text";
+import { Button } from "cfx/ui/Button/Button";
+import { ServerTitle } from "cfx/common/parts/Server/ServerTitle/ServerTitle";
+import { ServerTileItem } from "cfx/common/parts/Server/ServerTileItem/ServerTileItem";
+import { $L } from "cfx/common/services/intl/l10n";
 import s from './ServerFiltersWithDirectConnect.module.scss';
 
 export interface ServerFiltersWithDirectConnectProps {
-  config: ServerListConfigController;
+  config: ServerListConfigController,
 }
-export const ServerFiltersWithDirectConnect = observer(function ServerFiltersWithDirectConnect(
-  props: ServerFiltersWithDirectConnectProps,
-) {
+export const ServerFiltersWithDirectConnect = observer(function ServerFiltersWithDirectConnect(props: ServerFiltersWithDirectConnectProps) {
   const {
     config,
   } = props;
 
   const inputRef = React.useRef<HTMLElement>(null);
-  const controller = useServerFiltersWithDirectConnectController();
-  // ---
-  controller.config = config;
-  // ---
+  const controller = userServerFiltersWithDirectConnectController();
+  {
+    controller.config = config;
+  }
 
   React.useEffect(() => {
     controller.setSearchTerms(config.searchTextParsed);
   }, [controller, config.searchText]);
 
-  const showDirectConnect = controller.inputActive
-    && !!config.searchTextParsed.length
-    && config.searchTextParsed[0]?.type === 'address';
+  const showDirectConnect = controller.inputActive && !!config.searchTextParsed.length && config.searchTextParsed[0]?.type === 'address';
 
   return (
     <>
@@ -61,7 +47,11 @@ export const ServerFiltersWithDirectConnect = observer(function ServerFiltersWit
 
       {showDirectConnect && (
         <>
-          <DirectConnect config={config} inputRef={inputRef} controller={controller} />
+          <DirectConnect
+            config={config}
+            inputRef={inputRef}
+            controller={controller}
+          />
 
           <Shroud forRef={inputRef} />
         </>
@@ -71,9 +61,9 @@ export const ServerFiltersWithDirectConnect = observer(function ServerFiltersWit
 });
 
 interface DirectConnectProps {
-  config: ServerListConfigController;
-  inputRef: React.RefObject<HTMLElement>;
-  controller: ServerFiltersWithDirectConnectController;
+  config: ServerListConfigController,
+  inputRef: React.RefObject<HTMLElement>,
+  controller: ServerFiltersWithDirectConnectController,
 }
 
 const DirectConnect = observer(function DirectConnect(props: DirectConnectProps) {
@@ -84,9 +74,7 @@ const DirectConnect = observer(function DirectConnect(props: DirectConnectProps)
   } = props;
 
   const pos = useDirectConnectPos(inputRef);
-  const {
-    server,
-  } = controller;
+  const server = controller.server;
 
   const label = getDirectConnectLabel(config, controller);
 
@@ -96,14 +84,14 @@ const DirectConnect = observer(function DirectConnect(props: DirectConnectProps)
     '--w': ui.px(pos[2]),
   };
 
-  const TitleOutlet = useOutlet(TITLE_OUTLET_ID);
-
   return (
     <TitleOutlet>
       <div className={s.root} style={rootStyle}>
         <Flex vertical>
           <Flex repell centered>
-            <TextBlock opacity="75">{label}</TextBlock>
+            <TextBlock opacity="75">
+              {label}
+            </TextBlock>
 
             <Button
               size="small"
@@ -117,7 +105,6 @@ const DirectConnect = observer(function DirectConnect(props: DirectConnectProps)
             <ServerTileItem
               hideBanner
               server={server}
-              elementPlacement={ElementPlacements.ServerFiltersWithDirectConnect}
             />
           )}
         </Flex>
@@ -145,10 +132,7 @@ function useDirectConnectPos(inputRef: React.RefObject<HTMLElement>): [number, n
   return pos;
 }
 
-function getDirectConnectLabel(
-  config: ServerListConfigController,
-  controller: ServerFiltersWithDirectConnectController,
-): React.ReactNode {
+function getDirectConnectLabel(config: ServerListConfigController, controller: ServerFiltersWithDirectConnectController): React.ReactNode {
   if (controller.server) {
     return (
       <>
@@ -162,7 +146,9 @@ function getDirectConnectLabel(
       <Flex>
         <Indicator />
 
-        <span>Loading server data...</span>
+        <span>
+          Loading server data...
+        </span>
       </Flex>
     );
   }

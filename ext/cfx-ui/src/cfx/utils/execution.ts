@@ -6,10 +6,7 @@ export function debounce<A extends any[]>(fn: (...args: A) => void, time: number
       clearTimeout(timer);
     }
 
-    timer = setTimeout(() => {
-      timer = null;
-      fn(...args);
-    }, time);
+    timer = setTimeout(() => (timer = null, fn(...args)), time);
   };
 }
 
@@ -21,9 +18,7 @@ export function throttle<A extends any[]>(fn: (...args: A) => void, time: number
       return;
     }
 
-    timer = setTimeout(() => {
-      timer = null;
-    }, time);
+    timer = setTimeout(() => timer = null, time);
     fn(...args);
   };
 }

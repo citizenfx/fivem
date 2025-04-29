@@ -1,7 +1,7 @@
-import { IDisposable } from './disposable';
-import { SingleEventListener } from './singleEventEmitter';
+import { IDisposable } from "./disposable";
+import { SingleEventListener } from "./singleEventEmitter";
 
-export class MultiEventEmitter<TPayload> {
+export class MultiEventEmitter<TPayload extends any> {
   private listeners: Record<string, Set<SingleEventListener<TPayload>>> = {};
 
   readonly addListener = (type: string, cb: SingleEventListener<TPayload>): IDisposable => {
@@ -20,9 +20,9 @@ export class MultiEventEmitter<TPayload> {
 
   readonly emit = (type: string, data: TPayload) => {
     if (this.listeners[type]) {
-      this.listeners[type].forEach((cb) => {
+      for (const cb of this.listeners[type]) {
         cb(data);
-      });
+      }
     }
   };
 }

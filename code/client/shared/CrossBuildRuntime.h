@@ -18,9 +18,11 @@ namespace xbr
 // When there's no entry for a specific major game build, revision "0" will be assumed in the relevant code.
 //
 
+
+// sv_enforceGameBuild
 inline unsigned int GetDefaultGTA5Build()
 {
-	return 3258;
+	return 3095;
 }
 
 inline unsigned int GetDefaultRDR3Build()
@@ -31,7 +33,7 @@ inline unsigned int GetDefaultRDR3Build()
 #ifdef IS_FXSERVER
 inline const char* GetDefaultGTA5BuildString()
 {
-	return "3258";
+	return "3095";
 }
 
 inline const char* GetDefaultRDR3BuildString()

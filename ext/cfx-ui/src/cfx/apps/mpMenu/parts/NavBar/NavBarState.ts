@@ -1,7 +1,7 @@
-import { makeAutoObservable } from 'mobx';
-import React from 'react';
+import { makeAutoObservable } from "mobx";
+import React from "react";
 
-export const NavBarState = new (class NavBarState {
+export const NavBarState = new class NavBarState {
   public readonly outletRef: React.RefObject<HTMLDivElement>;
 
   private _homeButtonVisible = true;
@@ -28,7 +28,6 @@ export const NavBarState = new (class NavBarState {
   readonly showHomeButton = () => {
     this._homeButtonVisible = true;
   };
-
   readonly hideHomeButton = () => {
     this._homeButtonVisible = false;
   };
@@ -36,7 +35,6 @@ export const NavBarState = new (class NavBarState {
   readonly setReady = () => {
     this._ready = true;
   };
-
   readonly setNotReady = () => {
     this._ready = false;
   };
@@ -44,11 +42,10 @@ export const NavBarState = new (class NavBarState {
   readonly setForceTransparentNav = () => {
     this._forceTransparentNav = true;
   };
-
   readonly setForceNormalNav = () => {
     this._forceTransparentNav = false;
   };
-})();
+}();
 
 export function useHideHomeButton() {
   React.useLayoutEffect(() => {

@@ -7,7 +7,7 @@ export enum LinkedIdentityProvider {
 }
 
 export interface ILinkedIdentity {
-  id: string;
-  provider: LinkedIdentityProvider;
-  username: string | null | undefined;
+  id: string,
+  provider: LinkedIdentityProvider,
+  username: string | null | undefined,
 }

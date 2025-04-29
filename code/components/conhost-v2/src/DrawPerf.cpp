@@ -96,7 +96,7 @@ static InitFunction initFunction([]()
 		seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.extConsole" }, se::Object{ fmt::sprintf("command.%s", convar) }, se::AccessType::Allow);
 
 		// add to devgui
-		console::GetDefaultContext()->AddToBuffer(fmt::sprintf("devgui_convar \"Overlays/Performance/%s\" %s\n", label, convar));
+		console::GetDefaultContext()->AddToBuffer(fmt::sprintf("devgui_convar \"Hiển thị/Performance/%s\" %s\n", label, convar));
 	};
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)

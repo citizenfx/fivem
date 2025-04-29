@@ -43,15 +43,3 @@
     animation: appr .2s linear forwards;
   }
 }
-
-.cheatsheetLink {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: currentColor;
-
-  @include ui.animated();
-
-  &:hover {
-    text-decoration-color: ui.color-token('link-hover-decoration');
-  }
-}

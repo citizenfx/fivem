@@ -152,7 +152,7 @@ bool Bootstrap_DoBootstrap()
 	{
 		if (GetFileAttributes(MakeRelativeCitPath(L"GTA5.exe").c_str()) != INVALID_FILE_ATTRIBUTES || GetFileAttributes(MakeRelativeCitPath(L"..\\GTA5.exe").c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
-			MessageBox(NULL, L"Please do not place FiveM.exe in your game folder. Make a new empty folder (for example, on your desktop) instead.", L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			MessageBox(NULL, L"Please do not place VNGta.exe in your game folder. Make a new empty folder (for example, on your desktop) instead.", L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
 			return false;
 		}
 	}

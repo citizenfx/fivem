@@ -1,67 +1,69 @@
 import './bootstrap';
 import { HashRouter, Route, Routes } from 'react-router-dom';
-
-import { ChangelogPage } from 'cfx/apps/mpMenu/pages/ChangelogPage/ChangelogPage';
 import { HomePage } from 'cfx/apps/mpMenu/pages/HomePage/HomePage';
-import { registerMpMenuServersService } from 'cfx/apps/mpMenu/services/servers/servers.mpMenu';
-import { startBrowserApp } from 'cfx/base/createApp';
-import { IActivityService, registerActivityService } from 'cfx/common/services/activity/activity.service';
-import { registerAnalyticsService } from 'cfx/common/services/analytics/analytics.service';
-import { GTMAnalyticsProvider } from 'cfx/common/services/analytics/providers/gtm';
-import { IIntlService } from 'cfx/common/services/intl/intl.service';
-import { registerLogService } from 'cfx/common/services/log/logService';
-import { ConsoleLogProvider } from 'cfx/common/services/log/providers/consoleLogProvider';
+import { ChangelogPage } from 'cfx/apps/mpMenu/pages/ChangelogPage/ChangelogPage';
 import { ServersListType } from 'cfx/common/services/servers/lists/types';
-import { IServersService } from 'cfx/common/services/servers/servers.service';
-import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
-import { IServersConnectService } from 'cfx/common/services/servers/serversConnect.service';
-import { IServersStorageService } from 'cfx/common/services/servers/serversStorage.service';
-import { registerSettingsService } from 'cfx/common/services/settings/settings.common';
-import { ISettingsService, ISettingsUIService } from 'cfx/common/services/settings/settings.service';
-import { IUiService } from 'cfx/common/services/ui/ui.service';
-import { timeout } from 'cfx/utils/async';
-
 import { MpMenuApp } from './components/MpMenuApp/MpMenuApp';
-import { mpMenu } from './mpMenu';
-import { Handle404 } from './pages/404';
-import { MpMenuServerDetailsPage } from './pages/ServerDetailsPage/ServerDetailsPage';
+import { startBrowserApp } from 'cfx/base/createApp';
 import { MpMenuServersPage } from './pages/ServersPage/ServersPage';
-import { IAuthService, registerAuthService } from './services/auth/auth.service';
-import { registerChangelogService } from './services/changelog/changelog.service';
+import { MpMenuServerDetailsPage } from './pages/ServerDetailsPage/ServerDetailsPage';
+import { DEFAULT_GAME_SETTINGS_CATEGORY_ID, GAME_SETTINGS } from './settings';
+import { ConsoleLogProvider } from 'cfx/common/services/log/providers/consoleLogProvider';
+import { registerLogService } from 'cfx/common/services/log/logService';
+import { registerMpMenuServersService } from 'cfx/apps/mpMenu/services/servers/servers.mpMenu';
+import { registerSettingsService } from 'cfx/common/services/settings/settings.common';
+import { registerMpMenuUiService } from './services/ui/ui.mpMenu';
+import { registerMpMenuServersStorageService } from './services/servers/serversStorage.mpMenu';
 import { registerConvarService } from './services/convars/convars.service';
 import { registerDiscourseService } from './services/discourse/discourse.service';
-import { registerMpMenuIntlService } from './services/intl/intl.mpMenu';
-import { registerLegalService } from './services/legal/legal.service';
 import { registerLinkedIdentitiesService } from './services/linkedIdentities/linkedIdentities.service';
-import {
-  IPlatformStatusService,
-  registerPlatformStatusService,
-} from './services/platformStatus/platformStatus.service';
+import { registerMpMenuServersBoostService } from './services/servers/serversBoost.mpMenu';
+import { IAuthService, registerAuthService } from './services/auth/auth.service';
+import { registerMpMenuServersReviewsService } from './services/servers/serversReviews.mpMenu';
+import { registerChangelogService } from './services/changelog/changelog.service';
+import { registerAnalyticsService } from 'cfx/common/services/analytics/analytics.service';
+import { registerMpMenuServersConnectService } from './services/servers/serversConnect.mpMenu';
+import { IUiMessageService, registerUiMessageService } from './services/uiMessage/uiMessage.service';
+import { registerMpMenuIntlService } from './services/intl/intl.mpMenu';
+import { MpMenuLocalhostServerService, registerMpMenuLocalhostServerService } from './services/servers/localhostServer.mpMenu';
+import { IPlatformStatusService, registerPlatformStatusService } from './services/platformStatus/platformStatus.service';
+import { IActivityService, registerActivityService } from 'cfx/common/services/activity/activity.service';
+import { mpMenu } from './mpMenu';
+import { MatomoAnalyticsProvider } from 'cfx/common/services/analytics/providers/matomo';
+import { IServersService } from 'cfx/common/services/servers/servers.service';
+import { IUiService } from 'cfx/common/services/ui/ui.service';
+import { IIntlService } from 'cfx/common/services/intl/intl.service';
+import { ISettingsService, ISettingsUIService } from 'cfx/common/services/settings/settings.service';
+import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
+import { IServersStorageService } from 'cfx/common/services/servers/serversStorage.service';
+import { IServersConnectService } from 'cfx/common/services/servers/serversConnect.service';
+import { Handle404 } from './pages/404';
+import { registerHomeScreenServerList } from './services/servers/list/HomeScreenServerList.service';
 import { registerSentryService } from './services/sentry/sentry.service';
 import { SentryLogProvider } from './services/sentry/sentryLogProvider';
-import { registerHomeScreenServerList } from './services/servers/list/HomeScreenServerList.service';
-import {
-  MpMenuLocalhostServerService,
-  registerMpMenuLocalhostServerService,
-} from './services/servers/localhostServer.mpMenu';
-import { registerMpMenuServersBoostService } from './services/servers/serversBoost.mpMenu';
-import { registerMpMenuServersConnectService } from './services/servers/serversConnect.mpMenu';
-import { registerMpMenuServersReviewsService } from './services/servers/serversReviews.mpMenu';
-import { registerMpMenuServersStorageService } from './services/servers/serversStorage.mpMenu';
-import { registerMpMenuUiService } from './services/ui/ui.mpMenu';
-import { IUiMessageService, registerUiMessageService } from './services/uiMessage/uiMessage.service';
-import { DEFAULT_GAME_SETTINGS_CATEGORY_ID, GAME_SETTINGS } from './settings';
-import { shutdownLoadingSplash } from './utils/loadingSplash';
+import { animationFrame, idleCallback, timeout } from 'cfx/utils/async';
+import { LoginPage } from './pages/LoginPage/LoginPage';
+import { VNGtaPage } from './pages/VNGtaPage/VNGtaPage';
+import { ResertPass } from './pages/ResertPass/ResertPass';
+import { VNGtaCodePage } from './pages/VNGtaCodePage/VNGtaCodePage';
+import { registerServerPreviewService } from './services/serverPreview/serverPreview.service';
+import { IServerPreview } from 'cfx/common/services/servers/serverPreview.service';
+
+import { AppLayout } from './components/GlobalCloseButton/GlobalCloseButton'; // Import AppLayout
+
 
 startBrowserApp({
   defineServices(container) {
     registerSentryService(container);
 
-    registerLogService(container, [ConsoleLogProvider, SentryLogProvider]);
+    registerLogService(container, [
+      ConsoleLogProvider,
+      SentryLogProvider,
+    ]);
 
-    registerAnalyticsService(container, [GTMAnalyticsProvider]);
-
-    registerLegalService(container);
+    registerAnalyticsService(container, [
+      MatomoAnalyticsProvider,
+    ]);
 
     registerSettingsService(container, {
       settings: GAME_SETTINGS,
@@ -84,13 +86,19 @@ startBrowserApp({
     registerMpMenuIntlService(container);
 
     registerMpMenuServersService(container, {
-      listTypes: [ServersListType.All, ServersListType.Supporters, ServersListType.History, ServersListType.Favorites],
+      listTypes: [
+        ServersListType.All,
+        ServersListType.Supporters,
+        ServersListType.History,
+        ServersListType.Favorites,
+      ],
     });
     registerMpMenuServersBoostService(container);
     registerMpMenuServersStorageService(container);
     registerMpMenuServersReviewsService(container);
     registerMpMenuServersConnectService(container);
     registerMpMenuLocalhostServerService(container);
+    registerServerPreviewService(container);
   },
 
   beforeRender(container) {
@@ -115,24 +123,30 @@ startBrowserApp({
 
   render: () => (
     <HashRouter>
-      <Routes>
-        <Route path="" element={<MpMenuApp />}>
-          <Route index element={<HomePage />} />
+      <AppLayout>
+        <Routes>
+          <Route index element={<LoginPage />} />
+          <Route path="vngtacheckCode" element={<VNGtaCodePage />} />
+          <Route path="vngtalogin" element={<VNGtaPage />} />
+          <Route path="vngtaresetpass" element={<ResertPass />} />
+          {/* <Route path="" element={<MpMenuApp />}>
+            <Route index element={<HomePage />} />
 
-          <Route path="changelog" element={<ChangelogPage />} />
+            <Route path="changelog" element={<ChangelogPage />} />
 
-          <Route path="servers">
-            <Route index element={<MpMenuServersPage listType={ServersListType.All} />} />
-            <Route path="favorites" element={<MpMenuServersPage listType={ServersListType.Favorites} />} />
-            <Route path="history" element={<MpMenuServersPage listType={ServersListType.History} />} />
-            <Route path="premium" element={<MpMenuServersPage listType={ServersListType.Supporters} />} />
+            <Route path="servers">
+              <Route index element={<MpMenuServersPage listType={ServersListType.All} />} />
+              <Route path="favorites" element={<MpMenuServersPage listType={ServersListType.Favorites} />} />
+              <Route path="history" element={<MpMenuServersPage listType={ServersListType.History} />} />
+              <Route path="premium" element={<MpMenuServersPage listType={ServersListType.Supporters} />} />
 
-            <Route path="detail/*" element={<MpMenuServerDetailsPage />} />
-          </Route>
+              <Route path="detail/*" element={<MpMenuServerDetailsPage />} />
+            </Route>
 
-          <Route path="*" element={<Handle404 />} />
-        </Route>
-      </Routes>
+            <Route path="*" element={<Handle404 />} />
+          </Route> */}
+        </Routes>
+      </AppLayout>
     </HashRouter>
   ),
 
@@ -144,9 +158,29 @@ startBrowserApp({
       mpMenu.invokeNative('executeCommand', 'nui_devtools mpMenu');
     }
 
-    mpMenu.showGameWindow();
+    mpMenu.invokeNative('getMinModeInfo');
 
     // Not using await here so app won't wait for this to end
-    timeout(1000).then(shutdownLoadingSplash);
+    timeout(1000).then(animationFrame).then(() => {
+      const $loader = document.getElementById('loader');
+      if (!$loader) {
+        console.error('No #loader found, did it get deleted from index.html?');
+        return;
+      }
+
+      $loader.classList.add('hide');
+
+      const $loaderMask = $loader.querySelector('#loader-mask');
+      if (!$loaderMask) {
+        console.error('No #loader-mask found, did it get deleted from index.html?');
+        return;
+      }
+
+      $loaderMask.addEventListener('animationend', async () => {
+        await idleCallback(1000);
+
+        $loader.parentNode?.removeChild($loader);
+      });
+    });
   },
 });

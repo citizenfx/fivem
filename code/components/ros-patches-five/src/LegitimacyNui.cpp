@@ -199,14 +199,14 @@ public:
 
 .UI__Alert__info .UI__Alert__content:after
 {
-	content: 'A Rockstar Games Social Club account owning %s is required to play %s.';
+	content: 'A Rockstar Games Social Club account owning %s is cần thiết để chơi %s.';
 	max-width: 600px;
 	display: inline-block;
 }
 )",
 #ifdef GTA_FIVE
 			"Grand Theft Auto V",
-			"FiveM"
+			"VNGta"
 #elif defined(IS_RDR3)
 			"Red Dead Redemption 2 or Red Dead Online",
 			"RedM"
@@ -492,6 +492,7 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 	return true;
 }
 
+// bypass rock
 std::string SimpleHandler::GetRgscInitCode()
 {
 	std::string flowString = "base";

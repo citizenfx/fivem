@@ -589,7 +589,7 @@ static BOOL WINAPI Process32NextWHook(HANDLE hSnapshot, LPPROCESSENTRY32W lppe)
 		while (rv &&
 			(StrStrIW(lppe->szExeFile, L"GTA5.exe") ||
 			 StrStrIW(lppe->szExeFile, L"RDR2.exe") ||
-			 StrStrIW(lppe->szExeFile, L"FiveM") ||
+			 StrStrIW(lppe->szExeFile, L"VNGta") ||
 			 StrStrIW(lppe->szExeFile, L"RedM")))
 		{
 			rv = Process32NextW(hSnapshot, lppe);
@@ -1030,7 +1030,7 @@ static HookFunction hookFunction([] ()
 {
 	if (!IsWindows7SP1OrGreater())
 	{
-		FatalError("Windows 7 SP1 or higher is required to run the FiveM ros:five component.");
+		FatalError("Windows 7 SP1 or higher is required to run the VNGta ros:five component.");
 	}
 
 	// newer SC SDK will otherwise overflow in cert name

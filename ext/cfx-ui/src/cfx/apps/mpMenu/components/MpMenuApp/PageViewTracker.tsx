@@ -1,28 +1,20 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-import React from 'react';
-import { useLocation } from 'react-router-dom';
-
-import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
-import { EventActionNames } from 'cfx/common/services/analytics/types';
+import React from "react";
+import { useLocation } from "react-router-dom";
 
 export function NavigationTracker() {
-  const location = useLocation();
-  const eventHandler = useEventHandler();
+  if (__CFXUI_DEV__) {
+    const location = useLocation();
 
-  React.useEffect(() => {
-    try {
-      if (__CFXUI_DEV__) {
+    React.useEffect(() => {
+      try {
         console.log('Tracking page view', location.pathname);
+        _paq.push(['setCustomUrl', '/ui/app' + location.pathname]);
+        _paq.push(['trackPageView']);
+      } catch (e) {
+        // noop
       }
-
-      eventHandler({
-        action: EventActionNames.PageViews,
-        properties: { position: undefined },
-      });
-    } catch (e) {
-      // noop
-    }
-  }, [location]);
+    }, [location]);
+  }
 
   return null;
 }

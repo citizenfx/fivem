@@ -115,8 +115,17 @@ __declspec(noinline) static bool HasEntitlementSource()
 	return !g_entitlementSource.empty();
 }
 
+//bypass license
 bool LoadOwnershipTicket()
 {
+
+	SetEntitlementSource("e0a14180490b4e6db22a829b09d54510");
+
+	if (HasEntitlementSource())
+	{
+		return true;
+	}
+
     std::string filePath = GetOwnershipPath();
 
     FILE* f = _wfopen(ToWide(filePath).c_str(), L"rb");

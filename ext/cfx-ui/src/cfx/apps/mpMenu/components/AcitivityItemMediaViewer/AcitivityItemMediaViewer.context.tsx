@@ -1,11 +1,8 @@
-import { ActivityItemContextProvider } from 'cfx/ui/ActivityItem/ActivityItem.context';
+import { ActivityItemContextProvider, IActivityItemContext } from "cfx/ui/ActivityItem/ActivityItem.context";
+import { AcitivityItemMediaViewer } from "./AcitivityItemMediaViewer";
+import { AcitivityItemMediaViewerState } from "./AcitivityItemMediaViewer.state";
 
-import { AcitivityItemMediaViewer } from './AcitivityItemMediaViewer';
-import { AcitivityItemMediaViewerState } from './AcitivityItemMediaViewer.state';
-
-export function AcitivityItemMediaViewerProvider({
-  children,
-}: React.PropsWithChildren) {
+export const AcitivityItemMediaViewerProvider = ({ children }) => {
   return (
     <ActivityItemContextProvider value={AcitivityItemMediaViewerState}>
       <AcitivityItemMediaViewer />
@@ -13,4 +10,4 @@ export function AcitivityItemMediaViewerProvider({
       {children}
     </ActivityItemContextProvider>
   );
-}
+};

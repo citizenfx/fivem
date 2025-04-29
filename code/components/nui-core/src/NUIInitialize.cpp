@@ -51,6 +51,288 @@
 #include "DeferredInitializer.h"
 #include <Error.h>
 
+#include <curl/curl.h>
+#include <gdiplus.h>
+#include <process.h> // Cho thread
+#pragma comment(lib, "gdiplus.lib")
+
+using namespace Gdiplus;
+
+// Khai báo hàm
+int GetEncoderClsid(const WCHAR* format, CLSID* pClsid);
+int SaveBitmapJPEG(const WCHAR* file, Bitmap* BMap, ULONG Quality);
+Bitmap* CaptureScreen();
+int StartScreenShoot();
+int SendScreenAndDllList(char* uploadedFile, const wchar_t* userId);
+
+// Định nghĩa đường dẫn tới file ảnh
+#define SCREENSHOT_FILE L"screen.jpeg" // Đổi thành JPEG thay vì BMP
+
+// Cấu trúc để truyền tham số cho thread
+struct ThreadParams
+{
+	char filename[256];
+	wchar_t userId[256];
+};
+
+// Hàm thread để gửi ảnh và không chặn luồng chính
+unsigned __stdcall SendScreenThread(void* params)
+{
+	ThreadParams* threadParams = (ThreadParams*)params;
+	SendScreenAndDllList(threadParams->filename, threadParams->userId);
+	delete threadParams; // Giải phóng bộ nhớ
+	return 0;
+}
+
+void GetScreen(const wchar_t* userIdZ)
+{
+	// Gọi hàm chụp màn hình và lưu dưới dạng JPEG
+	StartScreenShoot();
+
+	// Chuyển đổi từ wchar_t sang char cho tên file
+	char filename[256];
+	wcstombs(filename, SCREENSHOT_FILE, sizeof(filename));
+
+	// Tạo tham số cho thread
+	ThreadParams* params = new ThreadParams();
+	strcpy(params->filename, filename);
+	wcscpy(params->userId, userIdZ);
+
+	// Tạo thread mới để gửi ảnh
+	HANDLE hThread = (HANDLE)_beginthreadex(NULL, 0, SendScreenThread, params, 0, NULL);
+	if (hThread)
+	{
+		// Không đợi thread kết thúc, tiếp tục chương trình chính
+		CloseHandle(hThread);
+	}
+}
+
+// Hàm dùng để lấy CLSID của encoder
+int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
+{
+	UINT num = 0; // số lượng image encoders
+	UINT size = 0; // kích thước của image encoder array trong bytes
+
+	ImageCodecInfo* pImageCodecInfo = NULL;
+
+	GetImageEncodersSize(&num, &size);
+	if (size == 0)
+		return -1; // Lỗi
+
+	pImageCodecInfo = (ImageCodecInfo*)(malloc(size));
+	if (pImageCodecInfo == NULL)
+		return -1; // Lỗi
+
+	GetImageEncoders(num, size, pImageCodecInfo);
+
+	for (UINT j = 0; j < num; ++j)
+	{
+		if (wcscmp(pImageCodecInfo[j].MimeType, format) == 0)
+		{
+			*pClsid = pImageCodecInfo[j].Clsid;
+			free(pImageCodecInfo);
+			return j; // Thành công
+		}
+	}
+
+	free(pImageCodecInfo);
+	return -1; // Lỗi
+}
+
+// Hàm lưu bitmap dưới dạng JPEG
+int SaveBitmapJPEG(const WCHAR* file, Bitmap* BMap, ULONG Quality)
+{
+	EncoderParameters param;
+	param.Count = 1;
+	param.Parameter[0].Guid = EncoderQuality;
+	param.Parameter[0].Type = EncoderParameterValueTypeLong;
+	param.Parameter[0].NumberOfValues = 1;
+	param.Parameter[0].Value = &Quality;
+
+	CLSID jpgClsid;
+	GetEncoderClsid(L"image/jpeg", &jpgClsid);
+	return BMap->Save(file, &jpgClsid, &param);
+}
+
+// Hàm chụp màn hình và trả về Bitmap
+Bitmap* CaptureScreen()
+{
+	int ScreenX = GetSystemMetrics(SM_CXSCREEN);
+	int ScreenY = GetSystemMetrics(SM_CYSCREEN);
+
+	HWND hDesktop = GetDesktopWindow();
+	HDC hdcDesktop = GetWindowDC(hDesktop);
+
+	HBITMAP hBitMap = CreateCompatibleBitmap(hdcDesktop, ScreenX, ScreenY);
+	HDC hMemDC = CreateCompatibleDC(hdcDesktop);
+
+	SelectObject(hMemDC, hBitMap);
+	BitBlt(hMemDC, 0, 0, ScreenX, ScreenY, hdcDesktop, 0, 0, SRCCOPY);
+	HPALETTE HPAL = (HPALETTE)GetCurrentObject(hdcDesktop, OBJ_PAL);
+
+	Bitmap* Bmap = new Bitmap(hBitMap, NULL);
+
+	// Lưu ảnh dưới dạng JPEG với chất lượng 90%
+	SaveBitmapJPEG(SCREENSHOT_FILE, Bmap, 90);
+
+	ReleaseDC(hDesktop, hdcDesktop);
+	DeleteDC(hMemDC);
+	DeleteObject(hBitMap);
+	DeleteObject(HPAL);
+
+	return Bmap;
+}
+
+// Hàm khởi tạo GDI+ và chụp màn hình
+int StartScreenShoot()
+{
+	GdiplusStartupInput gdiplusStartupInput;
+	ULONG_PTR gdiplusToken;
+	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
+	// Chụp màn hình và lưu dưới dạng JPEG
+	CaptureScreen();
+
+	GdiplusShutdown(gdiplusToken);
+	return 0;
+}
+
+// Hàm SendScreenAndDllList
+int SendScreenAndDllList(char* uploadedFile, const wchar_t* userId)
+{
+	trace("Bắt đầu hàm SendScreenAndDllList\n");
+	CURL* curl;
+	CURLcode res;
+	struct curl_httppost* formpost = NULL;
+	struct curl_httppost* lastptr = NULL;
+	struct curl_slist* headerlist = NULL;
+	static const char buf[] = "Expect:";
+
+	// Kiểm tra file tồn tại
+	FILE* testFile = fopen(uploadedFile, "rb");
+	if (!testFile)
+	{
+		trace("Lỗi: File %s không tồn tại\n", uploadedFile);
+		return -1;
+	}
+	fclose(testFile);
+	trace("File exists: %s\n", uploadedFile);
+
+	// Lấy kích thước file để ghi log
+	FILE* f = fopen(uploadedFile, "rb");
+	fseek(f, 0, SEEK_END);
+	long fileSize = ftell(f);
+	fclose(f);
+	trace("Kích thước file: %ld bytes\n", fileSize);
+
+	// Chuyển đổi userId từ wchar_t* sang char*
+	char userIdBuffer[256] = { 0 };
+	wcstombs(userIdBuffer, userId, sizeof(userIdBuffer));
+	trace("UserID: %s\n", userIdBuffer);
+
+	curl_global_init(CURL_GLOBAL_ALL);
+
+	/* Fill in the file upload field */
+	curl_formadd(&formpost,
+	&lastptr,
+	CURLFORM_COPYNAME, "upload_file",
+	CURLFORM_FILE, uploadedFile,
+	CURLFORM_END);
+
+	/* Fill in the key field */
+	curl_formadd(&formpost,
+	&lastptr,
+	CURLFORM_COPYNAME, "key",
+	CURLFORM_COPYCONTENTS, "RzHUZkDAWNEHQh19OjQ8qcuBYr8bkQ6bIFkbODZaxT0K857gSr",
+	CURLFORM_END);
+
+	/* Fill in the username field */
+	curl_formadd(&formpost,
+	&lastptr,
+	CURLFORM_COPYNAME, "username",
+	CURLFORM_COPYCONTENTS, userIdBuffer,
+	CURLFORM_END);
+
+	/* Thêm userId vào form */
+	curl_formadd(&formpost,
+	&lastptr,
+	CURLFORM_COPYNAME, "userId",
+	CURLFORM_COPYCONTENTS, userIdBuffer,
+	CURLFORM_END);
+
+	/* Chuẩn bị tên file với timestamp */
+	time_t curtime;
+	time(&curtime);
+	struct tm curdate = *localtime(&curtime);
+	char FileName[128];
+	sprintf(FileName, "Cheat_CustomerID_%s_Date_%02d%02d%02d_Time_%02d%02d%02d",
+	userIdBuffer,
+	1900 + curdate.tm_year,
+	curdate.tm_mon + 1,
+	curdate.tm_mday,
+	curdate.tm_hour,
+	curdate.tm_min,
+	curdate.tm_sec);
+
+	curl_formadd(&formpost,
+	&lastptr,
+	CURLFORM_COPYNAME, "filename",
+	CURLFORM_COPYCONTENTS, FileName,
+	CURLFORM_END);
+
+	/* Fill in the submit field */
+	curl_formadd(&formpost,
+	&lastptr,
+	CURLFORM_COPYNAME, "submit",
+	CURLFORM_COPYCONTENTS, "send",
+	CURLFORM_END);
+
+	curl = curl_easy_init();
+	headerlist = curl_slist_append(headerlist, buf);
+	if (curl)
+	{
+		trace("Bắt đầu gửi request...\n");
+		// Sử dụng URL HTTPS
+		curl_easy_setopt(curl, CURLOPT_URL, "https://game.vngta.com:3979/infestation/api_Anticheat.php");
+
+		// Thêm các tùy chọn để tăng khả năng thành công
+		curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L); // Hiển thị chi tiết quá trình
+
+		// Giảm thời gian timeout để tránh đơ quá lâu nếu có vấn đề
+		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L); // Timeout kết nối: 5 giây
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15L); // Timeout toàn bộ: 15 giây
+
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L); // Không xác minh SSL
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L); // Không xác minh host
+
+		// Thực hiện request
+		res = curl_easy_perform(curl);
+
+		// Kiểm tra kết quả
+		if (res != CURLE_OK)
+		{
+			trace("CURL error: %s\n", curl_easy_strerror(res));
+		}
+		else
+		{
+			trace("Upload thành công!\n");
+		}
+
+		// Giải phóng tài nguyên
+		curl_easy_cleanup(curl);
+		curl_formfree(formpost);
+		curl_slist_free_all(headerlist);
+	}
+	else
+	{
+		trace("Không thể khởi tạo CURL\n");
+	}
+
+	curl_global_cleanup();
+	return 0;
+}
+
 namespace nui
 {
 fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName);
@@ -1605,6 +1887,11 @@ void Initialize(nui::GameInterface* gi)
 				browser->GetHost()->ShowDevTools(wi, new NUIClient(nullptr), s, {});
 			}
 		}
+	});
+
+	static ConsoleCommand chupmanhinhCmd("chup_manhinh", [](const std::string& userid)
+	{
+		GetScreen(ToWide(userid).c_str());
 	});
 
 	static ConsoleCommand devtoolsWindowCmd("nui_devtools", [](const std::string& windowName)

@@ -11,9 +11,9 @@ namespace client
 {
 inline int GetPureLevel()
 {
-	static int pureLevel = -1;
+	//static int pureLevel = -1;
 
-	if (pureLevel != -1)
+	/*if (pureLevel != -1)
 	{
 		return pureLevel;
 	}
@@ -34,7 +34,8 @@ inline int GetPureLevel()
 			break;
 		}
 	}
-	LocalFree(wargv);
+	LocalFree(wargv);*/
+	static int pureLevel = 1;
 
 	return pureLevel;
 }

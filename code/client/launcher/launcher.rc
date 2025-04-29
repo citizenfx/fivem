@@ -23,7 +23,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #ifdef GTA_NY
 IDI_ICON1               ICON                    "citizeniv.ico"
 #elif defined(GTA_FIVE)
-IDI_ICON1               ICON                    "fivem.ico"
+IDI_ICON1               ICON                    "vngta.ico"
 #elif defined(IS_RDR3)
 IDI_ICON1               ICON                    "redm.ico"
 #endif
@@ -33,7 +33,7 @@ IDI_SNAIL				ICON					"snail.ico"
 
 #if defined(GTA_FIVE)
 IDI_SP					ICON					"fivem_sp.ico"
-IDI_SDK					ICON					"fivem_sdk.ico"
+IDI_SDK					ICON					"fivem_sdk2.ico"
 #endif
 #endif
 
@@ -41,7 +41,7 @@ IDI_SDK					ICON					"fivem_sdk.ico"
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
 #if defined(GTA_FIVE) || defined(GTA_NY)
-IDM_BACKDROP			MEOW					"backdrop.png"
+IDM_BACKDROP			MEOW					"backdrop2.png"
 #else
 IDM_BACKDROP			MEOW "backdrop_rdr.png"
 #endif
@@ -50,7 +50,7 @@ IDM_BACKDROP			MEOW "backdrop_rdr.png"
 STRINGTABLE
 BEGIN
 #if defined(GTA_FIVE)
-	IDS_FOLDER_NAME, L"FiveM Application Data"
+	IDS_FOLDER_NAME, L"VNGta Application Data"
 #elif defined(IS_RDR3)
 	IDS_FOLDER_NAME, L"RedM Application Data"
 #else
@@ -74,7 +74,7 @@ END
 #endif
 
 #if defined(GTA_FIVE)
-#define PRODUCT "FiveM"
+#define PRODUCT "VNGta"
 #elif defined(IS_RDR3)
 #define PRODUCT "RedM"
 #elif defined(GTA_NY)
@@ -103,11 +103,11 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "Cfx.re"
+            VALUE "CompanyName", "Voky.com"
 			VALUE "FileDescription", PRODUCT SUFFIX
             VALUE "InternalName", PRODUCT
             VALUE "FileVersion", "2.0.0." STR(EXE_VERSION)
-            VALUE "LegalCopyright", "(C) 2015-2022 Cfx.re"
+            VALUE "LegalCopyright", "(C) 2024-2025 Truong Vo Ky"
             VALUE "OriginalFilename", "CitizenMP.exe"
             VALUE "ProductName", PRODUCT
             VALUE "ProductVersion", "2.0.0." STR(EXE_VERSION)

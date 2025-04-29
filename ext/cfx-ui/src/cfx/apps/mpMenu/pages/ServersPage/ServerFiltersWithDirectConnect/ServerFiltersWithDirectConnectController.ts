@@ -1,17 +1,16 @@
-import { inject, injectable, optional } from 'inversify';
-import { makeAutoObservable, observable } from 'mobx';
-import React from 'react';
-
-import { ISearchTerm } from 'cfx/base/searchTermsParser';
-import { useServiceResolver } from 'cfx/base/servicesContainer';
-import { ServerListConfigController } from 'cfx/common/services/servers/lists/ServerListConfigController';
-import { IParsedServerAddress, parseServerAddress } from 'cfx/common/services/servers/serverAddressParser';
-import { IServersService } from 'cfx/common/services/servers/servers.service';
-import { IServersConnectService } from 'cfx/common/services/servers/serversConnect.service';
-import { IServerView } from 'cfx/common/services/servers/types';
-import { IDisposableObject } from 'cfx/utils/disposable';
-import { debounce } from 'cfx/utils/execution';
-import { useDisposableInstance } from 'cfx/utils/hooks';
+import React from "react";
+import { useServiceResolver } from "cfx/base/servicesContainer";
+import { ISearchTerm } from "cfx/base/searchTermsParser";
+import { ServerListConfigController } from "cfx/common/services/servers/lists/ServerListConfigController";
+import { IServersService } from "cfx/common/services/servers/servers.service";
+import { IServersConnectService } from "cfx/common/services/servers/serversConnect.service";
+import { IServerView } from "cfx/common/services/servers/types";
+import { IParsedServerAddress, parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
+import { IDisposableObject } from "cfx/utils/disposable";
+import { debounce } from "cfx/utils/execution";
+import { useDisposableInstance } from "cfx/utils/hooks";
+import { inject, injectable, optional } from "inversify";
+import { makeAutoObservable, observable } from "mobx";
 
 @injectable()
 export class ServerFiltersWithDirectConnectController implements IDisposableObject {
@@ -29,17 +28,11 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
 
     return this._server;
   }
-  private set server(server: IServerView | null) {
-    this._server = server;
-  }
+  private set server(server: IServerView | null) { this._server = server }
 
   private _parsedAddress: IParsedServerAddress | null = null;
-  public get parsedAddress(): IParsedServerAddress | null {
-    return this._parsedAddress;
-  }
-  private set parsedAddress(parsedAddress: IParsedServerAddress | null) {
-    this._parsedAddress = parsedAddress;
-  }
+  public get parsedAddress(): IParsedServerAddress | null { return this._parsedAddress }
+  private set parsedAddress(parsedAddress: IParsedServerAddress | null) { this._parsedAddress = parsedAddress }
 
   private _loadingServer: boolean = false;
   public get loadingServer(): boolean {
@@ -49,24 +42,15 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
 
     return this._loadingServer;
   }
-  private set loadingServer(loadingServer: boolean) {
-    this._loadingServer = loadingServer;
-  }
+  private set loadingServer(loadingServer: boolean) { this._loadingServer = loadingServer }
 
   private _inputActive: boolean = false;
-  public get inputActive(): boolean {
-    return this._inputActive;
-  }
-  private set inputActive(inputActive: boolean) {
-    this._inputActive = inputActive;
-  }
+  public get inputActive(): boolean { return this._inputActive }
+  private set inputActive(inputActive: boolean) { this._inputActive = inputActive }
 
-  readonly setInputActive = (active: boolean) => {
-    this.inputActive = active;
-  };
+  readonly setInputActive = (active: boolean) => this.inputActive = active;
 
   private queryId = 0;
-
   private nextQueryId() {
     return ++this.queryId;
   }
@@ -74,8 +58,7 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
   constructor(
     @inject(IServersService)
     protected readonly serversService: IServersService,
-    @inject(IServersConnectService)
-    @optional()
+    @inject(IServersConnectService) @optional()
     protected readonly serversConnectService: IServersConnectService | undefined,
   ) {
     makeAutoObservable(this, {
@@ -94,7 +77,6 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
   readonly handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.code === 'Escape') {
       this.config?.setSearchText('');
-
       return;
     }
 
@@ -123,13 +105,11 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
   };
 
   private lastAddress = '';
-
   readonly setSearchTerms = async (terms: ISearchTerm[]) => {
     if (terms.length === 0) {
       this.server = null;
       this.lastAddress = '';
       this.loadingServer = false;
-
       return;
     }
 
@@ -137,23 +117,19 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
       this.server = null;
       this.lastAddress = '';
       this.loadingServer = false;
-
       return;
     }
 
     const address = terms[0].value;
-
     if (this.lastAddress === address) {
       return;
     }
     this.lastAddress = address;
 
     this.parsedAddress = parseServerAddress(address);
-
     if (!this.parsedAddress) {
       this.server = null;
       this.loadingServer = false;
-
       return;
     }
 
@@ -161,7 +137,6 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
     if (this.parsedAddress.type === 'join') {
       this.server = this.serversService.getServer(this.parsedAddress.address) || null;
       this.loadingServer = false;
-
       return;
     }
 
@@ -169,7 +144,7 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
     this.loadingServer = true;
 
     this.doLoadServer(address, this.nextQueryId());
-  };
+  }
 
   private readonly doLoadServer = debounce(async (address: string, queryId: number) => {
     try {
@@ -191,7 +166,6 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
 function initDirectConnectController(resolver: ReturnType<typeof useServiceResolver>) {
   return resolver(ServerFiltersWithDirectConnectController);
 }
-
-export function useServerFiltersWithDirectConnectController() {
+export function userServerFiltersWithDirectConnectController() {
   return useDisposableInstance(initDirectConnectController, useServiceResolver());
 }

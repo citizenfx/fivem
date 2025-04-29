@@ -1,18 +1,15 @@
+import { Deferred } from "cfx/utils/async";
+import { preventDefault } from "cfx/utils/domEvents";
 import * as IDB from 'idb';
-
-import { Deferred } from 'cfx/utils/async';
-import { preventDefault } from 'cfx/utils/domEvents';
 
 export class LastServersDB {
   private initError: Error | null = null;
-
   private initDeferred = new Deferred<boolean>();
 
   /**
    * @deprecated use getConnection()
    */
   private __db__: IDB.IDBPDatabase | null = null;
-
   private async getConnection(): Promise<IDB.IDBPDatabase | null> {
     if (await this.initFailed()) {
       return null;
@@ -96,6 +93,7 @@ export class LastServersDB {
         upgrade: (database, oldVersion) => {
           this.dbDidNotExist = oldVersion < 1;
 
+
           // Create list object store
           const createListObjectStore = () => database.createObjectStore(Db.STORE_NAME, {
             keyPath: 'address',
@@ -103,15 +101,10 @@ export class LastServersDB {
           });
 
           let objectStore: ReturnType<typeof createListObjectStore>;
-
           try {
             objectStore = createListObjectStore();
-          } catch (createError) {
-            if (
-              createError instanceof DOMException
-              && createError.name === 'ConstraintError'
-              && database.objectStoreNames.contains(Db.STORE_NAME)
-            ) {
+          } catch (e) {
+            if (e instanceof DOMException && e.name === 'ConstraintError' && database.objectStoreNames.contains(Db.STORE_NAME)) {
               // Try recreating
               try {
                 database.deleteObjectStore(Db.STORE_NAME);
@@ -119,15 +112,14 @@ export class LastServersDB {
                 objectStore = createListObjectStore();
               } catch (e) {
                 this.setInitError(e);
-
                 return;
               }
             } else {
-              this.setInitError(createError);
-
+              this.setInitError(e);
               return;
             }
           }
+
 
           // Create time index
           const createIndex = () => objectStore.createIndex(Db.TIME_INDEX_NAME, 'time', {
@@ -137,20 +129,18 @@ export class LastServersDB {
 
           try {
             createIndex();
-          } catch (createError) {
-            if (
-              createError instanceof DOMException
-              && createError.name === 'ConstraintError'
-              && objectStore.indexNames.contains(Db.TIME_INDEX_NAME)
-            ) {
+          } catch (e) {
+            if (e instanceof DOMException && e.name === 'ConstraintError' && objectStore.indexNames.contains(Db.TIME_INDEX_NAME)) {
               try {
                 objectStore.deleteIndex(Db.TIME_INDEX_NAME);
                 createIndex();
               } catch (e) {
                 this.setInitError(e);
+                return;
               }
             } else {
-              this.setInitError(createError);
+              this.setInitError(e);
+              return;
             }
           }
         },
@@ -181,24 +171,14 @@ export class LastServersDB {
     return !success;
   }
 
-  private readonly __dbErrorHandler = preventDefault(
-    (event: any) => console.warn(`Unhandled ${Db.LOG_CLUE}.IDBDatabase.error event`, { event }),
-  );
+  private readonly __dbErrorHandler = preventDefault((event: any) => console.warn(`Unhandled ${Db.LOG_CLUE}.IDBDatabase.error event`, { event }));
+  private readonly __dbAbortHandler = preventDefault((event: any) => console.warn(`Unhandled ${Db.LOG_CLUE}.IDBDatabase.abort event`, { event }));
+  private readonly __dbCloseHandler = preventDefault((event: any) => this.setInitError(new Error(`${Db.LOG_CLUE} was closed`)));
+  private readonly __dbVersionChangeHandler = preventDefault((event: any) => this.setInitError(new Error(`${Db.LOG_CLUE} version changed elsewhere`)));
 
-  private readonly __dbAbortHandler = preventDefault(
-    (event: any) => console.warn(`Unhandled ${Db.LOG_CLUE}.IDBDatabase.abort event`, { event }),
-  );
+  private async performUpgrades() {
 
-  private readonly __dbCloseHandler = preventDefault(
-    () => this.setInitError(new Error(`${Db.LOG_CLUE} was closed`)),
-  );
-
-  private readonly __dbVersionChangeHandler = preventDefault(
-    () => this.setInitError(new Error(`${Db.LOG_CLUE} version changed elsewhere`)),
-  );
-
-  // eslint-disable-next-line no-empty-function
-  private async performUpgrades() {}
+  }
 }
 
 namespace Db {

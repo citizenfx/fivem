@@ -1,51 +1,48 @@
-import { identity } from '@cfx-dev/ui-components';
+import React from 'react';
+import { identity } from './functional';
 import * as DomHandler from 'domhandler';
 import HRP, { Element, HTMLReactParserOptions } from 'html-react-parser';
-import React from 'react';
 
 const VERY_FAKE_DOMAIN = 'xn--80abujr4d.xn--90agu3en';
 
 export interface Ihtml2reactOptions {
-  removeRelativeLinks?: boolean;
+  removeRelativeLinks?: boolean,
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let PARSING_OPTIONS: Ihtml2reactOptions = {};
 
-const ATTRIBUTE_MAPPER = new Map(
-  Object.entries({
-    class: identity,
-    title: identity,
-    alt: identity,
-    src(src: string, node: DomHandler.Element) {
-      if (node.tagName === 'img') {
-        return src;
-      }
+const ATTRIBUTE_MAPPER = new Map(Object.entries({
+  'class': identity,
+  title: identity,
+  alt: identity,
+  src(src: string, node: DomHandler.Element) {
+    if (node.tagName === 'img') {
+      return src;
+    }
 
-      return '';
-    },
-    href(href: string): string {
-      try {
-        const url = new URL(href, `https://${VERY_FAKE_DOMAIN}`);
+    return '';
+  },
+  href(href: string): string {
+    try {
+      const url = new URL(href, `https://${VERY_FAKE_DOMAIN}`);
 
-        if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-          return '';
-        }
-
-        if (url.host === VERY_FAKE_DOMAIN) {
-          return '';
-        }
-
-        return href;
-      } catch (e) {
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
         return '';
       }
-    },
-    style(style: string) {
-      return style.replace('url', '');
-    },
-  }),
-);
+
+      if (url.host === VERY_FAKE_DOMAIN) {
+        return '';
+      }
+
+      return href;
+    } catch (e) {
+      return '';
+    }
+  },
+  style(style: string) {
+    return style.replace('url', '');
+  },
+}));
 
 const ALLOWED_TAGS = [
   'DIV',
@@ -80,10 +77,7 @@ const HRPOptions: HTMLReactParserOptions = {
       const uctagName = node.tagName.toUpperCase();
 
       if (!ALLOWED_TAGS.includes(uctagName)) {
-        return (
-          // eslint-disable-next-line react/jsx-no-useless-fragment
-          <></>
-        );
+        return <></>;
       }
     }
 
@@ -92,13 +86,11 @@ const HRPOptions: HTMLReactParserOptions = {
 
       for (const [attrName, attrMapper] of ATTRIBUTE_MAPPER) {
         const attrValue = node.attribs[attrName];
-
         if (!attrValue) {
           continue;
         }
 
         const mappedAttrValue = attrMapper(attrValue, node);
-
         if (mappedAttrValue) {
           newAttribs[attrName] = mappedAttrValue;
         }

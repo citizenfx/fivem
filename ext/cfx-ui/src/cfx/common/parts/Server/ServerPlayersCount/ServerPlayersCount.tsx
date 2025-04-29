@@ -1,16 +1,12 @@
-import { Symbols } from '@cfx-dev/ui-components';
-import React from 'react';
-
-import { IServerView } from 'cfx/common/services/servers/types';
+import React from "react";
+import { IServerView } from "cfx/common/services/servers/types";
+import { Symbols } from "cfx/ui/Symbols";
 
 export interface ServerPlayersCountProps {
-  server: IServerView;
+  server: IServerView,
 }
 
-export const ServerPlayersCount = React.forwardRef(function ServerPlayersCount(
-  props: ServerPlayersCountProps,
-  ref: React.Ref<HTMLSpanElement>,
-) {
+export const ServerPlayersCount = React.forwardRef((props: ServerPlayersCountProps, ref: React.Ref<HTMLSpanElement>) => {
   const {
     server,
   } = props;
@@ -21,6 +17,7 @@ export const ServerPlayersCount = React.forwardRef(function ServerPlayersCount(
     </span>
   );
 });
+
 
 function dashOrNumber(num: number | undefined): string | number {
   if (typeof num === 'undefined') {

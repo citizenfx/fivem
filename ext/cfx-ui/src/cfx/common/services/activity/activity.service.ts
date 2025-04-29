@@ -1,13 +1,11 @@
-import { injectable } from 'inversify';
-import { makeAutoObservable, observable } from 'mobx';
-
-import { defineService, ServicesContainer, useService } from 'cfx/base/servicesContainer';
-import { fetcher } from 'cfx/utils/fetcher';
-
-import { ActiveActivityPubFeed } from './ActiveActivityPubFeed';
-import { compileActivityItem } from './compilers';
-import { rawTweetToActivityDataItem } from './twitter';
-import { IActivityItem, IRawTweet } from './types';
+import { defineService, ServicesContainer, useService } from "cfx/base/servicesContainer";
+import { fetcher } from "cfx/utils/fetcher";
+import { injectable } from "inversify";
+import { makeAutoObservable, observable } from "mobx";
+import { ActiveActivityPubFeed } from "./ActiveActivityPubFeed";
+import { compileActivityItem } from "./compilers";
+import { rawTweetToActivityDataItem } from "./twitter";
+import { IActivityItem, IRawTweet } from "./types";
 
 export const IActivityService = defineService<IActivityService>('ActivityService');
 export type IActivityService = ActivityService;
@@ -47,9 +45,9 @@ class ActivityService {
 
   public getActiveActivityPubFeed(pub: string): ActiveActivityPubFeed {
     if (!this.activeActivityPubFeeds[pub]) {
-      this.activeActivityPubFeeds[pub] = new ActiveActivityPubFeed(pub);
+      const feed = this.activeActivityPubFeeds[pub] = new ActiveActivityPubFeed(pub);
 
-      this.activeActivityPubFeeds[pub].init();
+      feed.init();
     }
 
     return this.activeActivityPubFeeds[pub];
@@ -61,7 +59,6 @@ class ActivityService {
 
       if (!Array.isArray(tweets)) {
         console.warn('Expected array of tweets, got', typeof tweets, 'from https://runtime.fivem.net/tweets.json');
-
         return;
       }
 
@@ -82,7 +79,6 @@ class ActivityService {
       }
 
       const dataItem = rawTweetToActivityDataItem(tweet);
-
       if (!dataItem) {
         continue;
       }

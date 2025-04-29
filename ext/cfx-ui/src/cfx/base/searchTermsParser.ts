@@ -1,28 +1,35 @@
-import { validLocales, languageMap, countryMap } from 'cfx/common/services/intl/resources/cldr';
+import { validLocales, languageMap, countryMap } from "cfx/common/services/intl/resources/cldr";
 
-type BaseSearchTerm<Type extends string, Extra extends object = object> = {
-  type: Type;
-  source: string;
-  value: string;
-  invert: boolean;
-  offset: number;
-  regexp: boolean;
+type BaseSearchTerm<Type extends string, Extra extends {} = {}> = {
+  type: Type,
+  source: string,
+  value: string,
+  invert: boolean,
+  offset: number,
+  regexp: boolean,
 } & Extra;
 
 export type IAddressSearchTerm = BaseSearchTerm<'address'>;
 export type ILocaleSearchTerm = BaseSearchTerm<'locale'>;
-export type INameSearchTerm = BaseSearchTerm<'name', { matchLocale?: { at: 'start' | 'end'; with: string } }>;
+export type INameSearchTerm = BaseSearchTerm<'name', { matchLocale?: { at: 'start' | 'end', with: string } }>;
 export type ICategorySearchTerm = BaseSearchTerm<'category', { category: string }>;
 
-export type ISearchTerm = IAddressSearchTerm | ILocaleSearchTerm | INameSearchTerm | ICategorySearchTerm;
+export type ISearchTerm =
+  | IAddressSearchTerm
+  | ILocaleSearchTerm
+  | INameSearchTerm
+  | ICategorySearchTerm
 
 // const reRe = /^\/(.+)\/$/;
 // const searchRe = /((?:~?\/.*?\/)|(?:[^\s]+))\s?/g;
 // const categoryRe = /^([^:]*?):(.*)$/;
 
 function encodeTermBit(bit: string): string {
-  // eslint-disable-next-line @stylistic/quotes
-  const encoded = bit.replace('"', '\\"').replace("'", "\\'").replace('`', '\\`').replace('~', '\\~');
+  const encoded = bit
+    .replace('"', '\\"')
+    .replace("'", "\\'")
+    .replace('`', '\\`')
+    .replace('~', '\\~');
 
   if (encoded.includes(' ')) {
     return `"${encoded}"`;
@@ -38,7 +45,7 @@ export function searchTermToString(term: ISearchTerm): string {
   }
 
   if (term.type === 'category') {
-    str += `${encodeTermBit(term.category)}:`;
+    str += encodeTermBit(term.category) + ':';
   }
 
   if (term.regexp) {
@@ -90,14 +97,12 @@ export function parseSearchTerms2(searchTerms: string): ISearchTerm[] {
     // Something very empty - ignore
     if (!term.source.trim()) {
       term = emptyTerm(newTermPtr);
-
       return;
     }
 
     // Validate if actual regexp
     if (term.regexp) {
       try {
-        // eslint-disable-next-line no-new
         new RegExp(term.value, 'i');
       } catch (e) {
         term.regexp = false;
@@ -109,7 +114,6 @@ export function parseSearchTerms2(searchTerms: string): ISearchTerm[] {
       // Too short of a term - ignore
       if (term.source.length === 1) {
         term = emptyTerm(newTermPtr);
-
         return;
       }
 
@@ -235,7 +239,7 @@ export function parseSearchTerms2(searchTerms: string): ISearchTerm[] {
 }
 const quotationChar = {
   '"': true,
-  '\'': true,
+  "'": true,
   '`': true,
   '/': true,
 };
@@ -256,12 +260,11 @@ function emptyTerm(offset: number): ISearchTerm {
   };
 }
 
+
 function quoteRe(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 try {
   (window as any).__parseSearchTerms = parseSearchTerms2;
-} catch (e) {
-  // Do nothing
-}
+} catch (e) {}

@@ -201,10 +201,10 @@ bool ComponentInstance::DoGameLoad(void* module)
 							if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0)
 							{
 								bad = true;
-								trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+								trace("Skipping blacklisted ASI %s - this plugin is not compatible with VNGta.\n", it->path().filename().string());
 								if (*itt == L"openiv.asi")
 								{
-									FatalError("You cannot use OpenIV with FiveM. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with FiveM.");
+									FatalError("You cannot use OpenIV with VNGta. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with VNGta.");
 								}
 							}
 						}
@@ -214,7 +214,7 @@ bool ComponentInstance::DoGameLoad(void* module)
 					{
 						if (IsCLRAssembly(libraryBuffer))
 						{
-							trace("Skipping blacklisted CLR assembly %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+							trace("Skipping blacklisted CLR assembly %s - this plugin is not compatible with VNGta.\n", it->path().filename().string());
 
 							bad = true;
 						}
@@ -235,7 +235,7 @@ bool ComponentInstance::DoGameLoad(void* module)
 							auto timeStamp = ntHeader->FileHeader.TimeDateStamp;
 							if (timeStamp != 0 && timeStamp <= 0x605FC73B)
 							{
-								MessageBoxW(NULL, L"This version of the manual transmission plugin ('Gears.asi') is outdated and no longer works with FiveM. Please update this plugin to a newer version or delete it.", L"FiveM", MB_OK | MB_ICONSTOP);
+								MessageBoxW(NULL, L"This version of the manual transmission plugin ('Gears.asi') is outdated and no longer works with VNGta. Please update this plugin to a newer version or delete it.", L"VNGta", MB_OK | MB_ICONSTOP);
 
 								bad = true;
 							}

@@ -1,0 +1,53 @@
+.app-layout {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.ungdung {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  right: 1vh;
+  // Thay đổi từ height: 100% thành auto và bỏ justify-content: center
+  height: auto;
+  align-self: center;
+  margin: auto 0;
+  gap: 1vh;
+  z-index: 99999999999;
+  top: 50%;
+  transform: translate(0, -50%);
+  
+  // Thêm thanh màu xanh lá với chiều cao tự động theo nội dung
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 100%;
+    width: 0.5vh;
+    height: 100%; // Chiều cao sẽ tự động theo chiều cao của .ungdung
+    background-color: #4e067a; // Màu xanh lá
+    z-index: -1;
+  }
+}
+
+.ungdung a {
+  padding: 2.56vh !important;
+}
+.ungdung button {
+  padding: 2.56vh !important;
+  border-color: transparent !important;
+  background-color: transparent !important;
+}
+
+.ungdung button:hover {
+
+  border-color: red !important;
+  background-color: var(--color-button-hover-background) !important;
+}
+
+.discordZ img, .website img{
+  width: 4vh;
+  height: 4vh;
+
+}

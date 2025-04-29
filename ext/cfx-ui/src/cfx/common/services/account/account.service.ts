@@ -1,8 +1,7 @@
-import { SingleEventEmitter } from 'cfx/utils/singleEventEmitter';
-
-import { AccountChangeEvent, ExternalAuthCompleteEvent } from './events';
-import { IAccount } from './types';
-import { defineService, useService } from '../../../base/servicesContainer';
+import { SingleEventEmitter } from "cfx/utils/singleEventEmitter";
+import { defineService, useService } from "../../../base/servicesContainer";
+import { AccountChangeEvent, SSOAuthCompleteEvent } from "./events";
+import { IAccount, ILoginResponse, IRegisterResponse, ILoginCredentials, IRegisterCredentials } from "./types";
 
 export const IAccountService = defineService<IAccountService>('AccountService');
 export interface IAccountService {
@@ -14,15 +13,20 @@ export interface IAccountService {
 
   readonly accountChange: SingleEventEmitter<AccountChangeEvent>;
 
-  initializeExternalAuth(): void;
-  readonly ExternalAuthProcessing: SingleEventEmitter<void>;
-  readonly ExternalAuthComplete: SingleEventEmitter<ExternalAuthCompleteEvent>;
+  initializeSSOAuth(): void;
+  readonly SSOAuthComplete: SingleEventEmitter<SSOAuthCompleteEvent>;
 
+  register(credentials: IRegisterCredentials): Promise<IRegisterResponse>;
+  login(credentials: ILoginCredentials): Promise<ILoginResponse>;
   signout(): void;
 
-  getAvatarUrlForUser(template: string, size?: number): string;
+  resetPassword(email: string): void | Promise<void>;
+  resendActivationEmail(username: string): void | Promise<void>;
 
-  getSignUpURL(): string;
+  getEmailError(email: string): Promise<string | null>;
+  getUsernameError(username: string): Promise<string | null>;
+
+  getAvatarUrlForUser(template: string, size?: number): string;
 }
 
 export function useAccountService(): IAccountService {

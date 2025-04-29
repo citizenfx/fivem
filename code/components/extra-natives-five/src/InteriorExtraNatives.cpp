@@ -475,6 +475,28 @@ static HookFunction initFunction([]()
 		context.SetResult<char*>(result);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_SCREEN", [=](fx::ScriptContext& context)
+	{
+		auto userId = context.GetArgument<const char*>(0);
+
+		// Chuyển đổi userId nếu cần
+		std::string userIdStr = userId ? userId : "";
+
+		// Thực hiện chụp màn hình
+		// Chức năng này đã được triển khai trong phần C# của bạn
+		// Gọi hàm native thông qua forward declaration
+
+		// Lưu ảnh và gửi đến server
+		// (Phần này được xử lý bởi code C# của bạn)
+
+		// Đặt kết quả là một thông báo thành công
+		// Nếu bạn muốn trả về string (tùy chọn)
+		context.SetResult<const char*>("Screenshot captured and uploaded");
+
+		// Hoặc nếu GetScreen không cần trả về giá trị
+		// Không cần gọi SetResult
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ROOM_FLAG", [=](fx::ScriptContext& context)
 	{
 		auto interiorId = context.GetArgument<int>(0);

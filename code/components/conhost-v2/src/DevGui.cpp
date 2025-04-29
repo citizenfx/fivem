@@ -246,19 +246,8 @@ static InitFunction initFunction([]()
 		node->commandOrConVar = convarName;
 	});
 
-#ifndef IS_FXSERVER
-	static ConVar<std::string> uiConnectHost("uiConnectHost", ConVar_Archive, "");
-
-	static ConsoleCommand uiConnect("uiConnect", []()
-	{
-		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{
-		"connect", uiConnectHost.GetValue() });
-	});
-
-	console::GetDefaultContext()->AddToBuffer(R"(
-devgui_convar "Overlays/Draw FPS" cl_drawFPS
+/*
 devgui_convar "Overlays/NetGraph" netgraph
-
 devgui_cmd "Launch/SP/Story Mode" "storymode"
 devgui_cmd "Launch/SP/GTA5" "loadlevel gta5"
 devgui_cmd "Launch/SP/RDR3" "loadlevel rdr3"
@@ -270,19 +259,36 @@ devgui_cmd "Launch/MP/Disconnect" "disconnect"
 devgui_cmd "Launch/Quit" "quit"
 devgui_cmd "Quit/Quit" "quit"
 
+devgui_convar "Tools/Windowed Console" con_winConsole
+
+*/
+
+#ifndef IS_FXSERVER
+	static ConVar<std::string> uiConnectHost("uiConnectHost", ConVar_Archive, "");
+
+	static ConsoleCommand uiConnect("uiConnect", []()
+	{
+		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{
+		"connect", uiConnectHost.GetValue() });
+	});
+
+	console::GetDefaultContext()->AddToBuffer(R"(
+devgui_convar "Hiển thị/Hiện FPS" cl_drawFPS
+
+
+
 devgui_cmd "Tools/Performance/Profiler/Start Recording - 5 frames" "profiler record 5"
 devgui_cmd "Tools/Performance/Profiler/View Last Recording" "profiler view"
-devgui_convar "Tools/Windowed Console" con_winConsole
 
 set "game_mute" "profile_sfxVolume 0; profile_musicVolumeInMp 0; profile_musicVolume 0"
 set "game_unmute" "profile_sfxVolume 25; profile_musicVolumeInMp 10; profile_musicVolume 10"
 
-devgui_convar "Game/SFX Volume" profile_sfxVolume
-devgui_cmd "Game/Mute" "vstr game_mute"
-devgui_cmd "Game/Unmute" "vstr game_unmute"
+devgui_convar "Game/Âm thanh" profile_sfxVolume
+devgui_cmd "Game/Tắt tiếng" "vstr game_mute"
+devgui_cmd "Game/Bật tiếng" "vstr game_unmute"
 
-devgui_convar "Overlays/Performance/Draw Performance" cl_drawPerf
-devgui_cmd    "Overlays/Performance/--------------------" "wait 1"
+devgui_convar "Hiển thị/Performance/Draw Performance" cl_drawPerf
+devgui_cmd    "Hiển thị/Performance/--------------------" "wait 1"
 )");
 
 	if (IsNonProduction())

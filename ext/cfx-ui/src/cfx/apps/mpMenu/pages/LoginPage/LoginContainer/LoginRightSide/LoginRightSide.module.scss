@@ -1,0 +1,38 @@
+$textColor: #bfff2d;
+
+.right-side {
+  width: 50%;
+  padding: 10px 20px;
+
+  .server-information {
+    // border: 1px solid rgb(255 255 255);
+    border-radius: 4px;
+    // padding: 10px;
+  }
+
+  .logo {
+    width: 100px;
+    border-radius: 5px;
+  }
+
+  .title {
+      color: $textColor !important;
+      margin-bottom: 10px;
+      font-size: 2vh !important;
+      font-weight: 600 !important;
+  }
+  .title2 {
+      color: $textColor !important;
+      margin-bottom: 10px;
+      font-size: 1.4vh !important;
+  }
+
+  .dateInputContainer {
+    margin-top: 5px;
+  }
+}
+
+.quenmatkhau {
+  color: '#4b76e8';
+  text-decoration: underline;
+}

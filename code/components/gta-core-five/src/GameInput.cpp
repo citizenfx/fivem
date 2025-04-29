@@ -1439,7 +1439,7 @@ static HookFunction hookFunction([]()
 		}
 	});
 
-	game::AddCustomText("PM_PANE_CFX", "FiveM");
+	game::AddCustomText("PM_PANE_CFX", "VNGta");
 
 	bindingManager.Initialize();
 

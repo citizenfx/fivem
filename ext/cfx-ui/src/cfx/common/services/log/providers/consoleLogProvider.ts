@@ -1,6 +1,5 @@
-import { injectable } from 'inversify';
-
-import { LogProvider } from '../logService.extensions';
+import { injectable } from "inversify";
+import { LogProvider } from "../logService.extensions";
 
 @injectable()
 export class ConsoleLogProvider implements LogProvider {

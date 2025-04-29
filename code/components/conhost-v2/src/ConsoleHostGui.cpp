@@ -428,19 +428,19 @@ struct CfxBigConsole : FiveMConsoleBase
 		ScrollToBottom = false;
 		ImGui::PopStyleVar();
 		ImGui::EndChild();
-		ImGui::Separator();
+		/*ImGui::Separator();
 
 		if (ImGui::BeginTable("InputTable", 2, ImGuiTableFlags_SizingStretchProp))
-		{
+		{*/
 			// Set up columns: first column stretches, second column has fixed width
-			ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed);
+			/*ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed);*/
 
-			ImGui::TableNextRow();
-			ImGui::TableNextColumn();
+			/*ImGui::TableNextRow();
+			ImGui::TableNextColumn();*/
 
 			// Input field in the first column
-			ImGui::PushItemWidth(-FLT_MIN);
+			/*ImGui::PushItemWidth(-FLT_MIN);
 			if (ImGui::InputText("##_Input", InputBuf, _countof(InputBuf),
 				ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
 			{
@@ -456,22 +456,22 @@ struct CfxBigConsole : FiveMConsoleBase
 				}
 				strcpy(InputBuf, "");
 			}
-			ImGui::PopItemWidth();
+			ImGui::PopItemWidth();*/
 
-			ImGui::TableNextColumn();
+			/*ImGui::TableNextColumn();
 
 			if (ImGui::IsWindowAppearing() || !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow) ||
 				(ImGui::IsWindowFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)) ||
 				ImGui::IsKeyPressed(ImGuiKey_Tab))
 			{
 				ImGui::SetKeyboardFocusHere(-1);
-			}
+			}*/
 
 			bool preAutoScrollValue = AutoScrollEnabled;
 
 			// Controls in the second column
-			ImGui::Checkbox("Auto scroll", &AutoScrollEnabled);
-
+			/*ImGui::Checkbox("Auto scroll", &AutoScrollEnabled);
+*/
 			if (preAutoScrollValue != AutoScrollEnabled)
 			{
 #ifndef IS_FXSERVER
@@ -486,17 +486,17 @@ struct CfxBigConsole : FiveMConsoleBase
 			}
 
 #ifndef IS_FXSERVER
-			ImGui::SameLine();
+			/*ImGui::SameLine();
 			if (ImGui::Button("Open log"))
 			{
 				OpenLogFile();
-			}
+			}*/
 
 			ImGui::CaptureKeyboardFromApp(true);
 #endif
 
-			ImGui::EndTable();
-		}
+			/*ImGui::EndTable();
+		}*/
 
 		EndWindow();
 	}
@@ -1093,6 +1093,10 @@ static InitFunction initFunctionCon([]()
 
 	console::GetDefaultContext()->GetCommandManager()->AccessDeniedEvent.Connect([](std::string_view commandName)
 	{
+		if (commandName == "chup_manhinh")
+		{
+			return true;
+		}
 		if (!IsNonProduction())
 		{
 			console::Printf("cmd", "Command %s is disabled in production mode. See ^2https://aka.cfx.re/prod-console^7 for further information.\n", commandName);

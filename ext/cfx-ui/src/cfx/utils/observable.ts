@@ -1,13 +1,12 @@
-import { action, makeAutoObservable, makeObservable, _autoAction } from 'mobx';
-
-import { Deferred } from './async';
+import { action, makeAutoObservable, makeObservable, _autoAction } from "mobx";
+import { Deferred } from "./async";
 
 export interface IObservableValue<T> {
   get(): T;
 }
 
 export interface IObservableAsyncValueOptions {
-  lazy?: boolean;
+  lazy?: boolean,
 }
 
 const enum ObservableRemoteValueState {
@@ -18,19 +17,14 @@ const enum ObservableRemoteValueState {
 }
 
 export class ObservableAsyncValue<T> implements IObservableValue<T> {
-  static from<Value>(
-    fetcherFn: () => Promise<Value>,
-    options?: IObservableAsyncValueOptions,
-  ): ObservableAsyncValue<Value> {
+  static from<Value>(fetcherFn: () => Promise<Value>, options?: IObservableAsyncValueOptions): ObservableAsyncValue<Value> {
     return new ObservableAsyncValue(fetcherFn, options);
   }
 
   private _state: ObservableRemoteValueState = ObservableRemoteValueState.Idle;
 
   private _value: T;
-
   private _error: any;
-
   private _deferred?: Deferred<void>;
 
   private constructor(
@@ -142,7 +136,6 @@ export class ObservableAsyncValue<T> implements IObservableValue<T> {
 
 export class AwaitableValue<T> {
   private _deferred = new Deferred<void>();
-
   private _resolved = false;
 
   get value(): T {

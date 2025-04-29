@@ -1,14 +1,12 @@
-import { makeAutoObservable, observable } from 'mobx';
-
-import { ServerListConfigController } from './ServerListConfigController';
-import { IPartialServerListConfig, IServersList } from './types';
-import { IServerListSource } from '../source/types';
+import { makeAutoObservable, observable } from "mobx";
+import { IServerListSource } from "../source/types";
+import { ServerListConfigController } from "./ServerListConfigController";
+import { IPartialServerListConfig, IServersList } from "./types";
 
 export class BaseConfigurableServersList implements IServersList {
   private initialized = false;
 
   private _config: ServerListConfigController;
-
   public getConfig(): ServerListConfigController {
     return this._config;
   }
@@ -22,11 +20,12 @@ export class BaseConfigurableServersList implements IServersList {
 
     return this._list;
   }
-  private set sequence(list: string[]) {
-    this._list = list;
-  }
+  private set sequence(list: string[]) { this._list = list }
 
-  constructor(config: IPartialServerListConfig, source: IServerListSource) {
+  constructor(
+    config: IPartialServerListConfig,
+    source: IServerListSource,
+  ) {
     makeAutoObservable(this, {
       // @ts-expect-error
       _source: false,
@@ -39,7 +38,7 @@ export class BaseConfigurableServersList implements IServersList {
 
     this._config = new ServerListConfigController({
       config,
-      onChange: (newConfig) => source.makeList(newConfig),
+      onChange: (config) => source.makeList(config),
     });
   }
 

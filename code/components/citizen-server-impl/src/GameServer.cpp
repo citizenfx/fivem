@@ -91,7 +91,7 @@ namespace fx
 #ifdef _WIN32
 		OnAbnormalTermination.Connect([this](void* reason)
 		{
-			auto realReason = fmt::sprintf("Server shutting down: %s", (const char*)reason);
+			auto realReason = fmt::sprintf("Server shutting downZ: %s", (const char*)reason);
 
 			m_clientRegistry->ForAllClients([this, realReason](const fx::ClientSharedPtr& client)
 			{
@@ -141,7 +141,7 @@ namespace fx
 		{
 			m_clientRegistry->ForAllClients([this, &reason](const fx::ClientSharedPtr& client)
 			{
-				DropClientWithReason(client, fx::serverDropResourceName, ClientDropReason::SERVER_SHUTDOWN, "Server shutting down: %s", reason);
+				DropClientWithReason(client, fx::serverDropResourceName, ClientDropReason::SERVER_SHUTDOWN, "Server shutting down:: %s", reason);
 			});
 		});
 

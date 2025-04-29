@@ -30,7 +30,9 @@
 #include <PoolSizesState.h>
 #include <CoreConsole.h>
 
+#include <CfxState.h>
 #include <CfxLocale.h>
+#include <CefOverlay.h>
 
 #include <json.hpp>
 
@@ -61,6 +63,9 @@ std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV2(INetLibraryInherit* b
 static uint32_t g_runFrameTicks[TIMEOUT_DATA_SIZE];
 static uint32_t g_receiveDataTicks[TIMEOUT_DATA_SIZE];
 static uint32_t g_sendDataTicks[TIMEOUT_DATA_SIZE];
+
+std::string GetTaiKhoanDiscord();
+
 
 static void AddTimeoutTick(uint32_t* timeoutList)
 {
@@ -385,7 +390,7 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 #if defined(GTA_FIVE) || defined(GTA_NY)
 				SetWindowText(CoreGetGameWindow(), va(
 #ifdef GTA_FIVE
-					L"FiveM® by Cfx.re"
+					L"VNGta® by Trương Vô Kỵ"
 #elif defined(GTA_NY)
 					L"LibertyM™ by Cfx.re"
 #endif
@@ -420,7 +425,7 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 					(strlen(cleaned) > 110) ? "..." : ""
 				));
 
-				richPresenceSetValue(1, "Connecting...");
+				richPresenceSetValue(1, "Đang kết nối...");
 			}
 
 			// until map reloading is in existence
@@ -466,7 +471,7 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 			{
 				const char* errorStr = &oob[6];
 				auto errText = std::string(errorStr, length - 6);
-				auto errHeading = "Disconnected by server";
+				auto errHeading = "Mất kết nối với máy chủ";
 
 				if (strstr(errorStr, "Timed out") != nullptr || strstr(errorStr, "timed out") != nullptr)
 				{
@@ -486,6 +491,7 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 						Instance<ICoreGameInit>::Get()->KillNetwork(ToWide(fmt::sprintf("Disconnected by server: %s", errText)).c_str());
 					});
 				}
+				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "discordIdZ", "data": "%s" })", GetTaiKhoanDiscord()));
 			}
 		}
 	}
@@ -866,6 +872,166 @@ void NetLibrary::OnConnectionError(const std::string& errorString, const std::st
 	OnConnectionErrorRichEvent(errorString, metaData);
 }
 
+#include <d3d9.h>
+#pragma comment(lib, "d3d9.lib")
+
+#include <winsock2.h>
+#include <iphlpapi.h>
+#include <stdio.h>
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "ws2_32.lib")
+
+// Hàm để lấy địa chỉ MAC của adapter mạng đầu tiên đang hoạt động
+std::string GetMACAddress()
+{
+	std::string result = "unknown";
+
+	// Khởi tạo Winsock
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+	{
+		trace("Lỗi khởi tạo Winsock\n");
+		return result;
+	}
+
+	// Cấp phát bộ nhớ cho thông tin adapter
+	PIP_ADAPTER_INFO pAdapterInfo;
+	ULONG ulOutBufLen = sizeof(IP_ADAPTER_INFO);
+	pAdapterInfo = (IP_ADAPTER_INFO*)malloc(ulOutBufLen);
+
+	// Lấy kích thước bộ nhớ cần thiết
+	if (GetAdaptersInfo(pAdapterInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW)
+	{
+		free(pAdapterInfo);
+		pAdapterInfo = (IP_ADAPTER_INFO*)malloc(ulOutBufLen);
+	}
+
+	// Lấy thông tin adapter
+	if (GetAdaptersInfo(pAdapterInfo, &ulOutBufLen) == NO_ERROR)
+	{
+		// Tìm adapter mạng đầu tiên đang hoạt động
+		PIP_ADAPTER_INFO pAdapter = pAdapterInfo;
+		while (pAdapter)
+		{
+			// Kiểm tra xem adapter có hoạt động không
+			if (pAdapter->Type == MIB_IF_TYPE_ETHERNET && pAdapter->AddressLength == 6)
+			{
+				// Tạo chuỗi địa chỉ MAC theo định dạng XX:XX:XX:XX:XX:XX
+				std::stringstream ss;
+				for (UINT i = 0; i < pAdapter->AddressLength; i++)
+				{
+					if (i > 0)
+						ss << ":";
+					ss << std::uppercase << std::hex << std::setfill('0')
+					   << std::setw(2) << static_cast<int>(pAdapter->Address[i]);
+				}
+				result = ss.str();
+				break;
+			}
+			pAdapter = pAdapter->Next;
+		}
+	}
+
+	// Giải phóng bộ nhớ và dọn dẹp
+	if (pAdapterInfo)
+	{
+		free(pAdapterInfo);
+	}
+
+	WSACleanup();
+	return result;
+}
+
+// Khai báo hàm Direct3DCreate9 nếu chưa có
+extern "C" {
+	IDirect3D9* Direct3DCreate9(UINT SDKVersion);
+}
+
+std::string GetGPUGuid()
+{
+	std::string result = "unknown";
+
+	// Tạo đối tượng Direct3D9
+	IDirect3D9* d9object = Direct3DCreate9(D3D_SDK_VERSION);
+	if (!d9object)
+	{
+		trace("Lỗi khi tạo Direct3D9 object\n");
+		return result;
+	}
+
+	// Lấy số lượng adapter (GPU)
+	unsigned int adapterCount = d9object->GetAdapterCount();
+	if (adapterCount == 0)
+	{
+		d9object->Release();
+		return result;
+	}
+
+	// Chỉ lấy thông tin của adapter đầu tiên (GPU chính)
+	D3DADAPTER_IDENTIFIER9 adapterIdentifier;
+	HRESULT hr = d9object->GetAdapterIdentifier(0, 0, &adapterIdentifier);
+
+	if (SUCCEEDED(hr))
+	{
+		// Chuyển đổi GUID thành chuỗi
+		std::stringstream ss;
+		const GUID& guid = adapterIdentifier.DeviceIdentifier;
+
+		// Format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+		ss << std::uppercase << std::hex
+		   << std::setfill('0') << std::setw(8) << guid.Data1 << "-"
+		   << std::setfill('0') << std::setw(4) << guid.Data2 << "-"
+		   << std::setfill('0') << std::setw(4) << guid.Data3 << "-"
+		   << std::setfill('0') << std::setw(2) << static_cast<int>(guid.Data4[0])
+		   << std::setfill('0') << std::setw(2) << static_cast<int>(guid.Data4[1]) << "-"
+		   << std::setfill('0') << std::setw(2) << static_cast<int>(guid.Data4[2])
+		   << std::setfill('0') << std::setw(2) << static_cast<int>(guid.Data4[3])
+		   << std::setfill('0') << std::setw(2) << static_cast<int>(guid.Data4[4])
+		   << std::setfill('0') << std::setw(2) << static_cast<int>(guid.Data4[5])
+		   << std::setfill('0') << std::setw(2) << static_cast<int>(guid.Data4[6])
+		   << std::setfill('0') << std::setw(2) << static_cast<int>(guid.Data4[7]);
+
+		result = ss.str();
+	}
+
+	// Giải phóng đối tượng Direct3D
+	d9object->Release();
+	return result;
+}
+
+// Hàm để lấy HDD HWID
+std::string GetHDDSerial()
+{
+	DWORD hdd_serial = 0;
+
+	// Lấy thông tin serial number của ổ đĩa C
+	if (GetVolumeInformationA("C://", NULL, NULL, &hdd_serial, NULL, NULL, NULL, NULL) == 0)
+	{
+		trace("Lỗi khi lấy thông tin ổ đĩa: %d\n", GetLastError());
+		return "unknown";
+	}
+
+	// Chuyển đổi DWORD sang string
+	std::stringstream ss;
+	ss << std::uppercase << std::hex << hdd_serial;
+	return ss.str();
+}
+
+std::string GetTaiKhoanDiscord()
+{
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	wchar_t buffer[256] = { 0 };
+	GetPrivateProfileString(L"Discord", L"UserId", L"", buffer, sizeof(buffer) / sizeof(wchar_t), fpath.c_str());
+	std::string discordId = ToNarrow(buffer);
+	if (discordId.empty())
+	{
+		discordId = "989509468398157834";
+		trace("không có ID lưu trữ %s\n", discordId);
+	}
+	trace("ĐỊNH DANH DISCORD THÀNH CÔNG %s \n", discordId);
+	return discordId;
+}
+
 // hack for NetLibraryImplV2
 int g_serverVersion;
 
@@ -883,10 +1049,11 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	if (!urlRef)
 	{
 		OnConnectionError(fmt::sprintf("Couldn't resolve URL %s.", ruRef), json::object({
-			{ "fault", "either" },
-			{ "status", true },
-			{ "action", "#ErrorAction_TryAgainCheckStatus" },
-		}).dump());
+																						{ "fault", "either" },
+																						{ "status", true },
+																						{ "action", "#ErrorAction_TryAgainCheckStatus" },
+																						})
+																		   .dump());
 
 		co_return;
 	}
@@ -900,11 +1067,11 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	// late-initialize error state in ICoreGameInit
 	// this happens here so it only tries capturing if connection was attempted
-	static struct ErrorState 
+	static struct ErrorState
 	{
 		ErrorState(NetLibrary* lib)
 		{
-			Instance<ICoreGameInit>::Get()->OnTriggerError.Connect([=] (const std::string& errorMessage)
+			Instance<ICoreGameInit>::Get()->OnTriggerError.Connect([=](const std::string& errorMessage)
 			{
 				std::string richError = (lib->m_richError.empty()) ? "{}" : lib->m_richError;
 				lib->m_richError = "";
@@ -955,6 +1122,36 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	postMap["method"] = "initConnect";
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
+
+	postMap["discordId"] = GetTaiKhoanDiscord();
+
+	std::string userLoginZ;
+	if (Instance<ICoreGameInit>::Get()->GetData("userLogin", &userLoginZ))
+	{
+		postMap["userLogin"] = userLoginZ;
+		trace("ĐỊNH DANH userLogin THÀNH CÔNG %s \n", userLoginZ);
+	}
+	std::string citizenid;
+	if (Instance<ICoreGameInit>::Get()->GetData("citizenid", &citizenid))
+	{
+		postMap["citizenid"] = citizenid;
+		trace("ĐỊNH DANH citizenid THÀNH CÔNG %s \n", citizenid);
+	}
+
+	// Thêm HDD HWID vào postMap
+	std::string hdd_hwid = GetHDDSerial();
+	postMap["hwid_hdd"] = hdd_hwid;
+	trace("ĐỊNH DANH HDD HWID THÀNH CÔNG %s \n", hdd_hwid.c_str());
+
+	// Lấy và thêm GPU GUID vào postMap
+	std::string gpu_guid = GetGPUGuid();
+	postMap["gpu_guid"] = gpu_guid;
+	trace("ĐỊNH DANH GPU GUID THÀNH CÔNG %s \n", gpu_guid.c_str());
+
+	// Lấy địa chỉ MAC và thêm vào postMap
+	std::string mac_address = GetMACAddress();
+	postMap["mac_address"] = mac_address;
+	trace("ĐỊNH DANH MAC ADDRESS THÀNH CÔNG %s \n", mac_address.c_str());
 
 #if defined(IS_RDR3)
 	std::string gameName = "rdr3";
@@ -1186,7 +1383,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #if defined(IS_RDR3)
 				if (node["gamename"].is_null() || node["gamename"].get<std::string>() != "rdr3")
 				{
-					OnConnectionError("This server is not compatible with RedM, as it's for FiveM. Please join an actual RedM server instead.");
+					OnConnectionError("This server is not compatible with RedM, as it's for VNGta. Please join an actual RedM server instead.");
 					m_connectionState = CS_IDLE;
 					return true;
 				}
@@ -1444,20 +1641,23 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 											m_connectionState = CS_IDLE;
 										};
 
+
+										// quần áo
 										auto policySuccess = [this, maxClients]()
 										{
 											// add forced policies
-											if (maxClients <= 10)
-											{
-												// development/testing servers (<= 10 clients max - see ZAP defaults) get subdir_file_mapping granted
-												policies.insert("subdir_file_mapping");
-											}
-
+											//if (maxClients <= 10)
+											//{
+											//	// development/testing servers (<= 10 clients max - see ZAP defaults) get subdir_file_mapping granted
+											//	policies.insert("subdir_file_mapping");
+											//}
+											policies.insert("subdir_file_mapping");
 											// dev server
-											if (maxClients <= 8)
+											/*if (maxClients <= 8)
 											{
 												policies.insert("local_evaluation");
-											}
+											}*/
+											policies.insert("local_evaluation");
 
 											// format policy string and store it
 											std::stringstream policyStr;
@@ -1604,7 +1804,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 							});
 						};
 
-						auto blocklistResultHandler = [this, continueAfterAllowance](bool success, const char* data, size_t length)
+						/* auto blocklistResultHandler = [this, continueAfterAllowance](bool success, const char* data, size_t length)
 						{
 							if (success)
 							{
@@ -1620,7 +1820,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								{
 									if (!success)
 									{
-										OnConnectionError(fmt::sprintf("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr).c_str());
+										OnConnectionError(fmt::sprintf("This server has been blocked from the VNGta platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr).c_str());
 
 										m_connectionState = CS_IDLE;
 
@@ -1643,6 +1843,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blocklist/%s", address.GetHost()), options, blocklistResultHandler);
 
+						*/
+						continueAfterAllowance();
 						if (node.value("netlibVersion", 1) == 2)
 						{
 							std::unique_lock _(m_implMutex);
@@ -1677,7 +1879,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				epMap["method"] = "getEndpoints";
 				epMap["token"] = m_token;
 
-				OnConnectionProgress("Requesting server endpoints...", 0, 100, false);
+				OnConnectionProgress("Yêu cầu kết nối đến máy chủ...", 0, 100, false);
 
 				m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(epMap), [rawEndpoints, continueAfterEndpoints](bool success, const char* data, size_t size)
 				{
@@ -1711,7 +1913,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	performRequest = [=]()
 	{
-		OnConnectionProgress("Handshaking with server...", 0, 100, false);
+		OnConnectionProgress("Thiết lập kết nối với máy chủ...", 0, 100, false);
 
 		HttpRequestOptions options;
 		options.streamingCallback = handleAuthResultData;
@@ -1805,7 +2007,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	
 	auto initiateRequest = [=]()
 	{
-		OnConnectionProgress("Requesting server variables...", 0, 100, true);
+		OnConnectionProgress("Yêu cầu kết nối đến máy chủ...", 0, 100, true);
 
 		HttpRequestOptions options;
 		options.addRawBody = true;

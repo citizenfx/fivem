@@ -1,11 +1,10 @@
-import { injectable } from 'inversify';
-import { makeAutoObservable, observable } from 'mobx';
-import React from 'react';
-
-import { defineService, ServicesContainer } from 'cfx/base/servicesContainer';
-import { AppContribution, registerAppContribution } from 'cfx/common/services/app/app.extensions';
-import { fetcher } from 'cfx/utils/fetcher';
-import { html2react } from 'cfx/utils/html2react';
+import React from "react";
+import { injectable } from "inversify";
+import { html2react } from "cfx/utils/html2react";
+import { makeAutoObservable, observable } from "mobx";
+import { fetcher } from "cfx/utils/fetcher";
+import { defineService, ServicesContainer } from "cfx/base/servicesContainer";
+import { AppContribution, registerAppContribution } from "cfx/common/services/app/app.extensions";
 
 export const IChangelogService = defineService<IChangelogService>('ChangelogService');
 export type IChangelogService = ChangelogService;
@@ -22,7 +21,6 @@ const lastSeenVersionsLSKey = 'changelogVersions';
 @injectable()
 class ChangelogService implements AppContribution {
   private _versionsContent: Record<string, null | React.ReactNode> = {};
-
   private _versionsContentLoadRequested: Record<string, true> = {};
 
   private _versions: string[] = [];
@@ -34,15 +32,10 @@ class ChangelogService implements AppContribution {
   }
 
   private _versionsError: string | null = null;
-  public get versionsError(): string | null {
-    return this._versionsError;
-  }
-  private set versionsError(versionsError: string | null) {
-    this._versionsError = versionsError;
-  }
+  public get versionsError(): string | null { return this._versionsError }
+  private set versionsError(versionsError: string | null) { this._versionsError = versionsError }
 
   public selectedVersion = '';
-
   public get selectedVersionContent(): React.ReactNode | null {
     if (!this.selectedVersion) {
       return null;
@@ -61,13 +54,10 @@ class ChangelogService implements AppContribution {
       return 1;
     }
 
-    return this._versions.reduce((acc, version) => acc + (this._lastSeenVersions.has(version)
-      ? 0
-      : 1), 0);
+    return this._versions.reduce((acc, version) => acc + (this._lastSeenVersions.has(version) ? 0 : 1), 0);
   }
 
   private _lastSeenVersions: Set<string> = new Set();
-
   private _markedNewAsSeen = false;
 
   constructor() {
@@ -121,7 +111,6 @@ class ChangelogService implements AppContribution {
 
       if (!Array.isArray(versions)) {
         console.warn('Unexpected versions content', versions);
-
         return;
       }
 

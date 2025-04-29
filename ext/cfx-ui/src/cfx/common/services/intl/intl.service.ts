@@ -1,6 +1,5 @@
-import { defineService, useService } from 'cfx/base/servicesContainer';
-
-import { PluralKeys } from './types';
+import { defineService, useService } from "cfx/base/servicesContainer";
+import { PluralKeys } from "./types";
 
 export function useIntlService(): IIntlService {
   return useService(IIntlService);
@@ -15,7 +14,7 @@ export interface IIntlService {
   readonly localeCode: string;
   readonly localeTranslations: Record<string, Function>;
 
-  readonly localesOptions: { label: string; value: string }[];
+  readonly localesOptions: { label: string, value: string }[];
 
   readonly defaultDisplayNames: Intl.DisplayNames;
   readonly displayNames: Intl.DisplayNames;
@@ -25,6 +24,6 @@ export interface IIntlService {
 
   setLocale(locale: string): void;
 
-  translate(key: string, args?: Record<string, unknown>, fallbackString?: string): string;
+  translate(key: string, args?: Record<string, unknown>): string;
   translatePlural(count: number, keys: PluralKeys, args?: Record<string, unknown>): string;
 }

@@ -1,18 +1,10 @@
-import { shouldPrioritizePinnedServers } from 'cfx/base/serverUtils';
+import { shouldPrioritizePinnedServers, getPrioritizedServerName } from "cfx/base/serverUtils";
+import { IServerListConfig, ServerListSortDir, ServersListSortBy } from "../lists/types";
+import { IPinnedServersConfig } from "../types";
+import { IListableServerView } from "./types";
 
-import { IListableServerView } from './types';
-import { IServerListConfig, ServerListSortDir, ServersListSortBy } from '../lists/types';
-import { IPinnedServersConfig } from '../types';
-
-export function sortList(
-  servers: Record<string, IListableServerView>,
-  pinConfig: IPinnedServersConfig | null,
-  config: IServerListConfig,
-): string[] {
-  const {
-    sortBy,
-    sortDir,
-  } = config;
+export function sortList(servers: Record<string, IListableServerView>, pinConfig: IPinnedServersConfig | null, config: IServerListConfig): string[] {
+  const { sortBy, sortDir } = config;
 
   const sortByName = sortBy === ServersListSortBy.Name
     ? sortByProperty.bind(null, servers, 'sortableName', sortDir)
@@ -34,17 +26,29 @@ export function sortList(
 
   switch (sortBy) {
     case ServersListSortBy.Name: {
-      sorters.push(sortByName, sortByUpvotePower, sortByPlayers);
+      sorters.push(
+        sortByName,
+        sortByUpvotePower,
+        sortByPlayers,
+      );
       break;
     }
     case ServersListSortBy.Players: {
-      sorters.push(sortByPlayers, sortByUpvotePower, sortByName);
+      sorters.push(
+        sortByPlayers,
+        sortByUpvotePower,
+        sortByName,
+      );
       break;
     }
 
     case ServersListSortBy.Boosts:
     default: {
-      sorters.push(sortByUpvotePower, sortByPlayers, sortByName);
+      sorters.push(
+        sortByUpvotePower,
+        sortByPlayers,
+        sortByName,
+      );
       break;
     }
   }
@@ -61,9 +65,7 @@ export function sortList(
     // Make it stable by ID comparison
     if (a < b) {
       return -1;
-    }
-
-    if (a > b) {
+    } else if (a > b) {
       return 1;
     }
 
@@ -86,13 +88,7 @@ function sortByPinConfig(pinConfig: IPinnedServersConfig, a: string, b: string):
   return 1;
 }
 
-function sortByProperty(
-  servers: Record<string, IListableServerView>,
-  property: keyof IListableServerView,
-  dir: number,
-  a: string,
-  b: string,
-): number {
+function sortByProperty(servers: Record<string, IListableServerView>, property: keyof IListableServerView, dir: number, a: string, b: string): number {
   const aPropertyValue = servers[a][property] || 0;
   const bPropertyValue = servers[b][property] || 0;
 
@@ -105,4 +101,49 @@ function sortByProperty(
   }
 
   return -dir;
+}
+
+export const sortFilteredList = (servers: Record<string, IListableServerView>, sortedList: string[], config: IServerListConfig): string[] => {
+  const sorters: Array<(a: string, b: string) => number> = [];
+
+  const searchName = getPrioritizedServerName(config);
+
+  if (searchName) {
+    sorters.push(sortByServerName.bind(null, servers, searchName.value.toLowerCase()));
+  }
+
+  if (sorters.length === 0) {
+    return sortedList;
+  }
+
+  return sortedList.sort((a, b) => {
+    for (const sorter of sorters) {
+      const retval = sorter(a, b);
+
+      if (retval !== 0) {
+        return retval;
+      }
+    }
+
+    return 0;
+  });
+}
+
+function sortByServerName(servers: Record<string, IListableServerView>, searchName: string, a: string, b: string): number {
+  const aIndex = servers[a].sortableName.indexOf(searchName);
+  const bIndex = servers[b].sortableName.indexOf(searchName);
+
+  if (aIndex !== -1 && bIndex !== -1) {
+    return aIndex - bIndex;
+  }
+
+  if (aIndex !== -1) {
+    return -1;
+  }
+
+  if (bIndex !== -1) {
+    return 1;
+  }
+
+  return 0;
 }

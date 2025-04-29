@@ -332,6 +332,7 @@ static void HandleAuthPayload(const std::string& payloadStr)
 
 static std::string g_discourseClientId;
 static std::string g_discourseUserToken;
+static std::string g_discourseDiscordID;
 
 static std::string g_cardConnectionToken;
 
@@ -790,7 +791,7 @@ static InitFunction initFunction([] ()
 			{
 				if (!gameUnloaded)
 				{
-					netLibrary->OnConnectionProgress("Waiting for game to shut down...", 0, 100, true);
+					netLibrary->OnConnectionProgress("Vui lòng chờ giây lát để kết nối lại...", 0, 100, true);
 
 					finishConnectCb = cb;
 
@@ -1205,6 +1206,16 @@ static InitFunction initFunction([] ()
 
 			std::string newusername = ToNarrow(arg);
 			SetNickname(newusername);
+		}
+		else if (!_wcsicmp(type, L"setIndentify"))
+		{
+			std::string indentiZ = ToNarrow(arg);
+			Instance<ICoreGameInit>::Get()->SetData("userLogin", indentiZ);
+		}
+		else if (!_wcsicmp(type, L"setcitizenid"))
+		{
+			std::string citizenid = ToNarrow(arg);
+			Instance<ICoreGameInit>::Get()->SetData("citizenid", citizenid);
 		}
 		else if (!_wcsicmp(type, L"exit"))
 		{

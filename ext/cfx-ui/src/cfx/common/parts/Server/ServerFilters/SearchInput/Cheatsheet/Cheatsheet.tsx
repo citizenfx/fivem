@@ -1,35 +1,27 @@
-/* eslint-disable react/no-unescaped-entities */
-import {
-  Icons,
-  InfoPanel,
-  Interactive,
-  Flex,
-  Pad,
-  Scrollable,
-  Modal,
-  Symbols,
-  Text,
-  TextBlock,
-  Title,
-  ui,
-  clsx,
-} from '@cfx-dev/ui-components';
-import { observer } from 'mobx-react-lite';
-import React from 'react';
-import { BsExclamationTriangleFill } from 'react-icons/bs';
-
-import { useBoundingClientRect, useOpenFlag } from 'cfx/utils/hooks';
-
-import { SearchInputController } from '../SearchInputController';
-
+import { Icons } from "cfx/ui/Icons";
+import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
+import { Flex } from "cfx/ui/Layout/Flex/Flex";
+import { Pad } from "cfx/ui/Layout/Pad/Pad";
+import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
+import { Modal } from "cfx/ui/Modal/Modal";
+import { Symbols } from "cfx/ui/Symbols";
+import { Text, TextBlock } from "cfx/ui/Text/Text";
+import { Title } from "cfx/ui/Title/Title";
+import { ui } from "cfx/ui/ui";
+import { clsx } from "cfx/utils/clsx";
+import { useBoundingClientRect, useOpenFlag } from "cfx/utils/hooks";
+import { observer } from "mobx-react-lite";
+import React from "react";
+import { BsExclamationTriangleFill } from "react-icons/bs";
+import { SearchInputController } from "../SearchInputController";
 import s from './Cheatsheet.module.scss';
 
 const SHOW_TIPS_TIMEOUT = 500;
 const HIDE_TIPS_TIMEOUT = 1000;
 
 export interface CheatsheetProps {
-  controller: SearchInputController;
-  inputRef: React.RefObject<HTMLDivElement>;
+  controller: SearchInputController,
+  inputRef: React.RefObject<HTMLDivElement>,
 }
 
 function useTipsShown(controller: SearchInputController): boolean {
@@ -40,7 +32,6 @@ function useTipsShown(controller: SearchInputController): boolean {
     if (timerRef.current !== null) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
-
       return;
     }
 
@@ -115,9 +106,9 @@ export const Cheatsheet = observer(function Cheatsheet(props: CheatsheetProps) {
         </Flex>
 
         <Flex alignToEnd className={ui.cls.flexGrow}>
-          <Interactive className={s.cheatsheetLink} onClick={openCs}>
+          <a onClick={openCs}>
             Cheat sheet
-          </Interactive>
+          </a>
         </Flex>
       </div>
 
@@ -129,7 +120,7 @@ export const Cheatsheet = observer(function Cheatsheet(props: CheatsheetProps) {
 });
 
 interface CheatsheetModalProps {
-  onClose(): void;
+  onClose(): void,
 }
 function CheatsheetModal(props: CheatsheetModalProps) {
   const {
@@ -156,7 +147,9 @@ function CheatsheetModal(props: CheatsheetModalProps) {
                 <kbd>en</kbd>
               </div>
 
-              <div>Quick locale filter, two letters of locale</div>
+              <div>
+                Quick locale filter, two letters of locale
+              </div>
             </Flex>
 
             <Flex>
@@ -165,7 +158,9 @@ function CheatsheetModal(props: CheatsheetModalProps) {
               </div>
 
               <Flex vertical gap="small">
-                <span>Matches server's name and description</span>
+                <span>
+                  Matches server's name and description
+                </span>
 
                 <TextBlock size="small" opacity="50">
                   For terms including space use quotes: <kbd>"role play"</kbd>
@@ -175,13 +170,13 @@ function CheatsheetModal(props: CheatsheetModalProps) {
 
             <Flex>
               <div>
-                <kbd>
-                  tag:<em>value</em>
-                </kbd>
+                <kbd>tag:<em>value</em></kbd>
               </div>
 
               <Flex vertical gap="small">
-                <span>Server tags filter</span>
+                <span>
+                  Server tags filter
+                </span>
 
                 <TextBlock size="small" opacity="50">
                   Servers with zombie tag: <kbd>tag:zombie</kbd>
@@ -191,9 +186,7 @@ function CheatsheetModal(props: CheatsheetModalProps) {
 
             <Flex>
               <div>
-                <kbd>
-                  var:<em>value</em>
-                </kbd>
+                <kbd>var:<em>value</em></kbd>
               </div>
 
               <Flex vertical gap="small">
@@ -209,13 +202,13 @@ function CheatsheetModal(props: CheatsheetModalProps) {
 
             <Flex>
               <div>
-                <kbd>
-                  locale:<em>value</em>
-                </kbd>
+                <kbd>locale:<em>value</em></kbd>
               </div>
 
               <Flex vertical gap="small">
-                <span>Full locale qualifier filter</span>
+                <span>
+                  Full locale qualifier filter
+                </span>
 
                 <TextBlock size="small" opacity="50">
                   Servers with US english locale: <kbd>locale:en-US</kbd>
@@ -225,19 +218,16 @@ function CheatsheetModal(props: CheatsheetModalProps) {
 
             <Flex>
               <div>
-                <kbd>
-                  address:<em>value</em>
-                </kbd>
+                <kbd>address:<em>value</em></kbd>
               </div>
 
               <Flex vertical gap="small">
-                <span>Server address filter</span>
+                <span>
+                  Server address filter
+                </span>
 
                 <TextBlock size="small" opacity="50">
-                  Server address is the last part in join URL:{' '}
-                  <kbd>
-                    cfx.re/join/<strong>moonsc</strong>
-                  </kbd>
+                  Server address is the last part in join URL: <kbd>cfx.re/join/<strong>moonsc</strong></kbd>
                 </TextBlock>
               </Flex>
             </Flex>
@@ -285,7 +275,9 @@ function CheatsheetModal(props: CheatsheetModalProps) {
               </div>
 
               <Flex vertical gap="small">
-                <span>Exclude servers matching the following term</span>
+                <span>
+                  Exclude servers matching the following term
+                </span>
 
                 <TextBlock size="small" opacity="50">
                   To exclude servers with zombie tag: <kbd>~tag:zombie</kbd>
@@ -299,7 +291,9 @@ function CheatsheetModal(props: CheatsheetModalProps) {
               </div>
 
               <Flex vertical gap="small">
-                <span>Transforms input into Direct Connect server address input</span>
+                <span>
+                  Transforms input into Direct Connect server address input
+                </span>
 
                 <TextBlock size="small" opacity="50">
                   To connect to the local running server: <kbd>{'>'}127.0.0.1:30120</kbd>
@@ -312,18 +306,19 @@ function CheatsheetModal(props: CheatsheetModalProps) {
                 <Flex>
                   <BsExclamationTriangleFill />
 
-                  <div>Direct Connect qualifier can only be the very first character in the search input!</div>
+                  <div>
+                    Direct Connect qualifier can only be the very first character in the search input!
+                  </div>
                 </Flex>
 
                 <TextBlock size="small" opacity="75">
-                  Search input string like this will <strong>not</strong> work as expected:{' '}
-                  <kbd>freeroam {'>'}127.0.0.1:30120</kbd>
+                  Search input string like this will <strong>not</strong> work as expected: <kbd>freeroam {'>'}127.0.0.1:30120</kbd>
                 </TextBlock>
               </Flex>
             </InfoPanel>
           </Flex>
         </Pad>
       </Scrollable>
-    </Modal>
+    </Modal >
   );
 }

@@ -65,7 +65,7 @@ static std::wstring GetRootPath()
 	if (!appDataPath.empty())
 	{
 #ifdef GTA_FIVE
-		appDataPath += L"\\FiveM";
+		appDataPath += L"\\VNGta";
 #elif defined(IS_RDR3)
 		appDataPath += L"\\RedM";
 #else
@@ -101,18 +101,18 @@ static void CreateUninstallEntryIfNeeded()
 
 	setUninstallString(L"DisplayName", PRODUCT_NAME);
 	setUninstallString(L"DisplayIcon", filename + std::wstring(L",0"));
-	setUninstallString(L"HelpLink", L"https://cfx.re/");
+	setUninstallString(L"HelpLink", L"https://voky.com/");
 	setUninstallString(L"InstallLocation", GetRootPath());
-	setUninstallString(L"Publisher", L"Cfx.re");
+	setUninstallString(L"Publisher", L"Voky.com");
 	setUninstallString(L"UninstallString", fmt::sprintf(L"\"%s\" -uninstall app", filename));
-	setUninstallString(L"URLInfoAbout", L"https://cfx.re/");
+	setUninstallString(L"URLInfoAbout", L"https://voky.com/");
 	setUninstallDword(L"NoModify", 1);
 	setUninstallDword(L"NoRepair", 1);
 }
 
 void Install_Uninstall(const wchar_t* directory)
 {
-	// check if this is actually a FiveM directory we're trying to uninstall
+	// check if this is actually a VNGta directory we're trying to uninstall
 	if (GetFileAttributes(fmt::sprintf(L"%s\\%s", directory, PRODUCT_NAME L".app").c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 		return;
@@ -167,8 +167,8 @@ void Install_Uninstall(const wchar_t* directory)
 	addDelete(directory);
 	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L".lnk");
 	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L".lnk");
-	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" - Cfx.re Development Kit (FxDK).lnk");
-	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" - Cfx.re Development Kit (FxDK).lnk");
+	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" - Voky.com Development Kit (FxDK).lnk");
+	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" - Voky.com Development Kit (FxDK).lnk");
 
 	hr = ifo->PerformOperations();
 

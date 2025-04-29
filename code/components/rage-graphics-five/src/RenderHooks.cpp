@@ -1748,7 +1748,7 @@ static HWND WINAPI HookCreateWindowExW(_In_ DWORD dwExStyle, _In_opt_ LPCWSTR lp
 	static HostSharedData<CfxState> initState("CfxInitState");
 	HWND w;
 
-	const auto wndName = L"FiveM® by Cfx.re";
+	const auto wndName = L"VNGta® by Trương Vô Kỵ";
 
 	if (initState->isReverseGame)
 	{

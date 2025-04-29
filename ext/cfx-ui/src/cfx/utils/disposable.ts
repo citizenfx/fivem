@@ -2,7 +2,9 @@ export interface IDisposableObject {
   dispose?(): void | Promise<void>;
 }
 
-export type IDisposable = IDisposableObject | (() => any);
+export type IDisposable =
+  | IDisposableObject
+  | (() => any);
 
 export class Disposer {
   protected readonly container: IDisposable[] = [];
@@ -18,15 +20,13 @@ export class Disposer {
   }
 
   async dispose(): Promise<void> {
-    await Promise.all(
-      this.container.map((disposable) => {
-        if (typeof disposable === 'function') {
-          return disposable();
-        }
+    await Promise.all(this.container.map((disposable) => {
+      if (typeof disposable === 'function') {
+        return disposable();
+      }
 
-        return disposable.dispose?.();
-      }),
-    );
+      return disposable.dispose?.();
+    }));
   }
 
   empty(): boolean {
@@ -34,8 +34,8 @@ export class Disposer {
   }
 }
 
-export function disposableFromFunction(disposeArg: () => void): IDisposableObject {
-  return { dispose: disposeArg };
+export function disposableFromFunction(dispose: () => void): IDisposableObject {
+  return { dispose };
 }
 
 export function dispose(disposable: IDisposable | undefined) {

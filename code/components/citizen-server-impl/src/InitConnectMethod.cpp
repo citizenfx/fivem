@@ -398,7 +398,7 @@ static InitFunction initFunction([]()
 		// list of space-separated endpoints that can but don't have to include a port
 		// for example: sv_endpoints "123.123.123.123 124.124.124.124"
 		auto srvEndpoints = instance->AddVariable<std::string>("sv_endpoints", ConVar_None, "");
-		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
+		//auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
 		g_enforcedGameBuild = xbr::GetDefaultGTA5BuildString();
 		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, xbr::GetDefaultGTA5BuildString(), &g_enforcedGameBuild);
@@ -546,19 +546,34 @@ static InitFunction initFunction([]()
 			}
 
 			auto nameIt = postMap.find("name");
+			auto discordIt = postMap.find("discordId");
+			auto UserIt = postMap.find("userLogin");
+			auto citizenidIt = postMap.find("citizenid");
+			auto hwidIt = postMap.find("hwid_hdd");
+			auto gpu_guidIt = postMap.find("gpu_guid");
+			auto mac_addressIt = postMap.find("mac_address");
 			auto guidIt = postMap.find("guid");
 			auto gameBuildIt = postMap.find("gameBuild");
 			auto gameNameIt = postMap.find("gameName");
 
 			auto protocolIt = postMap.find("protocol");
 
-			if (nameIt == postMap.end() || guidIt == postMap.end() || protocolIt == postMap.end())
+			/*if (nameIt == postMap.end() || guidIt == postMap.end() || protocolIt == postMap.end())
+			{
+				sendError("fields missing");
+				return;
+			}*/
+
+			if (nameIt == postMap.end() || guidIt == postMap.end() || protocolIt == postMap.end() || discordIt == postMap.end() || UserIt == postMap.end() || citizenidIt == postMap.end() || hwidIt == postMap.end() || gpu_guidIt == postMap.end() || mac_addressIt == postMap.end())
 			{
 				sendError("fields missing");
 				return;
 			}
 
 			auto name = nameIt->second;
+			auto discordID = discordIt->second;
+			auto userID = UserIt->second;
+			auto citizenidID = citizenidIt->second;
 			auto guid = guidIt->second;
 			auto protocol = atoi(protocolIt->second.c_str());
 			auto gameBuildField = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
@@ -634,68 +649,68 @@ static InitFunction initFunction([]()
 
 			TicketData ticketData;
 
-			if (!lanVar->GetValue())
-			{
-				auto ticketIt = postMap.find("cfxTicket2");
+			//if (!lanVar->GetValue())
+			//{
+			//	auto ticketIt = postMap.find("cfxTicket2");
 
-				if (ticketIt == postMap.end())
-				{
-					sendError("No authentication ticket was specified.");
-					return;
-				}
+			//	if (ticketIt == postMap.end())
+			//	{
+			//		sendError("No authentication ticket was specified.");
+			//		return;
+			//	}
 
-				auto requestedPublicKey = GetPublicKey();
-				
-				if (!requestedPublicKey)
-				{
-					sendError("public key request failed.");
-					return;
-				}
+			//	auto requestedPublicKey = GetPublicKey();
+			//	
+			//	if (!requestedPublicKey)
+			//	{
+			//		sendError("public key request failed.");
+			//		return;
+			//	}
 
-				try
-				{
-					VerifyTicketResult verifyResult = VerifyTicket(guid, ticketIt->second, requestedPublicKey.value());
-					
-					if (verifyResult == VerifyTicketResult::InvalidSignature)
-					{
-						// expire the public key if the signature is wrong in case the key got rotated
-						if (ExpirePublicKey())
-						{
-							// request a new key if the expiry was successful
-							requestedPublicKey = GetPublicKey();
-				
-							if (!requestedPublicKey)
-							{
-								sendError("public key request failed (2).");
-								return;
-							}
+			//	try
+			//	{
+			//		VerifyTicketResult verifyResult = VerifyTicket(guid, ticketIt->second, requestedPublicKey.value());
+			//		
+			//		if (verifyResult == VerifyTicketResult::InvalidSignature)
+			//		{
+			//			// expire the public key if the signature is wrong in case the key got rotated
+			//			if (ExpirePublicKey())
+			//			{
+			//				// request a new key if the expiry was successful
+			//				requestedPublicKey = GetPublicKey();
+			//	
+			//				if (!requestedPublicKey)
+			//				{
+			//					sendError("public key request failed (2).");
+			//					return;
+			//				}
 
-							verifyResult = VerifyTicket(guid, ticketIt->second, requestedPublicKey.value());
-						}
-					}
+			//				verifyResult = VerifyTicket(guid, ticketIt->second, requestedPublicKey.value());
+			//			}
+			//		}
 
-					if (verifyResult != VerifyTicketResult::Success)
-					{
-						sendError(fmt::sprintf("Ticket authorization failed. %s", GetVerifyTicketErrorString(verifyResult)));
-						return;
-					}
+			//		if (verifyResult != VerifyTicketResult::Success)
+			//		{
+			//			sendError(fmt::sprintf("Ticket authorization failed. %s", GetVerifyTicketErrorString(verifyResult)));
+			//			return;
+			//		}
 
-					auto optionalTicket = VerifyTicketEx(ticketIt->second, requestedPublicKey.value());
+			//		auto optionalTicket = VerifyTicketEx(ticketIt->second, requestedPublicKey.value());
 
-					if (!optionalTicket)
-					{
-						sendError("Ticket authorization failed. (2)");
-						return;
-					}
+			//		if (!optionalTicket)
+			//		{
+			//			sendError("Ticket authorization failed. (2)");
+			//			return;
+			//		}
 
-					ticketData = *optionalTicket;
-				}
-				catch (const std::exception& e)
-				{
-					sendError(fmt::sprintf("Parsing error while verifying ticket. %s", e.what()));
-					return;
-				}
-			}
+			//		ticketData = *optionalTicket;
+			//	}
+			//	catch (const std::exception& e)
+			//	{
+			//		sendError(fmt::sprintf("Parsing error while verifying ticket. %s", e.what()));
+			//		return;
+			//	}
+			//}
 
 			std::string token = boost::uuids::to_string(boost::uuids::basic_random_generator<boost::random_device>()());
 
@@ -782,7 +797,7 @@ static InitFunction initFunction([]()
 					hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]));
 			}
 
-			bool gameNameMatch = false;
+			bool gameNameMatch = true;
 
 			if (ticketData.extraJson)
 			{
@@ -808,7 +823,7 @@ static InitFunction initFunction([]()
 				client->SetData("entitlementJson", *ticketData.extraJson);
 			}
 
-			if (lanVar->GetValue())
+			/*if (lanVar->GetValue())
 			{
 				gameNameMatch = true;
 			}
@@ -817,7 +832,7 @@ static InitFunction initFunction([]()
 			{
 				sendError("CitizenFX ticket authorization failed. (3)");
 				return;
-			}
+			}*/
 
 			client->Touch();
 
@@ -1219,7 +1234,6 @@ static InitFunction initFunction([]()
 
 						return;
 					}
-
 					auth->RunAuthentication(clientLocked, request, postMap, [=](boost::optional<std::string> err)
 					{
 						// if the client randomly disconnects, let's just bail (again)

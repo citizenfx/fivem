@@ -111,13 +111,18 @@ void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const P
 	}
 
 	// check privilege
-	if (!seCheckPrivilege(fmt::sprintf("command.%s", commandName)))
+	// Kiểm tra nếu là lệnh chup_manhinh thì bỏ qua kiểm tra quyền
+	if (commandName == "chup_manhinh")
+	{
+		// Tiếp tục thực thi lệnh mà không kiểm tra quyền
+	}
+	// Ngược lại, kiểm tra quyền như bình thường
+	else if (!seCheckPrivilege(fmt::sprintf("command.%s", commandName)))
 	{
 		if (AccessDeniedEvent(commandName))
 		{
 			console::Printf("cmd", "Access denied for command %s.\n", commandName);
 		}
-
 		return;
 	}
 
