@@ -11,7 +11,18 @@
             <PoolSizes>
               <Entries>
                 <!-- Keep these sorted -->
-
+				<Item>
+					<PoolName>CNetObjPlayer</PoolName>
+					<PoolSize value="64" /> <!-- TEMP: Game cannot allocate enough for 128 CNetObjPlayer currently -->
+				</Item>
+				<Item>
+					<PoolName>CNetViewPortWrapper</PoolName>
+					<PoolSize value="128" />
+				</Item>
+				<Item>
+					<PoolName>CPedPlayerComponent</PoolName>
+					<PoolSize value="128" />
+				</Item>
                 <Item>
                   <PoolName>AnimatedBuilding</PoolName>
                   <PoolSize value="25"/>

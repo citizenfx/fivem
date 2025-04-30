@@ -167,6 +167,11 @@ public:
 		}
 	}
 
+	virtual const std::map<int, rage::netObject*>& GetPlayerObjects(uint8_t playerId) override
+	{
+		return m_netObjects[playerId];
+	}
+
 	void HandleCloneSync(const char* data, size_t len) override;
 	void HandleCloneAcks(const char* data, size_t len) override;
 

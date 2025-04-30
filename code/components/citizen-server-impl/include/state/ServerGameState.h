@@ -8,7 +8,7 @@ static constexpr const size_t kGamePlayerCap =
 #ifdef STATE_FIVE
 128
 #elif defined(STATE_RDR3)
-32
+128
 #endif
 ;
 
