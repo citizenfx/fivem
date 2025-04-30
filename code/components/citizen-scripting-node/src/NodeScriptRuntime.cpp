@@ -45,6 +45,20 @@ static InitFunction initFunction([]()
 		g_scopeHandler.Initialize();
 	}
 
+	// trigger removing funcrefs on the *resource manager* so that it'll still happen when a runtime is destroyed
+	ResourceManager::OnInitializeInstance.Connect([](ResourceManager* manager)
+	{
+		manager->OnTick.Connect([]()
+		{
+			RefAndPersistent<NodeScriptRuntime>* deleteRef;
+
+			while (g_cleanUpFuncRefs.try_pop(reinterpret_cast<void*&>(deleteRef)))
+			{
+				delete deleteRef;
+			}
+		});
+	});
+
 	// initialize the parent node environment, should be done one time per process
 	result_t hr = g_nodeEnv.Initialize();
 	if (FX_FAILED(hr) || g_nodeEnv.IsStartNode())
@@ -166,6 +180,7 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 	{
 		// create a scope to hold handles we use here
 		SharedPushEnvironmentNoContext pushed(m_isolate);
+		fx::PushEnvironment fxenv(this);
 		
 		// create global state
 		v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_isolate);
@@ -254,8 +269,8 @@ result_t NodeScriptRuntime::Destroy()
 	node::EmitProcessBeforeExit(m_nodeEnvironment);
 	node::EmitProcessExit(m_nodeEnvironment);
 	node::Stop(m_nodeEnvironment);
-	node::FreeIsolateData(m_isolateData);
 	node::FreeEnvironment(m_nodeEnvironment);
+	node::FreeIsolateData(m_isolateData);
 
 	//uv_loop_close(m_uvLoop);
 	//delete m_uvLoop;

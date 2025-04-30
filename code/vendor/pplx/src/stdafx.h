@@ -19,7 +19,6 @@
 #pragma clang diagnostic ignored "-Winfinite-recursion"
 #endif
 
-#include "../include/pplx/compat.h"
 
 #ifdef _WIN32
 #ifdef CPPREST_TARGET_XP
@@ -50,7 +49,7 @@
 #include <winhttp.h>
 
 #endif // #if !defined(__cplusplus_winrt)
-#else // LINUX
+#else // LINUX or APPLE
 #define __STDC_LIMIT_MACROS
 #include <stdint.h>
 #include <cstdint>
@@ -60,6 +59,17 @@
 #include <atomic>
 #include <signal.h>
 #include "pthread.h"
+#if (defined(ANDROID) || defined(__ANDROID__))
+// Boost doesn't recognize libstdcpp on top of clang correctly
+#include "boost/config.hpp"
+#include "boost/config/stdlib/libstdcpp3.hpp"
+#undef BOOST_NO_CXX11_SMART_PTR
+#undef BOOST_NO_CXX11_NULLPTR
+#endif
+#include "boost/thread/mutex.hpp"
+#include "boost/thread/condition_variable.hpp"
+#include "boost/date_time/posix_time/posix_time_types.hpp"
+#include "boost/bind/bind.hpp"
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -76,11 +86,15 @@
 #include <exception>
 #include <assert.h>
 #include <streambuf>
+#include <atomic>
 #include <mutex>
 #include <array>
 #include <vector>
 #include <memory>
 #include <thread>
+#include <set>
+
+#include "pplx/pplxtasks.h"
 
 #if defined(max)
 #error: max macro defined -- make sure to #define NOMINMAX before including windows.h

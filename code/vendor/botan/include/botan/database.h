@@ -23,7 +23,21 @@ class BOTAN_PUBLIC_API(2,0) SQL_Database
       class BOTAN_PUBLIC_API(2,0) SQL_DB_Error final : public Exception
          {
          public:
-            explicit SQL_DB_Error(const std::string& what) : Exception("SQL database", what) {}
+            explicit SQL_DB_Error(const std::string& what) :
+               Exception("SQL database", what),
+               m_rc(0)
+               {}
+
+            SQL_DB_Error(const std::string& what, int rc) :
+               Exception("SQL database", what),
+               m_rc(rc)
+               {}
+
+            ErrorType error_type() const noexcept override { return Botan::ErrorType::DatabaseError; }
+
+            int error_code() const noexcept override { return m_rc; }
+         private:
+            int m_rc;
          };
 
       class BOTAN_PUBLIC_API(2,0) Statement
@@ -53,7 +67,7 @@ class BOTAN_PUBLIC_API(2,0) SQL_Database
             /* Maybe update */
             virtual bool step() = 0;
 
-            virtual ~Statement() = default;
+            virtual ~Statement() {}
          };
 
       /*
@@ -66,7 +80,7 @@ class BOTAN_PUBLIC_API(2,0) SQL_Database
 
       virtual void create_table(const std::string& table_schema) = 0;
 
-      virtual ~SQL_Database() = default;
+      virtual ~SQL_Database() {}
 };
 
 }

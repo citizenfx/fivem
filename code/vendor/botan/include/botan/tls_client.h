@@ -132,7 +132,7 @@ class BOTAN_PUBLIC_API(2,0) Client final : public Channel
       /**
       * @return network protocol as advertised by the TLS server, if server sent the ALPN extension
       */
-      const std::string& application_protocol() const { return m_application_protocol; }
+      std::string application_protocol() const override { return m_application_protocol; }
    private:
       void init(const Protocol_Version& protocol_version,
                 const std::vector<std::string>& next_protocols);
@@ -152,7 +152,8 @@ class BOTAN_PUBLIC_API(2,0) Client final : public Channel
       void process_handshake_msg(const Handshake_State* active_state,
                                  Handshake_State& pending_state,
                                  Handshake_Type type,
-                                 const std::vector<uint8_t>& contents) override;
+                                 const std::vector<uint8_t>& contents,
+                                 bool epoch0_restart) override;
 
       Handshake_State* new_handshake_state(Handshake_IO* io) override;
 

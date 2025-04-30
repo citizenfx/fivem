@@ -39,7 +39,7 @@ export const ServerBoostButton = observer(function ServerBoostButton(props: Serv
     return null;
   }
 
-  const isBoostedByUser = ServersBoostService?.currentBoost?.address === server.id;
+  const isBoostedByUser = ServersBoostService.currentBoost?.address === server.id;
 
   const title = isBoostedByUser
     ? $L('#Server_Boost_Title_Active')
@@ -72,7 +72,7 @@ export const ServerBoostButton = observer(function ServerBoostButton(props: Serv
     });
 
     ServersBoostService.boostServer(server.id);
-  }, [eventHandler, isBoostedByUser, ServersBoostService, server, textKey]);
+  }, [eventHandler, isBoostedByUser, ServersBoostService, server, textKey, elementPlacement]);
 
   if (!isServerBoostable(server)) {
     return null;
@@ -83,7 +83,7 @@ export const ServerBoostButton = observer(function ServerBoostButton(props: Serv
       <Button
         size={size}
         theme={theme}
-        icon={Icons.serverBoost}
+        icon={Icons.upArrow}
         text={$L(textKey)}
         onClick={stopPropagation(handleClick)}
         disabled={isBoostedByUser}

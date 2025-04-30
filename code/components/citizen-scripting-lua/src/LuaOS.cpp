@@ -47,7 +47,6 @@
 #endif
 
 
-
 /*
 ** {==================================================================
 ** High-Resolution Time Stamps
@@ -59,7 +58,7 @@
 #include <chrono>
 
 #if defined(_MSC_VER) && defined(_M_X64)
-  #include <intrin.h>
+#include <intrin.h>
 #elif defined(__GNUC__) && defined(__has_include) && __has_include(<x86intrin.h>)
   #include <x86intrin.h>
 #else
@@ -68,30 +67,30 @@
 
 #include "llimits.h"
 
-static int LuaOSDeltaTime(lua_State *L)
+static int LuaOSDeltaTime(lua_State* L)
 {
-  	const lua_Unsigned end = l_castS2U(luaL_checkinteger(L, 1));
-  	const lua_Unsigned start = l_castS2U(luaL_checkinteger(L, 2));
-  	lua_pushinteger(L, static_cast<lua_Integer>(start <= end ? (end - start) : (start - end)));
-  	return 1;
+	const lua_Unsigned end = l_castS2U(luaL_checkinteger(L, 1));
+	const lua_Unsigned start = l_castS2U(luaL_checkinteger(L, 2));
+	lua_pushinteger(L, static_cast<lua_Integer>(start <= end ? (end - start) : (start - end)));
+	return 1;
 }
 
-static int LuaOSMicroTime(lua_State *L)
+static int LuaOSMicroTime(lua_State* L)
 {
-  	namespace sc = std::chrono;
-  	auto since_epoch = sc::high_resolution_clock::now().time_since_epoch();
-  	auto micros = sc::duration_cast<sc::microseconds>(since_epoch);
-  	l_pushtime(L, micros.count());
-  	return 1;
+	namespace sc = std::chrono;
+	auto since_epoch = sc::high_resolution_clock::now().time_since_epoch();
+	auto micros = sc::duration_cast<sc::microseconds>(since_epoch);
+	l_pushtime(L, micros.count());
+	return 1;
 }
 
-static int LuaOSNanoTime(lua_State *L)
+static int LuaOSNanoTime(lua_State* L)
 {
-  	namespace sc = std::chrono;
-  	auto since_epoch = sc::high_resolution_clock::now().time_since_epoch();
-  	auto nanos = sc::duration_cast<sc::nanoseconds>(since_epoch);
-  	l_pushtime(L, nanos.count());
-  	return 1;
+	namespace sc = std::chrono;
+	auto since_epoch = sc::high_resolution_clock::now().time_since_epoch();
+	auto nanos = sc::duration_cast<sc::nanoseconds>(since_epoch);
+	l_pushtime(L, nanos.count());
+	return 1;
 }
 
 /*
@@ -99,22 +98,21 @@ static int LuaOSNanoTime(lua_State *L)
 ** time stamp: cycle references since last reset.
 */
 #if defined(LUA_SYS_RDTSC)
-static int LuaOSRdtsc(lua_State *L)
+static int LuaOSRdtsc(lua_State* L)
 {
-  	l_pushtime(L, __rdtsc());
-  	return 1;
+	l_pushtime(L, __rdtsc());
+	return 1;
 }
 
-static int LuaOSRdtscp(lua_State *L)
+static int LuaOSRdtscp(lua_State* L)
 {
-  	unsigned int aux;
-  	l_pushtime(L, __rdtscp(&aux));
-  	return 1;
+	unsigned int aux;
+	l_pushtime(L, __rdtscp(&aux));
+	return 1;
 }
 #endif
 
 /* }================================================================== */
-
 
 
 namespace
@@ -244,7 +242,7 @@ int LuaOSRemove(lua_State* L)
 		lua_pushboolean(L, true);
 		return 1;
 	}
-	
+
 	return returnErr(L, filenameString);
 }
 
@@ -273,7 +271,9 @@ int LuaOSRename(lua_State* L)
 	std::string fromName = fromNameString;
 	std::string toName = toNameString;
 
-	fwRefContainer<vfs::Device> fromDevice = !fromName.empty() && fromName[0] == '@' ? vfs::GetDevice(fromName) : nullptr;
+	fwRefContainer<vfs::Device> fromDevice = !fromName.empty() && fromName[0] == '@'
+		                                         ? vfs::GetDevice(fromName)
+		                                         : nullptr;
 	std::string fromPath = fromName;
 	if (!fromDevice.GetRef())
 	{
@@ -295,7 +295,8 @@ int LuaOSRename(lua_State* L)
 		}
 	}
 
-	if (fx::ScriptingFilesystemAllowWrite(fromPath) && fx::ScriptingFilesystemAllowWrite(toPath) && fromDevice->RenameFile(fromPath, toPath))
+	if (fx::ScriptingFilesystemAllowWrite(fromPath) && fx::ScriptingFilesystemAllowWrite(toPath) && fromDevice->
+		RenameFile(fromPath, toPath))
 	{
 		// success
 		lua_pushboolean(L, true);
@@ -325,7 +326,7 @@ int LuaOSGetEnv(lua_State* L)
 {
 	std::string envKey = luaL_checkstring(L, 1);
 	std::transform(envKey.begin(), envKey.end(), envKey.begin(),
-		[](unsigned char c){ return std::tolower(c); });
+	               [](unsigned char c) { return std::tolower(c); });
 	if (envKey == "os")
 	{
 #ifdef WIN32
@@ -391,45 +392,67 @@ int GetField(lua_State* L, const char* key, int d)
 const char* CheckTimeOption(lua_State* L, const char* conv, ptrdiff_t convlen, char* buff)
 {
 	const char* option = LUA_STRFTIMEOPTIONS;
-	int oplen = 1;  /* length of options being checked */
+	int oplen = 1; /* length of options being checked */
 	for (; *option != '\0' && oplen <= convlen; option += oplen)
 	{
 		/* next block? */
 		if (*option == '|')
 		{
-			oplen++;  /* will check options with next length (+1) */
+			oplen++; /* will check options with next length (+1) */
 		}
 		else if (memcmp(conv, option, oplen) == 0)
 		{
 			/* match? */
-			memcpy(buff, conv, oplen);  /* copy valid option to buffer */
+			memcpy(buff, conv, oplen); /* copy valid option to buffer */
 			buff[oplen] = '\0';
-			return conv + oplen;  /* return next item */
+			return conv + oplen; /* return next item */
 		}
 	}
 
 	luaL_argerror(L, 1, lua_pushfstring(L, "invalid conversion specifier '%%%s'", conv));
-	return conv;  /* to avoid warnings */
+	return conv; /* to avoid warnings */
 }
 
 int LuaOSDate(lua_State* L)
 {
 	size_t slen;
-	const char *s = luaL_optlstring(L, 1, "%c", &slen);
+	const char* s = luaL_optlstring(L, 1, "%c", &slen);
 	const time_t t = luaL_opt(L, l_checktime, 2, std::time(nullptr));
-	std::tm* stm;
+	std::tm stm;
+	std::tm* stm_ptr = nullptr;
+
 	if (*s == '!')
 	{
 		/* UTC? */
-		stm = std::gmtime(&t);
+#ifdef WIN32
+		if (gmtime_s(&stm, &t) == 0)
+		{
+			stm_ptr = &stm;
+		}
+#else
+		if (gmtime_r(&t, &stm) != nullptr)
+		{
+			stm_ptr = &stm;
+		}
+#endif
 		s++; /* skip '!' */
 	}
 	else
 	{
-		stm = std::localtime(&t);
+#ifdef WIN32
+		if (localtime_s(&stm, &t) == 0)
+		{
+			stm_ptr = &stm;
+		}
+#else
+		if (localtime_r(&t, &stm) != nullptr)
+		{
+			stm_ptr = &stm;
+		}
+#endif
 	}
 
-	if (stm == nullptr)
+	if (stm_ptr == nullptr)
 	{
 		/* invalid date? */
 		lua_pushnil(L);
@@ -440,23 +463,23 @@ int LuaOSDate(lua_State* L)
 	if (strcmp(s, "*t") == 0)
 	{
 		lua_createtable(L, 0, 9); /* 9 = number of fields */
-		SetField(L, "sec", stm->tm_sec);
-		SetField(L, "min", stm->tm_min);
-		SetField(L, "hour", stm->tm_hour);
-		SetField(L, "day", stm->tm_mday);
-		SetField(L, "month", stm->tm_mon + 1);
-		SetField(L, "year", stm->tm_year + 1900);
-		SetField(L, "wday", stm->tm_wday + 1);
-		SetField(L, "yday", stm->tm_yday + 1);
-		SetBoolField(L, "isdst", stm->tm_isdst);
+		SetField(L, "sec", stm_ptr->tm_sec);
+		SetField(L, "min", stm_ptr->tm_min);
+		SetField(L, "hour", stm_ptr->tm_hour);
+		SetField(L, "day", stm_ptr->tm_mday);
+		SetField(L, "month", stm_ptr->tm_mon + 1);
+		SetField(L, "year", stm_ptr->tm_year + 1900);
+		SetField(L, "wday", stm_ptr->tm_wday + 1);
+		SetField(L, "yday", stm_ptr->tm_yday + 1);
+		SetBoolField(L, "isdst", stm_ptr->tm_isdst);
 		return 1;
 	}
 
-	char cc[4] {};  /* buffer for individual conversion specifiers */
+	char cc[4]{}; /* buffer for individual conversion specifiers */
 	luaL_Buffer b;
 	cc[0] = '%';
 	luaL_buffinit(L, &b);
-	const char *se = s + slen;  /* 's' end */
+	const char* se = s + slen; /* 's' end */
 	while (s < se)
 	{
 		/* null terminator ends string */
@@ -472,16 +495,16 @@ int LuaOSDate(lua_State* L)
 		}
 		else
 		{
-			char *buff = luaL_prepbuffsize(&b, SIZETIMEFMT);
-			s++;  /* skip '%' */
+			char* buff = luaL_prepbuffsize(&b, SIZETIMEFMT);
+			s++; /* skip '%' */
 			if (s == se)
 			{
 				// % last symbol
 				break;
 			}
 
-			s = CheckTimeOption(L, s, se - s, &cc[1]);  /* copy specifier to 'cc' */
-			size_t resLen = strftime(buff, SIZETIMEFMT, cc, stm);
+			s = CheckTimeOption(L, s, se - s, &cc[1]); /* copy specifier to 'cc' */
+			size_t resLen = strftime(buff, SIZETIMEFMT, cc, stm_ptr);
 			luaL_addsize(&b, resLen);
 		}
 	}
@@ -552,7 +575,8 @@ int LuaOSSetLocale(lua_State* L)
 		"numeric", "time", nullptr
 	};
 	const char* l = luaL_optstring(L, 1, NULL);
-	/*int op = */luaL_checkoption(L, 2, "all", catNames);
+	/*int op = */
+	luaL_checkoption(L, 2, "all", catNames);
 	lua_pushstring(L, l);
 	return 1;
 }
@@ -570,12 +594,12 @@ const luaL_Reg systemLibs[] = {
 	{"setlocale", LuaOSSetLocale},
 	{"time", LuaOSTime},
 	{"tmpname", LuaOSTempName},
-	{ "deltatime", LuaOSDeltaTime },
-	{ "microtime", LuaOSMicroTime },
-	{ "nanotime", LuaOSNanoTime },
+	{"deltatime", LuaOSDeltaTime},
+	{"microtime", LuaOSMicroTime},
+	{"nanotime", LuaOSNanoTime},
 #if defined(LUA_SYS_RDTSC)
-	{ "rdtsc", LuaOSRdtsc },
-	{ "rdtscp", LuaOSRdtscp },
+	{"rdtsc", LuaOSRdtsc},
+	{"rdtscp", LuaOSRdtscp},
 #endif
 	{nullptr, nullptr}
 };

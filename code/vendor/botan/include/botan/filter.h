@@ -51,7 +51,7 @@ class BOTAN_PUBLIC_API(2,0) Filter
       */
       virtual bool attachable() { return true; }
 
-      virtual ~Filter() = default;
+      virtual ~Filter() {}
    protected:
       /**
       * @param in some input for the filter

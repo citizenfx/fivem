@@ -33,13 +33,16 @@ class Handshake_IO
 
       virtual std::vector<uint8_t> send(const Handshake_Message& msg) = 0;
 
+      virtual std::vector<uint8_t> send_under_epoch(const Handshake_Message& msg, uint16_t epoch) = 0;
+
       virtual bool timeout_check() = 0;
 
       virtual std::vector<uint8_t> format(
          const std::vector<uint8_t>& handshake_msg,
          Handshake_Type handshake_type) const = 0;
 
-      virtual void add_record(const std::vector<uint8_t>& record,
+      virtual void add_record(const uint8_t record[],
+                              size_t record_len,
                               Record_Type type,
                               uint64_t sequence_number) = 0;
 
@@ -55,7 +58,7 @@ class Handshake_IO
 
       Handshake_IO& operator=(const Handshake_IO&) = delete;
 
-      virtual ~Handshake_IO() = default;
+      virtual ~Handshake_IO() {}
    };
 
 /**
@@ -74,11 +77,14 @@ class Stream_Handshake_IO final : public Handshake_IO
 
       std::vector<uint8_t> send(const Handshake_Message& msg) override;
 
+      std::vector<uint8_t> send_under_epoch(const Handshake_Message& msg, uint16_t epoch) override;
+
       std::vector<uint8_t> format(
          const std::vector<uint8_t>& handshake_msg,
          Handshake_Type handshake_type) const override;
 
-      void add_record(const std::vector<uint8_t>& record,
+      void add_record(const uint8_t record[],
+                      size_t record_len,
                       Record_Type type,
                       uint64_t sequence_number) override;
 
@@ -114,11 +120,14 @@ class Datagram_Handshake_IO final : public Handshake_IO
 
       std::vector<uint8_t> send(const Handshake_Message& msg) override;
 
+      std::vector<uint8_t> send_under_epoch(const Handshake_Message& msg, uint16_t epoch) override;
+
       std::vector<uint8_t> format(
          const std::vector<uint8_t>& handshake_msg,
          Handshake_Type handshake_type) const override;
 
-      void add_record(const std::vector<uint8_t>& record,
+      void add_record(const uint8_t record[],
+                      size_t record_len,
                       Record_Type type,
                       uint64_t sequence_number) override;
 

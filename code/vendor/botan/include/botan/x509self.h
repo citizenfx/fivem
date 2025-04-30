@@ -9,9 +9,8 @@
 #define BOTAN_X509_SELF_H_
 
 #include <botan/x509cert.h>
-#include <botan/x509_ext.h>
 #include <botan/pkcs10.h>
-#include <botan/asn1_time.h>
+#include <botan/pkix_types.h>
 
 namespace Botan {
 
@@ -43,6 +42,11 @@ class BOTAN_PUBLIC_API(2,0) X509_Cert_Options final
       * the subject organizational unit
       */
       std::string org_unit;
+
+      /**
+       * additional subject organizational units.
+       */
+      std::vector<std::string> more_org_units;
 
       /**
       * the subject locality
@@ -79,6 +83,9 @@ class BOTAN_PUBLIC_API(2,0) X509_Cert_Options final
       */
       std::string dns;
 
+      /**
+       * additional subject DNS entries.
+       */
       std::vector<std::string> more_dns;
 
       /**

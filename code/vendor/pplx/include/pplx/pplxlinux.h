@@ -22,17 +22,27 @@
 
 #include <signal.h>
 #include "pthread.h"
-#include "compat.h"
+#include "pplx/compat.h"
 
-#include <mutex>
+#if defined(__APPLE__)
+#include <dispatch/dispatch.h>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
+#else
+#include <mutex>   
 #include <condition_variable>
+#endif
 
-#include "pplxinterface.h"
+#include "pplx/pplxinterface.h"
 
 
 namespace pplx
 {
-namespace cpprest_synchronization = ::std;
+#if defined(__APPLE__)
+    namespace cpprest_synchronization = ::boost;
+#else
+    namespace cpprest_synchronization = ::std;
+#endif
 namespace details
 {
 namespace platform
@@ -70,7 +80,7 @@ namespace platform
         static const unsigned int timeout_infinite = 0xFFFFFFFF;
 
         event_impl()
-            : _signaled(false)
+            : _signaled(false) 
         {
         }
 
@@ -199,7 +209,7 @@ namespace platform
                 _M_cs.lock();
                 _M_owner = id;
                 _M_recursionCount = 1;
-            }
+            }            
         }
 
         void unlock()
@@ -213,7 +223,7 @@ namespace platform
             {
                 _M_owner = -1;
                 _M_cs.unlock();
-            }
+            }           
         }
 
     private:
@@ -222,7 +232,11 @@ namespace platform
         long _M_recursionCount;
     };
 
+#if defined(__APPLE__)
+    class apple_scheduler : public pplx::scheduler_interface
+#else
     class linux_scheduler : public pplx::scheduler_interface
+#endif
     {
     public:
         _PPLXIMP virtual void schedule( TaskProc_t proc, _In_ void* param);
@@ -274,8 +288,12 @@ namespace extensibility
 /// <summary>
 /// Default scheduler type
 /// </summary>
-typedef details::linux_scheduler default_scheduler_t;
-
+#if defined(__APPLE__)
+    typedef details::apple_scheduler default_scheduler_t;
+#else
+    typedef details::linux_scheduler default_scheduler_t;
+#endif
+    
 namespace details
 {
     /// <summary>

@@ -40,6 +40,7 @@ class BOTAN_TEST_API Timer final
          {}
 
       Timer(const Timer& other) = default;
+      Timer& operator=(const Timer& other) = default;
 
       void start();
 

@@ -46,6 +46,7 @@ namespace hook
 
 #if PATTERNS_USE_HINTS
 		uint64_t m_hash;
+		bool m_useHinting;
 #endif
 
 		std::vector<pattern_match> m_matches;
@@ -63,13 +64,13 @@ namespace hook
 		};
 
 	protected:
-		inline pattern(void* module)
-			: m_rangeStart((uintptr_t)module), m_matched(false), m_rangeEnd(0)
+		inline pattern(void* module, const bool useHinting)
+			: m_rangeStart((uintptr_t)module), m_matched(false), m_rangeEnd(0), m_useHinting(useHinting)
 		{
 		}
 
-		inline pattern(uintptr_t begin, uintptr_t end)
-			: m_rangeStart(begin), m_rangeEnd(end), m_matched(false)
+		inline pattern(uintptr_t begin, uintptr_t end, const bool useHinting)
+			: m_rangeStart(begin), m_rangeEnd(end), m_matched(false), m_useHinting(useHinting)
 		{
 		}
 
@@ -88,13 +89,19 @@ namespace hook
 	public:
 		template<size_t Len>
 		pattern(const char(&p)[Len])
-			: pattern(getRVA<void>(0))
+			: pattern(getRVA<void>(0), true)
 		{
 			Initialize(p, Len);
 		}
 
+		pattern(const char* mem_pattern)
+			: pattern(getRVA<void>(0), true)
+		{
+			Initialize(mem_pattern, strlen(mem_pattern));
+		}
+
 		pattern(std::string_view p)
-			: pattern(getRVA<void>(0))
+			: pattern(getRVA<void>(0), true)
 		{
 			Initialize(p.data(), p.size());
 		}
@@ -166,12 +173,6 @@ namespace hook
 		{
 			return get_one().get<T>(offset);
 		}
-
-	public:
-#if PATTERNS_USE_HINTS
-		// define a hint
-		static void hint(uint64_t hash, uintptr_t address);
-#endif
 	};
 
 	class module_pattern
@@ -180,15 +181,21 @@ namespace hook
 	public:
 		template<size_t Len>
 		module_pattern(void* module, const char(&pattern)[Len])
-			: pattern(module)
+			: pattern(module, false)
 		{
 			Initialize(pattern, Len);
 		}
 
 		module_pattern(void* module, std::string_view p)
-			: pattern(module)
+			: pattern(module, false)
 		{
 			Initialize(p.data(), p.size());
+		}
+
+		module_pattern(void* module, const char* p)
+			: pattern(module, false)
+		{
+			Initialize(p, strlen(p));
 		}
 	};
 
@@ -198,13 +205,13 @@ namespace hook
 	public:
 		template<size_t Len>
 		range_pattern(uintptr_t begin, uintptr_t end, const char(&pattern)[Len])
-			: pattern(begin, end)
+			: pattern(begin, end, false)
 		{
 			Initialize(pattern, Len);
 		}
 
 		range_pattern(uintptr_t begin, uintptr_t end, std::string_view p)
-			: pattern(begin, end)
+			: pattern(begin, end, false)
 		{
 			Initialize(p.data(), p.size());
 		}

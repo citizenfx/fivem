@@ -120,7 +120,7 @@ int LuaIODirectoryGC(lua_State* L)
 			delete[] p->directory[i].fileName;
 		}
 
-		delete[] p->directory;
+		free(p->directory);
 		p->directory = nullptr;
 	}
 
@@ -137,7 +137,7 @@ int LuaIODirectoryClose(lua_State* L)
 			delete[] p->directory[i].fileName;
 		}
 
-		delete[] p->directory;
+		free(p->directory);
 		p->directory = nullptr;
 	}
 

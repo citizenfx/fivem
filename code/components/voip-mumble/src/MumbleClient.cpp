@@ -766,6 +766,16 @@ void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 	if (!m_crypto.Decrypt(buf, outBuf, size))
 	{
 		console::DPrintf("mumble", "Failed to decrypt packet\n");
+		if ((msec() - m_crypto.m_lastGoodUdp) > kPingInterval) // we expect to have a good ping atleast once every ping interval 
+		{
+			// we don't want to spam the server with cryto resets
+			m_crypto.m_lastGoodUdp = msec();
+
+			// send a request to the server to reset our crypt state
+			MumbleProto::CryptSetup crypt;
+			Send(MumbleMessageType::CryptSetup, crypt);
+			console::DPrintf("mumble", "Failed to decrypt after 1 seconds, requesting crypt reset");
+		}
 		return;
 	}
 

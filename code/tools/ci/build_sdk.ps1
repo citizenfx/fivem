@@ -17,7 +17,7 @@ try {
     $ctx.startBuild()
 
     Invoke-LogSection "Submodules Setup" {
-        Invoke-SetupSubmodules -Context $ctx
+        Invoke-SetupSubmodules -Root $ctx.ProjectRoot
     }.GetNewClosure()
 
     Invoke-LogSection "Building SDK" {

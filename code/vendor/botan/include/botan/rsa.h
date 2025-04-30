@@ -11,9 +11,13 @@
 #include <botan/pk_keys.h>
 #include <botan/bigint.h>
 #include <string>
+#include <memory>
 #include <vector>
 
 namespace Botan {
+
+class RSA_Public_Data;
+class RSA_Private_Data;
 
 /**
 * RSA Public Key
@@ -34,8 +38,7 @@ class BOTAN_PUBLIC_API(2,0) RSA_PublicKey : public virtual Public_Key
       * @arg n the modulus
       * @arg e the exponent
       */
-      RSA_PublicKey(const BigInt& n, const BigInt& e) :
-         m_n(n), m_e(e) {}
+      RSA_PublicKey(const BigInt& n, const BigInt& e);
 
       std::string algo_name() const override { return "RSA"; }
 
@@ -48,15 +51,18 @@ class BOTAN_PUBLIC_API(2,0) RSA_PublicKey : public virtual Public_Key
       /**
       * @return public modulus
       */
-      const BigInt& get_n() const { return m_n; }
+      const BigInt& get_n() const;
 
       /**
       * @return public exponent
       */
-      const BigInt& get_e() const { return m_e; }
+      const BigInt& get_e() const;
 
       size_t key_length() const override;
       size_t estimated_strength() const override;
+
+      // internal functions:
+      std::shared_ptr<const RSA_Public_Data> public_data() const;
 
       std::unique_ptr<PK_Ops::Encryption>
          create_encryption_op(RandomNumberGenerator& rng,
@@ -75,7 +81,9 @@ class BOTAN_PUBLIC_API(2,0) RSA_PublicKey : public virtual Public_Key
    protected:
       RSA_PublicKey() = default;
 
-      BigInt m_n, m_e;
+      void init(BigInt&& n, BigInt&& e);
+
+      std::shared_ptr<const RSA_Public_Data> m_public;
    };
 
 /**
@@ -122,25 +130,28 @@ class BOTAN_PUBLIC_API(2,0) RSA_PrivateKey final : public Private_Key, public RS
       * Get the first prime p.
       * @return prime p
       */
-      const BigInt& get_p() const { return m_p; }
+      const BigInt& get_p() const;
 
       /**
       * Get the second prime q.
       * @return prime q
       */
-      const BigInt& get_q() const { return m_q; }
+      const BigInt& get_q() const;
 
       /**
       * Get d with exp * d = 1 mod (p - 1, q - 1).
       * @return d
       */
-      const BigInt& get_d() const { return m_d; }
+      const BigInt& get_d() const;
 
-      const BigInt& get_c() const { return m_c; }
-      const BigInt& get_d1() const { return m_d1; }
-      const BigInt& get_d2() const { return m_d2; }
+      const BigInt& get_c() const;
+      const BigInt& get_d1() const;
+      const BigInt& get_d2() const;
 
       secure_vector<uint8_t> private_key_bits() const override;
+
+      // internal functions:
+      std::shared_ptr<const RSA_Private_Data> private_data() const;
 
       std::unique_ptr<PK_Ops::Decryption>
          create_decryption_op(RandomNumberGenerator& rng,
@@ -158,7 +169,10 @@ class BOTAN_PUBLIC_API(2,0) RSA_PrivateKey final : public Private_Key, public RS
                              const std::string& provider) const override;
 
    private:
-      BigInt m_d, m_p, m_q, m_d1, m_d2, m_c;
+
+      void init(BigInt&& d, BigInt&& p, BigInt&& q, BigInt&& d1, BigInt&& d2, BigInt&& c);
+
+      std::shared_ptr<const RSA_Private_Data> m_private;
    };
 
 }

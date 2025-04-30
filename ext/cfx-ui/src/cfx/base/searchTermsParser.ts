@@ -11,7 +11,8 @@ type BaseSearchTerm<Type extends string, Extra extends object = object> = {
 
 export type IAddressSearchTerm = BaseSearchTerm<'address'>;
 export type ILocaleSearchTerm = BaseSearchTerm<'locale'>;
-export type INameSearchTerm = BaseSearchTerm<'name', { matchLocale?: { at: 'start' | 'end'; with: string } }>;
+export type INameSearchTerm = BaseSearchTerm<'name', { matchLocale?: { at: 'start' | 'end';
+  with: string; }; }>;
 export type ICategorySearchTerm = BaseSearchTerm<'category', { category: string }>;
 
 export type ISearchTerm = IAddressSearchTerm | ILocaleSearchTerm | INameSearchTerm | ICategorySearchTerm;
@@ -22,7 +23,7 @@ export type ISearchTerm = IAddressSearchTerm | ILocaleSearchTerm | INameSearchTe
 
 function encodeTermBit(bit: string): string {
   // eslint-disable-next-line @stylistic/quotes
-  const encoded = bit.replace('"', '\\"').replace("'", "\\'").replace('`', '\\`').replace('~', '\\~');
+  const encoded = bit.replaceAll(/["'`~]/g, (match) => `\\${match}`);
 
   if (encoded.includes(' ')) {
     return `"${encoded}"`;
@@ -30,6 +31,7 @@ function encodeTermBit(bit: string): string {
 
   return encoded;
 }
+
 export function searchTermToString(term: ISearchTerm): string {
   let str = '';
 

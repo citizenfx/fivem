@@ -364,7 +364,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 4.0f, 3.0f });
 
-		constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
+		constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
 		return ImGui::Begin(title, nullptr, flags);
 	}
 
@@ -914,7 +914,7 @@ static void EnsureConsoles()
 
 bool IsNonProduction()
 {
-#if !defined(GTA_FIVE) || defined(_DEBUG)
+#if (!defined(GTA_FIVE) && !defined(IS_RDR3)) || defined(_DEBUG)
 	return true;
 #else
 	static ConVar<int> moo("moo", ConVar_None, 0);

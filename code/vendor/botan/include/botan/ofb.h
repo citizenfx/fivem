@@ -11,6 +11,8 @@
 #include <botan/stream_cipher.h>
 #include <botan/block_cipher.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(ofb.h)
+
 namespace Botan {
 
 /**

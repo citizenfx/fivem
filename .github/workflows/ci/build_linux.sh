@@ -6,7 +6,10 @@ ROOT_REPO=$(pwd)
 IMAGE_NAME="fivem-builder-linux-alpine"
 IMAGE_TAG="latest"
 REGISTRY="ghcr.io"
-IMAGE_PATH="${REGISTRY}/${GITHUB_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+REPO_NAME_LOWER="${GITHUB_REPOSITORY,,}"
+
+IMAGE_PATH="${REGISTRY}/${REPO_NAME_LOWER}/${IMAGE_NAME}:${IMAGE_TAG}"
 
 echo "Pulling Docker image from $IMAGE_PATH..."
 docker pull $IMAGE_PATH

@@ -11,6 +11,8 @@
 #include <botan/kdf.h>
 #include <botan/hash.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(kdf1_iso18033.h)
+
 namespace Botan {
 
 /**

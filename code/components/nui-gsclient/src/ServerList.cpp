@@ -503,27 +503,23 @@ typedef struct
 #define CMD_GSR "getserversResponse"
 #define CMD_INFO "infoResponse"
 
-void GSClient_HandleOOB(const char* buffer, size_t len, const net::PeerAddress& from)
+void GSClient_HandleOOB(const char* buffer, const size_t len, const net::PeerAddress& from)
 {
 	if (!_strnicmp(buffer, CMD_INFO, strlen(CMD_INFO)))
 	{
-		GSClient_HandleInfoResponse(&buffer[strlen(CMD_INFO)], len - strlen(CMD_INFO), from);
+		GSClient_HandleInfoResponse(&buffer[strlen(CMD_INFO)], static_cast<int>(len - strlen(CMD_INFO)), from);
 	}
 }
 
 void GSClient_PollSocket(SOCKET socket, HANDLE event)
 {
-	char buf[2048];
-	memset(buf, 0, sizeof(buf));
-
-	sockaddr_storage from;
-	memset(&from, 0, sizeof(from));
-
+	char buf[2048] = {};
+	sockaddr_storage from = {};
 	int fromlen = sizeof(from);
 
 	while (true)
 	{
-		int len = recvfrom(socket, buf, 2048, 0, (sockaddr*)&from, &fromlen);
+		const int len = recvfrom(socket, buf, sizeof(buf), 0, reinterpret_cast<sockaddr*>(&from), &fromlen);
 		WSAResetEvent(event);
 
 		if (len == SOCKET_ERROR)
@@ -538,14 +534,14 @@ void GSClient_PollSocket(SOCKET socket, HANDLE event)
 			return;
 		}
 
-		if (*(int*)buf == -1)
+		// out of band prefix is a negative 32-bit integer
+		if (len >= 5 && *reinterpret_cast<int*>(buf) == -1)
 		{
-			if (len < sizeof(buf))
+			if (static_cast<size_t>(len) < sizeof(buf))
 			{
 				buf[len] = '\0';
+				GSClient_HandleOOB(&buf[4], static_cast<size_t>(len) - 4, net::PeerAddress(reinterpret_cast<sockaddr*>(&from), fromlen));
 			}
-
-			GSClient_HandleOOB(&buf[4], size_t(len) - 4, net::PeerAddress((sockaddr*)&from, fromlen));
 		}
 	}
 }

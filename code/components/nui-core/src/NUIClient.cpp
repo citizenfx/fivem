@@ -12,6 +12,8 @@
 #include "CefOverlay.h"
 #include "memdbgon.h"
 
+#include "SharedLegitimacyAPI.h"
+
 #include <IteratorView.h>
 
 #include <CoreConsole.h>
@@ -337,77 +339,72 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 		return RV_CANCEL;
 	}
 
-	// 'code.jquery.com' has reliability concerns for some end users, redirect these to googleapis instead
+	CefURLParts urlParts;
+	if (!CefParseURL(request->GetURL(), urlParts))
 	{
-		CefURLParts parts;
-		if (CefParseURL(request->GetURL(), parts))
+		return RV_CONTINUE;
+	}
+
+	std::string hostString = CefString(&urlParts.host).ToString();
+
+	// 'code.jquery.com' has reliability concerns for some end users, redirect these to googleapis instead
+	if (hostString == "code.jquery.com")
+	{
+		std::smatch match;
+		static std::regex re{
+			R"(code.jquery.com/jquery-([0-9]+\.[0-9]+\.[0-9]+)(\..*?)?\.js)"
+		};
+		static std::regex reUI{
+			R"(code.jquery.com/ui/(.*?)/(.*?)$)"
+		};
+
+		auto url = request->GetURL().ToString();
+
+		if (std::regex_search(url, match, re))
 		{
-			auto hostString = CefString(&parts.host).ToString();
+			auto version = match[1].str();
 
-			if (hostString == "code.jquery.com")
+			// "3.3.0, 2.1.2, 1.2.5 and 1.2.4 are not hosted due to their short and unstable lives in the wild."
+			if (version != "3.3.0" && version != "2.1.2" && version != "1.2.5" && version != "1.2.4")
 			{
-				std::smatch match;
-				static std::regex re{
-					R"(code.jquery.com/jquery-([0-9]+\.[0-9]+\.[0-9]+)(\..*?)?\.js)"
-				};
-				static std::regex reUI{
-					R"(code.jquery.com/ui/(.*?)/(.*?)$)"
-				};
-
-				auto url = request->GetURL().ToString();
-
-				if (std::regex_search(url, match, re))
-				{
-					auto version = match[1].str();
-
-					// "3.3.0, 2.1.2, 1.2.5 and 1.2.4 are not hosted due to their short and unstable lives in the wild."
-					if (version != "3.3.0" && version != "2.1.2" && version != "1.2.5" && version != "1.2.4")
-					{
-						request->SetURL(fmt::sprintf("https://ajax.googleapis.com/ajax/libs/jquery/%s/jquery%s.js",
-							version,
-							match.size() >= 3 ? match[2].str() : ""));
-					}
-				}
-				else if (std::regex_search(url, match, reUI))
-				{
-					request->SetURL(fmt::sprintf("https://ajax.googleapis.com/ajax/libs/jqueryui/%s/%s",
-						match[1].str(),
-						match[2].str()));
-				}
+				request->SetURL(fmt::sprintf("https://ajax.googleapis.com/ajax/libs/jquery/%s/jquery%s.js",
+					version,
+					match.size() >= 3 ? match[2].str() : ""));
+				return RV_CONTINUE;
 			}
+		}
+		else if (std::regex_search(url, match, reUI))
+		{
+			request->SetURL(fmt::sprintf("https://ajax.googleapis.com/ajax/libs/jqueryui/%s/%s",
+				match[1].str(),
+				match[2].str()));
+			return RV_CONTINUE;
 		}
 	}
 
 
 	// DiscordApp breaks as of late and affects end users, tuning the headers seems to fix it
+	if (boost::algorithm::ends_with(hostString, "discordapp.com") ||
+		boost::algorithm::ends_with(hostString, "discordapp.net"))
 	{
-		CefURLParts parts;
-		if (CefParseURL(request->GetURL(), parts))
-		{
-			auto hostString = CefString(&parts.host).ToString();
+		CefRequest::HeaderMap headers;
+		request->GetHeaderMap(headers);
 
-			if (boost::algorithm::ends_with(hostString, "discordapp.com") ||
-				boost::algorithm::ends_with(hostString, "discordapp.net"))
-			{
-				CefRequest::HeaderMap headers;
-				request->GetHeaderMap(headers);
+		headers.erase("User-Agent");
+		headers.emplace("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36");
 
-				headers.erase("User-Agent");
-				headers.emplace("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36");
+		headers.erase("sec-ch-ua");
+		headers.emplace("sec-ch-ua", R"("Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99")");
 
-				headers.erase("sec-ch-ua");
-				headers.emplace("sec-ch-ua", R"("Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99")");
+		headers.erase("sec-ch-ua-mobile");
+		headers.emplace("sec-ch-ua-mobile", R"(?0)");
 
-				headers.erase("sec-ch-ua-mobile");
-				headers.emplace("sec-ch-ua-mobile", R"(?0)");
+		headers.erase("sec-ch-ua-platform");
+		headers.emplace("sec-ch-ua-platform", R"("Windows")");
 
-				headers.erase("sec-ch-ua-platform");
-				headers.emplace("sec-ch-ua-platform", R"("Windows")");
-
-				request->SetHeaderMap(headers);
-				request->SetReferrer("https://discord.com/channels/@me", CefRequest::ReferrerPolicy::REFERRER_POLICY_DEFAULT);
-			}
-		}
+		request->SetHeaderMap(headers);
+		request->SetReferrer("https://discord.com/channels/@me", CefRequest::ReferrerPolicy::REFERRER_POLICY_DEFAULT);
+		return RV_CONTINUE;
 	}
 
 #if !defined(_DEBUG)
@@ -449,6 +446,15 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 		request->SetReferrer("", CefRequest::ReferrerPolicy::REFERRER_POLICY_NO_REFERRER);
 		request->SetHeaderByName("origin", "http://localhost", true);
 		request->SetHeaderByName("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.48 Safari/537.36", true);
+		return RV_CONTINUE;
+	}
+
+	if (cfx::legitimacy::ShouldProcessHeaders(hostString.c_str()))
+	{
+		char key[256] = { 0 };
+		char value[2048] = { 0 };
+		cfx::legitimacy::ProcessHeaders(key, value);
+		request->SetHeaderByName(key, value, true);
 	}
 
 	return RV_CONTINUE;

@@ -15,8 +15,8 @@
 
 #if !defined(_WIN32) || _MSC_VER < 1800 || CPPREST_FORCE_PPLX
 
-#include "compat.h"
-#include "pplxinterface.h"
+#include "pplx/compat.h"
+#include "pplx/pplxinterface.h"
 
 namespace pplx
 {
@@ -106,7 +106,7 @@ namespace details
         critical_section_impl const & operator=(const critical_section_impl&); // no assignment operator
     };
 
-#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
+#if _WIN32_WINNT >= _WIN32_WINNT_VISTA 
     /// <summary>
     /// Reader writer lock
     /// </summary>
@@ -151,8 +151,8 @@ namespace details
         // true - lock exclusive
         // false - lock shared
         bool m_locked_exclusive;
-    };
-#endif // _WIN32_WINNT >= _WIN32_WINNT_VISTA
+    };  
+#endif // _WIN32_WINNT >= _WIN32_WINNT_VISTA 
 
     /// <summary>
     /// Recursive mutex
@@ -172,7 +172,7 @@ namespace details
             _ASSERTE(_M_recursionCount == 0);
         }
 
-        void recursive_lock_impl::lock()
+        void lock()
         {
             auto id = ::pplx::details::platform::GetCurrentThreadId();
 
@@ -185,10 +185,10 @@ namespace details
                 _M_cs.lock();
                 _M_owner = id;
                 _M_recursionCount = 1;
-            }
+            }            
         }
 
-        void recursive_lock_impl::unlock()
+        void unlock()
         {
             _ASSERTE(_M_owner == ::pplx::details::platform::GetCurrentThreadId());
             _ASSERTE(_M_recursionCount >= 1);
@@ -199,7 +199,7 @@ namespace details
             {
                 _M_owner = -1;
                 _M_cs.unlock();
-            }
+            }           
         }
 
     private:
@@ -249,11 +249,11 @@ namespace extensibility
     typedef ::pplx::details::critical_section_impl critical_section_t;
     typedef scoped_lock<critical_section_t> scoped_critical_section_t;
 
-#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
+#if _WIN32_WINNT >= _WIN32_WINNT_VISTA 
     typedef ::pplx::details::reader_writer_lock_impl reader_writer_lock_t;
     typedef scoped_lock<reader_writer_lock_t> scoped_rw_lock_t;
-    typedef reader_writer_lock_t::scoped_lock_read scoped_read_lock_t;
-#endif // _WIN32_WINNT >= _WIN32_WINNT_VISTA
+    typedef reader_writer_lock_t::scoped_lock_read scoped_read_lock_t;  
+#endif // _WIN32_WINNT >= _WIN32_WINNT_VISTA 
 
 
     typedef ::pplx::details::recursive_lock_impl recursive_lock_t;

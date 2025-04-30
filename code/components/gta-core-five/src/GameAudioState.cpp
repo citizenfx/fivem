@@ -482,7 +482,7 @@ static HookFunction hookFunction([]()
 			*rage::g_audUseFrameLimiter = editorMode || g_audUseFrameLimiterConVar;
 		});
 
-		static ConVar<bool> audUseFrameLimiter("game_useSynchronousAudio", ConVar_Archive, false, &useSynchronousAudio);
+		static ConVar<bool> audUseFrameLimiter("game_useSynchronousAudio", ConVar_Archive, true, &useSynchronousAudio);
 	}
 
 	static ConVar<bool> audUseFrameLimiter("game_useAudioFrameLimiter", ConVar_Archive, true, &g_audUseFrameLimiterConVar);

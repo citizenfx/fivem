@@ -12,6 +12,8 @@
 #include <botan/aead.h>
 #include <botan/sym_algo.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(gcm.h)
+
 namespace Botan {
 
 class BlockCipher;
@@ -57,6 +59,8 @@ class BOTAN_PUBLIC_API(2,0) GCM_Mode : public AEAD_Mode
       void start_msg(const uint8_t nonce[], size_t nonce_len) override;
 
       void key_schedule(const uint8_t key[], size_t length) override;
+
+      secure_vector<uint8_t> m_y0;
    };
 
 /**

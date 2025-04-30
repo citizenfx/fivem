@@ -1,6 +1,7 @@
 import {
   Button,
   CountryFlag,
+  Flex,
   Icons,
   Indicator,
   Interactive,
@@ -15,12 +16,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { playSfx, Sfx } from 'cfx/apps/mpMenu/utils/sfx';
-import { useService } from 'cfx/base/servicesContainer';
+import { useService, useServiceOptional } from 'cfx/base/servicesContainer';
 import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
 import { EventActionNames, ElementPlacements, isFeaturedElementPlacement } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { getServerDetailsLink, isServerLiveLoading, showServerPremiumBadge } from 'cfx/common/services/servers/helpers';
 import { IServersService } from 'cfx/common/services/servers/servers.service';
+import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
 import { IServerView } from 'cfx/common/services/servers/types';
 import { stopPropagation } from 'cfx/utils/domEvents';
 import { useServerCountryTitle } from 'cfx/utils/hooks';
@@ -29,6 +31,7 @@ import { ServerBoostButton } from '../ServerBoostButton/ServerBoostButton';
 import { ServerIcon } from '../ServerIcon/ServerIcon';
 import { ServerPlayersCount } from '../ServerPlayersCount/ServerPlayersCount';
 import { ServerPower } from '../ServerPower/ServerPower';
+import { ServerPowerTotalButton } from '../ServerPowerTotalButton/ServerPowerTotalButton';
 import { ServerTitle } from '../ServerTitle/ServerTitle';
 
 import s from './ServerListItem.module.scss';
@@ -63,6 +66,10 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
 
   const navigate = useNavigate();
   const eventHandler = useEventHandler();
+
+  const ServersBoostService = useServiceOptional(IServersBoostService);
+
+  const isBoostedByUser = ServersBoostService?.currentBoost?.address === server?.id;
 
   const handleClick = React.useCallback(() => {
     if (!server) {
@@ -156,8 +163,15 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
       {!hideActions && (
         <div className={clsx(s.actions, s['show-on-hover'])}>
           <ServerPower server={server} />
-
-          <ServerBoostButton server={server} />
+          <Flex gap="none">
+            <ServerBoostButton
+              className={clsx(s.serverboostbutton, { [s['serverboostbutton-active']]: isBoostedByUser })}
+              server={server}
+            />
+            {isBoostedByUser && (
+              <ServerPowerTotalButton className={s.serverpowerbutton} server={server} />
+            )}
+          </Flex>
         </div>
       )}
 

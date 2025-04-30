@@ -34,7 +34,7 @@ static void EnableFocus()
 	}
 }
 
-void InputHook::SetGameMouseFocus(bool focus)
+void InputHook::SetGameMouseFocus(bool focus, bool flushMouse)
 {
 	if (!enableFocus || !disableFocus)
 	{

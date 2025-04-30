@@ -243,9 +243,19 @@ void EventReassemblyComponentImpl::TriggerEvent(const int target, const std::str
 	}
 
 	// skip oversized packets
-	if ((eventPayload.size() + eventName.size() + sizeof(uint16_t)) >= net::packet::ReassembledEvent::kMaxPacketSize)
+	uint32_t totalSize = eventPayload.size() + eventName.size() + sizeof(uint16_t);
+	if (totalSize >= net::packet::ReassembledEventV2::kMaxPacketSize)
 	{
+		trace("Event %s is too large to be sent. Total size: %u, max size: %u.\n", eventName, totalSize, net::packet::ReassembledEventV2::kMaxPacketSize);
 		return;
+	}
+
+	static uint32_t logThrottle = 0;
+	// 10+MB/s bitrate to send 50+MB object.
+	if (bytesPerSecond >= 10000000 && eventPayload.size() >= 50000000 && (logThrottle++ < 5 || logThrottle % 100 == 0))
+	{
+		trace("Warning: sending large event %s (%u bytes) with almost unrestricted bitrate (%u b/s). This may cause performance issues. Consider decreasing objects sizes or bitrate.\n",
+			eventName, eventPayload.size(), bytesPerSecond);
 	}
 
 	std::set<int> targets;
@@ -311,9 +321,19 @@ void EventReassemblyComponentImpl::TriggerEventV2(const int target, std::string_
 	}
 
 	// skip oversized packets
-	if ((eventPayload.size() + eventName.size() + sizeof(uint16_t)) >= net::packet::ReassembledEventV2::kMaxPacketSize)
+	uint32_t totalSize = eventPayload.size() + eventName.size() + sizeof(uint16_t);
+	if (totalSize >= net::packet::ReassembledEventV2::kMaxPacketSize)
 	{
+		trace("Event %s is too large to be sent. Total size: %u, max size: %u.\n", eventName, totalSize, net::packet::ReassembledEventV2::kMaxPacketSize);
 		return;
+	}
+
+	static uint32_t logThrottle = 0;
+	// 10+MB/s bitrate to send 50+MB object.
+	if (bytesPerSecond >= 10000000 && eventPayload.size() >= 50000000 && (logThrottle++ < 5 || logThrottle % 100 == 0))
+	{
+		trace("Warning: sending large event %s (%u bytes) with almost unrestricted bitrate (%u b/s). This may cause performance issues. Consider decreasing objects sizes or bitrate.\n",
+			eventName, eventPayload.size(), bytesPerSecond);
 	}
 
 	std::set<int> targets;
@@ -445,7 +465,7 @@ void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::millis
 	for (auto& [ eventId, sendPacket ] : sendList)
 	{
 		double pps = (sendPacket->bytesPerSecond / static_cast<double>(fragmentSize));
-		std::chrono::milliseconds latency{ static_cast<uint64_t>(1000 / pps) };
+		std::chrono::nanoseconds latency{ static_cast<uint64_t>(1000000 / pps) };
 
 		std::set<int> doneTargets;
 
@@ -463,7 +483,7 @@ void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::millis
 			if (targetData && (targetData->lastSend + latency) < timeNow && targetData->delayNextSend < timeNow)
 			{
 				// burst loop so we don't 'slow down' too much at a lower tick rate
-				auto resTime = dT;
+				auto resTime = std::chrono::nanoseconds{ dT };
 				auto& ackBits = targetData->ackBits;
 				auto startBit = targetData->lastBit;
 

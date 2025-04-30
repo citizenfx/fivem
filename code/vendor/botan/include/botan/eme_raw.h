@@ -9,6 +9,8 @@
 
 #include <botan/eme.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(eme_raw.h)
+
 namespace Botan {
 
 class BOTAN_PUBLIC_API(2,0) EME_Raw final : public EME

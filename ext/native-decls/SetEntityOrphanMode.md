@@ -23,9 +23,11 @@ enum EntityOrphanMode {
 }
 ```
 
-Sets what happens when the entity is orphaned and no longer has its original owner.
+Sets what the server will do when the entity no longer has its original owner. By default the server will cleanup entities that it considers "no longer relevant".
 
-**NOTE**: This native doesn't guarantee the persistence of the entity.
+When used on trains, this native will recursively call onto all attached carriages.
+
+**NOTE**: When used with `KeepEntity` (2) this native only guarantees that the ***server*** will not delete the entity, client requests to delete the entity will still work perfectly fine.
 
 ## Parameters
 * **entity**: The entity to set the orphan mode of

@@ -269,7 +269,7 @@ public:
 		m_levels = 0;
 #elif defined(RAGE_FORMATS_GAME_FIVE)
 		memset(m_pad, 0, sizeof(m_pad));
-		memset(m_pad2, 0, sizeof(m_pad));
+		memset(m_pad2, 0, sizeof(m_pad2));
 
 		m_pad2[0] = 1;
 		m_pad2[2] = 0x80;

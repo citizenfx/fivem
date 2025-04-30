@@ -280,7 +280,7 @@ const SortPopover = observer(function SortPopover(props: ServerFiltersProps) {
         <ListItem
           active={config.sortBy === ServersListSortBy.Boosts}
           label={$L(byBoostTitleKey)}
-          value={Icons.serverBoost}
+          value={Icons.upvotesRecurring}
           onClick={handleByBoostClick}
         />
         <ListItem

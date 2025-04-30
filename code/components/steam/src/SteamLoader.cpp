@@ -132,7 +132,7 @@ bool SteamLoader::IsSteamRunning(bool ignoreCreateFunc)
 		{
 			HANDLE steamProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
 
-			if (steamProcess && steamProcess != INVALID_HANDLE_VALUE)
+			if (steamProcess)
 			{
 				CloseHandle(steamProcess);
 

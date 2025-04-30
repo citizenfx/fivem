@@ -205,7 +205,7 @@ public:
 			struct
 			{
 				netSocketAddress unkAddr;
-				char pad6[48];
+				char pad6[56];
 			};
 		};
 

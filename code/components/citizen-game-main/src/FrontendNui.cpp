@@ -305,7 +305,7 @@ public:
 	{
 	}
 
-	virtual void SetGameMouseFocus(bool val) override
+	virtual void SetGameMouseFocus(bool val, bool flushMouse = true) override
 	{
 	}
 

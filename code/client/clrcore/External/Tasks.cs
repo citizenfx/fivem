@@ -258,7 +258,11 @@ namespace CitizenFX.Core
 		}
 		public void GoTo(Entity target, Vector3 offset, int timeout = -1)
 		{
+#if MONO_V2
+			API.TaskGotoEntityOffsetXy(_ped.Handle, target.Handle, timeout, offset.X, offset.Y, offset.Z, 1f, 1);
+#else
 			API.TaskGotoEntityOffsetXy(_ped.Handle, target.Handle, timeout, offset.X, offset.Y, offset.Z, 1f, true);
+# endif
 		}
 		public void GoTo(Vector3 position, bool ignorePaths = false, int timeout = -1)
 		{

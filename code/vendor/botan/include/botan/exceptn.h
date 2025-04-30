@@ -51,6 +51,10 @@ enum class ErrorType {
    TLSError,
    /** An error during an HTTP operation */
    HttpError,
+   /** A message with an invalid authentication tag was detected */
+   InvalidTag,
+   /** An error during Roughtime validation */
+   RoughtimeError,
 
    /** An error when calling OpenSSL */
    OpenSSLError = 200,
@@ -60,6 +64,8 @@ enum class ErrorType {
    Pkcs11Error,
    /** An error when interacting with a TPM device */
    TPMError,
+   /** An error when interacting with a database */
+   DatabaseError,
 
    /** An error when interacting with zlib */
    ZlibError = 300,
@@ -69,6 +75,9 @@ enum class ErrorType {
    LzmaError,
 
 };
+
+//! \brief Convert an ErrorType to string
+std::string BOTAN_PUBLIC_API(2,11) to_string(ErrorType type);
 
 /**
 * Base class for all exceptions thrown by the library
@@ -102,9 +111,19 @@ class BOTAN_PUBLIC_API(2,0) Exception : public std::exception
       */
       virtual int error_code() const noexcept { return 0; }
 
-   protected:
+      /**
+      * Avoid throwing base Exception, use a subclass
+      */
       explicit Exception(const std::string& msg);
+
+      /**
+      * Avoid throwing base Exception, use a subclass
+      */
       Exception(const char* prefix, const std::string& msg);
+
+      /**
+      * Avoid throwing base Exception, use a subclass
+      */
       Exception(const std::string& msg, const std::exception& e);
 
    private:
@@ -264,14 +283,22 @@ class BOTAN_PUBLIC_API(2,0) Provider_Not_Found final : public Lookup_Error
 
 /**
 * An AEAD or MAC check detected a message modification
+*
+* In versions before 2.10, Invalid_Authentication_Tag was named
+* Integrity_Failure, it was renamed to make its usage more clear.
 */
-class BOTAN_PUBLIC_API(2,0) Integrity_Failure final : public Exception
+class BOTAN_PUBLIC_API(2,0) Invalid_Authentication_Tag final : public Exception
    {
    public:
-      explicit Integrity_Failure(const std::string& msg);
+      explicit Invalid_Authentication_Tag(const std::string& msg);
 
-      ErrorType error_type() const noexcept override { return ErrorType::DecodingFailure; }
+      ErrorType error_type() const noexcept override { return ErrorType::InvalidTag; }
    };
+
+/**
+* For compatability with older versions
+*/
+typedef Invalid_Authentication_Tag Integrity_Failure;
 
 /**
 * An error occurred while operating on an IO stream
@@ -335,7 +362,8 @@ class BOTAN_PUBLIC_API(2,0) Not_Implemented final : public Exception
 
 /*
    The following exception types are still in use for compatability reasons,
-   but are deprecated and will be removed in a future major release
+   but are deprecated and will be removed in a future major release.
+   Instead catch the base class.
 */
 
 /**
@@ -356,6 +384,8 @@ class BOTAN_PUBLIC_API(2,0) Invalid_OID final : public Decoding_Error
 
 /**
 * Self Test Failure Exception
+*
+* This exception is no longer used. It will be removed in a future major release.
 */
 class BOTAN_PUBLIC_API(2,0) Self_Test_Failure final : public Internal_Error
    {
@@ -365,6 +395,8 @@ class BOTAN_PUBLIC_API(2,0) Self_Test_Failure final : public Internal_Error
 
 /**
 * No_Provider_Found Exception
+*
+* This exception is no longer used. It will be removed in a future major release.
 */
 class BOTAN_PUBLIC_API(2,0) No_Provider_Found final : public Exception
    {
@@ -374,6 +406,8 @@ class BOTAN_PUBLIC_API(2,0) No_Provider_Found final : public Exception
 
 /**
 * Policy_Violation Exception
+*
+* This exception is no longer used. It will be removed in a future major release.
 */
 class BOTAN_PUBLIC_API(2,0) Policy_Violation final : public Invalid_State
    {
@@ -388,6 +422,7 @@ class BOTAN_PUBLIC_API(2,0) Policy_Violation final : public Invalid_State
 * It might or might not be valid in another context like a standard.
 *
 * This exception is no longer used, instead Not_Implemented is thrown.
+* It will be removed in a future major release.
 */
 class BOTAN_PUBLIC_API(2,0) Unsupported_Argument final : public Invalid_Argument
    {

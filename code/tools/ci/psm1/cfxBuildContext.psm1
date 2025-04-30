@@ -33,6 +33,9 @@ class CfxBuildContext {
     [string] $PrivateRoot = ""
     [string] $PrivateUri = ""
 
+	[string] $ClosedRoot = ""
+	[string] $ClosedUri = ""
+
     [string] $ToolkitRoot = ""
     [string] $ToolkitUri = ""
 
@@ -135,6 +138,15 @@ function Get-CfxBuildContext {
     }
     elseif ($ctx.IsPublicBuild) {
         throw "Public build requires FIVEM_PRIVATE_URI env var to be defined"
+    }
+
+    # Figure out closed
+    if ($env:FIVEM_CLOSED_URI) {
+        $ctx.ClosedRoot = $ctx.getPathInBuildCache("fivem-closed")
+        $ctx.ClosedUri = $env:FIVEM_CLOSED_URI
+    }
+    elseif ($ctx.IsPublicBuild) {
+        throw "Public build requires FIVEM_CLOSED_URI env var to be defined"
     }
 
     # Figure out toolkit

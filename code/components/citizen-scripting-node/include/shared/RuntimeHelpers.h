@@ -8,6 +8,7 @@
 #pragma once
 
 #include <console/Console.h>
+#include <fxScripting.h>
 
 namespace fx
 {
@@ -70,16 +71,22 @@ namespace fx
 		v8::HandleScope m_handleScope;
 		v8::Local<v8::Context> m_ctx;
 		v8::Context::Scope m_contextScope;
+		fx::PushEnvironment m_fxenv;
 
 	public:
-		SharedPushEnvironment(const C* runtime) :
-			m_locker(runtime->GetIsolate()),
-			m_isolateScope(runtime->GetIsolate()),
-			m_handleScope(runtime->GetIsolate()),
-			m_ctx(runtime->GetContext()),
-			m_contextScope(m_ctx) {}
+		SharedPushEnvironment(C* runtime)
+			: m_locker(runtime->GetIsolate()),
+			  m_isolateScope(runtime->GetIsolate()),
+			  m_handleScope(runtime->GetIsolate()),
+			  m_ctx(runtime->GetContext()),
+			  m_contextScope(m_ctx),
+			  m_fxenv(runtime)
+		{
+		}
 
-		~SharedPushEnvironment() {}
+		~SharedPushEnvironment()
+		{
+		}
 	};
 
 	template<class C>
@@ -89,14 +96,20 @@ namespace fx
 		v8::HandleScope m_handleScope;
 		v8::Local<v8::Context> m_ctx;
 		v8::Context::Scope m_contextScope;
+		fx::PushEnvironment m_fxenv;
 
 	public:
-		SharedPushEnvironmentNoIsolate(const C* runtime) :
-			m_handleScope(runtime->GetIsolate()),
-			m_ctx(runtime->GetContext()),
-			m_contextScope(m_ctx) {}
+		SharedPushEnvironmentNoIsolate(C* runtime)
+			: m_handleScope(runtime->GetIsolate()),
+			  m_ctx(runtime->GetContext()),
+			  m_contextScope(m_ctx),
+			  m_fxenv(runtime)
+		{
+		}
 
-		~SharedPushEnvironmentNoIsolate() {}
+		~SharedPushEnvironmentNoIsolate()
+		{
+		}
 	};
 
 	// scope aware nodejs environment setup without context, from isolate
@@ -108,11 +121,16 @@ namespace fx
 		v8::HandleScope m_handleScope;
 
 	public:
-		SharedPushEnvironmentNoContext(v8::Isolate* isolate) :
-			m_locker(isolate),
-			m_isolateScope(isolate),
-			m_handleScope(isolate) {}
+		SharedPushEnvironmentNoContext(v8::Isolate* isolate)
+			: m_locker(isolate),
+			  m_isolateScope(isolate),
+			  m_handleScope(isolate)
+		{
+		}
 
-		~SharedPushEnvironmentNoContext() {}
+		~SharedPushEnvironmentNoContext()
+		{
+		}
 	};
-}
+
+	}

@@ -176,6 +176,8 @@ jobs:
   
   build_all:
     name: Build
+    permissions:
+      packages: read
     needs: input_validation
     if: ${{ needs.input_validation.outputs.requires_compilation == 'true' }}
     uses: ./.github/workflows/ci_build.yml

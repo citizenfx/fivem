@@ -506,8 +506,20 @@ struct
 				*(uint16_t*)&out->gamerHandle.handle[8] = 3;
 				out->localAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
 				out->localAddr.port = 6672;
-				out->relayAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
-				out->relayAddr.port = 6672;
+
+				if constexpr (Build >= 2824)
+				{
+					out->relayAddrStruct.proxyAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+					out->relayAddrStruct.proxyAddr.port = 6672;
+					out->relayAddrStruct.publicAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+					out->relayAddrStruct.publicAddr.port = 6672;
+				}
+				else
+				{
+					out->relayAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+					out->relayAddr.port = 6672;
+				}
+
 				out->publicAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
 				out->publicAddr.port = 6672;
 
@@ -1952,6 +1964,15 @@ static HookFunction hookFunction([] ()
 		auto location = hook::get_pattern("48 8D 0D ? ? ? ? 33 D2 E8 ? ? ? ? 48 8B 05 ? ? ? ? 48 8B 48 08", 9);
 		hook::set_call(&g_origPoliceScanner_Stop, location);
 		hook::call(location, PoliceScanner_StopWrap);
+	}
+
+	// Disable relay address verification.
+	// Otherwise updating relay address in `HS_START_JOINING` branch of `process()` method above doesn't work.
+	// Which leads to the "Could not connect to session provider." error on builds 2944+.
+	// It seems that with one sync all clients are being processed as hosting, so this change is not necessary.
+	if (xbr::IsGameBuildOrGreater<2944>() && !Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		*hook::get_address<bool*>(hook::get_pattern("80 3D ? ? ? ? ? 49 8B F0 48 8B DA 48 8B F9 74"), 2, 7) = false;
 	}
 
 	// default netnoupnp and netnopcp to true

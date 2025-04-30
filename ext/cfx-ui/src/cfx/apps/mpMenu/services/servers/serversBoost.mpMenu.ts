@@ -111,7 +111,7 @@ export class MpMenuServersBoostService implements IServersBoostService {
 
       if ('error' in response) {
         this.uiError = response.error
-        || ':( Assigning BOOST™ failed. Please try again later, or contact FiveM support if this issue persists!';
+        || ':( Assigning upvotes failed. Please try again later, or contact FiveM support if this issue persists!';
         this.uiState = BoostUIState.Error;
 
         return;
@@ -148,7 +148,7 @@ export class MpMenuServersBoostService implements IServersBoostService {
 
       if (!this.uiError) {
         // eslint-disable-next-line @stylistic/max-len
-        this.uiError = ':( Assigning BOOST™ failed. Please try again later, or contact FiveM support if this issue persists!';
+        this.uiError = ':( Assigning upvotes failed. Please try again later, or contact FiveM support if this issue persists!';
       }
 
       this.uiState = BoostUIState.Error;
@@ -181,7 +181,7 @@ export class MpMenuServersBoostService implements IServersBoostService {
           this.currentBoostLoadError = this.intlService.translate('#Settings_BoostLoadError');
         }
 
-        console.warn('Failed to load current boost', e);
+        console.warn('Failed to load current upvotes', e);
       }
 
       // That's not an error, in general
@@ -192,4 +192,6 @@ export class MpMenuServersBoostService implements IServersBoostService {
   }
 }
 
-type UpvoteResponse = { success: true; power: string; burst: string } | { error: string };
+type UpvoteResponse = { success: true;
+  power: string;
+  burst: string; } | { error: string };

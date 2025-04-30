@@ -1222,4 +1222,53 @@ static HookFunction hookFunction{[] ()
 		intelCheckStub.Assemble();
 		hook::jump(location, intelCheckStub.GetCode());
 	}
+
+	// Backported crash-fix for CDynamicEntityGameStateDataNode -> Decorator-List pool exhaustion
+	// Reference location on 3407: "41 39 0E 41 0F 42 0E"
+	if (!xbr::IsGameBuildOrGreater<2944>())
+	{
+		static struct : jitasm::Frontend
+		{
+			intptr_t OrigJump;
+			intptr_t RetSuccess;
+
+			void Init(const intptr_t location, const intptr_t origJump)
+			{
+				this->OrigJump = origJump;
+				this->RetSuccess = location + 5;
+			}
+
+			void InternalMain() override
+			{
+				mov(ecx, 0xB);
+				cmp(dword_ptr[r14], ecx);
+				cmovb(ecx, dword_ptr[r14]);
+				mov(dword_ptr[r14], ecx);
+				test(ecx, ecx);
+				jz("fail");
+
+				mov(rax, RetSuccess);
+				jmp(rax);
+
+				L("fail");
+				mov(rax, OrigJump);
+				jmp(rax);
+			}
+		} patchStub;
+
+		auto location = hook::get_pattern("41 39 36 76 ? 4C 8B 17");
+
+		const uint8_t jzToOrigBytes = *(uint8_t*)((uintptr_t)location + 4);
+		auto jzOrigLocation = (void*)((uintptr_t)location + 5 + jzToOrigBytes);
+
+		patchStub.Init(reinterpret_cast<intptr_t>(location), reinterpret_cast<intptr_t>(jzOrigLocation));
+
+		hook::nop(location, 5);
+		hook::jump(location, patchStub.GetCode());
+	}
+
+	// GTA V doesn't support horses, so peds lack a mount manager.
+	// If a mount ID is set (which shouldn't normally happen), it can cause crashes.
+	// NOP the call in CNetObjPed::Update that updates a ped's mount point to prevent this.
+	hook::nop(hook::get_pattern("E8 ? ? ? ? 48 8B CF E8 ? ? ? ? 0F B7 97"), 5);
 }};

@@ -2141,7 +2141,7 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern<char>("48 8D A8 28 FF FF FF 48 81 ? ? ? ? 00 80 3D", -0x1C);
 
 		hook::put<uint32_t>(location + 0x26, 0xB0 + (256 * 8));
-		hook::put<uint32_t>(location + 0x269, 0xB0 + (256 * 8));
+		hook::put<uint32_t>(location + 0x26C, 0xB0 + (256 * 8));
 	}
 	else
 	{

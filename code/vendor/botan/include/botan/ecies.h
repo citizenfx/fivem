@@ -68,8 +68,9 @@ class BOTAN_PUBLIC_API(2,0) ECIES_KA_Params
                       PointGFp::Compression_Type compression_type, ECIES_Flags flags);
 
       ECIES_KA_Params(const ECIES_KA_Params&) = default;
-      ECIES_KA_Params& operator=(const ECIES_KA_Params&) = default;
-      virtual ~ECIES_KA_Params() = default;
+      ECIES_KA_Params& operator=(const ECIES_KA_Params&) = delete;
+
+      virtual ~ECIES_KA_Params() {}
 
       inline const EC_Group& domain() const
          {
@@ -149,8 +150,8 @@ class BOTAN_PUBLIC_API(2,0) ECIES_System_Params final : public ECIES_KA_Params
                           PointGFp::Compression_Type compression_type, ECIES_Flags flags);
 
       ECIES_System_Params(const ECIES_System_Params&) = default;
-      ECIES_System_Params& operator=(const ECIES_System_Params&) = default;
-      virtual ~ECIES_System_Params() = default;
+      ECIES_System_Params& operator=(const ECIES_System_Params&) = delete;
+      virtual ~ECIES_System_Params() {}
 
       /// creates an instance of the message authentication code
       std::unique_ptr<MessageAuthenticationCode> create_mac() const;

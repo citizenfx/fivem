@@ -12,6 +12,8 @@
 #include <botan/aead.h>
 #include <botan/block_cipher.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(ccm.h)
+
 namespace Botan {
 
 /**

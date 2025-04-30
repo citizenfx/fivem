@@ -3,7 +3,8 @@ name: CI Build all products
 on:
   workflow_call:
 
-permissions: {}
+permissions:
+  packages: read
 
 jobs:
   build_all:
@@ -15,7 +16,7 @@ jobs:
           - [ Server, server, windows ]
           - [ Server, server, linux   ]
     name: ${{ matrix.builds[0] }}${{ matrix.builds[2] == 'linux' && ' (Linux)' || '' }}
-    runs-on: ${{ matrix.builds[2] == 'windows' && 'windows-latest' || 'ubuntu-20.04' }}
+    runs-on: ${{ matrix.builds[2] == 'windows' && 'windows-latest' || 'ubuntu-24.04' }}
     env:
       PROGRAM: ${{ matrix.builds[1] }}
       PLATFORM: ${{ matrix.builds[2] }}      
@@ -50,7 +51,15 @@ jobs:
         shell: bash
         run: |
           mkdir -p "$ROOT_DEP" && cd "$_" || exit 1
-        
+      
+      - name: Log in to the Container registry
+        if: ${{ matrix.builds[2] == 'linux' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Compile
         shell: bash
         run: |

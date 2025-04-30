@@ -11,6 +11,8 @@
 #include <botan/types.h>
 #include <string>
 
+BOTAN_FUTURE_INTERNAL_HEADER(charset.h)
+
 namespace Botan {
 
 /**

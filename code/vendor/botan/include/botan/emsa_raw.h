@@ -10,6 +10,8 @@
 
 #include <botan/emsa.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(emsa_raw.h)
+
 namespace Botan {
 
 /**

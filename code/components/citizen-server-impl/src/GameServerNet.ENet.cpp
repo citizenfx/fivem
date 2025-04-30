@@ -105,7 +105,8 @@ namespace fx
 			return peer->roundTripTime;
 		}
 
-		virtual int GetPingVariance() override
+		// Used by the scripting API to get useful statistics
+		virtual uint32_t GetENetStatistics(ENetPeerStatistics statisticType)
 		{
 			auto peer = GetPeer();
 
@@ -114,7 +115,27 @@ namespace fx
 				return 0;
 			}
 
-			return peer->roundTripTimeVariance;
+			switch (statisticType)
+			{
+				case PacketLoss:
+					return peer->packetLoss;
+				case PacketLossVariance:
+					return peer->packetLossVariance;
+				case PacketLossEpoch:
+					return peer->packetLossEpoch;
+				case RoundTripTime:
+					return peer->roundTripTime;
+				case RoundTripTimeVariance:
+					return peer->roundTripTimeVariance;
+				case LastRoundTripTime:
+					return peer->lastRoundTripTime;
+				case LastRoundTripTimeVariance:
+					return peer->lastRoundTripTimeVariance;
+				case PacketThrottleEpoch:
+					return peer->packetThrottleEpoch;
+				default:
+					return 0;
+			}
 		}
 
 		virtual net::PeerAddress GetAddress() override
@@ -476,7 +497,12 @@ namespace fx
 			{
 				sharedPtrPool.destruct((NetBufferSharedPtr*)packet->userData);
 			};
-			enet_peer_send(peerPair->second, channel, packet);
+			if (enet_peer_send(peerPair->second, channel, packet) != 0)
+			{
+				enet_packet_destroy(packet);
+				console::DPrintf("enet", "Failed to send packet. Peer state: %d, channel: %d (channel cnt %d), data size: %d (max %d).\n",
+					peerPair->second->state, channel, peerPair->second->channelCount, packet->dataLength, peerPair->second->host->maximumPacketSize);
+			}
 		}
 
 		virtual void SendOutOfBand(const net::PeerAddress & to, const std::string_view & oob, bool prefix) override
