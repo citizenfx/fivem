@@ -1672,7 +1672,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							{
 								constexpr const int kSlotIdStart = 
 #ifdef STATE_RDR3
-									30
+									127
 #else
 									127
 #endif

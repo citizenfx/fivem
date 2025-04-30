@@ -14,6 +14,12 @@ class netObject;
 
 class CNetGamePlayer;
 
+extern CNetGamePlayer* g_playerList[256];
+extern int g_playerListCount;
+
+extern CNetGamePlayer* g_playerListRemote[256];
+extern int g_playerListCountRemote;
+
 namespace sync
 {
 struct FrameIndex
@@ -90,6 +96,9 @@ public:
 	virtual void HandleCloneSync(const char* data, size_t len) = 0;
 
 	virtual void HandleCloneAcks(const char* data, size_t len) = 0;
+
+	virtual const std::map<int, rage::netObject*>& GetPlayerObjects(uint8_t playerId) = 0;
+
 public:
 	virtual void Logv(const char* format, fmt::printf_args argumentList) = 0;
 
