@@ -9,6 +9,7 @@
 
 #include <jitasm.h>
 #include <Hooking.h>
+#include "Hooking.Stubs.h"
 
 #include <Error.h>
 
@@ -550,6 +551,47 @@ static bool fwClipset_GetClipItem_Caller(void* moveTask, unsigned int a2 /*'2'*/
 		return false;
 	}
 	return g_origFwClipset_GetClipItem_Caller(moveTask, a2);
+}
+
+static hook::cdecl_stub<bool(void*, void*)> rage_fwEntity_IsEntityAParentAttachment([]
+{
+	return hook::get_pattern("48 8B 41 ? 48 85 C0 74 ? 48 8B 40 ? 48 85 C0 74 ? 48 8B 00");
+});
+
+static hook::cdecl_stub<void(void*, int64_t)> CPhysical_DetachFromParent([]
+{
+	return hook::get_pattern("48 8B C4 48 89 58 ? 48 89 70 ? 48 89 78 ? 55 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 80 79");
+});
+
+static std::once_flag attachToPhysicalBasicTraceFlag;
+
+static void (*orig_CPhysical_AttachToPhysicalBasic)(void*, hook::FlexStruct*, int16_t, uint32_t, void*, void*, int16_t);
+
+// fwAttachmentEntityExtension -> m_pAttachParent pointer invalidation with DETACH_FLAG_NO_COLLISION_UNTIL_CLEAR set [CFX-3115]
+static void CPhysical_AttachToPhysicalBasic(void* self, hook::FlexStruct* pPhysical, int16_t nEntBone, uint32_t nAttachFlags, void* pVecOffset, void* pQuatOrientation, int16_t nMyBone)
+{
+	if (pPhysical)
+	{
+		if (auto m_DynamicEntityComponent = pPhysical->Get<hook::FlexStruct*>(0x50))
+		{
+			if (auto m_pAttachmentEntityExtension = m_DynamicEntityComponent->Get<hook::FlexStruct*>(0x48))
+			{
+				if (auto m_nAttachFlags = m_pAttachmentEntityExtension->Get<uint32_t>(0x5C); (m_nAttachFlags & 0xF) == 1)
+				{
+					if (rage_fwEntity_IsEntityAParentAttachment(pPhysical, self))
+					{
+						CPhysical_DetachFromParent(pPhysical, 0);
+						std::call_once(attachToPhysicalBasicTraceFlag, []
+						{
+							trace("AttachToPhysicalBasic: attachParent pointer invalidation crash prevented [CFX-3115]\n");
+						});
+					}
+				}
+			}
+		}
+	}
+
+	orig_CPhysical_AttachToPhysicalBasic(self, pPhysical, nEntBone, nAttachFlags, pVecOffset, pQuatOrientation, nMyBone);
 }
 
 static HookFunction hookFunction{[] ()
@@ -1271,4 +1313,6 @@ static HookFunction hookFunction{[] ()
 	// If a mount ID is set (which shouldn't normally happen), it can cause crashes.
 	// NOP the call in CNetObjPed::Update that updates a ped's mount point to prevent this.
 	hook::nop(hook::get_pattern("E8 ? ? ? ? 48 8B CF E8 ? ? ? ? 0F B7 97"), 5);
+
+	orig_CPhysical_AttachToPhysicalBasic = hook::trampoline(hook::get_pattern("48 85 D2 0F 84 ? ? ? ? 48 8B C4 48 89 58 ? 48 89 70 ? 48 89 78 ? 55 41 54 41 55 41 56 41 57 48 8D 68 ? 48 81 EC ? ? ? ? 45 33 ED"), CPhysical_AttachToPhysicalBasic);
 }};
