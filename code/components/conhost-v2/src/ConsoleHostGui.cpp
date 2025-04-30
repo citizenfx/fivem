@@ -914,7 +914,7 @@ static void EnsureConsoles()
 
 bool IsNonProduction()
 {
-#if (!defined(GTA_FIVE) && !defined(IS_RDR3)) || defined(_DEBUG)
+#if !defined(GTA_FIVE) || defined(_DEBUG)
 	return true;
 #else
 	static ConVar<int> moo("moo", ConVar_None, 0);

@@ -5,9 +5,8 @@
 #include <CL2LaunchMode.h>
 
 #include <Hooking.h>
-#ifdef GTA_FIVE
 #include <StatusText.h>
-#endif
+
 #include <Resource.h>
 
 #include <gameSkeleton.h>
@@ -34,14 +33,6 @@
 
 #include <Error.h>
 
-#include <rageVectors.h>
-
-#ifdef IS_RDR3
-#include <ConsoleHost.h>
-#include <imgui.h>
-#endif
-
-
 static std::shared_ptr<ConVar<bool>> g_loadProfileConvar;
 static std::map<uint64_t, std::chrono::milliseconds> g_loadTiming;
 static std::chrono::milliseconds g_loadTimingBase;
@@ -54,74 +45,6 @@ using fx::Resource;
 bool g_doDrawBelowLoadingScreens;
 static bool frameOn = false;
 static bool primedMapLoad = false;
-#ifdef GTA_FIVE
-enum NativeIdentifiers : uint64_t
-{
-	SHUTDOWN_LOADING_SCREEN = 0x078EBE9809CCD637,
-	LOAD_ALL_OBJECTS_NOW = 0xBD6E84632DD4CB3F,
-	DO_SCREEN_FADE_OUT = 0x891B5B39AC6302AF,
-	IS_SCREEN_FADED_OUT = 0xB16FCE9DDC7BA182,
-	IS_SCREEN_FADING_OUT = 0x797AC7CB535BA28F,
-	DO_SCREEN_FADE_IN = 0xD4E8E24955024033,
-	IS_SCREEN_FADING_IN = 0x5C544BC6C57AC575,
-	IS_SCREEN_FADED_IN = 0x5A859503B0C08678,
-	CREATE_CAM = 0xC3981DCE61D9E13F,
-	SET_CAM_COORD = 0x078EBE9809CCD637,
-	SET_CAM_ROT = 0x85973643155D0B07,
-	SET_CAM_FOV = 0xB13C14F66A00D047,
-	RENDER_SCRIPT_CAMS = 0x07E5B515DB0636FC,
-	SET_WEATHER_TYPE_PERSIST = 0xED712CA327900C8A,
-	NETWORK_OVERRIDE_CLOCK_TIME = 0xE679E3E06E363892,
-	SET_ENTITY_COORDS = 0x06843DA7060A026B,
-	PLAYER_PED_ID = 0xD80958FC74E988A6,
-	FREEZE_ENTITY_POSITION = 0x428CA6DBD1094446,
-	SET_FOCUS_AREA = 0xBB7454BAFF08FE25,
-	HIDE_HUD_AND_RADAR_THIS_FRAME = 0x719FF505F097FD20,
-	DESTROY_CAM = 0x865908C81A2C22E9,
-	CLEAR_FOCUS = 0x31B73D1EA9F01DA2,
-	CLEAR_WEATHER_TYPE_PERSIST = 0xCCC39339BEF76CF5,
-
-};
-#elif IS_RDR3
-enum NativeIdentifiers : uint64_t
-{
-	SHUTDOWN_LOADING_SCREEN = 0xFC179D7E8886DADF,
-	DO_SCREEN_FADE_OUT = 0x40C719A5E410B9E4,
-	IS_SCREEN_FADED_OUT = 0xF5472C80DF2FF847,
-	IS_SCREEN_FADING_OUT = 0x02F39BEFE7B88D00,
-	DO_SCREEN_FADE_IN = 0x6A053CF596F67DF7,
-	IS_SCREEN_FADING_IN = 0x0CECCC63FFA2EF24,
-	IS_SCREEN_FADED_IN = 0x37F9A426FBCF4AF2,
-	CREATE_CAM = 0xE72CDBA7F0A02DD6,
-	SET_CAM_COORD = 0xF9EE7D419EE49DE6,
-	SET_CAM_ROT = 0x63DFA6810AD78719,
-	SET_CAM_FOV = 0x27666E5988D9D429,
-	RENDER_SCRIPT_CAMS = 0x33281167E4942E4F,
-	NETWORK_OVERRIDE_CLOCK_TIME = 0x669E223E64B1903C,
-	SET_ENTITY_COORDS = 0x06843DA7060A026B,
-	PLAYER_PED_ID = 0x096275889B8E0EE0,
-	FREEZE_ENTITY_POSITION = 0x7D9EFB7AD6B19754,
-	SET_FOCUS_AREA = 0x25F6EF88664540E2,
-	HIDE_HUD_AND_RADAR_THIS_FRAME = 0x36CDD81627A6FCD2,
-	DESTROY_CAM = 0x4E67E0B6D7FD5145,
-	CLEAR_FOCUS = 0x86CCAF7CE493EFBE,
-	IS_LOADING_SCREEN_VISIBLE = 0xB54ADBE65D528FCB,
-	SET_OVERRIDE_WEATHER = 0xBE83CAE8ED77A94F,
-	CLEAR_OVERRIDE_WEATHER = 0x80A398F16FFE3CC3,
-
-};
-#endif
-#ifdef GTA_FIVE
-static rage::Vector3 defaultCameraPos = { -2153.641f, 4597.957f, 116.662f };
-static rage::Vector3 defaultCameraRot = { -8.601f, 0.0f, 253.026f };
-static float defaultCameraFov = 45.0f;
-#elif IS_RDR3
-static rage::Vector3 defaultCameraPos = { 2709.881836f, -1407.226074f, 49.1040610f };
-static rage::Vector3 defaultCameraRot = { 6.94207f, 0.000000f, 71.483643f };
-static float defaultCameraFov = 55.0f;
-static std::string statusText = "Loading...";
-static bool shouldShowStatusText = false;
-#endif
 
 static void InvokeNUIScript(const std::string& eventName, rapidjson::Document& json)
 {
@@ -215,7 +138,8 @@ static HookFunction hookFunction([]()
 		};
 
 		{
-			auto handler = fx::ScriptEngine::GetNativeHandler(SHUTDOWN_LOADING_SCREEN);
+			// override SHUTDOWN_LOADING_SCREEN
+			auto handler = fx::ScriptEngine::GetNativeHandler(0x078EBE9809CCD637);
 
 			if (!handler)
 			{
@@ -224,7 +148,6 @@ static HookFunction hookFunction([]()
 			}
 
 			g_origShutdown = handler;
-			// we want call this as soon as posible
 
 			fx::ScriptEngine::RegisterNativeHandler("SET_MANUAL_SHUTDOWN_LOADING_SCREEN_NUI", [](fx::ScriptContext& ctx)
 			{
@@ -238,15 +161,12 @@ static HookFunction hookFunction([]()
 				endLoadingScreens();
 			});
 
-			fx::ScriptEngine::RegisterNativeHandler(SHUTDOWN_LOADING_SCREEN, [=](fx::ScriptContext& ctx)
+			fx::ScriptEngine::RegisterNativeHandler(0x078EBE9809CCD637, [=](fx::ScriptContext& ctx)
 			{
 				handler(ctx);
 
 				loadsThread.doSetup = true;
 				g_doDrawBelowLoadingScreens = false;
-#ifdef IS_RDR3
-				shouldShowStatusText = false;
-#endif
 
 				if (autoShutdownNui)
 				{
@@ -274,14 +194,14 @@ static HookFunction hookFunction([]()
 			endedLoadingScreens = false;
 			autoShutdownNui = true;
 		});
-#ifdef GTA_FIVE
+
 		{
 			// override LOAD_ALL_OBJECTS_NOW
-			auto handler = fx::ScriptEngine::GetNativeHandler(LOAD_ALL_OBJECTS_NOW);
+			auto handler = fx::ScriptEngine::GetNativeHandler(0xBD6E84632DD4CB3F);
 
 			if (handler)
 			{
-				fx::ScriptEngine::RegisterNativeHandler(LOAD_ALL_OBJECTS_NOW, [=](fx::ScriptContext& ctx)
+				fx::ScriptEngine::RegisterNativeHandler(0xBD6E84632DD4CB3F, [=](fx::ScriptContext& ctx)
 				{
 					if (!endedLoadingScreens)
 					{
@@ -293,24 +213,25 @@ static HookFunction hookFunction([]()
 				});
 			}
 		}
-#endif
+
 		{
 			static uint64_t fakeFadeOutTime;
 			static int fakeFadeOutLength;
 
-			auto handler = fx::ScriptEngine::GetNativeHandler(DO_SCREEN_FADE_OUT);
+			// override DO_SCREEN_FADE_OUT
+			auto handler = fx::ScriptEngine::GetNativeHandler(0x891B5B39AC6302AF);
 
-			fx::ScriptEngine::RegisterNativeHandler(DO_SCREEN_FADE_OUT, [=](fx::ScriptContext& ctx)
+			fx::ScriptEngine::RegisterNativeHandler(0x891B5B39AC6302AF, [=](fx::ScriptContext& ctx)
 			{
 				// reset so a spawnmanager-style wait for collision will be fine
 				if (loadsThread.isShutdown)
 				{
 					// CLEAR_FOCUS
-					NativeInvoke::Invoke<CLEAR_FOCUS, int>();
+					NativeInvoke::Invoke<0x31B73D1EA9F01DA2, int>();
 				}
 
 				// IS_SCREEN_FADED_OUT
-				if (NativeInvoke::Invoke<IS_SCREEN_FADED_OUT, bool>())
+				if (NativeInvoke::Invoke<0xB16FCE9DDC7BA182, bool>())
 				{
 					fakeFadeOutTime = GetTickCount64();
 					fakeFadeOutLength = ctx.GetArgument<int>(0);
@@ -320,9 +241,10 @@ static HookFunction hookFunction([]()
 				handler(ctx);
 			});
 
-			auto handlerIs = fx::ScriptEngine::GetNativeHandler(IS_SCREEN_FADING_OUT);
+			// override IS_SCREEN_FADING_OUT
+			auto handlerIs = fx::ScriptEngine::GetNativeHandler(0x797AC7CB535BA28F);
 
-			fx::ScriptEngine::RegisterNativeHandler(IS_SCREEN_FADING_OUT, [=](fx::ScriptContext& ctx)
+			fx::ScriptEngine::RegisterNativeHandler(0x797AC7CB535BA28F, [=](fx::ScriptContext& ctx)
 			{
 				handlerIs(ctx);
 
@@ -337,11 +259,13 @@ static HookFunction hookFunction([]()
 			static uint64_t fakeFadeOutTime;
 			static int fakeFadeOutLength;
 
-			auto handler = fx::ScriptEngine::GetNativeHandler(DO_SCREEN_FADE_IN);
+			// override DO_SCREEN_FADE_IN
+			auto handler = fx::ScriptEngine::GetNativeHandler(0xD4E8E24955024033);
 
-			fx::ScriptEngine::RegisterNativeHandler(DO_SCREEN_FADE_IN, [=](fx::ScriptContext& ctx)
+			fx::ScriptEngine::RegisterNativeHandler(0xD4E8E24955024033, [=](fx::ScriptContext& ctx)
 			{
-				if (NativeInvoke::Invoke<IS_SCREEN_FADED_IN, bool>())
+				// IS_SCREEN_FADED_IN
+				if (NativeInvoke::Invoke<0x5A859503B0C08678, bool>())
 				{
 					fakeFadeOutTime = GetTickCount64();
 					fakeFadeOutLength = ctx.GetArgument<int>(0);
@@ -351,9 +275,10 @@ static HookFunction hookFunction([]()
 				handler(ctx);
 			});
 
-			auto handlerIs = fx::ScriptEngine::GetNativeHandler(IS_SCREEN_FADING_IN);
+			// override IS_SCREEN_FADING_IN
+			auto handlerIs = fx::ScriptEngine::GetNativeHandler(0x5C544BC6C57AC575);
 
-			fx::ScriptEngine::RegisterNativeHandler(IS_SCREEN_FADING_IN, [=](fx::ScriptContext& ctx)
+			fx::ScriptEngine::RegisterNativeHandler(0x5C544BC6C57AC575, [=](fx::ScriptContext& ctx)
 			{
 				handlerIs(ctx);
 
@@ -387,11 +312,7 @@ static void UpdateLoadTiming(uint64_t loadTimingIdentity)
 			doc.AddMember("loadFraction", rapidjson::Value(frac), doc.GetAllocator());
 
 			InvokeNUIScript("loadProgress", doc);
-#ifdef GTA_FIVE
 			ActivateStatusText(va("Loading game (%.0f%%)", frac * 100.0), 5, 4);
-#elif IS_RDR3
-			statusText = fmt::format("Loading game ({:.0f}%%)\n", frac * 100.0);
-#endif
 			OnLookAliveFrame();
 
 			g_visitedTimings.insert(loadTimingIdentity);
@@ -410,13 +331,8 @@ void LoadsThread::DoRun()
 	{
 		if (doShutdown && !autoShutdownNui)
 		{
-			// Init the player for RAGE sake
-			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), 0.0f, 0.0f, 0.0f, false, false, false, false);
-
-#ifdef IS_RDR3
-			fx::ScriptContextBuffer ctx;
-			g_origShutdown(ctx);
-#endif
+			// SET_ENTITY_COORDS Init the player for RAGE sake
+			NativeInvoke::Invoke<0x06843DA7060A026B, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>(), 0.0f, 0.0f, 0.0f, false, false, false, false);
 
 			doShutdown = false;
 		}
@@ -435,11 +351,8 @@ void LoadsThread::DoRun()
 	{
 		if (doSetup)
 		{
-#ifdef GTA_FIVE
 			DeactivateStatusText(1);
-#elif IS_RDR3
-			shouldShowStatusText = false;
-#endif
+
 			doSetup = false;
 		}
 
@@ -448,44 +361,45 @@ void LoadsThread::DoRun()
 
 	if (doShutdown)
 	{
-#ifdef IS_RDR3
-		// We wait because it take some to shutdown loading screen
-		fx::ScriptContextBuffer ctx;
-		g_origShutdown(ctx);
-		if (NativeInvoke::Invoke<IS_LOADING_SCREEN_VISIBLE, bool>())
-		{
-			return;
-		}
-#endif
+		// CREATE_CAM
+		cam = NativeInvoke::Invoke<0xC3981DCE61D9E13F, int>("DEFAULT_SCRIPTED_CAMERA", true);
 
-		cam = NativeInvoke::Invoke<CREATE_CAM, int>("DEFAULT_SCRIPTED_CAMERA", true);
+		// SET_CAM_COORD
+		NativeInvoke::Invoke<0x4D41783FB745E42E, int>(cam, -2153.641f, 4597.957f, 116.662f);
 
-		NativeInvoke::Invoke<SET_CAM_COORD, int>(cam, defaultCameraPos.x, defaultCameraPos.y, defaultCameraPos.z);
+		// SET_CAM_ROT
+		NativeInvoke::Invoke<0x85973643155D0B07, int>(cam, -8.601f, 0.0f, 253.026f, 0);
 
-		NativeInvoke::Invoke<SET_CAM_ROT, int>(cam, defaultCameraRot.x, defaultCameraRot.y, defaultCameraRot.z, 0);
+		// SET_CAM_FOV
+		NativeInvoke::Invoke<0xB13C14F66A00D047, int>(cam, 45.0f);
 
-		NativeInvoke::Invoke<SET_CAM_FOV, int>(cam, defaultCameraFov);
+		// RENDER_SCRIPT_CAMS
+		NativeInvoke::Invoke<0x07E5B515DB0636FC, int>(true, false, 0, false, false);
 
-		NativeInvoke::Invoke<RENDER_SCRIPT_CAMS, int>(true, false, 0, false, false);
-#ifdef GTA_FIVE
+		// LOAD_SCENE(?)
+		//NativeInvoke::Invoke<0x4448EB75B4904BDB, int>(-2153.641f, 4597.957f, 116.662f);
+
 		// SHUTDOWN_LOADING_SCREEN
 		fx::ScriptContextBuffer ctx;
 		g_origShutdown(ctx);
-#endif
-		NativeInvoke::Invoke<DO_SCREEN_FADE_IN, int>(0);
-#ifdef GTA_FIVE
-		NativeInvoke::Invoke<SET_WEATHER_TYPE_PERSIST, int>("EXTRASUNNY");
-#elif IS_RDR3
-		NativeInvoke::Invoke<SET_OVERRIDE_WEATHER, int>("SUNNY");
-#endif
-		NativeInvoke::Invoke<NETWORK_OVERRIDE_CLOCK_TIME, int>(12, 30, 0);
 
+		// DO_SCREEN_FADE_IN(0)
+		NativeInvoke::Invoke<0xD4E8E24955024033, int>(0);
 
-		NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), 0.0f, 0.0f, 0.0f);
+		// SET_WEATHER_TYPE_PERSIST
+		NativeInvoke::Invoke<0xED712CA327900C8A, int>("EXTRASUNNY");
 
-		NativeInvoke::Invoke<FREEZE_ENTITY_POSITION, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), true);
+		// NETWORK_OVERRIDE_CLOCK_TIME
+		NativeInvoke::Invoke<0xE679E3E06E363892, int>(12, 30, 0);
 
-		NativeInvoke::Invoke<SET_FOCUS_AREA, int>(defaultCameraPos.x, defaultCameraPos.y, defaultCameraPos.z, 0.0f, 0.0f, 0.0f);
+		// SET_ENTITY_COORDS so we can start streaming
+		NativeInvoke::Invoke<0x06843DA7060A026B, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>(), 0.0f, 0.0f, 0.0f);
+
+		// FREEZE_ENTITY_POSITION
+		NativeInvoke::Invoke<0x428CA6DBD1094446, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>(), true);
+
+		// focus coords (_SET_FOCUS_AREA)
+		NativeInvoke::Invoke<0xBB7454BAFF08FE25, int>(-2153.641f, 4597.957f, 116.662f, 0.0f, 0.0f, 0.0f);
 
 		// do shutdown
 		DestroyFrame();
@@ -498,28 +412,28 @@ void LoadsThread::DoRun()
 
 	if (isShutdown)
 	{
-		NativeInvoke::Invoke<HIDE_HUD_AND_RADAR_THIS_FRAME, int>();
+		// HIDE_HUD_AND_RADAR_THIS_FRAME
+		NativeInvoke::Invoke<0x719FF505F097FD20, int>();
 	}
 
 	if (doSetup)
 	{
-		NativeInvoke::Invoke<RENDER_SCRIPT_CAMS, int>(false, false, 0, false, false);
+		// RENDER_SCRIPT_CAMS
+		NativeInvoke::Invoke<0x07E5B515DB0636FC, int>(false, false, 0, false, false);
 
-		NativeInvoke::Invoke<DESTROY_CAM, int>(cam, false);
+		// DESTROY_CAM
+		NativeInvoke::Invoke<0x865908C81A2C22E9, int>(cam, false);
 
-		NativeInvoke::Invoke<CLEAR_FOCUS, int>();
-#ifdef GTA_FIVE
-		NativeInvoke::Invoke<CLEAR_WEATHER_TYPE_PERSIST, int>();
-#elif IS_RDR3
-		NativeInvoke::Invoke<CLEAR_OVERRIDE_WEATHER, int>();
-#endif
+		// CLEAR_FOCUS
+		NativeInvoke::Invoke<0x31B73D1EA9F01DA2, int>();
+
+		// CLEAR_WEATHER_TYPE_PERSIST
+		NativeInvoke::Invoke<0xCCC39339BEF76CF5, int>();
 
 		cam = 0;
-#ifdef GTA_FIVE
+
 		DeactivateStatusText(1);
-#elif IS_RDR3
-		shouldShowStatusText = false;
-#endif
+
 		// done
 		isShutdown = false;
 		doSetup = false;
@@ -655,10 +569,7 @@ static InitFunction initFunction([] ()
 		});
 
 		g_doDrawBelowLoadingScreens = true;
-#ifdef IS_RDR3
-		shouldShowStatusText = true;
-#endif
-		
+
 		auto icgi = Instance<ICoreGameInit>::Get();
 		std::string handoverBlob;
 
@@ -716,9 +627,9 @@ static InitFunction initFunction([] ()
 				doc.AddMember("loadFraction", 0.0, doc.GetAllocator());
 
 				InvokeNUIScript("loadProgress", doc);
-#ifdef GTA_FIVE
+
 				DeactivateStatusText(4);
-#endif
+
 				g_visitedTimings.clear();
 			}
 		}
@@ -735,9 +646,9 @@ static InitFunction initFunction([] ()
 				doc.AddMember("loadFraction", 0.0, doc.GetAllocator());
 
 				InvokeNUIScript("loadProgress", doc);
-#ifdef GTA_FIVE
+
 				DeactivateStatusText(4);
-#endif
+
 				g_visitedTimings.clear();
 
 				g_loadTimingBase = g_loadTiming[2];
@@ -869,9 +780,7 @@ static InitFunction initFunction([] ()
 				doc.AddMember("loadFraction", 1.0, doc.GetAllocator());
 
 				InvokeNUIScript("loadProgress", doc);
-#ifdef GTA_FIVE
 				DeactivateStatusText(4);
-#endif
 			}
 
 			// for next time
@@ -901,16 +810,13 @@ static InitFunction initFunction([] ()
 		doc.AddMember("message", rapidjson::Value(message.c_str(), message.size(), doc.GetAllocator()), doc.GetAllocator());
 
 		InvokeNUIScript("onLogLine", doc);
-#ifdef GTA_FIVE
+
 		if (!ShouldSkipLoading())
 		{
 			ActivateStatusText(message.c_str(), 5, 1);
 		}
-#elif IS_RDR3
-		statusText = message;
-#endif
 	};
-#ifdef GTA_FIVE
+
 	OnHostStateTransition.Connect([printLog] (HostState newState, HostState oldState)
 	{
 		if (newState == HS_FATAL)
@@ -938,31 +844,7 @@ static InitFunction initFunction([] ()
 			printLog("Starting game");
 		}
 	});
-#elif IS_RDR3
-	OnHostStateTransition.Connect([printLog] (HostState newState, HostState oldState)
-	{
-		if (newState == SESSION_STATE_ENTER)
-		{
-			printLog("Entering session");
-		}
-		else if (newState == SESSION_STATE_START_JOINING)
-		{
-			printLog("Setting up game");
-		}
-		else if (newState == SESSION_STATE_6)
-		{
-			printLog("Adjusting settings for best experience");
-		}
-		else if (newState == SESSION_STATE_JOINING)
-		{
-			printLog("Initializing session");
-		}
-		else if (newState == SESSION_STATE_JOINED)
-		{
-			printLog("Starting game");
-		}
-	});
-#endif
+
 	OnScriptInitStatus.Connect([printLog](const std::string& text)
 	{
 		printLog(text);
@@ -999,11 +881,7 @@ static InitFunction initFunction([] ()
 	{
 		// counting 0, 9 and 185 is odd due to multiple counts :/ (+ entries getting added all the time)
 
-#ifdef GTA_FIVE
 		static std::set<int> entryTypes = { 0, 9, 185, 3, 4, 20, 21, 28, 45, 48, 49, 51, 52, 53, 54, 55, 56, 59, 66, 71, 72, 73, 75, 76, 77, 84, 89, 97, 98, 99, 100, 106, 107, 112, 133, 184 };
-#elif IS_RDR3
-		static std::set<int> entryTypes = { 23 };
-#endif 
 		static thread_local std::set<std::pair<int, std::string>> hadEntries;
 
 		if (entryTypes.find(type) != entryTypes.end())
@@ -1074,43 +952,4 @@ static InitFunction initFunction([] ()
 
 		SetDepthStencilState(oldDepthStencilState);
 	}, INT32_MIN);
-
-
-
-#ifdef IS_RDR3
-	static bool showBusySpinner = true;
-	static ConVar showBusySpinnerConVar("sv_showBusySpinnerOnLoadingScreen", ConVar_Replicated, true, &showBusySpinner);
-
-	ConHost::OnShouldDrawGui.Connect([](bool* should)
-	{
-		*should = *should || (shouldShowStatusText && showBusySpinner);
-	});
-
-	ConHost::OnDrawGui.Connect([]()
-	{
-		if (!(shouldShowStatusText && showBusySpinner))
-		{
-			return;
-		}
-
-		auto& io = ImGui::GetIO();
-
-		ImGui::SetNextWindowBgAlpha(1.0f);
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
-
-		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + (ImGui::GetMainViewport()->Size.x * 0.825f), ImGui::GetMainViewport()->Pos.y + (ImGui::GetMainViewport()->Size.y * 0.9f)), 0, ImVec2(0.0f, 0.0f));
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-
-		if (ImGui::Begin("DrawRDRLoadingState", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMouseInputs))
-		{
-			ImGui::Text(statusText.c_str());
-		}
-
-		ImGui::PopStyleVar();
-		ImGui::PopStyleColor();
-		ImGui::End();
-	});
-#endif
 });
-
-

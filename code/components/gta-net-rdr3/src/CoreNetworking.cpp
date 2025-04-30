@@ -15,8 +15,6 @@
 
 NetLibrary* g_netLibrary;
 
-#include <HostSystem.h>
-
 // shared relay functions (from early rev. gta:net:five; do update!)
 #include <ws2tcpip.h>
 
@@ -701,148 +699,6 @@ static int ReturnTrue()
 	return true;
 }
 
-
-GTA_NET_EXPORT fwEvent<HostState, HostState> OnHostStateTransition;
-
-struct HostStateHolder
-{
-	HostState state;
-
-	inline bool operator==(HostState right)
-	{
-		return (state == right);
-	}
-
-	inline HostState operator=(HostState right)
-	{
-		trace("SessionState transitioning from %s to %s\n", HostStateToString(state), HostStateToString(right));
-
-		AddCrashometry("hs_state", HostStateToString(right));
-
-		OnHostStateTransition(right, state);
-		state = right;
-
-		return right;
-	}
-};
-
-struct
-{
-	HostStateHolder state;
-	int attempts;
-
-	std::string hostResult;
-
-	void handleHostResult(const std::string& str)
-	{
-		hostResult = str;
-	}
-
-	void process()
-	{
-		ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
-
-		switch (state.state)
-		{
-			case SESSION_STATE_NONE:
-			{
-				// update presence
-				_rlPresence_GamerPresence_Clear(rlPresence__m_GamerPresences);
-				_rlPresence_refreshSigninState(0);
-				_rlPresence_refreshNetworkStatus(0);
-
-				state = SESSION_STATE_ENTER;
-				break;
-			}
-			case SESSION_STATE_ENTER:
-				// wait for transition
-				if (_getCurrentTransitionState() == 0)
-				{
-					state = SESSION_STATE_START_JOINING;
-				}
-
-				break;
-
-			case SESSION_STATE_START_JOINING:
-			{
-				auto lastThread = rage::scrEngine::GetActiveThread();
-				rage::scrEngine::SetActiveThread(fakeThread.GetThread());
-
-				// transition to mp
-				_transitionToState(0x73040199);
-
-				rage::scrEngine::SetActiveThread(lastThread);
-
-				state = SESSION_STATE_JOINING;
-				break;
-			}
-			case SESSION_STATE_JOINING:
-				// wait for transition
-				if (_getCurrentTransitionState() == 0x73040199) // MP MODE
-				{
-					state = SESSION_STATE_JOINED;
-				}
-				else if (_getCurrentTransitionState() == 0x1D94DE8C || _getCurrentTransitionState() == 0) // SP MODE
-				{
-					state = SESSION_STATE_START_JOINING;
-				}
-
-				break;
-
-			case SESSION_STATE_JOINED:
-				if (g_initedPlayer)
-				{
-					state = SESSION_STATE_5;
-				}
-				else if (_getCurrentTransitionState() == 0x1D94DE8C || _getCurrentTransitionState() == 0) // SP MODE
-				{
-					state = SESSION_STATE_START_JOINING;
-				}
-
-				break;
-
-			case SESSION_STATE_5:
-				if (cgi->OneSyncEnabled)
-				{
-					if (sync::IsWaitingForTimeSync())
-					{
-						return;
-					}
-				}
-
-				static char sessionIdPtr[48];
-				memset(sessionIdPtr, 0, sizeof(sessionIdPtr));
-				joinOrHost(1, nullptr, sessionIdPtr);
-
-				state = SESSION_STATE_6;
-
-				break;
-
-			case SESSION_STATE_6:
-				struct
-				{
-					char* sessionMultiplayer;
-					char pad[16];
-					uint8_t networkInited;
-				}* networkMgr;
-
-				networkMgr = *(decltype(networkMgr)*)g_networkMgrPtr;
-
-				if (networkMgr->networkInited)
-				{
-					auto networkState = *(BYTE*)(networkMgr->sessionMultiplayer + networkStateOffset);
-
-					if (networkState == 4)
-					{
-						state = SESSION_STATE_7;
-						Instance<ICoreGameInit>::Get()->SetVariable("networkInited");
-					}
-				}
-				break;
-		}
-	}
-} hostSystem;
-
 static HookFunction hookFunction([]()
 {
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
@@ -931,28 +787,139 @@ static HookFunction hookFunction([]()
 	// pretend to have CGameScriptHandlerNetComponent always be host
 	hook::jump(hook::get_pattern("33 DB 48 85 C0 74 17 48 8B 48 10 48 85 C9 74 0E", -10), ReturnTrue);
 
+	static LoggedInt tryHostStage = 0;
+
+	static bool gameLoaded;
+
+	Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+	{
+		gameLoaded = true;
+	});
+
+	static ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
+
 	OnKillNetwork.Connect([](const char*)
 	{
+		gameLoaded = false;
 		g_initedPlayer = false;
 	});
 
 	OnMainGameFrame.Connect([]()
 	{
-		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		if (!gameLoaded)
 		{
-			hostSystem.process();
+			return;
 		}
 
+		switch (tryHostStage)
+		{
+		case 0:
+		{
+			// update presence
+			_rlPresence_GamerPresence_Clear(rlPresence__m_GamerPresences);
+			_rlPresence_refreshSigninState(0);
+			_rlPresence_refreshNetworkStatus(0);
+
+			tryHostStage = 1;
+			break;
+		}
+		case 1:
+			// wait for transition
+			if (_getCurrentTransitionState() == 0)
+			{
+				tryHostStage = 2;
+			}
+
+			break;
+
+		case 2:
+		{
+			auto lastThread = rage::scrEngine::GetActiveThread();
+			rage::scrEngine::SetActiveThread(fakeThread.GetThread());
+
+			// transition to mp
+			_transitionToState(0x73040199);
+
+			rage::scrEngine::SetActiveThread(lastThread);
+
+			tryHostStage = 3;
+			break;
+		}
+		case 3:
+			// wait for transition
+			if (_getCurrentTransitionState() == 0x73040199)
+			{
+				tryHostStage = 4;
+			}
+			else if (_getCurrentTransitionState() == 0x1D94DE8C || _getCurrentTransitionState() == 0)
+			{
+				tryHostStage = 2;
+			}
+
+			break;
+
+		case 4:
+			if (g_initedPlayer)
+			{
+				tryHostStage = 5;
+			}
+			else if (_getCurrentTransitionState() == 0x1D94DE8C || _getCurrentTransitionState() == 0)
+			{
+				tryHostStage = 2;
+			}
+
+			break;
+
+		case 5:
+			if (cgi->OneSyncEnabled)
+			{
+				if (sync::IsWaitingForTimeSync())
+				{
+					return;
+				}
+			}
+
+			static char sessionIdPtr[48];
+			memset(sessionIdPtr, 0, sizeof(sessionIdPtr));
+			joinOrHost(1, nullptr, sessionIdPtr);
+
+			tryHostStage = 6;
+
+			break;
+
+		case 6:
+			struct
+			{
+				char* sessionMultiplayer;
+				char pad[16];
+				uint8_t networkInited;
+			}* networkMgr;
+
+			networkMgr = *(decltype(networkMgr)*)g_networkMgrPtr;
+
+			if (networkMgr->networkInited)
+			{
+				auto networkState = *(BYTE*)(networkMgr->sessionMultiplayer + networkStateOffset);
+
+				if (networkState == 4)
+				{
+					tryHostStage = 7;
+					Instance<ICoreGameInit>::Get()->SetVariable("networkInited");
+				}
+			}
+
+			break;
+		}
 	});
 
 	static ConsoleCommand hhh("hhh", []()
 	{
-		hostSystem.state = SESSION_STATE_NONE;
+		tryHostStage = 0;
 	});
 
 	OnKillNetworkDone.Connect([]()
 	{
-		hostSystem.state = SESSION_STATE_NONE;
+		tryHostStage = 0;
 	});
 
 	// rlSession::InformPeersOfJoiner bugfix: reintroduce loop (as in, remove break; statement)

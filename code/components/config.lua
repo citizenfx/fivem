@@ -132,7 +132,6 @@ component 'gta-net-rdr3'
 component 'extra-natives-rdr3'
 component 'citizen-playernames-rdr3'
 component 'devtools-rdr3'
-component 'loading-screens-rdr3'
 
 component 'gta-game-ny'
 component 'rage-graphics-ny'
