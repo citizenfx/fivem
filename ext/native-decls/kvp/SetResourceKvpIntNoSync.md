@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: server
+apiset: shared
 ---
 ## SET_RESOURCE_KVP_INT_NO_SYNC
 
