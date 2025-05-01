@@ -355,7 +355,7 @@ static HookFunction hookFunction([]()
 		WeaponDamageModifierOffset = *hook::get_pattern<int>("48 8B 0C F8 89 B1", 6);
 		WeaponAnimationOverrideOffset = *hook::get_pattern<int>("8B 9F ? ? ? ? 85 DB 75 3E", 2);
 		WeaponRecoilShakeAmplitudeOffset = *hook::get_pattern<int>("48 8B 47 40 F3 0F 10 B0 ? ? ? ?", 8);
-		WeaponSpreadOffset = *hook::get_pattern<uint8_t>("F3 0F 59 59 ? F3 0F 59 D8", 4);
+		WeaponSpreadOffset = *hook::get_pattern<uint8_t>("F3 0F 10 43 ? F3 0F 59 05 ? ? ? ? F3 0F 2C C0", 4);
 
 		ObjectWeaponOffset = *hook::get_pattern<int>("74 5C 48 83 BB ? ? ? ? 00 75 52", 5);
 
