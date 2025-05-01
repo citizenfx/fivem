@@ -73,6 +73,8 @@ class
 
 	bool Flush(THandle handle) override;
 
+	bool Truncate(THandle handle, uint64_t length) override;
+
   private:
 	fwRefContainer<Device> m_otherDevice;
 

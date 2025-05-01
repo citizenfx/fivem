@@ -55,5 +55,7 @@ public:
 	}
 
 	bool Flush(THandle handle) override;
+
+	bool Truncate(THandle handle, uint64_t length) override;
 };
 }
