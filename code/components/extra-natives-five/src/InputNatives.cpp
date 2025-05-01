@@ -192,16 +192,24 @@ public:
 						continue;
 					}
 
-					if (wasPressed && keymap->m_keyDownRef && !keymap->m_wasTriggered)
+					if (wasPressed && !keymap->m_wasTriggered)
 					{
 						keymap->m_wasTriggered = true;
-						rm->CallReference<void>(keymap->m_keyDownRef->GetRef());
+
+						if (keymap->m_keyDownRef)
+						{
+							rm->CallReference<void>(keymap->m_keyDownRef->GetRef());
+						}
 					}
 
-					if (wasReleased && keymap->m_keyUpRef && keymap->m_wasTriggered)
+					if (wasReleased && keymap->m_wasTriggered)
 					{
 						keymap->m_wasTriggered = false;
-						rm->CallReference<void>(keymap->m_keyUpRef->GetRef());
+
+						if (keymap->m_keyUpRef)
+						{
+							rm->CallReference<void>(keymap->m_keyUpRef->GetRef());
+						}
 					}
 				}
 			}
@@ -284,24 +292,25 @@ static HookFunction initFunction([]()
 
 		auto name = std::string { context.CheckArgument<const char*>(0) };
 
-		auto onKeyUp = context.GetArgument<const char*>(1);
-		auto onKeyDown = context.GetArgument<const char*>(2);
+		auto onKeyDown = context.GetArgument<const char*>(1);
+		auto onKeyUp = context.GetArgument<const char*>(2);
 
-		OptionalRef onKeyUpRef = onKeyUp ? std::optional(fx::FunctionRef { onKeyUp }) : std::nullopt;
 		OptionalRef onKeyDownRef = onKeyDown ? std::optional(fx::FunctionRef { onKeyDown }) : std::nullopt;
+		OptionalRef onKeyUpRef = onKeyUp ? std::optional(fx::FunctionRef { onKeyUp }) : std::nullopt;
 
 		auto index = context.GetArgument<uint32_t>(3);
+		auto resourceName = resource->GetName();
 
 		if (IsRawKeyInvalidOrDisabled<false>(index))
 		{
+			console::PrintError(resourceName, "Keymap index %d was not valid, please refer to the native documentation for the max and minimum key codes\n", index);
 			return;
 		}
 
 		auto canBeDisabled = context.GetArgument<bool>(4);
 
-		auto resourceName = resource->GetName();
 
-		auto keyData = std::make_shared<RawKeymap>(name, resourceName, onKeyUpRef, onKeyDownRef, index, canBeDisabled);
+		auto keyData = std::make_shared<RawKeymap>(name, resourceName, onKeyDownRef, onKeyUpRef, index, canBeDisabled);
 
 		auto weakKey = std::weak_ptr(keyData);
 

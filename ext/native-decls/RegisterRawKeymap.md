@@ -6,7 +6,7 @@ game: rdr3
 ## REGISTER_RAW_KEYMAP
 
 ```c
-void REGISTER_RAW_KEYMAP(char* keymapName, func onKeyUp, func onKeyDown, int rawKeyIndex, BOOL canBeDisabled);
+void REGISTER_RAW_KEYMAP(char* keymapName, func onKeyDown, func onKeyUp, int rawKeyIndex, BOOL canBeDisabled);
 ```
 
 Registers a keymap that will be triggered whenever `rawKeyIndex` is pressed or released.
@@ -18,8 +18,8 @@ function onStateChange();
 
 ## Parameters
 * **keymapName**: A **unique** name that the keymap will be bound to, duplicates will result in the keymap not being registered.
-* **onKeyUp**: The function to run when the key is no longer being pressed.
-* **onKeyDown**: The function to run when the key is being pressed.
+* **onKeyDown**: The function to run when the key is being pressed, or `nil`.
+* **onKeyUp**: The function to run when the key is no longer being pressed, or `nil`.
 * **rawKeyIndex**: The virtual key to bind this keymap to, see a list [here](https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
 * **canBeDisabled**: If calls to [DISABLE_RAW_KEY_THIS_FRAME](#_0x8BCF0014) will disable this keymap, if a keymap was disabled when the key was pressed down it will still call `onKeyUp` on release.
 
