@@ -13,6 +13,7 @@
 static int WeaponDamageModifierOffset;
 static int WeaponAnimationOverrideOffset;
 static int WeaponRecoilShakeAmplitudeOffset;
+static int WeaponSpreadOffset;
 static int ObjectWeaponOffset;
 
 static int PedOffset = 0x10;
@@ -354,6 +355,7 @@ static HookFunction hookFunction([]()
 		WeaponDamageModifierOffset = *hook::get_pattern<int>("48 8B 0C F8 89 B1", 6);
 		WeaponAnimationOverrideOffset = *hook::get_pattern<int>("8B 9F ? ? ? ? 85 DB 75 3E", 2);
 		WeaponRecoilShakeAmplitudeOffset = *hook::get_pattern<int>("48 8B 47 40 F3 0F 10 B0 ? ? ? ?", 8);
+		WeaponSpreadOffset = *hook::get_pattern<uint8_t>("F3 0F 59 59 ? F3 0F 59 D8", 4);
 
 		ObjectWeaponOffset = *hook::get_pattern<int>("74 5C 48 83 BB ? ? ? ? 00 75 52", 5);
 
@@ -396,6 +398,26 @@ static HookFunction hookFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_ACCURACY_SPREAD", [](fx::ScriptContext& context)
+	{
+		float accuracySpread = 0;
+
+		if (auto weapon = getWeaponFromHash(context))
+		{
+			accuracySpread = reinterpret_cast<hook::FlexStruct*>(weapon)->Get<float>(WeaponSpreadOffset);
+		}
+
+		context.SetResult<float>(accuracySpread);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_WEAPON_ACCURACY_SPREAD", [](fx::ScriptContext& context)
+	{
+		if (auto weapon = getWeaponFromHash(context))
+		{
+			float weaponSpreadAccuracy = context.GetArgument<float>(1);
+			reinterpret_cast<hook::FlexStruct*>(weapon)->Set<float>(WeaponSpreadOffset, weaponSpreadAccuracy);
+		}
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING", [](fx::ScriptContext& context) 
 	{
