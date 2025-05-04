@@ -698,8 +698,10 @@ void luaV_concat (lua_State *L, int total) {
       /* collect total length */
       for (i = 1; i < total && tostring(L, top-i-1); i++) {
         size_t l = vslen(top - i - 1);
-        if (l >= (MAX_SIZE/sizeof(char)) - tl)
+        if (l >= (MAX_SIZE/sizeof(char)) - tl) {
+          L->top = top - total;  /* pop strings to avoid wasting stack */
           luaG_runerror(L, "string length overflow");
+        }
         tl += l;
       }
       buffer = luaZ_openspace(L, &G(L)->buff, tl);
@@ -713,7 +715,7 @@ void luaV_concat (lua_State *L, int total) {
       setsvalue2s(L, top-n, luaS_newlstr(L, buffer, tl));  /* create result */
     }
     total -= n-1;  /* got 'n' strings to create 1 new */
-    L->top -= n-1;  /* popped 'n' strings and pushed one */
+    L->top = top - (n - 1);  /* popped 'n' strings and pushed one */
   } while (total > 1);  /* repeat until only 1 result left */
 }
 
