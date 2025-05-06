@@ -14,6 +14,10 @@
 #include "ByteReader.h"
 #include "ByteWriter.h"
 
+#if IS_FXSERVER
+#include <StructuredTrace.h>
+#endif
+
 namespace rl
 {
 	bool MessageBufferLengthHack::GetState()
@@ -250,12 +254,20 @@ void EventReassemblyComponentImpl::TriggerEvent(const int target, const std::str
 		return;
 	}
 
-	static uint32_t logThrottle = 0;
 	// 10+MB/s bitrate to send 50+MB object.
-	if (bytesPerSecond >= 10000000 && eventPayload.size() >= 50000000 && (logThrottle++ < 5 || logThrottle % 100 == 0))
+	if (bytesPerSecond >= 10000000 && eventPayload.size() >= 50000000)
 	{
-		trace("Warning: sending large event %s (%u bytes) with almost unrestricted bitrate (%u b/s). This may cause performance issues. Consider decreasing objects sizes or bitrate.\n",
-			eventName, eventPayload.size(), bytesPerSecond);
+		auto timeNow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+		static std::chrono::milliseconds lastWarning{0};
+		if (timeNow - lastWarning >= std::chrono::seconds(5))
+		{
+#if IS_FXSERVER
+			StructuredTrace({ "type", "large_event_warning" }, { "event_type", "latent" }, { "event_name", eventName }, { "event_size", eventPayload.size() }, { "event_bps", bytesPerSecond });
+#endif
+			trace("Warning: sending large event %s (%u bytes) with almost unrestricted bitrate (%u b/s). This may cause performance issues. Consider decreasing objects sizes or bitrate.\n",
+				eventName, eventPayload.size(), bytesPerSecond);
+			lastWarning = timeNow;
+		}
 	}
 
 	std::set<int> targets;
@@ -328,12 +340,20 @@ void EventReassemblyComponentImpl::TriggerEventV2(const int target, std::string_
 		return;
 	}
 
-	static uint32_t logThrottle = 0;
 	// 10+MB/s bitrate to send 50+MB object.
-	if (bytesPerSecond >= 10000000 && eventPayload.size() >= 50000000 && (logThrottle++ < 5 || logThrottle % 100 == 0))
+	if (bytesPerSecond >= 10000000 && eventPayload.size() >= 50000000)
 	{
-		trace("Warning: sending large event %s (%u bytes) with almost unrestricted bitrate (%u b/s). This may cause performance issues. Consider decreasing objects sizes or bitrate.\n",
-			eventName, eventPayload.size(), bytesPerSecond);
+		auto timeNow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+		static std::chrono::milliseconds lastWarning{0};
+		if (timeNow - lastWarning >= std::chrono::seconds(5))
+		{
+#if IS_FXSERVER
+			StructuredTrace({ "type", "large_event_warning" }, { "event_type", "latent" }, { "event_name", eventName }, { "event_size", eventPayload.size() }, { "event_bps", bytesPerSecond });
+#endif
+			trace("Warning: sending large event %s (%u bytes) with almost unrestricted bitrate (%u b/s). This may cause performance issues. Consider decreasing objects sizes or bitrate.\n",
+				eventName, eventPayload.size(), bytesPerSecond);
+			lastWarning = timeNow;
+		}
 	}
 
 	std::set<int> targets;
