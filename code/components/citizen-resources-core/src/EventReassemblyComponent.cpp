@@ -248,9 +248,9 @@ void EventReassemblyComponentImpl::TriggerEvent(const int target, const std::str
 
 	// skip oversized packets
 	uint32_t totalSize = eventPayload.size() + eventName.size() + sizeof(uint16_t);
-	if (totalSize >= net::packet::ReassembledEventV2::kMaxPacketSize)
+	if (totalSize >= net::packet::ReassembledEvent::kMaxPacketSize)
 	{
-		trace("Event %s is too large to be sent. Total size: %u, max size: %u.\n", eventName, totalSize, net::packet::ReassembledEventV2::kMaxPacketSize);
+		trace("Event %s is too large to be sent. Total size: %u, max size: %u.\n", eventName, totalSize, net::packet::ReassembledEvent::kMaxPacketSize);
 		return;
 	}
 
@@ -485,7 +485,7 @@ void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::millis
 	for (auto& [ eventId, sendPacket ] : sendList)
 	{
 		double pps = (sendPacket->bytesPerSecond / static_cast<double>(fragmentSize));
-		std::chrono::nanoseconds latency{ static_cast<uint64_t>(1000000 / pps) };
+		std::chrono::milliseconds latency{ static_cast<uint64_t>(1000 / pps) };
 
 		std::set<int> doneTargets;
 
@@ -503,7 +503,7 @@ void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::millis
 			if (targetData && (targetData->lastSend + latency) < timeNow && targetData->delayNextSend < timeNow)
 			{
 				// burst loop so we don't 'slow down' too much at a lower tick rate
-				auto resTime = std::chrono::nanoseconds{ dT };
+				auto resTime = dT;
 				auto& ackBits = targetData->ackBits;
 				auto startBit = targetData->lastBit;
 
