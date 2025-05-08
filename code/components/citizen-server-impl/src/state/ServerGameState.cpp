@@ -6193,7 +6193,7 @@ void CExplosionEvent::Parse(rl::MessageBufferView& buffer)
 	f142 = buffer.ReadBit();
 	f273 = buffer.ReadBit();
 
-	unkHash1436 = Is1436() ? buffer.Read<uint32_t>(32) : 0;
+	unkHash1436 = buffer.Read<uint32_t>(32);
 
 	attachEntityId = buffer.Read<uint16_t>(13);
 	f244 = buffer.Read<uint8_t>(5); // 1311+

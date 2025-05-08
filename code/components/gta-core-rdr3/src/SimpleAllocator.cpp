@@ -474,21 +474,10 @@ static HookFunction hookFunction([]()
 	hook::call(ptr + 0x21, corrupt_this.GetCode());
 	hook::call(ptr + 0x75, corrupt_next.GetCode());
 #elif IS_RDR3
-	if (xbr::IsGameBuildOrGreater<1436>())
-	{
-		char* ptr = hook::get_pattern<char>("F7 46 ? ? ? ? ? 48 8D 5E");
+	char* ptr = hook::get_pattern<char>("F7 46 ? ? ? ? ? 48 8D 5E");
 
-		hook::call(ptr + 0x18, already_free.GetCode());
-		hook::call(ptr + 0x31, corrupt_this.GetCode());
-		hook::call(ptr + 0xA1, corrupt_next.GetCode());
-	}
-	else
-	{
-		char* ptr = hook::get_pattern<char>("8B 43 ? 48 83 C3 ? 0F BA E0");
-
-		hook::call(ptr + 0x17, already_free.GetCode());
-		hook::call(ptr + 0x34, corrupt_this.GetCode());
-		hook::call(ptr + 0xA4, corrupt_next.GetCode());
-	}
+	hook::call(ptr + 0x18, already_free.GetCode());
+	hook::call(ptr + 0x31, corrupt_this.GetCode());
+	hook::call(ptr + 0xA1, corrupt_next.GetCode());
 #endif
 });

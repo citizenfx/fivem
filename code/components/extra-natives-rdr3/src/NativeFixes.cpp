@@ -159,13 +159,10 @@ static HookFunction hookFunction([]()
 		hook::put<uintptr_t>(&vtable[204], (uintptr_t)CanBlendWhenFixed);
 	}
 
-	if (xbr::IsGameBuildOrGreater<1436>())
-	{
-		auto location = hook::get_pattern<char>("0F 28 05 ? ? ? ? 83 25 ? ? ? ? 00 83 25 ? ? ? ? 00");
+	auto location = hook::get_pattern<char>("0F 28 05 ? ? ? ? 83 25 ? ? ? ? 00 83 25 ? ? ? ? 00");
 
-		g_textCentre = hook::get_address<bool*>(location + 0x33) + 2;
-		g_textDropshadow = hook::get_address<bool*>(location + 0x3B) + 1;
-	}
+	g_textCentre = hook::get_address<bool*>(location + 0x33) + 2;
+	g_textDropshadow = hook::get_address<bool*>(location + 0x3B) + 1;
 
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
@@ -174,12 +171,8 @@ static HookFunction hookFunction([]()
 		// R* removed some text related natives since RDR3 1436.25 build.
 		// Redirecting original natives to their successors to keep cross build compatibility.
 		// Also re-implementing entirely removed natives.
-		if (xbr::IsGameBuildOrGreater<1436>())
-		{
-			RedirectNoppedTextNatives();
-			ImplementRemovedTextNatives();
-		}
-
+		RedirectNoppedTextNatives();
+		ImplementRemovedTextNatives();
 		FixPedCombatAttributes();
 	});
 

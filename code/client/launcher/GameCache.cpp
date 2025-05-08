@@ -1968,225 +1968,40 @@ static std::map<int, std::map<std::string, GameCacheEntry>> g_entriesToLoadPerBu
 				"appdata0_update.rpf",
 				{
 					"appdata0_update.rpf", "e68cbb4882db0028ba2701c26ed69152ad992c2e", "https://content.cfx.re/mirrors/patches_redm/1491.50/appdata0_update.rpf", 3164623,
-					{
-						{ "1715741785ce3c28adf9a78633e57f478229bb84", "e68cbb4882db0028ba2701c26ed69152ad992c2e", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1311_to_1491.50.appdata0_update.rpf.hdiff", 1914067 } /* diff sha1: 00d25742c884f95922ecbbae37583cc4d67cc5c1 */,
-						{ "307609c164e78adaf4e50e993328485e6264803f", "e68cbb4882db0028ba2701c26ed69152ad992c2e", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1355_to_1491.50.appdata0_update.rpf.hdiff", 1827754 } /* diff sha1: a9dd1da46bab5bf04ca3835c74497695dec89427 */,
-						{ "ba1d727a70fa1c204441c8e3768a1a40b02ef67f", "e68cbb4882db0028ba2701c26ed69152ad992c2e", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1436_to_1491.50.appdata0_update.rpf.hdiff", 1099205 } /* diff sha1: 2486abcb82d0559dbb4ebba1e2cecfd63ef9c97f */,
-						{ "142c6af7a64f2cae06a8f7ac7ad6ee74967afc49", "e68cbb4882db0028ba2701c26ed69152ad992c2e", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1491_to_1491.50.appdata0_update.rpf.hdiff", 859819 } /* diff sha1: de5b59a912f8ec3cdf317acd3f7895fdc30c3bc5 */
-					}
 				}
 			},
 			{
 				"shaders_x64.rpf",
 				{
 					"shaders_x64.rpf", "f8ecee595e74c66c5bd02fd87c2947cf475a2614", "https://content.cfx.re/mirrors/patches_redm/1491.50/shaders_x64.rpf", 233921358,
-					{
-						{ "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "f8ecee595e74c66c5bd02fd87c2947cf475a2614", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1311_to_1491.50.shaders_x64.rpf.hdiff", 18993038 } /* diff sha1: 7e4691a2113c4734a934dccbc88032c070308469 */,
-						{ "a7a45988a6067964214cc4b3af21797249817469", "f8ecee595e74c66c5bd02fd87c2947cf475a2614", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1355_to_1491.50.shaders_x64.rpf.hdiff", 17434866 } /* diff sha1: 36371124827afcf6379c35d97602e4503bfc9768 */,
-						{ "f4f06c18701d66958eb6f0ac243c8467033b864b", "f8ecee595e74c66c5bd02fd87c2947cf475a2614", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1436_to_1491.50.shaders_x64.rpf.hdiff", 14013870 } /* diff sha1: d0db63b6900d71bbe478ef4e5b1fce52302c5673 */,
-						{ "f456cbaf70ff921f77279db5a901c6a6e5807e2e", "f8ecee595e74c66c5bd02fd87c2947cf475a2614", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1491_to_1491.50.shaders_x64.rpf.hdiff", 13734156 } /* diff sha1: d01ea64ced67c5a4746656d4bdcf0e9993a04270 */
-					}
 				}
 			},
 			{
 				"update_1.rpf",
 				{
 					"update_1.rpf", "8c25d7345b7e69ebaee24ccfea97739ace59ba51", "https://content.cfx.re/mirrors/patches_redm/1491.50/update_1.rpf", 2833741450,
-					{
-						{ "9e62163f0383aa4eb30a02fa0f5628bbf4538543", "8c25d7345b7e69ebaee24ccfea97739ace59ba51", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1436_to_1491.50.update_1.rpf.hdiff", 87253125 } /* diff sha1: 83ceb5c113aa6f5be0bc9df8331fc53fdb3835ec */,
-						{ "601a4801f739540bebb2b3e141fda022901a7bd1", "8c25d7345b7e69ebaee24ccfea97739ace59ba51", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1491_to_1491.50.update_1.rpf.hdiff", 17843685 } /* diff sha1: 91edd8683f7872968a71036cef74041579e272f7 */
-					}
 				}
 			},
 			{
 				"update_2.rpf",
 				{
 					"update_2.rpf", "5a77f9b8cb24e1c3e78ee33c7ed218a32e3d2e32", "https://content.cfx.re/mirrors/patches_redm/1491.50/update_2.rpf", 152046254,
-					{
-						{ "87323b6d0e1c790972041a034a6f293eb774c84d", "5a77f9b8cb24e1c3e78ee33c7ed218a32e3d2e32", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1436_to_1491.50.update_2.rpf.hdiff", 24349275 } /* diff sha1: d53cd8b71a3beba9afdb3bd7f76d1e7731be5ec1 */,
-						{ "6b3af948543e7a48013bdec930e8dd586be37266", "5a77f9b8cb24e1c3e78ee33c7ed218a32e3d2e32", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1491_to_1491.50.update_2.rpf.hdiff", 18451453 } /* diff sha1: 4e87e70df5c0d073f8b0790d9ff3440f5cc31878 */
-					}
 				}
 			},
 			{
 				"update_3.rpf",
 				{
 					"update_3.rpf", "be15563d37c1ab0f655eeebb45f4d30527df950d", "https://content.cfx.re/mirrors/patches_redm/1491.50/update_3.rpf", 132374684,
-					{
-						{ "a2708ff55294d70bda198a1ff98c1f4b55b0c0df", "be15563d37c1ab0f655eeebb45f4d30527df950d", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1436_to_1491.50.update_3.rpf.hdiff", 114270024 } /* diff sha1: 9d7af31be4e61cb86a4268c28daae6ce6d40f2bb */,
-						{ "9237da54d2267435fc7d7bf0f3ec054bbeea90a9", "be15563d37c1ab0f655eeebb45f4d30527df950d", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1491_to_1491.50.update_3.rpf.hdiff", 114892075 } /* diff sha1: d98c2b3f2cf3e9049e7b2682aeaf3f9252f47af3 */
-					}
 				}
 			},
 			{
 				"update_4.rpf",
 				{
 					"update_4.rpf", "853a63af1698a970dfb73295faa76a31e56fe4bd", "https://content.cfx.re/mirrors/patches_redm/1491.50/update_4.rpf", 2015028563,
-					{
-						{ "4ec55a211e7cb1d68c8fd471cfb049d7690fc9ee", "853a63af1698a970dfb73295faa76a31e56fe4bd", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1436_to_1491.50.update_4.rpf.hdiff", 19504197 } /* diff sha1: 9c451a6aee4e8a9d4782a2348ff8a569d71b9337 */,
-						{ "503c8de5c16e26afdce502b9aedf1ae16a0e8730", "853a63af1698a970dfb73295faa76a31e56fe4bd", "https://content.cfx.re/mirrors/patches_redm/1491.50/diffs/from_1491_to_1491.50.update_4.rpf.hdiff", 293569 } /* diff sha1: 3f5120c886b76512a5de8843d3e909368a8e64f9 */
-					}
 				}
 			}
 		}
 	},
-	{
-		1436,
-		{
-			{
-				"RDR2.exe",
-				{ "RDR2.exe", "f998b4863b11793547c09c226ab884e1e26931f2", "https://content.cfx.re/mirrors/patches_redm/1436/RDR2.exe", 89104336 }
-			},
-			{
-				"appdata0_update.rpf",
-				{
-					"appdata0_update.rpf", "ba1d727a70fa1c204441c8e3768a1a40b02ef67f", "https://content.cfx.re/mirrors/patches_redm/1436/appdata0_update.rpf", 3163551,
-					{
-						{ "1715741785ce3c28adf9a78633e57f478229bb84", "ba1d727a70fa1c204441c8e3768a1a40b02ef67f", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1311_to_1436.appdata0_update.rpf.hdiff", 1785629 } /* diff sha1: 3dec92f13de7440fed0420ebe12522d9f0bcae9e */,
-						{ "307609c164e78adaf4e50e993328485e6264803f", "ba1d727a70fa1c204441c8e3768a1a40b02ef67f", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1355_to_1436.appdata0_update.rpf.hdiff", 1726590 } /* diff sha1: e5375671b7270be06fd55052f78e8afc95a8222d */,
-						{ "142c6af7a64f2cae06a8f7ac7ad6ee74967afc49", "ba1d727a70fa1c204441c8e3768a1a40b02ef67f", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491_to_1436.appdata0_update.rpf.hdiff", 1093833 } /* diff sha1: 1f81d526052eda00d14c1bf601f811c005c8f052 */,
-						{ "e68cbb4882db0028ba2701c26ed69152ad992c2e", "ba1d727a70fa1c204441c8e3768a1a40b02ef67f", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491.50_to_1436.appdata0_update.rpf.hdiff", 1093887 } /* diff sha1: f69e79db5ec8b33f4ea4c96d4d96281ecb2feb45 */
-					}
-				}
-			},
-			{
-				"shaders_x64.rpf",
-				{
-					"shaders_x64.rpf", "f4f06c18701d66958eb6f0ac243c8467033b864b", "https://content.cfx.re/mirrors/patches_redm/1436/shaders_x64.rpf", 233898030,
-					{
-						{ "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "f4f06c18701d66958eb6f0ac243c8467033b864b", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1311_to_1436.shaders_x64.rpf.hdiff", 6183735 } /* diff sha1: 22592c1a70552466d8f34c49484bf5475da399ae */,
-						{ "a7a45988a6067964214cc4b3af21797249817469", "f4f06c18701d66958eb6f0ac243c8467033b864b", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1355_to_1436.shaders_x64.rpf.hdiff", 4332901 } /* diff sha1: 5b0ff40e1a76775461903fa9669c950ec0113e46 */,
-						{ "f456cbaf70ff921f77279db5a901c6a6e5807e2e", "f4f06c18701d66958eb6f0ac243c8467033b864b", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491_to_1436.shaders_x64.rpf.hdiff", 265613 } /* diff sha1: 448dad13cdb90971890418041e38db9bc436cf3e */,
-						{ "f8ecee595e74c66c5bd02fd87c2947cf475a2614", "f4f06c18701d66958eb6f0ac243c8467033b864b", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491.50_to_1436.shaders_x64.rpf.hdiff", 14048549 } /* diff sha1: 026725b8698e25c4d23b0f58fa22543f620e29e1 */
-					}
-				}
-			},
-			{
-				"update_1.rpf",
-				{
-					"update_1.rpf", "9e62163f0383aa4eb30a02fa0f5628bbf4538543", "https://content.cfx.re/mirrors/patches_redm/1436/update_1.rpf", 2836982634,
-					{
-						{ "601a4801f739540bebb2b3e141fda022901a7bd1", "9e62163f0383aa4eb30a02fa0f5628bbf4538543", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491_to_1436.update_1.rpf.hdiff", 89907254 } /* diff sha1: f55dae6db48fd0dda668a3ab7bf45cd8a7601359 */,
-						{ "8c25d7345b7e69ebaee24ccfea97739ace59ba51", "9e62163f0383aa4eb30a02fa0f5628bbf4538543", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491.50_to_1436.update_1.rpf.hdiff", 89940992 } /* diff sha1: 248a15b3bb1577117e45a7d7fa7cc59342f61236 */
-					}
-				}
-			},
-			{
-				"update_2.rpf",
-				{
-					"update_2.rpf", "87323b6d0e1c790972041a034a6f293eb774c84d", "https://content.cfx.re/mirrors/patches_redm/1436/update_2.rpf", 152008542,
-					{
-						{ "6b3af948543e7a48013bdec930e8dd586be37266", "87323b6d0e1c790972041a034a6f293eb774c84d", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491_to_1436.update_2.rpf.hdiff", 24380905 } /* diff sha1: 0c65b20a6f577d14dd0f9733d03c657542a517c8 */,
-						{ "5a77f9b8cb24e1c3e78ee33c7ed218a32e3d2e32", "87323b6d0e1c790972041a034a6f293eb774c84d", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491.50_to_1436.update_2.rpf.hdiff", 24361478 } /* diff sha1: febfd15d7614f69ac16715a020b13361b843e30d */
-					}
-				}
-			},
-			{
-				"update_3.rpf",
-				{
-					"update_3.rpf", "a2708ff55294d70bda198a1ff98c1f4b55b0c0df", "https://content.cfx.re/mirrors/patches_redm/1436/update_3.rpf", 132374108,
-					{
-						{ "9237da54d2267435fc7d7bf0f3ec054bbeea90a9", "a2708ff55294d70bda198a1ff98c1f4b55b0c0df", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491_to_1436.update_3.rpf.hdiff", 116090311 } /* diff sha1: 01695c3f9ba37b0c2e3f52aefae433452c3edc2a */,
-						{ "be15563d37c1ab0f655eeebb45f4d30527df950d", "a2708ff55294d70bda198a1ff98c1f4b55b0c0df", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491.50_to_1436.update_3.rpf.hdiff", 114282726 } /* diff sha1: f985ea07d597bed15b490ab0f99776cb0ac0a643 */
-					}
-				}
-			},
-			{
-				"update_4.rpf",
-				{
-					"update_4.rpf", "4ec55a211e7cb1d68c8fd471cfb049d7690fc9ee", "https://content.cfx.re/mirrors/patches_redm/1436/update_4.rpf", 2014659811,
-					{
-						{ "503c8de5c16e26afdce502b9aedf1ae16a0e8730", "4ec55a211e7cb1d68c8fd471cfb049d7690fc9ee", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491_to_1436.update_4.rpf.hdiff", 18944420 } /* diff sha1: 0f0ea25c6e763c834a0dbeec98773479af6ccaa2 */,
-						{ "853a63af1698a970dfb73295faa76a31e56fe4bd", "4ec55a211e7cb1d68c8fd471cfb049d7690fc9ee", "https://content.cfx.re/mirrors/patches_redm/1436/diffs/from_1491.50_to_1436.update_4.rpf.hdiff", 19046666 } /* diff sha1: 418cd83ffa6c39289784aa99596b840ad40d526b */
-					}
-				}
-			}
-		}
-	},
-	{
-		1355,
-		{
-			{
-				"RDR2.exe",
-				{ "RDR2.exe", "c2fab1d25daef4779aafd2754ec9c593e674e7c3", "https://content.cfx.re/mirrors/patches_redm/1355/RDR2.exe", 84664448 }
-			},
-			{
-				"appdata0_update.rpf",
-				{
-					"appdata0_update.rpf", "307609c164e78adaf4e50e993328485e6264803f", "https://content.cfx.re/mirrors/patches_redm/1355/appdata0_update.rpf", 3069247,
-					{
-						{ "1715741785ce3c28adf9a78633e57f478229bb84", "307609c164e78adaf4e50e993328485e6264803f", "https://content.cfx.re/mirrors/patches_redm/1355/diffs/from_1311_to_1355.appdata0_update.rpf.hdiff", 1703692 } /* diff sha1: dbea61ab2e74c2c9c984a16c17233dcfde014af0 */,
-						{ "ba1d727a70fa1c204441c8e3768a1a40b02ef67f", "307609c164e78adaf4e50e993328485e6264803f", "https://content.cfx.re/mirrors/patches_redm/1355/diffs/from_1436_to_1355.appdata0_update.rpf.hdiff", 1644378 } /* diff sha1: 24faaa60d4df3d109410d6b58286a1af0d880bba */,
-						{ "142c6af7a64f2cae06a8f7ac7ad6ee74967afc49", "307609c164e78adaf4e50e993328485e6264803f", "https://content.cfx.re/mirrors/patches_redm/1355/diffs/from_1491_to_1355.appdata0_update.rpf.hdiff", 1740781 } /* diff sha1: e6683ad9aa9bd9ca302b07e324d73d20829ac2f1 */,
-						{ "e68cbb4882db0028ba2701c26ed69152ad992c2e", "307609c164e78adaf4e50e993328485e6264803f", "https://content.cfx.re/mirrors/patches_redm/1355/diffs/from_1491.50_to_1355.appdata0_update.rpf.hdiff", 1740781 } /* diff sha1: 3f83c5e3cf75b833757a7bb3cae39f17b5712986 */
-					}
-				}
-			},
-			{
-				"shaders_x64.rpf",
-				{
-					"shaders_x64.rpf", "a7a45988a6067964214cc4b3af21797249817469", "https://content.cfx.re/mirrors/patches_redm/1355/shaders_x64.rpf", 233585710,
-					{
-						{ "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "a7a45988a6067964214cc4b3af21797249817469", "https://content.cfx.re/mirrors/patches_redm/1355/diffs/from_1311_to_1355.shaders_x64.rpf.hdiff", 1875463 } /* diff sha1: ac5fd94f61158f73719290a79e59bb84050ab5dc */,
-						{ "f4f06c18701d66958eb6f0ac243c8467033b864b", "a7a45988a6067964214cc4b3af21797249817469", "https://content.cfx.re/mirrors/patches_redm/1355/diffs/from_1436_to_1355.shaders_x64.rpf.hdiff", 4184409 } /* diff sha1: 75ccc162577c4366e151b1b373b2d72ba871ae80 */,
-						{ "f456cbaf70ff921f77279db5a901c6a6e5807e2e", "a7a45988a6067964214cc4b3af21797249817469", "https://content.cfx.re/mirrors/patches_redm/1355/diffs/from_1491_to_1355.shaders_x64.rpf.hdiff", 4369953 } /* diff sha1: dc67cb46f136f6b028d5c27872256c3bba5e3788 */,
-						{ "f8ecee595e74c66c5bd02fd87c2947cf475a2614", "a7a45988a6067964214cc4b3af21797249817469", "https://content.cfx.re/mirrors/patches_redm/1355/diffs/from_1491.50_to_1355.shaders_x64.rpf.hdiff", 17310440 } /* diff sha1: 9b08a64a7436dd3983f31a1378757ddc7d6e660e */
-					}
-				}
-			},
-			{
-				"update.rpf",
-				{
-					"update.rpf", "5a087ef32e6b30b4fde8bbeda7babc45f2c1cf4d", "https://content.cfx.re/mirrors/patches_redm/1355/update.rpf", 4685758145,
-					{
-						{ "835a767055cfbf2c2ad86cf4462c7dfb931970fd", "5a087ef32e6b30b4fde8bbeda7babc45f2c1cf4d", "https://content.cfx.re/mirrors/patches_redm/1355/diffs/from_1311_to_1355.update.rpf.hdiff", 1513512317 } /* diff sha1: b528f92872385a37302e367de67d9938de918d33 */
-					}
-				}
-			}
-		}
-	},
-	{
-		1311,
-		{
-			{
-				"RDR2.exe",
-				{ "RDR2.exe", "ac3c2abd80bfa949279d8e1d32105a3d9345c6c8", "https://content.cfx.re/mirrors/patches_redm/1311/RDR2.exe", 91439232 }
-			},
-			{
-				"appdata0_update.rpf",
-				{
-					"appdata0_update.rpf", "1715741785ce3c28adf9a78633e57f478229bb84", "https://content.cfx.re/mirrors/patches_redm/1311/appdata0_update.rpf", 3003087,
-					{
-						{ "307609c164e78adaf4e50e993328485e6264803f", "1715741785ce3c28adf9a78633e57f478229bb84", "https://content.cfx.re/mirrors/patches_redm/1311/diffs/from_1355_to_1311.appdata0_update.rpf.hdiff", 1624654 } /* diff sha1: ebd5f32406de1195d5c02482eb036b78060077f3 */,
-						{ "ba1d727a70fa1c204441c8e3768a1a40b02ef67f", "1715741785ce3c28adf9a78633e57f478229bb84", "https://content.cfx.re/mirrors/patches_redm/1311/diffs/from_1436_to_1311.appdata0_update.rpf.hdiff", 1650802 } /* diff sha1: 35291b0d0e2fa862d4a1c52deb954f7a1a182627 */,
-						{ "142c6af7a64f2cae06a8f7ac7ad6ee74967afc49", "1715741785ce3c28adf9a78633e57f478229bb84", "https://content.cfx.re/mirrors/patches_redm/1311/diffs/from_1491_to_1311.appdata0_update.rpf.hdiff", 1774323 } /* diff sha1: c06f3cc14eb80628aea0baecdcb510ec027bf80e */,
-						{ "e68cbb4882db0028ba2701c26ed69152ad992c2e", "1715741785ce3c28adf9a78633e57f478229bb84", "https://content.cfx.re/mirrors/patches_redm/1311/diffs/from_1491.50_to_1311.appdata0_update.rpf.hdiff", 1775075 } /* diff sha1: 53a91497a26e99a81b47da2e20c484d9032e6eb0 */
-					}
-				}
-			},
-			{
-				"shaders_x64.rpf",
-				{
-					"shaders_x64.rpf", "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "https://content.cfx.re/mirrors/patches_redm/1311/shaders_x64.rpf", 233487310,
-					{
-						{ "a7a45988a6067964214cc4b3af21797249817469", "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "https://content.cfx.re/mirrors/patches_redm/1311/diffs/from_1355_to_1311.shaders_x64.rpf.hdiff", 1817785 } /* diff sha1: 4865ba920795b6bcc9724e2e6312beb69fafd4b2 */,
-						{ "f4f06c18701d66958eb6f0ac243c8467033b864b", "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "https://content.cfx.re/mirrors/patches_redm/1311/diffs/from_1436_to_1311.shaders_x64.rpf.hdiff", 5981861 } /* diff sha1: bf0116bd17de03b8eac05ac29c74b0a604ce58c6 */,
-						{ "f456cbaf70ff921f77279db5a901c6a6e5807e2e", "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "https://content.cfx.re/mirrors/patches_redm/1311/diffs/from_1491_to_1311.shaders_x64.rpf.hdiff", 6142857 } /* diff sha1: 635021d0b676de04b6ebf30fc3ceda54ca58530a */,
-						{ "f8ecee595e74c66c5bd02fd87c2947cf475a2614", "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "https://content.cfx.re/mirrors/patches_redm/1311/diffs/from_1491.50_to_1311.shaders_x64.rpf.hdiff", 18810230 } /* diff sha1: 2c8fa2c0ae76318ba22d683daabf0f83548885aa */
-					}
-				}
-			},
-			{
-				"update.rpf",
-				{
-					"update.rpf", "835a767055cfbf2c2ad86cf4462c7dfb931970fd", "https://content.cfx.re/mirrors/patches_redm/1311/update.rpf", 3515071792,
-					{
-						{ "5a087ef32e6b30b4fde8bbeda7babc45f2c1cf4d", "835a767055cfbf2c2ad86cf4462c7dfb931970fd", "https://content.cfx.re/mirrors/patches_redm/1311/diffs/from_1355_to_1311.update.rpf.hdiff", 354416250 } /* diff sha1: 63abb47155024cffdf6fb86d17162c44880a5b57 */
-					}
-				}
-			}
-		}
-	}
 #endif
 };
 
@@ -2353,12 +2168,7 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back(entry);
 	}
 
-	if (IsTargetGameBuild<1355>())
-	{
-		g_requiredEntries.push_back({ "x64/dlcpacks/mp008/dlc.rpf", "66a50ed07293b92466423e1db5eed159551d8c25", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 487150980 });
-	}
-
-	if (IsTargetGameBuild<1436>() || IsTargetGameBuild<1491>())
+	if (IsTargetGameBuild<1491>())
 	{
 		g_requiredEntries.push_back({ "x64/dlcpacks/mp009/dlc.rpf", "7ae2012968709d6d1079c88ee40369f4359778bf", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 494360763 });
 	}
