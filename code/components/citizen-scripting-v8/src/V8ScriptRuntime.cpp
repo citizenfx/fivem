@@ -1808,7 +1808,6 @@ global.require = m.exports.require;
 #ifdef _WIN32
 				TerminateProcess(GetCurrentProcess(), exitCode);
 #else
-
 				raise(SIGTERM);
 #endif
 				return;

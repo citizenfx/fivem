@@ -803,6 +803,9 @@ msgpack.settype("function", EXT_FUNCREF)
 
 -- exports compatibility
 local function getExportEventName(resource, name)
+	if resource == "txAdmin" then
+		resource = "monitor"
+	end
 	return string.format('__cfx_export_%s_%s', resource, name)
 end
 
