@@ -43,24 +43,41 @@ static bool CanEntityBeDeleted(rage::netObject* netObject)
 static void (*g_origCVehicleFactoryDestroy)(void*, CVehicle*, bool);
 static void CVehicleFactory_Destroy(void* self, CVehicle* vehicle, bool unk)
 {
+	if (!vehicle)
+	{
+		return;
+	}
+
 	if (!icgi->OneSyncEnabled || !vehicle->GetNetObject() || CanEntityBeDeleted((rage::netObject*)vehicle->GetNetObject()))
 	{
 		g_origCVehicleFactoryDestroy(self, vehicle, unk);
 	}
 }
 
-static void (*g_origCPedFactoryDestroy)(void*, fwEntity*, bool);
-static void CPedFactory_Destroy(void* self, fwEntity* ped, bool unk)
+static bool (*g_origCPedFactoryDestroy)(void*, fwEntity*, bool);
+static bool CPedFactory_Destroy(void* self, fwEntity* ped, bool unk)
 {
+	if (!ped)
+	{
+		return false;
+	}
+
 	if (!icgi->OneSyncEnabled || !ped->GetNetObject() || CanEntityBeDeleted((rage::netObject*)ped->GetNetObject()))
 	{
-		g_origCPedFactoryDestroy(self, ped, unk);
+		return g_origCPedFactoryDestroy(self, ped, unk);
 	}
+
+	return false;
 }
 
 static void (*g_destroyObject)(fwEntity*, int);
 static void DestroyObject(fwEntity* object, int unk)
 {
+	if (!object)
+	{
+		return;
+	}
+
 	if (!icgi->OneSyncEnabled || !object->GetNetObject() || CanEntityBeDeleted((rage::netObject*)object->GetNetObject()))
 	{
 		g_destroyObject(object, unk);
