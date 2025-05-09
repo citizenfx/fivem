@@ -71,7 +71,7 @@ void ParseSymbolicCrash(nlohmann::json& crash, std::string* signature, std::stri
 					boost::algorithm::replace_all(relPath, "\\", "/");
 					std::string appPath;
 
-					if (auto f = relPath.find("fivem/"); f != std::string::npos)
+					if (auto f = relPath.rfind("fivem/"); f != std::string::npos)
 					{
 						appPath = relPath.substr(f + 6);
 					}
