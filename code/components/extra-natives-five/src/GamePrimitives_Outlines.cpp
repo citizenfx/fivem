@@ -35,6 +35,10 @@ static int* g_currentDrawBucket;
 
 static CRGBA outlineColor{ 255, 0, 255, 255 };
 
+constexpr const char* DEFAULT_SHADER_TECHNIQUE_GROUP = "unlit";
+static std::string g_shaderTechniqueGroupId = DEFAULT_SHADER_TECHNIQUE_GROUP;
+
+
 class OutlineRenderer
 {
 public:
@@ -432,7 +436,7 @@ static InitFunction initFunctionBuffers([]()
 				SetBlendState(GetStockStateIdentifier(BlendStateDefault));
 
 				last = *currentShader;
-				*currentShader = _getTechniqueDrawName("unlit");
+				*currentShader = _getTechniqueDrawName(g_shaderTechniqueGroupId.c_str());
 
 				// draw bucket 0 pls, not 1
 				// #TODO: set via DC?
@@ -602,6 +606,21 @@ static InitFunction initFunctionScriptBind([]()
 				outlineEntities.erase(it);
 			}
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_DRAW_OUTLINE_RENDER_TECHNIQUE", [](fx::ScriptContext& context)
+	{
+		std::string techniqueGroupId = context.GetArgument<const char*>(0);
+		if (techniqueGroupId.empty())
+		{
+			return;
+		}
+		g_shaderTechniqueGroupId = techniqueGroupId;
+	});
+	
+	fx::ScriptEngine::RegisterNativeHandler("RESET_ENTITY_DRAW_OUTLINE_RENDER_TECHNIQUE", [](fx::ScriptContext& context)
+	{
+		g_shaderTechniqueGroupId = DEFAULT_SHADER_TECHNIQUE_GROUP;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_MATRIX", [](fx::ScriptContext& context)
