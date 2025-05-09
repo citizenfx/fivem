@@ -7818,7 +7818,7 @@ static InitFunction initFunction([]()
 
 		constexpr bool canLengthHack =
 #ifdef STATE_RDR3
-		false
+		true
 #else
 		true
 #endif
