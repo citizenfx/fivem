@@ -1205,6 +1205,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
+			if (isRelevant && entity->type == sync::NetObjEntityType::Player && !clientDataUnlocked->GetPlayerCullingRelevantPlayers().none())
+			{
+				isRelevant = clientDataUnlocked->GetPlayerCullingIsRelevantPlayer(entityClient->GetNetId());
+			}
+
 			// if we own this entity, we need to assign as relevant.
 			// -> even if not client-script, as if it isn't, we'll end up stuck without migrating it
 			if (ownsEntity/* && entity->IsOwnedByClientScript()*/)
