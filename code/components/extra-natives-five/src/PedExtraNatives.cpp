@@ -114,6 +114,22 @@ static fwArchetype* GetPedModel(uint32_t pedModel)
 	return nullptr;
 }
 
+struct PatternPair
+{
+	std::string_view pattern;
+	int offset;
+};
+
+static std::vector<void*> clothPinRadiusScaleAddrs;
+
+static void SetWetClothPinRadiusScale(float scale)
+{
+	for (auto& addr : clothPinRadiusScaleAddrs)
+	{
+		hook::put<float>(addr, scale);
+	}
+}
+
 static HookFunction initFunction([]()
 {
 	_id_CPedHeadBlendData = hook::get_address<uint64_t*>(hook::get_pattern("48 39 5E 38 74 1B 8B 15 ? ? ? ? 48 8D 4F 10 E8", 8));
@@ -125,6 +141,10 @@ static HookFunction initFunction([]()
 	uint8_t* ptr = (uint8_t*)hook::get_pattern("0F 2F 35 ? ? ? ? 72 ? 0F 2F 35 ? ? ? ? 76 ? B0");
 	_motionAimingTurnTransitionThresholdMin = hook::get_address<float*>(ptr, 3, 7);
 	_motionAimingTurnTransitionThresholdMax = hook::get_address<float*>(ptr + 9, 3, 7);
+
+	clothPinRadiusScaleAddrs.push_back(hook::get_pattern("F3 0F 10 05 ? ? ? ? 0F 2F C8 72 ? 0F 28 C8 80 89", 62)); // SetWetClothingHeight
+	clothPinRadiusScaleAddrs.push_back(hook::get_pattern("C7 42 ? ? ? ? ? 48 83 C0", 3)); // ProcessWetClothingInWater
+	clothPinRadiusScaleAddrs.push_back(hook::get_pattern("80 89 ? ? ? ? ? BA ? ? ? ? 48 81 C1", 30)); // IncWetClothing
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_EYE_COLOR", [=](fx::ScriptContext& context)
 	{
@@ -286,6 +306,7 @@ static HookFunction initFunction([]()
 		}
 
 		undoPersonalities.clear();
+		SetWetClothPinRadiusScale(0.3f);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_PED_MODEL_PERSONALITY", [](fx::ScriptContext& context)
@@ -429,5 +450,12 @@ static HookFunction initFunction([]()
 				*_motionAimingTurnTransitionThresholdMax = DEG2RAD(135.0f);
 			});
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_WET_CLOTH_PIN_RADIUS_SCALE", [](fx::ScriptContext& context)
+	{
+		float scale = context.GetArgument<float>(0);
+		float newScale = std::isnan(scale) ? 0.3f : std::clamp(scale, 0.0f, 1.0f);
+		SetWetClothPinRadiusScale(newScale);
 	});
 });
