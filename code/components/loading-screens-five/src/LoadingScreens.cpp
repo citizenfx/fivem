@@ -196,6 +196,7 @@ public:
 	{
 		doSetup = false;
 		doShutdown = false;
+		waitForShutdown = false;
 		isShutdown = false;
 		sh = false;
 	}
@@ -205,6 +206,7 @@ public:
 	bool doSetup;
 	bool isShutdown;
 	bool sh;
+	bool waitForShutdown;
 
 	int cam;
 };
@@ -468,16 +470,6 @@ void LoadsThread::DoRun()
 
 	if (doShutdown)
 	{
-#ifdef IS_RDR3
-		// We wait because it take some to shutdown loading screen
-		fx::ScriptContextBuffer ctx;
-		g_origShutdown(ctx);
-		if (NativeInvoke::Invoke<IS_LOADING_SCREEN_VISIBLE, bool>())
-		{
-			return;
-		}
-#endif
-
 		cam = NativeInvoke::Invoke<CREATE_CAM, int>("DEFAULT_SCRIPTED_CAMERA", true);
 
 		NativeInvoke::Invoke<SET_CAM_COORD, int>(cam, defaultCameraPos.x, defaultCameraPos.y, defaultCameraPos.z);
@@ -487,11 +479,11 @@ void LoadsThread::DoRun()
 		NativeInvoke::Invoke<SET_CAM_FOV, int>(cam, defaultCameraFov);
 
 		NativeInvoke::Invoke<RENDER_SCRIPT_CAMS, int>(true, false, 0, false, false);
-#ifdef GTA_FIVE
+
 		// SHUTDOWN_LOADING_SCREEN
 		fx::ScriptContextBuffer ctx;
 		g_origShutdown(ctx);
-#endif
+
 		NativeInvoke::Invoke<DO_SCREEN_FADE_IN, int>(0);
 #ifdef GTA_FIVE
 		NativeInvoke::Invoke<SET_WEATHER_TYPE_PERSIST, int>("EXTRASUNNY");
@@ -512,13 +504,26 @@ void LoadsThread::DoRun()
 
 		NativeInvoke::Invoke<SET_FOCUS_AREA, int>(defaultCameraPos.x, defaultCameraPos.y, defaultCameraPos.z, 0.0f, 0.0f, 0.0f);
 
+		waitForShutdown = true;
+		doShutdown = false;
+	}
+
+	if (waitForShutdown)
+	{
+#ifdef IS_RDR3
+		// We wait because it take some to shutdown loading screen
+		// Skip wait if shutdown was called and doSetup its true
+		if (NativeInvoke::Invoke<IS_LOADING_SCREEN_VISIBLE, bool>() && !doSetup)
+		{
+			return;
+		}
+#endif
 		// do shutdown
 		DestroyFrame();
 
 		nui::OverrideFocus(false);
-
 		isShutdown = true;
-		doShutdown = false;
+		waitForShutdown = false;
 	}
 
 	if (isShutdown)
