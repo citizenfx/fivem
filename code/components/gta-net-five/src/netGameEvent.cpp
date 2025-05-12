@@ -1289,7 +1289,7 @@ static HookFunction hookFunction([]()
 		});
 #endif
 #elif IS_RDR3
-		auto location = hook::get_pattern<char>("C6 47 50 01 4C 8B C3 49 8B D7", (xbr::IsGameBuildOrGreater<1436>()) ? 0x59 : 0x21);
+		auto location = hook::get_pattern<char>("C6 47 50 01 4C 8B C3 49 8B D7", 0x59);
 
 		g_netEventMgr = hook::get_address<void*>(location);
 		MH_CreateHook(hook::get_call(location + 7), EventMgr_AddEvent, (void**)&g_origAddEvent);
@@ -1367,7 +1367,7 @@ static HookFunction hookFunction([]()
 		hook::call(hook::get_pattern("33 C9 E8 ? ? ? ? E9 FD FE FF FF", 2), NetEventError);
 	}
 #elif IS_RDR3
-	hook::call((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("74 ? 48 8B 01 40 8A D6 FF ? ? BA", 25) : hook::get_pattern("BA 01 00 00 00 FF ? ? BA 5B 52 1C A4", 22), NetEventError);
+	hook::call(hook::get_pattern("74 ? 48 8B 01 40 8A D6 FF ? ? BA", 25), NetEventError);
 #endif
 
 	// func that reads neteventmgr by player idx, crashes page heap

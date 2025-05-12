@@ -435,10 +435,7 @@ struct CBoatGameStateDataNode
 		bool unk52 = state.buffer.ReadBit();
 		bool forcedBoatLocationWhenAnchored = state.buffer.ReadBit();
 
-		if (Is1355())
-		{
-			bool unk54 = state.buffer.ReadBit();
-		}
+		bool unk54 = state.buffer.ReadBit();
 
 		bool movementResistant = state.buffer.ReadBit(); // resistance >= 0.0
 
