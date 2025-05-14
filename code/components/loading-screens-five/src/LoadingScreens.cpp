@@ -429,14 +429,10 @@ void LoadsThread::DoRun()
 	{
 		if (doShutdown && !autoShutdownNui)
 		{
-			// Init the player for RAGE sake
-			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(),
 #ifdef GTA_FIVE
-		0.0f, 0.0f, 0.0f
-#else
-		35.0f, 35.0f, 102.0f
+			// Init the player for RAGE sake
+			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), 0.0f, 0.0f, 0.0f);
 #endif
-			);
 #ifdef IS_RDR3
 			fx::ScriptContextBuffer ctx;
 			g_origShutdown(ctx);
@@ -491,14 +487,10 @@ void LoadsThread::DoRun()
 		NativeInvoke::Invoke<SET_OVERRIDE_WEATHER, int>("SUNNY");
 #endif
 		NativeInvoke::Invoke<NETWORK_OVERRIDE_CLOCK_TIME, int>(12, 30, 0);
-// We cant do this because its load alot of stuff there and can cause scene pools crash		
-		NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(),
-#ifdef GTA_FIVE
-		0.0f, 0.0f, 0.0f
-#else
-		35.0f, 35.0f, 102.0f
-#endif
-		);
+// RDR dont like change coords during session joining cause sessionmanager errors and session join issues
+#ifdef GTA_FIVE	
+		NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), 0.0f, 0.0f, 0.0f);
+#endif	
 
 		NativeInvoke::Invoke<FREEZE_ENTITY_POSITION, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), true);
 
