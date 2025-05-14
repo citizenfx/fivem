@@ -395,11 +395,11 @@ if isDuplicityVersion then
 	end
 
 	local httpDispatch = {}
-	AddEventHandler('__cfx_internal:httpResponse', function(token, status, body, headers, errorData)
+	AddEventHandler('__cfx_internal:httpResponse', function(token, status, body, headers, errorData, errorHeaders)
 		if httpDispatch[token] then
 			local userCallback = httpDispatch[token]
 			httpDispatch[token] = nil
-			userCallback(status, body, headers, errorData)
+			userCallback(status, body, headers, errorData, errorHeaders)
 		end
 	end)
 
