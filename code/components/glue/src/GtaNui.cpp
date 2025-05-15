@@ -20,6 +20,8 @@
 #include <GameAudioState.h>
 #endif
 
+#include <Error.h>
+
 namespace WRL = Microsoft::WRL;
 
 using nui::GITexture;
@@ -658,8 +660,14 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 				ImageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 				ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 				ImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
 				VkImage Image;
-				assert(vkCreateImage(device, &ImageCreateInfo, nullptr, &Image) == VK_SUCCESS);
+				VkResult result = vkCreateImage(device, &ImageCreateInfo, nullptr, &Image);
+
+				if (result != VK_SUCCESS)
+				{
+					FatalError("Failed to create a Vulkan image. VkResult: %i", static_cast<int>(result));
+				}
 
 				VkMemoryRequirements MemoryRequirements;
 				vkGetImageMemoryRequirements(device, Image, &MemoryRequirements);
@@ -681,11 +689,23 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 				static auto _vkBindImageMemory2 = (PFN_vkBindImageMemory2)vkGetDeviceProcAddr(device, "vkBindImageMemory2");
 
 				VkDeviceMemory ImageMemory;
-				assert(vkAllocateMemory(device, &MemoryAllocateInfo, nullptr, &ImageMemory) == VK_SUCCESS);
+				result = vkAllocateMemory(device, &MemoryAllocateInfo, nullptr, &ImageMemory);
+
+				if (result != VK_SUCCESS)
+				{
+					FatalError("Failed to allocate memory for Vulkan. VkResult: %i", static_cast<int>(result));
+				}
+
 				VkBindImageMemoryInfo BindImageMemoryInfo = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO };
 				BindImageMemoryInfo.image = Image;
 				BindImageMemoryInfo.memory = ImageMemory;
-				assert(_vkBindImageMemory2(device, 1, &BindImageMemoryInfo) == VK_SUCCESS);
+
+				result = _vkBindImageMemory2(device, 1, &BindImageMemoryInfo);
+
+				if (result != VK_SUCCESS)
+				{
+					FatalError("Failed to bind Vulkan image memory. VkResult: %i", static_cast<int>(result));
+				}
 
 				auto newImage = new rage::sga::TextureVK::ImageData;
 				//memcpy(newImage, texRef->image, sizeof(*newImage));
