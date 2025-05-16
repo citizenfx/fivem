@@ -512,6 +512,10 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureBacking(int width, int h
 
 #pragma comment(lib, "vulkan-1.lib")
 
+#ifdef IS_RDR3
+#include <VulkanHelper.h>
+#endif
+
 fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height)
 {
 #ifndef GTA_NY
@@ -666,7 +670,7 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 
 				if (result != VK_SUCCESS)
 				{
-					FatalError("Failed to create a Vulkan image. VkResult: %i", static_cast<int>(result));
+					FatalError("Failed to create a Vulkan image. VkResult: %s", ResultToString(result));
 				}
 
 				VkMemoryRequirements MemoryRequirements;
@@ -693,7 +697,7 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 
 				if (result != VK_SUCCESS)
 				{
-					FatalError("Failed to allocate memory for Vulkan. VkResult: %i", static_cast<int>(result));
+					FatalError("Failed to allocate memory for Vulkan. VkResult: %s", ResultToString(result));
 				}
 
 				VkBindImageMemoryInfo BindImageMemoryInfo = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO };
@@ -704,7 +708,7 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 
 				if (result != VK_SUCCESS)
 				{
-					FatalError("Failed to bind Vulkan image memory. VkResult: %i", static_cast<int>(result));
+					FatalError("Failed to bind Vulkan image memory. VkResult: %s", ResultToString(result));
 				}
 
 				auto newImage = new rage::sga::TextureVK::ImageData;
