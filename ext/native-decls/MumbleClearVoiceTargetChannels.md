@@ -1,3 +1,13 @@
+adams_security/
+├── client/
+│   └── client.lua
+├── server/
+│   └── server.lua
+├── config.lua
+├── fxmanifest.lua
+├── uniforms.lua
+└── locales/
+    └── en.lua
 ---
 ns: CFX
 apiset: client
