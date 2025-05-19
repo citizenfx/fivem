@@ -150,15 +150,14 @@ namespace CitizenFX.Core
 			sourceString = origin == Binding.Remote ? sourceString : null;
 #endif
 
-			object[] args = null; // will make sure we only deserialize it once
 #if REMOTE_FUNCTION_ENABLED
-			if (!ExternalsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize, ref args))
+			if (!ExternalsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize))
 #endif
 			{
-				if (!ExportsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize, ref args))
+				if (!ExportsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize))
 				{
 					// if a remote function or export has consumed this event then it surely wasn't meant for event handlers
-					EventsManager.IncomingEvent(eventName, sourceString, origin, argsSerialized, serializedSize, args);
+					EventsManager.IncomingEvent(eventName, sourceString, origin, argsSerialized, serializedSize);
 				}
 			}
 		}
