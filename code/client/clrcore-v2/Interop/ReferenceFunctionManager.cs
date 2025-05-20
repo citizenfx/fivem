@@ -149,8 +149,8 @@ namespace CitizenFX.Core
 				}
 				catch (Exception ex)
 				{
-					//Debug.WriteException(ex, funcRef.m_method, args, "reference function");
-					Debug.WriteLine(ex);
+					var args = deserializer.DeserializeAsObjectArray();
+					Debug.WriteException(ex, funcRef.m_method, args, "reference function");
 				}
 
 				if (result is Coroutine coroutine)
