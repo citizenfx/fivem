@@ -36,6 +36,12 @@ void AddDataFileToLoadList(const std::string& type, const std::string& path);
 #include "Hooking.h"
 #include "Hooking.Stubs.h"
 
+#ifdef GTA_FIVE
+#define LEVEL_NAME "gta5"
+#else
+#define LEVEL_NAME "rdr3"
+#endif
+
 static std::string g_overrideNextLoadedLevel;
 static std::string g_nextLevelPath;
 
@@ -43,15 +49,28 @@ static bool g_wasLastLevelCustom;
 static bool g_gameUnloaded = false;
 
 static void(*g_origLoadLevelByIndex)(int);
-static void(*g_loadLevel)(const char* levelPath);
+#ifdef IS_RDR3
+static int* g_levelIndex;
+#endif
+static void (*g_loadLevel)(const char* levelPath);
 
 enum NativeIdentifiers : uint64_t
 {
+#ifdef GTA_FIVE
 	PLAYER_PED_ID = 0xD80958FC74E988A6,
 	SET_ENTITY_COORDS = 0x621873ECE1178967,
 	LOAD_SCENE = 0x4448EB75B4904BDB,
 	SHUTDOWN_LOADING_SCREEN = 0x078EBE9809CCD637,
-	DO_SCREEN_FADE_IN = 0xD4E8E24955024033
+	DO_SCREEN_FADE_IN = 0xD4E8E24955024033,
+	FREEZE_ENTITY_POSITION = 0x428CA6DBD1094446,
+	ACTIVATE_ROCKSTAR_EDITOR = 0x49DA8145672B2725
+#else
+	PLAYER_PED_ID = 0x096275889B8E0EE0,
+	SET_ENTITY_COORDS = 0x06843DA7060A026B,
+	SHUTDOWN_LOADING_SCREEN = 0xFC179D7E8886DADF,
+	DO_SCREEN_FADE_IN = 0x6A053CF596F67DF7,
+	FREEZE_ENTITY_POSITION = 0x7D9EFB7AD6B19754
+#endif
 };
 
 class SpawnThread : public CfxThread
@@ -79,14 +98,23 @@ public:
 			NativeInvoke::Invoke<SHUTDOWN_LOADING_SCREEN, int>();
 			NativeInvoke::Invoke<DO_SCREEN_FADE_IN, int>(0);
 
-			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, 293.089f, 180.466f, 104.301f);
-			NativeInvoke::Invoke<0x428CA6DBD1094446, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>(), false);
+			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, 
+#ifdef GTA_FIVE
+			293.089f, 180.466f, 104.301f
+#else
+			35.0f, 35.0f, 102.0f
+#endif
+			);
+		
+			NativeInvoke::Invoke<FREEZE_ENTITY_POSITION, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), false);
 
+#ifdef GTA_FIVE
 			if (Instance<ICoreGameInit>::Get()->HasVariable("editorMode"))
 			{
-				NativeInvoke::Invoke<0x49DA8145672B2725, int>();
+				NativeInvoke::Invoke<ACTIVATE_ROCKSTAR_EDITOR, int>();
 				Instance<ICoreGameInit>::Get()->ClearVariable("editorMode");
 			}
+#endif
 
 			m_doInityThings = false;
 		}
@@ -158,7 +186,7 @@ static void DoLoadLevel(int index)
 	}
 
 	// mark the level as being custom
-	g_wasLastLevelCustom = (g_overrideNextLoadedLevel != "gta5" && g_overrideNextLoadedLevel.find("/gta5") == std::string::npos);
+	g_wasLastLevelCustom = (g_overrideNextLoadedLevel != LEVEL_NAME && g_overrideNextLoadedLevel.find("/" LEVEL_NAME) == std::string::npos);
 
 	// clear the 'next' level
 	g_overrideNextLoadedLevel.clear();
@@ -166,6 +194,10 @@ static void DoLoadLevel(int index)
 	// save globally to prevent va() reuse messing up
 	g_nextLevelPath = levelPath;
 
+#ifdef IS_RDR3
+	// Manually set the level index.
+	*g_levelIndex = index;
+#endif
 	// load the level
 	g_loadLevel(g_nextLevelPath.c_str());
 }
@@ -191,6 +223,7 @@ static bool DoesLevelHashMatch(void* evaluator, uint32_t* hash)
 	return (!g_wasLastLevelCustom);
 }
 
+#ifdef GTA_FIVE
 struct CDataFileMgr__ContentChangeSet
 {
 	// technically, some atString?
@@ -215,9 +248,11 @@ static void CFileLoader__BuildContentChangeSetActionList_Hook(const CDataFileMgr
 
 	return g_orig_CFileLoader__BuildContentChangeSetActionList(changeset, outArray, a3, a4, a5);
 }
+#endif
 
 static HookFunction hookFunction([] ()
 {
+#ifdef GTA_FIVE
 	char* levelCaller = xbr::IsGameBuildOrGreater<2060>() ? hook::pattern("33 D0 81 E2 FF 00 FF 00 33 D1 48").count(1).get(0).get<char>(0x33) : hook::pattern("0F 94 C2 C1 C1 10 33 CB 03 D3 89 0D").count(1).get(0).get<char>(46);
 	char* levelByIndex = hook::get_call(levelCaller);
 
@@ -237,6 +272,26 @@ static HookFunction hookFunction([] ()
 
 		hook::jump(location + *(int32_t*)location + 4, DoesLevelHashMatch);
 	}
+#else
+	char* levelCaller = hook::get_pattern<char>("F3 0F 10 0D ? ? ? ? 48 8D 0D ? ? ? ? 83 25", 61);
+	char* levelByIndex = hook::get_call(levelCaller);
+
+	hook::set_call(&g_origLoadLevelByIndex, levelCaller);
+	hook::call(levelCaller, DoLoadLevel);
+
+	g_loadLevel = (decltype(g_loadLevel))hook::get_pattern("B9 ? ? ? ? E8 ? ? ? ? 40 88 7C 24 ? 48 8D 0D", -0x3B);
+
+	// change set condition evaluator's $level variable comparer
+	{
+		char* location = hook::pattern("48 8D 4C 24 ? 48 8B DA E8 ? ? ? ? 8B 0B").count(1).get(0).get<char>(-5);
+		hook::trampoline(location, DoesLevelHashMatch);
+	}
+
+	// change set applicability
+	hook::jump(hook::pattern("4C 8B F1 B3 ? 76").count(1).get(0).get<void>(-0x21), IsLevelApplicable);
+
+	g_levelIndex = hook::get_address<int*>(hook::get_pattern<int>("8B 15 ? ? ? ? 0F 29 45 ? E8", 2));
+#endif
 });
 
 enum class Mode : uint8_t
@@ -394,15 +449,17 @@ static InitFunction initFunction([] ()
 		LoadLevel(level.c_str(), Mode::LEVEL_LOAD);
 	});
 
+#ifdef GTA_FIVE
 	static ConsoleCommand storyModeyCommand("storymode", []()
 	{
-		LoadLevel("gta5", Mode::STORY_MODE);
+		LoadLevel(LEVEL_NAME, Mode::STORY_MODE);
 	});
 
 	static ConsoleCommand editorModeCommand("replayEditor", []()
 	{
-		LoadLevel("gta5", Mode::EDITOR_MODE);
+		LoadLevel(LEVEL_NAME, Mode::EDITOR_MODE);
 	});
+#endif
 
 	static ConsoleCommand localGameCommand("localGame", [](const std::string& resourceDir)
 	{
@@ -491,7 +548,7 @@ static InitFunction initFunction([] ()
 			res->Start();
 		});
 
-		LoadLevel("gta5", Mode::LOCAL_MODE);
+		LoadLevel(LEVEL_NAME, Mode::LOCAL_MODE);
 	});
 
 	static ConsoleCommand loadLevelCommand2("invoke-levelload", [](const std::string& level)
