@@ -11,6 +11,11 @@
 
 #include <ResourceCallbackComponent.h>
 
+#ifdef IS_FXSERVER
+#include <ServerInstanceBase.h>
+#include <ServerInstanceBaseRef.h>
+#endif
+
 #include <chrono>
 #include <sstream>
 #include <stack>
@@ -1796,6 +1801,18 @@ global.require = m.exports.require;
 
 		node::SetProcessExitHandler(env, [](node::Environment*, int exitCode)
 		{
+#ifdef IS_FXSERVER
+			auto monitorVar = fx::ResourceManager::GetCurrent()->GetComponent<fx::ServerInstanceBaseRef>()->Get()->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("monitorMode");
+			if (monitorVar)
+			{
+#ifdef _WIN32
+				TerminateProcess(GetCurrentProcess(), exitCode);
+#else
+				raise(SIGTERM);
+#endif
+				return;
+			}
+#endif
 			FatalError("Node.js exiting (exit code %d)\nSee console for details", exitCode);
 		});
 
