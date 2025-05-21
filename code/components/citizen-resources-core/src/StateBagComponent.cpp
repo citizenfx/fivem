@@ -490,24 +490,35 @@ std::shared_ptr<StateBag> StateBagComponentImpl::RegisterStateBag(std::string_vi
 	std::shared_ptr<StateBagImpl> bag;
 	std::string strId{ id };
 
+	// If we're already being erased we should just disown our current weak_ptr
+	bool wasBeingErased;
+	
+	{
+		std::unique_lock _(m_erasureMutex);
+		wasBeingErased = m_erasureList.erase(strId);
+	}
+
 	{
 		std::unique_lock lock(m_mapMutex);
 
-		if (auto exIt = m_stateBags.find(strId); exIt != m_stateBags.end())
+		if (!wasBeingErased)
 		{
-			auto bagRef = exIt->second.lock();
-
-			if (bagRef)
+			if (auto exIt = m_stateBags.find(strId); exIt != m_stateBags.end())
 			{
-				lock.unlock();
+				auto bagRef = exIt->second.lock();
 
-				// disown pre-created state bag reference, if this one came from there
+				if (bagRef)
 				{
-					std::unique_lock preLock(m_preCreatedStateBagsMutex);
-					m_preCreatedStateBags.erase(bagRef);
-				}
+					lock.unlock();
 
-				return bagRef;
+					// disown pre-created state bag reference, if this one came from there
+					{
+						std::unique_lock preLock(m_preCreatedStateBagsMutex);
+						m_preCreatedStateBags.erase(bagRef);
+					}
+
+					return bagRef;
+				}
 			}
 		}
 
@@ -516,10 +527,6 @@ std::shared_ptr<StateBag> StateBagComponentImpl::RegisterStateBag(std::string_vi
 		m_stateBags[strId] = bag;
 	}
 
-	{
-		std::unique_lock _(m_erasureMutex);
-		m_erasureList.erase(strId);
-	}
 
 	return bag;
 }
