@@ -36,7 +36,7 @@ private:
 #define FORWARD_FUNC(name, offset, ...)    \
 	using TFn = decltype(&netObjectMgr::name); \
 	void** vtbl = *(void***)(this);        \
-	return (this->*(get_member<TFn>(vtbl[(offset / 8) + ((offset > 0x68) ? (xbr::IsGameBuildOrGreater<1436>() ? 1 : 0) : 0)])))(__VA_ARGS__);
+	return (this->*(get_member<TFn>(vtbl[(offset / 8) + ((offset > 0x68) ? 1 : 0)])))(__VA_ARGS__);
 
 public:
 	inline void UnregisterNetworkObject(rage::netObject* object, int reason, bool force1, bool force2)

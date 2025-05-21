@@ -16,13 +16,13 @@
 #endif
 
 #define DECLARE_ACCESSOR(x) \
-	decltype(impl.m1311.x)& x() \
+	decltype(impl.m1491.x)& x() \
 	{ \
-		return (impl.m1311.x); \
+		return (impl.m1491.x); \
 	} \
-	const decltype(impl.m1311.x)& x() const \
+	const decltype(impl.m1491.x)& x() const \
 	{ \
-		return (impl.m1311.x); \
+		return (impl.m1491.x); \
 	}
 
 namespace rage
@@ -81,13 +81,13 @@ private:
 
 	union
 	{
-		Impl m1311;
+		Impl m1491;
 	} impl;
 
 public:
 	void* GetPlayerInfo()
 	{
-		if (auto pedPlayerComponent = (void*)(impl.m1311.pedPlayerComponent))
+		if (auto pedPlayerComponent = (void*)(impl.m1491.pedPlayerComponent))
 		{
 			return (void*)((char*)pedPlayerComponent + 0x130);
 		}
