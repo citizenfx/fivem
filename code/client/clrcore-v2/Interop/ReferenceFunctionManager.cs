@@ -25,6 +25,11 @@ namespace CitizenFX.Core
 
 		private static Dictionary<int, Function> s_references = new Dictionary<int, Function>();
 
+		static ReferenceFunctionManager()
+		{
+			MsgPackReferenceRegistrar.CreateFunc = Create;
+		}
+
 		/// <summary>
 		/// Register a delegate to other runtimes and/or our host (reference function)
 		/// </summary>
