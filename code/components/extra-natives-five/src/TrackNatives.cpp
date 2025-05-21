@@ -18,6 +18,7 @@
 #include <GameInit.h>
 #include <scrEngine.h>
 #include <ScriptSerialization.h>
+#include <bitset>
 
 class CTrain : public CVehicle
 {
@@ -87,8 +88,17 @@ struct CTrainJunction
 	bool direction;
 	bool isActive;
 
+	CTrainJunction()
+		: onTrack(0), onNode(0), newTrack(0), newNode(0), direction(false), isActive(false)
+	{
+	}
+
 	CTrainJunction(int8_t track, uint32_t node, int8_t newTrack, uint32_t newNode, bool direction)
 		: onTrack(track), onNode(node), newTrack(newTrack), newNode(newNode), direction(direction), isActive(true)
+	{
+	}
+
+	~CTrainJunction()
 	{
 	}
 };
@@ -101,8 +111,33 @@ struct scrTrackNodeInfo
 	MSGPACK_DEFINE_ARRAY(nodeIndex, trackId)
 };
 
-static std::vector<CTrainJunction> g_trackJunctions;
+static const int g_maxTrackJunctions = 8912;
+static std::unordered_map<int,CTrainJunction> g_trackJunctions;
+std::bitset<g_maxTrackJunctions> g_usedTrackJunctionIDs;
 static std::mutex g_trackJunctionLock;
+
+static bool IsTrackJunctionIdValid(int junctionIndex)
+{
+	return junctionIndex > 0 && junctionIndex < g_maxTrackJunctions && g_trackJunctions.find(junctionIndex) != g_trackJunctions.end();
+}
+
+static int reserveJunctionID()
+{
+	for (int i = 0; i < g_maxTrackJunctions; ++i)
+	{
+		if (!g_usedTrackJunctionIDs.test(i))
+		{
+			g_usedTrackJunctionIDs.set(i);
+			return i + 1;
+		}
+	}
+	throw std::runtime_error("No free junction IDs left.");
+}
+
+static void freeJunctionID(const int junctionID)
+{
+	g_usedTrackJunctionIDs.reset(junctionID - 1);
+}
 
 static float CalculateDistance(const float& x, const float& y, const float& z, const float& x1, const float& y1, const float& z1)
 {
@@ -193,7 +228,7 @@ static bool CTrain__Update(CTrain* self, float unk)
 	}
 
 	const std::lock_guard _(g_trackJunctionLock);
-	for (const auto& data : g_trackJunctions)
+	for (const auto& [_, data] : g_trackJunctions)
 	{
 		if (!data.isActive)
 		{
@@ -337,8 +372,28 @@ static InitFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_ALL_TRACK_JUNCTIONS", [](fx::ScriptContext& context)
+	{
+		std::vector<int> junctionList;
+		const std::lock_guard _(g_trackJunctionLock);
+
+		for (auto& [index, _] : g_trackJunctions)
+		{
+			junctionList.push_back(index);
+		}
+
+		context.SetResult(fx::SerializeObject(junctionList));
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("REGISTER_TRACK_JUNCTION", [](fx::ScriptContext& context)
 	{
+		if (g_usedTrackJunctionIDs.all() || g_trackJunctions.size() >= g_maxTrackJunctions)
+		{
+			fx::scripting::Warningf("natives", "REGISTER_TRACK_JUNCTION: Reached the maximum track junctions limit (%i)\n", g_maxTrackJunctions);
+			context.SetResult<int>(-1);
+			return;
+		}
+
 		int8_t trackIndex = context.GetArgument<int8_t>(0);
 		uint32_t trackNode = context.GetArgument<uint32_t>(1);
 
@@ -375,7 +430,7 @@ static InitFunction initFunction([]()
 		}
 
 		const std::lock_guard _(g_trackJunctionLock);
-		for (const auto& data : g_trackJunctions)
+		for (const auto& [_, data] : g_trackJunctions)
 		{
 			if (data.direction == direction && data.onTrack == trackIndex && data.newTrack == newTrackIndex && data.onNode == trackNode && data.newNode == newTrackNode)
 			{
@@ -385,8 +440,11 @@ static InitFunction initFunction([]()
 			}
 		}
 
-		context.SetResult<int>(g_trackJunctions.size());
-		g_trackJunctions.push_back(CTrainJunction(trackIndex, trackNode, newTrackIndex, newTrackNode, direction));
+		int junctionIndex = reserveJunctionID();
+
+		context.SetResult<int>(junctionIndex);
+		g_trackJunctions[junctionIndex] = CTrainJunction(trackIndex, trackNode, newTrackIndex, newTrackNode, direction);
+		
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("REMOVE_TRACK_JUNCTION", [](fx::ScriptContext& context)
@@ -395,14 +453,15 @@ static InitFunction initFunction([]()
 
 		const std::lock_guard _(g_trackJunctionLock);
 
-		if (junctionIndex >= g_trackJunctions.size())
+		if (!IsTrackJunctionIdValid(junctionIndex))
 		{
-			fx::scripting::Warningf("natives", "REMOVE_TRACK_JUNCTION: Invalid junction id (%i), should be from 0 to %i\n", junctionIndex, g_trackJunctions.size());
+			fx::scripting::Warningf("natives", "REMOVE_TRACK_JUNCTION: Invalid junction id (%i) provided.", junctionIndex);
 			context.SetResult<bool>(false);
 			return;
 		}
 
-		g_trackJunctions.erase(g_trackJunctions.begin() + junctionIndex);
+		g_trackJunctions.erase(junctionIndex);
+		freeJunctionID(junctionIndex);
 
 		context.SetResult<bool>(true);
 	});
@@ -414,9 +473,9 @@ static InitFunction initFunction([]()
 
 		const std::lock_guard _(g_trackJunctionLock);
 
-		if (junctionIndex >= g_trackJunctions.size())
+		if (!IsTrackJunctionIdValid(junctionIndex))
 		{
-			fx::scripting::Warningf("natives", "SET_TRACK_JUNCTION_ACTIVE: Invalid junction id (%i) provided. There are %i registered junctions\n", junctionIndex, g_trackJunctions.size());
+			fx::scripting::Warningf("natives", "SET_TRACK_JUNCTION_ACTIVE: Invalid junction id (%i) provided.", junctionIndex);
 			context.SetResult<bool>(false);
 			return;
 		}
@@ -500,5 +559,6 @@ static HookFunction hookFunction([]()
 	{
 		const std::lock_guard _(g_trackJunctionLock);
 		g_trackJunctions.clear();
+		g_usedTrackJunctionIDs.reset();
 	});
 });
