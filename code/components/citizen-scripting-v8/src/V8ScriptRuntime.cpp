@@ -2299,7 +2299,7 @@ static void OnMessage(Local<Message> message, Local<Value> error)
 		v8::String::Utf8Value sourceStr(GetV8Isolate(), frame->GetScriptNameOrSourceURL());
 		v8::String::Utf8Value functionStr(GetV8Isolate(), frame->GetFunctionName());
 		
-		stack << *sourceStr << "(" << frame->GetLineNumber() << "," << frame->GetColumn() << "): " << (*functionStr ? *functionStr : "") << "\n";
+		stack << (*sourceStr ? *sourceStr : "(unknown)") << "(" << frame->GetLineNumber() << "," << frame->GetColumn() << "): " << (*functionStr ? *functionStr : "") << "\n";
 	}
 
 	ScriptTrace("%s\n%s\n%s\n", *messageStr, stack.str(), *errorStr);
