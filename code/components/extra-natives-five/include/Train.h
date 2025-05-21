@@ -16,6 +16,9 @@ public:
 struct CTrainTrack
 {
 public:
+	// This has never changed.
+	static const int kMaxTracks = 27;
+
 	uint32_t m_hash;
 	bool m_enabled;
 	bool m_isLooped;
@@ -30,12 +33,7 @@ public:
 	uint8_t m_pad[8];
 
 	bool m_disableAmbientTrains;
-
-	uint8_t m_pad2[0x17];
-
-	bool m_isActive;
-
-	uint8_t m_pad3[0x20C];
+	uint8_t m_pad2[0x220];
 
 	// Helper functions
 	static bool AreAllTracksDisabled();
