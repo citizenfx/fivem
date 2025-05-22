@@ -40,8 +40,8 @@ namespace CitizenFX.Core
 					}
 					catch (Exception ex)
 					{
-						//Debug.WriteException(ex, ev.Item1, args, "event handler");
-						Debug.WriteLine(ex);
+						var args = deserializer.DeserializeAsObjectArray();
+						Debug.WriteException(ex, ev.Item1, args, "event handler");
 					}
 				}
 			}
