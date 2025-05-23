@@ -26,7 +26,7 @@ cd $ROOT_REPO/ext/natives
 gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
 
 mkdir -p inp out
-curl --http1.1 -sLo inp/natives_global.lua http://vmp.724548.ir.cdn.ir/doc/natives.lua
+curl --http1.1 -sLo inp/natives_global.lua http://cdn.vmp.ir/doc/natives.lua
 
 cd $ROOT_REPO/ext/native-doc-gen
 

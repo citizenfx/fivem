@@ -23,13 +23,13 @@ if errorlevel 1 (
 pushd ext\natives\
 mkdir inp
 
-call:UpdateToLatest inp\natives_global.lua https://vmp.724548.ir.cdn.ir/doc/natives.lua
-call:UpdateToLatest inp\natives_rdr3.lua https://vmp.724548.ir.cdn.ir/doc/natives_rdr3.lua
-call:UpdateToLatest inp\natives_rdr3_old.lua https://vmp.724548.ir.cdn.ir/doc/natives_rdr_tmp.lua
-call:UpdateToLatest inp\natives_ny.lua https://vmp.724548.ir.cdn.ir/doc/natives_ny_tmp.lua
+call:UpdateToLatest inp\natives_global.lua http://cdn.vmp.ir/doc/natives.lua
+call:UpdateToLatest inp\natives_rdr3.lua http://cdn.vmp.ir/doc/natives_rdr3.lua
+call:UpdateToLatest inp\natives_rdr3_old.lua http://cdn.vmp.ir/doc/natives_rdr_tmp.lua
+call:UpdateToLatest inp\natives_ny.lua http://cdn.vmp.ir/doc/natives_ny_tmp.lua
 
-call:UpdateToLatest inp\natives_global_client_compat.lua https://vmp.724548.ir.cdn.ir/doc/natives_global_client_compat.lua
-call:UpdateToLatest inp\natives_rdr3_client_compat.lua https://vmp.724548.ir.cdn.ir/doc/natives_rdr3_client_compat.lua
+call:UpdateToLatest inp\natives_global_client_compat.lua http://cdn.vmp.ir/doc/natives_global_client_compat.lua
+call:UpdateToLatest inp\natives_rdr3_client_compat.lua http://cdn.vmp.ir/doc/natives_rdr3_client_compat.lua
 
 popd
 

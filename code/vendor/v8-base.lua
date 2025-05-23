@@ -1,4 +1,4 @@
-local baseURL = 'https://vmp.724548.ir.cdn.ir/mirrors'
+local baseURL = 'http://cdn.vmp.ir/mirrors'
 
 local version = ...
 local baseVersion = version:match('%d+%.%d+')
