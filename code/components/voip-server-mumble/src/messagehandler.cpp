@@ -188,28 +188,33 @@ void Mh_handle_message(client_t *client, message_t *msg)
 		
 		if(!mumble_allowExternalConnections->GetValue())
 		{
+			char buf[64];
 			if (!client->os_version || !client->release || 
 				strcmp(client->os_version, "Cfx/Embedded") != 0 || 
 				strcmp(client->release, "CitizenFX Client") != 0)
 			{
-				char buf[64];
 				snprintf(buf, 64, "Invalid client os_version or release");
 				sendServerReject(client, buf, MumbleProto::Reject_RejectType_WrongVersion);
 				goto disconnect;
 			}
 			int playerId = Client_getPlayerId(client, (char*)msg->payload.authenticate->username().c_str());
 			if(playerId == -1) {
-				char buf[64];
 				snprintf(buf, 64, "Invalid player id in username");
 				sendServerReject(client, buf, MumbleProto::Reject_RejectType_InvalidUsername);
 				goto disconnect;
 			}
 			if(g_clientIds.find(playerId) != g_clientIds.end()) {
-				char buf[64];
 				snprintf(buf, 64, "Player id already in use");
 				sendServerReject(client, buf, MumbleProto::Reject_RejectType_UsernameInUse);
 				goto disconnect;
 			}
+			if(!g_clientRegistry->GetClientByNetID(playerId))
+			{
+				snprintf(buf, 64, "Player id does not exist");
+				sendServerReject(client, buf, MumbleProto::Reject_RejectType_InvalidUsername);
+				goto disconnect;
+			}
+			
 			g_clientIds.insert(playerId);
 		}
 
