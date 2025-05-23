@@ -8,8 +8,8 @@ char shm_file_name[128];
 void Sharedmemory_init( int bindport, int bindport6 )
 {
 #if 0
-	int server_max_clients = getIntConf(MAX_CLIENTS);
-	int shmtotal_size =  sizeof( shm_t  ) + (sizeof( shmclient_t ) * server_max_clients);
+	int server_MUMBLE_MAX_CLIENTS = getIntConf(MUMBLE_MAX_CLIENTS);
+	int shmtotal_size =  sizeof( shm_t  ) + (sizeof( shmclient_t ) * server_MUMBLE_MAX_CLIENTS);
 
 	if( !bindport )
 	{
@@ -43,9 +43,9 @@ void Sharedmemory_init( int bindport, int bindport6 )
 	memset( shmptr, 0, shmtotal_size );
 
 	shmptr->umurmurd_pid = getpid();
-	shmptr->server_max_clients = server_max_clients;
+	shmptr->server_MUMBLE_MAX_CLIENTS = server_MUMBLE_MAX_CLIENTS;
 	shmptr->shmtotal_size = shmtotal_size;
-	shmptr->shmclient_size = sizeof( shmclient_t ) * shmptr->server_max_clients;
+	shmptr->shmclient_size = sizeof( shmclient_t ) * shmptr->server_MUMBLE_MAX_CLIENTS;
 
 }
 
