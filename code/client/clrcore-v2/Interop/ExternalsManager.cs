@@ -1,5 +1,6 @@
 #if REMOTE_FUNCTION_ENABLED
 using CitizenFX.Core.Native;
+using CitizenFX.MsgPack;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,14 +30,14 @@ namespace CitizenFX.Core
 #endif
 		}
 
-		internal static unsafe bool IncomingRequest(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize, ref object[] args)
+		internal static unsafe bool IncomingRequest(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize)
 		{
 			// only accepted for remote, might change in the future
 			if (origin == Binding.REMOTE)
 			{
 				if (eventName == RpcRequestName)
 				{
-					args = MsgPackDeserializer.DeserializeArguments(argsSerialized, serializedSize, origin == Binding.Remote ? sourceString : null);
+					var args = MsgPackDeserializer.DeserializeArguments(argsSerialized, serializedSize, origin == Binding.Remote ? sourceString : null);
 					if (args.Length > 3 && args[2] is string requestId)
 					{
 						ulong rid = Convert.ToUInt64(requestId);
