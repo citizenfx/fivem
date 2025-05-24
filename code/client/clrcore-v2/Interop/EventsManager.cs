@@ -40,6 +40,7 @@ namespace CitizenFX.Core
 					}
 					catch (Exception ex)
 					{
+						deserializer.Restore(restorePoint);
 						var args = deserializer.DeserializeAsObjectArray();
 						Debug.WriteException(ex, ev.Item1, args, "event handler");
 					}

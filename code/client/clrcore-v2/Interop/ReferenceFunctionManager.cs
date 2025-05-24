@@ -144,6 +144,7 @@ namespace CitizenFX.Core
 			if (s_references.TryGetValue(reference, out var funcRef))
 			{
 				var deserializer = new MsgPackDeserializer(arguments, argsSize, null);
+				var restorePoint = deserializer.CreateRestorePoint();
 
 				object result = null;
 
@@ -154,6 +155,7 @@ namespace CitizenFX.Core
 				}
 				catch (Exception ex)
 				{
+					deserializer.Restore(restorePoint);
 					var args = deserializer.DeserializeAsObjectArray();
 					Debug.WriteException(ex, funcRef.m_method, args, "reference function");
 				}
