@@ -1432,6 +1432,26 @@ static InitFunction initFunction([] ()
 			sei.nShow = SW_SHOWNORMAL;
 			ShellExecuteExW(&sei);
 		}
+		else if (!_wcsicmp(type, L"installFaceit"))
+		{
+			std::wstring foxPath = MakeRelativeCitPath("FoxG\\FACEITInstaller_64.exe");
+			std::wstring paramter = L"/TASKS=\"!\"";
+			STARTUPINFO si;
+			PROCESS_INFORMATION pi;
+
+			ZeroMemory(&si, sizeof(si));
+			si.cb = sizeof(si);
+			ZeroMemory(&pi, sizeof(pi));
+			SHELLEXECUTEINFOW sei = { 0 };
+			sei.cbSize = sizeof(sei);
+			sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_DDEWAIT;
+			sei.hwnd = nullptr;
+			sei.lpFile = foxPath.c_str();
+			sei.lpParameters = const_cast<LPWSTR>(paramter.c_str());
+			sei.lpDirectory = nullptr;
+			sei.nShow = SW_SHOWNORMAL;
+			ShellExecuteExW(&sei);
+		}
 	});
 
 	wchar_t resultPath2[1024];
@@ -1445,12 +1465,13 @@ static InitFunction initFunction([] ()
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(10));
 			bool foxState2 = getXState();
-			std::string lastLog;
+			bool faceItState = getFaceItState();
+			std::string lastLog2;
 
 			std::ifstream file("C:\\Program Files (x86)\\FoxG\\foxg.log");
 			if (!file || file.peek() == std::ifstream::traits_type::eof())
 			{
-				lastLog = "";
+				lastLog2 = "";
 			}
 			else
 			{
@@ -1466,18 +1487,32 @@ static InitFunction initFunction([] ()
 					}
 				}
 
-				lastLog.clear();
+				lastLog2.clear();
 				for (const auto& l : lines)
 				{
-					lastLog += l + "\n";
+					lastLog2 += l + "\n";
 				}
 			}
 
 			file.close();
 			rapidjson::Document document;
-			lastLog = (foxState2 ? "FoxG is activated✔️\n\nLog :\n" : foxDeleted ? "File not found\nTry install again\nhttps://forum.vmp.ir/foxghelp\n\nLog :\n"
-																				: "FoxG not found\nTry to restart\nhttps://forum.vmp.ir/foxghelp\n\nLog :\n")
-					  + lastLog;
+			std::string lastLog;
+			if (foxState2)
+			{
+				lastLog = "FoxG is activated✔️\n";
+			}
+			else
+			{
+				lastLog = "File not found\nTry install again\nhttps://forum.vmp.ir/foxghelp\n";
+			}
+			if (faceItState) {
+				lastLog = lastLog + "FaceIt activeted☑️\n\nLog :\n";
+			}
+			else {
+				lastLog = lastLog + "FaceIt Not found\n\nLog :\n";
+			}
+			lastLog = lastLog + lastLog2;
+
 			document.SetString(lastLog.c_str(), document.GetAllocator());
 
 			rapidjson::StringBuffer sbuffer;
