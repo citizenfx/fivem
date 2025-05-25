@@ -382,7 +382,7 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		public static unsafe bool CompareASCII(CString left, string right)
 		{
-			if (left == null && right == null)
+			if (CString.IsNullOrEmpty(left) && string.IsNullOrEmpty(right))
 				return true;
 			else
 			{
@@ -408,7 +408,7 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		public static unsafe bool CompareASCIICaseInsensitive(CString left, string right)
 		{
-			if (left == null && right == null)
+			if (CString.IsNullOrEmpty(left) && string.IsNullOrEmpty(right))
 				return true;
 			else
 			{
