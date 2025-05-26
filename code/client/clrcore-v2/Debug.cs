@@ -96,7 +96,7 @@ namespace CitizenFX.Core
 							: type.ToString();
 					}
 
-					MethodInfo methodInfo = mspFunc.GetMethodInfo();
+					MethodInfo methodInfo = MsgPackDeserializer.GetMethodInfoFromDelegate(mspFunc);
 					ParameterInfo[] parameters = methodInfo.GetParameters();
 
 					string comma = "";
