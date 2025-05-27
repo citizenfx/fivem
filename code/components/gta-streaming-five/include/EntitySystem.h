@@ -898,6 +898,7 @@ struct DamageEventMetaData
 	rage::fwEntity* culprit;
 	float baseDamage;
 	uint32_t weapon;
+	bool isMelee;
 };
 
 STREAMING_EXPORT extern fwEvent<const DamageEventMetaData&> OnEntityDamaged;
