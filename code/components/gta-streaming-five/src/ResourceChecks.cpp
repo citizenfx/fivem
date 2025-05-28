@@ -24,6 +24,8 @@ static int(*g_origInsertModule)(void*, void*);
 static thread_local std::string g_currentStreamingName;
 static thread_local uint32_t g_currentStreamingIndex;
 
+static ConVar<bool> enableOctantCheckWarning("enableOctantCheckWarning", ConVar_Archive, false);
+
 std::string GetCurrentStreamingName()
 {
 	return g_currentStreamingName;
@@ -159,18 +161,22 @@ static void ValidateGeometry(void* geomPtr)
 
 	// Some exporters break octant maps, causing crashes when calculating bound collisions.
 	// Instead of attempting runtime fixes, we will just warn the user about possible issues and clear out the octant map.
+
 	if (auto octantVertCounts = geom->GetNumOctants())
 	{
 		for (int octant = 0; octant < 8; ++octant)
 		{
 			if (octantVertCounts[octant] <= 0)
 			{
-				console::PrintError("asset-validation",
-					"Physics validation failed for asset '%s'.\n"
-					"This asset contains invalid octant data (OctantVertCounts <= 0) and has been auto-corrected during this load to prevent a crash.\n"
-					"**Please update or fix the exporter responsible for generating this asset.**\n"
-					"Until corrected, this asset may cause degraded runtime performance and increase load times.\n",
-				g_currentStreamingName);
+				if (enableOctantCheckWarning.GetValue())
+				{
+					console::PrintError("asset-validation",
+						"Physics validation failed for asset '%s'.\n"
+						"This asset contains invalid octant data (OctantVertCounts <= 0) and has been auto-corrected during this load to prevent a crash.\n"
+						"**Please update or fix the exporter responsible for generating this asset.**\n"
+						"Until corrected, this asset may cause degraded runtime performance and increase load times.\n",
+					g_currentStreamingName);
+				}
 				geom->ClearOctantMap();
 				break;
 			}
