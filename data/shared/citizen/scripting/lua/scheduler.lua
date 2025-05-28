@@ -562,150 +562,10 @@ Citizen.SetDeleteRefRoutine(function(refId)
 	end
 end)
 
--- RPC REQUEST HANDLER
-local InvokeRpcEvent
-
-if GetCurrentResourceName() == 'sessionmanager' then
-	local rpcEvName = ('__cfx_rpcReq')
-
-	RegisterNetEvent(rpcEvName)
-
-	AddEventHandler(rpcEvName, function(retEvent, retId, refId, args)
-		local source = source
-
-		local eventTriggerFn = TriggerServerEvent
-		
-		if isDuplicityVersion then
-			eventTriggerFn = function(name, ...)
-				TriggerClientEvent(name, source, ...)
-			end
-		end
-
-		local returnEvent = function(args, err)
-			eventTriggerFn(retEvent, retId, args, err)
-		end
-
-		local function makeArgRefs(o)
-			if type(o) == 'table' then
-				for k, v in pairs(o) do
-					if type(v) == 'table' and rawget(v, '__cfx_functionReference') then
-						o[k] = function(...)
-							return InvokeRpcEvent(source, rawget(v, '__cfx_functionReference'), {...})
-						end
-					end
-
-					makeArgRefs(v)
-				end
-			end
-		end
-
-		makeArgRefs(args)
-
-		runWithBoundaryEnd(function()
-			local payload = Citizen_InvokeFunctionReference(refId, msgpack_pack(args))
-
-			if #payload == 0 then
-				returnEvent(false, 'err')
-				return
-			end
-
-			local rvs = msgpack_unpack(payload)
-
-			if type(rvs[1]) == 'table' and rvs[1].__cfx_async_retval then
-				rvs[1].__cfx_async_retval(returnEvent)
-			else
-				returnEvent(rvs)
-			end
-		end)
-	end)
-end
-
-local rpcId = 0
-local rpcPromises = {}
-local playerPromises = {}
-
--- RPC REPLY HANDLER
-local repName = ('__cfx_rpcRep:%s'):format(GetCurrentResourceName())
-
-RegisterNetEvent(repName)
-
-AddEventHandler(repName, function(retId, args, err)
-	local promise = rpcPromises[retId]
-	rpcPromises[retId] = nil
-
-	-- remove any player promise for us
-	for k, v in pairs(playerPromises) do
-		v[retId] = nil
-	end
-
-	if promise then
-		if args then
-			promise:resolve(args[1])
-		elseif err then
-			promise:reject(err)
-		end
-	end
-end)
-
-if isDuplicityVersion then
-	AddEventHandler('playerDropped', function(reason)
-		local source = source
-
-		if playerPromises[source] then
-			for k, v in pairs(playerPromises[source]) do
-				local p = rpcPromises[k]
-
-				if p then
-					p:reject('Player dropped: ' .. reason)
-				end
-			end
-		end
-
-		playerPromises[source] = nil
-	end)
-end
-
 local EXT_FUNCREF = 10
 local EXT_LOCALFUNCREF = 11
 
 msgpack.extend_clear(EXT_FUNCREF, EXT_LOCALFUNCREF)
-
--- RPC INVOCATION
-InvokeRpcEvent = function(source, ref, args)
-	if not coroutine_running() then
-		error('RPC delegates can only be invoked from a thread.', 2)
-	end
-
-	local src = source
-
-	local eventTriggerFn = TriggerServerEvent
-
-	if isDuplicityVersion then
-		eventTriggerFn = function(name, ...)
-			TriggerClientEvent(name, src, ...)
-		end
-	end
-
-	local p = promise.new()
-	local asyncId = rpcId
-	rpcId = rpcId + 1
-
-	local refId = ('%d:%d'):format(GetInstanceId(), asyncId)
-
-	eventTriggerFn('__cfx_rpcReq', repName, refId, ref, args)
-
-	-- add rpc promise
-	rpcPromises[refId] = p
-
-	-- add a player promise
-	if not playerPromises[src] then
-		playerPromises[src] = {}
-	end
-
-	playerPromises[src][refId] = true
-
-	return Citizen.Await(p)
-end
 
 local funcref_mt = nil
 
@@ -723,41 +583,36 @@ funcref_mt = msgpack.extend({
 	end,
 
 	__call = function(t, ...)
-		local netSource = rawget(t, '__cfx_functionSource')
 		local ref = rawget(t, '__cfx_functionReference')
 
-		if not netSource then
-			local args = msgpack_pack_args(...)
+		local args = msgpack_pack_args(...)
 
-			-- as Lua doesn't allow directly getting lengths from a data buffer, and _s will zero-terminate, we have a wrapper in the game itself
-			local rv = runWithBoundaryEnd(function()
-				return Citizen_InvokeFunctionReference(ref, args)
+		-- as Lua doesn't allow directly getting lengths from a data buffer, and _s will zero-terminate, we have a wrapper in the game itself
+		local rv = runWithBoundaryEnd(function()
+			return Citizen_InvokeFunctionReference(ref, args)
+		end)
+		local rvs = msgpack_unpack(rv)
+
+		-- handle async retvals from refs
+		if rvs and type(rvs[1]) == 'table' and rawget(rvs[1], '__cfx_async_retval') and coroutine_running() then
+			local p = promise.new()
+
+			rvs[1].__cfx_async_retval(function(r, e)
+				if r then
+					p:resolve(r)
+				elseif e then
+					p:reject(e)
+				end
 			end)
-			local rvs = msgpack_unpack(rv)
 
-			-- handle async retvals from refs
-			if rvs and type(rvs[1]) == 'table' and rawget(rvs[1], '__cfx_async_retval') and coroutine_running() then
-				local p = promise.new()
-
-				rvs[1].__cfx_async_retval(function(r, e)
-					if r then
-						p:resolve(r)
-					elseif e then
-						p:reject(e)
-					end
-				end)
-
-				return table_unpack(Citizen.Await(p))
-			end
-
-			if not rvs then
-				error()
-			end
-
-			return table_unpack(rvs)
-		else
-			return InvokeRpcEvent(tonumber(netSource.source:sub(5)), ref, {...})
+			return table_unpack(Citizen.Await(p))
 		end
+
+		if not rvs then
+			error()
+		end
+
+		return table_unpack(rvs)
 	end,
 
 	__ext = EXT_FUNCREF,
@@ -778,13 +633,8 @@ funcref_mt = msgpack.extend({
 		DuplicateFunctionReference(ref)
 
 		local tbl = {
-			__cfx_functionReference = ref,
-			__cfx_functionSource = deserializingNetEvent
+			__cfx_functionReference = ref
 		}
-
-		if tag == EXT_LOCALFUNCREF then
-			tbl.__cfx_functionSource = nil
-		end
 
 		tbl = setmetatable(tbl, funcref_mt)
 
@@ -803,6 +653,9 @@ msgpack.settype("function", EXT_FUNCREF)
 
 -- exports compatibility
 local function getExportEventName(resource, name)
+	if resource == "txAdmin" then
+		resource = "monitor"
+	end
 	return string.format('__cfx_export_%s_%s', resource, name)
 end
 

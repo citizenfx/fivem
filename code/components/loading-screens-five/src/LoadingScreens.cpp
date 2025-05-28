@@ -36,11 +36,6 @@
 
 #include <rageVectors.h>
 
-#ifdef IS_RDR3
-#include <ConsoleHost.h>
-#include <imgui.h>
-#endif
-
 
 static std::shared_ptr<ConVar<bool>> g_loadProfileConvar;
 static std::map<uint64_t, std::chrono::milliseconds> g_loadTiming;
@@ -66,7 +61,7 @@ enum NativeIdentifiers : uint64_t
 	IS_SCREEN_FADING_IN = 0x5C544BC6C57AC575,
 	IS_SCREEN_FADED_IN = 0x5A859503B0C08678,
 	CREATE_CAM = 0xC3981DCE61D9E13F,
-	SET_CAM_COORD = 0x078EBE9809CCD637,
+	SET_CAM_COORD = 0x4D41783FB745E42E,
 	SET_CAM_ROT = 0x85973643155D0B07,
 	SET_CAM_FOV = 0xB13C14F66A00D047,
 	RENDER_SCRIPT_CAMS = 0x07E5B515DB0636FC,
@@ -119,8 +114,33 @@ static float defaultCameraFov = 45.0f;
 static rage::Vector3 defaultCameraPos = { 2709.881836f, -1407.226074f, 49.1040610f };
 static rage::Vector3 defaultCameraRot = { 6.94207f, 0.000000f, 71.483643f };
 static float defaultCameraFov = 55.0f;
-static std::string statusText = "Loading...";
-static bool shouldShowStatusText = false;
+struct StatusTextHolder
+{
+    std::string text = "Loading...";
+
+    inline bool operator==(const std::string& right) const
+    {
+        return (text == right);
+    }
+
+	inline StatusTextHolder& operator=(const std::string& right)
+    {
+        if (text != right)
+        {
+			trace("%s\n", right);
+            text = right;
+        }
+
+        return *this;
+    }
+
+
+    inline operator const std::string&() const
+    {
+        return text;
+    }
+};
+StatusTextHolder StatusText;
 #endif
 
 static void InvokeNUIScript(const std::string& eventName, rapidjson::Document& json)
@@ -176,6 +196,7 @@ public:
 	{
 		doSetup = false;
 		doShutdown = false;
+		waitForShutdown = false;
 		isShutdown = false;
 		sh = false;
 	}
@@ -185,6 +206,7 @@ public:
 	bool doSetup;
 	bool isShutdown;
 	bool sh;
+	bool waitForShutdown;
 
 	int cam;
 };
@@ -244,9 +266,6 @@ static HookFunction hookFunction([]()
 
 				loadsThread.doSetup = true;
 				g_doDrawBelowLoadingScreens = false;
-#ifdef IS_RDR3
-				shouldShowStatusText = false;
-#endif
 
 				if (autoShutdownNui)
 				{
@@ -390,7 +409,7 @@ static void UpdateLoadTiming(uint64_t loadTimingIdentity)
 #ifdef GTA_FIVE
 			ActivateStatusText(va("Loading game (%.0f%%)", frac * 100.0), 5, 4);
 #elif IS_RDR3
-			statusText = fmt::format("Loading game ({:.0f}%%)\n", frac * 100.0);
+			StatusText = fmt::format("Loading game ({:.0f}%)", frac * 100.0);
 #endif
 			OnLookAliveFrame();
 
@@ -410,9 +429,10 @@ void LoadsThread::DoRun()
 	{
 		if (doShutdown && !autoShutdownNui)
 		{
+#ifdef GTA_FIVE
 			// Init the player for RAGE sake
-			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), 0.0f, 0.0f, 0.0f, false, false, false, false);
-
+			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), 0.0f, 0.0f, 0.0f);
+#endif
 #ifdef IS_RDR3
 			fx::ScriptContextBuffer ctx;
 			g_origShutdown(ctx);
@@ -437,8 +457,6 @@ void LoadsThread::DoRun()
 		{
 #ifdef GTA_FIVE
 			DeactivateStatusText(1);
-#elif IS_RDR3
-			shouldShowStatusText = false;
 #endif
 			doSetup = false;
 		}
@@ -448,16 +466,6 @@ void LoadsThread::DoRun()
 
 	if (doShutdown)
 	{
-#ifdef IS_RDR3
-		// We wait because it take some to shutdown loading screen
-		fx::ScriptContextBuffer ctx;
-		g_origShutdown(ctx);
-		if (NativeInvoke::Invoke<IS_LOADING_SCREEN_VISIBLE, bool>())
-		{
-			return;
-		}
-#endif
-
 		cam = NativeInvoke::Invoke<CREATE_CAM, int>("DEFAULT_SCRIPTED_CAMERA", true);
 
 		NativeInvoke::Invoke<SET_CAM_COORD, int>(cam, defaultCameraPos.x, defaultCameraPos.y, defaultCameraPos.z);
@@ -467,11 +475,11 @@ void LoadsThread::DoRun()
 		NativeInvoke::Invoke<SET_CAM_FOV, int>(cam, defaultCameraFov);
 
 		NativeInvoke::Invoke<RENDER_SCRIPT_CAMS, int>(true, false, 0, false, false);
-#ifdef GTA_FIVE
+
 		// SHUTDOWN_LOADING_SCREEN
 		fx::ScriptContextBuffer ctx;
 		g_origShutdown(ctx);
-#endif
+
 		NativeInvoke::Invoke<DO_SCREEN_FADE_IN, int>(0);
 #ifdef GTA_FIVE
 		NativeInvoke::Invoke<SET_WEATHER_TYPE_PERSIST, int>("EXTRASUNNY");
@@ -479,21 +487,35 @@ void LoadsThread::DoRun()
 		NativeInvoke::Invoke<SET_OVERRIDE_WEATHER, int>("SUNNY");
 #endif
 		NativeInvoke::Invoke<NETWORK_OVERRIDE_CLOCK_TIME, int>(12, 30, 0);
-
-
+// RDR dont like change coords during session joining cause sessionmanager errors and session join issues
+#ifdef GTA_FIVE	
 		NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), 0.0f, 0.0f, 0.0f);
+#endif	
 
 		NativeInvoke::Invoke<FREEZE_ENTITY_POSITION, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), true);
 
 		NativeInvoke::Invoke<SET_FOCUS_AREA, int>(defaultCameraPos.x, defaultCameraPos.y, defaultCameraPos.z, 0.0f, 0.0f, 0.0f);
 
+		waitForShutdown = true;
+		doShutdown = false;
+	}
+
+	if (waitForShutdown)
+	{
+#ifdef IS_RDR3
+		// We wait because it take some to shutdown loading screen
+		// Skip wait if shutdown was called and doSetup its true
+		if (NativeInvoke::Invoke<IS_LOADING_SCREEN_VISIBLE, bool>() && !doSetup)
+		{
+			return;
+		}
+#endif
 		// do shutdown
 		DestroyFrame();
 
 		nui::OverrideFocus(false);
-
 		isShutdown = true;
-		doShutdown = false;
+		waitForShutdown = false;
 	}
 
 	if (isShutdown)
@@ -512,13 +534,13 @@ void LoadsThread::DoRun()
 		NativeInvoke::Invoke<CLEAR_WEATHER_TYPE_PERSIST, int>();
 #elif IS_RDR3
 		NativeInvoke::Invoke<CLEAR_OVERRIDE_WEATHER, int>();
+
+		NativeInvoke::Invoke<FREEZE_ENTITY_POSITION, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), false);
 #endif
 
 		cam = 0;
 #ifdef GTA_FIVE
 		DeactivateStatusText(1);
-#elif IS_RDR3
-		shouldShowStatusText = false;
 #endif
 		// done
 		isShutdown = false;
@@ -655,9 +677,6 @@ static InitFunction initFunction([] ()
 		});
 
 		g_doDrawBelowLoadingScreens = true;
-#ifdef IS_RDR3
-		shouldShowStatusText = true;
-#endif
 		
 		auto icgi = Instance<ICoreGameInit>::Get();
 		std::string handoverBlob;
@@ -907,7 +926,7 @@ static InitFunction initFunction([] ()
 			ActivateStatusText(message.c_str(), 5, 1);
 		}
 #elif IS_RDR3
-		statusText = message;
+		StatusText = message;
 #endif
 	};
 #ifdef GTA_FIVE
@@ -1075,42 +1094,6 @@ static InitFunction initFunction([] ()
 		SetDepthStencilState(oldDepthStencilState);
 	}, INT32_MIN);
 
-
-
-#ifdef IS_RDR3
-	static bool showBusySpinner = true;
-	static ConVar showBusySpinnerConVar("sv_showBusySpinnerOnLoadingScreen", ConVar_Replicated, true, &showBusySpinner);
-
-	ConHost::OnShouldDrawGui.Connect([](bool* should)
-	{
-		*should = *should || (shouldShowStatusText && showBusySpinner);
-	});
-
-	ConHost::OnDrawGui.Connect([]()
-	{
-		if (!(shouldShowStatusText && showBusySpinner))
-		{
-			return;
-		}
-
-		auto& io = ImGui::GetIO();
-
-		ImGui::SetNextWindowBgAlpha(1.0f);
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
-
-		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + (ImGui::GetMainViewport()->Size.x * 0.825f), ImGui::GetMainViewport()->Pos.y + (ImGui::GetMainViewport()->Size.y * 0.9f)), 0, ImVec2(0.0f, 0.0f));
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-
-		if (ImGui::Begin("DrawRDRLoadingState", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMouseInputs))
-		{
-			ImGui::Text(statusText.c_str());
-		}
-
-		ImGui::PopStyleVar();
-		ImGui::PopStyleColor();
-		ImGui::End();
-	});
-#endif
 });
 
 

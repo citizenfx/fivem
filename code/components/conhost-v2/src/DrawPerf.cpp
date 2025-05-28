@@ -167,10 +167,10 @@ static InitFunction initFunction([]()
 					draw_list->AddLine(ImVec2(p.x - spacing, p.y - 9999.f), ImVec2(p.x - spacing, p.y + 9999.f), ImGui::GetColorU32(ImGuiCol_Border));
 				}
 			}
+			ImGui::End();
 		}
 
 		ImGui::PopStyleVar();
-		ImGui::End();
 	});
 
 	addDrawPerfModule("cl_drawPerfFPS", "FPS", []() -> std::string

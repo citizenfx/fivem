@@ -3,6 +3,7 @@
 #include <jitasm.h>
 #include "Hooking.h"
 
+#include "CoreConsole.h"
 #include "Streaming.h"
 
 #include <Error.h>
@@ -155,6 +156,26 @@ static void ValidateGeometry(void* geomPtr)
 	auto polys = geom->GetPolygons();
 	auto numPolys = geom->GetNumPolygons();
 	auto numVerts = geom->GetNumVertices();
+
+	// Some exporters break octant maps, causing crashes when calculating bound collisions.
+	// Instead of attempting runtime fixes, we will just warn the user about possible issues and clear out the octant map.
+	if (auto octantVertCounts = geom->GetNumOctants())
+	{
+		for (int octant = 0; octant < 8; ++octant)
+		{
+			if (octantVertCounts[octant] <= 0)
+			{
+				console::PrintError("asset-validation",
+					"Physics validation failed for asset '%s'.\n"
+					"This asset contains invalid octant data (OctantVertCounts <= 0) and has been auto-corrected during this load to prevent a crash.\n"
+					"**Please update or fix the exporter responsible for generating this asset.**\n"
+					"Until corrected, this asset may cause degraded runtime performance and increase load times.\n",
+				g_currentStreamingName);
+				geom->ClearOctantMap();
+				break;
+			}
+		}
+	}
 
 	bool error = false;
 

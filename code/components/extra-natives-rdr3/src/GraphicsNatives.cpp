@@ -326,17 +326,30 @@ static HookFunction hookFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_CURRENT_SCREEN_RESOLUTION", [](fx::ScriptContext& context)
 	{
-		 int width = 0;
-		 int height = 0;
+		int width = 0;
+		int height = 0;
 
 		if (g_screenWidth && g_screenHeight)
 		{
-			 width = *g_screenWidth;
-			 height = *g_screenHeight;
+			width = *g_screenWidth;
+			height = *g_screenHeight;
 		}
 
 		*context.GetArgument<int*>(0) = width;
 		*context.GetArgument<int*>(1) = height;
+	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_ASPECT_RATIO", [](fx::ScriptContext& context)
+	{
+		float aspectRatio = 0.0f;
+
+		if (g_screenWidth && g_screenHeight && *g_screenWidth && *g_screenHeight )
+		{
+			int width = *g_screenWidth;
+			int height = *g_screenHeight;
+			aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+		}
+
+		context.SetResult<float>(aspectRatio);
 	});
 });

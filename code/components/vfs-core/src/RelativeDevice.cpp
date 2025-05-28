@@ -144,4 +144,9 @@ bool RelativeDevice::Flush(THandle handle)
 {
 	return m_otherDevice->Flush(handle);
 }
+
+bool RelativeDevice::Truncate(THandle handle, uint64_t length)
+{
+	return m_otherDevice->Truncate(handle, length);
+}
 }

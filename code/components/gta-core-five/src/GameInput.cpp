@@ -1441,6 +1441,9 @@ static HookFunction hookFunction([]()
 
 	game::AddCustomText("PM_PANE_CFX", "FiveM");
 
+	// Snapmatic gallery error message when not logged-in to the forum / Discourse account
+	game::AddCustomText("SG_PH_LS_CL_FL", "To upload Snapmatic photos to the forum, please log in to your Cfx.re account in the main menu.");
+
 	bindingManager.Initialize();
 
 	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)

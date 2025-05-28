@@ -842,6 +842,10 @@ int LuaIOFileRead(lua_State* L)
 int LuaIOFileWrite(lua_State* L)
 {
 	const fwRefContainer<vfs::Stream> f = LuaIOToFile(L);
+
+	auto device = f->GetDevice();
+	device->Truncate(f->GetHandle(), 0);
+
 	// push file at the stack top (to be returned)
 	lua_pushvalue(L, 1);
 	int argumentOffset = 2;

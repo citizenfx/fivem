@@ -289,6 +289,11 @@ bool LocalDevice::Flush(THandle handle)
 {
 	return fsync(static_cast<int>(handle)) == 0;
 }
+
+bool LocalDevice::Truncate(THandle handle, uint64_t length)
+{
+	return ftruncate(static_cast<int>(handle), length) == 0;
+}
 }
 
 #ifdef EMSCRIPTEN

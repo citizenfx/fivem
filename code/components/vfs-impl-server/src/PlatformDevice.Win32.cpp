@@ -373,4 +373,17 @@ bool LocalDevice::Flush(THandle handle)
 	return FlushFileBuffers(reinterpret_cast<HANDLE>(handle));
 }
 
+bool LocalDevice::Truncate(THandle handle,  uint64_t length)
+{
+	auto h = reinterpret_cast<HANDLE>(handle);
+
+	LARGE_INTEGER li;
+	li.QuadPart = length;
+	if (!SetFilePointerEx(h, li, nullptr, FILE_BEGIN))
+	{
+		return false;
+	}
+	return SetEndOfFile(h) != 0;
+}
+
 }
