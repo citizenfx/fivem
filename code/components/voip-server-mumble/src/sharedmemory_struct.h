@@ -21,7 +21,7 @@ typedef struct
 typedef struct
 {
   int shmtotal_size, shmclient_size;
-  int clientcount, server_MUMBLE_MAX_CLIENTS;
+  int clientcount, server_max_clients;
   unsigned int umurmurd_pid;
   uint8_t alive;
   shmclient_t client[];
