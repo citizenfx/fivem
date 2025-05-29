@@ -221,7 +221,7 @@ namespace rage
 		virtual void m_unk1() = 0;
 		virtual void m_unk2() = 0;
 		virtual void m_unk3() = 0;
-		virtual void m_unk4() = 0;
+		virtual int GetMaximumDataSizeInternal() = 0;
 		virtual void m_unk5() = 0;
 		virtual void m_unk6() = 0;
 		virtual void m_unk7() = 0;
@@ -1433,12 +1433,7 @@ static void DumpSyncNode(rage::netSyncNodeBase* node, std::string indent = "\t",
 	}
 	else
 	{
-		int nodeSize = 1024;
-
-#ifdef GTA_FIVE
-		nodeSize = (node->GetMaximumDataSizeInternal() / 8) + 1;
-#endif
-
+		int nodeSize = (node->GetMaximumDataSizeInternal() / 8) + 1;
 		trace("%sNodeWrapper<NodeIds<%d, %d, %d>, %s, %d>%s\n", indent, node->flags1, node->flags2, node->flags3, objectName, nodeSize, !last ? "," : "");
 	}
 }
@@ -1487,10 +1482,8 @@ static HookFunction hookFunction([]()
 #if _DEBUG
 	static ConsoleCommand dumpSyncTreesCmd("dumpSyncTrees", []()
 	{
-#ifdef GTA_FIVE
 		// to count lengthhack
 		hook::put<uint8_t>(hook::get_pattern("83 41 18 0D C3", 3), 0x10);
-#endif
 
 		for (int i = 0; i < (int)NetObjEntityType::Max; i++)
 		{
