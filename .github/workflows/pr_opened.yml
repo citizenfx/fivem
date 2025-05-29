@@ -3,8 +3,7 @@ on:
   pull_request_target:
     types: [ reopened, opened, edited, synchronize, ready_for_review ]
 
-permissions:
-  pull-requests: write
+permissions: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -13,6 +12,8 @@ concurrency:
 jobs:
   input_validation:
     name: Validate PR details
+    permissions:
+      pull-requests: write
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     env:
@@ -175,12 +176,16 @@ jobs:
   
   build_all:
     name: Build
+    permissions:
+      packages: read
     needs: input_validation
     if: ${{ needs.input_validation.outputs.requires_compilation == 'true' }}
     uses: ./.github/workflows/ci_build.yml
   
   post_build:
     name: Post Build PR actions
+    permissions:
+      pull-requests: write
     if: always()
     needs: [ build_all, input_validation ]
     runs-on: ubuntu-latest

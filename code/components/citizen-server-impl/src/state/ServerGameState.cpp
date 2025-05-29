@@ -104,6 +104,9 @@ static bool g_networkedPhoneExplosionsEnabled;
 static std::shared_ptr<ConVar<bool>> g_networkedScriptEntityStatesEnabledVar;
 static bool g_networkedScriptEntityStatesEnabled;
 
+static std::shared_ptr<ConVar<bool>> g_protectServerEntitiesDeletionVar;
+static bool g_protectServerEntitiesDeletion;
+
 static std::shared_ptr<ConVar<int>> g_requestControlVar;
 static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
 
@@ -3176,6 +3179,13 @@ void ServerGameState::ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::
 			return;
 		}
 
+		if (entity->IsOwnedByServerScript() && g_protectServerEntitiesDeletion)
+		{
+			GS_LOG("%s: entity is owned by server script %d\n", __func__, objectId);
+
+			return;
+		}
+
 		GS_LOG("%s: queueing remove (%d - %d)\n", __func__, objectId, uniqifier);
 		RemoveClone(client, objectId, uniqifier);
 	}
@@ -3309,6 +3319,20 @@ auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const st
 		std::unique_lock entitiesByIdLock(m_entitiesByIdMutex);
 		m_entitiesById[id] = entity;
 	}
+
+	const auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+
+	/*NETEV serverEntityCreated SERVER
+	/#*
+	 * A server-side event that is triggered when an entity has been created by a server-side script.
+	 *
+	 * Unlike "entityCreated" the newly created entity may not yet have an assigned network owner.
+	 *
+	 * @param entity - The created entity handle.
+	 #/
+	declare function serverEntityCreated(handle: number): void;
+	*/
+	evComponent->QueueEvent2("serverEntityCreated", { }, MakeScriptHandle(entity));
 
 	return entity;
 }
@@ -5760,12 +5784,11 @@ struct CNetworkPtFXEvent
 
 struct CRequestNetworkSyncedSceneEvent
 {
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 	}
 
 	inline std::string GetName()
@@ -5851,8 +5874,22 @@ private:
 		MSGPACK_DEFINE_MAP(nameHash, posX, posY, posZ, blendIn, blendOut, flags, animHash);
 	};
 
+	template<typename TEntityData>
+	static bool SanitizeEntity(fx::ServerGameState* sgs, const TEntityData& entityData, const uint32_t clientNetId)
+	{
+		const auto entity = sgs->GetEntity(0, entityData.objectId);
+		const auto owner = entity ? entity->GetClient() : fx::ClientSharedPtr{};
+
+		if (owner && clientNetId != owner->GetNetId() && !entity->allowRemoteSyncedScenes)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 public:
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 	uint32_t startTime;
 
 	bool isActive;
@@ -5886,9 +5923,7 @@ public:
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Synced scene IDs are 13 bits in length, but since it's not an object ID, it's conflicting
-		// with our length-hack logic... We're working around this issue by reading these 13 bits in two parts.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 
 		startTime = buffer.Read<uint32_t>(32);
 
@@ -5966,18 +6001,48 @@ public:
 		return "startNetworkSyncedSceneEvent";
 	}
 
+	bool Sanitize(fx::ServerGameState* sgs, const fx::ClientSharedPtr& client) const
+	{
+		const auto clientNetId = client->GetNetId();
+
+		const auto passedValidation = std::all_of(pedEntities.begin(), pedEntities.end(), [&sgs, clientNetId](const auto& pedEntity)
+		{
+			return SanitizeEntity<PedEntityData>(sgs, pedEntity, clientNetId);
+		}) && std::all_of(nonPedEntities.begin(), nonPedEntities.end(), [&sgs, clientNetId](const auto& nonPedEntity)
+		{
+			return SanitizeEntity<NonPedEntityData>(sgs, nonPedEntity, clientNetId);
+		});
+
+		if (!passedValidation)
+		{
+			static std::chrono::milliseconds lastWarn{ -120 * 1000 };
+
+			auto now = msec();
+
+			if ((now - lastWarn) > std::chrono::seconds{ 120 })
+			{
+				console::PrintWarning("sync", "A client (netID %d) tried to use NetworkStartSynchronisedScene, but it was rejected.\n"
+					"Synchronized Scenes that include remotely owned entities need to be allowlisted. To fix this, use \"SetEntityRemoteSyncedScenesAllowed(entityId, true)\".\n",
+					client->GetNetId());
+
+				lastWarn = now;
+			}
+		}
+
+		return passedValidation;
+	}
+
 	MSGPACK_DEFINE_MAP(sceneId, startTime, isActive, scenePosX, scenePosY, scenePosZ, sceneRotX, sceneRotY, sceneRotZ, sceneRotW, hasAttachEntity, attachEntityId, attachEntityBone, phaseToStopScene, rate, holdLastFrame, isLooped, phase, cameraAnimHash, animDictHash, pedEntities, nonPedEntities, mapEntities);
 };
 
 struct CUpdateNetworkSyncedSceneEvent
 {
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 	float rate;
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 
 		rate = (buffer.Read<uint8_t>(8) / 255.0f) * 2.0f;
 	}
@@ -5992,12 +6057,11 @@ struct CUpdateNetworkSyncedSceneEvent
 
 struct CStopNetworkSyncedSceneEvent
 {
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 	}
 
 	inline std::string GetName()
@@ -6798,6 +6862,18 @@ static constexpr auto HasTargetPlayerSetter(int) -> decltype(std::is_same_v<decl
 	return true;
 }
 
+template<typename TEvent>
+static constexpr auto HasSanitizer(char)
+{
+	return false;
+}
+
+template<typename TEvent>
+static constexpr auto HasSanitizer(int) -> decltype(std::is_same_v<decltype(std::declval<TEvent>().Sanitize(std::declval<fx::ServerGameState*>(), std::declval<const fx::ClientSharedPtr&>())), void>)
+{
+	return true;
+}
+
 // todo: remove when msgNetGameEventV2 is the default handler for game events
 template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer, const std::vector<uint16_t>& targetPlayers = {}) -> std::function<bool()>
@@ -6815,6 +6891,17 @@ inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedP
 	if (msgBuf.GetLength())
 	{
 		ev->Parse(msgBuf);
+
+		if constexpr (HasSanitizer<TEvent>(0))
+		{
+			if (!ev->Sanitize(instance->GetComponent<fx::ServerGameState>().GetRef(), client))
+			{
+				return []()
+				{
+					return false;
+				};
+			}
+		}
 	}
 
 	if constexpr (HasTargetPlayerSetter<TEvent>(0))
@@ -6837,6 +6924,17 @@ inline auto GetHandlerWithEvent(fx::ServerInstanceBase* instance, const fx::Clie
 	{
 		rl::MessageBufferView msgBuf { netGameEvent.data.GetValue() };
 		ev->Parse(msgBuf);
+
+		if constexpr (HasSanitizer<TEvent>(0))
+		{
+			if (!ev->Sanitize(instance->GetComponent<fx::ServerGameState>().GetRef(), client))
+			{
+				return []()
+				{
+					return false;
+				};
+			}
+		}
 	}
 
 	if constexpr (HasTargetPlayerSetter<TEvent>(0))
@@ -7693,6 +7791,8 @@ static InitFunction initFunction([]()
 
 		g_networkedPhoneExplosionsEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedPhoneExplosions", ConVar_None, false, &g_networkedPhoneExplosionsEnabled);
 
+		g_protectServerEntitiesDeletionVar = instance->AddVariable<bool>("sv_protectServerEntities", ConVar_Replicated, false, &g_protectServerEntitiesDeletion);
+
 		g_networkedScriptEntityStatesEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedScriptEntityStates", ConVar_None, true, &g_networkedScriptEntityStatesEnabled);
 
 		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::NoFilter, (int*)&g_requestControlFilterState);
@@ -7873,5 +7973,17 @@ static InitFunction initFunction([]()
 				routeEvent();
 			}
 		} });
+
+		auto consoleCtx = instance->GetComponent<console::Context>();
+
+		// start sessionmanager
+		if (gameServer->GetGameName() == fx::GameName::RDR3)
+		{
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+		}
+		else if (!g_oneSyncEnabledVar->GetValue() && g_oneSyncVar->GetValue() == fx::OneSyncState::Off)
+		{
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
+		}
 	}, 999999);
 });

@@ -12,6 +12,8 @@
 #include <vector>
 #include <string>
 
+BOTAN_FUTURE_INTERNAL_HEADER(uuid.h)
+
 namespace Botan {
 
 class RandomNumberGenerator;

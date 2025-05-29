@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: server
+apiset: shared
 ---
 ## DELETE_RESOURCE_KVP_NO_SYNC
 

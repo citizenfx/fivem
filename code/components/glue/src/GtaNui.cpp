@@ -20,6 +20,8 @@
 #include <GameAudioState.h>
 #endif
 
+#include <Error.h>
+
 namespace WRL = Microsoft::WRL;
 
 using nui::GITexture;
@@ -38,6 +40,8 @@ private:
 	bool m_targetMouseFocus = true;
 
 	bool m_lastTargetMouseFocus = true;
+
+	bool m_flushMouse = true;
 
 public:
 	virtual void GetGameResolution(int* width, int* height) override;
@@ -61,17 +65,19 @@ public:
 
 	virtual void UnsetTexture() override;
 
-	virtual void SetGameMouseFocus(bool val) override
+	virtual void SetGameMouseFocus(bool val, bool flushMouse = true) override
 	{
 		m_targetMouseFocus = val;
+		m_flushMouse = flushMouse;
 	}
 
 	void UpdateMouseFocus()
 	{
 		if (m_targetMouseFocus != m_lastTargetMouseFocus)
 		{
-			InputHook::SetGameMouseFocus(m_targetMouseFocus);
+			InputHook::SetGameMouseFocus(m_targetMouseFocus, m_flushMouse);
 			m_lastTargetMouseFocus = m_targetMouseFocus;
+			m_flushMouse = true;
 		}
 	}
 
@@ -506,6 +512,10 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureBacking(int width, int h
 
 #pragma comment(lib, "vulkan-1.lib")
 
+#ifdef IS_RDR3
+#include <VulkanHelper.h>
+#endif
+
 fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height)
 {
 #ifndef GTA_NY
@@ -654,8 +664,14 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 				ImageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 				ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 				ImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
 				VkImage Image;
-				assert(vkCreateImage(device, &ImageCreateInfo, nullptr, &Image) == VK_SUCCESS);
+				VkResult result = vkCreateImage(device, &ImageCreateInfo, nullptr, &Image);
+
+				if (result != VK_SUCCESS)
+				{
+					FatalError("Failed to create a Vulkan image. VkResult: %s", ResultToString(result));
+				}
 
 				VkMemoryRequirements MemoryRequirements;
 				vkGetImageMemoryRequirements(device, Image, &MemoryRequirements);
@@ -677,11 +693,23 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 				static auto _vkBindImageMemory2 = (PFN_vkBindImageMemory2)vkGetDeviceProcAddr(device, "vkBindImageMemory2");
 
 				VkDeviceMemory ImageMemory;
-				assert(vkAllocateMemory(device, &MemoryAllocateInfo, nullptr, &ImageMemory) == VK_SUCCESS);
+				result = vkAllocateMemory(device, &MemoryAllocateInfo, nullptr, &ImageMemory);
+
+				if (result != VK_SUCCESS)
+				{
+					FatalError("Failed to allocate memory for Vulkan. VkResult: %s", ResultToString(result));
+				}
+
 				VkBindImageMemoryInfo BindImageMemoryInfo = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO };
 				BindImageMemoryInfo.image = Image;
 				BindImageMemoryInfo.memory = ImageMemory;
-				assert(_vkBindImageMemory2(device, 1, &BindImageMemoryInfo) == VK_SUCCESS);
+
+				result = _vkBindImageMemory2(device, 1, &BindImageMemoryInfo);
+
+				if (result != VK_SUCCESS)
+				{
+					FatalError("Failed to bind Vulkan image memory. VkResult: %s", ResultToString(result));
+				}
 
 				auto newImage = new rage::sga::TextureVK::ImageData;
 				//memcpy(newImage, texRef->image, sizeof(*newImage));

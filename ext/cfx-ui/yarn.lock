@@ -314,10 +314,10 @@
     eslint-plugin-react "^7.34.1"
     eslint-plugin-react-hooks "^4.6.2"
 
-"@cfx-dev/ui-components@^0.0.21":
-  version "0.0.21"
-  resolved "https://registry.yarnpkg.com/@cfx-dev/ui-components/-/ui-components-0.0.21.tgz#7a35908bd00682f49bd4ca345abac5240e5d07d1"
-  integrity sha512-DiLyMeJPKA+276JODOrpUx/KLcUgZySFuu3i9Cm8IITrOp5v5rD2m+IbngwjIcOF/epSXPWuy3ai8hzwgxMakQ==
+"@cfx-dev/ui-components@1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@cfx-dev/ui-components/-/ui-components-1.0.2.tgz#9adb2340dab791c25daa1efbc9f70e33b5a9362a"
+  integrity sha512-XOJbUgChzEFprJinqtTN9aDMLQbnTi6+COVda5mZFIaPba2Nz1Z0PJGH26eih0TRjxsKBsJDZVK4rFgVyL95dg==
   dependencies:
     "@fontsource/montserrat" "^4.5.12"
     "@fontsource/rubik" "^4.5.11"

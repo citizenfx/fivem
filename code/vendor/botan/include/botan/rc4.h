@@ -11,6 +11,8 @@
 #include <botan/stream_cipher.h>
 #include <botan/types.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(rc4.h)
+
 namespace Botan {
 
 /**

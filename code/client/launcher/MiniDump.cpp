@@ -114,10 +114,6 @@ static void send_sentry_session(const json& data)
 #endif
 }
 
-std::string g_entitlementSource;
-
-bool LoadOwnershipTicket();
-
 static json g_session;
 
 static void UpdateSession(json& session)
@@ -136,69 +132,6 @@ static void UpdateSession(json& session)
 	}
 
 	g_session = session;
-}
-
-static void OnStartSession()
-{
-	auto oldSession = load_json_file(L"data\\cache\\session");
-
-	if (!oldSession.is_null())
-	{
-		oldSession["status"] = "abnormal";
-		send_sentry_session(oldSession);
-
-		_wunlink(MakeRelativeCitPath(L"data\\cache\\session").c_str());
-	}
-
-	UUID uuid;
-	UuidCreate(&uuid);
-	char* str;
-	UuidToStringA(&uuid, (RPC_CSTR*)&str);
-	
-	std::string sid = str;
-
-	RpcStringFreeA((RPC_CSTR*)&str);
-
-	LoadOwnershipTicket();
-
-	if (g_entitlementSource.empty())
-	{
-		g_entitlementSource = "default";
-	}
-
-	FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
-	std::string version;
-
-	if (f)
-	{
-		char ver[128];
-
-		fgets(ver, sizeof(ver), f);
-		fclose(f);
-
-		version = fmt::sprintf("cfx-%d", atoi(ver));
-	}
-	else
-	{
-		version = fmt::sprintf("cfx-legacy-%d", BASE_EXE_VERSION);
-	}
-
-	std::time_t t = std::time(nullptr);
-
-	static std::string curChannel = GetUpdateChannel();
-
-	auto session = json::object({ 
-		{ "sid", sid },
-		{ "did", g_entitlementSource },
-		{ "init", true },
-		{ "started", fmt::format("{:%Y-%m-%dT%H:%M:%S}Z", *std::gmtime(&t)) },
-		{ "attrs", json::object({
-			{ "release", version },
-			{ "environment", curChannel }
-		}) }
-	});
-
-	UpdateSession(session);
 }
 
 static json load_error_pickup()
@@ -249,6 +182,73 @@ static std::map<std::string, std::string> load_crashometry()
 	g_lastCrashometry = rv;
 
 	return rv;
+}
+
+static void OnStartSession()
+{
+	auto oldSession = load_json_file(L"data\\cache\\session");
+
+	if (!oldSession.is_null())
+	{
+		oldSession["status"] = "abnormal";
+		send_sentry_session(oldSession);
+
+		_wunlink(MakeRelativeCitPath(L"data\\cache\\session").c_str());
+	}
+
+	UUID uuid;
+	UuidCreate(&uuid);
+	char* str;
+	UuidToStringA(&uuid, (RPC_CSTR*)&str);
+
+	std::string sid = str;
+
+	RpcStringFreeA((RPC_CSTR*)&str);
+
+	auto crashometry = load_crashometry();
+	std::string userId = "0";
+	if (crashometry.find("RockstarId") != crashometry.end())
+	{
+		userId = crashometry["RockstarId"];
+	}
+
+	FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
+	std::string version;
+
+	if (f)
+	{
+		char ver[128];
+
+		fgets(ver, sizeof(ver), f);
+		fclose(f);
+
+		version = fmt::sprintf("cfx-%d", atoi(ver));
+	}
+	else
+	{
+		version = fmt::sprintf("cfx-legacy-%d", BASE_EXE_VERSION);
+	}
+
+	std::time_t t = std::time(nullptr);
+
+	static std::string curChannel = GetUpdateChannel();
+
+	auto session = json::object({
+		{ "sid", sid },
+		{ "did", userId },
+		{ "init", true },
+		{ "attrs", json::object({
+			{ "release", version },
+			{ "environment", curChannel }
+		}) }
+	});
+
+	tm time{};
+	if (gmtime_s(&time, &t) == 0) {
+		session["started"] = fmt::format("{:%Y-%m-%dT%H:%M:%S}Z", time);
+	}
+
+	UpdateSession(session);
 }
 
 static std::wstring crashHash;
@@ -515,29 +515,6 @@ DEFINE_GUID(CfxStorageGuid,
 
 #pragma comment(lib, "rpcrt4.lib")
 
-std::string GetOwnershipPath()
-{
-	PWSTR appDataPath;
-	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &appDataPath))) {
-		std::string cfxPath = ToNarrow(appDataPath) + "\\DigitalEntitlements";
-		CreateDirectory(ToWide(cfxPath).c_str(), nullptr);
-
-		CoTaskMemFree(appDataPath);
-
-		RPC_CSTR str;
-		UuidToStringA(&CfxStorageGuid, &str);
-
-		cfxPath += "\\";
-		cfxPath += (char*)str;
-
-		RpcStringFreeA(&str);
-
-		return cfxPath;
-	}
-
-	return "";
-}
-
 #include "mz.h"
 #include "mz_os.h"
 #include "mz_strm.h"
@@ -680,66 +657,6 @@ static void GatherCrashInformation()
 
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
-
-bool LoadOwnershipTicket()
-{
-	std::string filePath = GetOwnershipPath();
-
-	FILE* f = _wfopen(ToWide(filePath).c_str(), L"rb");
-
-	if (!f)
-	{
-		return false;
-	}
-
-	std::vector<uint8_t> fileData;
-	int pos;
-
-	// get the file length
-	fseek(f, 0, SEEK_END);
-	pos = ftell(f);
-	fseek(f, 0, SEEK_SET);
-
-	// resize the buffer
-	fileData.resize(pos);
-
-	// read the file and close it
-	fread(&fileData[0], 1, pos, f);
-
-	fclose(f);
-
-	// decrypt the stored data - setup blob
-	DATA_BLOB cryptBlob;
-	cryptBlob.pbData = &fileData[0];
-	cryptBlob.cbData = fileData.size();
-
-	DATA_BLOB outBlob;
-
-	// call DPAPI
-	if (CryptUnprotectData(&cryptBlob, nullptr, nullptr, nullptr, nullptr, 0, &outBlob))
-	{
-		// parse the file
-		std::string data(reinterpret_cast<char*>(outBlob.pbData), outBlob.cbData);
-
-		// free the out data
-		LocalFree(outBlob.pbData);
-
-		rapidjson::Document doc;
-		doc.Parse(data.c_str(), data.size());
-
-		if (!doc.HasParseError())
-		{
-			if (doc.IsObject())
-			{
-				g_entitlementSource = doc["guid"].GetString();
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
 #include "UserLibrary.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
@@ -1155,12 +1072,6 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				info = nullptr;
 
 				std::map<std::wstring, std::wstring> parameters;
-				LoadOwnershipTicket();
-
-				if (g_entitlementSource.empty())
-				{
-					g_entitlementSource = "default";
-				}
 
 				FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
 
@@ -1178,10 +1089,17 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 					parameters[L"Version"] = va(L"cfx-legacy-%d", BASE_EXE_VERSION);
 				}
 
-				parameters[L"BuildID"] = L"20170101";
-				parameters[L"UserID"] = ToWide(g_entitlementSource);
-
 				auto crashometry = load_crashometry();
+
+				std::string userId = "0";
+				if (crashometry.find("RockstarId") != crashometry.end())
+				{
+					userId = crashometry["RockstarId"];
+					crashometry.erase("RockstarId");
+				}
+
+				parameters[L"BuildID"] = L"20170101";
+				parameters[L"UserID"] = ToWide(userId);
 
 				parameters[L"Product"] = PRODUCT_NAME;
 
@@ -1236,6 +1154,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 									files[L"upload_file_gamelog"] = ToWide(logPath);
 								}
 							}
+						}
+
+						if (gameProcess != parentProcess)
+						{
+							CloseHandle(gameProcess);
 						}
 					}
 				}
@@ -1456,6 +1379,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 									WaitForSingleObject(hThread, 7500);
 									CloseHandle(hThread);
 								}
+							}
+
+							if (gameProcess != parentProcess)
+							{
+								CloseHandle(gameProcess);
 							}
 						}
 

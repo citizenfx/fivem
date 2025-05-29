@@ -12,6 +12,8 @@
 #include <vector>
 #include <memory>
 
+BOTAN_FUTURE_INTERNAL_HEADER(locking_allocator.h)
+
 namespace Botan {
 
 class Memory_Pool;

@@ -19,7 +19,14 @@ const std::function<void(v8::Isolate*)>& exit);
 
 namespace fx::nodejs
 {
-	class BaseScope{};
+	class BaseScope{
+	public:
+		inline BaseScope(v8::Isolate* isolate)
+			: m_isolate(isolate)
+		{
+		}
+		v8::Isolate* m_isolate;
+	};
 
 	class LockerScope : public BaseScope
 	{
@@ -27,7 +34,7 @@ namespace fx::nodejs
 		v8::Isolate::Scope m_scope;
 
 	public:
-		inline LockerScope(v8::Isolate* isolate) : m_locker(isolate), m_scope(isolate) {}
+		inline LockerScope(v8::Isolate* isolate) : BaseScope(isolate), m_locker(isolate), m_scope(isolate) {}
 	};
 
 	static thread_local std::stack<std::unique_ptr<BaseScope>> g_scopeStack;
@@ -35,6 +42,12 @@ namespace fx::nodejs
 	void ScopeHandler::Initialize()
 	{
 		v8::SetScopeHandler([](v8::Isolate* isolate) {
+			// don't push the same isolate if its already on top of the stack
+			if (g_scopeStack.size() > 0 && g_scopeStack.top()->m_isolate == isolate)
+			{
+				g_scopeStack.push(std::make_unique<BaseScope>(isolate));
+				return;
+			}
 			g_scopeStack.push(std::make_unique<LockerScope>(isolate));
 		},
 		[](v8::Isolate* isolate) {

@@ -14,7 +14,7 @@ if [ "$SKIP_NATIVES" == "" ]; then
 	gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
 
 	mkdir -p inp out
-	curl --http1.1 -sLo inp/natives_global.lua http://runtime.fivem.net/doc/natives.lua
+	curl --http1.1 -sLo inp/natives_global.lua https://static.cfx.re/natives/natives.lua
 
 	cd /src/ext/native-doc-gen
 	sh build.sh

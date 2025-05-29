@@ -1,5 +1,5 @@
 [
-	"ros:patches:rdr3",
+	"legitimacy",
 	"net:http-server",
 	"net:tcp-server",
 	"net:base",
@@ -41,6 +41,7 @@
 	"steam",
 	"scripting:gta",
 	"glue",
+	"loading-screens:rdr3",
 	"nui:core",
 	"nui:gsclient",
 	"scrbind:base",

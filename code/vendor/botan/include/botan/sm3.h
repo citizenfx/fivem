@@ -10,6 +10,8 @@
 
 #include <botan/mdx_hash.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(sm3.h)
+
 namespace Botan {
 
 enum {

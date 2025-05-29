@@ -31,5 +31,8 @@ static HookFunction hookFunction([]()
 
 		location = hook::get_pattern<char>("E8 ? ? ? ? 83 C0 ? 89 83");
 		hook::call(location, GetRadioStationMetaIndex);
+
+		location = hook::get_pattern<char>("E8 ? ? ? ? 40 8A F8 40 8A D7");
+		hook::call(location, GetRadioStationMetaIndex);
 	}
 });

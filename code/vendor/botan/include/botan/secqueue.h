@@ -12,6 +12,8 @@
 #include <botan/data_src.h>
 #include <botan/filter.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(secqueue.h)
+
 namespace Botan {
 
 /**

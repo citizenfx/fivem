@@ -5,7 +5,7 @@
  * regarding licensing.
  */
 
-// This file contains code adapted from the original GTA IV script hook, the 
+// This file contains code adapted from the original GTA IV script hook, the
 // copyright notice for which follows below.
 
 /*****************************************************************************\
@@ -34,29 +34,47 @@ misrepresented as being the original software.
 #include "scrThread.h"
 #include "scrEngine.h"
 #include "Hooking.h"
+#include "ScriptHandlerMgr.h"
 #include "CrossBuildRuntime.h"
 
-static hook::thiscall_stub<rage::eThreadState(GtaThread*, uint32_t)> gtaThreadTick([] ()
+class CfxGtaThread : public GtaThread
+{
+public:
+	rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) override;
+	rage::eThreadState Run(uint32_t opsToExecute) override;
+	rage::eThreadState Tick(uint32_t opsToExecute) override;
+	void Kill() override;
+
+	CfxGtaThread(CfxThread& script)
+		: GtaThread{}, Script(script)
+	{
+		SetScriptName("startup"); // cheat for some init-time checks
+	}
+
+	CfxThread& Script;
+};
+
+static hook::thiscall_stub<rage::eThreadState(GtaThread*, uint32_t)> gtaThreadTick([]()
 {
 	return hook::get_pattern("8B FA 48 8B D9 74 05 8B 41 10", -0x11);
 });
 
-rage::eThreadState WRAPPER GtaThread::Tick(uint32_t opsToExecute)
+rage::eThreadState WRAPPER CfxGtaThread::Tick(uint32_t opsToExecute)
 {
 	return gtaThreadTick(this, opsToExecute);
 }
 
-static hook::thiscall_stub<void(GtaThread*)> gtaThreadKill([] ()
+static hook::thiscall_stub<void(GtaThread*)> gtaThreadKill([]()
 {
 	return hook::get_pattern("48 8B D7 FF 50 58 0F BE", xbr::IsGameBuildOrGreater<1436>() ? -0x48 : -0x3A);
 });
 
-void GtaThread::Kill()
+void CfxGtaThread::Kill()
 {
 	return gtaThreadKill(this);
 }
 
-rage::eThreadState GtaThread::Run(uint32_t opsToExecute)
+rage::eThreadState CfxGtaThread::Run(uint32_t opsToExecute)
 {
 	// set the current thread
 	rage::scrThread* activeThread = rage::scrEngine::GetActiveThread();
@@ -65,7 +83,7 @@ rage::eThreadState GtaThread::Run(uint32_t opsToExecute)
 	// invoke the running thing if we're not dead
 	if (m_Context.State != rage::ThreadStateKilled)
 	{
-		DoRun();
+		Script.DoRun();
 	}
 
 	rage::scrEngine::SetActiveThread(activeThread);
@@ -73,7 +91,7 @@ rage::eThreadState GtaThread::Run(uint32_t opsToExecute)
 	return m_Context.State;
 }
 
-static hook::cdecl_stub<void(GtaThread*)> gtaThreadInit([] ()
+static hook::cdecl_stub<void(GtaThread*)> gtaThreadInit([]()
 {
 	return hook::get_pattern("84 C0 74 07 40 88 BB 86", -0x7C);
 });
@@ -81,9 +99,11 @@ static hook::cdecl_stub<void(GtaThread*)> gtaThreadInit([] ()
 extern rage::scriptHandlerMgr* g_scriptHandlerMgr;
 extern uint32_t* scrThreadId;
 
-rage::eThreadState GtaThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)
+rage::eThreadState CfxGtaThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)
 {
-	//nameHash = HashString("startup"); // cheat for some init-time checks
+	Script.Reset();
+
+	// nameHash = HashString("startup"); // cheat for some init-time checks
 
 	memset(&m_Context, 0, sizeof(m_Context));
 
@@ -114,7 +134,36 @@ rage::eThreadState GtaThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t a
 	return m_Context.State;
 }
 
-static hook::thiscall_stub<void(rage::scrNativeCallContext*)> setVectorResults([] ()
+static hook::thiscall_stub<void(rage::scrNativeCallContext*)> setVectorResults([]()
 {
 	return hook::get_pattern("8B 41 18 4C 8B C1 85 C0");
 });
+
+CfxThread::CfxThread()
+	: Thread(new CfxGtaThread(*this))
+{
+}
+
+CfxThread::~CfxThread()
+{
+	delete Thread;
+}
+
+void CfxThread::AttachScriptHandler()
+{
+	auto thread = GetThread();
+
+	CGameScriptHandlerMgr::GetInstance()->AttachScript(thread);
+}
+
+void CfxThread::DetachScriptHandler()
+{
+	auto thread = GetThread();
+
+	if (auto handler = thread->GetScriptHandler())
+	{
+		handler->CleanupObjectList();
+
+		CGameScriptHandlerMgr::GetInstance()->DetachScript(thread);
+	}
+}

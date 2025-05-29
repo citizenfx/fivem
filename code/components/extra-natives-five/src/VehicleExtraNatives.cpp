@@ -272,6 +272,7 @@ static int IsAlarmSetOffset;
 static int AlarmTimeLeftOffset;
 static int WheelieStateOffset;
 static int TrainTrackNodeIndexOffset;
+static int TrainTrackIndexOffset;
 static int PreviouslyOwnedByPlayerOffset;
 static int NeedsToBeHotwiredOffset;
 static int IsInteriorLightOnOffset;
@@ -552,6 +553,14 @@ void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 		return;
 	}
 
+	uint8_t vehicleEngineRunningFlags = readValue<uint8_t>(vehicle, VehicleEngineRunningFlagsOffset);
+    bool isEngineOn = vehicleEngineRunningFlags & VehicleFlagsEngineRunningFlag;
+
+	if (!isEngineOn)
+    {
+        return;
+    }
+
 	// Adjust fuel consumption rate so when g_globalFuelConsumptionMultiplier is 1 it gives reasonable fuel consumption speed.
 	const float NORMALIZE_GLOBAL_CONSUMPTION_RATE = 0.01f;
 	void* handling = readValue<void*>(vehicle, VehicleHandlingOffset);
@@ -563,8 +572,6 @@ void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 
 	if (newPetrolTankLevel <= 0.f)
 	{
-		uint8_t vehicleEngineRunningFlags = readValue<uint8_t>(vehicle, VehicleEngineRunningFlagsOffset);
-		bool isEngineOn = vehicleEngineRunningFlags & VehicleFlagsEngineRunningFlag;
 		if (isEngineOn)
 		{
 			switchEngineOff(vehicle, true);
@@ -607,6 +614,7 @@ static HookFunction initFunction([]()
 		TrainStateOffset = *hook::get_pattern<uint32_t>("89 91 ? ? ? ? 80 3D ? ? ? ? ? 0F 84", 2);
 		TrainCruiseSpeedOffset = *hook::get_pattern<uint32_t>("C7 87 ? ? ? ? ? ? ? ? E8 ? ? ? ? 4C 89 AF", 2);
 		TrainSpeedOffset = *hook::get_pattern<uint32_t>("4C 89 AF ? ? ? ? 44 89 AF ? ? ? ? 4C 89 AF ? ? ? ? 49 8B 0E", 3);
+		TrainTrackIndexOffset = *hook::get_pattern<uint32_t>("8A 8F ? ? ? ? F3 41 0F 58 CB", 2);
 	}
 
 	{
@@ -1547,6 +1555,8 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_CRUISE_SPEED", std::bind(readVehicleMemory<float, &TrainCruiseSpeedOffset>, _1, "GET_TRAIN_CRUISE_SPEED"));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_SPEED", std::bind(readVehicleMemory<float, &TrainSpeedOffset>, _1, "GET_TRAIN_SPEED"));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_TRACK_INDEX", std::bind(readVehicleMemory<uint8_t, &TrainTrackIndexOffset>, _1, "GET_TRAIN_TRACK_INDEX"));
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_TRAIN_STATE", makeTrainFunction([](fx::ScriptContext& context, fwEntity* train)
 	{

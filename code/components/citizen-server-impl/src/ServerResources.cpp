@@ -853,6 +853,19 @@ static InitFunction initFunction([]()
 
 void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc)
 {
+	// 1+MB
+	if (dataLen >= 1000000)
+	{
+		auto timeNow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+		static std::chrono::milliseconds lastWarning{0};
+		if (timeNow - lastWarning >= std::chrono::seconds(5))
+		{
+			StructuredTrace({ "type", "large_event_warning" }, { "event_type", "regular" }, { "event_name", eventName }, { "event_size", dataLen });
+			trace("Warning: sending large event %s (%u bytes). This may cause performance issues. Consider using latent events instead.\n", eventName, dataLen);
+			lastWarning = timeNow;
+		}
+	}
+
 	// build the target event
 	net::Buffer outBuffer;
 	outBuffer.Write(0x7337FD7A);

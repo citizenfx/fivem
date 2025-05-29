@@ -11,6 +11,8 @@
 #include <botan/kdf.h>
 #include <botan/mac.h>
 
+BOTAN_FUTURE_INTERNAL_HEADER(sp800_108.h)
+
 namespace Botan {
 
 /**

@@ -11,7 +11,7 @@
 		"net:tcp-server",
 		"vendor:bgfx",
 		"citizen:game:ipc",
-		"ros-patches:five"
+		"legitimacy"
 	],
 	"provides": []
 }

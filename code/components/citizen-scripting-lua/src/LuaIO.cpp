@@ -120,7 +120,7 @@ int LuaIODirectoryGC(lua_State* L)
 			delete[] p->directory[i].fileName;
 		}
 
-		delete[] p->directory;
+		free(p->directory);
 		p->directory = nullptr;
 	}
 
@@ -137,7 +137,7 @@ int LuaIODirectoryClose(lua_State* L)
 			delete[] p->directory[i].fileName;
 		}
 
-		delete[] p->directory;
+		free(p->directory);
 		p->directory = nullptr;
 	}
 
@@ -842,6 +842,10 @@ int LuaIOFileRead(lua_State* L)
 int LuaIOFileWrite(lua_State* L)
 {
 	const fwRefContainer<vfs::Stream> f = LuaIOToFile(L);
+
+	auto device = f->GetDevice();
+	device->Truncate(f->GetHandle(), 0);
+
 	// push file at the stack top (to be returned)
 	lua_pushvalue(L, 1);
 	int argumentOffset = 2;
