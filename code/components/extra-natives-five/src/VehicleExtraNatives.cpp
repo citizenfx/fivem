@@ -48,6 +48,11 @@ static hook::cdecl_stub<void(void*, int, float, float, float, bool, bool)> break
 	return hook::get_call(hook::get_pattern("F3 44 0F 11 4C 24 ? E8 ? ? ? ? EB 7A", 7));
 });
 
+static hook::cdecl_stub<bool(void*, int)> getWheelBroken([]
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B CD 41 88 84 1F"));
+});
+
 static hook::cdecl_stub<void(void*, bool)> switchEngineOff([]
 {
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B 8B ? ? ? ? 0F 2F FE"));
@@ -1955,6 +1960,22 @@ static HookFunction initFunction([]()
 
 			// last argument is a network flag
 			breakOffVehicleWheel(damageStruct, wheelIndex, leaveDebrisTrail ? 1.0f : 0.0f, deleteWheel ? 1.0f : 0.0f, unknownFlag ? 1.0f : 0.0f, putOnFire, true);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_WHEEL_BROKEN", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "IS_VEHICLE_WHEEL_BROKEN"))
+		{
+			auto wheelIndex = context.GetArgument<uint32_t>(1);
+			auto numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
+
+			if (wheelIndex >= numWheels)
+			{
+				return;
+			}
+
+			context.SetResult<bool>(getWheelBroken(vehicle, wheelIndex));
 		}
 	});
 
