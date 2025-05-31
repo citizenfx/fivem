@@ -135,6 +135,32 @@ static std::pair<std::string, v8::FunctionCallback> g_globalFunctions[] =
 	{ "readbuffer", V8_ReadBuffer<NodeScriptRuntime, SharedPushEnvironment<NodeScriptRuntime>> },
 };
 
+static void OnMessage(v8::Local<v8::Message> message, v8::Local<v8::Value> error)
+{
+	auto isolate = message->GetIsolate();
+
+	v8::String::Utf8Value messageStr(isolate, message->Get());
+	v8::String::Utf8Value errorStr(isolate, error);
+
+	std::stringstream stack;
+	auto stackTrace = message->GetStackTrace();
+
+	for (int i = 0; i < stackTrace->GetFrameCount(); i++)
+	{
+		auto frame = stackTrace->GetFrame(isolate, i);
+
+		v8::String::Utf8Value sourceStr(isolate, frame->GetScriptNameOrSourceURL());
+		v8::String::Utf8Value functionStr(isolate, frame->GetFunctionName());
+
+		stack << (*sourceStr ? *sourceStr : "(unknown)") << "(" << frame->GetLineNumber() << "," << frame->GetColumn() << "): " << (*functionStr ? *functionStr : "") << "\n";
+	}
+
+	auto context = isolate->GetEnteredOrMicrotaskContext();
+	auto data = context->GetEmbedderData(16);
+	auto rt = reinterpret_cast<NodeScriptRuntime*>(v8::Local<v8::External>::Cast(data)->Value());
+	ScriptTrace(rt, "%s\n%s\n%s\n", *messageStr, stack.str(), *errorStr);
+}
+
 result_t NodeScriptRuntime::Create(IScriptHost* host)
 {
 	// assign the script host
@@ -174,6 +200,9 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 	const auto allocator = node::CreateArrayBufferAllocator();
 	m_isolate = node::NewIsolate(allocator, m_uvLoop, g_nodeEnv.GetPlatform());
 	m_isolateData = node::CreateIsolateData(m_isolate, m_uvLoop, g_nodeEnv.GetPlatform(), allocator);
+
+	m_isolate->SetCaptureStackTraceForUncaughtExceptions(true);
+	m_isolate->AddMessageListener(OnMessage);
 
 	runtimeMap[m_isolate] = this;
 
