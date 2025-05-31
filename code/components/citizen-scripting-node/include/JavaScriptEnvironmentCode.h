@@ -40,4 +40,7 @@ const script = 'module.exports = {require};';
 const result = m._compile(script, 'dummy-wrapper');
 
 global.require = m.exports.require;
+
+// prevent process exit
+process.on('uncaughtException', () => {});
 )";

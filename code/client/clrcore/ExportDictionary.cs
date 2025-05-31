@@ -38,6 +38,10 @@ namespace CitizenFX.Core
 		public ExportSet(string resourceName)
 		{
 			m_resourceName = resourceName ?? throw new ArgumentNullException(nameof(resourceName));
+			if (m_resourceName == "txAdmin")
+			{
+				m_resourceName = "monitor";
+			}
 		}
 
 		private class DelegateFn
