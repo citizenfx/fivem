@@ -12,6 +12,7 @@
 
 #pragma comment(lib, "vulkan-1.lib")
 
+static VkInstance g_vkInstance = nullptr;
 static bool g_enableVulkanValidation = false;
 
 // Function to print the output of the validation layers
@@ -40,6 +41,34 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageCallback(VkDebugUtilsMessageSeverityF
 	return VK_FALSE;
 }
 
+static inline bool IsGPUSupported(VkPhysicalDevice device, VkDeviceCreateInfo* createInfo)
+{
+	uint32_t extensionCount = 0;
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+	if (extensionCount < 1)
+	{
+		return false;
+	}
+
+	std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+	uint32_t layerCount = 0;
+	for (const auto& extension : availableExtensions)
+	{
+		for (uint32_t i = 0; i < createInfo->enabledExtensionCount; i++)
+		{
+			if (strcmp(extension.extensionName, createInfo->ppEnabledExtensionNames[i]) == 0)
+			{
+				layerCount++;
+			}
+		}
+	}
+
+	return layerCount == createInfo->enabledExtensionCount;
+}
+
 static inline std::string_view GetGPUType(VkPhysicalDeviceType type)
 {
 	switch (type)
@@ -59,6 +88,15 @@ static inline std::string_view GetGPUType(VkPhysicalDeviceType type)
 	}
 }
 
+static inline std::string_view GetGPUType(VkPhysicalDevice physicalDevice)
+{
+	VkPhysicalDeviceProperties props = {};
+
+	vkGetPhysicalDeviceProperties(physicalDevice, &props);
+
+	return GetGPUType(props.deviceType);
+}
+
 static inline bool IsDedicatedGPU(VkPhysicalDeviceType type)
 {
 	switch (type)
@@ -72,6 +110,40 @@ static inline bool IsDedicatedGPU(VkPhysicalDeviceType type)
 		default:
 			return false;
 	}
+}
+
+static inline bool IsDedicatedGPU(VkPhysicalDevice physicalDevice)
+{
+	VkPhysicalDeviceProperties props = {};
+
+	vkGetPhysicalDeviceProperties(physicalDevice, &props);
+
+	return IsDedicatedGPU(props.deviceType);
+}
+
+static inline void ForceDedicatedGPU(VkInstance instance, VkDeviceCreateInfo* createInfo, VkPhysicalDevice& physicalDevice)
+{
+	std::vector<VkPhysicalDevice> devices;
+	uint32_t numDevices = 0;
+
+	vkEnumeratePhysicalDevices(instance, &numDevices, nullptr);
+	assert(numDevices > 0);
+
+	devices.resize(numDevices);
+
+	vkEnumeratePhysicalDevices(instance, &numDevices, devices.data());
+
+	for (const auto& device : devices)
+	{
+		if (IsDedicatedGPU(device) && IsGPUSupported(device, createInfo))
+		{
+			physicalDevice = device;
+
+			return;
+		}
+	}
+
+	trace("[WARNING] RedM is using a non dedicated GPU. The GPU type that is in use is: %s\n. Consider updating GPU drivers if you have a dedicated GPU in your system.", GetGPUType(physicalDevice));
 }
 
 static VkResult __stdcall vkCreateInstanceHook(VkInstanceCreateInfo* pCreateInfo, VkAllocationCallbacks* pAllocator, VkInstance* pInstance)
@@ -123,6 +195,8 @@ static VkResult __stdcall vkCreateInstanceHook(VkInstanceCreateInfo* pCreateInfo
 		trace("Vulkan instance creation returned: %s\n", ResultToString(result));
 	}
 
+	g_vkInstance = *pInstance;
+
 	// we let rage handle the error (probably defaults back to dx12)
 	return result;
 }
@@ -167,11 +241,6 @@ static inline void SetVulkanCrashometry(const VkPhysicalDevice physicalDevice)
 
 	trace("GPU Name: %s\nGPU type: %s\nDriver version: %u\nAPI version: %u.%u.%u\n", props.deviceName, GetGPUType(props.deviceType), props.driverVersion, major, minor, patch);
 
-	if (!IsDedicatedGPU(props.deviceType))
-	{
-		trace("[WARNING] RedM is using a non dedicated GPU. The GPU type that is in use is: %s", GetGPUType(props.deviceType));
-	}
-
 	isInitialized = true;
 }
 
@@ -194,6 +263,11 @@ static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreat
 
 		pCreateInfo->enabledLayerCount = static_cast<uint32_t>(originalLayers.size());
 		pCreateInfo->ppEnabledLayerNames = originalLayers.data();
+	}
+
+	if (!IsDedicatedGPU(physicalDevice))
+	{
+		ForceDedicatedGPU(g_vkInstance, pCreateInfo, physicalDevice);
 	}
 
 	SetVulkanCrashometry(physicalDevice);
