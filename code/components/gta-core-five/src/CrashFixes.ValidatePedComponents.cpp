@@ -24,9 +24,9 @@ enum ePedVarComp
 
 static constexpr auto PV_NULL_DRAWBL = 0xFFFFFFFF;
 
-static hook::cdecl_stub<bool(void* self, unsigned int slotId, unsigned int drawblId, unsigned int texId)> CPed_IsVariationValid([]
+static hook::cdecl_stub<bool(void* self, unsigned int slotId, int32_t drawblId, int32_t texId)> CPed_IsVariationInRange([]
 {
-	return hook::get_pattern("48 8B 41 ? F6 80 ? ? ? ? ? 0F 85 ? ? ? ? E9");
+	return hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 44 89 48 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 33 DB");
 });
 
 static bool (*orig_CPed_SetVariation)(
@@ -49,18 +49,25 @@ uint32_t paletteId,
 int32_t streamFlags,
 bool force)
 {
-	// Empty drawable cannot be set on head component.
-	if (drawblId == PV_NULL_DRAWBL && slotId == PV_COMP_HEAD)
-	{
-		console::PrintError("crash-mitigation", "CPed::SetVariation: Attempted to set an empty drawable on head component.\n");
-		return false;
-	}
-
-	// Verify if the variation is valid before setting it.
-	if (!CPed_IsVariationValid(self, slotId, drawblId, texId))
+	// Validate that we are in range.
+	if (drawblId != PV_NULL_DRAWBL && texId != 0 && !CPed_IsVariationInRange(self, slotId, drawblId, texId)) // NOLINT(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions)
 	{
 		console::PrintError("crash-mitigation", "CPed::SetVariation: Invalid variation (slotId: %d, drawblId: %u, texId: %u).\n", slotId, drawblId, texId);
 		return false;
+	}
+
+	// Empty drawable cannot be set on the head component.
+	if (drawblId == PV_NULL_DRAWBL && slotId == PV_COMP_HEAD)
+	{
+		console::PrintError("crash-mitigation", "CPed::SetVariation: Attempted to set an empty drawable on the head component.\n");
+		return false;
+	}
+
+	// Play it safe and don't allow a palette ID if we have a null drawable.
+	if (drawblId == PV_NULL_DRAWBL && paletteId != 0)
+	{
+		console::PrintError("crash-mitigation", "CPed::SetVariation: Attempted to set a palette ID %u on a null drawable.\n", paletteId);
+		paletteId = 0;
 	}
 
 	return orig_CPed_SetVariation(self, slotId, drawblId, drawblAltId, texId, paletteId, streamFlags, force);
