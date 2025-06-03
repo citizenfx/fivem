@@ -24,6 +24,11 @@ static int(*g_origInsertModule)(void*, void*);
 static thread_local std::string g_currentStreamingName;
 static thread_local uint32_t g_currentStreamingIndex;
 
+static hook::cdecl_stub<void(void*)> phBoundGeometry_RecomputeOctantMap([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 FF C3 48 3B DF 7C ? E8"));
+});
+
 std::string GetCurrentStreamingName()
 {
 	return g_currentStreamingName;
@@ -125,8 +130,8 @@ static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
 
 static void PolyErrorv(const std::string& str, fmt::printf_args args)
 {
-	trace("Physics validation failed for asset %s.\nThis asset is **INVALID**, but we've fixed it for this load. Please fix the exporter used to export it.\nDetails: %s\n",
-		g_currentStreamingName, fmt::vsprintf(str, args));
+	console::DPrintf("asset-validation", "Physics validation failed for asset %s.\nThis asset is **INVALID**, but we've fixed it for this load. Please fix the exporter used to export it.\nDetails: %s\n",
+	g_currentStreamingName, fmt::vsprintf(str, args));
 }
 
 template<typename... TArgs>
@@ -158,20 +163,25 @@ static void ValidateGeometry(void* geomPtr)
 	auto numVerts = geom->GetNumVertices();
 
 	// Some exporters break octant maps, causing crashes when calculating bound collisions.
-	// Instead of attempting runtime fixes, we will just warn the user about possible issues and clear out the octant map.
+	// If we detect that the octant map is invalid, recompute it.
 	if (auto octantVertCounts = geom->GetNumOctants())
 	{
 		for (int octant = 0; octant < 8; ++octant)
 		{
 			if (octantVertCounts[octant] <= 0)
 			{
-				console::PrintError("asset-validation",
-					"Physics validation failed for asset '%s'.\n"
-					"This asset contains invalid octant data (OctantVertCounts <= 0) and has been auto-corrected during this load to prevent a crash.\n"
-					"**Please update or fix the exporter responsible for generating this asset.**\n"
-					"Until corrected, this asset may cause degraded runtime performance and increase load times.\n",
+				console::DPrintf("asset-validation",
+				"Physics validation failed for asset '%s'.\n"
+				"This asset contains invalid octant data (OctantVertCounts <= 0) and has been auto-corrected during this load to prevent a crash.\n"
+				"**Please update or fix the exporter responsible for generating this asset.**\n"
+				"Until corrected, this asset may cause degraded runtime performance while being loaded in.\n",
 				g_currentStreamingName);
-				geom->ClearOctantMap();
+
+				phBoundGeometry_RecomputeOctantMap(geomPtr);
+
+				// Find out if we are causing corruption in the frag cache heap
+				AddCrashometry("octant_recompute", "true");
+
 				break;
 			}
 		}
