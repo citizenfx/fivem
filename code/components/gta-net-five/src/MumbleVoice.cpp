@@ -60,7 +60,7 @@ static hook::cdecl_stub<void()> _initVoiceChatConfig([]()
 #elif IS_RDR3
 static hook::cdecl_stub<void(void*)> _initVoiceChatConfig([]()
 {
-	return hook::get_pattern("8B 83 ? ? ? ? F2 0F 10 8B ? ? ? ? 48", (xbr::IsGameBuildOrGreater<1436>()) ? -0xDD : -0x81);
+	return hook::get_pattern("8B 83 ? ? ? ? F2 0F 10 8B ? ? ? ? 48", -0xDD);
 });
 
 static hook::cdecl_stub<int(void*, uint64_t, uint32_t)> rage__atDataHash([]()
@@ -902,18 +902,11 @@ static HookFunction hookFunction([]()
 #elif IS_RDR3
 	g_viewportGame = hook::get_address<CViewportGame**>(hook::get_pattern("0F 2F F0 76 ? 4C 8B 35", 8));
 
-	if (xbr::IsGameBuildOrGreater<1436>())
-	{
-		g_actorPos = hook::get_address<float*>(hook::get_pattern("45 33 C9 48 89 5D E0 8D 53 01", 63)) + 16;
-	}
-	else
-	{
-		g_actorPos = hook::get_address<float*>(hook::get_pattern("8B C2 48 03 C0 41 8D 49 FF 48 03 C9", -4)) + 16;
-	}
+	g_actorPos = hook::get_address<float*>(hook::get_pattern("45 33 C9 48 89 5D E0 8D 53 01", 63)) + 16;
 
 	{
 		auto location = hook::get_pattern<char>("75 0D 8B C8 E8 ? ? ? ? 84 C0 B0 01 75 03");
-		auto prefsOffset = *(uint32_t*)(location + (xbr::IsGameBuildOrGreater<1436>() ? 40 : 48));
+		auto prefsOffset = *(uint32_t*)(location +  40);
 
 		g_voiceChatMgr = *hook::get_address<void**>(location - 16);
 		g_voiceChatMgrPrefs = (VoiceChatMgrPrefs*)((uint64_t)g_voiceChatMgr + prefsOffset);
