@@ -508,7 +508,7 @@ static InitFunction initFunction([]()
 					int playerId = Client_getPlayerId(client, client->username);
 					if(playerId != -1)
 					{
-						std::lock_guard<std::mutex> lock(g_clientIdsMutex);
+						std::unique_lock lock(g_clientIdsMutex);
 						g_clientIds.erase(playerId);
 					}
 				}

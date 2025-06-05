@@ -203,22 +203,26 @@ void Mh_handle_message(client_t *client, message_t *msg)
 				sendServerReject(client, buf, MumbleProto::Reject_RejectType_InvalidUsername);
 				goto disconnect;
 			}
+			
 			{
-				std::lock_guard<std::mutex> lock(g_clientIdsMutex);
-				
+				std::shared_lock lock(g_clientIdsMutex);
 				if(g_clientIds.find(playerId) != g_clientIds.end()) {
 					snprintf(buf, 64, "Player id already in use");
 					sendServerReject(client, buf, MumbleProto::Reject_RejectType_UsernameInUse);
 					goto disconnect;
 				}
-				auto netClient = g_clientRegistry->GetClientByNetID(playerId);
-				if(!netClient || !netClient->HasRouted())
-				{
-					snprintf(buf, 64, "Player id does not exist or didn't routed yet");
-					sendServerReject(client, buf, MumbleProto::Reject_RejectType_InvalidUsername);
-					goto disconnect;
-				}
+			}
 			
+			auto netClient = g_clientRegistry->GetClientByNetID(playerId);
+			if(!netClient || !netClient->HasRouted())
+			{
+				snprintf(buf, 64, "Player id does not exist or didn't routed yet");
+				sendServerReject(client, buf, MumbleProto::Reject_RejectType_InvalidUsername);
+				goto disconnect;
+			}
+		
+			{
+				std::unique_lock lock(g_clientIdsMutex);
 				g_clientIds.insert(playerId);
 			}
 		}
