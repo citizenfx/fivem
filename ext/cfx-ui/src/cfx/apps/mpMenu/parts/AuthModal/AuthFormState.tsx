@@ -42,7 +42,7 @@ class AuthFormState {
       return true;
     }
 
-    if (this.isModeExternalAuthProcessing) {
+    if (this.isModeExternalAuthProcessing && !this.errorMessage) {
       return true;
     }
 
