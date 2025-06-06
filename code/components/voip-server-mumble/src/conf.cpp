@@ -44,7 +44,7 @@
 #include "log.h"
 
 #define DEFAULT_WELCOME "Welcome to uMurmur!"
-#define DEFAULT_MAX_CLIENTS 1024
+#define DEFAULT_MUMBLE_MAX_CLIENTS 1024
 #define DEFAULT_MAX_BANDWIDTH 144000
 #define DEFAULT_BINDPORT 64738
 #define DEFAULT_BAN_LENGTH 0
@@ -118,7 +118,7 @@ int getIntConf(param_t param)
 			return DEFAULT_BAN_LENGTH;
 		case MAX_BANDWIDTH:
 			return DEFAULT_MAX_BANDWIDTH;
-		case MAX_CLIENTS:
+		case MUMBLE_MAX_CLIENTS:
 		{
 			fwRefContainer<console::Context> consoleContext = g_serverInstance->GetComponent<console::Context>();
 			if (auto variableHandle = consoleContext->GetVariableManager()->FindEntryRaw("sv_maxClients"))
@@ -127,7 +127,7 @@ int getIntConf(param_t param)
 				return std::min(2048, atoi(variableHandle->GetValue().c_str()) * 2);
 			}
 
-			return DEFAULT_MAX_CLIENTS;
+			return DEFAULT_MUMBLE_MAX_CLIENTS;
 		}
 		case OPUS_THRESHOLD:
 			return DEFAULT_OPUS_THRESHOLD;
