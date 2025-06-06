@@ -204,6 +204,21 @@ struct SerializeValue<RawType>
 };
 
 template<typename T>
+static void GetResourceKvp_Impl(const std::string& key, fx::ScriptContext& context)
+{
+	auto db = EnsureDatabase();
+
+	std::string value;
+	if (db->Get(rocksdb::ReadOptions{}, key, &value).IsNotFound())
+	{
+		context.SetResult<const char*>(nullptr);
+		return;
+	}
+
+	SerializeValue<T>::Deserialize(context, value);
+}
+
+template<typename T>
 static void GetResourceKvp(fx::ScriptContext& context)
 {
 	auto db = EnsureDatabase();
@@ -217,6 +232,14 @@ static void GetResourceKvp(fx::ScriptContext& context)
 	}
 
 	SerializeValue<T>::Deserialize(context, value);
+}
+
+template<typename T>
+static void GetExternalKvp(fx::ScriptContext& context)
+{
+	auto key = FormatKey(context.CheckArgument<const char*>(1), context.CheckArgument<const char*>(0));
+
+	return GetResourceKvp_Impl<T>(key, context);
 }
 
 #include <memory>
@@ -343,6 +366,10 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_KVP_STRING", GetResourceKvp<const char*>);
 	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_KVP_FLOAT", GetResourceKvp<float>);
 	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_RAW_KVP", GetResourceKvp<RawType>);
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_EXTERNAL_KVP_INT", GetExternalKvp<int>);
+	fx::ScriptEngine::RegisterNativeHandler("GET_EXTERNAL_KVP_STRING", GetExternalKvp<const char*>);
+	fx::ScriptEngine::RegisterNativeHandler("GET_EXTERNAL_KVP_FLOAT", GetExternalKvp<float>);
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_KVP", SetResourceKvp<const char*>);
 	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_KVP_INT", SetResourceKvp<int>);
