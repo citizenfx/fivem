@@ -97,6 +97,10 @@ namespace CitizenFX.Core
 								RegisterEventHandler(eventHandler.Event, MsgPackDeserializer.CreateDelegate(this, method), eventHandler.Binding);
 								break;
 
+							case CallbackHandlerAttribute callbackHandler:
+								RegisterCallback(callbackHandler.Callback, MsgPackDeserializer.CreateDelegate(this, method), callbackHandler.CallbackBinding);
+								break;
+
 							case CommandAttribute command:
 								{
 									// Automatically remap methods with [Source] parameters
@@ -291,6 +295,7 @@ namespace CitizenFX.Core
 
 		#region Events & Command registration
 		internal void RegisterEventHandler(string eventName, MsgPackFunc deleg, Binding binding = Binding.Local) => EventHandlers[eventName].Add(deleg, binding);
+		internal void RegisterCallback(string callbackName, MsgPackFunc deleg, Binding binding = Binding.Remote) => CallbacksManager.Register(callbackName, binding, deleg);
 		internal void UnregisterEventHandler(string eventName, MsgPackFunc deleg) => EventHandlers[eventName].Remove(deleg);
 
 		internal void RegisterCommand(string command, MsgPackFunc dynFunc, bool isRestricted = true)

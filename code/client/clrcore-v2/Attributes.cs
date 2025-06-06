@@ -117,6 +117,22 @@ namespace CitizenFX.Core
 			Binding = binding;
 		}
 	}
+
+	/// <summary>
+	/// Register this method to listen for the given <see cref="Callbacks"/> when this <see cref="BaseScript"/> is loaded
+	/// </summary>
+	/// <remarks>Only works on <see cref="BaseScript"/> inherited class methods</remarks>
+	[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+	public class CallbackHandlerAttribute : Attribute
+	{
+		public string Callback { get; }
+		public Binding CallbackBinding { get; }
+		public CallbackHandlerAttribute(string callback, Binding binding = Binding.Remote)
+		{
+			Callback = callback;
+			CallbackBinding = binding;
+		}
+	}
 	
 #if !IS_FXSERVER
 	/// <summary>

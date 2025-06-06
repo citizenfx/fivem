@@ -1,4 +1,5 @@
 using CitizenFX.Core;
+using CitizenFX.MsgPack;
 
 namespace CitizenFX.Shared
 {
@@ -22,6 +23,7 @@ namespace CitizenFX.Shared
 		/// </summary>
 		public int Handle => int.Parse(m_handle);
 #else
+	[MsgPackSerializable(Layout.Indexed)]
 	public abstract class Player : Core.Native.Input.Primitive
 	{
 		public Player(ulong handle) : base(handle)
@@ -31,7 +33,7 @@ namespace CitizenFX.Shared
 		/// <summary>
 		/// Gets the handle of this player
 		/// </summary>
-		public int Handle => (int)m_nativeValue;
+		[Index(0)] public int Handle => (int)m_nativeValue;
 #endif
 		public override string ToString() => $"{nameof(Player)}({Handle})";
 

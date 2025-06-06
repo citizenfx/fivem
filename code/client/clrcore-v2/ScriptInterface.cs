@@ -154,10 +154,16 @@ namespace CitizenFX.Core
 			if (!ExternalsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize))
 #endif
 			{
-				if (!ExportsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize))
+#if MONO_V2
+				if (!CallbacksManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize))
+#endif
 				{
-					// if a remote function or export has consumed this event then it surely wasn't meant for event handlers
 					EventsManager.IncomingEvent(eventName, sourceString, origin, argsSerialized, serializedSize);
+					if (!ExportsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize))
+					{
+						// if a remote function or export has consumed this event then it surely wasn't meant for event handlers
+						EventsManager.IncomingEvent(eventName, sourceString, origin, argsSerialized, serializedSize);
+					}
 				}
 			}
 		}
