@@ -1,4 +1,5 @@
 using CitizenFX.Core.Native;
+using CitizenFX.MsgPack;
 using System;
 using System.ComponentModel;
 
@@ -17,7 +18,7 @@ namespace CitizenFX.Core
 		/// <param name="eventName">name to listen for</param>
 		/// <param name="handler">delegate to call once triggered</param>
 		/// <param name="binding">limit calls to certain sources, e.g.: server only, client only</param>
-		public static void RegisterEventHandler(string eventName, DynFunc handler, Binding binding = Binding.Local)
+		public static void RegisterEventHandler(string eventName, MsgPackFunc handler, Binding binding = Binding.Local)
 		{
 			if (handler.Target is BaseScript script)
 			{
@@ -35,7 +36,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="eventName">name to remove event for</param>
 		/// <param name="handler">delegate to remove</param>
-		public static void UnregisterEventHandler(string eventName, DynFunc handler)
+		public static void UnregisterEventHandler(string eventName, MsgPackFunc handler)
 		{
 			if (handler.Target is BaseScript script)
 			{
