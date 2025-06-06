@@ -15,6 +15,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <cpr/cpr.h>
+#include <curl/curl.h>
 #include <openssl/sha.h>
 
 static std::string GetGameName()
@@ -310,10 +311,18 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 #ifdef CFX_CRASH_INGRESS_URL
 	auto symb = SymbolicateCrashRequest(hProcess, hThread, er, ctx);
 	auto payload = symb.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
-	auto hash = CalculateSHA256({GetGameName(), std::to_string(cfx::GetPlatformRelease()), payload});
+	auto hash = CalculateSHA256({ GetGameName(), std::to_string(cfx::GetPlatformRelease()), payload });
+	const auto escapedHash = curl_easy_escape(nullptr, hash.c_str(), static_cast<int>(hash.length()));
 
-	auto r = cpr::Post(cpr::Url{ va("%s/symbolicate?timeout=5&hash=%s", CFX_CRASH_INGRESS_URL, hash) }, cpr::Body{ payload },
-	cpr::Timeout{ std::chrono::seconds(10) }, cpr::Header{ { "content-type", "application/json" } }, cpr::VerifySsl{ false });
+	auto r = cpr::Post(
+		cpr::Url{ va("%s/symbolicate?timeout=5&hash=%s", CFX_CRASH_INGRESS_URL, escapedHash) },
+		cpr::Body{ payload },
+		cpr::Timeout{ std::chrono::seconds(10) },
+		cpr::Header{ { "content-type", "application/json" } },
+		cpr::VerifySsl{ false }
+	);
+
+	curl_free(escapedHash);
 
 	if (!r.error && r.status_code <= 299)
 	{
@@ -327,7 +336,7 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 		}
 		catch (std::exception&)
 		{
-		
+
 		}
 	}
 #endif
