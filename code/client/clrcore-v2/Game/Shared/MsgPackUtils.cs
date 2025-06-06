@@ -34,14 +34,17 @@ namespace CitizenFX.FiveM
 		/// <typeparam name="T"/> the type to deserialize to.
 		/// <param name="input">The input array</param>
 		/// <returns>A <typeparamref name="T"/></returns>
-		public unsafe static T MsgPackDeserialize<T>(byte[] input)
+		public static T MsgPackDeserialize<T>(byte[] input)
 		{
-			// we don't add try check here, because msgpack deserializer will throw an exception if the input is invalid
-			fixed (byte* ptr = input)
+			unsafe
 			{
-				var deserializer = new MsgPackDeserializer(ptr, (ulong)input.Length, "");
-				var deleg = MsgPackRegistry.GetOrCreateDeserializer(typeof(T)).CreateDelegate(typeof(TypeDeserializer<T>));
-				return ((TypeDeserializer<T>)deleg)(ref deserializer);
+				// we don't add try check here, because msgpack deserializer will throw an exception if the input is invalid
+				fixed (byte* ptr = input)
+				{
+					var deserializer = new MsgPackDeserializer(ptr, (ulong)input.Length, "");
+					var deleg = MsgPackRegistry.GetOrCreateDeserializer(typeof(T)).CreateDelegate(typeof(TypeDeserializer<T>));
+					return ((TypeDeserializer<T>)deleg)(ref deserializer);
+				}
 			}
 		}
 
