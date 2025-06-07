@@ -431,26 +431,23 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing() - 8.0f), false);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1)); // Tighten spacing
-		if (FilterBuf[0] == '\0')
+		std::vector<int> filteredIndices;
+		for (size_t i = 0; i < Items.size(); i++)
 		{
-			ImGuiListClipper clipper(Items.size());
-			while (clipper.Step())
+			if (FilterBuf[0] == '\0' ||
+				Stristr(Items[i].c_str(), FilterBuf) ||
+				Stristr(ItemKeys[i].c_str(), FilterBuf))
 			{
-				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
-				{
-					DrawItem(i);
-				}
+				filteredIndices.push_back(i);
 			}
 		}
-		else
+
+		ImGuiListClipper clipper(filteredIndices.size());
+		while (clipper.Step())
 		{
-			for (size_t i = 0; i < Items.size(); i++)
+			for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
 			{
-				if (Stristr(Items[i].c_str(), FilterBuf) || 
-					Stristr(ItemKeys[i].c_str(), FilterBuf))
-				{
-					DrawItem(i);
-				}
+				DrawItem(filteredIndices[i]);
 			}
 		}
 
