@@ -149,6 +149,27 @@ struct FiveMConsoleBase
 	static int Stricmp(const char* str1, const char* str2) { int d; while ((d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; } return d; }
 	static int Strnicmp(const char* str1, const char* str2, int n) { int d = 0; while (n > 0 && (d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; n--; } return d; }
 	static char* Strdup(const char* str) { size_t len = strlen(str) + 1; void* buff = malloc(len); return (char*)memcpy(buff, (const void*)str, len); }
+	static bool Stristr(const char* haystack, const char* needle)
+	{
+		if (!needle || !needle[0])
+			return true;
+
+		for (const char* h = haystack; *h; h++)
+		{
+			const char* h1 = h;
+			const char* n1 = needle;
+
+			while (*h1 && *n1 && toupper(*h1) == toupper(*n1))
+			{
+				h1++; n1++;
+			}
+
+			if (!*n1)
+				return true;
+		}
+
+		return false;
+	}
 
 	virtual void AddLog(const char* key, const char* fmt, ...)
 	{
@@ -293,12 +314,15 @@ struct CfxBigConsole : FiveMConsoleBase
 	ImVector<const char*> Commands;
 	ImVec2 PreviousWindowSize;
 
+	char FilterBuf[128];
+
 	concurrency::concurrent_queue<std::string> CommandQueue;
 
 	CfxBigConsole()
 	{
 		ClearLog();
 		memset(InputBuf, 0, sizeof(InputBuf));
+		memset(FilterBuf, 0, sizeof(FilterBuf));
 		HistoryPos = -1;
 		Commands.push_back("HELP");
 		Commands.push_back("HISTORY");
@@ -407,12 +431,26 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing() - 8.0f), false);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1)); // Tighten spacing
-		ImGuiListClipper clipper(Items.size());
-		while (clipper.Step())
+		if (FilterBuf[0] == '\0')
 		{
-			for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+			ImGuiListClipper clipper(Items.size());
+			while (clipper.Step())
 			{
-				DrawItem(i);
+				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+				{
+					DrawItem(i);
+				}
+			}
+		}
+		else
+		{
+			for (size_t i = 0; i < Items.size(); i++)
+			{
+				if (Stristr(Items[i].c_str(), FilterBuf) || 
+					Stristr(ItemKeys[i].c_str(), FilterBuf))
+				{
+					DrawItem(i);
+				}
 			}
 		}
 
@@ -482,9 +520,14 @@ struct CfxBigConsole : FiveMConsoleBase
 				ImGui::SetKeyboardFocusHere(-1);
 			}
 
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(ImGui::GetMainViewport()->Size.x * 0.15f);
+			ImGui::InputTextWithHint("##LogFilter", "Filter", FilterBuf, sizeof(FilterBuf));
+
 			bool preAutoScrollValue = AutoScrollEnabled;
 
 			// Controls in the second column
+			ImGui::SameLine();
 			ImGui::Checkbox("Auto scroll", &AutoScrollEnabled);
 
 			if (preAutoScrollValue != AutoScrollEnabled)
