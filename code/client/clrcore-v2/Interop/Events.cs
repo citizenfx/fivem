@@ -18,16 +18,17 @@ namespace CitizenFX.Core
 		/// <param name="eventName">name to listen for</param>
 		/// <param name="handler">delegate to call once triggered</param>
 		/// <param name="binding">limit calls to certain sources, e.g.: server only, client only</param>
-		public static void RegisterEventHandler(string eventName, MsgPackFunc handler, Binding binding = Binding.Local)
+		public static void RegisterEventHandler(string eventName, Delegate handler, Binding binding = Binding.Local)
 		{
-			if (handler.Target is BaseScript script)
+			MsgPackFunc msgpackfunc = MsgPackDeserializer.CreateDelegate(handler);
+			if (msgpackfunc.Target is BaseScript script)
 			{
 				// these should stay with their owner
-				script.RegisterEventHandler(eventName, handler, binding);
+				script.RegisterEventHandler(eventName, msgpackfunc, binding);
 			}
 			else
 			{
-				EventsManager.AddEventHandler(eventName, handler, binding);
+				EventsManager.AddEventHandler(eventName, msgpackfunc, binding);
 			}
 		}
 
@@ -36,19 +37,21 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="eventName">name to remove event for</param>
 		/// <param name="handler">delegate to remove</param>
-		public static void UnregisterEventHandler(string eventName, MsgPackFunc handler)
+		public static void UnregisterEventHandler(string eventName, Delegate handler)
 		{
-			if (handler.Target is BaseScript script)
+			MsgPackFunc msgpackfunc = MsgPackDeserializer.CreateDelegate(handler);
+			if (msgpackfunc.Target is BaseScript script)
 			{
 				// these should stay with their owner
-				script.UnregisterEventHandler(eventName, handler);
+				script.UnregisterEventHandler(eventName, msgpackfunc);
 			}
 			else
 			{
-				EventsManager.RemoveEventHandler(eventName, handler);
+				EventsManager.RemoveEventHandler(eventName, msgpackfunc);
 			}
 		}
 
+		// this is redundant, do we want to keep it?
 		public static void TriggerEvent(string eventName, params object[] args)
 			=> CoreNatives.TriggerEventInternal(eventName, args);
 
