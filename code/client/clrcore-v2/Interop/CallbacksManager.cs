@@ -10,26 +10,66 @@ using System.Threading;
 
 namespace CitizenFX.Core
 {
+	/* Callbacks internally handled for FiveM
+	 * 
+	 * In case we want to extend this to other ScRTs in the future, 
+	 * here's a very simple explanation of how it works.
+	 *
+	 * The functionality is straightforward: a callback is registered like a normal event, 
+	 * with the only difference being that it returns a value.
+	 *
+	 * When triggered, two events are awaited:
+	 * - __cfx_cbrequest: sent by the calling side to request the callback execution on the remote side.
+	 * - __cfx_cbresponse: sent by the responding side once the result is ready, returning the value to the caller.
+	 *
+	 * A helper class handles the request, providing all the necessary information to the remote side.
+	 * `CallbackInfoDelegate` is a simple structure that carries the event name, request ID, and optional data
+	 * to the remote callback.
+	 *
+	 * When returning data, only the request ID (to ensure we reply to the correct caller) and the return value are sent.
+	 *
+	 * What data is exchanged?
+	 * 
+	 * - Triggering the callback:
+	 *   - `RequestID`: a unique identifier for each request, ensuring that the response goes to the correct caller 
+	 *                  (even with concurrent requests to the same callback).
+	 *   - `EventName`: a readable name for the callback, similar to how we name events and exports.
+	 *   - `Args`: optional data to be passed to the remote callback for processing before returning the value.
+	 * 
+	 * - Replying to the callback:
+	 *   - `RequestID`: used to match the response to the original request, preventing concurrency issues.
+	 *   - `ReturnValue`: the actual data we want to receive.
+	 *
+	 * How is the callback system managed?
+	 * 
+	 * We use two `ConcurrentDictionary` instances:
+	 * - `_handlers`: contains the registered callbacks, similar to how event handlers are stored.
+	 * - `_pending`: holds the pending responses. When a callback is triggered, an entry is added to `_pending`.
+	 *               Once a response is received (or a timeout occurs), the entry is removed.
+	 *               Ideally, `_pending` should remain as empty as possible and be cleared as quickly as possible.
+	 */
+
+
 	internal static class CallbacksManager
 	{
 		private static readonly ConcurrentDictionary<string, MsgPackFunc> _handlers = new ConcurrentDictionary<string, MsgPackFunc>();
 		private static readonly ConcurrentDictionary<string, MsgPackFunc> _pending = new ConcurrentDictionary<string, MsgPackFunc>();
-		private static int _requestCounter;
+		private static int _requestCounter; // simple counter to handle uniqueIDs
 		private const string CallbackRequestEvent = "__cfx_cbrequest";
 		private const string CallbackResponseEvent = "__cfx_cbresponse";
-		private const int TimeoutMilliseconds = 5000; // too much? callbacks should never take > 1000ms
+		private const int TimeoutMilliseconds = 5000; // too much? callbacks should never take > 1000ms.. and imho 1s is waaay too much to wait for a response from otherside.
 		internal delegate TResult TypeDeserializer<out TResult>(ref MsgPackDeserializer arg);
 
 		static CallbacksManager()
 		{
-			Native.CoreNatives.RegisterResourceAsEventHandler(CallbackResponseEvent);
-			Native.CoreNatives.RegisterResourceAsEventHandler(CallbackRequestEvent);
+			CoreNatives.RegisterResourceAsEventHandler(CallbackResponseEvent);
+			CoreNatives.RegisterResourceAsEventHandler(CallbackRequestEvent);
 		}
 
 		internal static unsafe bool IncomingRequest(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize)
 		{
 			Remote remote = new Remote(origin, sourceString);
-			CitizenFX.MsgPack.MsgPackDeserializer deserializer = new MsgPackDeserializer(argsSerialized, (ulong)serializedSize, origin == Binding.Remote ? sourceString : null);
+			MsgPackDeserializer deserializer = new MsgPackDeserializer(argsSerialized, (ulong)serializedSize, origin == Binding.Remote ? sourceString : null);
 			var restorePoint = deserializer.CreateRestorePoint();
 
 			if (eventName == CallbackResponseEvent)
