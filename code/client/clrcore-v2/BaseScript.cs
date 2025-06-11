@@ -242,6 +242,10 @@ namespace CitizenFX.Core
 
 		#region Update/Tick Scheduling
 
+		/// <summary>
+		/// A method to be scheduled on every game tick, do note that they'll only be rescheduled for the next frame once the method returns.
+		/// Same as Tick += myTick
+		/// </summary>
 		public void RegisterTick(Func<Coroutine> tick, bool stopOnException = false)
 		{
 			lock (m_tickList)
@@ -252,6 +256,11 @@ namespace CitizenFX.Core
 			}
 		}
 
+		/// <summary>
+		/// Unregister the tick.
+		/// Same as Tick -= myTick
+		/// </summary>
+		/// <param name="tick">The tick.</param>
 		public void UnregisterTick(Func<Coroutine> tick)
 		{
 			lock (m_tickList)
@@ -269,10 +278,26 @@ namespace CitizenFX.Core
 			}
 		}
 
+		/// <summary>
+		/// Suspends execution until the specified time point is reached.
+		/// This method is useful for precise timing operations and delayed execution.
+		/// </summary>
+		/// <param name="msecs">The time point at which to resume execution.</param>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine WaitUntil(TimePoint msecs) => Coroutine.WaitUntil(msecs);
 
+		/// <summary>
+		/// Suspends execution until the next frame, identical to Yield().
+		/// This method is provided as an alias for clarity when the intention is to wait for the next frame.
+		/// </summary>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine WaitUntilNextFrame() => Coroutine.Yield();
 
+		/// <summary>
+		/// Suspends execution until the next frame, allowing other coroutines to run.
+		/// This method is useful for frame-by-frame operations and animations.
+		/// </summary>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine Yield() => Coroutine.Yield();
 
 		/// <summary>
@@ -285,10 +310,34 @@ namespace CitizenFX.Core
 		/// <returns>An awaitable task.</returns>
 		public static Coroutine Delay(uint msecs = 0u) => Coroutine.Delay(msecs);
 
+		/// <summary>
+		/// Alias for Delay that suspends execution for the specified number of milliseconds.
+		/// </summary>
+		/// <example>
+		/// await Wait(500);
+		/// </example>
+		/// <param name="msecs">The number of milliseconds to wait before continuing execution.</param>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine Wait(uint msecs = 0u) => Delay(msecs);
 
+		/// <summary>
+		/// Suspends execution for the specified number of seconds.
+		/// </summary>
+		/// <example>
+		/// await WaitForSeconds(2);
+		/// </example>
+		/// <param name="seconds">The number of seconds to wait before continuing execution.</param>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine WaitForSeconds(uint seconds) => Delay(seconds * 1000u);
 
+		/// <summary>
+		/// Suspends execution for the specified number of minutes.
+		/// </summary>
+		/// <example>
+		/// await WaitForMinutes(1);
+		/// </example>
+		/// <param name="minutes">The number of minutes to wait before continuing execution.</param>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine WaitForMinutes(uint minutes) => Delay(minutes * 1000u * 60u);
 
 		#endregion
