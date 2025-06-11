@@ -158,7 +158,6 @@ namespace CitizenFX.Core
 				if (!CallbacksManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize))
 #endif
 				{
-					EventsManager.IncomingEvent(eventName, sourceString, origin, argsSerialized, serializedSize);
 					if (!ExportsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize))
 					{
 						// if a remote function or export has consumed this event then it surely wasn't meant for event handlers
