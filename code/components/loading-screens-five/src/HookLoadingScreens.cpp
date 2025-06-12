@@ -555,6 +555,12 @@ static InitFunction initFunction([] ()
 		{
 			if (*g_scaleformMgr)
 			{
+				if (GetCurrentThreadId() != g_mainThreadId)
+				{
+					trace("Error: BusySpinner update called from non-main thread!\n");
+					return;
+				}
+
 				setupBusySpinner(1);
 				*spinnerDep = true;
 				updateBusySpinner();
