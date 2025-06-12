@@ -136,7 +136,7 @@ static void* grcTexturePC_CtorWrap(rage::grcTexturePC* texture, void* resource)
 				}
 			}
 
-			auto channel = (!resourceName.empty()) ? fmt::sprintf("script:%s:stream", resourceName) : "streaming";
+			auto channel = (!resourceName.empty()) ? fmt::sprintf("stream:%s", resourceName) : "streaming";
 			console::PrintWarning(channel, "Texture %s (in txd %s) was set to a compressed texture format, but 'script_rt' textures should always be uncompressed.\nThis file was likely processed by a bad tool. To improve load performance and reduce the risk of it crashing, fix or update the tool used.\n", texture->GetName(), GetCurrentStreamingName());
 		}
 	}
