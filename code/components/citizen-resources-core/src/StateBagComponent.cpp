@@ -275,13 +275,16 @@ void StateBagImpl::SetKeyInternal(int source, std::string_view key, std::string_
 {
 	{
 		std::unique_lock _(m_dataMutex);
-		if (data[0] == MsgPackNil)
+		const bool isNilData = data[0] == MsgPackNil;
+
+		if (auto it = m_data.find(key); it != m_data.end())
 		{
-			m_data.erase(std::string { key });
-		}
-		else if (auto it = m_data.find(key); it != m_data.end())
-		{
-			if (data != it->second)
+			// if we're set to null *and we are existing* we should just delete ourselves
+			if (isNilData)
+			{
+				m_data.erase(std::string { key });
+			}
+			else if (data != it->second)
 			{
 				it->second = data;
 			}
@@ -292,6 +295,12 @@ void StateBagImpl::SetKeyInternal(int source, std::string_view key, std::string_
 		}
 		else
 		{
+			// if we're nil we don't want to emplace, or replicate, as we would just be sent back a packet to delete ourselves
+			if (isNilData)
+			{
+				return;
+			}
+
 			m_data.emplace(key, data);
 		}
 	}
