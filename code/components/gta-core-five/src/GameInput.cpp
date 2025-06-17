@@ -8,6 +8,7 @@
 
 #include <gameSkeleton.h>
 #include <ICoreGameInit.h>
+#include <ScriptEngine.h>
 
 #include <atArray.h>
 #include <MinHook.h>
@@ -1133,7 +1134,10 @@ namespace game
 			return InputHook::IsMouseButtonDown(controlData.parameter);
 		}
 
-		return InputHook::IsKeyDown(controlData.parameter);
+		static auto IsRawKeyDown = fx::ScriptEngine::GetNativeHandler(HashString("IS_RAW_KEY_DOWN"));
+		bool isRawKeyDown = FxNativeInvoke::Invoke<bool>(IsRawKeyDown, controlData.parameter);
+
+		return isRawKeyDown;
 	}
 
 	bool IsControlKeyDown(int control)
