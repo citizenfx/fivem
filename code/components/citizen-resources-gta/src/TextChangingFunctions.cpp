@@ -140,7 +140,11 @@ static InitFunction initFunction([] ()
 		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
 		{
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
-			int overlayIdx = sf::AddMinimapOverlay(resource->GetPath() + "/" + context.CheckArgument<const char*>(0), -1);
+
+			auto gfxFileName = context.CheckArgument<const char*>(0);
+			auto background = context.GetArgument<bool>(1);
+
+			int overlayIdx = sf::AddMinimapOverlay(resource->GetPath() + "/" + gfxFileName, -1, background);
 
 			resource->OnStop.Connect([=]()
 			{
@@ -168,8 +172,9 @@ static InitFunction initFunction([] ()
 
 		auto gfxFileName = context.CheckArgument<const char*>(0);
 		auto depth = context.GetArgument<int>(1);
+		auto background = context.GetArgument<bool>(2);
 
-		int overlayIdx = sf::AddMinimapOverlay(resource->GetPath() + "/" + gfxFileName, depth);
+		int overlayIdx = sf::AddMinimapOverlay(resource->GetPath() + "/" + gfxFileName, depth, background);
 
 		resource->OnStop.Connect([=]()
 		{
