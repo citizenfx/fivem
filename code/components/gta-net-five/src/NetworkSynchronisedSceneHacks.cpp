@@ -68,7 +68,7 @@ static HookFunction hookFunction([]()
 
 	// Request-/StopScene - Serializer
 	{
-		const auto cCRequestNetworkSyncedSceneEvent_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 8D 05 ? ? ? ? 89 5E ? 48 8B 5C 24 ? 48 89 06 8A 47", 3));
+		const auto cCRequestNetworkSyncedSceneEvent_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 8D 05 ? ? ? ? 89 5E ? 48 8B 5C 24 ? 48 89 06 8A", 3));
 
 		// Write
 		uintptr_t target = cCRequestNetworkSyncedSceneEvent_vtable[5];
@@ -135,13 +135,26 @@ static HookFunction hookFunction([]()
 			}
 		} patchStub;
 
-		auto location = hook::get_pattern("0F B6 68 ? C1 E5");
+		if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+		{
+			char* location = hook::get_pattern<char>("0F B6 A8 ? ? ? ? C1 E5");
+			const auto ret = reinterpret_cast<intptr_t>(location) + 10;
 
-		const auto ret = reinterpret_cast<intptr_t>(location) + 7;
+			patchStub.Init(ret);
 
-		patchStub.Init(ret);
+			hook::nop(location, 10);
+			hook::jump_rcx(location, patchStub.GetCode());
+		}
+		else
+		{
+			char* location = hook::get_pattern<char>("0F B6 68 ? C1 E5");
 
-		hook::nop(location, 7);
-		hook::jump_rcx(location, patchStub.GetCode());
+			const auto ret = reinterpret_cast<intptr_t>(location) + 7;
+
+			patchStub.Init(ret);
+
+			hook::nop(location, 7);
+			hook::jump_rcx(location, patchStub.GetCode());
+		}
 	}
 });

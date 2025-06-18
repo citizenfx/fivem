@@ -1641,7 +1641,7 @@ static HookFunction hookFunction([]()
 		} ownerLoop;
 
 #ifdef GTA_FIVE
-		auto location = hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 85 C0 74 4F");
+		auto location = hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 85 C0 74 ? 48 8B CB E8 ? ? ? ? 48 8B CF");
 		hook::nop(location, 0x3F);
 		hook::call_rcx(location, ownerLoop.GetCode());
 		hook::put<uint16_t>(location + 0x3F, 0xC084); // test al, al
@@ -1687,7 +1687,14 @@ static HookFunction hookFunction([]()
 
 	// netobjmgr count, temp dbg
 #ifdef GTA_FIVE
-	hook::put<uint8_t>(hook::get_pattern("48 8D 05 ? ? ? ? BE 1F 00 00 00 48 8B F9", 8), 128);
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	{
+		hook::put<uint8_t>(hook::get_pattern("BF ? ? ? ? 48 8B D9 48 89 01 48 8D 41", 1), 128);
+	}
+	else
+	{
+		hook::put<uint8_t>(hook::get_pattern("48 8D 05 ? ? ? ? BE 1F 00 00 00 48 8B F9", 8), 128);
+	}
 #elif IS_RDR3
 	//hook::put<uint8_t>(hook::get_pattern("48 8D 05 ? ? ? ? BF 20 00 00 00 48 89 01", 8), 128);
 #endif
@@ -1884,7 +1891,7 @@ static HookFunction hookFunction([]()
 #endif
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("4C 8B F9 74 7D", -0x2B), netObjectMgr__CountObjects, (void**)&g_origCountObjects);
+	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? 48 8B 35 ? ? ? ? 33 FF"), netObjectMgr__CountObjects, (void**)&g_origCountObjects);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("4C 8B F9 49 8B CC 4C 8B F2 33 FF E8", -0x24), netObjectMgr__CountObjects, (void**)&g_origCountObjects);
 #endif
@@ -1924,7 +1931,7 @@ static HookFunction hookFunction([]()
 
 	// disable voice chat bandwidth estimation for 1s (it will overwrite some memory)
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("40 8A 72 ? 40 80 FE FF 0F 84", -0x46), VoiceChatMgr_EstimateBandwidth, (void**)&g_origVoiceChatMgr_EstimateBandwidth);
+	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 41 56 41 57 48 8B EC 48 83 EC ? 48 8B F9 E8 ? ? ? ? 8B F0"), VoiceChatMgr_EstimateBandwidth, (void**)&g_origVoiceChatMgr_EstimateBandwidth);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("0F B6 72 ? F6 84 B3 ? ? ? ? 01 75", -0x57), VoiceChatMgr_EstimateBandwidth, (void**)&g_origVoiceChatMgr_EstimateBandwidth);
 #endif
@@ -2636,7 +2643,7 @@ static HookFunction hookFunctionWorldGrid([]()
 	MH_Initialize();
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("44 8A 40 ? 41 80 F8 FF 0F", -0x1B), DoesLocalPlayerOwnWorldGrid, (void**)&g_origDoesLocalPlayerOwnWorldGrid);
+	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B 0D ? ? ? ? 32 DB"), DoesLocalPlayerOwnWorldGrid, (void**)&g_origDoesLocalPlayerOwnWorldGrid);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("44 0F B6 C0 F3 0F 5F C3 41 0F B6 04 10", -0x35), DoesLocalPlayerOwnWorldGrid, (void**)&g_origDoesLocalPlayerOwnWorldGrid);
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 11 B9")), ShouldSkipWaterPopulationSpawn, (void**)&g_origShouldSkipWaterPopulationSpawn);
@@ -3278,7 +3285,14 @@ static HookFunction hookFunctionNative([]()
 	MH_Initialize();
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("41 56 41 57 48 83 EC 40 0F B6 72 ? 4D 8B E1", -0x14), SendCloneSync, (void**)&g_origSendCloneSync);
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	{
+		MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 0F B6 B2"), SendCloneSync, (void**)&g_origSendCloneSync);
+	}
+	else
+	{
+		MH_CreateHook(hook::get_pattern("41 56 41 57 48 83 EC 40 0F B6 72 ? 4D 8B E1", -0x14), SendCloneSync, (void**)&g_origSendCloneSync);
+	}
 	MH_CreateHook(hook::get_pattern("89 41 70 41 8B 40 04 89 41 74 41 8B", -0x64), CPickupPlacement_ctor, (void**)&g_origCPickupPlacement_ctor);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("C6 85 ? ? ? ? 00 ? 8B ? FF 90 ? ? ? ? 84 C0 75", -0x3C), SendCloneSync, (void**)&g_origSendCloneSync);

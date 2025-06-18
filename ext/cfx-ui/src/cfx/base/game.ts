@@ -32,6 +32,8 @@ export function getGameBuildDLCName(gameBuild: string): string {
       return 'Bottom Dollar Bounties';
     case '3407':
       return 'Agents of Sabotage';
+    case '3570':
+      return 'Money Fronts';
   }
 
   return '';

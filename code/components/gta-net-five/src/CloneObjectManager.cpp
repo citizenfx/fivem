@@ -195,12 +195,11 @@ static HookFunction hookFunction([]()
 		MH_CreateHook(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 ? ? 48 89 ? ? ? 89 ? ? 41 ? 41 56 41 57 48 81 EC ? ? ? ? 44 8A ? 4B"), netObjectMgrBase__ChangeOwner, (void**)&g_orig_netObjectMgrBase__ChangeOwner); //
 	}
 	else
-
 	{
 		MH_CreateHook(hook::get_pattern("44 8A 62 4B 33 DB 41 8B E9", -0x20), netObjectMgrBase__ChangeOwner, (void**)&g_orig_netObjectMgrBase__ChangeOwner); //
 	}
 	MH_CreateHook(hook::get_pattern("44 38 33 75 30 66 44", -0x40), netObjectMgrBase__GetNetworkObject, (void**)&g_orig_netObjectMgrBase__GetNetworkObject); //
-	MH_CreateHook(hook::get_pattern("41 80 78 ? FF 74 2D 41 0F B6 40"), netObjectMgrBase__GetNetworkObjectForPlayer, (void**)&g_orig_netObjectMgrBase__GetNetworkObjectForPlayer);
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B F0 48 85 C0 0F 84 ? ? ? ? 48 8B C8 E8 ? ? ? ? BB")), netObjectMgrBase__GetNetworkObjectForPlayer, (void**)&g_orig_netObjectMgrBase__GetNetworkObjectForPlayer);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 8B F2 41 B0 01 0F B7 52", -0x1B), netObjectMgrBase__RegisterNetworkObject, (void**)&g_orig_netObjectMgrBase__RegisterNetworkObject);
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 76 08 48 83 EB 01 75 E8")), netObjectMgrBase__DestroyNetworkObject, (void**)&g_orig_netObjectMgrBase__DestroyNetworkObject);

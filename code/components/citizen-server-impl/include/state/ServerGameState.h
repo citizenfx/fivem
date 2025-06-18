@@ -173,6 +173,16 @@ inline bool Is3407()
 
 	return value;
 }
+
+inline bool IsSummerUpdate25()
+{
+	static bool value = ([]()
+	{
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= xbr::Build::Summer_2025) || fx::GetEnforcedGameBuildNumber() >= xbr::Build::Summer_2025;
+	})();
+
+	return value;
+}
 #elif defined(STATE_RDR3)
 inline bool Is1491()
 {

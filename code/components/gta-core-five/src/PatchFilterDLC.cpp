@@ -102,7 +102,10 @@ static std::unordered_set<std::string> g_badFiles{
 	"dlc_mp2024_02_G9ECCRC:/common/data/pickups.meta",
 	"dlc_mp2024_02_G9ECCRC:/common/data/ai/weapon_strickler.meta",
 	"dlc_mp2024_02_G9ECCRC:/common/data/ai/weaponanimations.meta",   
-	"dlc_mp2024_02_G9ECCRC:/common/data/ai/weaponcomponents.meta"
+	"dlc_mp2024_02_G9ECCRC:/common/data/ai/weaponcomponents.meta",
+
+	"dlc_mp2025_01_G9EC:/x64/levels/mp2025_01_g9ec/vehiclemods/tampa4hsw_mods.rpf",
+	"dlc_mp2025_01_G9EC:/x64/levels/mp2025_01_g9ec/vehiclemods/woodlanderhsw_mods.rpf",
 };
 
 static void (*_applyChangeSetEntry)(ChangeSetEntry* entry);

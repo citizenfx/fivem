@@ -22,7 +22,7 @@ static CNetGamePlayer*(*g_origAllocateNetPlayer)(void*);
 static hook::cdecl_stub<CNetGamePlayer*(void*)> g_netPlayerCtor([]()
 {
 #ifdef GTA_FIVE
-	return (xbr::IsGameBuildOrGreater<2944>()) ? hook::get_pattern("83 8B ? 00 00 00 FF 48 8D 05 ? ? ? ? 33 F6", -0x17) : hook::get_pattern("83 8B ? 00 00 00 FF 33 F6", -0x17);
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 81 C7 ? ? ? ? FF CD 79 ? 33 ED"));
 #else // IS_RDR3
 	return hook::get_pattern("E8 ? ? ? ? 33 F6 48 8D 05 ? ? ? ? 48 8D 8B", -0x17);
 #endif
