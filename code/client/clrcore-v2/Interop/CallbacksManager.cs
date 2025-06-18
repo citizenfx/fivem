@@ -1,11 +1,8 @@
-using CitizenFX.Core;
 using CitizenFX.Core.Native;
 using CitizenFX.MsgPack;
 using CitizenFX.Shared;
-using CitizenFX.Shared.Native;
 using System;
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
 using System.Threading;
 
 namespace CitizenFX.Core
@@ -178,7 +175,7 @@ namespace CitizenFX.Core
 				return coro;
 			}))
 			{
-				throw new Exception($"Error while trying to register event callback [{name}].");
+				throw new Exception($"Callback [{name}] already registered, you can only register it once!");
 			}
 		}
 
