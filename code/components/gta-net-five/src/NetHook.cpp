@@ -1471,7 +1471,14 @@ static HookFunction hookFunction([] ()
 	}
 
 	// exit game on game exit from alt-f4
-	hook::call(hook::get_pattern("48 83 F8 04 75 ? 40 88", 6), ExitCleanly);
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	{
+		hook::call(hook::get_pattern("40 88 35 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 48 8B CF"), ExitCleanly);
+	}
+	else
+	{
+		hook::call(hook::get_pattern("48 83 F8 04 75 ? 40 88", 6), ExitCleanly);
+	}
 
 	// no netgame jumpouts in alt-f4
 	hook::put<uint8_t>(hook::get_pattern("40 38 35 ? ? ? ? 74 0A 48 8B CF", 7), 0xEB);
@@ -1695,7 +1702,11 @@ static HookFunction hookFunction([] ()
 	// semi-related: adding to a script handler checking for the above value being 0
 	hook::nop(hook::pattern("FF 50 28 45 33 E4 48 85 C0 0F 85").count(1).get(0).get<void>(9), 6);
 
-	if (xbr::IsGameBuildOrGreater<2699>())
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	{
+		hook::jump(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 ? 33 D2 8D 4A ? E8 ? ? ? ? 84 C0 74 ? 85 F6")), ReturnTrue);
+	}
+	else if (xbr::IsGameBuildOrGreater<2699>())
 	{
 		// now it's completely obfuscated, so just ignoring the entire list of checks
 		hook::jump(hook::get_call(hook::get_pattern("41 BD 20 00 00 00 48 8B CE 41 3B FD", -13)), ReturnTrue);
@@ -1718,11 +1729,19 @@ static HookFunction hookFunction([] ()
 	hook::put<uint16_t>(hook::pattern("8B B5 ? ? 00 00 85 F6 0F 84 ? 00 00").count(1).get(0).get<void>(8), 0xE990);
 
 	// objectmgr bandwidth stuff?
-	hook::put<uint8_t>(hook::pattern("F6 82 ? 00 00 00 01 74 2C 48").count(1).get(0).get<void>(7), 0xEB);
-	hook::put<uint8_t>(hook::pattern("74 21 80 7F ? FF B3 01 74 19 0F").count(1).get(0).get<void>(8), 0xEB);
+	hook::put<uint8_t>(hook::pattern("74 ? 48 89 54 24 ? 48 8D 54 24 ? 48 81 C1").count(1).get(0).get<void>(0), 0xEB);
+
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	{
+		hook::put<uint8_t>(hook::pattern("74 ? 48 8B 4E ? 0F B6 C0").count(1).get(0).get<void>(0), 0xEB);
+	}
+	else
+	{
+		hook::put<uint8_t>(hook::pattern("74 21 80 7F ? FF B3 01 74 19 0F").count(1).get(0).get<void>(8), 0xEB);
+	}
 
 	// even more stuff in the above function?! 
-	hook::nop(hook::pattern("85 ED 78 52 84 C0 74 4E 48").count(1).get(0).get<void>(), 8);
+	hook::nop(hook::pattern("85 ED 78 ? 84 C0 74").count(1).get(0).get<void>(), 8);
 
 	// DLC mounts
 	auto location = hook::pattern("0F 85 A4 00 00 00 8D 57 10 48 8D 0D").count(1).get(0).get<char>(12);

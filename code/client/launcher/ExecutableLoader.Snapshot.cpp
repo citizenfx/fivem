@@ -36,6 +36,11 @@ inline uintptr_t GetTriggerEP()
 		return ep;
 	}
 
+	if (xbr::IsGameBuild<xbr::Build::Summer_2025>())
+	{
+		return 0x141868504;
+	}
+
 	if (xbr::IsGameBuild<3407>())
 	{
 		return 0x14185CFAC;

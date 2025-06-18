@@ -85,34 +85,58 @@ public:
 #ifdef GTA_FIVE
 static uint32_t* g_preferenceArray;
 
-// 1290
-// #TODO1365
-// #TODO1493
-// #TODO1604
-// Outdated as of b2944, we're mapping indexes now.
-enum PrefEnum
+// Virtual mapping - incomplete
+enum eMenuPref
 {
-	PREF_VOICE_ENABLE = 0x60,
-	PREF_VOICE_OUTPUT_DEVICE = 0x61,
-	PREF_VOICE_OUTPUT_VOLUME = 0x62,
-	PREF_VOICE_SOUND_VOLUME = 0x63,
-	PREF_VOICE_MUSIC_VOLUME = 0x64,
-	PREF_VOICE_TALK_ENABLED = 0x65,
-	PREF_VOICE_FEEDBACK = 0x66,
-	PREF_VOICE_INPUT_DEVICE = 0x67,
-	PREF_VOICE_CHAT_MODE = 0x68,
-	PREF_VOICE_MIC_VOLUME = 0x69,
-	PREF_VOICE_MIC_SENSITIVITY = 0x6A
+	PREF_VOICE_ENABLE = 0,
+	PREF_VOICE_OUTPUT = 1, // NOT A VOICE PREF - needed for index to match
+	PREF_VOICE_OUTPUT_DEVICE = 2,
+	PREF_VOICE_OUTPUT_VOLUME = 3,
+	PREF_VOICE_SOUND_VOLUME = 9,
+	PREF_VOICE_MUSIC_VOLUME = 10,
+	PREF_VOICE_TALK_ENABLED = 4,
+	//PREF_VOICE_FEEDBACK,
+	PREF_VOICE_INPUT_DEVICE = 5,
+	PREF_VOICE_CHAT_MODE = 6,
+	PREF_VOICE_MIC_VOLUME = 7,
+	PREF_VOICE_MIC_SENSITIVITY = 8,
 };
 
-static int MapPrefsEnum(int index)
+static std::array<uint8_t, 11> voicePrefEnums;
+
+static int MapPrefsEnum(const int index)
 {
-	if (index >= 2 && xbr::IsGameBuildOrGreater<2944>())
+	return voicePrefEnums[index];
+}
+
+static void GetDynamicVoicePrefEnums()
+{
+	uint8_t inserted = 0;
+	uint8_t offset = 0xFF;
+
+	auto instructionPtr = hook::get_pattern<uint8_t>("40 56 48 83 EC ? BE");
+
+	while (inserted < 11)
 	{
-		index++;
+		if (instructionPtr[0] == 0xBE && offset == 0xFF)
+		{
+			assert(inserted == 0);
+			offset = instructionPtr[1];
+		}
+
+		if (instructionPtr[0] == 0x8D && instructionPtr[1] == 0x4E)
+		{
+			assert(offset != 0xFF && inserted < 11);
+
+			const uint8_t enumVal = offset + instructionPtr[2];
+
+			voicePrefEnums[inserted++] = enumVal;
+		}
+
+		++instructionPtr;
 	}
 
-	return index;
+	assert(inserted == 11);
 }
 
 void VoiceChatPrefs::InitConfig()
@@ -899,6 +923,8 @@ static HookFunction hookFunction([]()
 	}
 
 	g_playerInfoPedOffset = *hook::get_pattern<uint32_t>("4C 8B 81 ? ? ? ? 41 8B 80", 3);
+
+	GetDynamicVoicePrefEnums();
 #elif IS_RDR3
 	g_viewportGame = hook::get_address<CViewportGame**>(hook::get_pattern("0F 2F F0 76 ? 4C 8B 35", 8));
 

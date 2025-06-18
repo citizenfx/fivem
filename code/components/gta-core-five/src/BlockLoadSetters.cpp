@@ -329,11 +329,7 @@ int BlipAsIndex(int blip)
 
 static hook::cdecl_stub<void()> g_runWarning([]()
 {
-	if (xbr::IsGameBuildOrGreater<3258>())
-	{
-		return hook::get_pattern("48 89 5C 24 ? 48 89 7C 24 ? 55 48 8D 6C 24 ? 48 81 EC ? ? ? ? 33 FF 83 CB");
-	}
-	return hook::get_pattern("83 F9 FF 74 0E E8 ? ? ? ? 84 C0 0F 94", -0x22);
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 83 64 24 ? ? 41 8B 06"));
 });
 
 DLL_EXPORT fwEvent<> PreSetupLoadingScreens;
@@ -751,7 +747,15 @@ static HookFunction hookFunction([] ()
 	// fix 32:9 being interpreted as 3 spanned monitors
 	// (change 3.5 aspect cap to 3.6, which is enough to contain 3x 5:4, but does not contain 2x16:9 anymore)
 	{
-		auto location = hook::get_pattern<char>("EB ? 0F 2F 35 ? ? ? ? 76 ? 48 8B CF E8F", 5);
+		char* location = nullptr;
+		if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+		{
+			location = hook::get_pattern<char>("0F 2F 35 ? ? ? ? 0F 86 ? ? ? ? 48 8B CF E8 ? ? ? ? 84 C0 74", 3);
+		}
+		else
+		{
+			location = hook::get_pattern<char>("EB ? 0F 2F 35 ? ? ? ? 76 ? 48 8B CF E8", 5);
+		}
 		auto stubLoc = hook::AllocateStubMemory(4);
 
 		*(float*)stubLoc = 3.6f;
