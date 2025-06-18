@@ -676,9 +676,14 @@ struct
 		}
 		else if (state == HS_HOSTED || state == HS_JOINED)
 		{
+			if (cgi->OneSyncEnabled)
+			{
+				return;
+			}
+
 			int playerCount = 0;
 
-			for (int i = 0; i < 256; i++)
+			for (int i = 0; i < 256 && playerCount <= 1; i++)
 			{
 				// NETWORK_IS_PLAYER_ACTIVE
 				if (NativeInvoke::Invoke<0xB8DFD30D6973E135, bool>(i))
@@ -689,7 +694,7 @@ struct
 
 			static uint64_t mismatchStart = UINT64_MAX;
 
-			if (isNetworkHost() && playerCount == 1 && !cgi->OneSyncEnabled && g_netLibrary->GetHostNetID() != g_netLibrary->GetServerNetID())
+			if (isNetworkHost() && playerCount == 1 && g_netLibrary->GetHostNetID() != g_netLibrary->GetServerNetID())
 			{
 				if (mismatchStart == UINT64_MAX)
 				{
