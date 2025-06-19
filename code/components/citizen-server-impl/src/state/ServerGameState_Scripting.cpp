@@ -1416,6 +1416,11 @@ static void Init()
 		return uint32_t(node ? node->curWeapon : 0);
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("IS_OBJECT_A_PICKUP", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+    {
+        return entity->type == fx::sync::NetObjEntityType::Pickup || entity->type == fx::sync::NetObjEntityType::PickupPlacement;
+    }));
+
 	fx::ScriptEngine::RegisterNativeHandler("IS_PED_A_PLAYER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		return entity->type == fx::sync::NetObjEntityType::Player;
