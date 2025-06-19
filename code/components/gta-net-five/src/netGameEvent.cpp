@@ -1309,7 +1309,14 @@ static HookFunction hookFunction([]()
 
 	// can cause crashes due to high player indices, default event sending
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 83 C7 ? 49 2B F4 75 ? 48 83 C4")), SendPackedEventReliablesMessage, (void**)&g_origSendPackedEventReliablesMessage);
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 83 C7 ? 49 2B F4 75 ? 48 83 C4")), SendPackedEventReliablesMessage, (void**)&g_origSendPackedEventReliablesMessage);
+	}
+	else
+	{
+		MH_CreateHook(hook::get_pattern("48 83 EC 30 80 7A ? FF 4C 8B D2", -0xC), SendPackedEventReliablesMessage, (void**)&g_origSendPackedEventReliablesMessage);
+	}
 #elif IS_RDR3
 	MH_CreateHook((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("41 8A 5E 19 45 33 E4 80 FB 20 72", -0x27) : hook::get_pattern("48 83 EC 30 48 8B F9 4C 8B F2 48 83 C1 08", -0xE), SendPackedEventReliablesMessage, (void**)&g_origSendPackedEventReliablesMessage);
 #endif
