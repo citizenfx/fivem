@@ -5413,6 +5413,25 @@ struct CGiveWeaponEvent
     MSGPACK_DEFINE_MAP(pedId, weaponType, unk1, ammo, givenAsPickup);
 };
 
+struct CGivePickupRewardsEvent
+{
+	void Parse(rl::MessageBufferView& buffer)
+	{
+		receivingPlayers = buffer.Read<uint16_t>(13);
+		pickupHash = buffer.Read<uint32_t>(32);
+	}
+
+	inline std::string GetName()
+	{
+		return "givePickupRewardsEvent";
+	}
+
+	int receivingPlayers; // player net ID
+	int pickupHash; // pickup hash
+
+	MSGPACK_DEFINE_MAP(receivingPlayers, pickupHash);
+};
+
 struct CRemoveWeaponEvent
 {
     void Parse(rl::MessageBufferView& buffer)
@@ -6992,6 +7011,7 @@ enum GTA_EVENT_IDS
 	NETWORK_START_SYNCED_SCENE_EVENT,
 	NETWORK_STOP_SYNCED_SCENE_EVENT,
 	NETWORK_UPDATE_SYNCED_SCENE_EVENT,
+	NETWORK_GIVE_PICKUP_REWARDS_EVENT,
 	INCIDENT_ENTITY_EVENT,
 	GIVE_PED_SCRIPTED_TASK_EVENT,
 	GIVE_PED_SEQUENCE_TASK_EVENT,
@@ -7592,6 +7612,7 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 		case NETWORK_REQUEST_SYNCED_SCENE_EVENT: return GetHandler<CRequestNetworkSyncedSceneEvent>(instance, client, std::move(buffer));
 		case NETWORK_START_SYNCED_SCENE_EVENT: return GetHandler<CStartNetworkSyncedSceneEvent>(instance, client, std::move(buffer));
 		case NETWORK_UPDATE_SYNCED_SCENE_EVENT: return GetHandler<CUpdateNetworkSyncedSceneEvent>(instance, client, std::move(buffer));
+		case NETWORK_GIVE_PICKUP_REWARDS_EVENT: return GetHandler<CGivePickupRewardsEvent>(instance, client, std::move(buffer));
 		case NETWORK_STOP_SYNCED_SCENE_EVENT: return GetHandler<CStopNetworkSyncedSceneEvent>(instance, client, std::move(buffer));
 		case GIVE_PED_SCRIPTED_TASK_EVENT: return GetHandler<CGivePedScriptedTaskEvent>(instance, client, std::move(buffer));
 		default:
