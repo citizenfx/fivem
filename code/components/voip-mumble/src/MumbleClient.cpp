@@ -774,7 +774,7 @@ void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 			// send a request to the server to reset our crypt state
 			MumbleProto::CryptSetup crypt;
 			Send(MumbleMessageType::CryptSetup, crypt);
-			console::DPrintf("mumble", "Failed to decrypt after 1 seconds, requesting crypt reset");
+			console::DPrintf("mumble", "Failed to decrypt after 1 seconds, requesting crypt reset\n");
 		}
 		return;
 	}
