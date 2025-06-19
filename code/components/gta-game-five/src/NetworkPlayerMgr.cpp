@@ -76,7 +76,7 @@ static HookFunction hookFunction([]()
 		g_netGamePlayerNonPhysicalDataOffset = *hook::get_pattern<uint8_t>("48 8B 49 ? 48 8B FA 48 85 C9 74 ? 48 8B 01 BA ? ? ? ? FF 10 48 83 63", 3);
 	}
 
-
+	g_netGamePlayerInfoOffset = *hook::get_pattern<uint32_t>("4C 8B C7 33 D2 E8 ? ? ? ? 48 89 83", 13);
 });
 
 void* rage::netPlayer::GetGamerInfoBase()
