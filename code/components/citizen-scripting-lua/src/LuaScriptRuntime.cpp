@@ -806,6 +806,25 @@ static int Lua_Require(lua_State* L)
 	return luaL_error(L, "module '%s' not found", name);
 }
 
+static int Lua_TableSize(lua_state* L)
+{
+    if (lua_gettop(L) != 1 || !lua_istable(L, 1))
+    {
+        return luaL_error(L, "table expected got %s", lua_typename(L, lua_type(L, 1)));
+    }
+
+    lua_Integer count = 0;
+    lua_pushnil(L);
+    while (lua_next(L, 1))
+    {
+        count++;
+        lua_pop(L, 1);
+    }
+
+    lua_pushinteger(L, count);
+    return 1;
+}
+
 //
 // Scheduling
 //
@@ -1438,6 +1457,14 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 
 	lua_pushcfunction(m_state, Lua_Require);
 	lua_setglobal(m_state, "require");
+
+	lua_getglobal(m_state, "table");
+	if (lua_istable(m_state, -1))
+	{
+		lua_pushcfunction(m_state, Lua_TableSize);
+		lua_setfield(m_state, -2, "size");
+	}
+	lua_pop(m_state, 1);
 
 #if LUA_VERSION_NUM >= 504
 	lua_setwarnf(m_state, Lua_Warn, nullptr);
