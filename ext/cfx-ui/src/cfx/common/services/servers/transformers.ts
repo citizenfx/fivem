@@ -289,10 +289,6 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
         view.bannerDetail = value;
         continue;
       }
-      case key === 'can_review': {
-        view.canReview = Boolean(value);
-        continue;
-      }
       case key === 'onesync_enabled': {
         view.onesyncEnabled = value === 'true';
         continue;
@@ -307,6 +303,16 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
         view.pureLevel = value as ServerPureLevel;
         continue;
       }
+      case key === 'ServerReviewsEnabled': {
+        view.canReview = value.toLowerCase() !== 'false';
+        continue;
+      }
+      case key === 'can_review': {
+        if (view.canReview === undefined) {
+          view.canReview = Boolean(value);
+        }
+        continue;
+      }
       case !shouldVarBeShown(key): {
         continue;
       }
@@ -319,6 +325,9 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
     }
 
     view.variables![key] = value;
+  }
+  if (view.canReview === undefined) {
+    view.canReview = true;
   }
 
   return view;
