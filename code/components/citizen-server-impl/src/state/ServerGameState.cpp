@@ -4644,6 +4644,21 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 
 		console::Printf("net", "---------------- END OBJECT ID DUMP ----------------\n");
 	});
+
+	// event is either eventNameHash for msgNetGameEventV2, or eventId when using v1
+	static auto blockNetGameEvent = instance->AddCommand("block_net_game_event", [this](uint32_t event)
+	{
+		auto& blockedEvents = this->blockedEvents;
+		if (blockedEvents.find(event) != blockedEvents.end())
+			return;
+		blockedEvents.insert(event);
+	});
+
+	static auto allowNetGameEvent = instance->AddCommand("allow_net_game_event", [this](uint32_t event)
+	{
+		auto& blockedEvents = this->blockedEvents;
+		blockedEvents.erase(event);
+	});
 }
 }
 
@@ -7512,6 +7527,15 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 	}
 #endif
 
+	// This checks for event id rather than eventNameHash for compatibility until msgNetGameEventV2 is ready
+	if (blockedEvents.find(eventType) != blockedEvents.end())
+	{
+		return []()
+		{
+			return false;
+		};
+	}
+
 	// RDR3 remaps eventType on the client (netEventMgr_MapEventId)
 
 #if defined(STATE_FIVE) || defined(STATE_RDR3)
@@ -7641,6 +7665,14 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandlerWithEvent(const fx
 	
 	const bool isReply = netGameEvent.isReply;
 	const uint32_t eventNameHash = netGameEvent.eventNameHash;
+
+	if (blockedEvents.find(eventNameHash) != blockedEvents.end())
+	{
+		return []()
+		{
+			return false;
+		};
+	}
 
 #if defined(STATE_FIVE) || defined(STATE_RDR3)
 #ifdef STATE_FIVE
