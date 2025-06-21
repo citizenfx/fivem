@@ -3474,6 +3474,35 @@ static void CleanupStreaming()
 	g_unloadingCfx = false;
 }
 
+// By default, Gen9 assets are placeholders in PC(legacy version) and are skipped in SetVariation and SetModIndex
+// With this we can allow servers to manually those assets exported from enhanced
+static bool g_allowGen9Assets = false;
+
+static bool (*g_origIsGen9ExclusivePedDrawable)(void* ped, __int32 component, unsigned int drawableIdx);
+static bool IsGen9ExclusivePedDrawable(void* ped, __int32 component, unsigned int drawableIdx)
+{
+	if(g_allowGen9Assets)
+	{
+		return false;
+	}
+	return g_origIsGen9ExclusivePedDrawable(ped, component, drawableIdx);
+}
+
+static bool (*g_origIsGen9ExclusiveVehicleMod)(void* vehicle, int modSlot, unsigned __int8 modIndex);
+static bool IsGen9ExclusiveVehicleMod(void* vehicle, int modSlot, unsigned __int8 modIndex)
+{
+	if(g_allowGen9Assets)
+	{
+		return false;
+	}
+	return g_origIsGen9ExclusiveVehicleMod(vehicle, modSlot, modIndex);
+}
+
+static InitFunction initFunction([]()
+{
+	static ConVar<bool> disablePedComponentsValidationVar("game_AllowGen9Assets", ConVar_Replicated, false, &g_allowGen9Assets);
+});
+
 static HookFunction hookFunction([]()
 {
 #ifdef GTA_FIVE
@@ -3482,6 +3511,11 @@ static HookFunction hookFunction([]()
 	chunkyArrayCountOffset = *(int32_t*)(chunkyArrayAppendLoc + 8);
 	chunkyArrayOffset = *hook::get_pattern<int32_t>("48 8D 8F ? ? ? ? E8 ? ? ? ? 48 8D 4C 24", 3);
 	g_chunkyArrayAppend = hook::trampoline(chunkyArrayAppendLoc, &chunkyArrayAppend);
+	if(xbr::IsGameBuildOrGreater<2699>())
+	{
+		g_origIsGen9ExclusivePedDrawable = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 56 48 83 EC ? 45 8B D8"), &IsGen9ExclusivePedDrawable); // Ped drawables
+		g_origIsGen9ExclusiveVehicleMod = hook::trampoline(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 56 41 57 45 8A D0"), &IsGen9ExclusiveVehicleMod); // Vehicles
+	}
 #elif IS_RDR3
 	g_GetRawStreamer = (decltype(g_GetRawStreamer))hook::get_pattern<uint8_t>("48 83 EC ? 48 8B 05 ? ? ? ? 48 85 C0 75 ? 8D 50 ? B9");
 	auto chunkyArrayAppendLoc = hook::get_pattern<uint8_t>("40 53 48 83 EC ? 8B 91 ? ? ? ? 48 8B D9 F7 C2");
