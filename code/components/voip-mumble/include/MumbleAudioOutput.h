@@ -52,6 +52,10 @@ public:
 
 	void HandleClientVolumeOverride(const MumbleUser& user, float volume);
 
+	void HandlePlayerVolume(const MumbleUser& user, float volume);
+
+	float GetPlayerVolume(const MumbleUser& user);
+
 	void HandleClientVoiceData(const MumbleUser& user, uint64_t sequence, const uint8_t* data, size_t size, bool hasTerminator);
 
 	void HandleClientDisconnect(const MumbleUser& user);
@@ -123,6 +127,7 @@ private:
 		float position[3];
 		float distance;
 		float overrideVolume;
+		float playerVolume;
 		bool isAudible = true;
 		uint32_t lastTime;
 

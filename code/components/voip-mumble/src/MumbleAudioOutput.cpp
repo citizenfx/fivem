@@ -216,7 +216,7 @@ void MumbleAudioOutput::Initialize()
 }
 
 MumbleAudioOutput::BaseAudioState::BaseAudioState()
-	: volume(1.0f), overrideVolume(-1.0f)
+	: volume(1.0f), overrideVolume(-1.0f), playerVolume(1.0f)
 {
 	position[0] = 0.0f;
 	position[1] = 0.0f;
@@ -1162,6 +1162,48 @@ void MumbleAudioOutput::HandleClientVolumeOverride(const MumbleUser& user, float
 	}
 }
 
+void MumbleAudioOutput::HandlePlayerVolume(const MumbleUser& user, float volume)
+{
+	std::shared_ptr<BaseAudioState> client;
+
+	{
+		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
+		auto it = m_clients.find(user.GetSessionId());
+
+		if (it != m_clients.end())
+		{
+			client = it->second;
+		}
+	}
+
+	if (client)
+	{
+		client->playerVolume = volume;
+	}
+}
+
+float MumbleAudioOutput::GetPlayerVolume(const MumbleUser& user)
+{
+	std::shared_ptr<BaseAudioState> client;
+
+	{
+		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
+		auto it = m_clients.find(user.GetSessionId());
+
+		if (it != m_clients.end())
+		{
+			client = it->second;
+		}
+	}
+
+	if (client)
+	{
+		return client->playerVolume;
+	}
+
+	return 1.0f;
+}
+
 void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float position[3])
 {
 	std::shared_ptr<BaseAudioState> client;
@@ -1317,7 +1359,7 @@ void MumbleAudioOutput::ClientAudioState::PushPosition(MumbleAudioOutput* baseIo
 				if (shouldHear)
 				{
 					float volume = distanceFromListener / (distance * distance);
-					client->voice->SetVolume(std::max(0.0f, std::min(1.0f, 1.0f - volume)));
+					client->voice->SetVolume(std::max(0.0f, std::min(1.0f, client->playerVolume - volume)));
 				}
 				else
 				{
@@ -1343,7 +1385,7 @@ void MumbleAudioOutput::ClientAudioState::PushPosition(MumbleAudioOutput* baseIo
 
 				if (client->overrideVolume >= 0.0f)
 				{
-					client->voice->SetVolume(client->overrideVolume);
+					client->voice->SetVolume(client->overrideVolume * client->playerVolume);
 
 					shouldHear = client->overrideVolume >= 0.005f;
 				}

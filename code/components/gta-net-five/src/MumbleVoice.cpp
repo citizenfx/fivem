@@ -1388,6 +1388,27 @@ static HookFunction hookFunction([]()
 			}
 		});
 
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_GET_PLAYER_VOLUME_FROM_SERVER_ID", [](fx::ScriptContext& context)
+		{
+			int serverId = context.GetArgument<int>(0);
+			auto volume = g_mumbleClient->GetPlayerVolumeFromServerId(serverId);
+
+			context.SetResult(volume);
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_PLAYER_VOLUME_FROM_SERVER_ID", [](fx::ScriptContext& context)
+		{
+			int serverId = context.GetArgument<int>(0);
+			float volume = context.GetArgument<float>(1);
+
+			if (volume < 0.0f || volume > 1.0f)
+			{
+				return;
+			}
+
+			g_mumbleClient->SetPlayerVolumeFromServerId(serverId, volume);
+		});
+
 #ifdef GTA_FIVE
 		static auto origIsTalking = fx::ScriptEngine::GetNativeHandler(0x031E11F3D447647E);
 
