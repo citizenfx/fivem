@@ -12,8 +12,8 @@ import { StatusLevel } from './types';
 
 const AUTO_REFRESH_INTERVAL = 20 * 1000;
 
-const PLAYER_STATS_FIVEM = 'https://runtime.fivem.net/counts.json';
-const PLAYER_STATS_REDM = 'https://runtime.fivem.net/counts_rdr3.json';
+const PLAYER_STATS_FIVEM = 'https://static.cfx.re/runtime/counts.json';
+const PLAYER_STATS_REDM = 'https://static.cfx.re/runtime/counts_rdr3.json';
 
 export const IPlatformStatusService = defineService<IPlatformStatusService>('PlatformStatusService');
 export type IPlatformStatusService = PlatformStatusService;

@@ -455,6 +455,23 @@ void Client_free(client_t *client)
 		recheckCodecVersions(NULL); /* Can use better codec now? */
 }
 
+int Client_getPlayerId(client_t* client, char* username)
+{
+	int playerId = -1;
+	if(!username)
+	{
+		return -1;
+	}
+	if (strncmp(username, "[", 1) == 0) {
+		char *endptr;
+		playerId = strtol(username + 1, &endptr, 10);
+		if (*endptr != ']') {
+			playerId = -1;
+		}
+	}
+	return playerId;
+}
+
 void Client_close(client_t *client)
 {
 	//SSLi_shutdown(client->ssl);
@@ -824,7 +841,7 @@ int Client_read_udp(int udpsock)
 		uint32_t *ping = (uint32_t *)encrypted;
 		ping[0] = htonl((uint32_t)PROTOCOL_VERSION);
 		ping[3] = htonl((uint32_t)clientcount);
-		ping[4] = htonl((uint32_t)getIntConf(MAX_CLIENTS));
+		ping[4] = htonl((uint32_t)getIntConf(MUMBLE_MAX_CLIENTS));
 		ping[5] = htonl((uint32_t)getIntConf(MAX_BANDWIDTH));
 
 		sendto(udpsock, (char*)encrypted, 6 * sizeof(uint32_t), 0, (struct sockaddr *)&from, fromlen);

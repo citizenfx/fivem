@@ -844,7 +844,8 @@ int LuaIOFileWrite(lua_State* L)
 	const fwRefContainer<vfs::Stream> f = LuaIOToFile(L);
 
 	auto device = f->GetDevice();
-	device->Truncate(f->GetHandle(), 0);
+	auto handle = f->GetHandle();
+	size_t originalLen = f->GetLength();
 
 	// push file at the stack top (to be returned)
 	lua_pushvalue(L, 1);
@@ -877,6 +878,13 @@ int LuaIOFileWrite(lua_State* L)
 			const char* stringBuffer = luaL_checklstring(L, argumentOffset, &stringLength);
 			status = status && f->Write(stringBuffer, sizeof(char) * stringLength) == sizeof(char) * stringLength;
 		}
+	}
+
+	// Always truncate to the current position after writing
+	size_t newPos = f->Seek(0, SEEK_CUR);
+	if (status && newPos < originalLen)
+	{
+		device->Truncate(handle, newPos);
 	}
 
 	if (status)

@@ -5,6 +5,7 @@
 		"fx[2]",
 		"net:tcp-server",
 		"net:packet",
+		"citizen:server:impl",
 		"citizen:server:instance",
 		"citizen:server:net",
 		"scripting",

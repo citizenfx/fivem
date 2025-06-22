@@ -130,9 +130,10 @@ void Context::AddAccessControlEntry(const Principal& principal, const Object& ob
 
 void Context::RemoveAccessControlEntry(const Principal& principal, const Object& object, AccessType type)
 {
-	for (auto it = m_impl->m_aces.begin(); it != m_impl->m_aces.end(); )
+	auto range = m_impl->m_aces.equal_range(object);
+	for (auto it = range.first; it != range.second; )
 	{
-		if (it->first == object && it->second.principal == principal && it->second.type == type)
+		if (it->second.principal == principal && it->second.type == type)
 		{
 			it = m_impl->m_aces.erase(it);
 		}

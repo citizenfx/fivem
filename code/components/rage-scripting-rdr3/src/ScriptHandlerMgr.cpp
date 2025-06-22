@@ -79,14 +79,11 @@ static HookFunction hookFunction([]()
 	});
 
 	// remove assertion for duplicate scripts (R* prod debug)
-	if (xbr::IsGameBuildOrGreater<1355>())
-	{
-		auto pattern = hook::pattern("FF 50 ? 84 C0 74 ? BA ? ? ? ? 41").count(3);
+	auto pattern = hook::pattern("FF 50 ? 84 C0 74 ? BA ? ? ? ? 41").count(3);
 
-		for (int i = 0; i < pattern.size(); i++)
-		{
-			hook::put<uint8_t>(pattern.get(i).get<void>(5), 0xEB);
-		}
+	for (int i = 0; i < pattern.size(); i++)
+	{
+		hook::put<uint8_t>(pattern.get(i).get<void>(5), 0xEB);
 	}
 });
 

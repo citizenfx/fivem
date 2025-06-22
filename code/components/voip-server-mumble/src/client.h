@@ -146,5 +146,6 @@ bool_t Client_token_match(client_t *client, char const *str);
 void Client_token_free(client_t *client);
 void Client_token_add(client_t *client, char *token_string);
 void Client_free(client_t *client);
+int Client_getPlayerId(client_t *client, char *username);
 
 #endif

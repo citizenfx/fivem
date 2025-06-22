@@ -62,7 +62,7 @@ public:
 };
 
 template<int Version>
-class scrThreadVersion<Version, VersionAfter<Version, 3407>>
+class scrThreadVersion<Version, VersionBetween<Version, 3407, xbr::Build::Summer_2025>>
 {
 protected:
 	scrThreadContext m_Context;
@@ -86,6 +86,30 @@ public:
 };
 
 template<int Version>
+class scrThreadVersion<Version, VersionAfter<Version, xbr::Build::Summer_2025>>
+{
+protected:
+	scrThreadContext m_Context;
+	void* m_pStack; // should be +176 including vtable
+	void* pad;
+	void* pad2;
+
+	// should be +200
+	const char* m_pszExitMessage;
+
+public:
+	virtual ~scrThreadVersion() = default;
+	virtual eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) = 0;
+	virtual eThreadState Run(uint32_t opsToExecute) = 0;
+	virtual eThreadState Tick(uint32_t opsToExecute) = 0;
+	virtual void Kill() = 0;
+
+	virtual void CacheThreadData(void* cachedData) // Added in 3407, Moved to end in 3570
+	{
+	}
+};
+
+template<int Version>
 class scrThreadMulti : public scrThreadVersion<Version>
 {
 public:
@@ -97,7 +121,7 @@ public:
 
 template<>
 struct CrossBuildStruct<scrThread>
-	: CrossBuildStructInfo<scrThread, scrThreadMulti, 3407>
+	: CrossBuildStructInfo<scrThread, scrThreadMulti, 3407, xbr::Build::Summer_2025>
 {
 };
 

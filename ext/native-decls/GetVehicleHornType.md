@@ -9,7 +9,7 @@ game: gta5
 Hash GET_VEHICLE_HORN_TYPE(Vehicle vehicle);
 ```
 
-This is a getter for the client-side native [`START_VEHICLE_HORN`](https://docs.fivem.net/natives/?_0x9C8C6504B5B63D2C), which allows you to return the horn type of the vehicle.
+This is a getter for the client-side native [`START_VEHICLE_HORN`](#_0x9C8C6504B5B63D2C), which allows you to return the horn type of the vehicle.
 
 **Note**: This native only gets the hash value set with `START_VEHICLE_HORN`. If a wrong hash is passed into `START_VEHICLE_HORN`, it will return this wrong hash.
 

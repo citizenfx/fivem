@@ -7,7 +7,7 @@ apiset: shared
 ```c
 Entity GET_ENTITY_FROM_STATE_BAG_NAME(char* bagName);
 ```
-Returns the entity handle for the specified state bag name. For use with [ADD_STATE_BAG_CHANGE_HANDLER](?_0x5BA35AAF).
+Returns the entity handle for the specified state bag name. For use with [ADD_STATE_BAG_CHANGE_HANDLER](#_0x5BA35AAF).
 
 ## Parameters
 * **bagName**: An internal state bag ID from the argument to a state bag change handler.

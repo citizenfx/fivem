@@ -34,16 +34,7 @@ void AddCustomText(const char* key, const char* value);
 
 static hook::cdecl_stub<void(int unk, uint32_t* titleHash, uint32_t* messageHash, uint32_t* subMessageHash, int flags, bool, int8_t, void*, void*, bool, bool)> setWarningMessage([] ()
 {
-	if (xbr::IsGameBuildOrGreater<3258>())
-	{
-		return hook::get_pattern("48 89 5C 24 ? 4C 89 44 24 ? 89 4C 24");
-	}
-	else if (xbr::IsGameBuildOrGreater<2699>())
-	{
-		return hook::get_pattern("44 38 ? ? ? ? ? 0F 85 C5 02 00 00 E8", -0x38);
-	}
-
-	return hook::get_pattern("44 38 ? ? ? ? ? 0F 85 C2 02 00 00 E8", -0x3A);
+	return hook::get_call(hook::get_pattern("4D 89 43 ? 4D 8D 43 ? 4D 8D 4B", 12));
 });
 
 static hook::cdecl_stub<int(bool, int)> getWarningResult([] ()

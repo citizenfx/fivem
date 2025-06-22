@@ -51,7 +51,9 @@ enum NativeIdentifiers : uint64_t
 	SET_ENTITY_COORDS = 0x621873ECE1178967,
 	LOAD_SCENE = 0x4448EB75B4904BDB,
 	SHUTDOWN_LOADING_SCREEN = 0x078EBE9809CCD637,
-	DO_SCREEN_FADE_IN = 0xD4E8E24955024033
+	DO_SCREEN_FADE_IN = 0xD4E8E24955024033,
+	FREEZE_ENTITY_POSITION = 0x428CA6DBD1094446,
+	ACTIVATE_ROCKSTAR_EDITOR = 0x49DA8145672B2725
 };
 
 class SpawnThread : public CfxThread
@@ -80,11 +82,11 @@ public:
 			NativeInvoke::Invoke<DO_SCREEN_FADE_IN, int>(0);
 
 			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, 293.089f, 180.466f, 104.301f);
-			NativeInvoke::Invoke<0x428CA6DBD1094446, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>(), false);
+			NativeInvoke::Invoke<FREEZE_ENTITY_POSITION, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), false);
 
 			if (Instance<ICoreGameInit>::Get()->HasVariable("editorMode"))
 			{
-				NativeInvoke::Invoke<0x49DA8145672B2725, int>();
+				NativeInvoke::Invoke<ACTIVATE_ROCKSTAR_EDITOR, int>();
 				Instance<ICoreGameInit>::Get()->ClearVariable("editorMode");
 			}
 

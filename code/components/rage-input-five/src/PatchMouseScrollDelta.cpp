@@ -2,6 +2,7 @@
 
 #include <jitasm.h>
 #include "Hooking.h"
+#include <CrossBuildRuntime.h>
 
 void DoPatchMouseScrollDelta()
 {
@@ -95,6 +96,7 @@ void DoPatchMouseScrollDelta()
 		static struct : jitasm::Frontend
 		{
 			uintptr_t returnAddr = 0;
+			bool useXmm9 = false;
 
 			virtual void InternalMain() override
 			{
@@ -102,17 +104,20 @@ void DoPatchMouseScrollDelta()
 
 				mov(rax, (uintptr_t)(void*)scale);
 
+				auto xmmReg = useXmm9 ? xmm9 : xmm8;
+
 				movaps(xmm0, xmmword_ptr[rax]);
-				cvtdq2ps(xmm8, xmm8);
-				mulps(xmm8, xmm0);
+				cvtdq2ps(xmmReg, xmmReg);
+				mulps(xmmReg, xmm0);
 
 				mov(rax, returnAddr);
 				jmp(rax);
 			}
 		} patch;
 
-		auto location = hook::get_pattern<char>("88 95 C8 01 00 00 45 0F 5B C0");
+		auto location = hook::get_pattern<char>("48 8B 05 ? ? ? ? 40 38 74 24 ? 74 ? F3 44 0F 10 90", -0x2B);
 		patch.returnAddr = (uintptr_t)(location + 10);
+		xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>() ? patch.useXmm9 = true : patch.useXmm9 = false;
 		hook::nop(location, 10);
 		hook::jump(location, patch.GetCode());
 	}

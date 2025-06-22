@@ -9,7 +9,7 @@ game: gta5
 bool IS_TRACK_ENABLED(int track);
 ```
 
-Getter for [SET_TRACK_ENABLED](?_0x4b41e84c)
+Getter for [SET_TRACK_ENABLED](#_0x4B41E84C)
 
 ## Parameters
 * **track**: The track id (between 0 - 27)

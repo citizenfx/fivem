@@ -14,4 +14,4 @@ void SET_TRAIN_STATE(Vehicle train, int state);
 * **state**: The trains new state
 
 ## Return value
-The trains current state, refer to [GET_TRAIN_STATE](?_0x81b50033)
+The trains current state, refer to [GET_TRAIN_STATE](#_0x81B50033)

@@ -102,9 +102,9 @@ static std::unordered_map<uint16_t, std::string> g_eventNames;
 
 static void (*g_origAddEvent)(void*, rage::netGameEvent*);
 static void (*g_origExecuteNetGameEvent)(void* eventMgr, rage::netGameEvent* ev, rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t, uint32_t);
-static void (*g_origUnkEventMgr)(void*, void*);
+static void (*g_origSendPackedEventsMessage)(void*, void*);
 static bool (*g_origMetricCASHIsGamerHandleValid)(void*);
-static bool(*g_origSendGameEvent)(void*, void*);
+static bool(*g_origSendPackedEventReliablesMessage)(void*, void*);
 
 #if defined(GTA_FIVE)
 static void (*g_origSendAlterWantedLevelEvent1)(void*, void*, void*, void*);
@@ -678,11 +678,11 @@ static void* RegisterNetGameEvent(void* eventMgr, uint16_t eventId, void* func, 
 }
 #endif
 
-static bool SendGameEvent(void* eventMgr, void* ev)
+static bool SendPackedEventReliablesMessage(void* eventMgr, void* ev)
 {
 	if (!icgi->OneSyncEnabled)
 	{
-		return g_origSendGameEvent(eventMgr, ev);
+		return g_origSendPackedEventReliablesMessage(eventMgr, ev);
 	}
 
 	return 1;
@@ -737,11 +737,11 @@ static bool MetricCASH_IsGamerHandleValid(void* pGamerHandle)
 }
 #endif
 
-static void UnkEventMgr(void* mgr, void* ply)
+static void SendPackedEventsMessage(void* mgr, void* ply)
 {
 	if (!icgi->OneSyncEnabled)
 	{
-		g_origUnkEventMgr(mgr, ply);
+		g_origSendPackedEventsMessage(mgr, ply);
 	}
 }
 
@@ -1289,7 +1289,7 @@ static HookFunction hookFunction([]()
 		});
 #endif
 #elif IS_RDR3
-		auto location = hook::get_pattern<char>("C6 47 50 01 4C 8B C3 49 8B D7", (xbr::IsGameBuildOrGreater<1436>()) ? 0x59 : 0x21);
+		auto location = hook::get_pattern<char>("C6 47 50 01 4C 8B C3 49 8B D7", 0x59);
 
 		g_netEventMgr = hook::get_address<void*>(location);
 		MH_CreateHook(hook::get_call(location + 7), EventMgr_AddEvent, (void**)&g_origAddEvent);
@@ -1309,14 +1309,21 @@ static HookFunction hookFunction([]()
 
 	// can cause crashes due to high player indices, default event sending
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("48 83 EC 30 80 7A ? FF 4C 8B D2", -0xC), SendGameEvent, (void**)&g_origSendGameEvent);
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 83 C7 ? 49 2B F4 75 ? 48 83 C4")), SendPackedEventReliablesMessage, (void**)&g_origSendPackedEventReliablesMessage);
+	}
+	else
+	{
+		MH_CreateHook(hook::get_pattern("48 83 EC 30 80 7A ? FF 4C 8B D2", -0xC), SendPackedEventReliablesMessage, (void**)&g_origSendPackedEventReliablesMessage);
+	}
 #elif IS_RDR3
-	MH_CreateHook((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("41 8A 5E 19 45 33 E4 80 FB 20 72", -0x27) : hook::get_pattern("48 83 EC 30 48 8B F9 4C 8B F2 48 83 C1 08", -0xE), SendGameEvent, (void**)&g_origSendGameEvent);
+	MH_CreateHook((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("41 8A 5E 19 45 33 E4 80 FB 20 72", -0x27) : hook::get_pattern("48 83 EC 30 48 8B F9 4C 8B F2 48 83 C1 08", -0xE), SendPackedEventReliablesMessage, (void**)&g_origSendPackedEventReliablesMessage);
 #endif
 
 	// fire applicability
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("85 DB 74 78 44 8B F3 48", -0x30), GetFireApplicability, (void**)&g_origGetFireApplicability);
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 3B 87 ? ? ? ? 75 ? B3")), GetFireApplicability, (void**)&g_origGetFireApplicability);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 8B 0C C1 4C 39 24 0A 75 04 33 C0", -0x3A), GetFireApplicability, (void**)&g_origGetFireApplicability);
 #endif
@@ -1367,14 +1374,14 @@ static HookFunction hookFunction([]()
 		hook::call(hook::get_pattern("33 C9 E8 ? ? ? ? E9 FD FE FF FF", 2), NetEventError);
 	}
 #elif IS_RDR3
-	hook::call((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("74 ? 48 8B 01 40 8A D6 FF ? ? BA", 25) : hook::get_pattern("BA 01 00 00 00 FF ? ? BA 5B 52 1C A4", 22), NetEventError);
+	hook::call(hook::get_pattern("74 ? 48 8B 01 40 8A D6 FF ? ? BA", 25), NetEventError);
 #endif
 
 	// func that reads neteventmgr by player idx, crashes page heap
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("80 7A ? FF 48 8B EA 48 8B F1 0F", -0x13), UnkEventMgr, (void**)&g_origUnkEventMgr);
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B D3 48 8B CD E8 ? ? ? ? 48 83 C7")), SendPackedEventsMessage, (void**)&g_origSendPackedEventsMessage);
 #elif IS_RDR3
-	MH_CreateHook(hook::get_pattern("41 57 48 83 EC 30 ? 8B ? ? 8B ? 48 83 C1 08 E8", -0x12), UnkEventMgr, (void**)&g_origUnkEventMgr);
+	MH_CreateHook(hook::get_pattern("41 57 48 83 EC 30 ? 8B ? ? 8B ? 48 83 C1 08 E8", -0x12), SendPackedEventsMessage, (void**)&g_origSendPackedEventsMessage);
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);

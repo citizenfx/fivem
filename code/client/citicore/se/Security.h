@@ -8,6 +8,7 @@ public:
 	inline explicit Principal(const std::string& principal)
 	{
 		m_identifier = principal;
+		std::transform(m_identifier.begin(), m_identifier.end(), m_identifier.begin(), ::tolower);
 	}
 
 	inline const std::string& GetIdentifier() const
@@ -17,12 +18,12 @@ public:
 
 	inline bool operator<(const Principal& right) const
 	{
-		return _stricmp(m_identifier.c_str(), right.m_identifier.c_str()) < 0;
+		return m_identifier < right.m_identifier;
 	}
 
 	inline bool operator==(const Principal& right) const
 	{
-		return _stricmp(m_identifier.c_str(), right.m_identifier.c_str()) == 0;
+		return m_identifier == right.m_identifier;
 	}
 
 private:
@@ -35,6 +36,7 @@ public:
 	inline explicit Object(const std::string& identifier)
 	{
 		m_identifier = identifier;
+		std::transform(m_identifier.begin(), m_identifier.end(), m_identifier.begin(), ::tolower);
 	}
 
 	inline const std::string& GetIdentifier() const
@@ -44,12 +46,12 @@ public:
 
 	inline bool operator<(const Object& right) const
 	{
-		return _stricmp(m_identifier.c_str(), right.m_identifier.c_str()) < 0;
+		return m_identifier < right.m_identifier;
 	}
 
 	inline bool operator==(const Object& right) const
 	{
-		return _stricmp(m_identifier.c_str(), right.m_identifier.c_str()) == 0;
+		return m_identifier == right.m_identifier;
 	}
 
 private:

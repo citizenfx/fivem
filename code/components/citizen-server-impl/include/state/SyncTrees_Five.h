@@ -4527,7 +4527,7 @@ using CPedSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 114>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 115>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,

@@ -250,7 +250,7 @@
 						</Item>
 						<Item>
 							<PoolName>DrawableStore</PoolName>
-							<PoolSize value="234900"/>
+							<PoolSize value="235300"/>
 						</Item>
 						<Item>
 							<PoolName>Dummy Object</PoolName>
@@ -278,7 +278,7 @@
 						</Item>
 						<Item>
 							<PoolName>FragmentStore</PoolName>
-							<PoolSize value="59000"/>
+							<PoolSize value="60700"/>
 						</Item>
 						<Item>
 							<PoolName>GamePlayerBroadcastDataHandler_Remote</PoolName>
@@ -326,7 +326,7 @@
 						</Item>
 						<Item>
 							<PoolName>LightEntity</PoolName>
-							<PoolSize value="4700"/>
+							<PoolSize value="4750"/>
 						</Item>
 						<Item>
 							<PoolName>MapDataLoadedNode</PoolName>
@@ -342,7 +342,7 @@
 						</Item>
 						<Item>
 							<PoolName>MetaDataStore</PoolName>
-							<PoolSize value="6000"/>
+							<PoolSize value="6050"/>
 						</Item>
 						<Item>
 							<PoolName>NavMeshes</PoolName>
@@ -450,7 +450,7 @@
 						</Item>
 						<Item>
 							<PoolName>StaticBounds</PoolName>
-							<PoolSize value="20000"/>
+							<PoolSize value="20200"/>
 						</Item>
 						<Item>
 							<PoolName>tcBox</PoolName>
@@ -490,7 +490,7 @@
 						</Item>
         					<Item>
 							<PoolName>HandlingData</PoolName>
-							<PoolSize value="16000"/>
+							<PoolSize value="16050"/>
 						</Item>
 						<Item>
 							<!-- Size of the CWaypointRecording streaming module. -->
@@ -632,11 +632,11 @@
 						</Item>
 						<Item>
 							<PoolName>ActionTable_Definitions</PoolName>
-							<PoolSize value="336"/>
+							<PoolSize value="342"/>
 						</Item>
 						<Item>
 							<PoolName>ActionTable_Results</PoolName>
-							<PoolSize value="503"/>
+							<PoolSize value="504"/>
 						</Item>
 						<Item>
 							<PoolName>ActionTable_Impulses</PoolName>
@@ -900,8 +900,8 @@
 					<MaxTimeModelInfos value="1800"/>
 					<MaxVehicleModelInfos value="1024"/>
 					<MaxWeaponModelInfos value="115"/>
-					<MaxExtraPedModelInfos value="1024"/>
-					<MaxExtraVehicleModelInfos value="2048"/>
+					<MaxExtraPedModelInfos value="1044"/>
+					<MaxExtraVehicleModelInfos value="2068"/>
 					<MaxExtraWeaponModelInfos value="2048"/>
 				</ConfigModelInfo>
 
@@ -1069,149 +1069,151 @@
 				</ConfigNetScriptBroadcastData>
 
 				<ConfigScriptStackSizes>
-					<StackSizeData>
-						<Item>
-							<StackName>MICRO</StackName>
-							<SizeOfStack value="128"/>
-							<NumberOfStacksOfThisSize value="20"/>
-						</Item>
-						<Item>
-							<StackName>MINI</StackName>
-							<SizeOfStack value="512"/>
-							<NumberOfStacksOfThisSize value="20"/>
-						</Item>
-						<Item>
-							<StackName>DEFAULT</StackName>
-							<SizeOfStack value="1424"/>
-							<NumberOfStacksOfThisSize value="68"/>
-						</Item>
-						<Item>
-							<StackName>SPECIAL_ABILITY</StackName>
-							<SizeOfStack value="1828"/>
-							<NumberOfStacksOfThisSize value="13"/>
-						</Item>
-						<Item>
-							<StackName>FRIEND</StackName>
-							<SizeOfStack value="2050"/>
-							<NumberOfStacksOfThisSize value="12"/>
-						</Item>
-						<Item>
-							<StackName>SHOP</StackName>
-							<SizeOfStack value="2324"/>
-							<NumberOfStacksOfThisSize value="6"/>
-						</Item>
-						<Item>
-							<StackName>CELLPHONE</StackName>
-							<SizeOfStack value="2552"/>
-							<NumberOfStacksOfThisSize value="2"/>
-						</Item>
-						<Item>
-							<StackName>VEHICLE_SPAWN</StackName>
-							<SizeOfStack value="3368"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>CAR_MOD_SHOP</StackName>
-							<SizeOfStack value="3472"/>
-							<NumberOfStacksOfThisSize value="2"/>
-						</Item>
-						<Item>
-							<StackName>PAUSE_MENU_SCRIPT</StackName>
-							<SizeOfStack value="3076"/>
-							<NumberOfStacksOfThisSize value="2"/>
-						</Item>
-						<Item>
-							<StackName>APP_INTERNET</StackName>
-							<SizeOfStack value="4592"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>MULTIPLAYER_MISSION</StackName>
-							<SizeOfStack value="4500"/>
-							<NumberOfStacksOfThisSize value="19"/>
-						</Item>
-						<Item>
-							<StackName>CONTACTS_APP</StackName>
-							<SizeOfStack value="4000"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>INTERACTION_MENU</StackName>
-							<SizeOfStack value="9800"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>SCRIPT_XML</StackName>
-							<SizeOfStack value="8344"/>
-							<NumberOfStacksOfThisSize value="4"/>
-						</Item>
-						<Item>
-							<StackName>PROPERTY_INT</StackName>
-							<SizeOfStack value="19400"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>ACTIVITY_CREATOR_INT</StackName>
-							<SizeOfStack value="14900"/>
-							<NumberOfStacksOfThisSize value="3"/>
-						</Item>
-						<Item>
-							<StackName>SMPL_INTERIOR</StackName>
-							<SizeOfStack value="2000"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>WAREHOUSE</StackName>
-							<SizeOfStack value="14000"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>IE_DELIVERY</StackName>
-							<SizeOfStack value="2024"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>SHOP_CONTROLLER</StackName>
-							<SizeOfStack value="2200"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>AM_MP_YACHT</StackName>
-							<SizeOfStack value="5000"/>
-							<NumberOfStacksOfThisSize value="3"/>
-						</Item>
-						<Item>
-							<StackName>INGAMEHUD</StackName>
-							<SizeOfStack value="4600"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>TRANSITION</StackName>
-							<SizeOfStack value="8032"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>FMMC_LAUNCHER</StackName>
-							<SizeOfStack value="16000"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>MULTIPLAYER_FREEMODE</StackName>
-							<SizeOfStack value="55000"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>MISSION</StackName>
-							<SizeOfStack value="25000"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-						<Item>
-							<StackName>MP_LAUNCH_SCRIPT</StackName>
-							<SizeOfStack value="22500"/>
-							<NumberOfStacksOfThisSize value="1"/>
-						</Item>
-					</StackSizeData>
-				</ConfigScriptStackSizes>
+                    <StackSizeData>
+                        <Item>
+                            <StackName>MICRO</StackName>
+                            <SizeOfStack value="128"/>
+                            <NumberOfStacksOfThisSize value="20"/>
+                        </Item>
+                        <Item>
+                            <StackName>MINI</StackName>
+                            <SizeOfStack value="512"/>
+                            <NumberOfStacksOfThisSize value="20"/>
+                        </Item>
+                        <Item>
+                            <StackName>DEFAULT</StackName>
+                            <SizeOfStack value="1424"/>
+                            <NumberOfStacksOfThisSize value="68"/>
+                        </Item>
+                        <Item>
+                            <StackName>SPECIAL_ABILITY</StackName>
+                            <SizeOfStack value="1828"/>
+                            <NumberOfStacksOfThisSize value="13"/>
+                        </Item>
+                        <Item>
+                            <StackName>FRIEND</StackName>
+                            <SizeOfStack value="2050"/>
+                            <NumberOfStacksOfThisSize value="12"/>
+                        </Item>
+                        <Item>
+                            <StackName>SHOP</StackName>
+                            <SizeOfStack value="2324"/>
+                            <NumberOfStacksOfThisSize value="6"/>
+                        </Item>
+                        <Item>
+                            <StackName>CELLPHONE</StackName>
+                            <SizeOfStack value="2600"/>
+                            <NumberOfStacksOfThisSize value="2"/>
+                        </Item>
+                        <Item>
+                            <StackName>VEHICLE_SPAWN</StackName>
+                            <SizeOfStack value="3568"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>CAR_MOD_SHOP</StackName>
+                            <SizeOfStack value="3750"/>
+                            <NumberOfStacksOfThisSize value="2"/>
+                        </Item>
+                        <Item>
+                            <StackName>PAUSE_MENU_SCRIPT</StackName>
+                            <SizeOfStack value="3076"/>
+                            <NumberOfStacksOfThisSize value="2"/>
+                        </Item>
+                        <Item>
+                            <StackName>APP_INTERNET</StackName>
+                            <SizeOfStack value="4592"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>MULTIPLAYER_MISSION</StackName>
+                            <SizeOfStack value="5050"/>
+                            <NumberOfStacksOfThisSize value="19"/>
+                        </Item>
+                        <Item>
+                            <StackName>CONTACTS_APP</StackName>
+                            <SizeOfStack value="4000"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>INTERACTION_MENU</StackName>
+                            <SizeOfStack value="9800"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>SCRIPT_XML</StackName>
+                            <SizeOfStack value="8344"/>
+                            <NumberOfStacksOfThisSize value="4"/>
+                        </Item>
+                        <Item>
+                            <StackName>PROPERTY_INT</StackName>
+                            <SizeOfStack value="19400"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>ACTIVITY_CREATOR_INT</StackName>
+                            <SizeOfStack value="15900"/>
+                            <NumberOfStacksOfThisSize value="3"/>
+                        </Item>
+                        <Item>
+                            <StackName>SMPL_INTERIOR</StackName>
+                            <SizeOfStack value="2512"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>WAREHOUSE</StackName>
+                            <SizeOfStack value="14100"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>IE_DELIVERY</StackName>
+                            <SizeOfStack value="2324"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>SHOP_CONTROLLER</StackName>
+                            <SizeOfStack value="3800"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>AM_MP_YACHT</StackName>
+                            <SizeOfStack value="5000"/>
+                            <NumberOfStacksOfThisSize value="3"/>
+                        </Item>
+                        <Item>
+                            <StackName>INGAMEHUD</StackName>
+                            <SizeOfStack value="4600"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>TRANSITION</StackName>
+                            <SizeOfStack value="8032"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>FMMC_LAUNCHER</StackName>
+                            <SizeOfStack value="27000"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>MULTIPLAYER_FREEMODE</StackName>
+                            <SizeOfStack value="87500"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>MISSION</StackName>
+                            <SizeOfStack value="63500"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+                        <Item>
+                            <StackName>MP_LAUNCH_SCRIPT</StackName>
+                            <SizeOfStack value="34750"/>
+                            <NumberOfStacksOfThisSize value="1"/>
+                        </Item>
+
+
+                    </StackSizeData>
+                </ConfigScriptStackSizes>
 
 				<ConfigScriptTextLines>
 					<ArrayOfMaximumTextLines>

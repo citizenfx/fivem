@@ -18,7 +18,7 @@ static hook::cdecl_stub<rage::netArrayHandlerBase*(rage::netArrayManager*, int, 
 #ifdef GTA_FIVE
 	return hook::get_call(hook::get_pattern("48 8B 0D ? ? ? ? BA 06 00 00 00 45 33 C0", 0xF));
 #elif IS_RDR3
-	return hook::get_call((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("48 8B 0D ? ? ? ? 41 8D 56 06 45 33 C0", 0xE) : hook::get_pattern("48 8B 0D ? ? ? ? BA 06 00 00 00 45 33 C0", 0xF));
+	return hook::get_call(hook::get_pattern("48 8B 0D ? ? ? ? 41 8D 56 06 45 33 C0", 0xE));
 #endif
 });
 
@@ -112,7 +112,7 @@ static HookFunction hookFunctionArray([]()
 #ifdef GTA_FIVE
 	g_arrayManager = hook::get_address<rage::netArrayManager**>(hook::get_pattern("48 8B 0D ? ? ? ? BA 06 00 00 00 45 33 C0", 3));
 #elif IS_RDR3
-	g_arrayManager = hook::get_address<rage::netArrayManager**>((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("48 8B 0D ? ? ? ? 41 8D 56 06 45 33 C0", 3) : hook::get_pattern("48 8B 0D ? ? ? ? BA 06 00 00 00 45 33 C0", 3));
+	g_arrayManager = hook::get_address<rage::netArrayManager**>(hook::get_pattern("48 8B 0D ? ? ? ? 41 8D 56 06 45 33 C0", 3));
 #endif
 });
 
