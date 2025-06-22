@@ -116,6 +116,16 @@ static void SaveGameSettings(const std::wstring& poolIncreases, bool replaceExec
 	}
 }
 
+static void SavePureLevel(int pureLevel)
+{
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		WritePrivateProfileString(L"Game", L"PureLevel", fmt::sprintf(L"%d", pureLevel).c_str(), fpath.c_str());
+	}
+}
+
 void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
@@ -142,6 +152,7 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 	}
 
 	SaveGameSettings(poolSizesIncreaseSetting, replaceExecutable);
+	SavePureLevel(pureLevel);
 
 	trace("Switching from build %d to build %d...\n", xbr::GetRequestedGameBuild(), build);
 
