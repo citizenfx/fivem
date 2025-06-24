@@ -346,6 +346,10 @@ static std::unordered_set<void*> g_deletionTraces2;
 static bool g_isFuelConsumptionOn = false;
 static float g_globalFuelConsumptionMultiplier = 1.f;
 
+static bool g_disableReactToSirens = false;
+static bool g_disableReactToSirensBySwerving = false;
+static uint32_t g_overrideReactionToSiren = 2;
+
 static void(*g_origDeleteVehicle)(void* vehicle);
 
 static void SetCanPedStandOnVehicle(fwEntity* vehicle, int flag);
@@ -584,6 +588,26 @@ void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 	}
 
 	SetVehicleFuelLevel(vehicle, std::max(newPetrolTankLevel, 0.f));
+}
+
+static void (*g_origReactToSirens)(CVehicle*);
+void ReactToSirens(CVehicle* vehicle)
+{
+	if (g_disableReactToSirens)
+	{
+		return;
+	}
+	g_origReactToSirens(vehicle);
+}
+
+static uintptr_t (*g_origCTaskVehicleReactToCopSiren_ctor)(void*, uint32_t, uint32_t);
+uintptr_t CTaskVehicleReactToCopSiren_ctor(void* thisPtr, uint32_t reaction, uint32_t time)
+{
+	if (g_disableReactToSirensBySwerving)
+	{
+		reaction = g_overrideReactionToSiren;
+	}
+	return g_origCTaskVehicleReactToCopSiren_ctor(thisPtr, reaction, time);
 }
 
 static HookFunction initFunction([]()
@@ -1742,6 +1766,10 @@ static HookFunction initFunction([]()
 
 		*PassengerMassPtr = 0.05f;
 		SnowGripFactor.Reset();
+
+		g_disableReactToSirens = false;
+		g_disableReactToSirensBySwerving = false;
+		g_overrideReactionToSiren = 2;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context)
@@ -2015,9 +2043,32 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("ADD_AUTHORIZED_PARACHUTE_PACK_MODEL", [](fx::ScriptContext& context)
 	{
-	uint32_t modelHash = context.GetArgument<uint32_t>(0);
+		uint32_t modelHash = context.GetArgument<uint32_t>(0);
 		AddAuthorizedParachutePackModel(modelHash);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_REACTION_TO_VEHICLE_SIREN_DISABLED", [](fx::ScriptContext& context)
+	{
+		g_disableReactToSirens = context.GetArgument<bool>(0);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("OVERRIDE_REACTION_TO_VEHICLE_SIREN", [](fx::ScriptContext& context)
+	{
+		uint32_t reaction = context.GetArgument<uint32_t>(1);
+
+		if (g_overrideReactionToSiren < 0 || g_overrideReactionToSiren > 2)
+		{
+			return;
+		}
+
+		g_disableReactToSirensBySwerving = context.GetArgument<bool>(0);
+		g_overrideReactionToSiren = reaction;
+	});
+
+	{
+		g_origReactToSirens = hook::trampoline(hook::get_call(hook::get_pattern("E8 ? ? ? ? 8B 8E ? ? ? ? 8D 41 F8 83 F8 01")), ReactToSirens);
+		g_origCTaskVehicleReactToCopSiren_ctor = hook::trampoline(hook::get_call(hook::get_pattern("8B D3 48 8B C8 E8 ? ? ? ? 48 8B 9F ? ? ? ? 45 33 C9", 5)), CTaskVehicleReactToCopSiren_ctor);
+	}
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 8A 83 DA 00 00 00 24 0F 3C 02", -0x32), DeleteVehicleWrap, (void**)&g_origDeleteVehicle);
