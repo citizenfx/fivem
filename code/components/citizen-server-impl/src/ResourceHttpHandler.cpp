@@ -192,7 +192,7 @@ public:
 				{
 					response->SetStatusCode(state[0].as<int>());
 				}
-				else
+				else if (state.size() > 1 && state[1].type == msgpack::type::MAP)
 				{
 					net::HeaderMap headers;
 
@@ -208,6 +208,10 @@ public:
 						}
 					}
 
+					response->SetStatusCode(state[0].as<int>());
+				}
+				else
+				{
 					response->SetStatusCode(state[0].as<int>());
 				}
 
