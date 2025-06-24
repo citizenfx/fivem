@@ -1963,9 +1963,9 @@ static HookFunction initFunction([]()
 		}
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_WHEEL_BROKEN", [](fx::ScriptContext& context)
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_WHEEL_BROKEN_OFF", [](fx::ScriptContext& context)
 	{
-		if (fwEntity* vehicle = getAndCheckVehicle(context, "IS_VEHICLE_WHEEL_BROKEN"))
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "IS_VEHICLE_WHEEL_BROKEN_OFF"))
 		{
 			auto wheelIndex = context.GetArgument<uint32_t>(1);
 			auto numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);

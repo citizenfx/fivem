@@ -2,10 +2,10 @@
 ns: CFX
 apiset: client
 ---
-## IS_VEHICLE_WHEEL_BROKEN
+## IS_VEHICLE_WHEEL_BROKEN_OFF
 
 ```c
-BOOL IS_VEHICLE_WHEEL_BROKEN(Vehicle vehicle, int wheelIndex);
+BOOL IS_VEHICLE_WHEEL_BROKEN_OFF(Vehicle vehicle, int wheelIndex);
 ```
 
 Getter for [BREAK_OFF_VEHICLE_WHEEL](?_0xA274CADB).
@@ -15,7 +15,7 @@ Getter for [BREAK_OFF_VEHICLE_WHEEL](?_0xA274CADB).
 local vehicle = GetVehiclePedIsIn(PlayerPedId())
 
 if DoesEntityExist(vehicle) then
-  local isWheelBroken = IsVehicleWheelBroken(vehicle, 1)
+  local isWheelBroken = IsVehicleWheelBrokenOff(vehicle, 1)
   print("Is wheel 1 broken? ", isWheelBroken)
 end
 ```
