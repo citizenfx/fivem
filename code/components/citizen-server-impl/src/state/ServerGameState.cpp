@@ -4644,6 +4644,24 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 
 		console::Printf("net", "---------------- END OBJECT ID DUMP ----------------\n");
 	});
+
+	static auto blockNetGameEvent = instance->AddCommand("block_net_game_event", [this](uint32_t eventNameHash)
+	{
+		std::unique_lock lock(this->blockedEventsMutex);
+		this->blockedEvents.insert(eventNameHash);
+	});
+
+	static auto unblockNetGameEvent = instance->AddCommand("unblock_net_game_event", [this](uint32_t eventNameHash)
+	{
+		std::unique_lock lock(this->blockedEventsMutex);
+		this->blockedEvents.erase(eventNameHash);
+	});
+}
+
+bool ServerGameState::IsNetGameEventBlocked(uint32_t eventNameHash)
+{
+	std::shared_lock lock(this->blockedEventsMutex);
+	return blockedEvents.find(eventNameHash) != blockedEvents.end();
 }
 }
 
