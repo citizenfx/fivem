@@ -1862,11 +1862,15 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					if (!val.empty())
 					{
 						buildRef = std::stoi(val);
+						bool buildChanged = buildRef != 0 && buildRef != xbr::GetRequestedGameBuild();
+						bool pureLevelChanged = pureLevel != fx::client::GetPureLevel();
+						bool poolSizesChanged = poolSizesIncrease != fx::PoolSizeManager::GetIncreaseRequest();
+						bool executableChanged = replaceExecutable != xbr::GetReplaceExecutable() && buildRef < xbr::GetDefaultGameBuild();
 
-						if ((buildRef != 0 && buildRef != xbr::GetRequestedGameBuild()) ||
-							(pureLevel != fx::client::GetPureLevel()) ||
-							(poolSizesIncrease != fx::PoolSizeManager::GetIncreaseRequest()) ||
-							(replaceExecutable != xbr::GetReplaceExecutable() && buildRef < xbr::GetDefaultGameBuild())
+						if (buildChanged ||
+							pureLevelChanged ||
+							poolSizesChanged ||
+							executableChanged
 						)
 						{
 							if (!xbr::IsSupportedGameBuild(buildRef))
@@ -1892,16 +1896,27 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 
-							OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw), replaceExecutable);
-							m_connectionState = CS_IDLE;
-							return;
+							if (pureLevelChanged && pureLevel <= fx::client::GetPureLevel() && !buildChanged && !poolSizesChanged && !executableChanged)
+							{
+								if (!OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw), replaceExecutable, true))
+								{
+									m_connectionState = CS_IDLE;
+									return;
+								}
+							}
+							else
+							{
+								OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw), replaceExecutable, false);
+								m_connectionState = CS_IDLE;
+								return;
+							}
 						}
 					}
 
 #if defined(GTA_FIVE)
 					if (buildRef == 0 && xbr::GetRequestedGameBuild() != xbr::GetDefaultGameBuild())
 					{
-						OnRequestBuildSwitch(xbr::GetDefaultGameBuild(), 0, L"", replaceExecutable);
+						OnRequestBuildSwitch(xbr::GetDefaultGameBuild(), 0, L"", replaceExecutable, false);
 						m_connectionState = CS_IDLE;
 						return;
 					}
