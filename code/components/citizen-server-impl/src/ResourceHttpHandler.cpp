@@ -225,7 +225,7 @@ public:
 			{
 				auto state = unpacked.get().as<std::vector<msgpack::object>>();
 
-				if (state.empty())
+				if (state.empty() || state[0].is_nil())
 				{
 					response->End();
 				}
