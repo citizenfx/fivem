@@ -826,10 +826,12 @@ if not isDuplicityVersion then
 		end)
 	end
 
-	local _sendNuiMessage = SendNuiMessage
-
 	function SendNUIMessage(message)
-		_sendNuiMessage(json.encode(message))
+		SendNuiMessage(json.encode(message))
+	end
+
+	function SendDUIMessage(duiObject, message)
+		SendDuiMessage(duiObject, json.encode(message))
 	end
 end
 

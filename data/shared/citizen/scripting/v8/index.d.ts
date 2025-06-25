@@ -105,6 +105,7 @@ declare function getPlayerTokens(player: number|string): string[]
 declare function getPlayers(): string[]
 
 declare function SendNUIMessage(data: any): void
+declare function SendDUIMessage(duiObject: string, data: any): void
 
 declare function emitNet(eventName: string, target: number|string, ...args: any[]): void
 declare function TriggerClientEvent(eventName: string, target: number|string, ...args: any[]): void
