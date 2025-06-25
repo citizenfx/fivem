@@ -168,7 +168,16 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 33 FF 84 C0 75 ? 8A 4B")), netObject__isPendingRemovalByPlayer, (void**)&g_origIsPendingRemovalByPlayer);
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? EB ? 45 84 FF 74 ? 48 8D 4C 24")), netObject__setPendingRemovalByPlayer, (void**)&g_origSetPendingRemovalByPlayer);
 	// Player targetting
+	{
+		auto location = hook::get_pattern("E8 ? ? ? ? 45 33 C9 84 C0 41 0F 94 C5");
+		hook::set_call(&g_origCanBeTargetted, location);
+
+		// Writing over the original call instruction has slightly less overhead then Minhook.
+		hook::call(location, netObject__canBeTargetted);
+		hook::call(hook::get_pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 48 8B 0D ? ? ? ? E8 ? ? ? ? 41 F6 46"), netObject__canBeTargetted);
+		hook::call(hook::get_pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 8A 5C 24"), netObject__canBeTargetted);
+	}
 	MH_CreateHook(hook::get_pattern("84 C0 74 ? 4C 8B C7 40 0F B6 C5", -0x47), netObject__setCanBeTargetted, (void**)&g_origSetCanBeTargetted);
-	MH_CreateHook(hook::get_pattern("8B 84 81 ? ? ? ? 44 0F A3 C0 0F 92 C0 C3 32 C0", -18), netObject__canBeTargetted, (void**)&g_origCanBeTargetted);
+
 	MH_EnableHook(MH_ALL_HOOKS);
 });
