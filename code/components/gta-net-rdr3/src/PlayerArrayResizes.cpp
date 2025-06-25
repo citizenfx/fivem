@@ -434,7 +434,6 @@ static HookFunction hookFunction([]()
 			// Ped Combat related
 			{ "80 FA ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 0F B6 C3 BA", 2, false },
 			{ "80 FA ? 0F 83 ? ? ? ? 48 8B 05", 2, false },
-			//{ "41 80 FE ? 73 ? 45 33 C0", 1, false },
 			{ "80 3B ? 73 ? 48 8B CE", 2, false },
 
 			// CNetObjProximityMigrateable::_getRelevancePlayers
@@ -464,7 +463,7 @@ static HookFunction hookFunction([]()
 
 			{ "49 81 ? C0 7A 02 00 E8 F3 ? ? 00 40 8A F0 ? 20", 16, false },
 			{ "E8 76 68 E6 FD 84 C0 0F 84 96 00 00 00 ? ? ? 20", 16, false },
-			{ "48 8B CB E8 77 66 05 00 84 C0 74 41 40 80 FF 20", 15, false}, 
+			{ "48 8B CB E8 77 66 05 00 84 C0 74 41 40 80 FF 20", 15, false }, 
 		};
 
 		for (auto& entry : list)

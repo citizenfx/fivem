@@ -289,9 +289,6 @@ static HookFunction hookFunction([]
 		const uintptr_t retnSuccess = (uintptr_t)location + 16;
 		const uintptr_t retnFail = retnSuccess + 50;
 
-		assert(retnSuccess == (uintptr_t)0x142BFC618);
-		assert(retnFail == (uintptr_t)0x142BFC64A);
-
 		hook::nop(location, 16);
 		patchStub2.Init(retnSuccess, retnFail);
 		hook::jump_reg<5>(location, patchStub2.GetCode());
