@@ -696,6 +696,10 @@ setmetatable(exports, {
 			__index = function(t2, k2)
 				lazyEventHandler()
 
+				if not k2 or type(k2) ~= 'string' then
+					error('Invalid export name: ' .. tostring(k2), 2)
+				end
+
 				if not exportsCallbackCache[resource] then
 					exportsCallbackCache[resource] = {}
 				end
