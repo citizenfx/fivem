@@ -18,6 +18,7 @@ namespace CitizenFX.Core
 		internal static void Initialize(string resourceName)
 		{
 			ExportPrefix = CreateExportPrefix(resourceName);
+			MsgPackReferenceRegistrar.CreateFunc = ReferenceFunctionManager.Create;
 		}
 
 		[SecuritySafeCritical]
@@ -141,7 +142,6 @@ namespace CitizenFX.Core
 		{
 			Callback callback = null;
 			Events.TriggerEvent(fullExportName, new Action<Callback>(d => callback = d));
-
 			return callback?.Invoke(args);
 		}
 
