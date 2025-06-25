@@ -279,6 +279,16 @@ static void* sub_1422B40D4(void* a1, uint32_t* oldBitset, uint32_t* unk, uint32_
 	return g_sub_1422B40D4(a1, bitset, unk, unk2);
 }
 
+static void* (*g_unkP2PObjectInit)(void*);
+static void* unkP2PObjectInit(void* objectMgr)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_unkP2PObjectInit(objectMgr);
+	}
+	return nullptr;
+}
+
 static HookFunction hookFunction([]()
 {
 	// Expand Player Damage Array to support more players
@@ -537,6 +547,8 @@ static HookFunction hookFunction([]()
 	MH_Initialize();
 	// Don't broadcast script info for script created vehicles in OneSync.
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 48 8B EC 48 81 EC ? ? ? ? 48 83 79"), unkRemoteBroadcast, (void**)&g_unkRemoteBroadcast);
+	// Don't call P2P init (no >32 check so it ends up reading past array and crashing)
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B 0D ? ? ? ? BA ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D")), unkP2PObjectInit, (void**)&g_unkP2PObjectInit);
 
 	// Update Player Focus Positions to support 128 players.
 	MH_CreateHook(hook::get_pattern("0F A3 D0 0F 92 C0 88 06", -0x76), GetPlayerFocusPosition, (void**)&g_origGetNetPlayerRelevancePosition);
