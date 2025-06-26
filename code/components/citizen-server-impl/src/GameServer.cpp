@@ -1171,7 +1171,7 @@ namespace fx
 			if (!fx::IsBigMode() && isFinal)
 			{
 				// send every player information about the dropping client
-				events->TriggerClientEvent("onPlayerDropped", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
+				events->TriggerClientEvent("onPlayerDropped", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId(), true);
 			}
 		}
 
