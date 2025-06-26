@@ -599,7 +599,7 @@ funcref_mt = msgpack.extend({
 
 			rvs[1].__cfx_async_retval(function(r, e)
 				if r then
-					p:resolve(r)
+                			p:resolve(type(r) == "table" and r or { r })
 				elseif e then
 					p:reject(e)
 				end
