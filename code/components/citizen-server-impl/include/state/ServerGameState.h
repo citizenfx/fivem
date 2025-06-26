@@ -500,6 +500,7 @@ struct CVehicleGameStateNodeData
 struct CEntityOrientationNodeData
 {
 	compressed_quaternion<11> quat;
+	float rotX, rotY, rotZ;
 };
 
 struct CDummyObjectCreationNodeData
