@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: rdr3
 ---
 ## REGISTER_RAW_KEYMAP
 

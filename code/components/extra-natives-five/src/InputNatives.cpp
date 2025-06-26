@@ -220,11 +220,11 @@ public:
 
 static HookFunction initFunction([]()
 {
+	static RawKeymapContainer rawKeymaps;
 #ifdef IS_RDR3
 	uint8_t* location = hook::get_pattern<uint8_t>("48 63 05 ? ? ? ? 4C 8D 35 ? ? ? ? 48 83 F0 ? B9");
 	ioKeyboardActive = hook::get_address<int*>(location, 3, 7);
 	ioKeyboardKeys = hook::get_address<keysData*>(location + 7, 3, 7);
-	static RawKeymapContainer rawKeymaps;
 #else
 	ioKeyboardActive = hook::get_address<int*>(hook::get_pattern("8B 2D ? ? ? ? 48 8B 03"), 2, 6);
 	ioKeyboardKeys = hook::get_address<keysData*>(hook::get_pattern("48 8D 2D ? ? ? ? 49 C1 E6"), 3, 7);
@@ -233,9 +233,9 @@ static HookFunction initFunction([]()
 	// reset the disabled keys every frame
 	OnGameFrame.Connect([&]
 	{
-#ifdef IS_RDR3
+
 		rawKeymaps.Update();
-#endif
+
 		disabledKeys.clear();
 	});
 
@@ -260,8 +260,7 @@ static HookFunction initFunction([]()
 		}
 	});
 
-	// only enable raw keymaps for RDR, gta already has REGISTER_KEY_MAPPING
-#ifdef IS_RDR3
+
 	fx::ScriptEngine::RegisterNativeHandler("REMAP_RAW_KEYMAP", [](fx::ScriptContext& context)
 	{
 		auto name = std::string { context.CheckArgument<const char*>(0) };
@@ -324,5 +323,5 @@ static HookFunction initFunction([]()
 			}
 		});
 	});
-#endif
+
 });

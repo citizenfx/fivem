@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: rdr3
 ---
 ## REMAP_RAW_KEYMAP
 
