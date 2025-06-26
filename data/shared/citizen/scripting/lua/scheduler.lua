@@ -599,7 +599,12 @@ funcref_mt = msgpack.extend({
 
 			rvs[1].__cfx_async_retval(function(r, e)
 				if r then
-					p:resolve(r)
+					if type(r) ~= "table" or #r == 0 then
+						-- receiving from c# (mono v2)
+						p:resolve({r})
+					else
+						p:resolve(r)
+					end
 				elseif e then
 					p:reject(e)
 				end
