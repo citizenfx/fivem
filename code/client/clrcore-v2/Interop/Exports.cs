@@ -59,6 +59,12 @@ namespace CitizenFX.Core
 			}
 		}
 
+		public ExportFunc<T> Get<T>(string resource, string export)
+		{
+			CString fullExportName = ExportsManager.CreateFullExportName(resource, export);
+			return (args) => ExportsManager.LocalInvokeTyped<T>(fullExportName, args);
+		}
+
 		public MsgPackFunc this[string export]
 		{
 			set => Add(export, value);
@@ -124,6 +130,12 @@ namespace CitizenFX.Core
 				return (args) => ExportsManager.LocalInvoke(fullExportName, args);
 			}
 		}
+
+		public ExportFunc<T> Get<T>(string resource, string export)
+		{
+			CString fullExportName = ExportsManager.CreateFullExportName(resource, export);
+			return (args) => ExportsManager.LocalInvokeTyped<T>(fullExportName, args);
+		}
 	}
 
 	[Browsable(false)]
@@ -137,6 +149,11 @@ namespace CitizenFX.Core
 				CString fullExportName = ExportsManager.CreateFullExportName(resource, export);
 				return (args) => ExportsManager.LocalInvoke(fullExportName, args);
 			}
+		}
+		public ExportFunc<T> Get<T>(string resource, string export)
+		{
+			CString fullExportName = ExportsManager.CreateFullExportName(resource, export);
+			return (args) => ExportsManager.LocalInvokeTyped<T>(fullExportName, args);
 		}
 	}
 

@@ -8,6 +8,8 @@ using CitizenFX.MsgPack;
 namespace CitizenFX.Core
 {
 	public delegate Coroutine<dynamic> ExportFunc(params object[] args);
+	public delegate Coroutine<T> ExportFunc<T>(params object[] args); // strong typed export result
+	internal delegate TResult TypeDeserializer<out TResult>(ref MsgPackDeserializer arg); // used for fast deserialization of types
 
 	internal static class ExportsManager
 	{
@@ -142,7 +144,77 @@ namespace CitizenFX.Core
 		{
 			Callback callback = null;
 			Events.TriggerEvent(fullExportName, new Action<Callback>(d => callback = d));
+			
 			return callback?.Invoke(args);
+		}
+
+		internal unsafe static Coroutine<T> LocalInvokeTyped<T>(CString fullExportName, params object[] args)
+		{
+			var invoke = LocalInvoke(fullExportName, args);
+
+			byte[] SerializeResult(object res)
+			{
+				if (res is IDictionary<string, object> dict)
+				{
+					var serializer = new MsgPackSerializer();
+					serializer.WriteMapHeader((uint)dict.Count);
+					foreach (KeyValuePair<string, object> entry in dict)
+					{
+						serializer.Serialize(entry.Key);
+						serializer.Serialize(entry.Value);
+					}
+					return serializer.ToArray();
+				}
+				else
+				{
+					return MsgPackSerializer.SerializeToByteArray(res);
+				}
+			}
+
+			T Deserialize(byte[] bytes)
+			{
+				fixed (byte* dataPtr = bytes)
+				{
+					var deserializer = new MsgPackDeserializer(dataPtr, (uint)bytes.Length, null);
+					var deleg = MsgPackRegistry.GetOrCreateDeserializer(typeof(T)).CreateDelegate(typeof(TypeDeserializer<T>));
+					return ((TypeDeserializer<T>)deleg)(ref deserializer);
+				}
+			}
+
+			try
+			{
+				if (invoke.IsCompleted)
+				{
+					object res = invoke.GetResultNonThrowing();
+					var result = Deserialize(SerializeResult(res));
+					return Coroutine<T>.Completed(result);
+				}
+				else
+				{
+					var promise = new Promise<T>();
+					invoke.ContinueWith(result =>
+					{
+						try
+						{
+							object res = result.GetResultNonThrowing();
+							var value = Deserialize(SerializeResult(res));
+							promise.Complete(value);
+						}
+						catch (Exception ex)
+						{
+							promise.Fail(ex);
+						}
+					});
+
+					return promise;
+				}
+			}
+			catch (Exception ex)
+			{
+				// make a WriteException call to ensure the exception is logged
+				Debug.WriteLine(ex.ToString());
+				return default;
+			}
 		}
 
 		[SecuritySafeCritical]
