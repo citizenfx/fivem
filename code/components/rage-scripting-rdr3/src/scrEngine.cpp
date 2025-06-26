@@ -29,23 +29,41 @@ inline void HandlerFilter(void* handler)
 }
 #endif
 
+enum NativeIdentifiers : uint64_t
+{
+	STRING_TO_INT = 0xF2DD2298B3AF23E2,
+	CLEAR_BIT = 0x7D1D4A3602B6AD4E,
+	SET_BITS_IN_RANGE = 0x324DC1CEF57F31E6,
+	SET_BIT = 0xF73FBE4845C43B5B,
+	COPY_SCRIPT_STRUCT = 0xF7AC7DC0DEE7C9BE,
+	DATAFILE_CREATE = 0x56B7291FB953DD51,
+	DATAFILE_DELETE = 0x9FB90EEDEA9F2D5C,
+	DATAFILE_DELETE_REQUESTED_FILE = 0x604B8ED1A482F9DF,
+	DATAFILE_GET_FILE_DICT = 0xBBD8CF823CAE557C,
+	DATAFILE_HAS_LOADED_FILE_DATA = 0x17279C820464CEE0,
+	DATAFILE_HAS_VALID_FILE_DATA = 0xE60100389E50EADE,
+	DATAFILE_SELECT_ACTIVE_FILE = 0x46102A0989AD80B5,
+	DATAFILE_UGC_SELECT_DATA = 0x790EC421078F5C4E,
+	DATAFILE_WATCH_REQUEST_ID = 0xA5834834CA8FD7FC,
+};
+
 static std::unordered_map<uint64_t, int> g_nativeBlockedBeforeBuild = {
 	// Natives that are banned on all builds.
 
-	{0xF2DD2298B3AF23E2, std::numeric_limits<int>::max()}, // STRING_TO_INT
-	{0x7D1D4A3602B6AD4E, std::numeric_limits<int>::max()}, // CLEAR_BIT
-	{0x324DC1CEF57F31E6, std::numeric_limits<int>::max()}, // SET_BITS_IN_RANGE
-	{0xF73FBE4845C43B5B, std::numeric_limits<int>::max()}, // SET_BIT
-	{0xF7AC7DC0DEE7C9BE, std::numeric_limits<int>::max()}, // COPY_SCRIPT_STRUCT
-	{0x56B7291FB953DD51, std::numeric_limits<int>::max()}, // DATAFILE_CREATE
-	{0x9FB90EEDEA9F2D5C, std::numeric_limits<int>::max()}, // DATAFILE_DELETE
-	{0x604B8ED1A482F9DF, std::numeric_limits<int>::max()}, // DATAFILE_DELETE_REQUESTED_FILE
-	{0xBBD8CF823CAE557C, std::numeric_limits<int>::max()}, // DATAFILE_GET_FILE_DICT
-	{0x17279C820464CEE0, std::numeric_limits<int>::max()}, // DATAFILE_HAS_LOADED_FILE_DATA
-	{0xE60100389E50EADE, std::numeric_limits<int>::max()}, // DATAFILE_HAS_VALID_FILE_DATA
-	{0x46102A0989AD80B5, std::numeric_limits<int>::max()}, // DATAFILE_SELECT_ACTIVE_FILE
-	{0x790EC421078F5C4E, std::numeric_limits<int>::max()}, // DATAFILE_UGC_SELECT_DATA
-	{0xA5834834CA8FD7FC, std::numeric_limits<int>::max()}  // DATAFILE_WATCH_REQUEST_ID
+	{STRING_TO_INT, std::numeric_limits<int>::max()},
+	{CLEAR_BIT, std::numeric_limits<int>::max()},
+	{SET_BITS_IN_RANGE, std::numeric_limits<int>::max()},
+	{SET_BIT, std::numeric_limits<int>::max()},
+	{COPY_SCRIPT_STRUCT, std::numeric_limits<int>::max()},
+	{DATAFILE_CREATE, std::numeric_limits<int>::max()},
+	{DATAFILE_DELETE, std::numeric_limits<int>::max()},
+	{DATAFILE_DELETE_REQUESTED_FILE, std::numeric_limits<int>::max()},
+	{DATAFILE_GET_FILE_DICT, std::numeric_limits<int>::max()},
+	{DATAFILE_HAS_LOADED_FILE_DATA, std::numeric_limits<int>::max()},
+	{DATAFILE_HAS_VALID_FILE_DATA, std::numeric_limits<int>::max()},
+	{DATAFILE_SELECT_ACTIVE_FILE, std::numeric_limits<int>::max()},
+	{DATAFILE_UGC_SELECT_DATA, std::numeric_limits<int>::max()},
+	{DATAFILE_WATCH_REQUEST_ID, std::numeric_limits<int>::max()} 
 };
 
 fwEvent<> rage::scrEngine::OnScriptInit;

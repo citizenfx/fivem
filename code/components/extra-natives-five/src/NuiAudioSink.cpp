@@ -36,6 +36,19 @@
 
 #include <CL2LaunchMode.h>
 
+enum NativeIdentifiers : uint64_t
+{
+	GET_PED_LAST_WEAPON_IMPACT_COORD = 0x6C4D0409BA1A2BC2,
+	PLAYER_PED_ID = 0xD80958FC74E988A6,
+	GET_PLAYER_FROM_SERVER_ID = 0x344EA166,
+	GET_ENTITY_ADDRESS = 0x9A3144BC,
+#if GTA_FIVE
+	GET_PLAYER_PED = 0x43A66C31C68491C0,
+#elif IS_RDR3
+	GET_PLAYER_PED = 0x275F255ED201B937,
+#endif
+};
+
 static concurrency::concurrent_queue<std::function<void()>> g_mainQueue;
 
 namespace rage
@@ -1733,7 +1746,7 @@ void MumbleAudioEntity<Build>::PreUpdateService(uint32_t)
 	// debugging position logic
 #if 0
 	float vec[8];
-	if (NativeInvoke::Invoke<0x6C4D0409BA1A2BC2, bool>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>(), &vec))
+	if (NativeInvoke::Invoke<GET_PED_LAST_WEAPON_IMPACT_COORD, bool>(NativeInvoke::Invoke<PLAYER_PED_ID, int>(), &vec))
 	{
 		m_positionForce = {
 			vec[0], vec[2], vec[4]
@@ -1957,14 +1970,9 @@ static auto MakeMumbleAudioEntity(TFn&& fn, TArgs&&... args)
 
 void MumbleAudioSink::Process()
 {
-#ifdef GTA_FIVE
-	static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
-	static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(0x43A66C31C68491C0);
-#elif IS_RDR3
-	static auto getByServerId = fx::ScriptEngine::GetNativeHandler(0x344EA166);
-	static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(0x275F255ED201B937);
-#endif
-	static auto getEntityAddress = fx::ScriptEngine::GetNativeHandler(HashString("GET_ENTITY_ADDRESS"));
+	static auto getByServerId = fx::ScriptEngine::GetNativeHandler(GET_PLAYER_FROM_SERVER_ID);
+	static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(GET_PLAYER_PED);
+	static auto getEntityAddress = fx::ScriptEngine::GetNativeHandler(GET_ENTITY_ADDRESS);
 
 #if 0
 	if (m_serverId == 0)

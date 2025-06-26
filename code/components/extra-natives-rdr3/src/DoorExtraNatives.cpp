@@ -19,6 +19,11 @@
 #include <GameInit.h>
 #include <scrEngine.h>
 
+enum NativeIdentifiers : uint64_t
+{
+	_GET_ENTITY_BY_DOORHASH = 0xF7424890E4A094C0,
+};
+
 class DoorSystemEntry
 {
 public:
@@ -76,7 +81,7 @@ static HookFunction initFunction([]()
 
 			while (entry != nullptr)
 			{
-				uint32_t handle = NativeInvoke::Invoke<0xF7424890E4A094C0, uint32_t>(entry->doorHash);
+				uint32_t handle = NativeInvoke::Invoke<_GET_ENTITY_BY_DOORHASH, uint32_t>(entry->doorHash);
 				if (handle != 0 && entry->doorHash != 0)
 				{
 					doorList.emplace_back(entry->doorHash, handle);

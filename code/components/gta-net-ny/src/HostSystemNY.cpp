@@ -17,6 +17,27 @@ extern NetLibrary* g_netLibrary;
 
 GTA_NET_EXPORT fwEvent<HostState, HostState> OnHostStateTransition;
 
+enum NativeIdentifiers : uint64_t
+{
+	CREATE_PLAYER = 0x335E3951,
+	SET_FILTER_MENU_ON = 0x18F43649,
+	NETWORK_FIND_GAME = 0x5D4D0C86,
+	NETWORK_FIND_GAME_PENDING = 0x23D60810,
+	NETWORK_GET_NUMBER_OF_GAMES = 0x10DF4CED,
+	NETWORK_JOIN_GAME = 0x60806A0C,
+	NETWORK_JOIN_GAME_PENDING = 0x76C53927,
+	NETWORK_JOIN_GAME_SUCCEEDED = 0x59F24327,
+	NETWORK_HOST_GAME = 0x5BEA05E2,
+	NETWORK_HOST_GAME_PENDING = 0x391E4575,
+	NETWORK_HOST_GAME_SUCCEEDED = 0x1CA77E94,
+	LOCAL_PLAYER_IS_READY_TO_START_PLAYING = 0x5C03585C,
+	LAUNCH_LOCAL_PLAYER_IN_NETWORK_GAME = 0x70FE415C,
+	PLAYER_WANTS_TO_JOIN_NETWORK_GAME = 0x7D99343C,
+	TELL_NET_PLAYER_TO_START_PLAYING = 0x465D424D,
+	IS_NETWORK_PLAYER_ACTIVE = 0x4E237943,
+	IS_THIS_MACHINE_THE_SERVER = 0x2E5E1600,
+};
+
 class InitScriptThread : public GtaThread
 {
 	bool inited = false;
@@ -26,7 +47,7 @@ class InitScriptThread : public GtaThread
 		if (!inited)
 		{
 			int playerId = 0;
-			NativeInvoke::Invoke<0x335E3951, int>(0, -2000.0f, -2000.0f, 240.5f, &playerId);
+			NativeInvoke::Invoke<CREATE_PLAYER, int>(0, -2000.0f, -2000.0f, 240.5f, &playerId);
 			inited = true;
 		}
 	}
@@ -74,8 +95,7 @@ struct
 
 		if (state == HS_LOADED)
 		{
-			// SetFilterMenuOn
-			NativeInvoke::Invoke<0x18F43649, int>(true);
+			NativeInvoke::Invoke<SET_FILTER_MENU_ON, int>(true);
 
 			// if there's no host, start hosting - if there is, start joining
 			if (g_netLibrary->GetHostNetID() == 0xFFFF || g_netLibrary->GetHostNetID() == g_netLibrary->GetServerNetID())
@@ -90,19 +110,19 @@ struct
 		else if (state == HS_START_FINDING)
 		{
 			// SetFilterMenuOn
-			NativeInvoke::Invoke<0x18F43649, int>(true);
+			NativeInvoke::Invoke<SET_FILTER_MENU_ON, int>(true);
 
 			// NetworkFindGame
-			NativeInvoke::Invoke<0x5D4D0C86, int>(16, false, 0, 0);
+			NativeInvoke::Invoke<NETWORK_FIND_GAME, int>(16, false, 0, 0);
 
 			state = HS_FINDING;
 		}
 		else if (state == HS_FINDING)
 		{
 			// find pending
-			if (!NativeInvoke::Invoke<0x23D60810, bool>())
+			if (!NativeInvoke::Invoke<NETWORK_FIND_GAME_PENDING, bool>())
 			{
-				int numGames = NativeInvoke::Invoke<0x10DF4CED, int>();
+				int numGames = NativeInvoke::Invoke<NETWORK_GET_NUMBER_OF_GAMES, int>();
 
 				if (numGames == 0)
 				{
@@ -113,20 +133,19 @@ struct
 					state = HS_START_JOINING;
 				}
 
-				NativeInvoke::Invoke<0x18F43649, int>(false);
+				NativeInvoke::Invoke<SET_FILTER_MENU_ON, int>(false);
 			}
 		}
 		else if (state == HS_START_JOINING)
 		{
-			// JoinGame
-			NativeInvoke::Invoke<0x60806A0C, int>(0);
+			NativeInvoke::Invoke<NETWORK_JOIN_GAME, int>(0);
 
 			state = HS_JOINING;
 		}
 		else if (state == HS_JOINING)
 		{
-			// join pending
-			if (!NativeInvoke::Invoke<0x76C53927, bool>())
+
+			if (!NativeInvoke::Invoke<NETWORK_JOIN_GAME_PENDING, bool>())
 			{
 				state = HS_JOINING_NET_GAME;
 			}
@@ -134,7 +153,7 @@ struct
 		else if (state == HS_JOINING_NET_GAME)
 		{
 			// two possible target states
-			if (NativeInvoke::Invoke<0x59F24327, bool>()) // join succeeded
+			if (NativeInvoke::Invoke<NETWORK_JOIN_GAME_SUCCEEDED, bool>()) // join succeeded
 			{
 				cgi->SetVariable("networkInited");
 				state = HS_JOINED;
@@ -146,7 +165,7 @@ struct
 		}
 		else if (state == HS_JOIN_FAILURE)
 		{
-			NativeInvoke::Invoke<0x60806A0C, int>(0);
+			NativeInvoke::Invoke<NETWORK_JOIN_GAME, int>(0);
 
 			if (cgi->EnhancedHostSupport || true)
 			{
@@ -161,8 +180,7 @@ struct
 		}
 		else if (state == HS_START_HOSTING)
 		{
-			// SetFilterMenuOn
-			NativeInvoke::Invoke<0x18F43649, int>(false);
+			NativeInvoke::Invoke<SET_FILTER_MENU_ON, int>(false);
 
 			if (cgi->EnhancedHostSupport)
 			{
@@ -177,7 +195,7 @@ struct
 			}
 			else
 			{
-				if (!NativeInvoke::Invoke<0x5BEA05E2, bool>(16, false, 32, false, 0, 0))
+				if (!NativeInvoke::Invoke<NETWORK_HOST_GAME, bool>(16, false, 32, false, 0, 0))
 				{
 					state = HS_FATAL;
 				}
@@ -225,7 +243,7 @@ struct
 				}
 
 				// no conflict, no wait, start hosting
-				if (!NativeInvoke::Invoke<0x5BEA05E2, bool>(16, false, 32, false, 0, 0))
+				if (!NativeInvoke::Invoke<NETWORK_HOST_GAME, bool>(16, false, 32, false, 0, 0))
 				{
 					state = HS_FATAL;
 				}
@@ -237,14 +255,14 @@ struct
 		}
 		else if (state == HS_HOSTING)
 		{
-			if (!NativeInvoke::Invoke<0x391E4575, bool>())
+			if (!NativeInvoke::Invoke<NETWORK_HOST_GAME_PENDING, bool>())
 			{
 				state = HS_HOSTING_NET_GAME;
 			}
 		}
 		else if (state == HS_HOSTING_NET_GAME)
 		{
-			if (NativeInvoke::Invoke < 0x1CA77E94, bool>())
+			if (NativeInvoke::Invoke<NETWORK_HOST_GAME_SUCCEEDED, bool>())
 			{
 				cgi->SetVariable("networkInited");
 				state = HS_HOSTED;
@@ -281,21 +299,17 @@ struct
 		{
 			// servicing: local join
 
-			// LocalPlayerIsReadyToStartPlaying
-			if (NativeInvoke::Invoke<0x5C03585C, bool>())
+			if (NativeInvoke::Invoke<NETWORK_LOCAL_PLAYER_IS_READY_TO_START_PLAYING, bool>())
 			{
-				// LaunchLocalPlayerInNetworkGame
-				NativeInvoke::Invoke<0x70FE415C, int>();
+				NativeInvoke::Invoke<NETWORK_LAUNCH_LOCAL_PLAYER_IN_NETWORK_GAME, int>();
 			}
 
 			// remote join
 			for (int i = 0; i < 32; i++)
 			{
-				// PlayerWantsToJoinNetworkGame
-				if (NativeInvoke::Invoke<0x7D99343C, bool>(i))
+				if (NativeInvoke::Invoke<NETWORK_PLAYER_WANTS_TO_JOIN_NETWORK_GAME, bool>(i))
 				{
-					// TellNetPlayerToStartPlaying
-					NativeInvoke::Invoke<0x465D424D, int>(i, 0);
+					NativeInvoke::Invoke<TELL_NET_PLAYER_TO_START_PLAYING, int>(i, 0);
 				}
 			}
 
@@ -304,14 +318,13 @@ struct
 
 			for (int i = 0; i < 32; i++)
 			{
-				// IS_NETWORK_PLAYER_ACTIVE
-				if (NativeInvoke::Invoke<0x4E237943, bool>(i))
+				if (NativeInvoke::Invoke<IS_NETWORK_PLAYER_ACTIVE, bool>(i))
 				{
 					++playerCount;
 				}
 			}
 
-			bool isHost = NativeInvoke::Invoke<0x2E5E1600, bool>();
+			bool isHost = NativeInvoke::Invoke<IS_THIS_MACHINE_THE_SERVER, bool>();
 
 			static uint64_t mismatchStart = UINT64_MAX;
 

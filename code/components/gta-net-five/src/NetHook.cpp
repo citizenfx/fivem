@@ -45,6 +45,12 @@ static int lastReceivedFrom;
 
 static ULONG g_pendSendVar;
 
+enum NativeIdentifiers : uint64_t
+{
+	NETWORK_IS_PLAYER_ACTIVE = 0xB8DFD30D6973E135,
+	CREATE_PICKUP_ROTATE = 0x891804727E0A98B7
+};
+
 int __stdcall CfxRecvFrom(SOCKET s, char * buf, int len, int flags, sockaddr * from, int * fromlen)
 {
 	static char buffer[65536];
@@ -685,8 +691,7 @@ struct
 
 			for (int i = 0; i < 256 && playerCount <= 1; i++)
 			{
-				// NETWORK_IS_PLAYER_ACTIVE
-				if (NativeInvoke::Invoke<0xB8DFD30D6973E135, bool>(i))
+				if (NativeInvoke::Invoke<NETWORK_IS_PLAYER_ACTIVE, bool>(i))
 				{
 					++playerCount;
 				}
@@ -1946,10 +1951,10 @@ static HookFunction hookFunction([] ()
 	// network host tweaks
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
-		auto origCreatePickup = fx::ScriptEngine::GetNativeHandler(0x891804727E0A98B7);
+		auto origCreatePickup = fx::ScriptEngine::GetNativeHandler(CREATE_PICKUP_ROTATE);
 
 		// CPickupPlacement needs flag `1` to actually work without net component
-		fx::ScriptEngine::RegisterNativeHandler(0x891804727E0A98B7, [=](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(CREATE_PICKUP_ROTATE, [=](fx::ScriptContext& context)
 		{
 			context.SetArgument(7, context.GetArgument<int>(7) | 1);
 

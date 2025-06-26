@@ -6,6 +6,11 @@
 
 #include <Hooking.h>
 
+enum NativeIdentifiers : uint64_t
+{
+	NETWORK_CHANGE_EXTENDED_GAME_CONFIG = 0x4CFE3998
+};
+
 static HookFunction hookFunc([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("SET_LOADING_TEXT", [=](fx::ScriptContext& context)
@@ -77,7 +82,7 @@ static HookFunction hookFunc([]()
 		gameConfig[29] = 0;
 		gameConfig[30] = 0;
 
-		NativeInvoke::Invoke<0x4CFE3998, int*>(gameConfig);
+		NativeInvoke::Invoke<NETWORK_CHANGE_EXTENDED_GAME_CONFIG, int*>(gameConfig);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_NETWORK_WALK_MODE", [=](fx::ScriptContext& context) 
