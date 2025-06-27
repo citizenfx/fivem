@@ -1,8 +1,10 @@
 #include "StdInc.h"
 
-#include "console/Console.Base.h"
+#include "CoreConsole.h"
 #include "Hooking.Patterns.h"
 #include "Hooking.Stubs.h"
+
+static bool g_disablePedComponentsValidation;
 
 enum ePedVarComp
 {
@@ -49,6 +51,12 @@ uint32_t paletteId,
 int32_t streamFlags,
 bool force)
 {
+	// If validation is disabled, just set the variation
+	if (g_disablePedComponentsValidation)
+	{
+		return orig_CPed_SetVariation(self, slotId, drawblId, drawblAltId, texId, paletteId, streamFlags, force);
+	}
+
 	// Validate that we are in range.
 	if (drawblId != PV_NULL_DRAWBL && texId != 0 && !CPed_IsVariationInRange(self, slotId, drawblId, texId)) // NOLINT(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions)
 	{
@@ -72,6 +80,11 @@ bool force)
 
 	return orig_CPed_SetVariation(self, slotId, drawblId, drawblAltId, texId, paletteId, streamFlags, force);
 }
+
+static InitFunction initFunction([]()
+{
+	static ConVar<bool> disablePedComponentsValidationVar("game_disablePedComponentsValidation", ConVar_Replicated, false, &g_disablePedComponentsValidation);
+});
 
 static HookFunction hookFunction([]
 {
