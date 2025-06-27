@@ -2439,6 +2439,14 @@ static void Init()
 
 		context.SetResult(fx::SerializeObject(entityList));
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ANIMAL_RARITY", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto unkDataNode = entity->syncTree->GetDataNode_14359ec40();
+
+		return unkDataNode ? unkDataNode->rarityLevel : 0;
+	}));
+
 }
 
 static InitFunction initFunction([]()

@@ -763,6 +763,11 @@ struct CPedAINodeData
 	int decisionMaker;
 };
 
+struct DataNode_14359ec40Data
+{
+	int rarityLevel;
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -858,6 +863,8 @@ public:
 	virtual CPedMovementGroupNodeData* GetPedMovementGroup() = 0;
 
 	virtual CPedAINodeData* GetPedAI() = 0;
+
+	virtual DataNode_14359ec40Data* GetDataNode_14359ec40() = 0;
 
 	virtual void CalculatePosition() = 0;
 

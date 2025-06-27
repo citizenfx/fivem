@@ -986,7 +986,60 @@ struct DataNode_14359a8b0 { };
 struct DataNode_14359aa40 { };
 struct DataNode_143598c90 { };
 struct DataNode_14359eab0 { };
-struct DataNode_14359ec40 { };
+
+struct DataNode_14359ec40 : GenericSerializeDataNode<DataNode_14359ec40>
+{
+
+	DataNode_14359ec40Data data;
+
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
+	{
+		bool unkBool = false;
+		s.Serialize(unkBool);
+
+		if (unkBool)
+		{
+			// TODO : further investigations, default values and divisors are unknown
+			// Unk booleans
+
+			for (int i = 0; i < 41; i++)
+			{
+				bool unkBool2 = false;
+				s.Serialize(unkBool2);
+			}
+
+			// Some unk floats
+			float unkFloat3 = 0.0f;
+			s.SerializeSigned(16, 1.0f, unkFloat3);
+			float unkFloat4 = 0.0f;
+			s.SerializeSigned(8, 1.0f, unkFloat4);
+			float unkFloat5 = 0.0f;
+			s.SerializeSigned(8, 1.0f, unkFloat5);
+
+			for (int i = 0; i < 20; i++)
+			{
+				float unkFloat6 = 0.0f;
+				s.SerializeSigned(16, 1.0f, unkFloat6);
+			}
+
+			float unkFloat7 = 0.0f;
+			s.SerializeSigned(8, 1.0f, unkFloat7);
+			float unkFloat8 = 0.0f;
+			s.SerializeSigned(16, 1.0f, unkFloat8);
+			float unkFloat9 = 0.0f;
+			s.SerializeSigned(16, 1.0f, unkFloat9);
+			float unkFloat10 = 0.0f;
+			s.SerializeSigned(16, 1.0f, unkFloat10);
+		}
+
+		int32_t unk11 = 0;
+		s.SerializeSigned(2, unk11);
+		s.Serialize(2, data.rarityLevel);
+		return true;
+	};
+};
+
 struct DataNode_14359a590 { };
 struct DataNode_14359abd0 { };
 struct DataNode_14359ad88 { };
@@ -1314,6 +1367,13 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 	virtual CPedAINodeData* GetPedAI() override
 	{
 		return nullptr;
+	}
+
+	virtual DataNode_14359ec40Data* GetDataNode_14359ec40() override
+	{
+		auto [hasNode, node] = this->template GetData<DataNode_14359ec40>();
+
+		return hasNode ? &node->data : nullptr;
 	}
 
 	virtual void CalculatePosition() override
