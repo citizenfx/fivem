@@ -17,8 +17,59 @@ export function registerMpMenuIntlService(container: ServicesContainer) {
   container.registerImpl(IIntlService, MpMenuIntlService);
 }
 
+const languageToCountryMap: Record<string, string> = {
+  ar: 'SA',
+  bg: 'BG',
+  ca: 'ES',
+  cs: 'CZ',
+  da: 'DK',
+  de: 'DE',
+  en: 'US',
+  es: 'ES',
+  fa: 'IR',
+  fi: 'FI',
+  fr: 'FR',
+  hu: 'HU',
+  it: 'IT',
+  ja: 'JP',
+  ko: 'KR',
+  lt: 'LT',
+  'nb-no': 'NO',
+  nl: 'NL',
+  pl: 'PL',
+  pt: 'PT',
+  ro: 'RO',
+  ru: 'RU',
+  sv: 'SE',
+  th: 'TH',
+  tr: 'TR',
+  vi: 'VN',
+  'zh-hans': 'CN',
+  'zh-hant': 'TW'
+};
+
 @injectable()
 class MpMenuIntlService implements IIntlService {
+  readonly locale = (() => {
+    const locale = window.localStorage.getItem('language');
+    if (locale) {
+      const lcLanguage = locale.split('-')[0];
+      const ucLanguage = languageToCountryMap[locale];
+
+      if (ucLanguage) {
+        return `${lcLanguage}-${ucLanguage}`;
+      }
+    }
+
+    return this.systemLocale;
+  })();
+
+  readonly localeCountry = (() => {
+    const [_, country] = this.locale.split('-');
+
+    return country.toUpperCase();
+  })();
+
   readonly systemLocale = (() => {
     const systemLocale = mpMenu.systemLanguages[0] || 'en-US';
     const [language, country] = systemLocale.split('-');
