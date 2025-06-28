@@ -4645,16 +4645,50 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 		console::Printf("net", "---------------- END OBJECT ID DUMP ----------------\n");
 	});
 
-	static auto blockNetGameEvent = instance->AddCommand("block_net_game_event", [this](uint32_t eventNameHash)
+	static auto blockNetGameEvent = instance->AddCommand("block_net_game_event", [this](std::string& eventName)
 	{
+		if (eventName.empty())
+		{
+			trace("^3You must specify an event name to block.^7\n");
+			return;
+		}
+		if (!g_experimentalNetGameEventHandler->GetValue())
+		{
+			trace("^3You must enable sv_experimentalNetGameEventHandler convar before using this command.^7\n");
+			return;
+		}
+
+		std::transform(eventName.begin(), eventName.end(), eventName.begin(),
+		[](unsigned char c)
+		{
+			return std::toupper(c);
+		});
+
 		std::unique_lock lock(this->blockedEventsMutex);
-		this->blockedEvents.insert(eventNameHash);
+		this->blockedEvents.insert(HashRageString(eventName));
 	});
 
-	static auto unblockNetGameEvent = instance->AddCommand("unblock_net_game_event", [this](uint32_t eventNameHash)
+	static auto unblockNetGameEvent = instance->AddCommand("unblock_net_game_event", [this](std::string& eventName)
 	{
+		if (eventName.empty())
+		{
+			trace("^3You must specify an event name to unblock.^7\n");
+			return;
+		}
+		if (!g_experimentalNetGameEventHandler->GetValue())
+		{
+			trace("^3You must enable sv_experimentalNetGameEventHandler convar before using this command.^7\n");
+			return;
+		}
+
+		std::transform(eventName.begin(), eventName.end(), eventName.begin(),
+		[](unsigned char c)
+		{
+			return std::toupper(c);
+		});
+
 		std::unique_lock lock(this->blockedEventsMutex);
-		this->blockedEvents.erase(eventNameHash);
+		this->blockedEvents.erase(HashRageString(eventName));
 	});
 }
 
@@ -7912,6 +7946,10 @@ static InitFunction initFunction([]()
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgNetGameEvent"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::ByteReader& reader, fx::ENetPacketPtr packet)
 		{
+			if (g_experimentalNetGameEventHandler->GetValue())
+			{
+				return;
+			}
 			// this should match up with SendGameEventRaw on client builds
 			// 1024 bytes is from the rlBuffer
 			// 512 is from the max amount of players (2 * 256)
