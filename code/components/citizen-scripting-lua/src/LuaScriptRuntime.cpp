@@ -1137,22 +1137,8 @@ static int Lua_ClearTimeout(lua_State* L)
 	int bookmark = luaL_checkinteger(L, 1);
 
 	auto& luaRuntime = fx::LuaScriptRuntime::GetCurrent();
-	lua_State* runtimeState = luaRuntime->GetState();
-
-	bool removed = false;
-
-	auto& pending = luaRuntime->GetPendingBookmarks();
-	for (auto it = pending.begin(); it != pending.end(); ++it)
-	{
-		if (std::get<0>(*it) == static_cast<uint64_t>(bookmark))
-		{
-			pending.erase(it);
-
-			luaL_unref(runtimeState, LUA_REGISTRYINDEX, bookmark);
-			removed = true;
-			break;
-		}
-	}
+	lua_State* runtimeState = luaRuntime->GetRunningThread();
+	bool removed = luaRuntime->RemoveBookmark(bookmark);
 
 	lua_pushboolean(L, removed);
 	return 1;
@@ -1278,6 +1264,13 @@ void LuaScriptRuntime::SchedulePendingBookmarks()
 
 		m_pendingBookmarks.clear();
 	}
+}
+
+bool LuaScriptRuntime::RemoveBookmark(uint64_t bookmark)
+{
+	result_t success = GetScriptHostWithBookmarks()->RemoveBookmark(this, bookmark);
+
+	return success == FX_S_OK;
 }
 
 void LuaScriptRuntime::SetTickRoutine(const std::function<void(uint64_t, bool)>& tickRoutine)
