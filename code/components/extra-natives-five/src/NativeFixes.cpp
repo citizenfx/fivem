@@ -22,6 +22,20 @@
 #include <CrashFixes.FakeParachuteProp.h>
 #include "ropeManager.h"
 
+enum NativeIdentifiers : uint64_t
+{
+	ADD_ROPE = 0xE832D760399EB220,
+	_SET_HELI_MAIN_ROTOR_HEALTH = 0x4056EA1105F5ABD7,
+	_SET_HELI_TAIL_ROTOR_HEALTH = 0xFE205F38AAA58E5B,
+	SET_PLAYER_PARACHUTE_MODEL_OVERRIDE = 0x977DB4641F6FC3DB,
+	SET_PLAYER_PARACHUTE_PACK_MODEL_OVERRIDE = 0xDC80A4C2F18A2B64,
+	REPLACE_HUD_COLOUR = 0x1CCC708F0F850613,
+	REPLACE_HUD_COLOUR_WITH_RGBA = 0xF314CF4F0211894E,
+	DRAW_MARKER = 0x28477EC23D892089,
+	DRAW_MARKER_EX = 0xE82728F0DE75D13A,
+	CREATE_MISSION_TRAIN = 0x63C6CCA8E68AE8C8,
+};
+
 static void BlockForbiddenNatives()
 {
 	std::vector<uint64_t> nativesToBlock = rage::scrEngine::GetBlockedNatives();
@@ -389,8 +403,6 @@ static void FixPedCombatAttributes()
 static int32_t g_maxHudColours;
 static void FixReplaceHudColour()
 {
-	constexpr uint64_t REPLACE_HUD_COLOUR = 0x1CCC708F0F850613;
-	constexpr uint64_t REPLACE_HUD_COLOUR_WITH_RGBA = 0xF314CF4F0211894E;
 
 	for (uint64_t nativeHash : { REPLACE_HUD_COLOUR, REPLACE_HUD_COLOUR_WITH_RGBA })
 	{
@@ -417,8 +429,6 @@ static void FixReplaceHudColour()
 static int32_t g_numMarkerTypes;
 static void FixDrawMarker()
 {
-	constexpr uint64_t DRAW_MARKER = 0x28477EC23D892089;
-	constexpr uint64_t DRAW_MARKER_EX = 0xE82728F0DE75D13A;
 
 	for (uint64_t nativeHash : { DRAW_MARKER, DRAW_MARKER_EX })
 	{
@@ -496,8 +506,6 @@ static rage::CTrainConfigData* g_trainConfigData;
 
 static void FixMissionTrain()
 {
-	constexpr uint64_t CREATE_MISSION_TRAIN = 0x63C6CCA8E68AE8C8;
-
 	auto handler = fx::ScriptEngine::GetNativeHandler(CREATE_MISSION_TRAIN);
 	if (!handler)
 	{
@@ -544,7 +552,6 @@ static void FixMissionTrain()
 
 static void FixAddRopeNative()
 {
-	constexpr const uint64_t ADD_ROPE = 0xE832D760399EB220;
 	auto handler = fx::ScriptEngine::GetNativeHandler(ADD_ROPE);
 
 	if (!handler)
@@ -632,11 +639,8 @@ static void SetHeliRotorHealthHandler(const uint64_t nativeHash, void(*breakOffR
 
 static void FixSetHeliRotorHealth()
 {
-	constexpr uint64_t nativeHash = 0x4056EA1105F5ABD7; // _SET_HELI_MAIN_ROTOR_HEALTH
-	constexpr uint64_t nativeHash2 = 0xFE205F38AAA58E5B; // _SET_HELI_TAIL_ROTOR_HEALTH
-
-	SetHeliRotorHealthHandler(nativeHash, CHeli_BreakOffMainRotor);
-	SetHeliRotorHealthHandler(nativeHash2, CHeli_BreakOffTailRotor);
+	SetHeliRotorHealthHandler(_SET_HELI_MAIN_ROTOR_HEALTH, CHeli_BreakOffMainRotor);
+	SetHeliRotorHealthHandler(_SET_HELI_TAIL_ROTOR_HEALTH, CHeli_BreakOffTailRotor);
 }
 
 static void FixSetPlayerParachuteModelOverride()
@@ -644,15 +648,13 @@ static void FixSetPlayerParachuteModelOverride()
 	// Make SET_PLAYER_PARACHUTE_MODEL_OVERRIDE() use a whitelist of model hashes.
 	// This prevents a vulnerability that could cause a client to crash.
 
-	constexpr const uint64_t nativeHash = 0x977DB4641F6FC3DB; // SET_PLAYER_PARACHUTE_MODEL_OVERRIDE
-
-	const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	const auto handler = fx::ScriptEngine::GetNativeHandler(SET_PLAYER_PARACHUTE_MODEL_OVERRIDE);
 	if (!handler)
 	{
 		return;
 	}
 
-	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	fx::ScriptEngine::RegisterNativeHandler(SET_PLAYER_PARACHUTE_MODEL_OVERRIDE, [handler](fx::ScriptContext& ctx)
 	{
 		uint32_t modelHash = ctx.GetArgument<uint32_t>(1);
 		if (IsParachuteModelAuthorized(modelHash))
@@ -667,15 +669,13 @@ static void FixSetPlayerParachutePackModelOverride()
 	// Make SET_PLAYER_PARACHUTE_PACK_MODEL_OVERRIDE() use a whitelist of model hashes.
 	// This prevents a vulnerability that could cause a client to crash.
 
-	constexpr const uint64_t nativeHash = 0xDC80A4C2F18A2B64; // SET_PLAYER_PARACHUTE_PACK_MODEL_OVERRIDE
-
-	const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	const auto handler = fx::ScriptEngine::GetNativeHandler(SET_PLAYER_PARACHUTE_PACK_MODEL_OVERRIDE);
 	if (!handler)
 	{
 		return;
 	}
 
-	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	fx::ScriptEngine::RegisterNativeHandler(SET_PLAYER_PARACHUTE_PACK_MODEL_OVERRIDE, [handler](fx::ScriptContext& ctx)
 	{
 		uint32_t modelHash = ctx.GetArgument<uint32_t>(1);
 		if (IsParachutePackModelAuthorized(modelHash))
