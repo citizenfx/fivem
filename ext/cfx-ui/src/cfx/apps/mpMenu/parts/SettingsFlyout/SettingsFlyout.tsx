@@ -49,6 +49,10 @@ export const SettingsFlyout = observer(function SettingsFlyout() {
     [eventHandler, SettingsUIService],
   );
 
+  if (!SettingsUIService.visible) {
+    return null;
+  }
+
   return (
     <Flyout disableSoundEffects disabled={!SettingsUIService.visible} onClose={SettingsUIService.close} size="small">
       <Page>
