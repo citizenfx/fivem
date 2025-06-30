@@ -943,7 +943,86 @@ struct CGuardZoneGuardDataNode { };
 struct CGuardZonePointOfInterestFinderDataNode { };
 struct CCombatDirectorCreateUpdateDataNode { };
 struct CPedWeaponDataNode { };
-struct CPedVehicleDataNode { };
+struct CPedVehicleDataNode : GenericSerializeDataNode<CPedVehicleDataNode>
+{
+	CPedVehicleNodeData data;
+
+	bool wasInVehicle;
+	bool inVehicle;
+	bool onHorse;
+	bool wasOnHorse;
+	uint8_t seat = 0;
+
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
+	{
+
+		bool wasInVehicle = data.curVehicle != 0;
+		s.Serialize(wasInVehicle);
+
+		if (wasInVehicle)
+		{
+			s.Serialize(inVehicle);
+			s.Serialize(13, data.curVehicle);
+		}
+		else
+		{
+			data.curVehicle = 0;
+			inVehicle = false;
+		}
+
+		bool wasOnHorse = data.curHorse != 0;
+		s.Serialize(wasOnHorse);
+		if (wasOnHorse)
+		{
+			s.Serialize(onHorse);
+			s.Serialize(13, data.curHorse);
+		}
+		else
+		{
+			data.curHorse = 0;
+			onHorse = false;
+		}
+
+		if (onHorse)
+		{
+			s.Serialize(5, data.curHorseSeat);
+
+			if (data.lastHorsePedWasOn == 0)
+			{
+				data.lastHorsePedWasOn = data.curHorse;
+			}
+		}
+		else
+		{
+			data.curHorseSeat = 0;
+			if (data.lastHorsePedWasOn != data.curHorse)
+			{
+				data.lastHorsePedWasOn = data.curHorse;
+			}
+		}
+
+		if (inVehicle)
+		{
+			s.Serialize(5, data.curVehicleSeat);
+			if (data.lastVehiclePedWasIn == 0)
+			{
+				data.lastVehiclePedWasIn = data.curVehicle;
+			}
+		}
+		else
+		{
+			data.curVehicleSeat = 0;
+
+			if (data.lastVehiclePedWasIn != data.curVehicle)
+			{
+				data.lastVehiclePedWasIn = data.curVehicle;
+			}
+		}
+
+		return true;
+	}
+};
 struct CPlayerCharacterCreatorDataNode { };
 struct CPlayerAmbientModelStreamingDataNode { };
 struct CPlayerVoiceDataNode { };
@@ -1398,6 +1477,13 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 	{
 		*visible = true;
 		return true;
+	}
+
+	virtual CPedVehicleNodeData* GetPedVehicleData() override
+	{
+		auto [hasNode, node] = this->template GetData<CPedVehicleDataNode>();
+
+		return hasNode ? &node->data : nullptr;
 	}
 };
 
