@@ -5,6 +5,7 @@
 #include <CoreConsole.h>
 
 #include <Hooking.h>
+#include <Hooking.Stubs.h>
 
 #include <ScriptEngine.h>
 #include <scrEngine.h>
@@ -17,6 +18,7 @@
 
 static GameValueStub<float> g_vfxNitrousOverride;
 static bool g_scriptExhaustBones;
+static bool g_disableFogVolumeRender = false;
 
 namespace rage
 {
@@ -46,6 +48,16 @@ static hook::cdecl_stub<bool(CVehicle*, int, rage::Vec4V*, rage::Vec4V*)> _getLo
 {
 	return hook::get_pattern("48 8D 50 98 48 8D 48 A8 0F 29 70 E8 C6 40 88 00", -0x1B);
 });
+
+static void (*g_orig_RenderFogVolumes)(void* self, float* FogVolumeParams[4]);
+void RenderFogVolumes(void* self, float* FogVolumeParams[4])
+{
+	if (g_disableFogVolumeRender)
+	{
+		return;
+	}
+	g_orig_RenderFogVolumes(self, FogVolumeParams);
+}
 
 // b3095 updated GET_ENTITY_BONE_POSITION with a specific carve-out for modified
 // exhaust bone matrices (0x140A7E4E6/b3095).
@@ -99,10 +111,14 @@ static HookFunction hookFunction([]()
 	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 	{
 		g_vfxNitrousOverride.Reset();
+		g_disableFogVolumeRender = false;
 	});
 
 	{
 		g_coronas = hook::get_address<void*>(hook::get_pattern("F3 0F 11 44 24 28 F3 0F 11 7C 24 20 E8 ? ? ? ? E8", -4));
+	}
+	{
+		g_orig_RenderFogVolumes = hook::trampoline(hook::get_call(hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 4C 8D 9C 24 ? ? ? ? 49 8B 5B ? 49 8B 7B")), RenderFogVolumes);
 	}
 });
 
@@ -207,4 +223,8 @@ static InitFunction initFunction([]()
 			context.SetResult<bool>(result);
 		});
 	}
+	fx::ScriptEngine::RegisterNativeHandler("SET_FOG_VOLUME_RENDER_DISABLED", [](fx::ScriptContext& context)
+	{
+		g_disableFogVolumeRender = context.GetArgument<bool>(0);
+	});
 });
