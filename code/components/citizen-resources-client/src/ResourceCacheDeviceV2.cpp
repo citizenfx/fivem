@@ -348,8 +348,8 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::FetchEntry(const std::s
 	std::unique_lock<std::mutex> lock(ms_lock);
 
 	const auto& e = entry->get();
-	const auto& referenceHash = e.referenceHash;
-	auto it = ms_entries.find(referenceHash);
+	const auto& remoteHash = (e.referenceHash.empty()) ? e.remoteUrl : e.referenceHash;
+	auto it = ms_entries.find(remoteHash);
 
 	if (it == ms_entries.end() || !it->second)
 	{
@@ -361,7 +361,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::FetchEntry(const std::s
 		}
 		else
 		{
-			it = ms_entries.emplace(referenceHash, std::move(retTask)).first;
+			it = ms_entries.emplace(remoteHash, std::move(retTask)).first;
 		}
 	}
 
@@ -377,8 +377,8 @@ void ResourceCacheDeviceV2::UnfetchEntry(const std::string& fileName)
 		std::unique_lock<std::mutex> lock(ms_lock);
 
 		const auto& e = entry->get();
-		const auto& referenceHash = e.referenceHash;
-		auto it = ms_entries.find(referenceHash);
+		const auto& remoteHash = (e.referenceHash.empty()) ? e.remoteUrl : e.referenceHash;
+		auto it = ms_entries.find(remoteHash);
 
 		if (it != ms_entries.end())
 		{
