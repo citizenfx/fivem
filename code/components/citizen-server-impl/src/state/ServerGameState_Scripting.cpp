@@ -118,6 +118,82 @@ static void Init()
 		}
 	};
 
+	static auto GetPedMaxHealth = [](const fx::sync::SyncEntityPtr& entity)
+	{
+#ifdef STATE_FIVE
+		auto nodeData = entity->syncTree->GetPedHealth();
+
+		if (nodeData)
+		{
+			return (uint32_t)nodeData->maxHealth;
+		}
+#elif defined(STATE_RDR3)
+		auto nodeData = entity->syncTree->Get1435995f0();
+
+		if (nodeData)
+		{
+			return nodeData->m_maxHealth;
+		}
+#endif
+
+		return (uint32_t)0;
+	};
+
+	static auto GetEntityMaxHealth = [](const fx::sync::SyncEntityPtr& entity)
+	{
+		switch (GetEntityType(entity))
+		{
+			case EntityType::Ped:
+				return GetPedMaxHealth(entity);
+			default:
+				return (uint32_t)0;
+		}
+	};
+
+	static auto GetEntityHealth = [](const fx::sync::SyncEntityPtr& entity)
+	{
+		switch (GetEntityType(entity))
+		{
+			case EntityType::Ped:
+			{
+#ifdef STATE_RDR3
+				auto nodeData = entity->syncTree->GetPedHealth();
+
+				if (nodeData)
+				{
+					if (nodeData->m_hasMaxHealth)
+					{
+						return GetEntityMaxHealth(entity);
+					}
+
+					return nodeData->m_health;
+				}
+#elif defined(STATE_FIVE)
+				auto nodeData = entity->syncTree->GetPedHealth();
+
+				if (nodeData)
+				{
+					return (uint32_t)nodeData->health;
+				}
+#endif
+				break;
+			}
+			case EntityType::Vehicle:
+			{
+#ifdef STATE_FIVE
+				auto nodeData = entity->syncTree->GetVehicleHealth();
+
+				if (nodeData)
+				{
+					return (uint32_t)nodeData->health;
+				}
+#endif
+				break;
+			}
+		}
+
+		return (uint32_t)0;
+	};
 
 	fx::ScriptEngine::RegisterNativeHandler("DOES_ENTITY_EXIST", [](fx::ScriptContext& context)
 	{
@@ -793,23 +869,40 @@ static void Init()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_MAX_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
-		auto pn = entity->syncTree->GetPedHealth();
+		if (GetEntityType(entity) != EntityType::Ped)
+		{
+			return (uint32_t)0;
+		}
 
-		return pn ? pn->maxHealth : 0;
+		return GetPedMaxHealth(entity);;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_ARMOUR", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
+#ifdef STATE_FIVE
 		auto pn = entity->syncTree->GetPedHealth();
 
-		return pn ? pn->armour : 0;
+		if (pn)
+		{
+			return pn->armour;
+		}
+#endif
+
+		return 0;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_CAUSE_OF_DEATH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
+#ifdef STATE_FIVE
 		auto pn = entity->syncTree->GetPedHealth();
 
-		return pn ? pn->causeOfDeath : 0;
+		if (pn)
+		{
+			return pn->causeOfDeath;
+		}
+#endif
+
+		return (uint32_t)0;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_DESIRED_HEADING", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
@@ -830,31 +923,12 @@ static void Init()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_MAX_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
-		if (GetEntityType(entity) == EntityType::Ped)
-		{
-			auto pn = entity->syncTree->GetPedHealth();
-			return pn ? pn->maxHealth : 0;
-		}
-
-		return 0;
+		return GetEntityMaxHealth(entity);
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
-		EntityType entType = GetEntityType(entity);
-
-		if (entType == EntityType::Ped)
-		{
-			auto pn = entity->syncTree->GetPedHealth();
-			return pn ? pn->health : 0;
-		}
-		else if (entType == EntityType::Vehicle)
-		{
-			auto pn = entity->syncTree->GetVehicleHealth();
-			return pn ? pn->health : 0;
-		}
-
-		return 0;
+		return GetEntityHealth(entity);
 	}));
 	
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_NEON_COLOUR", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
@@ -1844,8 +1918,8 @@ static void Init()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_SOURCE_OF_DAMAGE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
+#ifdef STATE_FIVE
 		auto node = entity->syncTree->GetPedHealth();
-
 
 		// get the current resource manager
 		auto resourceManager = fx::ResourceManager::GetCurrent();
@@ -1866,12 +1940,15 @@ static void Init()
 
 		// Return the entity
 		return gameState->MakeScriptHandle(returnEntity);
+#endif
+
+		return (uint32_t)0;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_SOURCE_OF_DEATH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
+#ifdef STATE_FIVE
 		auto node = entity->syncTree->GetPedHealth();
-
 
 		// get the current resource manager
 		auto resourceManager = fx::ResourceManager::GetCurrent();
@@ -1892,6 +1969,9 @@ static void Init()
 
 		// Return the entity
 		return gameState->MakeScriptHandle(returnEntity);
+#endif
+
+		return (uint32_t)0;
 	}));
   
 	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_CULLING_RADIUS", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)

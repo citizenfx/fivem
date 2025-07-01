@@ -497,6 +497,14 @@ struct ParseSerializer
 		return true;
 	}
 
+	template<typename T>
+	bool SerializeCapped(int size, int maxValue, T& data)
+	{
+		data = std::min(data, static_cast<T>(maxValue));
+
+		return Serialize(size, data);
+	}
+
 	static constexpr bool isReader = true;
 	SyncParseState* state;
 };
@@ -530,6 +538,14 @@ struct UnparseSerializer
 	{
 		state->buffer.WriteSignedFloat(size, div, data);
 		return true;
+	}
+
+	template<typename T>
+	bool SerializeCapped(int size, int maxValue, T& data)
+	{
+		data = std::min(data, static_cast<T>(maxValue));
+
+		return Serialize(size, data);
 	}
 
 	static constexpr bool isReader = false;

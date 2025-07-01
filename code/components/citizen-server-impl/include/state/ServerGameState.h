@@ -566,13 +566,100 @@ struct CVehicleAngVelocityNodeData
 	float angVelZ;
 };
 
+#ifdef STATE_RDR3
+
+struct CSyncedPedAttribute
+{
+	int32_t dword0[8];
+	uint32_t m_defaultEnergy;
+	uint32_t m_coreEnergy;
+	uint32_t dword28;
+	uint32_t m_energyReservesEnergy;
+	uint32_t m_overPowerEnergy;
+	uint32_t m_goldCoreEnergy;
+	uint8_t byte38;
+	bool byte39;
+	bool m_hasEnergyReserves;
+	bool m_byte3B;
+	bool m_hasOverPowerEnergy;
+	bool m_hasGoldCoreEnergy;
+	bool byte3E; // "true" when something == "UPGRADE_HEALTH_TANK_1"
+	bool byte3F; // "true" when something == "UPGRADE_STAMINA_TANK_1"
+
+	template<typename Serializer>
+	void Serialize(Serializer& s);
+
+	inline virtual void Reset()
+	{
+		m_defaultEnergy = 0;
+		dword28 = 0;
+		byte38 = 0;
+		m_overPowerEnergy = 0;
+		memset(dword0, 0, sizeof(dword0));
+	}
+};
+
+struct CSyncedPedAttributeExtra : CSyncedPedAttribute
+{
+	uint32_t m_goldCoreEnergyDuration;
+	uint32_t m_overPowerEnergyDuration;
+	uint32_t dword48;
+	bool m_hasOverPowerEnergyDuration;
+	bool m_hasGoldCoreEnergyDuration;
+	bool byte4E;
+
+	template<typename Serializer>
+	void Serialize(Serializer& s);
+
+	inline void Reset() override
+	{
+		CSyncedPedAttribute::Reset();
+
+		m_goldCoreEnergyDuration = 0;
+		dword48 = 0;
+		m_hasOverPowerEnergyDuration = 0;
+		byte4E = 0;
+	}
+};
+
+struct DataNode_1435995f0NodeData
+{
+	CSyncedPedAttribute m_maxHealthAttribute;
+	float m_float40;
+	bool m_byte44;
+
+	// Added members, these doesn't exist on the client's actual data
+	uint32_t m_maxHealth;
+};
+
+#endif
+
 struct CPedHealthNodeData
 {
+#ifdef STATE_FIVE
+
 	int maxHealth;
 	int health;
 	int armour;
 	uint32_t causeOfDeath;
 	int sourceOfDamage;
+
+#elif defined(STATE_RDR3)
+
+	CSyncedPedAttributeExtra m_healthAttribute;
+
+	bool byte4F;
+	uint32_t m_health;
+	uint32_t gap54;
+	uint32_t m_energyRecharge[6]; // value until we reach m_health;
+	bool m_hasMaxHealth;
+	bool byte71;
+	bool byte72;
+	bool byte73;
+	bool m_hasEnergyRecharges;
+	bool byte75;
+
+#endif
 };
 
 struct CPedOrientationNodeData
@@ -824,6 +911,10 @@ public:
 	virtual CPlayerGameStateNodeData* GetPlayerGameState() = 0;
 
 	virtual CPedHealthNodeData* GetPedHealth() = 0;
+
+#ifdef STATE_RDR3
+	virtual DataNode_1435995f0NodeData* Get1435995f0() = 0;
+#endif
 
 	virtual CVehicleHealthNodeData* GetVehicleHealth() = 0;
 
