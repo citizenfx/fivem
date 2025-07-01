@@ -52,8 +52,8 @@ namespace CitizenFX.Core
 		private static readonly ConcurrentDictionary<string, MsgPackFunc> _handlers = new ConcurrentDictionary<string, MsgPackFunc>();
 		private static readonly ConcurrentDictionary<string, MsgPackFunc> _pending = new ConcurrentDictionary<string, MsgPackFunc>();
 		private static int _requestCounter; // simple counter to handle uniqueIDs
-		private const string CallbackRequestEvent = "__cfx_cbrequest";
-		private const string CallbackResponseEvent = "__cfx_cbresponse";
+		private const string CallbackRequestEvent = "__cfx_internal:cbrequest";
+		private const string CallbackResponseEvent = "__cfx_internal:cbresponse";
 		private const int TimeoutMilliseconds = 5000; // too much? callbacks should never take > 1000ms.. and imho 1s is waaay too much to wait for a response from otherside.
 		internal delegate TResult TypeDeserializer<out TResult>(ref MsgPackDeserializer arg);
 
@@ -73,6 +73,13 @@ namespace CitizenFX.Core
 			{
 				uint length = deserializer.ReadArraySize();
 				string requestId = ReadStringBytes(ref deserializer);
+#if !IS_FXSERVER
+				if(requestId.StartsWith("srv"))
+					return true;
+#else
+				if (requestId.StartsWith("cli"))
+					return true;
+#endif
 				// we create a new deserializer only for the array of arguments that
 				// we receive from the callback to execute it.
 				var obj = deserializer.DeserializeAsObject();
@@ -83,6 +90,7 @@ namespace CitizenFX.Core
 
 					if (_pending.TryRemove(requestId, out var coro))
 					{
+						Debug.WriteLine($"Received callback response for requestId: {requestId}, args: {obj}");
 						try
 						{
 							var result = coro(remote, ref deserializer);
@@ -107,6 +115,13 @@ namespace CitizenFX.Core
 				var callbackInfo = ((TypeDeserializer<CallbackInfoDelegate>)deleF)(ref deserializer);
 
 				string requestId = callbackInfo.requestId;
+#if !IS_FXSERVER
+				if(requestId.StartsWith("cli"))
+					return true;
+#else
+				if (requestId.StartsWith("srv"))
+					return true;
+#endif
 				string evName = callbackInfo.evName;
 				string playerHandle = string.Empty;
 #if IS_FXSERVER
@@ -115,6 +130,7 @@ namespace CitizenFX.Core
 
 				if (_handlers.TryGetValue(evName, out var handler))
 				{
+					Debug.WriteLine($"Received callback request for event: {evName}, requestId: {requestId}, args: {callbackInfo.args}");
 					try
 					{
 						byte[] args = MsgPackSerializer.SerializeToByteArray(callbackInfo.args);
@@ -125,17 +141,10 @@ namespace CitizenFX.Core
 							deserializer = new MsgPackDeserializer(argsPtr, (ulong)args.Length, origin == Binding.Remote ? sourceString : null);
 							var result = handler(remote, ref deserializer);
 
-							if (result is Coroutine<object> coro)
-							{
-								coro.ContinueWith(r =>
-								{
-									Send(CallbackResponseEvent, playerHandle, origin,requestId,r.GetResult());
-								});
-							}
+							if (result is Coroutine coro)
+								coro.ContinueWith(r => SendResponse(CallbackResponseEvent, playerHandle, origin,requestId,r.GetResultNonThrowing()));
 							else
-							{
-								Send(CallbackResponseEvent,playerHandle,origin,requestId,((Coroutine)result).GetResultNonThrowing());
-							}
+								((Coroutine)result).ContinueWith(r => SendResponse(CallbackResponseEvent, playerHandle, origin, requestId, r.GetResultNonThrowing()));
 						}
 					}
 					catch (Exception ex)
@@ -147,7 +156,7 @@ namespace CitizenFX.Core
 				}
 				else
 				{
-					Send(CallbackResponseEvent,playerHandle,Binding.Remote,requestId,null);
+					SendResponse(CallbackResponseEvent,playerHandle,Binding.Remote,requestId,null);
 				}
 				return true;
 			}
@@ -187,24 +196,9 @@ namespace CitizenFX.Core
 			}
 		}
 
-#if IS_FXSERVER
-		internal static Coroutine<T> TriggerClientCallback<T>(Player client, string name, params object[] args)
-		{
-			return TriggerInternal<T>(Binding.Remote, client.m_handle, name, args);
-		}
-#endif
-		internal static Coroutine<T> TriggerServerCallback<T>(string name, params object[] args)
-		{
-			return TriggerInternal<T>(Binding.Remote, null, name, args);
-		}
-		internal static Coroutine<T> TriggerLocalCallback<T>(string name, params object[] args)
-		{
-			return TriggerInternal<T>(Binding.Local, null, name, args);
-		}
-
 		internal static Coroutine<T> TriggerInternal<T>(Binding binding, string target, string name, params object[] args)
 		{
-			string requestId = GenerateRequestId();
+			string requestId = GenerateRequestId(binding == Binding.Local);
 			var coro = new Coroutine<T>();
 
 			_pending[requestId] = (Remote r, ref MsgPackDeserializer d) =>
@@ -239,10 +233,10 @@ namespace CitizenFX.Core
 				args = args
 			};
 
-			Send(eventName, target, binding, del);
+			SendRequest(eventName, target, binding, del);
 		}
 
-		private static void Send(string eventName, string target, Binding binding, string requestId, object result)
+		private static void SendResponse(string eventName, string target, Binding binding, string requestId, object result)
 		{
 			InPacket var = new InPacket(new[] { requestId, result });
 			if (binding == Binding.Local)
@@ -259,7 +253,7 @@ namespace CitizenFX.Core
 			}
 		}
 
-		private static void Send(string eventName, string target, Binding binding, CallbackInfoDelegate del)
+		private static void SendRequest(string eventName, string target, Binding binding, CallbackInfoDelegate del)
 		{
 			InPacket var = new InPacket(new[] { del });
 			if (binding == Binding.Local)
@@ -280,9 +274,11 @@ namespace CitizenFX.Core
 			}
 		}
 
-		private static string GenerateRequestId()
+		private static string GenerateRequestId(bool local)
 		{
 			int id = Interlocked.Increment(ref _requestCounter);
+			if(local)
+				return "loc_" + id;
 #if IS_FXSERVER
 			return "srv_" + id;
 #else
