@@ -90,7 +90,6 @@ namespace CitizenFX.Core
 
 					if (_pending.TryRemove(requestId, out var coro))
 					{
-						Debug.WriteLine($"Received callback response for requestId: {requestId}, args: {obj}");
 						try
 						{
 							var result = coro(remote, ref deserializer);
@@ -130,7 +129,6 @@ namespace CitizenFX.Core
 
 				if (_handlers.TryGetValue(evName, out var handler))
 				{
-					Debug.WriteLine($"Received callback request for event: {evName}, requestId: {requestId}, args: {callbackInfo.args}");
 					try
 					{
 						byte[] args = MsgPackSerializer.SerializeToByteArray(callbackInfo.args);
@@ -154,10 +152,6 @@ namespace CitizenFX.Core
 						//Send(CallbackResponseEvent,playerHandle,origin,requestId,null);
 					}
 				}
-				else
-				{
-					SendResponse(CallbackResponseEvent,playerHandle,Binding.Remote,requestId,null);
-				}
 				return true;
 			}
 
@@ -173,18 +167,6 @@ namespace CitizenFX.Core
 			}))
 			{
 				throw new Exception($"Error while trying to register event callback [{name}].");
-			}
-		}
-
-		internal static void Register<T>(string name, Binding binding, MsgPackFunc handler)
-		{
-			if(!_handlers.TryAdd(name, (Remote remote, ref MsgPackDeserializer deserializer) =>
-			{
-				var coro = handler(remote, ref deserializer);
-				return coro;
-			}))
-			{
-				throw new Exception($"Callback [{name}] already registered, you can only register it once!");
 			}
 		}
 
@@ -216,7 +198,8 @@ namespace CitizenFX.Core
 			{
 				if (_pending.TryRemove(requestId, out var pending))
 				{
-					coro.Fail(null, new TimeoutException($"Callback '{name}' timed out after {TimeoutMilliseconds}ms."));
+					coro.Fail(default(T), new TimeoutException($"Callback '{name}' timed out after {TimeoutMilliseconds}ms."));
+					coro.GetResult();
 				}
 			}, TimeoutMilliseconds);
 
@@ -278,11 +261,11 @@ namespace CitizenFX.Core
 		{
 			int id = Interlocked.Increment(ref _requestCounter);
 			if(local)
-				return "loc_" + id;
+				return $"loc_{id}";
 #if IS_FXSERVER
-			return "srv_" + id;
+			return $"srv_{id}";
 #else
-			return "cli_" + id;
+			return $"cli_{id}";
 #endif
 		}
 
