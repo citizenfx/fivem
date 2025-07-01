@@ -263,12 +263,10 @@ int MonoScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* 
 		return false;
 	}
 
-	// last supported date for this pilot of mono_rt2, in UTC
-	constexpr int maxYear = 2025, maxMonth = 6, maxDay = 30;
-
 	// Allowed values for mono_rt2
 	constexpr std::string_view allowedValues[] = {
 		// put latest on top, right here ↓
+		"true"sv,
 		"Prerelease expiring 2025-06-30. See https://aka.cfx.re/mono-rt2-preview for info."sv,
 		"Prerelease expiring 2024-12-31. See https://aka.cfx.re/mono-rt2-preview for info."sv,
 		"Prerelease expiring 2024-06-30. See https://aka.cfx.re/mono-rt2-preview for info."sv,
@@ -277,24 +275,6 @@ int MonoScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* 
 		"Prerelease expiring 2023-08-31. See https://aka.cfx.re/mono-rt2-preview for info."sv,
 		"Prerelease expiring 2023-06-30. See https://aka.cfx.re/mono-rt2-preview for info."sv,
 	};
-
-	// disable loading mono_rt2 scripts after maxYear-maxMonth-maxDay
-	tm maxDate;
-	memset(&maxDate, 0, sizeof(maxDate));
-	maxDate.tm_year = maxYear - 1900; // YYYY - 1900 (starts from 1900)
-	maxDate.tm_mon = maxMonth - 1;    // 0 .. 11
-	maxDate.tm_mday = maxDay;         // 1 .. 31
-
-	std::time_t currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	std::time_t endTime = mktime(&maxDate) + std::time_t(24 * 60 * 60); // until the end of the day
-
-	if (currentTime > endTime)
-	{
-		console::PrintError(_CFX_NAME_STRING(_CFX_COMPONENT_NAME), "mono_rt2 is no longer supported since (%04d-%02d-%02d), skipped loading %s.\n",
-			maxYear, maxMonth, maxDay, filename);
-
-		return false;
-	}
 
 	// date & sentence restrictions on mono_rt2 flag, only allow loading if the value is in our array
 	for (int i = 0; i < monoRT2FlagCount; ++i)
