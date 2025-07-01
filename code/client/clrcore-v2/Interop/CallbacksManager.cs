@@ -1,6 +1,7 @@
 using CitizenFX.Core.Native;
 using CitizenFX.MsgPack;
 using CitizenFX.Shared;
+using CitizenFX.Shared.Native;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -259,13 +260,14 @@ namespace CitizenFX.Core
 
 		private static string GenerateRequestId(bool local)
 		{
+			string rm = Natives.GetCurrentResourceName();
 			int id = Interlocked.Increment(ref _requestCounter);
 			if(local)
-				return $"loc_{id}";
+				return $"loc:{rm}:{id}";
 #if IS_FXSERVER
-			return $"srv_{id}";
+			return $"srv:{rm}:{id}";
 #else
-			return $"cli_{id}";
+			return $"cli:{rm}:{id}";
 #endif
 		}
 

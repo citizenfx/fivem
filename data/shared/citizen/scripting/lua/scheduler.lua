@@ -835,18 +835,19 @@ end
 
 -- API Callbacks support 
 
-local callbacks = {}
+local registeredCallbacks = {}
 local pendingCallbacks = {}
 local counter = 0
 -- this generates the ID to keep requests unique and avoid race conditions
 local function _generateRequestId(isLocal)
+	local rm = GetCurrentResourceName()
 	counter = counter + 1
 	if isLocal then
-		return "loc_" .. counter
+		return "loc:" .. rm .. ":" .. counter
 	elseif isDuplicityVersion then
-	    return "srv_" .. counter
+	    return "srv:" .. rm .. ":" .. counter
 	else
-		return "cli_" .. counter
+		return "cli:" .. rm .. ":" .. counter
 	end
 end
 
@@ -858,7 +859,7 @@ RegisterNetEvent("__cfx_internal:cbrequest", function(infoStruct)
 		return
 	end
 	local evName = infoStruct[2]
-	local cb = callbacks[evName]
+	local cb = registeredCallbacks[evName]
 	if cb then
 		local result = cb(table.unpack(infoStruct[3] or {}))
 		local payload = msgpack_pack_args(requestId, result)
@@ -888,42 +889,63 @@ RegisterNetEvent("__cfx_internal:cbresponse", function(requestId, result)
 end)
 
 function RegisterCallback(name, cb)
-	callbacks[name] = cb
+	registeredCallbacks[name] = cb
 end
 
-if isDuplicityVersion then
-	-- Trigger callback on a specifications CLIENT (server onlyserver)
-	function TriggerClientCallback(targetId, name, ...)
-		assert(targetId ~= -1, "A player handle must be specified, cannot trigger a callback to all players")
-		local requestId = _generateRequestId()
-		local p = promise.new()
-		pendingCallbacks[requestId] = p
-		local payload = msgpack_pack_args({requestId, name, {...}}) -- this is the same as c# CallbackInfoDelegate class
-		TriggerClientEventInternal("__cfx_internal:cbrequest", targetId, payload, payload:len())
-		return Citizen.Await(p)
-	end
-else
-	-- Trigger callback on their SERVER (client only)
-	function TriggerServerCallback(name, ...)
-		local requestId = _generateRequestId()
-		local p = promise.new()
-		pendingCallbacks[requestId] = p
-		local payload = msgpack_pack_args({requestId, name, {...}}) -- this is the same as c# CallbackInfoDelegate class
-		TriggerServerEventInternal("__cfx_internal:cbrequest", payload, payload:len())
-		return Citizen.Await(p)
-	end
-end
-
--- Trigger LOCAL callbacks (client-client or server-server)
-function TriggerLocalCallback(name, ...)
-    local requestId = _generateRequestId(true)
+-- this internal function is used to trigger callbacks, 
+-- it will return a promise that resolves with the result of the callback
+-- or fails if exceedes timeout
+local function triggerInternal(type, targetId, callbackName, ...)
+    local requestId = _generateRequestId(type == 0)
+	local payload = msgpack_pack_args({requestId, callbackName, {...}}) -- this is the same as c# CallbackInfoDelegate C# class
     local p = promise.new()
     pendingCallbacks[requestId] = p
-	local payload = msgpack_pack_args({requestId, name, {...}}) -- this is the same as c# CallbackInfoDelegate class
-    TriggerEventInternal("__cfx_internal:cbrequest", payload, payload:len())
+
+    local timer = SetTimeout(5000, function()
+        if pendingCallbacks[requestId] then
+            pendingCallbacks[requestId]:reject("Callback '" .. callbackName .. "' timed out after " .. 5000 .. "ms")
+            pendingCallbacks[requestId] = nil
+        end
+    end)
+
+    p:next(function(...)
+        if timer then
+            ClearTimeout(timer)
+            timer = nil
+        end
+        return ...
+    end, function(err)
+        if timer then
+            ClearTimeout(timer)
+            timer = nil
+        end
+        return error(err)
+    end)
+
+    if type == 1 then
+        TriggerClientEventInternal("__cfx_internal:cbrequest", targetId, payload, payload:len())
+	elseif type == 2 then
+        TriggerServerEventInternal("__cfx_internal:cbrequest", payload, payload:len())
+	else
+		TriggerEventInternal("__cfx_internal:cbrequest", payload, payload:len())
+    end
     return Citizen.Await(p)
 end
 
+if isDuplicityVersion then
+    function TriggerClientCallback(targetId, callbackName, ...)
+        assert(targetId ~= -1, "A player handle must be specified, cannot trigger a callback to all players")
+        return triggerInternal(1, targetId, callbackName, ...)
+    end
+else
+    function TriggerServerCallback(callbackName, ...)
+        return triggerInternal(2, nil, callbackName, ...)
+    end
+end
+
+function TriggerLocalCallback(callbackName, ...)
+    return triggerInternal(0, nil, callbackName, ...)
+end
 -- entity helpers
 local EXT_ENTITY = 41
 local EXT_PLAYER = 42
