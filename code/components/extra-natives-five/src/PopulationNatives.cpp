@@ -7,6 +7,12 @@
 
 #include "Resource.h"
 #include "ResourceScriptingComponent.h"
+#include <Hooking.Stubs.h>
+
+namespace rage
+{
+	using Vec3V = DirectX::XMVECTOR;
+}
 
 static hook::cdecl_stub<void(const char*)> _loadPopGroups([]
 {
@@ -17,6 +23,12 @@ static hook::cdecl_stub<void()> _reloadPopGroups([]
 {
 	return hook::get_pattern("74 4D 48 8B C8 E8 ? ? ? ? 33 DB", -0x1E);
 });
+
+static hook::cdecl_stub<void(rage::Vec3V*, bool, float, float, float, float, float, bool, int, int)> _GeneratePedsAtScenarioPoints([]
+{
+	return hook::get_pattern("48 8B C4 48 89 58 ? 48 89 70 ? 57 48 83 EC ? 8B 9C 24");
+});
+
 
 static fx::OMPtr<IScriptHost> GetCurrentScriptHost()
 {
@@ -83,5 +95,25 @@ static InitFunction initFunction([]
 		{
 			UnloadPopGroups();
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GENERATE_PEDS_AT_SCENARIO_POINTS", [](fx::ScriptContext& context)
+	{
+		float x = context.GetArgument<float>(0);
+		float y = context.GetArgument<float>(1);
+		float z = context.GetArgument<float>(2);
+		auto allowDeepInteriors = context.GetArgument<bool>(3);
+		auto rangeOutOfViewMin = context.GetArgument<float>(4);
+		auto rangeOutOfViewMax = context.GetArgument<float>(5);
+		auto rangeInViewMin = context.GetArgument<float>(6);
+		auto rangeInViewMax = context.GetArgument<float>(7);
+		auto rangeFrustumExtra = context.GetArgument<float>(8);
+		auto doInFrustumTest = context.GetArgument<bool>(9);
+		auto maxPeds = context.GetArgument<int>(10);
+		auto maxInteriorPeds = context.GetArgument<int>(11);
+
+		rage::Vec3V popControlCentre = DirectX::XMVectorSet(x, y, z, 0.0f);
+		_GeneratePedsAtScenarioPoints(&popControlCentre, allowDeepInteriors, rangeOutOfViewMin, rangeOutOfViewMax, rangeInViewMin, rangeInViewMax,
+									 rangeFrustumExtra, doInFrustumTest, maxPeds, maxInteriorPeds);
 	});
 });
