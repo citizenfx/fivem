@@ -64,14 +64,9 @@ static HookFunction hookFunction([]()
 			push(r8);
 			push(r9);
 
-			// Shadow space + stack alignment
-			sub(rsp, 0x28);
-
 			// Injected check to verify CWeaponInfo has a valid class instance
 			mov(rax, reinterpret_cast<uintptr_t>(VerifyCWeaponInfoPtr));
 			call(rax);
-
-			add(rsp, 0x28);
 
 			// Restore registers
 			pop(r9);
@@ -79,7 +74,7 @@ static HookFunction hookFunction([]()
 			pop(rdx);
 			pop(rcx);
 
-			test(eax, eax);
+			test(al, al);
 			jz("fail"); // Early zero return
 
 			mov(rax, RetSuccess);
