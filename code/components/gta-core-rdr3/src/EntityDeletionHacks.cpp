@@ -6,6 +6,30 @@
 
 #include <boost/type_index.hpp>
 
+enum NativeIdentifiers : uint64_t
+{
+	GET_PLAYER_PED = 0x275F255ED201B937,
+	NETWORK_GET_NETWORK_ID_FROM_ENTITY = 0xA11700682F3AD45C,
+	VEH_TO_NET = 0xB4C94523F023419C,
+	PED_TO_NET = 0x0EDEC3C276198689,
+	OBJ_TO_NET = 0x99BFDC94A603E541,
+	NETWORK_GET_ENTITY_FROM_NETWORK_ID = 0xCE4E5D9B0A4FF560,
+	NET_TO_ENT = 0xBFFEAB45A9A9094A,
+	NET_TO_VEH = 0x367B936610BA360C,
+	NET_TO_PED = 0xBDCD95FC216A8B3E,
+	NET_TO_OBJ = 0xD8515F5FEA14CB3F,
+	NETWORK_DOES_NETWORK_ID_EXIST = 0x38CE16C96BD11344,
+	NETWORK_DOES_ENTITY_EXIST_WITH_NETWORK_ID = 0x18A47D074708FD68,
+
+	SET_ENTITY_AS_NO_LONGER_NEEDED = 0x4971D2F8162B9674,
+	SET_OBJECT_AS_NO_LONGER_NEEDED = 0x3AE22DEB5BA5A3E6,
+	SET_PED_AS_NO_LONGER_NEEDED = 0x2595DD4236549CE3,
+	SET_VEHICLE_AS_NO_LONGER_NEEDED = 0x629BFA74418D6239,
+	DELETE_PED = 0xCC0EF140F99365C5,
+	DELETE_OBJECT = 0x931914268722C263,
+	DELETE_ENTITY = 0x4CD38C78BD19A497,
+};
+
 class fwEntity;
 
 struct netObject
@@ -122,10 +146,6 @@ static fwEntity* GetNetworkObject(int objectId)
 	return gameObject;
 }
 
-enum NativeIdentifiers : uint64_t
-{
-	GET_PLAYER_PED = 0x275F255ED201B937,
-};
 
 static void deletePed(int* entityRef, CPed* entity)
 {
@@ -176,35 +196,17 @@ static HookFunction hookFunction([]()
 		context->SetResult(0, entityHandle);
 	};
 
-	// NETWORK_GET_NETWORK_ID_FROM_ENTITY
-	rage::scrEngine::RegisterNativeHandler(0xA11700682F3AD45C, getNetID);
-
-	// VEH_TO_NET
-	rage::scrEngine::RegisterNativeHandler(0xB4C94523F023419C, getNetID);
-
-	// PED_TO_NET
-	rage::scrEngine::RegisterNativeHandler(0x0EDEC3C276198689, getNetID);
-
-	// OBJ_TO_NET
-	rage::scrEngine::RegisterNativeHandler(0x99BFDC94A603E541, getNetID);
-
-	// NETWORK_GET_ENTITY_FROM_NETWORK_ID
-	rage::scrEngine::RegisterNativeHandler(0xCE4E5D9B0A4FF560, getNetObj);
-
-	// NET_TO_ENT
-	rage::scrEngine::RegisterNativeHandler(0xBFFEAB45A9A9094A, getNetObj);
-
-	// NET_TO_VEH
-	rage::scrEngine::RegisterNativeHandler(0x367B936610BA360C, getNetObj);
-
-	// NET_TO_PED
-	rage::scrEngine::RegisterNativeHandler(0xBDCD95FC216A8B3E, getNetObj);
-
-	// NET_TO_OBJ
-	rage::scrEngine::RegisterNativeHandler(0xD8515F5FEA14CB3F, getNetObj);
-
-	// NETWORK_DOES_NETWORK_ID_EXIST
-	rage::scrEngine::RegisterNativeHandler(0x38CE16C96BD11344, [](rage::scrNativeCallContext* context)
+	rage::scrEngine::RegisterNativeHandler(NETWORK_GET_NETWORK_ID_FROM_ENTITY, getNetID);
+	rage::scrEngine::RegisterNativeHandler(VEH_TO_NET, getNetID);
+	rage::scrEngine::RegisterNativeHandler(PED_TO_NET, getNetID);
+	rage::scrEngine::RegisterNativeHandler(OBJ_TO_NET, getNetID);
+	rage::scrEngine::RegisterNativeHandler(NETWORK_GET_ENTITY_FROM_NETWORK_ID, getNetObj);
+	rage::scrEngine::RegisterNativeHandler(NET_TO_ENT, getNetObj);
+	rage::scrEngine::RegisterNativeHandler(NET_TO_VEH, getNetObj);
+	rage::scrEngine::RegisterNativeHandler(NET_TO_PED, getNetObj);
+	rage::scrEngine::RegisterNativeHandler(NET_TO_OBJ, getNetObj);
+	
+	rage::scrEngine::RegisterNativeHandler(NETWORK_DOES_NETWORK_ID_EXIST, [](rage::scrNativeCallContext* context)
 	{
 		auto objectId = context->GetArgument<int>(0);
 		auto object = getNetObjById(objectId);
@@ -220,9 +222,8 @@ static HookFunction hookFunction([]()
 		context->SetResult<uint32_t>(0, object && object->gameObject);
 	};
 
-	// NETWORK_DOES_ENTITY_EXIST_WITH_NETWORK_ID
 	// Kept to keep compatibility with any resource that directly invoked it previously
-	rage::scrEngine::RegisterNativeHandler(0x18A47D074708FD68, doesEntityExistWithNetworkId);
+	rage::scrEngine::RegisterNativeHandler(NETWORK_DOES_ENTITY_EXIST_WITH_NETWORK_ID, doesEntityExistWithNetworkId);
 
 	rage::scrEngine::RegisterNativeHandler("NETWORK_DOES_ENTITY_EXIST_WITH_NETWORK_ID", doesEntityExistWithNetworkId);
 
@@ -264,20 +265,12 @@ static HookFunction hookFunction([]()
 		*entityRef = 0;
 	};
 
-	// SET_ENTITY_AS_NO_LONGER_NEEDED
-	rage::scrEngine::RegisterNativeHandler(0x4971D2F8162B9674, setAsNoLongerNeeded);
+	rage::scrEngine::RegisterNativeHandler(SET_ENTITY_AS_NO_LONGER_NEEDED, setAsNoLongerNeeded);
+	rage::scrEngine::RegisterNativeHandler(SET_OBJECT_AS_NO_LONGER_NEEDED, setAsNoLongerNeeded);
+	rage::scrEngine::RegisterNativeHandler(SET_PED_AS_NO_LONGER_NEEDED, setAsNoLongerNeeded);
+	rage::scrEngine::RegisterNativeHandler(SET_VEHICLE_AS_NO_LONGER_NEEDED, setAsNoLongerNeeded);
 
-	// SET_OBJECT_AS_NO_LONGER_NEEDED
-	rage::scrEngine::RegisterNativeHandler(0x3AE22DEB5BA5A3E6, setAsNoLongerNeeded);
-
-	// SET_PED_AS_NO_LONGER_NEEDED
-	rage::scrEngine::RegisterNativeHandler(0x2595DD4236549CE3, setAsNoLongerNeeded);
-
-	// SET_VEHICLE_AS_NO_LONGER_NEEDED
-	rage::scrEngine::RegisterNativeHandler(0x629BFA74418D6239, setAsNoLongerNeeded);
-
-	// DELETE_PED
-	rage::scrEngine::RegisterNativeHandler(0xCC0EF140F99365C5, [](rage::scrNativeCallContext* context)
+	rage::scrEngine::RegisterNativeHandler(DELETE_PED, [](rage::scrNativeCallContext* context)
 	{
 		auto entityRef = context->GetArgument<int*>(0);
 		auto entity = getTypedEntity<CPed>(*entityRef);
@@ -290,8 +283,7 @@ static HookFunction hookFunction([]()
 		*entityRef = 0;
 	});
 
-	// DELETE_OBJECT
-	rage::scrEngine::RegisterNativeHandler(0x931914268722C263, [](rage::scrNativeCallContext* context)
+	rage::scrEngine::RegisterNativeHandler(DELETE_OBJECT, [](rage::scrNativeCallContext* context)
 	{
 		auto entityRef = context->GetArgument<int*>(0);
 		auto entity = getTypedEntity<CObject>(*entityRef);
@@ -305,8 +297,7 @@ static HookFunction hookFunction([]()
 		*entityRef = 0;
 	});
 
-	// DELETE_ENTITY
-	rage::scrEngine::RegisterNativeHandler(0x4CD38C78BD19A497, [](rage::scrNativeCallContext* context)
+	rage::scrEngine::RegisterNativeHandler(DELETE_ENTITY, [](rage::scrNativeCallContext* context)
 	{
 		auto entityRef = context->GetArgument<int*>(0);
 		auto entity = getScriptEntity(*entityRef);
