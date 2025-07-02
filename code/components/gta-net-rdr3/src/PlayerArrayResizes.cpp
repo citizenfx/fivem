@@ -26,7 +26,7 @@ namespace rage
 }
 
 uint32_t g_playerFocusPositionUpdateBitset[5];
-std::unordered_map<uint8_t, rage::Vec3V> g_playerFocusPositions;
+alignas(16) rage::Vec3V g_playerFocusPositions[kMaxPlayers + 1];
 
 extern ICoreGameInit* icgi;
 extern CNetGamePlayer* g_players[256];
@@ -136,16 +136,17 @@ static void UpdatePlayerFocusPosition(void* objMgr, CNetGamePlayer* player)
 
 	rage::Vec3V position;
 	char outFlag = 0;
-	rage::Vec3V* focusPosition = _getNetPlayerFocusPosition(&position, player, &outFlag);
+	_getNetPlayerFocusPosition(&position, player, &outFlag);
 
-	g_playerFocusPositions[playerIndex] = *focusPosition;
+
+	g_playerFocusPositions[playerIndex] = position;
 	if (outFlag != 0)
 	{
 		g_playerFocusPositionUpdateBitset[playerIndex / 32] |= 1 << (playerIndex % 32);
 	}
 }
 
-static rage::Vec3V*(*g_origGetNetPlayerRelevancePosition)(rage::Vec3V* position, CNetGamePlayer* player, void* unk);
+static rage::Vec3V* (*g_origGetNetPlayerRelevancePosition)(rage::Vec3V* position, CNetGamePlayer* player, void* unk);
 static rage::Vec3V* GetPlayerFocusPosition(rage::Vec3V* position, CNetGamePlayer* player, uint8_t* unk)
 {
 	if (!icgi->OneSyncEnabled)
@@ -190,11 +191,10 @@ static hook::cdecl_stub<void*(CNetGamePlayer*)> getPlayerPedForNetPlayer([]()
 	return hook::get_call(hook::get_pattern("48 8B CD 0F 11 06 48 8B D8 E8", -8));
 });
 
-using namespace DirectX;
-static float VectorDistance(XMVECTOR a, XMVECTOR b)
+static float VectorDistance(rage::Vec3V a, rage::Vec3V b)
 {
-	XMVECTOR delta = XMVectorSubtract(a, b);
-	float dis = XMVectorGetX(XMVector3Length(delta));
+	rage::Vec3V delta = DirectX::XMVectorSubtract(a, b);
+	float dis = DirectX::XMVectorGetX(DirectX::XMVector3Length(delta));
 	return dis;
 }
 
@@ -319,10 +319,10 @@ static HookFunction hookFunction([]()
 
 	// Expand Player Cache data
 	{
-		//0x10
 		static size_t kCachedPlayerSize = sizeof(void*) * (kMaxPlayers + 1);
 		void** cachedPlayerArray = (void**)hook::AllocateStubMemory(kCachedPlayerSize);
 		memset(cachedPlayerArray, 0, kCachedPlayerSize);
+
 		RelocateRelative((void*)cachedPlayerArray, {
 			{ "48 8D 0D ? ? ? ? 48 8B 0C C1 48 85 C9 74 ? 66 83 79", 3 },
 			{ "48 8D 0D ? ? ? ? 48 8B F2 BD", 3 },
@@ -361,11 +361,28 @@ static HookFunction hookFunction([]()
 			{ "83 F8 ? 72 ? C3 CC 0F 48 8B", 2, 0x20, kMaxPlayers + 1 },
 			{ "80 FB ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 75 ? B0", 2, 0x20, kMaxPlayers + 1},
 		});
+
+		PatchValue<uint32_t>({
+			{"41 B8 ? ? ? ? 88 15", 2, 0x100, (int)kCachedPlayerSize}
+		});
+	}
+
+	// Replace 32-sized unknown CGameArray related array
+	{
+		void** unkPlayerArray = (void**)hook::AllocateStubMemory(sizeof(void*) * kMaxPlayers + 1);
+
+		RelocateRelative((void*)unkPlayerArray, { 
+			{ "48 8D 3D ? ? ? ? 48 8B 3C C7 48 85 FF 75", 3},
+			{ "48 8D 1D ? ? ? ? 48 8B 33 48 85 F6 74 ? 48 8B 06", 3 },
+			{ "48 8D 3D ? ? ? ? BD ? ? ? ? 48 8D 35", 3 }
+		}, 3);
 	}
 
 	// Replace 33-sized player bandwidth related array.
 	{
-		void** bandwidthRelatedArray = (void**)hook::AllocateStubMemory(sizeof(unsigned int) * kMaxPlayers + 2);
+		constexpr size_t kBandwithArraySize = sizeof(unsigned int) * kMaxPlayers + 2;
+		void** bandwidthRelatedArray = (void**)hook::AllocateStubMemory(kBandwithArraySize);
+		memset(bandwidthRelatedArray, 0, kBandwithArraySize);
 
 		RelocateRelative((void*)bandwidthRelatedArray, {
 			{ "48 8D 3D ? ? ? ? B9 ? ? ? ? F3 AB 48 8D 8B", 3 },
@@ -377,11 +394,6 @@ static HookFunction hookFunction([]()
 
 		PatchValue<uint32_t>({
 			{ "B9 ? ? ? ? F3 AB 48 8D 8B ? ? ? ? 33 D2", 1, 0x20, kMaxPlayers },
-		});
-
-		PatchValue<uint8_t>({ 
-			//{ "41 0F 47 D5 8A CB", 25, 0x20, kMaxPlayers }
-			{ "80 FB ? 0F 82 ? ? ? ? 48 8B 5C 24 ? 48 8B 6C 24 ? 48 8B 74 24 ? 48 8B 7C 24 ? 48 83 C4 ? 41 5F 41 5E 41 5D", 2, 0x20, kMaxPlayers + 1 }
 		});
 	}
 
@@ -414,15 +426,22 @@ static HookFunction hookFunction([]()
 			// rage::netObject::StartSynchronising
 			{ "8B E9 4C 8B 33", 48, 0x20, kMaxPlayers + 1 },
 
-			{ "40 80 FE ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 75 ? 49 8B F7", 3, 0x20, kMaxPlayers + 1 }
+			// NetObjVehicle scene/viewport related.
+			{ "49 8B 7E ? 48 85 FF 0F 84 ? ? ? ? 48 8B 2D", 23, 0x20, kMaxPlayers + 1 }
+		});
+	}
+
+	// rage::netPlayerMgrBase
+	{
+		 // Change count from 32 to 128
+		PatchValue<uint32_t>({ 
+			{ " C7 83 ? ? ? ? ? ? ? ? BA ? ? ? ? 48 89 AB", 6, 0x20, kMaxPlayers }
 		});
 	}
 
 	// Replace 32/31 comparisions
 	{
 		std::initializer_list<PatternClampPair> list = {
-			// unkAreThereTooManyAcksForThisPlayer
-			{ "80 7A ? ? 41 8A F8 48 8B DA", 3, false },
 			//CNetGamePlayer::IsPhysical
 			{ "80 79 ? ? 0F 92 C0 C3 48 89 5C 24", 3, false },
 			//rage::netPlayer::IsPhysical
@@ -437,9 +456,9 @@ static HookFunction hookFunction([]()
 			{ "48 8B C8 48 8B D6 E8 ? ? ? ? 84 C0 75 ? FE C3", 19, false },
 			
 			// Related to CNetworkPopulationResetMgr
-			{ "40 80 FF ? 73 ? 48 8B 4E", 3, false},
-			{ "80 FB ? 72 ? 48 8B 5C 24 ? 48 8B 6C 24 ? 48 8B 74 24 ? 48 8B 7C 24", 2, false},
-			{ "80 FB ? 72 ? 48 8B 5C 24 ? 48 8B 6C 24 ? 48 8B 74 24 ? 48 83 C4 ? 41 5F 41 5E 41 5D 41 5C 5F C3 83 FA", 2, false },
+			//{ "40 80 FF ? 73 ? 48 8B 4E", 3, false},
+			//{ "80 FB ? 72 ? 48 8B 5C 24 ? 48 8B 6C 24 ? 48 8B 74 24 ? 48 8B 7C 24", 2, false},
+			//{ "80 FB ? 72 ? 48 8B 5C 24 ? 48 8B 6C 24 ? 48 8B 74 24 ? 48 83 C4 ? 41 5F 41 5E 41 5D 41 5C 5F C3 83 FA", 2, false },
 
 			// Ped Combat related
 			{ "80 FA ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 0F B6 C3 BA", 2, false },
@@ -447,7 +466,7 @@ static HookFunction hookFunction([]()
 			{ "80 3B ? 73 ? 48 8B CE", 2, false },
 
 			// CNetObjProximityMigrateable::_getRelevancePlayers
-			{ "40 80 FF ? 0F 82 ? ? ? ? 0F 28 74 24 ? 4C 8D 5C 24 ? 49 8B 5B ? 48 8B C6", 3, false },
+			//{ "40 80 FF ? 0F 82 ? ? ? ? 0F 28 74 24 ? 4C 8D 5C 24 ? 49 8B 5B ? 48 8B C6", 3, false },
 
 			//CNetObjGame::CanClone
 			{ "80 7A ? ? 49 8B F8 48 8B DA 48 8B F1 72", 3, false},
@@ -461,9 +480,12 @@ static HookFunction hookFunction([]()
 			//rage::netObjectIDMgr::TryToAllocateInitialObjectIDs, removes need for ScMultiplayerImpl size patches
 			//Also removes the need to patch session entering logic.
 			{ "80 79 ? ? 0F 83 ? ? ? ? 44 38 7B", 3, false },
-			{ "80 79 ? ? 72 ? B0", 3, false },
-			{ "80 7F ? ? 72 ? 41 B9 ? ? ? ? C7 44 24", 3 , false },
 			{ "80 FB ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 8A CB", 2, false },
+
+			// rage::netObject::_doesPlayerHaveControlOverObject
+			{ "80 79 ? ? 72 ? B0", 3, false },
+
+//			{ "80 7F ? ? 72 ? 41 B9 ? ? ? ? C7 44 24", 3, false },
 
 			// Native Fixes
 			{ "83 FB ? 73 ? 45 33 C0", 2, false }, // 0x862C5040F4888741
@@ -471,9 +493,19 @@ static HookFunction hookFunction([]()
 			{ "83 F9 ? 73 ? 80 3D", 2, false }, // 0x93DC1BE4E1ABE9D1
 			{ "48 85 C9 74 0F 83 FE 20", 7, false }, // 0x66B57B72E0836A76
 
+			// netObject vtable functions
 			{ "49 81 ? C0 7A 02 00 E8 F3 ? ? 00 40 8A F0 ? 20", 16, false },
-			{ "E8 76 68 E6 FD 84 C0 0F 84 96 00 00 00 ? ? ? 20", 16, false },
-			{ "48 8B CB E8 77 66 05 00 84 C0 74 41 40 80 FF 20", 15, false }, 
+			
+			//TODO: Investigate further if these patches are needed
+			//{ "E8 76 68 E6 FD 84 C0 0F 84 96 00 00 00 ? ? ? 20", 16, false },
+			//{ "48 8B CB E8 77 66 05 00 84 C0 74 41 40 80 FF 20", 15, false }, 
+
+			// player iteration
+			{ "80 FB ? 72 ? B0 ? 48 8B 5C 24 ? 48 83 C4", 2, false },
+
+			// getPlayer
+			{ "83 F9 ? 73 ? E8 ? ? ? ? 48 83 C4 ? C3 90 23 E0", 2, false },
+			{ "80 F9 ? 73 ? E8 ? ? ? ? 48 8B D8 48 85 C0", 2, false }
 		};
 
 		for (auto& entry : list)
@@ -537,18 +569,75 @@ static HookFunction hookFunction([]()
 		hook::put<uint32_t>(location + 0x211, intsBase);
 	}
 
+	// Resize stack for CTheScripts::_getClosestPlayer
+	{
+		auto location = hook::get_pattern<char>("48 83 EC ? 0F 29 70 ? 33 ED 0F 29 78 ? 0F 57 FF", -0x10);
+
+		// 0x50: previous stack size
+		// 16: extra int[3] ontop of present int[2] allocation and stack alignment 
+		constexpr int stackSize = 0x50 + 16;
+
+		// stack frame ENTER
+		hook::put<uint8_t>(location + 0x13, stackSize);
+		// stack frame LEAVE
+		hook::put<uint8_t>(location + 0x188, stackSize);
+	}
+
+	// Patch bubble join to prevent writing out of bounds for player objects
+	{
+		auto location = hook::get_pattern("44 0F B6 4E ? 0F B6 40");
+
+		static struct : jitasm::Frontend
+		{
+			uintptr_t retnSuccess;
+			uintptr_t retnFail;
+
+			void Init(uintptr_t success, uintptr_t failure)
+			{
+				retnSuccess = success;
+				retnFail = failure;
+			}
+
+			virtual void InternalMain() override
+			{
+				// Original code
+				movzx(r9d, byte_ptr[rsi + 0x10]);
+				movzx(eax, byte_ptr[rax + 0x20]);
+
+				cmp(eax, 0x20);
+				jge("Fail");
+
+				mov(rcx, retnSuccess);
+				jmp(rcx);
+
+				L("Fail");
+				mov(rcx, retnFail);
+				jmp(rcx);
+			}
+		} patchStub;
+
+		const uintptr_t retnSuccess = (uintptr_t)location + 9;
+		const uintptr_t retnFail = retnSuccess + 0x19;
+
+		hook::nop(location, 9);
+		patchStub.Init(retnSuccess, retnFail);
+		hook::jump_rcx(location, patchStub.GetCode());
+	}
+
 	// Extend bitshift in order to not lead to crashes
 	hook::put<uint8_t>(hook::get_pattern("48 C1 EA ? 8B 44 94 ? 0F AB C8 48 8B CE", 3), 8);
 
 	// Skip unused host kick related >32-unsafe arrays in onesync
 	hook::call(hook::get_pattern("E8 ? ? ? ? 84 C0 75 ? 8B 05 ? ? ? ? 33 C9 89 44 24"), Return<true, false>);
+	hook::call(hook::get_pattern("E8 ? ? ? ? 84 C0 75 ? 80 7B ? ? 73 ? 48 8B CB"), Return<true, false>);
 
 	// Rewrite functions to account for extended players
 	MH_Initialize();
 	// Don't broadcast script info for script created vehicles in OneSync.
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 48 8B EC 48 81 EC ? ? ? ? 48 83 79"), unkRemoteBroadcast, (void**)&g_unkRemoteBroadcast);
-	// Don't call P2P init (no >32 check so it ends up reading past array and crashing)
+	// Don't call init related object iteration (32-sized player object array with no >32 check)
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B 0D ? ? ? ? BA ? ? ? ? E8 ? ? ? ? 48 8B 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D")), unkP2PObjectInit, (void**)&g_unkP2PObjectInit);
+	MH_CreateHook(hook::get_pattern("48 8B 0F 0F B6 51 19 48 03 D2 49 8B 5C D6 08", -49), unkP2PObjectInit, NULL);
 
 	// Update Player Focus Positions to support 128 players.
 	MH_CreateHook(hook::get_pattern("0F A3 D0 0F 92 C0 88 06", -0x76), GetPlayerFocusPosition, (void**)&g_origGetNetPlayerRelevancePosition);
