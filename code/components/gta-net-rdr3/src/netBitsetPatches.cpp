@@ -26,6 +26,9 @@ constexpr size_t kBitsetArraySize = kMaxPlayers / kBitsSize;
 using PlayerBitset = uint32_t[kMaxPlayers][kBitsetArraySize];
 using ObjectBitset = uint32_t[kMaxObjects][kBitsetArraySize];
 
+// Bitset related to remote players in the clients scope.
+uint32_t g_remotePlayersInScope;
+
 // Bitsets for Objects
 ObjectBitset g_netObjAcknowledgement;
 ObjectBitset g_netObjScopeState;
@@ -64,6 +67,12 @@ static bool netObject__IsPlayerAcknowledged(rage::netObject* object, CNetGamePla
 
 	int index = (physicalIndex / 32) - 1;
 	int bit = physicalIndex % 32;
+
+	if (physicalIndex > kMaxPlayers)
+	{
+		return false;
+	}
+
 	uint32_t bitset = g_netObjAcknowledgement[object->GetObjectId()][index];
 
 	return (bitset >> bit) & 1;
@@ -82,6 +91,11 @@ static uint32_t netObject__setPlayerAcknowledged(rage::netObject* object, CNetGa
 
 	int index = (physicalIndex / kBitsSize) - 1;
 	int bit = physicalIndex % kBitsSize;
+
+	if (physicalIndex > kMaxPlayers)
+	{
+		return false;
+	}
 
 	if (state)
 	{
@@ -134,6 +148,11 @@ static bool netObject__setCanBeTargetted(rage::netObject* object, uint8_t physic
 	int index = (physicalIndex / kBitsSize) - 1;
 	int bit = physicalIndex % kBitsSize;
 
+	if (physicalIndex > kMaxPlayers)
+	{
+		return false;
+	}
+
 	if (state)
 	{
 		g_netObjPlayerTargetting[object->GetObjectId()][index] |= (1 << bit);
@@ -152,14 +171,76 @@ static bool netObject__canBeTargetted(rage::netObject* object, uint8_t physicalI
 		return g_origCanBeTargetted(object, physicalIndex);
 	}
 
+	if (physicalIndex > kMaxPlayers)
+	{
+		return false;
+	}
+
 	int index = (physicalIndex / 32) - 1;
 	int bit = physicalIndex % 32;
 	uint32_t bitset = g_netObjPlayerTargetting[object->GetObjectId()][index];
 	return (bitset >> bit) & 1;
 }
 
+static uint32_t (*g_netObject__setScopeState)(rage::netObject*, CNetGamePlayer*);
+static uint32_t netObject__setScopeState(rage::netObject* object, CNetGamePlayer* player)
+{
+	uint8_t physicalIndex = player->physicalPlayerIndex();
+	if (!icgi->OneSyncEnabled || physicalIndex < 0x20)
+	{
+		return g_netObject__setScopeState(object, player);
+	}
+
+	return 0;
+}
+
+
+
 static HookFunction hookFunction([]()
 {
+	// Avoid writing to netPlayerMgrBase remotePlayer bitset with extended physical indexes.
+	{
+		auto location = hook::get_pattern<char>("48 8B CF FF 50 ? 48 8B C8 E8 ? ? ? ? 84 C0 74 ? 0F B6 4F", 0x18);
+
+		static struct : jitasm::Frontend
+		{
+			uintptr_t successAddr;
+			uintptr_t failAddr;
+
+			void Init(uintptr_t successAddress, uintptr_t failAddress)
+			{
+				successAddr = successAddress;
+				failAddr = failAddress;
+			}
+
+			virtual void InternalMain() override
+			{
+				// Original Code
+				movzx(edx, byte_ptr[rdi + 0x19]);
+				mov(edx, ecx);
+
+				// Only use original behaviour if the index is 32 safe.
+				cmp(edx, 32);
+				jge("Fail");
+
+				L("Fail");
+				mov(rax, failAddr);
+				jmp(rax);
+
+				//TODO: Populate our own bitset, and feed it to natives that require this functionality
+				mov(rax, successAddr);
+				jmp(rax);
+			}
+		} patchStub;
+
+		const uintptr_t retnSuccess = (uintptr_t)location + 6;
+		const uintptr_t retnFail = (uintptr_t)location + 30;
+
+		hook::nop(location, 6);
+		patchStub.Init(retnSuccess, retnFail);
+		hook::jump(location, patchStub.GetCode());
+	}
+
 	MH_Initialize();
 	// Creation Acknowledgement
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 40 8A FB 84 C0 74")), netObject__IsPlayerAcknowledged, (void**)&g_origNetobjIsPlayerAcknowledged);
@@ -167,6 +248,9 @@ static HookFunction hookFunction([]()
 	// Removal
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 33 FF 84 C0 75 ? 8A 4B")), netObject__isPendingRemovalByPlayer, (void**)&g_origIsPendingRemovalByPlayer);
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? EB ? 45 84 FF 74 ? 48 8D 4C 24")), netObject__setPendingRemovalByPlayer, (void**)&g_origSetPendingRemovalByPlayer);
+	// Scope
+	MH_CreateHook(hook::get_pattern("8B FB 49 8B CE 48 C1 EF", -93), netObject__setScopeState, (void**)g_netObject__setScopeState);
+
 	// Player targetting
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? 45 33 C9 84 C0 41 0F 94 C5");
@@ -177,6 +261,7 @@ static HookFunction hookFunction([]()
 		hook::call(hook::get_pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 48 8B 0D ? ? ? ? E8 ? ? ? ? 41 F6 46"), netObject__canBeTargetted);
 		hook::call(hook::get_pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 8A 5C 24"), netObject__canBeTargetted);
 	}
+
 	MH_CreateHook(hook::get_pattern("84 C0 74 ? 4C 8B C7 40 0F B6 C5", -0x47), netObject__setCanBeTargetted, (void**)&g_origSetCanBeTargetted);
 
 	MH_EnableHook(MH_ALL_HOOKS);
