@@ -66,8 +66,10 @@ namespace CitizenFX.Core
 						{
 							if (exception != null)
 								c.Fail(null, new Exception(exception.ToString()));
+							else if (results is object[] array && array.Length > 0)
+								c.Complete(array[0]);
 							else
-								c.Complete(results);
+								c.Complete(null);
 
 						}));
 

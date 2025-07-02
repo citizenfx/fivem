@@ -178,7 +178,8 @@ namespace CitizenFX.Core
 										Debug.Write(coroutine.Exception);
 									}
 
-									asyncResult(coroutine.GetResultNonThrowing(), coroutine.Exception?.ToString());
+									// lua expects a table when returning asynchronously
+									asyncResult(new[] { coroutine.GetResultNonThrowing() }, coroutine.Exception?.ToString());
 								}))
 							}
 						};
