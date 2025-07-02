@@ -99,8 +99,8 @@ namespace CitizenFX.Core
 						}
 						catch (Exception ex)
 						{
-							var objs = deserializer.DeserializeAsObjectArray();
-							Debug.WriteException(ex, coro, objs, "callbacks manager");
+							var objs = deserializer.DeserializeAsObject();
+							Debug.WriteException(ex, coro, new object[] { objs }, "callbacks manager");
 						}
 					}
 				}
