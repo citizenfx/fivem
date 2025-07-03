@@ -1276,17 +1276,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						AddCrashometry("last_server", "%s", address.ToString());
 
-						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/policy/shdisable?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
-						{
-							if (success)
-							{
-								if (std::string(data, length).find("yes") != std::string::npos)
-								{
-									Instance<ICoreGameInit>::Get()->ShAllowed = false;
-								}
-							}
-						});
-
 						Instance<ICoreGameInit>::Get()->SetData("handoverBlob", (!node["handover"].is_null()) ? node["handover"].dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) : "{}");
 
 						Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (!node["enhancedHostSupport"].is_null() && node.value("enhancedHostSupport", false));

@@ -211,12 +211,7 @@ bool sync::IsWaitingForTimeSync()
 
 	return !(*g_netTimeSync<1604>)->IsInitialized();
 #elif IS_RDR3
-	if (xbr::IsGameBuildOrGreater<1355>())
-	{
-		return !(*g_netTimeSync<1355>)->IsInitialized();
-	}
-
-	return !(*g_netTimeSync<1311>)->IsInitialized();
+	return !(*g_netTimeSync<1491>)->IsInitialized();
 #endif
 }
 
@@ -236,14 +231,7 @@ static inline void TimeSyncMainGameFrameUpdate()
 		(*g_netTimeSync<1604>)->Update();
 	}
 #elif IS_RDR3
-	if (xbr::IsGameBuildOrGreater<1355>())
-	{
-		(*g_netTimeSync<1355>)->Update();
-	}
-	else
-	{
-		(*g_netTimeSync<1311>)->Update();
-	}
+	(*g_netTimeSync<1491>)->Update();
 #endif
 }
 
@@ -263,14 +251,7 @@ static void rage::HandleTimeSyncUpdatePacket(net::packet::TimeSyncResponse& buf)
 		(*g_netTimeSync<1604>)->HandleTimeSync(buf);
 	}
 #elif IS_RDR3
-	if (xbr::IsGameBuildOrGreater<1355>())
-	{
-		(*g_netTimeSync<1355>)->HandleTimeSync(buf);
-	}
-	else
-	{
-		(*g_netTimeSync<1311>)->HandleTimeSync(buf);
-	}
+	(*g_netTimeSync<1491>)->HandleTimeSync(buf);
 #endif
 }
 
@@ -310,11 +291,9 @@ static HookFunction hookFunction([]()
 
 		auto location = hook::get_pattern("48 8B D9 48 39 79 08 0F 85 ? ? 00 00 41 8B E8", -32);
 #elif IS_RDR3
-		void* func = (xbr::IsGameBuildOrGreater<1355>()) ? (void*)&netTimeSync__InitializeTimeStub<1355> :
-			&netTimeSync__InitializeTimeStub<1311>;
+		void* func = (void*)&netTimeSync__InitializeTimeStub<1491>;
 
-		auto location = xbr::IsGameBuildOrGreater<1436>() ? hook::get_pattern("83 C8 FF 4C 89 77 08 83 FD", -87) :
-			hook::get_pattern("48 89 51 08 41 83 F8 02 44 0F 45 C8", -49);
+		auto location = hook::get_pattern("83 C8 FF 4C 89 77 08 83 FD", -87);
 #endif
 
 		MH_CreateHook(location, func, (void**)&g_origInitializeTime);
@@ -339,14 +318,7 @@ static HookFunction hookFunction([]()
 #elif IS_RDR3
 		auto location = hook::get_pattern("4C 8D 45 50 41 03 C7 44 89 6D 50 89", -4);
 
-		if (xbr::IsGameBuildOrGreater<1355>())
-		{
-			g_netTimeSync<1355> = hook::get_address<rage::netTimeSync<1355>**>(location);
-		}
-		else
-		{
-			g_netTimeSync<1311> = hook::get_address<rage::netTimeSync<1311>**>(location);
-		}
+		g_netTimeSync<1491> = hook::get_address<rage::netTimeSync<1491>**>(location);
 #endif	
 	}
 

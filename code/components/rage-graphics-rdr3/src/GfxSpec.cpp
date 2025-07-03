@@ -588,12 +588,7 @@ namespace rage::sga
 
 static hook::thiscall_stub<int(rage::sga::ext::DynamicResource*)> _dynamicResource_GetResourceIdx([]()
 {
-	if (xbr::IsGameBuildOrGreater<1436>())
-	{
-		return hook::get_call(hook::get_pattern("0F B7 56 6A 8B C0 4C 8B 04 C3 65", -5));
-	}
-
-	return hook::get_call(hook::get_pattern("48 8B 47 30 48 8B 1C D8 48 8B CB E8", 11));
+	return hook::get_call(hook::get_pattern("0F B7 56 6A 8B C0 4C 8B 04 C3 65", -5));
 });
 
 static hook::thiscall_stub<void(rage::sga::ext::DynamicResource*, rage::sga::GraphicsContext*, const rage::sga::MapData&)> _dynamicResource_UnmapBase([]()
@@ -721,27 +716,9 @@ static HookFunction hookFunction([]()
 
 	g_renderThreadTlsIndex = *hook::get_pattern<uint32_t>("42 09 0C 02 BA 01 00 00 00 3B CA 0F 44 C2 88 05", -15);
 
-	if (xbr::IsGameBuildOrGreater<1436>())
-	{
-		g_d3d12Driver = hook::get_address<void*>(hook::get_pattern("75 04 33 C0 EB 1A E8", 28));
-	}
-	else if (xbr::IsGameBuildOrGreater<1355>())
-	{
-		g_d3d12Driver = hook::get_address<void*>(hook::get_pattern("B9 01 00 00 00 48 83 3D ? ? ? ? 00 0F", 25));
-	}
-	else
-	{
-		g_d3d12Driver = hook::get_address<void*>(hook::get_pattern("83 E9 01 74 ? 83 F9 02 75 ? 48 8B CF E8", -4));
-	}
+	g_d3d12Driver = hook::get_address<void*>(hook::get_pattern("75 04 33 C0 EB 1A E8", 28));
 
-	if (xbr::IsGameBuildOrGreater<1436>())
-	{
-		g_vkDriver = hook::get_address<void*>(hook::get_pattern("33 C0 EB 2F 41 B8 80 00 00 00", 47));
-	}
-	else
-	{
-		g_vkDriver = hook::get_address<void*>(hook::get_pattern("B9 03 00 00 00 48 83 3D ? ? ? ? 00 0F", 25));
-	}
+	g_vkDriver = hook::get_address<void*>(hook::get_pattern("33 C0 EB 2F 41 B8 80 00 00 00", 47));
 
 	g_d3d12Device = hook::get_address<decltype(g_d3d12Device)>(hook::get_pattern("48 8B 01 FF 50 78 48 8B 0B 48 8D", -7));
 	g_vkHandle = hook::get_address<decltype(g_vkHandle)>(hook::get_pattern("8D 50 41 8B CA 44 8B C2 F3 48 AB 48 8B 0D", 14));

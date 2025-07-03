@@ -6,7 +6,7 @@
 
 		links { 'Shared' }
 
-		add_dependencies { 'net:base', 'vendor:catch2', 'vendor:lua54', 'citizen:scripting:core', 'citizen:scripting:lua54' }
+		add_dependencies { 'net:base', 'vendor:catch2', 'vendor:lua', 'citizen:scripting:core', 'citizen:scripting:lua' }
 
 		if os.istarget('windows') then
 			links { "psapi", "wininet", "winhttp" }

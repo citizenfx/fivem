@@ -565,7 +565,7 @@ static HookFunction hookFunction([]()
 		int index = (xbr::IsGameBuildOrGreater<2802>()) ? 6 : 0;
 
 		// Get the original CWeapon vtable - We will plant a vmt-hook on weapons that we own so we can track their destruction.
-		uintptr_t* cWeapon_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("45 33 FF 0F 57 C9 48 8D 05 ? ? ? ? 48 89 01", 9));
+		uintptr_t* cWeapon_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 8D 05 ? ? ? ? 48 8B D9 48 89 01 75 ? E8 ? ? ? ? C6 83", 3));
 		origWeaponDtor = (Weapon_DtorFn)cWeapon_vtable[index];
 		
 		if (xbr::IsGameBuildOrGreater<2802>())
@@ -605,7 +605,11 @@ static HookFunction hookFunction([]()
 	}
 
 	// Disable weapon status copy over the network. I.e. return to 3095 behavior.
-	if (xbr::IsGameBuildOrGreater<3258>())
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	{
+		hook::put<uint8_t>(hook::get_pattern("74 ? 88 87 ? ? ? ? 80 BD"), 0xEB);
+	}
+	else if (xbr::IsGameBuildOrGreater<3258>())
 	{
 		hook::put<uint8_t>(hook::get_pattern("74 ? 88 87 ? ? ? ? 80 BE"), 0xEB);
 	}

@@ -8,7 +8,7 @@ apiset: server
 BOOL IS_VEHICLE_WINDOW_INTACT(Vehicle vehicle, int windowIndex);
 ```
 
-See the client-side [IS_VEHICLE_WINDOW_INTACT](https://docs.fivem.net/natives/?_0x46E571A0E20D01F1) for a window indexes list.
+See the client-side [IS_VEHICLE_WINDOW_INTACT](#_0x46E571A0E20D01F1) for a window indexes list.
 
 ## Parameters
 * **vehicle**: The target vehicle.

@@ -85,6 +85,8 @@ public:
 	virtual bool IsClientRelevantEntity(const fx::ClientSharedPtr& client, uint32_t objectId) = 0;
 
 	virtual bool GetStateBagStrictMode() const = 0;
+
+	virtual bool IsNetGameEventBlocked(uint32_t eventNameHash) = 0;
 };
 }
 

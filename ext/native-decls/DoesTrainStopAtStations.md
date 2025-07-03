@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: client
+apiset: shared
 game: gta5
 ---
 ## DOES_TRAIN_STOP_AT_STATIONS

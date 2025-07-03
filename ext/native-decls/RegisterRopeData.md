@@ -10,7 +10,7 @@ int REGISTER_ROPE_DATA(int numSections, float radius, char* diffuseTextureName, 
 ```
 
 Registers a custom rope data with the game. For guidance on what these values should be use common:/data/ropedata.xml as a reference.
-Returns a rope type which can be passed into [ADD_ROPE](?_0xE832D760399EB220) to use a custom rope design.
+Returns a rope type which can be passed into [ADD_ROPE](#_0xE832D760399EB220) to use a custom rope design.
 Once a rope data is registered it can be used indefinitely and you should take caution not too register too many as to exceed the games limit.
 
 ## Examples

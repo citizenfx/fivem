@@ -3306,6 +3306,105 @@ Sha256Result dlcSafeHashesInit[] = {
     ShaUnpack("fa44f68b060049882f1981cbee0faac94e75e6dacd40d94872a3d957107348f5"), // dlc.rpf/x64/levels/patch2024_02/vehiclemods/stingertt_mods.rpf
     ShaUnpack("8fe3fcacd1265d9e65452290b5d0f7feaf07fe79f0d0320aa4916ffbd162cf0c"), // dlc.rpf/x64/models/cdimages/patch2024_02_female.rpf
     ShaUnpack("c959c5aa8fea998278a9ed07b942d7f8b21fd129c5afc337fdbf0d081b882938"), // dlc.rpf/x64/models/cdimages/patch2024_02_male.rpf
+    // update/x64/dlcpacks/mp2025_01/dlc.rpf
+    ShaUnpack("27fafc0b9dab8359ea8aeb8dc2242f643b52ed8cabbd6912e25d18da17377a75"), // dlc.rpf
+    ShaUnpack("4c9c2f24211813639c521a5610606c8f1ea67542ed66179d3072f603c7b42bc6"), // dlc.rpf/x64/anim/creaturemetadata.rpf
+    ShaUnpack("0fc7a628aa6fbe362177172452b889294edd55d9100778601e35c03ed51f1ff4"), // dlc.rpf/x64/anim/cutscene/cuts_sum25_bt2.rpf
+    ShaUnpack("6d60865bf1eb9b59ab5c7eb61e6053f50965e0e530010426b76dbd0933ef6f65"), // dlc.rpf/x64/anim/cutscene/cuts_sum25_cayo.rpf
+    ShaUnpack("5a6239d45b6269b2152c53a2400fe9bee70b983b696b009fde464b94c4f4baa0"), // dlc.rpf/x64/anim/cutscene/cuts_sum25_lsia.rpf
+    ShaUnpack("4ab34f21658e3ab900a4b1480f884c7e15e2e29165f3221cb96032401114e0fd"), // dlc.rpf/x64/anim/ingame/clip_anim@.rpf
+    ShaUnpack("95fde72de1f633dde24a466ea914f9ac687f40a3eef03185802be272dcfee524"), // dlc.rpf/x64/audio/occlusion.rpf
+    ShaUnpack("d6fa3f7a6c21c2b8b16235ee4d228bde332161cf105219ac57e8e575ec4b1d37"), // dlc.rpf/x64/data/effects/ptfx.rpf
+    ShaUnpack("c944e5ba515c5cc058f804c465547b93d025e48db1e08b3165ed498f5ada7b72"), // dlc.rpf/x64/data/lang/americandlc.rpf
+    ShaUnpack("d472912e76e904419155dd0517f87ecc742aa3528cf3a1731b037973ea1675b7"), // dlc.rpf/x64/data/lang/chinesedlc.rpf
+    ShaUnpack("6724f870073a4131d7d3e29beb1060f62c16b1e1c3e5cb6bcf12ae36d1b1846e"), // dlc.rpf/x64/data/lang/chinesesimpdlc.rpf
+    ShaUnpack("10166eb16576420ff1879d16bf19d9651e36547e61ec6930926ceba985a45f23"), // dlc.rpf/x64/data/lang/frenchdlc.rpf
+    ShaUnpack("91ddb1712740af2eb197d42081a3ad32dd53d941ae465cfcf436b9b3418b1f9d"), // dlc.rpf/x64/data/lang/germandlc.rpf
+    ShaUnpack("32e3b66b3610d78bda39a74dd7e876f0415b1df07d6f8c4b9be350404b7bb420"), // dlc.rpf/x64/data/lang/italiandlc.rpf
+    ShaUnpack("ae4ed30305daa95db8af7768c772881d6d38b5ffa1ac249ddcf436ef37da4c86"), // dlc.rpf/x64/data/lang/japanesedlc.rpf
+    ShaUnpack("d9d4d38c56bd7c65554c83273c3dd330058b8971224e77bf68b2f170708b2a3a"), // dlc.rpf/x64/data/lang/koreandlc.rpf
+    ShaUnpack("3798eb3fdae3ca28239e04534d3b96835c3dfee291d093f806d8a776bacd210b"), // dlc.rpf/x64/data/lang/mexicandlc.rpf
+    ShaUnpack("10c1eea715815ec7450355957709109263b38e46e0881e9e046275988b49e2cf"), // dlc.rpf/x64/data/lang/polishdlc.rpf
+    ShaUnpack("bd047c78d2d9c26d8dcced994691bf0ab2176bd5845ea417dd5457640435eb5c"), // dlc.rpf/x64/data/lang/portuguesedlc.rpf
+    ShaUnpack("3065a2417b9b59b21645b7241a3a8525b0dc886b173d8491d1f6f73930f903ec"), // dlc.rpf/x64/data/lang/russiandlc.rpf
+    ShaUnpack("afdfe70c54528864cf0cd2b488ae290b979887c4cc5f89abd248dc8b8ff7a9b1"), // dlc.rpf/x64/data/lang/spanishdlc.rpf
+    ShaUnpack("54d955c5cfa917612331ce34fda2bc2bd14c268d2e7951bbc18e3371abad8a6c"), // dlc.rpf/x64/levels/gta5/navmeshes.rpf
+    ShaUnpack("cc82fd93293ab098a3951a83834f68493ee222dfa046becd9fc44c94571e5e41"), // dlc.rpf/x64/levels/gta5/interiors/int_01.rpf
+    ShaUnpack("2c6946fbb95626e7315d6d6f093e8b457aa562b3b8f0457509cca99dd7b14522"), // dlc.rpf/x64/levels/gta5/interiors/int_02_03.rpf
+    ShaUnpack("f78488fe2fcab5c0b4d1c7d06ef9123fbc9339b6c7990331e4dc5c147056a66d"), // dlc.rpf/x64/levels/gta5/interiors/int_04.rpf
+    ShaUnpack("fdc5dbb07c6d16341946689978f545b4830e14b5ff0829fc11e7d67a185213a1"), // dlc.rpf/x64/levels/gta5/interiors/int_05.rpf
+    ShaUnpack("2fc31beb09592f8851e5b6a79ba9af794774ada99fc4ffcfca2cd1cac68226e3"), // dlc.rpf/x64/levels/gta5/interiors/int_placement.rpf
+    ShaUnpack("0a27807f0012f1904165ce309bebd0b71371bfa74377ad2a4bf3954072e5b115"), // dlc.rpf/x64/levels/gta5/mp2025_01_additions/mp2025_01_additions.rpf
+    ShaUnpack("5e56bd8b61481ae7b7ca6cfba23618cb004aa15225e86ae5e0da6bfebf84b1fe"), // dlc.rpf/x64/levels/gta5/mp2025_01_additions/mp2025_01_additions_metadata.rpf
+    ShaUnpack("dce91b4245ade6aa81833b7b88dfa78ec49e79c1c95e1e9f2a569c0c2eaa6629"), // dlc.rpf/x64/levels/gta5/props/prop_m25_1_accs_01.rpf
+    ShaUnpack("d17174efa37c8f514face7f75191c97adea7a6a5ac2a260a1a444121df5ff5f6"), // dlc.rpf/x64/levels/gta5/props/prop_m25_1_cash_01.rpf
+    ShaUnpack("61069e38e061a0eb5a137122d1641fcc44c2ebc6f3b8ae21b26a6a0fb4e83050"), // dlc.rpf/x64/levels/gta5/props/prop_m25_1_crane_01.rpf
+    ShaUnpack("30d621f0f8c956662ff7d42c148bd9b64f3f6be8f166aa44ec320627d76555e1"), // dlc.rpf/x64/levels/gta5/props/prop_m25_1_crates_01.rpf
+    ShaUnpack("44d1b91fe4a82df813c22c03544541dda22b413feff7d3f150e2b0766235886b"), // dlc.rpf/x64/levels/gta5/props/prop_m25_1_door_01.rpf
+    ShaUnpack("dbaafb7f9b8cdfdbe2be982dd56c92e4a810096a83b5bdadb3af90c77b16536d"), // dlc.rpf/x64/levels/gta5/props/prop_m25_1_interior_01.rpf
+    ShaUnpack("b1fbe91c38ab114458c04b8dac2302ba380e26c63df91225cc46f857f58eebdc"), // dlc.rpf/x64/levels/gta5/props/prop_m25_1_lev_des_01.rpf
+    ShaUnpack("eb7ef8bf47c53638bc008135b4639fe5b78b112279225d4cc0f815e9dcf5b35b"), // dlc.rpf/x64/levels/gta5/props/prop_m25_1_survival_01.rpf
+    ShaUnpack("2cbeb58c4efebb6a7873a804db24cddbe79b53bbf686399c44a59ad772125a94"), // dlc.rpf/x64/levels/gta5/props/prop_m25_1_weed_01.rpf
+    ShaUnpack("e479b2f3de5e5e317c6b92226a37d3aeeb5f0a1ad661c4a179bdf847c0a06ab8"), // dlc.rpf/x64/levels/gta5/props/prop_m25_1_wreckage_01.rpf
+    ShaUnpack("580ea278293eb028528b7f3cd97944e04d4e7a01184c78a451fe004db61e3400"), // dlc.rpf/x64/levels/gta5/vehicles/mp2025_01.rpf
+    ShaUnpack("e5bfe899106c9b2f4e2b72a409e72ceab6ecac0ecc49238dabb54746d98cd053"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/cheetah3_mods.rpf
+    ShaUnpack("094d6e885b90d9e0070e55d584fb1809dd3fb576a523bcbb37b3bbea28a288b6"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/driftchavosv6_mods.rpf
+    ShaUnpack("ca780895645dec066cd2c9969c3dd1fb91a95c61b3de1cfa1e9399b33c0272cb"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/driftdominator10_mods.rpf
+    ShaUnpack("fc1929599de7621f995ded523287fc1bb870b46cc0baf56a6d1c55d82dd8eb70"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/driftgauntlet4_mods.rpf
+    ShaUnpack("ec265bc4c44bf5c9ed0b96489db1b2e8b5fe18e8183547932934ed89672cdde2"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/drifthardy_mods.rpf
+    ShaUnpack("61885b640f90ff56bd381db698732e34e50ea3f8bd283e550257249678a9750a"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/driftl352_mods.rpf
+    ShaUnpack("25215cf7acd28d48b6cb9e6c591f3b16f115d88382aa3db004bd914b2fb3cdae"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/everon3_mods.rpf
+    ShaUnpack("a0bbdf50e026d4e24721b93188ac57b30d084bcbb72e3861721ea2eec5bf665d"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/hardy_mods.rpf
+    ShaUnpack("e1914cc7ec9dcfc111aecd3d87ce295e95ee28bd98c508c4210f307455c0a998"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/l352_mods.rpf
+    ShaUnpack("74e4f2e2ea50485be0329eaf16b311f0e845e180d84e8edb1253311f1b4c885d"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/minimus_mods.rpf
+    ShaUnpack("41b8964c87fc08ff1f641cd938e7cb7fd11e5d2f362d615fed06aaa3c587ad9b"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/policeb2_mods.rpf
+    ShaUnpack("b4d33fd11f9adc96027edf695ddd2e07d1422c35031131334acb3e92e8254a73"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/rapidgt4_mods.rpf
+    ShaUnpack("fca0594a0c5a242f1ba0ef560c48bd39bc208ecb1307df24df00f2abc5a0e1d6"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/sentinel5_mods.rpf
+    ShaUnpack("fcd8d893b6f87dc22d59788905a1ca8a2f10de28ab9932bcf42c140b6ad1badd"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/suzume_mods.rpf
+    ShaUnpack("135e1285bdd1f765c59064fd3934a801451d3e8db5c5a4baf0843af7c923de4f"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/tampa4_mods.rpf
+    ShaUnpack("5348b9a95c4dbdcc05017600317355e1304b082270f59027baf100cb2aadc036"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/vehlivery7_mods.rpf
+    ShaUnpack("a04bc9ea6ebb102781d882ab1d10837614ccab6af7ac88d38b27a3db5d403595"), // dlc.rpf/x64/levels/mp2025_01/vehiclemods/woodlander_mods.rpf
+    ShaUnpack("46ed15957d0fb5e9a5e329cde079bb8ba231cd4c1d12c721e472483af4dfd7e3"), // dlc.rpf/x64/models/cdimages/mp2025_01_female.rpf
+    ShaUnpack("8b4af24b32c46595abf059e869777d48d08d0d0a50966bba00ccabd7772de1d8"), // dlc.rpf/x64/models/cdimages/mp2025_01_female_p.rpf
+    ShaUnpack("59718d54177fa054ff2fdc2c3c28dc19703a5762b8bb1ddb47092fac77f8be25"), // dlc.rpf/x64/models/cdimages/mp2025_01_male.rpf
+    ShaUnpack("64b41762f51ccb3216fcdfb723b69476d56f99c88077fd53fbc712550640068f"), // dlc.rpf/x64/models/cdimages/mp2025_01_male_p.rpf
+    ShaUnpack("cdf1b04a9a7013e056e271d9abcb8b0c3e7d438f1a2cb786a832e9cbf57ef119"), // dlc.rpf/x64/models/cdimages/weapons.rpf
+    ShaUnpack("340955dc99ab29b272099a30a06611940a5660c44f5928048f35c82a80255aa4"), // dlc.rpf/x64/models/cdimages/peds/mp2025_01.rpf
+    ShaUnpack("16a70d95a9d194b8fec19214e0b57ac3718a6d211b14a8cae8d5ae4d80e8091f"), // dlc.rpf/x64/models/cdimages/peds/mp2025_01_cutspeds.rpf
+    ShaUnpack("0a8b3d31b11934d5d07a8f914a9aa87c36ff619edc01fd48dea17ba934ca2791"), // dlc.rpf/x64/models/cdimages/peds/mp2025_01_cutspeds_p.rpf
+    ShaUnpack("b6e077baa41cbc06673e7ed2fce8f74674bcc61bce24c99afffd21024032fd53"), // dlc.rpf/x64/models/cdimages/peds/mp2025_01_p.rpf
+    // update/x64/dlcpacks/mp2025_01_G9EC/dlc.rpf
+    ShaUnpack("59dad76ce218c4776a949891ae79330d7cf3361a275b33561ea3d76b546e9fe7"), // dlc.rpf
+    ShaUnpack("e4335b6f10b11191fb7c07f5194bed9e5ce5a7e017c98a729659ae5fc325f4df"), // dlc.rpf/x64/levels/mp2025_01_g9ec/vehiclemods/tampa4hsw_mods.rpf
+    ShaUnpack("51ef776b7e85bc8501f856d29d510ffd90e0fcdb8fe8251fea5c207f3eb4dfc7"), // dlc.rpf/x64/levels/mp2025_01_g9ec/vehiclemods/woodlanderhsw_mods.rpf
+    // update/x64/dlcpacks/patch2025_01/dlc.rpf
+    ShaUnpack("920534bbecc770c3e5e087a6cc46e2de01c508edee165300d7387bed0dabf37c"), // dlc.rpf
+    ShaUnpack("7e69696d8fa870db3e4eaa98424dec0ee4a8979a15f9a22e00ff3eaf3c69bcf8"), // dlc.rpf/x64/anim/ingame/clip_anim@.rpf
+    ShaUnpack("133bb9a8d30debfb7c1b92aece2d28f9abc15e285ab632e96cb09d7f28f41b0b"), // dlc.rpf/x64/levels/gta5/vehicles.rpf
+    ShaUnpack("2e06bb7d5591ced0356a7a161eaf1953555b8d91e6cbc088444ae6532467208b"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/aleutian_mods.rpf
+    ShaUnpack("669544fb81cf6e885c00e4ebf780e5e26c1d273ce124c65478da0787051157ff"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/chavosv6_mods.rpf
+    ShaUnpack("784992fa5ba0958cafcd94314ac965e4c973a132568fe2007e523c969ff11789"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/cheburek_mods.rpf
+    ShaUnpack("ec93e60273f5ff09588c1588b9f7ab565001ef11fd8480805fdeaf5c7bbf4830"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/coquette6_mods.rpf
+    ShaUnpack("108b317092ae5fa898b9546a694496600b75873191c4b0fe82ed67333080d733"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/driftcheburek_mods.rpf
+    ShaUnpack("cbad95a16d58203c404eba64c6b8a0ad1cb264fcdb8a6772b585b3fade4cb249"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/driftfuto2_mods.rpf
+    ShaUnpack("5ebe4c20daad0434557c94d3377432c6fe34362c9c881af59160001819e4d51c"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/duster2_mods.rpf
+    ShaUnpack("32b5365044613839d430e50f587d0d26772d7b99760245829a2f7992b2f77bba"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/eurosx32_mods.rpf
+    ShaUnpack("5c5d2a62ac1324d03eadf5eaf98ecc9837942f61444aab35909493c0ac5ccacf"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/firebolt_mods.rpf
+    ShaUnpack("895d803466d6582f9f5f57c3124a96281a39b89f53c88db9b3624058db870e12"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/growler_mods.rpf
+    ShaUnpack("fdd616e3f310551885a434ccc9c543b0135a3332840acb9a60492d141c6b7279"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/jester3_mods.rpf
+    ShaUnpack("8d41e63ee53c7572a522a3c47af49a51932aaa07c4c83736306b7ef281f7825c"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/paragon3_mods.rpf
+    ShaUnpack("1a75b1c306f50fc208d2665b6c3c87255a0420b756c783066b8ed1e702d95232"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/polterminus_mods.rpf
+    ShaUnpack("ed0af9ab0052e81524c236c7eadcd772ff262d7d6ab9c03f3ba55b4e749033fc"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/terminus_mods.rpf
+    ShaUnpack("bfb75d9f71c5fc1e01b2d2cdd49be2dbabd72d702e96092333432a90595dd3b3"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/tropos_mods.rpf
+    ShaUnpack("41c506763e7ce48b33b25c39dffce4a0d1806877a45261de8bb63a4e0a9bd180"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/uranus_mods.rpf
+    ShaUnpack("633a8eb48dd0404d9bc62fbe03f2536946a56898d37211eb254e9275108c2fc7"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/vehlivery5_mods.rpf
+    ShaUnpack("bb5819d2b8827ad5c2f5c4b43f3dd3b6e061996078a22d5c80bd31582202fdc6"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/vehlivery6_mods.rpf
+    ShaUnpack("8bcd74b5726e2eabfb64b03269d8aa76332b999f518ebaaa68c323f691b33f9f"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/vigero3_mods.rpf
+    ShaUnpack("1e14d52e0cef031e1267613f1a065da2b1745cef7dfcf7940bce8c1f671583cf"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/vorschlaghammer_mods.rpf
+    ShaUnpack("324bde7c08f471fb0bb6ede9811285d757b6a560a7a9abd4a19745c9be8897ef"), // dlc.rpf/x64/levels/patch2025_01/vehiclemods/yosemite1500_mods.rpf
+    ShaUnpack("d62571619d9e2c4d4f7339bb309a711dd2e390b9cbeaa6e895d7f63bf5ec81cb"), // dlc.rpf/x64/models/cdimages/patch2025_01.rpf
+    ShaUnpack("2db07e34ca7b759c00750d5537e2f02405e724666574310f78acb5c899abba96"), // dlc.rpf/x64/models/cdimages/patch2025_01_female.rpf
+    ShaUnpack("837d4019321146f78953bcc724b563f3febf814395a8275681770b02d4269b4c"), // dlc.rpf/x64/models/cdimages/patch2025_01_male.rpf
 };
 
 }}
