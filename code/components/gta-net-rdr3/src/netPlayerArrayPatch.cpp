@@ -153,7 +153,6 @@ static HookFunction hookFunction([]
 		.text:0000000142C1D4A2 84 D2                                                           test    dl, dl
 		.text:0000000142C1D4A4 74 09                                                           jz      short loc_142C1D4AF
 		.text:0000000142C1D4A6 48 81 C3 98 07 00 00                                            add     rbx, 798h
-
 		*/
 		static struct : jitasm::Frontend
 		{
@@ -223,17 +222,19 @@ static HookFunction hookFunction([]
 				movzx(eax, si);
 
 				// rsi should be the pointer to the player
+				mov(r14, rax);
 				push(rcx);
+				push(rax);
 
 				sub(rsp, 0x20);
-				mov(rcx, rax);
+				mov(rcx, r14);
 				mov(r11, reinterpret_cast<uintptr_t>(&GetPlayerByIndex));
-				push(rax);
 				call(r11);
 				add(rsp, 0x20);
 				mov(rsi, rax);
 
 				pop(rcx);
+				pop(rax);
 
 				mov(r11, retnAddr);
 				jmp(r11);
