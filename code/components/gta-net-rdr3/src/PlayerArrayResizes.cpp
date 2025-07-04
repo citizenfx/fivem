@@ -25,7 +25,7 @@ namespace rage
 	using Vec3V = DirectX::XMVECTOR;
 }
 
-uint32_t g_playerFocusPositionUpdateBitset[5];
+uint32_t g_playerFocusPositionUpdateBitset[(kMaxPlayers / 32) + 1];
 alignas(16) rage::Vec3V g_playerFocusPositions[kMaxPlayers + 1];
 
 extern ICoreGameInit* icgi;
@@ -136,10 +136,10 @@ static void UpdatePlayerFocusPosition(void* objMgr, CNetGamePlayer* player)
 
 	rage::Vec3V position;
 	char outFlag = 0;
-	_getNetPlayerFocusPosition(&position, player, &outFlag);
+	rage::Vec3V* outPosition = _getNetPlayerFocusPosition(&position, player, &outFlag);
 
 
-	g_playerFocusPositions[playerIndex] = position;
+	g_playerFocusPositions[playerIndex] = *outPosition;
 	if (outFlag != 0)
 	{
 		g_playerFocusPositionUpdateBitset[playerIndex / 32] |= 1 << (playerIndex % 32);
@@ -362,9 +362,6 @@ static HookFunction hookFunction([]()
 			{ "80 FB ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 75 ? B0", 2, 0x20, kMaxPlayers + 1},
 		});
 
-		PatchValue<uint32_t>({
-			{"41 B8 ? ? ? ? 88 15", 2, 0x100, (int)kCachedPlayerSize}
-		});
 	}
 
 	// Replace 32-sized unknown CGameArray related array
@@ -434,9 +431,9 @@ static HookFunction hookFunction([]()
 	// rage::netPlayerMgrBase
 	{
 		 // Change count from 32 to 128
-		PatchValue<uint32_t>({ 
-			{ " C7 83 ? ? ? ? ? ? ? ? BA ? ? ? ? 48 89 AB", 6, 0x20, kMaxPlayers }
-		});
+		//PatchValue<uint32_t>({ 
+		//	{ "C7 83 ? ? ? ? ? ? ? ? BA ? ? ? ? 48 89 AB", 6, 0x20, kMaxPlayers }
+		//});
 	}
 
 	// Replace 32/31 comparisions
@@ -485,7 +482,7 @@ static HookFunction hookFunction([]()
 			// rage::netObject::_doesPlayerHaveControlOverObject
 			{ "80 79 ? ? 72 ? B0", 3, false },
 
-//			{ "80 7F ? ? 72 ? 41 B9 ? ? ? ? C7 44 24", 3, false },
+			//{ "80 7F ? ? 72 ? 41 B9 ? ? ? ? C7 44 24", 3, false },
 
 			// Native Fixes
 			{ "83 FB ? 73 ? 45 33 C0", 2, false }, // 0x862C5040F4888741
