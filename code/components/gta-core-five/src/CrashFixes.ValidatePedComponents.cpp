@@ -1,6 +1,7 @@
 #include "StdInc.h"
 
 #include "console/Console.Base.h"
+#include "console/Console.VariableHelpers.h"
 #include "Hooking.Patterns.h"
 #include "Hooking.Stubs.h"
 
@@ -28,6 +29,8 @@ static hook::cdecl_stub<bool(void* self, unsigned int slotId, int32_t drawblId, 
 {
 	return hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 44 89 48 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 33 DB");
 });
+
+static bool allowEmptyHeadDrawableVal;
 
 static bool (*orig_CPed_SetVariation)(
 void*,
@@ -57,7 +60,7 @@ bool force)
 	}
 
 	// Empty drawable cannot be set on the head component.
-	if (drawblId == PV_NULL_DRAWBL && slotId == PV_COMP_HEAD)
+	if (!allowEmptyHeadDrawableVal && drawblId == PV_NULL_DRAWBL && slotId == PV_COMP_HEAD)
 	{
 		console::PrintError("crash-mitigation", "CPed::SetVariation: Attempted to set an empty drawable on the head component.\n");
 		return false;
@@ -72,6 +75,11 @@ bool force)
 
 	return orig_CPed_SetVariation(self, slotId, drawblId, drawblAltId, texId, paletteId, streamFlags, force);
 }
+
+static InitFunction initFunction([]
+{
+	static ConVar allowEmptyHeadDrawableVar("allowEmptyHeadDrawable", ConVar_UserPref, false, &allowEmptyHeadDrawableVal);
+});
 
 static HookFunction hookFunction([]
 {
