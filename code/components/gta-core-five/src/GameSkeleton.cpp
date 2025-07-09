@@ -9,6 +9,10 @@
 #include <ICoreGameInit.h>
 #include <CrossBuildRuntime.h>
 
+#include <string_view>
+#include <cstdio>
+#include <algorithm>
+
 extern void ValidateHeaps();
 
 static std::unordered_map<uint32_t, std::string> g_initFunctionNames;
@@ -37,33 +41,54 @@ namespace rage
 
 	const char* InitFunctionData::GetName() const
 	{
-		auto& it = g_initFunctionNames.find(funcHash);
+		const auto it = g_initFunctionNames.find(funcHash);
 
-		if (it != g_initFunctionNames.end())
+		if (it != g_initFunctionNames.end()) [[likely]]
 		{
 			return it->second.c_str();
 		}
 
-		return va("0x%08x", funcHash);
+		static thread_local std::unordered_map<uint32_t, std::string> hashCache;
+		hashCache.reserve(32); 
+		
+		auto cacheIt = hashCache.find(funcHash);
+		if (cacheIt != hashCache.end()) [[likely]]
+		{
+			return cacheIt->second.c_str();
+		}
+		
+		auto [insertIt, inserted] = hashCache.emplace(funcHash, "");
+		insertIt->second.resize(10);
+		std::snprintf(insertIt->second.data(), 11, "0x%08x", funcHash);
+		
+		return insertIt->second.c_str();
 	}
 
 	static int SehRoutine(InitFunctionData* func, InitFunctionType type, PEXCEPTION_POINTERS exception)
 	{
-		if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
+		const auto* exceptionRecord = exception->ExceptionRecord;
+		
+		if (exceptionRecord->ExceptionCode & 0x80000000) [[unlikely]]
 		{
-			AddCrashometry("init_function", "%s:%s", InitFunctionTypeToString(type), func->GetName());
+			const char* funcName = func->GetName();
+			const char* typeString = InitFunctionTypeToString(type);
+			
+			AddCrashometry("init_function", "%s:%s", typeString, funcName);
 
-			if (IsErrorException(exception))
+			if (IsErrorException(exception)) [[unlikely]]
 			{
 				return EXCEPTION_CONTINUE_SEARCH;
 			}
 
-			if ((uintptr_t)exception->ExceptionRecord->ExceptionAddress >= hook::get_adjusted(0x140000000) &&
-				(uintptr_t)exception->ExceptionRecord->ExceptionAddress < hook::get_adjusted(0x146000000))
+			static const uintptr_t minAddress = hook::get_adjusted(0x140000000);
+			static const uintptr_t maxAddress = hook::get_adjusted(0x146000000);
+			const uintptr_t exceptionAddress = (uintptr_t)exceptionRecord->ExceptionAddress;
+			
+			if (exceptionAddress >= minAddress && exceptionAddress < maxAddress) [[likely]]
 			{
 				FatalErrorNoExcept("An exception occurred (%08x at %p) during execution of the %s function for %s. The game will be terminated.",
-					exception->ExceptionRecord->ExceptionCode, (void*)hook::get_unadjusted(exception->ExceptionRecord->ExceptionAddress),
-					InitFunctionTypeToString(type), func->GetName());
+					exceptionRecord->ExceptionCode, (void*)hook::get_unadjusted(exceptionAddress),
+					typeString, funcName);
 			}
 		}
 
@@ -76,6 +101,8 @@ namespace rage
 		__try
 		{
 #endif
+			__builtin_prefetch(reinterpret_cast<const void*>(initFunction), 0, 3);
+			
 			initFunction(type);
 
 			return true;
@@ -99,39 +126,45 @@ namespace rage
 	{
 		ValidateHeaps();
 
-		trace(__FUNCTION__ ": Running %s init functions\n", InitFunctionTypeToString(type));
+		const char* typeString = InitFunctionTypeToString(type);
+		trace(__FUNCTION__ ": Running %s init functions\n", typeString);
 
 		OnInitFunctionStart(type);
 
+		static auto rageTimer = hook::get_address<void(*)()>(hook::get_pattern("48 83 EC 28 E8 ? ? ? ? 48 8B 0D ? ? ? ? 48 85 C9", 4));
+
 		for (auto list = m_initFunctionList; list; list = list->next)
 		{
-			if (list->type == type)
+			if (list->type == type) [[likely]]
 			{
 				for (auto entry = list->entries; entry; entry = entry->next)
 				{
-					OnInitFunctionStartOrder(type, entry->order, entry->functions.GetCount());
-					trace(__FUNCTION__ ": Running functions of order %i (%i total)\n", entry->order, entry->functions.GetCount());
+					const int functionCount = entry->functions.GetCount();
+					OnInitFunctionStartOrder(type, entry->order, functionCount);
+					trace(__FUNCTION__ ": Running functions of order %i (%i total)\n", entry->order, functionCount);
 
 					int i = 0;
 
-					for (int index : entry->functions)
+					for (const int index : entry->functions)
 					{
 						ValidateHeaps();
 
-						auto func = m_initFunctions[index];
+						const auto& func = m_initFunctions[index];
 
-						if (OnInitFunctionInvoking(type, i, func))
+						if (OnInitFunctionInvoking(type, i, func)) [[likely]]
 						{
-							trace(__FUNCTION__ ": Invoking %s %s init (%i out of %i)\n", func.GetName(), InitFunctionTypeToString(type), i + 1, entry->functions.GetCount());
+							trace(__FUNCTION__ ": Invoking %s %s init (%i out of %i)\n", func.GetName(), typeString, i + 1, functionCount);
 
 							assert(func.TryInvoke(type));
 						}
 						else
 						{
-							trace(__FUNCTION__ ": %s %s init canceled by event\n", func.GetName(), InitFunctionTypeToString(type));
+							trace(__FUNCTION__ ": %s %s init canceled by event\n", func.GetName(), typeString);
 						}
 
-						// TODO: recalibrate RAGE timer
+						if (rageTimer) [[likely]] {
+							rageTimer();
+						}
 
 						OnInitFunctionInvoked(type, func);
 
@@ -149,40 +182,50 @@ namespace rage
 
 		ValidateHeaps();
 
-		trace(__FUNCTION__ ": Done running %s init functions!\n", InitFunctionTypeToString(type));
+		trace(__FUNCTION__ ": Done running %s init functions!\n", typeString);
 	}
 
 	static void RunEntries(gameSkeleton_updateBase* update)
 	{
+		static const uint32_t rageSecEngineHash = HashString("rageSecEngine");
+		
 		for (auto entry = update; entry; entry = entry->m_nextPtr)
 		{
 #if USE_OPTICK
-			static std::unordered_map<uint32_t, Optick::EventDescription*> events;
+			thread_local std::unordered_map<uint32_t, Optick::EventDescription*> events;
+			events.reserve(64); 
 
 			auto it = events.find(entry->m_hash);
 
-			if (it == events.end())
+			if (it == events.end()) [[unlikely]]
 			{
+				std::string_view name;
+				static thread_local char hashBuffer[16];
+				
 				auto entryIt = g_initFunctionNames.find(entry->m_hash);
-				std::string name;
-
-				if (entryIt != g_initFunctionNames.end())
+				if (entryIt != g_initFunctionNames.end()) [[likely]]
 				{
 					name = entryIt->second;
 				}
 				else
 				{
-					name = fmt::sprintf("0x%08x", entry->m_hash);
+					std::snprintf(hashBuffer, sizeof(hashBuffer), "0x%08x", entry->m_hash);
+					name = hashBuffer;
 				}
 
-				it = events.emplace(entry->m_hash, Optick::EventDescription::Create(strdup(va("%s update", name)), __FILE__, __LINE__, Optick::Color::Beige)).first;
+				static thread_local std::string eventName;
+				eventName.clear();
+				eventName.reserve(name.size() + 8); 
+				eventName.append(name);
+				eventName.append(" update");
+				
+				it = events.emplace(entry->m_hash, Optick::EventDescription::Create(eventName.c_str(), __FILE__, __LINE__, Optick::Color::Beige)).first;
 			}
 
 			Optick::Event event(*it->second);
 #endif
 
-			// skip a potential crashing subsystem
-			if (entry->m_hash == HashString("rageSecEngine")) // (0x73aa6f9e, rage::SecEngine::Update? companion has no xrefs for this)
+			if (entry->m_hash == rageSecEngineHash) [[unlikely]]
 			{
 				return;
 			}
@@ -194,18 +237,25 @@ namespace rage
 	void gameSkeleton::RunUpdate(int type)
 	{
 #if USE_OPTICK
-		static Optick::EventDescription* events[3];
-		if (events[type] == nullptr)
+		static constexpr int MAX_UPDATE_TYPES = 8;
+		static Optick::EventDescription* events[MAX_UPDATE_TYPES] = {nullptr};
+		
+		if (type >= 0 && type < MAX_UPDATE_TYPES) [[likely]]
 		{
-			events[type] = Optick::EventDescription::Create(strdup(va("gameSkeleton update %d", type)), __FILE__, __LINE__, Optick::Color::Gold);
-		}
+			if (events[type] == nullptr) [[unlikely]]
+			{
+				static thread_local char eventNameBuffer[32];
+				std::snprintf(eventNameBuffer, sizeof(eventNameBuffer), "gameSkeleton update %d", type);
+				events[type] = Optick::EventDescription::Create(eventNameBuffer, __FILE__, __LINE__, Optick::Color::Gold);
+			}
 
-		Optick::Event outerEvent(*events[type]);
+			Optick::Event outerEvent(*events[type]);
+		}
 #endif
 
 		for (auto list = m_updateFunctionList; list; list = list->next)
 		{
-			if (list->type == type)
+			if (list->type == type) [[likely]]
 			{
 				RunEntries(list->entry);
 			}
@@ -528,9 +578,15 @@ static const char* const g_initFunctionKnown[] = {
 
 static InitFunction initFunction([] ()
 {
-	for (auto str : g_initFunctionKnown)
+	constexpr size_t knownFunctionCount = sizeof(g_initFunctionKnown) / sizeof(g_initFunctionKnown[0]);
+	g_initFunctionNames.reserve(knownFunctionCount * 2);
+	
+	for (const auto& str : g_initFunctionKnown)
 	{
-		g_initFunctionNames.insert({ HashString(str), str });
-		g_initFunctionNames.insert({ HashRageString(str), str });
+		const uint32_t hashStr = HashString(str);
+		const uint32_t rageHashStr = HashRageString(str);
+		
+		auto hint = g_initFunctionNames.emplace(hashStr, str).first;
+		g_initFunctionNames.emplace_hint(hint, rageHashStr, str);
 	}
 });
