@@ -45,6 +45,33 @@
 
 using json = nlohmann::json;
 
+enum NativeIdentifiers : uint64_t
+{
+#ifdef GTA_FIVE
+	GET_PLAYER_PED = 0x43A66C31C68491C0,
+	GET_ENTITY_COORDS = 0x3FEF770D40960D5A,
+	_GET_CAM_ACTIVE_VIEW_MODE_CONTEXT = 0x19CAFA3C87F7C2FF,
+	_GET_CAM_VIEW_MODE_FOR_CONTEXT = 0xEE778F8C7E1142E2,
+	NETWORK_IS_PLAYER_TALKING = 0x031E11F3D447647E,
+	NETWORK_SET_VOICE_CHANNEL = 0xEF6212C2EFEF1A23,
+	NETWORK_CLEAR_VOICE_CHANNEL = 0xE036A705F989E049,
+	NETWORK_SET_TALKER_PROXIMITY = 0xCBF12D65F95AD686,
+	NETWORK_GET_TALKER_PROXIMITY = 0x84F0F13120B4E098,
+	NETWORK_SET_VOICE_ACTIVE = 0xBABEC9E69A91C57B,
+	GET_PLAYER_NAME = 0x6D0DE6A7B5DA71F8,
+#elif IS_RDR3
+	GET_PLAYER_PED = 0x275F255ED201B937,
+	GET_ENTITY_COORDS = 0xA86D5F069399F44D,
+	_IS_IN_FULL_FIRST_PERSON_MODE = 0xD1BA66940E94C547,
+	IS_FIRST_PERSON_CAMERA_ACTIVE = 0xA24C1D341C6E0D53,
+	GET_PLAYER_NAME = 0x7124FD9AC0E01BA0,
+#endif
+	IS_CONTROL_PRESSED = 0xF3A21BCD95725A4A,
+	IS_CONTROL_ENABLED = 0x1CEA6BFDF248E5D9,
+	NETWORK_IS_PLAYER_ACTIVE = 0xB8DFD30D6973E135,
+	GET_PLAYER_SERVER_ID = 0x4D97BCC7,
+};
+
 static NetLibrary* g_netLibrary;
 
 #ifdef GTA_FIVE
@@ -481,12 +508,12 @@ static void Mumble_RunFrame()
 	actorPos[2] = g_actorPos[1];
 
 #ifdef GTA_FIVE
-	static auto getCam1 = fx::ScriptEngine::GetNativeHandler(0x19CAFA3C87F7C2FF);
-	static auto getCam2 = fx::ScriptEngine::GetNativeHandler(0xEE778F8C7E1142E2);
+	static auto getCam1 = fx::ScriptEngine::GetNativeHandler(_GET_CAM_ACTIVE_VIEW_MODE_CONTEXT);
+	static auto getCam2 = fx::ScriptEngine::GetNativeHandler(_GET_CAM_VIEW_MODE_FOR_CONTEXT);
 	bool isInFirstPerson = FxNativeInvoke::Invoke<int>(getCam2, FxNativeInvoke::Invoke<int>(getCam1)) == 4;
 #elif IS_RDR3
-	static auto isInFullFirstPersonMode = fx::ScriptEngine::GetNativeHandler(0xD1BA66940E94C547);
-	static auto isFirstPersonCameraActive = fx::ScriptEngine::GetNativeHandler(0xA24C1D341C6E0D53);
+	static auto isInFullFirstPersonMode = fx::ScriptEngine::GetNativeHandler(_IS_IN_FULL_FIRST_PERSON_MODE);
+	static auto isFirstPersonCameraActive = fx::ScriptEngine::GetNativeHandler(IS_FIRST_PERSON_CAMERA_ACTIVE);
 	bool isInFirstPerson = FxNativeInvoke::Invoke<bool>(isInFullFirstPersonMode) && FxNativeInvoke::Invoke<bool>(isFirstPersonCameraActive, 1, 0, 0);
 #endif
 
@@ -528,8 +555,8 @@ static void Mumble_RunFrame()
 #endif
 
 		constexpr const uint32_t PLAYER_CONTROL = 0;
-		static auto isControlPressed = fx::ScriptEngine::GetNativeHandler(0xF3A21BCD95725A4A);
-		static auto isControlEnabled = fx::ScriptEngine::GetNativeHandler(0x1CEA6BFDF248E5D9);
+		static auto isControlPressed = fx::ScriptEngine::GetNativeHandler(IS_CONTROL_PRESSED);
+		static auto isControlEnabled = fx::ScriptEngine::GetNativeHandler(IS_CONTROL_ENABLED);
 		bool pushToTalkPressed = FxNativeInvoke::Invoke<bool>(isControlPressed, PLAYER_CONTROL, INPUT_PUSH_TO_TALK);
 		bool pushToTalkEnabled = FxNativeInvoke::Invoke<bool>(isControlEnabled, PLAYER_CONTROL, INPUT_PUSH_TO_TALK);
 
@@ -669,11 +696,8 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 
 		static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
 
-#ifdef GTA_FIVE
-		static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(0x43A66C31C68491C0);
-#elif IS_RDR3
-		static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(0x275F255ED201B937);
-#endif
+		static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(GET_PLAYER_PED);
+
 
 		auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, it->second);
 
@@ -683,11 +707,7 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 
 			if (ped > 0)
 			{
-#ifdef GTA_FIVE
-				auto coords = NativeInvoke::Invoke<0x3FEF770D40960D5A, scrVector>(ped);
-#elif IS_RDR3
-				auto coords = NativeInvoke::Invoke<0xA86D5F069399F44D, scrVector>(ped);
-#endif
+				auto coords = NativeInvoke::Invoke<GET_ENTITY_COORDS, scrVector>(ped);
 
 				return { { coords.x, coords.z, coords.y } };
 			}
@@ -941,14 +961,9 @@ static HookFunction hookFunction([]()
 
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
-		static auto isPlayerActive = fx::ScriptEngine::GetNativeHandler(0xB8DFD30D6973E135);
-		getServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_SERVER_ID"));
-
-#ifdef GTA_FIVE
-		getPlayerName = fx::ScriptEngine::GetNativeHandler(0x6D0DE6A7B5DA71F8);
-#elif IS_RDR3
-		getPlayerName = fx::ScriptEngine::GetNativeHandler(0x7124FD9AC0E01BA0);
-#endif
+		static auto isPlayerActive = fx::ScriptEngine::GetNativeHandler(NETWORK_IS_PLAYER_ACTIVE);
+		getServerId = fx::ScriptEngine::GetNativeHandler(GET_PLAYER_SERVER_ID);
+		getPlayerName = fx::ScriptEngine::GetNativeHandler(GET_PLAYER_NAME);
 
 		OnMainGameFrame.Connect([=]()
 		{
@@ -1389,9 +1404,9 @@ static HookFunction hookFunction([]()
 		});
 
 #ifdef GTA_FIVE
-		static auto origIsTalking = fx::ScriptEngine::GetNativeHandler(0x031E11F3D447647E);
+		static auto origIsTalking = fx::ScriptEngine::GetNativeHandler(NETWORK_IS_PLAYER_TALKING);
 
-		fx::ScriptEngine::RegisterNativeHandler(0x031E11F3D447647E, [=](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(NETWORK_IS_PLAYER_TALKING, [=](fx::ScriptContext& context)
 		{
 			if (!IsMumbleConnected())
 			{
@@ -1410,10 +1425,10 @@ static HookFunction hookFunction([]()
 			context.SetResult(g_talkers.test(playerId));
 		});
 
-		auto origSetChannel = fx::ScriptEngine::GetNativeHandler(0xEF6212C2EFEF1A23);
-		auto origClearChannel = fx::ScriptEngine::GetNativeHandler(0xE036A705F989E049);
+		auto origSetChannel = fx::ScriptEngine::GetNativeHandler(NETWORK_SET_VOICE_CHANNEL);
+		auto origClearChannel = fx::ScriptEngine::GetNativeHandler(NETWORK_CLEAR_VOICE_CHANNEL);
 
-		fx::ScriptEngine::RegisterNativeHandler(0xEF6212C2EFEF1A23, [=](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(NETWORK_SET_VOICE_CHANNEL, [=](fx::ScriptContext& context)
 		{
 			origSetChannel(context);
 
@@ -1423,7 +1438,7 @@ static HookFunction hookFunction([]()
 			}
 		});
 
-		fx::ScriptEngine::RegisterNativeHandler(0xE036A705F989E049, [=](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(NETWORK_CLEAR_VOICE_CHANNEL, [=](fx::ScriptContext& context)
 		{
 			origClearChannel(context);
 
@@ -1433,10 +1448,10 @@ static HookFunction hookFunction([]()
 			}
 		});
 
-		auto origSetProximity = fx::ScriptEngine::GetNativeHandler(0xCBF12D65F95AD686);
-		auto origGetProximity = fx::ScriptEngine::GetNativeHandler(0x84F0F13120B4E098);
+		auto origSetProximity = fx::ScriptEngine::GetNativeHandler(NETWORK_SET_TALKER_PROXIMITY);
+		auto origGetProximity = fx::ScriptEngine::GetNativeHandler(NETWORK_GET_TALKER_PROXIMITY);
 
-		fx::ScriptEngine::RegisterNativeHandler(0xCBF12D65F95AD686, [=](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(NETWORK_SET_TALKER_PROXIMITY, [=](fx::ScriptContext& context)
 		{
 			origSetProximity(context);
 
@@ -1445,7 +1460,7 @@ static HookFunction hookFunction([]()
 			g_mumbleClient->SetAudioDistance(dist);
 		});
 
-		fx::ScriptEngine::RegisterNativeHandler(0x84F0F13120B4E098, [=](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(NETWORK_GET_TALKER_PROXIMITY, [=](fx::ScriptContext& context)
 		{
 			origGetProximity(context);
 
@@ -1454,9 +1469,9 @@ static HookFunction hookFunction([]()
 			context.SetResult<float>(proximity);
 		});
 
-		auto origSetVoiceActive = fx::ScriptEngine::GetNativeHandler(0xBABEC9E69A91C57B);
+		auto origSetVoiceActive = fx::ScriptEngine::GetNativeHandler(NETWORK_SET_VOICE_ACTIVE);
 
-		fx::ScriptEngine::RegisterNativeHandler(0xBABEC9E69A91C57B, [origSetVoiceActive](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(NETWORK_SET_VOICE_ACTIVE, [origSetVoiceActive](fx::ScriptContext& context)
 		{
 			origSetVoiceActive(context);
 
