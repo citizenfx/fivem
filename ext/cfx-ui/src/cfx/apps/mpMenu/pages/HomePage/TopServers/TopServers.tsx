@@ -50,7 +50,7 @@ export const TopServersBlock = observer(function TopServersBlock() {
 
   const HomeScreenServerList = useService(HomeScreenServerListService);
 
-  const countryTitle = useServerCountryTitle(IntlService.systemLocale, IntlService.systemLocaleCountry);
+  const countryTitle = useServerCountryTitle(IntlService.locale, IntlService.localeCountry);
 
   if (HomeScreenServerList.topRegionServers.length === 0) {
     return null;
@@ -65,7 +65,7 @@ export const TopServersBlock = observer(function TopServersBlock() {
               {$L('#Home_RegionTopServers')}
             </Text>
 
-            <CountryFlag country={IntlService.systemLocaleCountry} title={countryTitle} />
+            <CountryFlag country={IntlService.localeCountry} title={countryTitle} />
           </Flex>
 
           <Title fixedOn="left" title={$L('#Home_RegionTopServers_Explainer')}>
