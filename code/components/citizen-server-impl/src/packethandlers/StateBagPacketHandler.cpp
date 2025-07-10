@@ -71,15 +71,15 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 
 	uint32_t slotId = client->GetSlotId();
 
-	std::string bagNameOnFailure;
-	stateBagComponent->HandlePacket(slotId, clientStateBag.data, &bagNameOnFailure);
-	std::string safeBagName = bagNameOnFailure.empty() ? "unknown" : bagNameOnFailure;
-
 	const bool hitRateLimit = !stateBagRateLimiter->Consume(netId);
 	const bool hitFloodRateLimit = !stateBagRateFloodLimiter->Consume(netId);
 
 	if (hitRateLimit)
 	{
+		std::string tempBagName;
+		stateBagComponent->HandlePacket(slotId, clientStateBag.data, &tempBagName);
+		std::string safeBagName = tempBagName.empty() ? "unknown" : tempBagName;
+		
 		const std::string& clientName = client->GetName();
 		auto printStateWarning = [&clientName, netId, &safeBagName](const std::string& logChannel, const std::string_view logReason,
 		                                              const std::string_view rateLimiter, double rateLimit,
@@ -152,6 +152,10 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 	
 	if (slotId != -1)
 	{
+		std::string bagNameOnFailure;
+
+		stateBagComponent->HandlePacket(slotId, clientStateBag.data, &bagNameOnFailure);
+		
 		// state bag isn't present, apply conditions for automatic creation
 		if (!bagNameOnFailure.empty())
 		{
