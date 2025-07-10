@@ -61,17 +61,31 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 
 	const uint32_t netId = client->GetNetId();
 
+	net::packet::StateBag clientStateBag;
+
+	if (!clientStateBag.Process(reader))
+	{
+		// this only happens when a malicious client sends packets not created from our client code
+		return;
+	}
+
+	uint32_t slotId = client->GetSlotId();
+
+	std::string bagNameOnFailure;
+	stateBagComponent->HandlePacket(slotId, clientStateBag.data, &bagNameOnFailure);
+	std::string safeBagName = bagNameOnFailure.empty() ? "unknown" : bagNameOnFailure;
+
 	const bool hitRateLimit = !stateBagRateLimiter->Consume(netId);
 	const bool hitFloodRateLimit = !stateBagRateFloodLimiter->Consume(netId);
 
 	if (hitRateLimit)
 	{
 		const std::string& clientName = client->GetName();
-		auto printStateWarning = [&clientName, netId](const std::string& logChannel, const std::string_view logReason,
+		auto printStateWarning = [&clientName, netId, &safeBagName](const std::string& logChannel, const std::string_view logReason,
 		                                              const std::string_view rateLimiter, double rateLimit,
 		                                              double burstRateLimit)
 		{
-			console::Printf(logChannel, logReason, clientName, netId);
+			console::Printf(logChannel, logReason, clientName, netId, safeBagName.c_str());
 			console::Printf(
 				logChannel,
 				"If you believe this to be a mistake please increase your rateLimiter_%s_rate and rateLimiter_%s_burst. ",
@@ -91,7 +105,7 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 			if (!client->IsDropping())
 			{
 				printStateWarning("sbag-client-flood",
-				                  "Client %s %d got dropped for sending too many state bag value updates.\n",
+				                  "Client %s %d got dropped for sending too many state bag value updates (bag: %s).\n",
 				                  "stateBagFlood",
 				                  kStateBagRateFloodLimit, kStateBagRateFloodLimitBurst);
 			}
@@ -104,7 +118,7 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 		if (logLimiter.Consume(netId))
 		{
 			printStateWarning("sbag-update-dropped",
-			                  "Client %s %d sent too many state bag updates and had their updates dropped.\n",
+			                  "Client %s %d sent too many state bag updates (bag: %s) and had their updates dropped.\n",
 			                  "stateBag",
 			                  kStateBagRateLimit, kStateBagRateLimitBurst);
 		}
@@ -118,7 +132,7 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 		if (!client->IsDropping())
 		{
 			const std::string& logChannel = "sbag-size-kick";
-			console::Printf(logChannel, "Client %s %d got dropped for sending too large of a state bag update.\n",
+			console::Printf(logChannel, "Client %s %d got dropped for sending too large of a state bag update (bag: %s).\n",
 			                client->GetName(), netId);
 			console::Printf(
 				logChannel, "If you believe this to be a mistake please increase your rateLimiter_stateBagSize_rate. ");
@@ -135,22 +149,9 @@ void StateBagPacketHandler::HandleStateBagMessage(fx::ServerInstanceBase* instan
 		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::STATE_BAG_RATE_LIMIT, "Reliable state bag packet overflow.");
 		return;
 	}
-
-	net::packet::StateBag clientStateBag;
-
-	if (!clientStateBag.Process(reader))
-	{
-		// this only happens when a malicious client sends packets not created from our client code
-		return;
-	}
-
-	uint32_t slotId = client->GetSlotId();
+	
 	if (slotId != -1)
 	{
-		std::string bagNameOnFailure;
-
-		stateBagComponent->HandlePacket(slotId, clientStateBag.data, &bagNameOnFailure);
-
 		// state bag isn't present, apply conditions for automatic creation
 		if (!bagNameOnFailure.empty())
 		{
@@ -229,17 +230,27 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 
 	const uint32_t netId = client->GetNetId();
 
+	net::packet::StateBagV2 clientStateBag;
+	if (!clientStateBag.Process(reader))
+	{
+		// this only happens when a malicious client sends packets not created from our client code
+		return;
+	}
+
+	std::string bagName(clientStateBag.key.GetValue());
+	uint32_t slotId = client->GetSlotId();
+
 	const bool hitRateLimit = !stateBagRateLimiter->Consume(netId);
 	const bool hitFloodRateLimit = !stateBagRateFloodLimiter->Consume(netId);
 
 	if (hitRateLimit)
 	{
 		const std::string& clientName = client->GetName();
-		auto printStateWarning = [&clientName, netId](const std::string& logChannel, const std::string_view logReason,
+		auto printStateWarning = [&clientName, netId, &bagName](const std::string& logChannel, const std::string_view logReason,
 		                                              const std::string_view rateLimiter, double rateLimit,
 		                                              double burstRateLimit)
 		{
-			console::Printf(logChannel, logReason, clientName, netId);
+			console::Printf(logChannel, logReason, clientName, netId, bagName.c_str());
 			console::Printf(
 				logChannel,
 				"If you believe this to be a mistake please increase your rateLimiter_%s_rate and rateLimiter_%s_burst. ",
@@ -259,7 +270,7 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 			if (!client->IsDropping())
 			{
 				printStateWarning("sbag-client-flood",
-				                  "Client %s %d got dropped for sending too many state bag value updates.\n",
+				                  "Client %s %d got dropped for sending too many state bag value updates (bag: %s).\n",
 				                  "stateBagFlood",
 				                  kStateBagRateFloodLimit, kStateBagRateFloodLimitBurst);
 			}
@@ -272,7 +283,7 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 		if (logLimiter.Consume(netId))
 		{
 			printStateWarning("sbag-update-dropped",
-			                  "Client %s %d sent too many state bag updates and had their updates dropped.\n",
+			                  "Client %s %d sent too many state bag updates (bag: %s) and had their updates dropped.\n",
 			                  "stateBag",
 			                  kStateBagRateLimit, kStateBagRateLimitBurst);
 		}
@@ -286,8 +297,8 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 		if (!client->IsDropping())
 		{
 			const std::string& logChannel = "sbag-size-kick";
-			console::Printf(logChannel, "Client %s %d got dropped for sending too large of a state bag update.\n",
-			                client->GetName(), netId);
+			console::Printf(logChannel, "Client %s %d got dropped for sending too large of a state bag update (bag: %s).\n",
+			                client->GetName(), netId, bagName.c_str());
 			console::Printf(
 				logChannel, "If you believe this to be a mistake please increase your rateLimiter_stateBagSize_rate. ");
 			console::Printf(
@@ -303,15 +314,7 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::STATE_BAG_RATE_LIMIT, "Reliable state bag packet overflow.");
 		return;
 	}
-
-	net::packet::StateBagV2 clientStateBag;
-	if (!clientStateBag.Process(reader))
-	{
-		// this only happens when a malicious client sends packets not created from our client code
-		return;
-	}
-
-	uint32_t slotId = client->GetSlotId();
+	
 	if (slotId != -1)
 	{
 		std::string_view bagNameOnFailure;
