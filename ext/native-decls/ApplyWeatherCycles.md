@@ -10,7 +10,7 @@ BOOL APPLY_WEATHER_CYCLES(int numEntries, int msPerCycle);
 
 ## Examples
 
-Overrides the weather cycles, using the values set through previous calls to ['SET_WEATHER_CYCLE_ENTRY'](#\_0xd264d4e1).
+Overrides the weather cycles, using the values set through previous calls to ['SET_WEATHER_CYCLE_ENTRY'](#_0xD264D4E1).
 Once applied, the list of cycles will run sequentially, and repeat after reaching the end.
 
 ```lua

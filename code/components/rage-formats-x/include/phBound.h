@@ -1048,9 +1048,9 @@ private:
 #endif
 
 #if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
-	pgPtr<void> m_octantData;
+	pgPtr<uint32_t> m_OctantVertCounts;
 
-	pgPtr<pgPtr<void>> m_octants;
+	pgPtr<pgPtr<uint32_t>> m_OctantVerts;
 #elif defined(RAGE_FORMATS_GAME_NY)
 	uint8_t m_val;
 	uint8_t m_polyPad[3];
@@ -1162,8 +1162,8 @@ public:
 #endif
 
 #ifdef RAGE_FORMATS_GAME_FIVE
-		m_octantData.Resolve(blockMap);
-		m_octants.Resolve(blockMap);
+		m_OctantVertCounts.Resolve(blockMap);
+		m_OctantVerts.Resolve(blockMap);
 #endif
 	}
 
@@ -1178,10 +1178,20 @@ public:
 	}
 
 #if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
+	inline uint32_t* GetNumOctants()
+	{
+		if (!*m_OctantVertCounts)
+		{
+			return nullptr;
+		}
+
+		return *m_OctantVertCounts;
+	}
+
 	inline void ClearOctantMap()
 	{
-		m_octants = nullptr;
-		m_octantData = nullptr;
+		m_OctantVerts = nullptr;
+		m_OctantVertCounts = nullptr;
 	}
 #endif
 };

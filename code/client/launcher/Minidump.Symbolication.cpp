@@ -300,9 +300,15 @@ static std::string CalculateSHA256(const std::vector<std::string_view>& input)
 		SHA256_Update(&sha, s.data(), s.size());
 	}
 
-	std::string sha256(256 / 8, 0);
-	SHA256_Final((uint8_t*)sha256.data(), &sha);
-	return sha256;
+	std::vector<uint8_t> sha256(256 / 8, 0);
+	SHA256_Final(sha256.data(), &sha);
+
+	std::string sha256Hex;
+	for (uint8_t byte : sha256)
+	{
+		sha256Hex += fmt::sprintf("%02x", byte);
+	}
+	return sha256Hex;
 }
 
 nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx)
@@ -310,10 +316,15 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 #ifdef CFX_CRASH_INGRESS_URL
 	auto symb = SymbolicateCrashRequest(hProcess, hThread, er, ctx);
 	auto payload = symb.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
-	auto hash = CalculateSHA256({GetGameName(), std::to_string(cfx::GetPlatformRelease()), payload});
+	auto hash = CalculateSHA256({ GetGameName(), std::to_string(cfx::GetPlatformRelease()), payload });
 
-	auto r = cpr::Post(cpr::Url{ va("%s/symbolicate?timeout=5&hash=%s", CFX_CRASH_INGRESS_URL, hash) }, cpr::Body{ payload },
-	cpr::Timeout{ std::chrono::seconds(10) }, cpr::Header{ { "content-type", "application/json" } }, cpr::VerifySsl{ false });
+	auto r = cpr::Post(
+		cpr::Url{ va("%s/symbolicate?timeout=5&hash=%s", CFX_CRASH_INGRESS_URL, hash) },
+		cpr::Body{ payload },
+		cpr::Timeout{ std::chrono::seconds(10) },
+		cpr::Header{ { "content-type", "application/json" } },
+		cpr::VerifySsl{ false }
+	);
 
 	if (!r.error && r.status_code <= 299)
 	{
@@ -327,7 +338,6 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 		}
 		catch (std::exception&)
 		{
-		
 		}
 	}
 #endif

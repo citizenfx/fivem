@@ -8,7 +8,7 @@ char shm_file_name[128];
 void Sharedmemory_init( int bindport, int bindport6 )
 {
 #if 0
-	int server_max_clients = getIntConf(MAX_CLIENTS);
+	int server_max_clients = getIntConf(MUMBLE_MAX_CLIENTS);
 	int shmtotal_size =  sizeof( shm_t  ) + (sizeof( shmclient_t ) * server_max_clients);
 
 	if( !bindport )

@@ -29,9 +29,7 @@
 
 #include "LuaFXLib.h"
 #include "VFSManager.h"
-#if LUA_VERSION_NUM == 504
 #include <lglmlib.hpp>
-#endif
 
 extern LUA_INTERNAL_LINKAGE
 {
@@ -237,7 +235,6 @@ static const char* Lua_GetErrorMessage(lua_State* L, int index)
 	return msg;
 }
 
-#if LUA_VERSION_NUM >= 504
 static void Lua_Warn(void* ud, const char* msg, int tocont)
 {
 	static bool cont = false;
@@ -254,7 +251,6 @@ static void Lua_Warn(void* ud, const char* msg, int tocont)
 
 	cont = (tocont) ? true : false;
 }
-#endif
 }
 
 /// <summary>
@@ -775,11 +771,7 @@ static int Lua_Require(lua_State* L)
 {
 	const char* name = luaL_checkstring(L, 1);
 	lua_settop(L, 1); /* LOADED table will be at index 2 */
-#if LUA_VERSION_NUM >= 504
 	lua_getfield(L, LUA_REGISTRYINDEX, LUA_LOADED_TABLE);
-#else
-	lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");
-#endif
 	lua_getfield(L, 2, name); /* LOADED[name] */
 	if (lua_toboolean(L, -1)) /* is it there? */
 	{
@@ -791,13 +783,11 @@ static int Lua_Require(lua_State* L)
 		luaL_requiref(L, LUA_LMPROF_LIBNAME, luaopen_lmprof, 1);
 		return 1;
 	}
-#if LUA_VERSION_NUM >= 504
 	else if (strcmp(name, LUA_GLMLIBNAME) == 0)
 	{
 		luaL_requiref(L, LUA_GLMLIBNAME, luaopen_glm, 1);
 		return 1;
 	}
-#endif
 
 	// @TODO: Consider implementing a custom 'loadlib' module that uses VFS,
 	// for example, LoadSystemFile("citizen:/scripting/lua/json.lua"). Server
@@ -924,12 +914,8 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 		m_scriptHost->SubmitBoundaryStart((char*)&b, sizeof(b));
 	}
 
-#if LUA_VERSION_NUM >= 504
 	int nrv;
 	int resumeValue = lua_resume(thread, L, 0, &nrv);
-#else
-	int resumeValue = lua_resume(thread, L, 0);
-#endif
 
 	if (resumeValue == LUA_YIELD)
 	{
@@ -959,11 +945,7 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 				lua_pushcclosure(thread, Lua_Resume, 2);
 				// Lua stack: [resume func]
 
-#if LUA_VERSION_NUM >= 504
 				resumeValue = lua_resume(thread, L, 1, &nrv);
-#else
-				resumeValue = lua_resume(thread, L, 1);
-#endif
 
 				// if LUA_YIELD, cya later!
 				if (resumeValue != LUA_YIELD)
@@ -997,7 +979,6 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 
 			ScriptTrace("^1SCRIPT ERROR: %s^7\n", err);
 			ScriptTrace("%s", stackData);
-#if LUA_VERSION_NUM >= 504
 			int resetStatus = lua_resetthread(thread);
 
 			std::string resetErr = Lua_GetErrorMessage(thread, -1);
@@ -1008,7 +989,6 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 			{
 				ScriptTrace("^1Error while closing to-be-closed variables: %s^7\n", resetErr);
 			}
-#endif
 		}
 
 		luaL_unref(L, LUA_REGISTRYINDEX, bookmark);
@@ -1439,9 +1419,7 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 	lua_pushcfunction(m_state, Lua_Require);
 	lua_setglobal(m_state, "require");
 
-#if LUA_VERSION_NUM >= 504
 	lua_setwarnf(m_state, Lua_Warn, nullptr);
-#endif
 
 	return FX_S_OK;
 }
@@ -1687,18 +1665,7 @@ result_t LuaScriptRuntime::LoadSystemFile(char* scriptName)
 
 int32_t LuaScriptRuntime::HandlesFile(char* fileName, IScriptHostWithResourceData* metadata)
 {
-	if (strstr(fileName, ".lua") != 0)
-	{
-		int isLua54 = 0;
-		metadata->GetNumResourceMetaData("lua54", &isLua54);
-
-#if LUA_VERSION_NUM == 504
-		return isLua54 > 0;
-#else
-		return isLua54 == 0;
-#endif
-	}
-	return false;
+	return strstr(fileName, ".lua") != nullptr;
 }
 
 result_t LuaScriptRuntime::TickBookmarks(uint64_t* bookmarks, int numBookmarks)
@@ -1828,13 +1795,8 @@ result_t LuaScriptRuntime::SetDebugEventListener(IDebugEventListener* listener)
 
 result_t LuaScriptRuntime::EmitWarning(char* channel, char* message)
 {
-#if LUA_VERSION_NUM >= 504
 	lua_warning(m_state, va("[%s] %s", channel, message), 0);
 	return FX_S_OK;
-#else
-	// Lua < 5.4 does not support warnings
-	return FX_E_NOTIMPL;
-#endif
 }
 
 void* LuaScriptRuntime::GetParentObject()
@@ -2065,15 +2027,9 @@ static LuaProfilingMode IScriptProfiler_Initialize(lua_State* L, int m_profiling
 	return result;
 }
 
-#if LUA_VERSION_NUM == 504
 // {91A81564-E5F1-4FD6-BC6A-9865A081011D}
 FX_DEFINE_GUID(CLSID_LuaScriptRuntime,
 0x91a81564, 0xe5f1, 0x4fd6, 0xbc, 0x6a, 0x98, 0x65, 0xa0, 0x81, 0x01, 0x1d);
-#else
-// {A7242855-0350-4CB5-A0FE-61021E7EAFAA}
-FX_DEFINE_GUID(CLSID_LuaScriptRuntime,
-0xa7242855, 0x350, 0x4cb5, 0xa0, 0xfe, 0x61, 0x2, 0x1e, 0x7e, 0xaf, 0xaa);
-#endif
 
 FX_NEW_FACTORY(LuaScriptRuntime);
 

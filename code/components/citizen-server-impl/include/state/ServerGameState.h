@@ -173,37 +173,17 @@ inline bool Is3407()
 
 	return value;
 }
+
+inline bool IsSummerUpdate25()
+{
+	static bool value = ([]()
+	{
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= xbr::Build::Summer_2025) || fx::GetEnforcedGameBuildNumber() >= xbr::Build::Summer_2025;
+	})();
+
+	return value;
+}
 #elif defined(STATE_RDR3)
-inline bool Is1311()
-{
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 1311;
-	})();
-
-	return value;
-}
-
-inline bool Is1355()
-{
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 1355;
-	})();
-
-	return value;
-}
-
-inline bool Is1436()
-{
-	static bool value = ([]()
-	{
-		return fx::GetEnforcedGameBuildNumber() >= 1436;
-	})();
-
-	return value;
-}
-
 inline bool Is1491()
 {
 	static bool value = ([]()
@@ -724,18 +704,18 @@ struct CTrainGameStateDataNodeData
 	bool isEngine;
 	bool isCaboose;
 
-	bool unk12;
+	bool isMissionTrain;
 
 	bool direction;
 
-	bool unk14;
+	bool hasPassengerCarriages;
 
 	bool renderDerailed;
 
 	// 2372 {
-	bool unk198;
-	bool unk224;
-	bool unk199;
+	bool allowRemovalByPopulation;
+	bool highPrecisionBlending;
+	bool stopAtStations;
 	// }
 
 	bool forceDoorsOpen;
@@ -1597,6 +1577,9 @@ private:
 	bool ValidateEntity(EntityLockdownMode entityLockdownMode, const fx::sync::SyncEntityPtr& entity);
 
 public:
+	std::unordered_set<uint32_t> blockedEvents;
+	std::shared_mutex blockedEventsMutex;
+	bool IsNetGameEventBlocked(uint32_t eventNameHash);
 	std::function<bool()> GetGameEventHandler(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::Buffer&& buffer);
 
 private:

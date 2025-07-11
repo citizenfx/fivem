@@ -17,6 +17,12 @@ namespace xbr
 // servers. We keep track of minor game builds only for `GetCurrentGameBuildString` (i.e. for hint files).
 // When there's no entry for a specific major game build, revision "0" will be assumed in the relevant code.
 //
+enum Build : int
+{
+	Summer_2025 = 3570,
+
+	Latest = Summer_2025,
+};
 
 inline int GetDefaultGTA5Build()
 {

@@ -1,0 +1,46 @@
+#pragma once
+
+enum HostState
+{
+	SESSION_STATE_NONE,
+	SESSION_STATE_ENTER,
+	SESSION_STATE_START_JOINING,
+	SESSION_STATE_JOINING,
+	SESSION_STATE_JOINED,
+	SESSION_STATE_5,
+	SESSION_STATE_6,
+	SESSION_STATE_7,
+};
+
+inline const char* HostStateToString(HostState hs)
+{
+#define TS_HELPER(x) \
+	case x: \
+		return #x;
+
+	switch (hs)
+	{
+		TS_HELPER(SESSION_STATE_NONE)
+		TS_HELPER(SESSION_STATE_ENTER)
+		TS_HELPER(SESSION_STATE_START_JOINING)
+		TS_HELPER(SESSION_STATE_JOINING)
+		TS_HELPER(SESSION_STATE_JOINED)
+		TS_HELPER(SESSION_STATE_5)
+		TS_HELPER(SESSION_STATE_6)
+		TS_HELPER(SESSION_STATE_7)
+	}
+
+	return va("%d", (int)hs);
+
+#undef TS_HELPER
+}
+
+#ifdef COMPILING_GTA_NET_RDR3
+#define GTA_NET_EXPORT DLL_EXPORT
+#else
+#define GTA_NET_EXPORT DLL_IMPORT
+#endif
+
+// a1: new state
+// a2: old state
+extern GTA_NET_EXPORT fwEvent<HostState, HostState> OnHostStateTransition;

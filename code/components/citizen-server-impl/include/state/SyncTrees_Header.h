@@ -66,6 +66,15 @@ inline bool shouldWrite(SyncUnparseState& state, const std::tuple<int, int, int>
 	return true;
 }
 
+inline float normalizeRot(const float value)
+{
+	const float pi = glm::pi<float>();
+	const float width = pi + pi;
+	const float offsetValue = value + pi;
+
+	return (offsetValue - (floor(offsetValue / width) * width)) + -pi;
+};
+
 // from https://stackoverflow.com/a/26902803
 template<class F, class... Ts, std::size_t... Is>
 void for_each_in_tuple(std::tuple<Ts...>& tuple, F func, std::index_sequence<Is...>)
@@ -503,6 +512,26 @@ struct ParseSerializer
 		data = std::min(data, static_cast<T>(maxValue));
 
 		return Serialize(size, data);
+  }
+
+	bool SerializePosition(int size, float& dataX, float& dataY, float& dataZ)
+	{
+		dataX = state->buffer.ReadSignedFloat(size, 27648.0f);
+		dataY = state->buffer.ReadSignedFloat(size, 27648.0f);
+		dataZ = state->buffer.ReadFloat(size, 4416.0f) - 1700.0f;
+		return true;
+	}
+
+	bool SerializeRotation(float& dataX, float& dataY, float& dataZ)
+	{
+		const float mult = 1.0f / 64.0f;
+		int x = state->buffer.ReadSigned<int>(9);
+		int y = state->buffer.ReadSigned<int>(9);
+		int z = state->buffer.ReadSigned<int>(9);
+		dataX = x * mult;
+		dataY = y * mult;
+		dataZ = z * mult;
+		return true;
 	}
 
 	static constexpr bool isReader = true;
@@ -546,6 +575,26 @@ struct UnparseSerializer
 		data = std::min(data, static_cast<T>(maxValue));
 
 		return Serialize(size, data);
+  }
+
+	bool SerializePosition(int size, float& dataX, float& dataY, float& dataZ)
+	{
+		state->buffer.WriteSignedFloat(size, 27648.0f, dataX);
+		state->buffer.WriteSignedFloat(size, 27648.0f, dataY);
+		state->buffer.WriteFloat(size, 4416.0f, dataZ + 1700.0f);
+		return true;
+	}
+
+	bool SerializeRotation(float& dataX, float& dataY, float& dataZ)
+	{
+		const float mult = 1.0f / 64.0f;
+		int x = floor((normalizeRot(dataX) / mult) + 0.5f);
+		int y = floor((normalizeRot(dataY) / mult) + 0.5f);
+		int z = floor((normalizeRot(dataZ) / mult) + 0.5f);
+		state->buffer.WriteSigned<int>(9, x);
+		state->buffer.WriteSigned<int>(9, y);
+		state->buffer.WriteSigned<int>(9, z);
+		return true;
 	}
 
 	static constexpr bool isReader = false;

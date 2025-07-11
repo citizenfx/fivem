@@ -36,6 +36,11 @@ inline uintptr_t GetTriggerEP()
 		return ep;
 	}
 
+	if (xbr::IsGameBuild<xbr::Build::Summer_2025>())
+	{
+		return 0x141868504;
+	}
+
 	if (xbr::IsGameBuild<3407>())
 	{
 		return 0x14185CFAC;
@@ -108,22 +113,7 @@ inline uintptr_t GetTriggerEP()
 		return ep;
 	}
 
-	if (xbr::IsGameBuild<1355>())
-	{
-		return 0x142DE455C; // 1355.18
-	}
-
-	if (xbr::IsGameBuild<1436>())
-	{
-		return 0x142E13DA4; // 1436.31
-	}
-
-	if (xbr::IsGameBuild<1491>())
-	{
-		return 0x142E4FAD0; // 1491.50
-	}
-
-	return 0x142E0F92C; // 1311.20
+	return 0x142E4FAD0; // 1491.50
 }
 
 #define TRIGGER_EP (GetTriggerEP())

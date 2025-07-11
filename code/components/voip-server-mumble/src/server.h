@@ -31,8 +31,17 @@
 
 #ifndef SERVER_H_347563
 #define SERVER_H_347563
+#include <unordered_set>
+
+#include "ClientRegistry.h"
+#include "console/Console.VariableHelpers.h"
 
 void Server_run();
 void Server_shutdown();
+
+extern std::shared_ptr<ConVar<bool>> mumble_allowExternalConnections;
+inline std::unordered_set<int> g_clientIds;
+inline std::shared_mutex g_clientIdsMutex;
+inline fwRefContainer<fx::ClientRegistry> g_clientRegistry;
 
 #endif

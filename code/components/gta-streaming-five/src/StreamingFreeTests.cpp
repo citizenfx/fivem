@@ -434,54 +434,27 @@ static HookFunction hookFunction([] ()
 		doStub.addFunc = AddStreamingFileWrap;
 		hook::jump_rcx(location, doStub.GetCode());
 #elif IS_RDR3
-		if (xbr::IsGameBuildOrGreater<1436>()) // starting from 1436.31
+		void* location = hook::pattern("83 0F FF 48 8D 4D C8 E8 3C 93 FE FF").count(1).get(0).get<void>(27);
+
+		static struct : public jitasm::Frontend
 		{
-			void* location = hook::pattern("83 0F FF 48 8D 4D C8 E8 3C 93 FE FF").count(1).get(0).get<void>(27);
+			void* addFunc;
 
-			static struct : public jitasm::Frontend
+			void InternalMain() override
 			{
-				void* addFunc;
+				pop(rdi);
+				pop(rsi);
+				pop(rbx);
+				pop(rbp);
 
-				void InternalMain() override
-				{
-					pop(rdi);
-					pop(rsi);
-					pop(rbx);
-					pop(rbp);
+				mov(rcx, rax);
+				mov(rax, (uint64_t)addFunc);
+				jmp(rax);
+			}
+		} doStub;
 
-					mov(rcx, rax);
-					mov(rax, (uint64_t)addFunc);
-					jmp(rax);
-				}
-			} doStub;
-
-			doStub.addFunc = AddStreamingFileWrap;
-			hook::jump_rcx(location, doStub.GetCode());
-		}
-		else
-		{
-			void* location = hook::pattern("83 CF FF 89 3E 48 8D 4D 58 E8").count(1).get(0).get<void>(35);
-
-			static struct : public jitasm::Frontend
-			{
-				void* addFunc;
-
-				void InternalMain() override
-				{
-					pop(r12);
-					pop(rdi);
-					pop(rsi);
-					pop(rbp);
-
-					mov(rcx, rax);
-					mov(rax, (uint64_t)addFunc);
-					jmp(rax);
-				}
-			} doStub;
-
-			doStub.addFunc = AddStreamingFileWrap;
-			hook::jump_rcx(location, doStub.GetCode());
-		}
+		doStub.addFunc = AddStreamingFileWrap;
+		hook::jump_rcx(location, doStub.GetCode());
 #endif
 	}
 

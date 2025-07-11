@@ -545,7 +545,12 @@ const EXT_LOCALFUNCREF = 11;
 	const exportKey = isDuplicityVersion ? 'server_export' : 'export';
 	const eventType = isDuplicityVersion ? 'Server' : 'Client';
 
-	const getExportEventName = (resource, name) => `__cfx_export_${resource}_${name}`;
+	const getExportEventName = (resource, name) => {
+		if(resource == "txAdmin") {
+			resource = "monitor";
+		}
+		return `__cfx_export_${resource}_${name}`;
+	}
 
 	on(`on${eventType}ResourceStart`, (resource) => {
 		if (resource === currentResourceName) {

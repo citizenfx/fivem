@@ -601,6 +601,11 @@ static void Init()
 		return (int)GetEntityType(entity);
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_NET_TYPE_FROM_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		return entity->type;
+	}, -1));
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_ROUTING_BUCKET_POPULATION_ENABLED", [](fx::ScriptContext& context)
 	{
 		int bucket = context.GetArgument<int>(0);
@@ -1877,6 +1882,98 @@ static void Init()
 		auto train = entity->syncTree->GetTrainState();
 
 		return train ? train->carriageIndex : -1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_STATE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->trainState : -1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_TRAIN_CABOOSE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->isCaboose : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("DOES_TRAIN_STOP_AT_STATIONS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->stopAtStations : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_CRUISE_SPEED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->cruiseSpeed : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_TRACK_INDEX", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->trackId : -1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_FORWARD_CARRIAGE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		if (!train)
+		{
+			return uint32_t(0);
+		}
+
+		if (train->isEngine)
+		{
+			return uint32_t(0);
+		}
+
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		auto forwardCarriage = gameState->GetEntity(0, train->linkedToForwardId);
+
+		return forwardCarriage ? gameState->MakeScriptHandle(forwardCarriage) : 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_BACKWARD_CARRIAGE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		if (!train)
+		{
+			return uint32_t(0);
+		}
+
+		if (train->isCaboose)
+		{
+			return uint32_t(0);
+		}
+
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		auto backwardCarriage = gameState->GetEntity(0, train->linkedToBackwardId);
+
+		return backwardCarriage ? gameState->MakeScriptHandle(backwardCarriage) : 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_DIRECTION", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->direction : false;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_FAKE_WANTED_LEVEL", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
