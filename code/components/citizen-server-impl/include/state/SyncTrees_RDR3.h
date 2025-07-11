@@ -800,7 +800,6 @@ struct CPedHealthDataNode : GenericSerializeDataNode<CPedHealthDataNode>
 	}
 };
 
-
 struct CPedMovementGroupDataNode { };
 struct CPedAIDataNode { };
 struct CPedAppearanceDataNode { };
