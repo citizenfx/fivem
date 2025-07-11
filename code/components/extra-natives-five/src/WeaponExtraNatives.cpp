@@ -375,10 +375,18 @@ static HookFunction hookFunction([]()
 			location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 83 CB ? C7 45", 4);
 			VehicleMeleeDamageModifier.SetLocation(location);
 		}
-
-		else if (xbr::IsGameBuild<3095>())
+		else if (xbr::IsGameBuild<2944>() || xbr::IsGameBuild<3095>())
 		{
 			auto location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 84 C0 41 8A 84 24", 4);
+			VehicleMeleeDamageModifier.Init(*hook::get_address<float*>(location));
+			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 45 84 FF B9", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
+		}
+		else if (xbr::IsGameBuild<1604>())
+		{
+			auto location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 45 33 FF 84 C0", 4);
 			VehicleMeleeDamageModifier.Init(*hook::get_address<float*>(location));
 			VehicleMeleeDamageModifier.SetLocation(location);
 
