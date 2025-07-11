@@ -374,6 +374,9 @@ static HookFunction hookFunction([]()
 
 			location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 83 CB ? C7 45", 4);
 			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 0D ? ? ? ? 83 79", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
 		}
 		else if (xbr::IsGameBuild<2944>() || xbr::IsGameBuild<3095>())
 		{
@@ -382,6 +385,9 @@ static HookFunction hookFunction([]()
 			VehicleMeleeDamageModifier.SetLocation(location);
 
 			location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 45 84 FF B9", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 0D ? ? ? ? C7 45 ? ? ? ? ? 89 45", 4);
 			VehicleMeleeDamageModifier.SetLocation(location);
 		}
 		else if (xbr::IsGameBuild<1604>())
@@ -392,6 +398,9 @@ static HookFunction hookFunction([]()
 
 			location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 45 84 FF B9", 4);
 			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 8A 8D", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
 		}
 		else
 		{
@@ -400,6 +409,9 @@ static HookFunction hookFunction([]()
 			VehicleMeleeDamageModifier.SetLocation(location);
 
 			location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 45 84 FF B9", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 0D ? ? ? ? C7 45 ? ? ? ? ? 89 45", 4);
 			VehicleMeleeDamageModifier.SetLocation(location);
 		}
 	}
