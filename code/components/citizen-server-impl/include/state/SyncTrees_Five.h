@@ -4099,6 +4099,11 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 		return hasNode ? &node->data : nullptr;
 	}
 
+	virtual DataNode_14359ec40Data* GetDataNode_14359ec40() override
+	{
+		return nullptr;
+	}
+
 	virtual void CalculatePosition() override
 	{
 		// TODO: cache it?
