@@ -28,6 +28,12 @@
 
 #include <stack>
 
+enum NativeIdentifiers : uint64_t
+{
+	NETWORK_SET_THIS_SCRIPT_IS_NETWORK_SCRIPT = 0x1CA59E306ECB80A5,
+	NETWORK_GET_SCRIPT_STATUS = 0x57D158647A6BFABF,
+};
+
 void CoreRT_SetHardening(bool hardened)
 {
 #ifdef GTA_FIVE
@@ -188,13 +194,12 @@ static InitFunction initFunction([] ()
 
 			if (setScriptNow)
 			{
-				// make this a network script
-				NativeInvoke::Invoke<0x1CA59E306ECB80A5, int>(32, false, -1);
+				NativeInvoke::Invoke<NETWORK_SET_THIS_SCRIPT_IS_NETWORK_SCRIPT, int>(32, false, -1);
 
 				if (data->behaviorVersion >= 1)
 				{
 					// get script status; this sets a flag in the CGameScriptHandlerNetComponent
-					NativeInvoke::Invoke<0x57D158647A6BFABF, int>();
+					NativeInvoke::Invoke<NETWORK_GET_SCRIPT_STATUS, int>();
 				}
 			}
 		}, -10000);
