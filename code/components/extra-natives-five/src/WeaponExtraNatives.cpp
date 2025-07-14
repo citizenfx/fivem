@@ -9,12 +9,14 @@
 #include <rageVectors.h>
 #include <MinHook.h>
 #include "Hooking.Stubs.h"
+#include <GameValueStub.h>
 
 static int WeaponDamageModifierOffset;
 static int WeaponAnimationOverrideOffset;
 static int WeaponRecoilShakeAmplitudeOffset;
 static int WeaponSpreadOffset;
 static int ObjectWeaponOffset;
+static GameValueStub<float> VehicleMeleeDamageModifier;
 
 static int PedOffset = 0x10;
 static int CurrentPitchOffset = 0x1CC;
@@ -363,6 +365,56 @@ static HookFunction hookFunction([]()
 		NetworkObjectOffset = *hook::get_pattern<uint32_t>("48 8B 81 ? ? ? ? 48 85 C0 74 ? 80 78 ? ? 74 ? 8A 80 ? ? ? ? C0 E8", 3);
 		IsCloneOffset = *hook::get_pattern<uint16_t>("80 78 ? ? 74 ? 8A 80 ? ? ? ? C0 E8", 2);
 	}
+	{
+		if (xbr::IsGameBuildOrGreater<3258>())
+		{
+			auto location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? F3 0F 11 45 ? 84 C0", 4);
+			VehicleMeleeDamageModifier.Init(*hook::get_address<float*>(location));
+			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 83 CB ? C7 45", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 0D ? ? ? ? 83 79", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
+		}
+		else if (xbr::IsGameBuild<2944>() || xbr::IsGameBuild<3095>())
+		{
+			auto location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 84 C0 41 8A 84 24", 4);
+			VehicleMeleeDamageModifier.Init(*hook::get_address<float*>(location));
+			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 45 84 FF B9", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 0D ? ? ? ? C7 45 ? ? ? ? ? 89 45", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
+		}
+		else if (xbr::IsGameBuild<1604>())
+		{
+			auto location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? B8 ? ? ? ? 84 CB", 4);
+			VehicleMeleeDamageModifier.Init(*hook::get_address<float*>(location));
+			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? F3 0F 11 44 24 ? F3 0F 11 44 24 ? F3 0F 11 44 24 ? 48 89 54 24", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 0D ? ? ? ? C7 45 ? ? ? ? ? 89 45", 4);
+			VehicleMeleeDamageModifier.SetLocation(location); 
+		}
+		else
+		{
+			auto location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 45 33 FF 84 C0", 4);
+			VehicleMeleeDamageModifier.Init(*hook::get_address<float*>(location));
+			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 05 ? ? ? ? 45 84 FF B9", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
+
+			location = hook::get_pattern<uint32_t>("F3 0F 10 0D ? ? ? ? C7 45 ? ? ? ? ? 89 45", 4);
+			VehicleMeleeDamageModifier.SetLocation(location);
+		}
+	}
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_DAMAGE_MODIFIER", [](fx::ScriptContext& context)
 	{
@@ -374,6 +426,17 @@ static HookFunction hookFunction([]()
 		}
 
 		context.SetResult<float>(damageModifier);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_MELEE_DAMAGE_MODIFIER", [](fx::ScriptContext& context)
+	{
+		float modifier = context.GetArgument<float>(0);
+		VehicleMeleeDamageModifier.Set(modifier);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_MELEE_DAMAGE_MODIFIER", [](fx::ScriptContext& context)
+	{
+		context.SetResult<float>(VehicleMeleeDamageModifier.Get());
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_RECOIL_SHAKE_AMPLITUDE", [](fx::ScriptContext& context)
@@ -516,6 +579,7 @@ static HookFunction hookFunction([]()
 		g_SET_WEAPONS_NO_AUTOSWAP = false;
 		g_SET_WEAPONS_NO_AIM_BLOCKING = false;
 		g_LocalWeaponClipAmounts.clear();
+		VehicleMeleeDamageModifier.Reset();
 	});
 
 	{
