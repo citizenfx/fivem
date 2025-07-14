@@ -158,6 +158,8 @@ public:
 
 	virtual std::string GetVoiceChannelFromServerId(uint32_t serverId) override;
 
+	virtual uint32_t GetPlayerSessionFromName(std::string& playerName) override;
+
 	virtual void GetTalkers(std::vector<std::string>* referenceIds) override;
 
 	virtual void SetPositionHook(const TPositionHook& hook) override;
@@ -174,6 +176,12 @@ public:
 
 	virtual void SetListenerMatrix(float position[3], float front[3], float up[3]) override;
 
+	virtual void SetSelfMuted(bool muted) override;
+	
+	virtual void SetSelfDeafened(bool selfDeafened) override;
+	
+	virtual void MutePlayerLocally(uint32_t sessionId, bool muted) override;
+	
 	virtual void SetActivationMode(MumbleActivationMode mode) override;
 
 	virtual void SetPTTButtonState(bool pressed) override;
@@ -196,6 +204,8 @@ private:
 	std::shared_ptr<uvw::TCPHandle> m_tcp;
 
 	std::shared_ptr<uvw::UDPHandle> m_udp;
+
+	std::unordered_set<uint32_t> m_locallyMutedPlayers;
 
 	MumbleConnectionInfo m_connectionInfo;
 
@@ -242,6 +252,14 @@ private:
 	bool m_hasUdp = false;
 
 	bool m_udpTimedOut = false;
+
+	bool m_selfMuted;
+
+	bool m_selfDeafened;
+
+	bool m_lastSelfMuted;
+
+	bool m_lastSelfDeafened;
 
 	// the time in milliseconds since the player joined the mumble server
 	// This is used in for `Ping` packets to determine if we should allow the client to swap from UDP -> TCP
