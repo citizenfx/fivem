@@ -908,7 +908,7 @@ struct SyncEntityState
 	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
 
 private:
-	std::shared_mutex stateBagPtrMutex;
+	std::atomic<bool> m_hasStateBag;
 	std::shared_ptr<fx::StateBag> stateBag;
 
 public:
@@ -920,20 +920,28 @@ public:
 
 	inline bool HasStateBag()
 	{
-		std::shared_lock _(stateBagPtrMutex);
-		return (stateBag) ? true : false;
+		return m_hasStateBag.load(std::memory_order_acquire);
 	}
 
+	/// <summary>
+	/// </summary>
+	/// <returns>The current state bag, or nullptr if it doesn't exist</returns>
 	inline auto GetStateBag()
 	{
-		std::shared_lock _(stateBagPtrMutex);
 		return stateBag;
 	}
 
+	/// <summary>
+	/// This function operates on a few assumptions:
+	/// 1. You should call `HasStateBag` before calling this.
+	/// 2. This value only gets set *once*, you shouldn't change the state bag after this.
+	/// 3. This function should only be called with newStateBag set to a valid shared_ptr, never nullptr
+	/// </summary>
+	/// <param name="newStateBag"></param>
 	inline void SetStateBag(std::shared_ptr<fx::StateBag>&& newStateBag)
 	{
-		std::unique_lock _(stateBagPtrMutex);
 		stateBag = std::move(newStateBag);
+		m_hasStateBag.store(true, std::memory_order_release);
 	}
 
 	inline float GetDistanceCullingRadius(float playerCullingRadius)

@@ -2735,9 +2735,10 @@ bool ServerGameState::SetEntityStateBag(uint8_t playerId, uint16_t objectId, std
 {
 	if (auto entity = GetEntity(0, objectId))
 	{
-		if (entity->GetStateBag())
+		if (entity->HasStateBag())
 		{
 			trace("Creating a new state bag while there's already a state bag on this entity, please report this.\n");
+			return false;
 		}
 
 		entity->SetStateBag(createStateBag());
