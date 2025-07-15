@@ -249,7 +249,7 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 33 FF 84 C0 75 ? 8A 4B")), netObject__isPendingRemovalByPlayer, (void**)&g_origIsPendingRemovalByPlayer);
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? EB ? 45 84 FF 74 ? 48 8D 4C 24")), netObject__setPendingRemovalByPlayer, (void**)&g_origSetPendingRemovalByPlayer);
 	// Scope
-	MH_CreateHook(hook::get_pattern("8B FB 49 8B CE 48 C1 EF", -93), netObject__setScopeState, (void**)g_netObject__setScopeState);
+	MH_CreateHook(hook::get_pattern("8B FB 49 8B CE 48 C1 EF", -93), netObject__setScopeState, (void**)&g_netObject__setScopeState);
 
 	// Player targetting
 	{
