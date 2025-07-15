@@ -13,9 +13,6 @@ Returns vehicle xenon lights custom RGB color values. Do note this native doesn'
 
 ## Parameters
 * **vehicle**: The vehicle handle.
-* **red**: Red color (0-255).
-* **green**: Green color (0-255).
-* **blue**: Blue color (0-255).
 
 ## Return value
-A boolean indicating if vehicle have custom xenon lights RGB color.
+A boolean indicating if vehicle have custom xenon lights RGB color and the RGB values.
