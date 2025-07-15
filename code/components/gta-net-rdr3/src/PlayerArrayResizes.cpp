@@ -289,6 +289,12 @@ static void* unkP2PObjectInit(void* objectMgr)
 	return nullptr;
 }
 
+static int* sub_1424(void* a1, int* a2, void* a3, bool a4)
+{
+	*a2 = 0;
+	return a2;
+}
+
 static HookFunction hookFunction([]()
 {
 	// Expand Player Damage Array to support more players
@@ -580,6 +586,60 @@ static HookFunction hookFunction([]()
 		hook::put<uint8_t>(location + 0x188, stackSize);
 	}
 
+	// Resize stack to support >32 players for _unkCanBoatsPopulationTurnTaking
+	{
+		auto location = hook::get_pattern<char>("48 81 EC ? ? ? ? 8B E9 E8", -0x10);
+
+		constexpr int ptrsBase = 0x30;
+		constexpr int stackSize = ptrsBase + (kMaxPlayers * 8) + 0x10;
+		constexpr int intBase = ptrsBase + (kMaxPlayers * 8);
+
+		// stack frame ENTER
+		hook::put<uint32_t>(location + 0x13, stackSize);
+		// stack frame LEAVE
+		hook::put<uint32_t>(location + 0xA7, stackSize);
+		// var: rsp + 120
+		hook::put<uint32_t>(location + 0x28, intBase);
+		hook::put<uint32_t>(location + 0x63, intBase);
+		hook::put<uint32_t>(location + 0x6F, intBase);
+		hook::put<uint32_t>(location + 0x9A, intBase);
+	}
+
+	// Resize stack to support >32 players when updating task sequences
+	{
+		auto location = hook::get_pattern<char>("48 81 EC ? ? ? ? 41 8A D9 45 8B F8", -24);
+
+		constexpr int ptrsBase = 0x40;
+		constexpr int stackSize = ptrsBase + (kMaxPlayers * 8) + 0x10;
+		constexpr int intBase = ptrsBase + (kMaxPlayers * 8);
+
+		// stack frame ENTER
+		hook::put<uint32_t>(location + 27, stackSize);
+
+		//stack frame LEAVE
+		hook::put<uint32_t>(location + 0x179, stackSize);
+
+		// var: rsp + 188
+		hook::put<uint32_t>(location + 314, intBase);
+		hook::put<uint32_t>(location + 321, intBase);
+	}
+
+	// Resize stack to support >32 players with REQUEST_IS_VOLUME_EMPTY netEvent
+	{
+		auto location = hook::get_pattern<char>("48 81 EC ? ? ? ? 41 8A D8 4C 8B F2 4C 8B F9", -0x14);
+
+		constexpr int ptrsBase = 0x20;
+		constexpr int arraySize = (kMaxPlayers * 8);
+		constexpr int stackSize = ptrsBase + arraySize;
+
+		// stack frame ENTER
+		hook::put<uint32_t>(location + 0x17, stackSize);
+		// stack frame LEAVE
+		hook::put<uint32_t>(location + 0x92, stackSize);
+		// memset 0x100 -> arraySize
+		hook::put<uint32_t>(hook::get_pattern<uint32_t>("41 B8 ? ? ? ? 48 8D 4C 24 ? E8 ? ? ? ? 84 DB", 2), arraySize);
+	}
+
 	// Patch bubble join to prevent writing out of bounds for player objects
 	{
 		auto location = hook::get_pattern("44 0F B6 4E ? 0F B6 40");
@@ -628,6 +688,12 @@ static HookFunction hookFunction([]()
 	hook::call(hook::get_pattern("E8 ? ? ? ? 84 C0 75 ? 8B 05 ? ? ? ? 33 C9 89 44 24"), Return<true, false>);
 	hook::call(hook::get_pattern("E8 ? ? ? ? 84 C0 75 ? 80 7B ? ? 73 ? 48 8B CB"), Return<true, false>);
 
+	// nop "Last Too Many Objects ACK" network log, indexes an 32 sized array without a < 32 check
+	{
+		auto location = hook::get_pattern("4C 8D 05 ? ? ? ? 48 8D 15 ? ? ? ? 4C 8B 10 45 8B 8C 8E");
+		hook::nop(location, 32);
+	}
+
 	// Rewrite functions to account for extended players
 	MH_Initialize();
 	// Don't broadcast script info for script created vehicles in OneSync.
@@ -645,5 +711,10 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("4D 8B 04 C0 4E 39 3C 01 75 ? 33 C0 89 02", -0x39), _unkPlayerFootstepBitset, (void**)&g_unkPlayerFootstepBitset);
 
 	MH_CreateHook(hook::get_pattern("33 DB 0F 29 70 D8 49 8B F9 4D 8B F0", -0x1B), GetPlayersNearPoint, (void**)&g_origGetPlayersNearPoint);
+
+	//TEMP: Potentially can overflow and lead to issues, and this logic isn't important in onesync at the moment.
+	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 65 48 8B 0C 25 ? ? ? ? 4C 8B F2"), sub_1424, NULL);
+	hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 54 41 56 41 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 8B F0"));
+
 	MH_EnableHook(MH_ALL_HOOKS);
 });
