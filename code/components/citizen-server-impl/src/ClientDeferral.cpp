@@ -324,8 +324,15 @@ TCallbackMap ClientDeferral::GetCallbacks()
 
 		if (obj.size() == 1)
 		{
-			deferralState.message = obj[0].as<std::string>();
-			deferralState.rejected = true;
+			try
+			{
+				deferralState.message = obj[0].as<std::string>();
+				deferralState.rejected = true;
+			}
+			catch (msgpack::type_error& error)
+			{
+			
+			}
 		}
 
 		self->UpdateDeferrals();
