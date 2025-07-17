@@ -206,7 +206,7 @@ static int GetPlayersNearPoint(rage::Vec3V* point, uint32_t unkIndex, void* outI
 		return g_origGetPlayersNearPoint(point, unkIndex, outIndex, outArray, range, range, sorted);
 	}
 
-	CNetGamePlayer* tempArray[512]{};
+	CNetGamePlayer* tempArray[kMaxPlayers]{};
 
 	int idx = 0;
 
@@ -215,7 +215,7 @@ static int GetPlayersNearPoint(rage::Vec3V* point, uint32_t unkIndex, void* outI
 	{
 		auto player = playerList[i];
 
-		if (getPlayerPedForNetPlayer(player))
+		if (player && getPlayerPedForNetPlayer(player))
 		{
 			rage::Vec3V vectorPos;
 
@@ -245,6 +245,7 @@ static int GetPlayersNearPoint(rage::Vec3V* point, uint32_t unkIndex, void* outI
 	unkIndex = idx;
 	std::copy(tempArray, tempArray + idx, outArray);
 
+	trace("Getting closest remote players %i\n", idx);
 	return idx;
 }
 
@@ -694,6 +695,9 @@ static HookFunction hookFunction([]()
 		hook::nop(location, 32);
 	}
 
+	// Disable text chat. 
+	hook::return_function(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 56 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B E9"));
+
 	// Rewrite functions to account for extended players
 	MH_Initialize();
 	// Don't broadcast script info for script created vehicles in OneSync.
@@ -712,6 +716,7 @@ static HookFunction hookFunction([]()
 
 	MH_CreateHook(hook::get_pattern("33 DB 0F 29 70 D8 49 8B F9 4D 8B F0", -0x1B), GetPlayersNearPoint, (void**)&g_origGetPlayersNearPoint);
 
+	//hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 55 41 56 41 57 48 83 EC ? 48 8B F1 E8"));
 	//TEMP: Potentially can overflow and lead to issues, and this logic isn't important in onesync at the moment.
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 65 48 8B 0C 25 ? ? ? ? 4C 8B F2"), sub_1424, NULL);
 	hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 54 41 56 41 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 8B F0"));
