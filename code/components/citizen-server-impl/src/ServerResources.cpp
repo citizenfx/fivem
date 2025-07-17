@@ -538,19 +538,6 @@ static InitFunction initFunction([]()
 						console::PrintWarning("resources", "Resource %s does not specify an `fx_version` in fxmanifest.lua.\n", resource->GetName());
 						allowed = false;
 					}
-
-					if (isGame && gameNameString == "rdr3")
-					{
-						auto warningEntries = md->GetEntries("rdr3_warning");
-
-						static const std::string warningString = "I acknowledge that this is a prerelease build of RedM, and I am aware my resources *will* become incompatible once RedM ships.";
-
-						if (warningEntries.begin() == warningEntries.end() || warningEntries.begin()->second != warningString)
-						{
-							console::PrintWarning("resources", "Resource %s does not contain the RedM pre-release warning in fxmanifest.lua.\nPlease add ^2rdr3_warning '%s'^3 to fxmanifest.lua in this resource.\n", resource->GetName(), warningString);
-							allowed = false;
-						}
-					}
 				}
 				else
 				{
