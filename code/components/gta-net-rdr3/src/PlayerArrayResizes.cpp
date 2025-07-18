@@ -296,6 +296,35 @@ static int* sub_1424(void* a1, int* a2, void* a3, bool a4)
 	return a2;
 }
 
+static unsigned long (*g_netArrayManager__Update)(void*);
+static unsigned long netArrayManager__Update(void* a1)
+{
+	void* netArrayProvider = (void*)((uintptr_t)a1 + 0x17FC0);
+	return 0;
+}
+
+static void* (*g_unkBandwidthTelemetry)(void*, int);
+static void* unkBandwidthTelemetry(void* bandwidthMgr, int a2)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_unkBandwidthTelemetry(bandwidthMgr, a2);
+	}
+
+	return nullptr;
+}
+
+static uint32_t (*g_getMaxAllowedAmountOfNetObjectByType)(uint16_t);
+static uint32_t getMaxAllowedAmountOfNetObjectByType(uint16_t netObjEntityType)
+{
+	if (netObjEntityType == 7)
+	{
+		return 160;
+	}
+
+	return g_getMaxAllowedAmountOfNetObjectByType(netObjEntityType);
+}
+
 static HookFunction hookFunction([]()
 {
 	// Expand Player Damage Array to support more players
@@ -371,6 +400,28 @@ static HookFunction hookFunction([]()
 
 	}
 
+	// Extend deseried peds
+	{
+		constexpr int newPedValue = 160;
+
+		auto value = hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? C6 05 ? ? ? ? ? 89 15", 2));
+		*value = newPedValue;
+
+		auto value2 = hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 89 05 ? ? ? ? C6 05 ? ? ? ? ? 89 15", 2));
+		*value2 = newPedValue;
+
+		auto value3 = hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 89 05 ? ? ? ? 89 05 ? ? ? ? C6 05", 2));
+		*value3 = newPedValue;
+
+		// used in _canRegisterNetworkEntities for ped and animal
+		hook::put<uint32_t>(hook::get_pattern("BB ? ? ? ? E9 ? ? ? ? E8 ? ? ? ? 48 8B 0D", 1), newPedValue);
+
+		//hook::put<uint32_t>(*hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 89 05 ? ? ? ? C6 05 ? ? ? ? ? 89 15", 2)), newPedValue);
+		//hook::put<uint32_t>(*hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 89 05 ? ? ? ? 89 05 ? ? ? ? C6 05", 2)), newPedValue);
+		//Hacky
+		g_getMaxAllowedAmountOfNetObjectByType = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? 45 33 FF 0F B7 D1"), getMaxAllowedAmountOfNetObjectByType);
+	}
+
 	// Replace 32-sized unknown CGameArray related array
 	{
 		void** unkPlayerArray = (void**)hook::AllocateStubMemory(sizeof(void*) * kMaxPlayers + 1);
@@ -438,9 +489,9 @@ static HookFunction hookFunction([]()
 	// rage::netPlayerMgrBase
 	{
 		 // Change count from 32 to 128
-		//PatchValue<uint32_t>({ 
-		//	{ "C7 83 ? ? ? ? ? ? ? ? BA ? ? ? ? 48 89 AB", 6, 0x20, kMaxPlayers }
-		//});
+		PatchValue<uint32_t>({ 
+			{ "C7 83 ? ? ? ? ? ? ? ? BA ? ? ? ? 48 89 AB", 6, 0x20, kMaxPlayers }
+		});
 	}
 
 	// Replace 32/31 comparisions
@@ -720,6 +771,10 @@ static HookFunction hookFunction([]()
 	//TEMP: Potentially can overflow and lead to issues, and this logic isn't important in onesync at the moment.
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 65 48 8B 0C 25 ? ? ? ? 4C 8B F2"), sub_1424, NULL);
 	hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 54 41 56 41 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 8B F0"));
+	MH_CreateHook(hook::get_pattern("48 89 4C 24 ? 53 55 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B F9"), netArrayManager__Update, (void**)&g_netArrayManager__Update);
+	MH_CreateHook(hook::get_pattern("40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 33 F6"), unkBandwidthTelemetry, (void**)&g_unkBandwidthTelemetry);
+
+
 
 	MH_EnableHook(MH_ALL_HOOKS);
 });
