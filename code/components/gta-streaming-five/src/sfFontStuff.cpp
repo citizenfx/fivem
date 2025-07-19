@@ -16,7 +16,10 @@
 
 #include <queue>
 
+#include "Hooking.Stubs.h"
+
 static std::vector<std::string> g_fontIds = {
+#ifdef GTA_FIVE
 	"$Font2",
 	"$Font5",
 	"$RockstarTAG",
@@ -31,7 +34,12 @@ static std::vector<std::string> g_fontIds = {
 	"$Font2",
 	"$Font2",
 	"$Font2",
+#endif
 };
+
+#if IS_RDR3
+constexpr int GAME_FONT_COUNT = 31; // common:/data/ui/fontmap.xml
+#endif
 
 static std::set<std::string> g_fontLoadQueue;
 static std::set<std::string> g_loadedFonts;
@@ -65,6 +73,7 @@ namespace sf
 	}
 }
 
+#ifdef GTA_FIVE
 static void(*gfxStringAssign)(void*, const char*);
 
 static void GetFontById(void* gfxString, int id)
@@ -76,6 +85,25 @@ static void GetFontById(void* gfxString, int id)
 
 	gfxStringAssign(gfxString, g_fontIds[id].c_str());
 }
+#else
+static char* (*g_GetFontNameById)(int id);
+static char* GetFontById(int id)
+{
+	if (id < 0 || id >= (GAME_FONT_COUNT + g_fontIds.size()))
+	{
+		trace("Font ID out of range: %d\n", id);
+		id = 0;
+	}
+	
+	if(id >= GAME_FONT_COUNT)
+	{
+		return const_cast<char*>(g_fontIds[id - GAME_FONT_COUNT].c_str());
+	}
+	
+	char* fontName = g_GetFontNameById(id);
+	return fontName;
+}
+#endif
 
 static void(*assignFontLib)(void*, void*, int);
 
@@ -229,6 +257,8 @@ static bool FindExportedResource(void* movieRoot, void* localDef, void* bindData
 	return rv;
 }
 
+#if GTA_FIVE
+
 static bool(*g_origGetExportedResource)(void* movieDef, void* bindData, void* symbol, void* ignoreDef);
 
 static bool GetExportedResource(void* movieDef, void* bindData, void* symbol, void* ignoreDef)
@@ -309,38 +339,54 @@ static void HandleSprite(GFxResource* resource, GFxStyledText::HTMLImageTagInfo*
 
 	ci->Release();
 }
+#endif
 
 static HookFunction hookFunction([]()
 {
 	// get font by id, hook
 	{
+#ifdef GTA_FIVE
 		auto location = hook::get_pattern<char>("85 D2 74 68 FF CA 74 5B FF CA 74 4E");
 		hook::jump(location, GetFontById);
 		hook::set_call(&gfxStringAssign, location + 115);
+#else
+		auto location = hook::get_call(hook::get_pattern<char>("E8 ? ? ? ? 33 C9 48 89 45 ? 48 85 FF"));
+		g_GetFontNameById = hook::trampoline(location, GetFontById);
+#endif
 	}
 
 	// init font things
 	{
-		auto location = hook::get_pattern<char>("BA 13 00 00 00 48 8B 48 20 48 8B 01 FF 50 10 44");
-		hook::set_call(&assignFontLib, location + 32);
-		hook::call(location + 32, AssignFontLibWrap);
+#ifdef GTA_FIVE
+		auto location = hook::get_pattern<char>("BA 13 00 00 00 48 8B 48 20 48 8B 01 FF 50 10 44", 32);
+#else
+		auto location = hook::get_pattern<char>("E8 ? ? ? ? 48 63 53 ? 48 8B 05");
+#endif
+		hook::set_call(&assignFontLib, location);
+		hook::call(location, AssignFontLibWrap);
 	}
 
 	{
+#ifdef GTA_FIVE
 		auto location = hook::get_pattern<char>("74 1A 80 3D ? ? ? ? 00 74 11 E8 ? ? ? ? 48 8B");
+#else
+		auto location = hook::get_pattern<char>("E8 ? ? ? ? 48 63 53 ? 48 8B 05");
+#endif
 		g_scaleformMgr = hook::get_address<void**>(location + 19);
 	}
-
-	OnLookAliveFrame.Connect([]()
-	{
-		InitEarlyLoading();
-	});
-
+	
 	OnMainGameFrame.Connect([]()
 	{
 		UpdateFontLoading();
 	});
 
+#ifdef GTA_FIVE
+
+	OnLookAliveFrame.Connect([]()
+	{
+		InitEarlyLoading();
+	});
+	
 	// find resource parent movie defs
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("B0 01 EB 47 48 8B 5F 70 48 83 C7 68", -0x39), FindExportedResource, (void**)&g_origFindExportedResource);
@@ -557,6 +603,7 @@ static HookFunction hookFunction([]()
 		hook::call(location, parseHtmlStub.GetCode());
 		hook::call(location + 0x62, parseHtmlStub.GetCode());
 	}
+#endif
 
 	// undo fonts if reloading
 	OnKillNetworkDone.Connect([]()

@@ -15,9 +15,7 @@
 #include <CustomText.h>
 #include <deque>
 
-#if defined(GTA_FIVE)
 #include <sfFontStuff.h>
-#endif
 
 static bool AddTextEntryForResource(fx::Resource* resource, uint32_t hashKey, const char* textValueRaw)
 {
@@ -122,7 +120,6 @@ static InitFunction initFunction([] ()
 		context.SetResult<bool>(false);
 	});
 
-#if defined(GTA_FIVE)
 	fx::ScriptEngine::RegisterNativeHandler("REGISTER_FONT_ID", [](fx::ScriptContext& context)
 	{
 		context.SetResult(sf::RegisterFontIndex(context.CheckArgument<const char*>(0)));
@@ -132,6 +129,8 @@ static InitFunction initFunction([] ()
 	{
 		sf::RegisterFontLib(context.CheckArgument<const char*>(0));
 	});
+	
+#if defined(GTA_FIVE)
 
 	fx::ScriptEngine::RegisterNativeHandler("ADD_MINIMAP_OVERLAY", [](fx::ScriptContext& context)
 	{
