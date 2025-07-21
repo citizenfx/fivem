@@ -1035,4 +1035,15 @@ static HookFunction hookFunction([]()
 	// ignore tunable (0xE3AFC5BD/0x7CEC5CDA) which intentionally breaking some certain
 	// ped models appearance from syncing between clients, initially added in 1436.31
 	hook::jump(hook::get_pattern("B9 BD C5 AF E3 BA DA 5C EC 7C E8", -19), Return<bool, false>);
+
+	// Increase network memory heap allocation to accommodate  for pool sizes increases.
+	{
+		// Was originally 26mb
+		constexpr int kNetworkHeapSize = 35;
+
+		uint32_t* size1 = hook::get_pattern<uint32_t>("B9 ? ? ? ? E8 ? ? ? ? 48 89 05 ? ? ? ? E8 ? ? ? ? 48 83 C4", 1);
+		uint32_t* size2 = hook::get_pattern<uint32_t>("41 B8 ? ? ? ? C6 44 24 ? ? 48 8B C8 E8 ? ? ? ? 48 8B D8", 2);
+		*size1 = kNetworkHeapSize * 1024 * 1024;
+		*size2 = kNetworkHeapSize * 1024 * 1024;
+	}
 });
