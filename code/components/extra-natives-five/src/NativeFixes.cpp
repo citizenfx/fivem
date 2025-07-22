@@ -685,6 +685,52 @@ static void FixSetPlayerParachutePackModelOverride()
 	});
 }
 
+static void FixActionscriptFlagNatives()
+{
+	{
+		constexpr const uint64_t nativeHash = 0xE3B05614DCE1D014; // GET_GLOBAL_ACTIONSCRIPT_FLAG
+
+		const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+		if (!handler)
+		{
+			return;
+		}
+
+		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+		{
+			int32_t flagIndex = ctx.GetArgument<uint32_t>(1);
+			if (flagIndex < 0)
+			{
+				ctx.SetResult<int>(0);
+				return;
+			}
+
+			handler(ctx);
+		});
+	}
+
+	{
+		constexpr const uint64_t nativeHash = 0xB99C4E4D9499DF29; // RESET_GLOBAL_ACTIONSCRIPT_FLAG
+
+		const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+		if (!handler)
+		{
+			return;
+		}
+
+		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+		{
+			int32_t flagIndex = ctx.GetArgument<uint32_t>(1);
+			if (flagIndex < 0)
+			{
+				return;
+			}
+
+			handler(ctx);
+		});
+	}
+}
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
@@ -741,6 +787,8 @@ static HookFunction hookFunction([]()
 
 		FixSetPlayerParachuteModelOverride();
 		FixSetPlayerParachutePackModelOverride();
+
+		FixActionscriptFlagNatives();
 
 		if (xbr::IsGameBuildOrGreater<2612>())
 		{
