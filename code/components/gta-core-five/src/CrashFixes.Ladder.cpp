@@ -3,8 +3,15 @@
 #include <jitasm.h>
 #include "Hooking.Patterns.h"
 
+#include "CrossBuildRuntime.h"
+
 static HookFunction hookFunction([]()
 {
+	// Game build 3570 includes built-in validation for this logic, so applying this patch is unnecessary.
+	if (xbr::IsGameBuildOrGreater<3570>())
+	{
+		return;
+	}
 	// CTaskClimbLadder::IsMovementBlocked
 	// This function determines wether the ped can continue climbing the ladder
 	// or if its movement should be blocked due some physical obstacle.
