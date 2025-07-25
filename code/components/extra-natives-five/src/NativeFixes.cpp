@@ -698,7 +698,7 @@ static void FixActionscriptFlagNatives()
 
 		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 		{
-			int32_t flagIndex = ctx.GetArgument<uint32_t>(1);
+			int32_t flagIndex = ctx.GetArgument<uint32_t>(0);
 			if (flagIndex < 0)
 			{
 				ctx.SetResult<int>(0);
@@ -720,7 +720,7 @@ static void FixActionscriptFlagNatives()
 
 		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 		{
-			int32_t flagIndex = ctx.GetArgument<uint32_t>(1);
+			int32_t flagIndex = ctx.GetArgument<uint32_t>(0);
 			if (flagIndex < 0)
 			{
 				return;
