@@ -127,7 +127,9 @@ static HookFunction hookFunction([]()
 	//hook::return_function(hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0));
 
 	// force SET_GAME_PAUSES_FOR_STREAMING (which makes collision loading, uh, blocking) to be off
-	hook::put<uint8_t>(hook::get_pattern("74 20 84 C9 74 1C 84 DB 74 18", 0), 0xEB);
+	// hook::put<uint8_t>(hook::get_pattern("74 20 84 C9 74 1C 84 DB 74 18", 0), 0xEB);
+	// New approach: allow the game to still ensure static bounds, but don't block on it.
+	hook::nop(hook::get_pattern("E8 ? ? ? ? 66 44 39 7D ? 74 ? 48 8B 4D ? E8 ? ? ? ? 4C 8D 5C 24"), 5);
 });
 
 static void __declspec(noinline) CrashCommand()
