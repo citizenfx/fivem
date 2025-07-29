@@ -226,6 +226,8 @@ static const char* poolEntriesTable[] = {
 	"CNetObjStatsTracker",
 	"CNetObjVehicle",
 	"CNetObjWorldState",
+	"CNetBlenderPed",
+	"CPedSyncData",
 	"CNetworkTrainTrackJunctionSwitchWorldStateData",
 	"CObjectAnimationComponent",
 	"CObjectAutoStartAnimComponent",
@@ -594,6 +596,47 @@ static const char* poolEntriesTable[] = {
 
 static RageHashList poolEntries(poolEntriesTable);
 
+static std::unordered_map<uint32_t, std::string_view> pedPoolEntries{
+	{ HashString("Peds"), "Peds" },
+	{ HashString("CPedInventory"), "CPedInventory" },
+	{ HashString("CPedAnimationComponent"), "CPedAnimationComponent" },
+	{ HashString("CPedCreatureComponent"), "CPedCreatureComponent" },
+	{ HashString("CPedAnimalComponent"), "CPedAnimalComponent" },
+	{ HashString("CPedAnimalAudioComponent"), "CPedAnimalAudioComponent" },
+	{ HashString("CPedCoreComponent"), "CPedCoreComponent" },
+	{ HashString("CPedFacialComponent"), "CPedFacialComponent" },
+	{ HashString("CPedGameplayComponent"), "CPedGameplayComponent" },
+	{ HashString("CPedAttributeComponent"), "CPedAttributeComponent" },
+	{ HashString("CPedDummyComponent"), "CPedDummyComponent" },
+	{ HashString("CPedGraphicsComponent"), "CPedGraphicsComponent" },
+	{ HashString("CPedVfxComponent"), "CPedVfxComponent" },
+	{ HashString("CPedHealthComponent"), "CPedHealthComponent" },
+	{ HashString("CPedHorseComponent"), "CPedHorseComponent" },
+	{ HashString("CPedHumanAudioComponent"), "CPedHumanAudioComponent" },
+	{ HashString("CPedEventComponent"), "CPedEventComponent" },
+	{ HashString("CPedIntelligenceComponent"), "CPedIntelligenceComponent" },
+	{ HashString("CPedInventoryComponent"), "CPedInventoryComponent" },
+	{ HashString("CPedLookAtComponent"), "CPedLookAtComponent" },
+	{ HashString("CPedMotionComponent"), "CPedMotionComponent" },
+	{ HashString("CPedMotivationComponent"), "CPedMotivationComponent" },
+	{ HashString("CPedPhysicsComponent"), "CPedPhysicsComponent" },
+	{ HashString("CPedProjDecalComponent"), "CPedProjDecalComponent" },
+	{ HashString("CPedRagdollComponent"), "CPedRagdollComponent" },
+	{ HashString("CPedScriptDataComponent"), "CPedScriptDataComponent" },
+	{ HashString("CPedStaminaComponent"), "CPedStaminaComponent" },
+	{ HashString("CPedThreatResponseComponent"), "CPedThreatResponseComponent" },
+	{ HashString("CPedTransportUserComponent"), "CPedTransportUserComponent" },
+	{ HashString("CPedWeaponComponent"), "CPedWeaponComponent" },
+	{ HashString("CPedWeaponManagerComponent"), "CPedWeaponManagerComponent" },
+	{ HashString("CPedVisibilityComponent"), "CPedVisibilityComponent" },
+	{ HashString("CNetBlenderPed"), "CNetBlenderPed" },
+	{ HashString("CPedSyncData"), "CPedSyncData" },
+
+	{ HashString("CPedFootstepComponent"), "CPedSyncData" },
+	{ HashString("CCharacterItem"), "CCharacterItem" },
+	{ HashString("CPedBreatheComponent"), "CPedBreatheComponent" }
+};
+
 atPoolBase* rage::GetPoolBase(uint32_t hash)
 {
 	auto it = g_pools.find(hash);
@@ -701,6 +744,17 @@ int64_t(*g_origGetSizeOfPool)(void*, uint32_t, int);
 static int64_t GetSizeOfPool(void* configManager, uint32_t poolHash, int defaultSize)
 {
 	int64_t size = g_origGetSizeOfPool(configManager, poolHash, defaultSize);
+
+	// There are several pools that are tied to Peds/CNetObjPedBase. We want to ensure that the increased value is applied to all of these components.
+	if (auto it = pedPoolEntries.find(poolHash); it != pedPoolEntries.end())
+	{
+		auto sizeIncreaseEntry = fx::PoolSizeManager::GetIncreaseRequest().find("CNetObjPedBase");
+		if (sizeIncreaseEntry != fx::PoolSizeManager::GetIncreaseRequest().end())
+		{
+			size += sizeIncreaseEntry->second;
+		}
+		return size;
+	}
 
 	auto sizeIncreaseEntry = fx::PoolSizeManager::GetIncreaseRequest().find(poolEntries.LookupHash(poolHash));
 	if (sizeIncreaseEntry != fx::PoolSizeManager::GetIncreaseRequest().end())
