@@ -49,6 +49,9 @@ namespace rage
 		struct RawEntry
 		{
 			FileEntry fe;
+#if defined(IS_RDR3)
+			char m_pad[8];
+#endif
 			uint64_t timestamp;
 
 			const char* fileName;
