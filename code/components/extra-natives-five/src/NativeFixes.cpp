@@ -746,7 +746,7 @@ static void FixNatives()
 		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 		{
 			int32_t idx = ctx.GetArgument<uint32_t>(0);
-			if (idx < 0 || idx < 8)
+			if (idx < 0 || idx >= 8)
 			{
 				return;
 			}
