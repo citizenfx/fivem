@@ -497,6 +497,14 @@ void NetLibrary::SetHost(uint16_t netID, uint32_t base)
 	m_hostBase = base;
 }
 
+void NetLibrary::SetPeerTimeout(const uint32_t timeout)
+{
+	if (const auto impl = GetImpl())
+	{
+		impl->SetPeerTimeout(timeout);
+	}
+}
+
 void NetLibrary::SetBase(uint32_t base)
 {
 	m_serverBase = base;
