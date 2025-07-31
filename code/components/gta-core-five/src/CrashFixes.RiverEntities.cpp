@@ -10,6 +10,8 @@ static void GetBoundingBoxZForRiverEntity(int RiverEntityIndex, float* MinZ, flo
 	void* entity = g_orig_River__GetRiverEntity(RiverEntityIndex);
 	if (!entity)
 		return;
+	if(!*(void**)((uintptr_t)entity + 0x20)) // Entity archetype
+		return;
 
 	g_orig_GetBoundingBoxZForRiverEntity(RiverEntityIndex, MinZ, MaxZ);
 }
