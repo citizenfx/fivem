@@ -580,6 +580,15 @@ static void StartupScriptWrap()
 	origStartupScript();
 }
 
+static void (*g_origPauseMenuLaunchScript)(void*, void*);
+static void PauseMenuLaunchScript(void* a1, void* a2)
+{
+	if (storyMode)
+	{
+		g_origPauseMenuLaunchScript(a1, a2);
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	Instance<ICoreGameInit>::Get()->OnSetVariable.Connect([](const std::string& name, bool value)
@@ -654,6 +663,10 @@ static HookFunction hookFunction([] ()
 
 	{
 		MH_Initialize();
+
+		// Prevent the pause menu from attempting to start scripts
+		// For some reason this rarely causes crashes on certain servers.
+		MH_CreateHook(hook::pattern("E8 ? ? ? ? 8B C8 41 89 46").count(1).get(0).get<void>(-0x75), PauseMenuLaunchScript, (void**)&g_origPauseMenuLaunchScript);
 
 		// temp: kill stock scripts
 		// NOTE: before removing make sure scrObfuscation in fivem-private can handle opcode 0x2C (NATIVE)
