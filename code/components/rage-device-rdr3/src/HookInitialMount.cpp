@@ -4,6 +4,10 @@
 #include <Hooking.h>
 
 #include <Error.h>
+#include <MinHook.h>
+
+#include "Hooking.Stubs.h"
+#include "PureModeState.h"
 
 static void(*originalMount)();
 
@@ -13,6 +17,16 @@ static void CallInitialMount()
 	originalMount();
 
 	rage::fiDevice::OnInitialMount();
+}
+
+static bool (*g_validationRoutine)(const char* path, const uint8_t* data, size_t size);
+
+DLL_EXPORT void SetPackfileValidationRoutine(bool (*routine)(const char*, const uint8_t*, size_t))
+{
+	if (!g_validationRoutine)
+	{
+		g_validationRoutine = routine;
+	}
 }
 
 #if 0
@@ -43,6 +57,20 @@ static void PackfileEncryptionError()
 		ToNarrow(MakeRelativeGamePath(L"")));
 }
 #endif
+
+static void CheckPackFile(const char* headerData, const char* fileName)
+{
+	auto entries = headerData + 0x110;
+	size_t numEntries = *reinterpret_cast<const uint32_t*>(headerData + 4);
+
+	if(g_validationRoutine)
+	{
+		if(!g_validationRoutine(fileName, (const uint8_t*)entries, numEntries * 24))
+		{
+			FatalError("Invalid modified game files (%s)\nThe server you are trying to join has enabled 'pure mode', but you have modified game files. Please verify your RDR installation (see http://rsg.ms/verify) and try again. Alternately, ask the server owner for help.", fileName);
+		}
+	}
+}
 
 static HookFunction hookFunction([] ()
 {
@@ -84,4 +112,69 @@ static HookFunction hookFunction([] ()
 	// wrap err_gen_invalid failures
 	hook::call(hook::get_pattern("B9 EA 0A 0E BE E8", 5), PackfileEncryptionError);
 #endif
+
+	if (fx::client::GetPureLevel() == 0)
+	{
+		return;
+	}
+	
+	{
+        auto location = hook::get_pattern<char>("49 8D B1 ? ? ? ? 48 8B CD"); // fiPackfile::ReInit
+            
+        static struct : jitasm::Frontend
+        {
+            uintptr_t returnAddress;
+            
+            virtual void InternalMain() override
+            {
+                lea(rsi, qword_ptr[r9+0x110]);
+                push(rbx);
+                push(rsi);
+                push(rdi);
+                push(r12);
+                push(r13);
+                push(r14);
+                push(r15);
+
+                push(rax);
+                push(rcx);
+                push(rdx);
+                push(r8);
+                push(r9);
+                push(r10);
+                push(r11);
+
+                sub(rsp, 32);
+
+                mov(rcx, r9);      // headerData
+                mov(rdx, r15);     // fileName
+                mov(rax, reinterpret_cast<uintptr_t>(&CheckPackFile));
+                call(rax);
+
+                add(rsp, 32);
+
+                pop(r11);
+                pop(r10);
+                pop(r9);
+                pop(r8);
+                pop(rdx);
+                pop(rcx);
+                pop(rax);
+
+                pop(r15);
+                pop(r14);
+                pop(r13);
+                pop(r12);
+                pop(rdi);
+                pop(rsi);
+                pop(rbx);
+
+                mov(rax, returnAddress);
+                jmp(rax);
+            }
+        } stub;
+        stub.returnAddress = (uintptr_t)location + 7;
+        hook::nop(location, 7);
+        hook::jump(location, stub.GetCode());
+    }
 });
