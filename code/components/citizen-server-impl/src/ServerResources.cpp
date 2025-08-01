@@ -36,6 +36,17 @@
 
 #include <cfx_version.h>
 
+#define FOLLY_NO_CONFIG
+
+#ifdef _WIN32
+#undef ssize_t
+#else
+#include <sys/types.h>
+#endif
+
+#include <folly/String.h>
+#include <folly/Conv.h>
+
 #include <boost/algorithm/string.hpp>
 
 #if defined(_DEBUG) && defined(_WIN32)
@@ -888,17 +899,34 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 	// do we have a specific client to send to?
 	if (targetSrc)
 	{
-		int targetNetId = atoi(targetSrc->data());
-		auto client = clientRegistry->GetClientByNetID(targetNetId);
+		std::string targetSrcData = targetSrc->data();
 
-		if (client)
+		auto sendEventToNetId = [&](int targetNetId)
 		{
-			if (client->GetNetId() != static_cast<uint32_t>(targetNetId))
+			auto client = clientRegistry->GetClientByNetID(targetNetId);
+
+			if (client)
 			{
-				fx::WarningDeprecationf<ScriptDeprecations::CLIENT_EVENT_OLD_NET_ID>("natives", "TRIGGER_CLIENT_EVENT_INTERNAL: client %d is not the same as the target %d. This happens when the oldId from the playerJoining event is used. Use source instead.\n", client->GetNetId(), targetNetId);
+				if (client->GetNetId() != static_cast<uint32_t>(targetNetId))
+				{
+					fx::WarningDeprecationf<ScriptDeprecations::CLIENT_EVENT_OLD_NET_ID>("natives", "TRIGGER_CLIENT_EVENT_INTERNAL: client %d is not the same as the target %d. This happens when the oldId from the playerJoining event is used. Use source instead.\n", client->GetNetId(), targetNetId);
+				}
+
+				// TODO(fxserver): >MTU size?
+				client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 			}
-			// TODO(fxserver): >MTU size?
-			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
+		};
+
+		if (!strstr(targetSrcData.c_str(), " "))
+		{
+			sendEventToNetId(atoi(targetSrc->data()));
+		}
+		else
+		{
+			for (auto item : fx::GetIteratorView(std::make_pair(boost::algorithm::make_split_iterator(targetSrcData, boost::algorithm::token_finder(boost::algorithm::is_space(), boost::algorithm::token_compress_on)), boost::algorithm::split_iterator<std::string::iterator>())))
+			{
+				sendEventToNetId(folly::to<int>(folly::range(&*item.begin(), &*item.end())));
+			}
 		}
 	}
 	else

@@ -349,7 +349,17 @@ if isDuplicityVersion then
 
 		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
-	
+
+	function TriggerMulticastClientEvent(eventName, playerIds, ...)
+		local payload = msgpack_pack_args(...)
+
+		if type(playerIds) == "table" then
+			playerIds = table.concat(playerIds, " ")
+		end
+
+		return TriggerClientEventInternal(eventName, playerIds, payload, payload:len())
+	end
+
 	function TriggerLatentClientEvent(eventName, playerId, bps, ...)
 		local payload = msgpack_pack_args(...)
 
