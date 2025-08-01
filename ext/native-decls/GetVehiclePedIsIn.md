@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: server
+game: shared
 ---
 ## GET_VEHICLE_PED_IS_IN
 
