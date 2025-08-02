@@ -933,9 +933,9 @@ local function triggerInternal(type, targetId, callbackName, ...)
 end
 
 if isDuplicityVersion then
-    function TriggerClientCallback(targetId, callbackName, ...)
-        assert(targetId ~= -1, "A player handle must be specified, cannot trigger a callback to all players")
-        return triggerInternal(1, targetId, callbackName, ...)
+    function TriggerClientCallback(callbackName, playerId, ...)
+        assert(playerId ~= -1, "A player handle must be specified, cannot trigger a callback to all players")
+        return triggerInternal(1, playerId, callbackName, ...)
     end
 else
     function TriggerServerCallback(callbackName, ...)
