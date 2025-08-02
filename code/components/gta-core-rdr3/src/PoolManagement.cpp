@@ -61,6 +61,7 @@ static const char* poolEntriesTable[] = {
 	"atDGameServerTransactionNode",
 	"atDNetEventNode",
 	"atDScriptObjectNode",
+	"atDNetObjectNode",
 	"AttachmentExtension",
 	"audDynMixPatch",
 	"audDynMixPatchSettings",
@@ -227,6 +228,7 @@ static const char* poolEntriesTable[] = {
 	"CNetObjVehicle",
 	"CNetObjWorldState",
 	"CNetBlenderPed",
+	"CNetBlenderPhysical",
 	"CPedSyncData",
 	"CNetworkTrainTrackJunctionSwitchWorldStateData",
 	"CObjectAnimationComponent",
@@ -245,6 +247,8 @@ static const char* poolEntriesTable[] = {
 	"CObjectRiverProbeSubmissionComponent",
 	"CObjectVehicleParentDeletedComponent",
 	"CObjectWeaponsComponent",
+	"CObjectSyncData",
+	"reassignObjectInfo",
 	"CombatMeleeManager_Groups",
 	"CombatMountedManager_Attacks",
 	"CompEntity",
@@ -637,6 +641,14 @@ static std::unordered_map<uint32_t, std::string_view> pedPoolEntries{
 	{ HashString("CPedBreatheComponent"), "CPedBreatheComponent" }
 };
 
+static std::unordered_map<uint32_t, std::string_view> objectPoolEntries{
+	{ HashString("CObjectSyncData"), "CObjectSyncData" },
+	{ HashString("CNetBlenderPhysical"), "CNetBlenderPhysical" },
+	{ HashString("atDNetObjectNode"), "atDNetObjectNode" },
+	{ HashString("CObjectCollisionDetectedComponent"), "CObjectCollisionDetectedComponent" },
+	{ HashString("reassignObjectInfo"), "reassignObjectInfo" }
+};
+
 atPoolBase* rage::GetPoolBase(uint32_t hash)
 {
 	auto it = g_pools.find(hash);
@@ -749,6 +761,17 @@ static int64_t GetSizeOfPool(void* configManager, uint32_t poolHash, int default
 	if (auto it = pedPoolEntries.find(poolHash); it != pedPoolEntries.end())
 	{
 		auto sizeIncreaseEntry = fx::PoolSizeManager::GetIncreaseRequest().find("CNetObjPedBase");
+		if (sizeIncreaseEntry != fx::PoolSizeManager::GetIncreaseRequest().end())
+		{
+			size += sizeIncreaseEntry->second;
+		}
+		return size;
+	}
+
+	// There are several pools that are tied to Objects/CNetObjObject. We want to ensure that the increased value is applied to all of these components.
+	if (auto it = objectPoolEntries.find(poolHash); it != objectPoolEntries.end())
+	{
+		auto sizeIncreaseEntry = fx::PoolSizeManager::GetIncreaseRequest().find("CNetObjObject");
 		if (sizeIncreaseEntry != fx::PoolSizeManager::GetIncreaseRequest().end())
 		{
 			size += sizeIncreaseEntry->second;
