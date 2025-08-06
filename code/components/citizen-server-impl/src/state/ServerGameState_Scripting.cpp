@@ -1652,7 +1652,7 @@ static void Init()
 				 * @param oldBucket - The old bucket where the player was previously in.
 				 *
 				 #/
-				  declare function onPlayerBucketChange(player: string, bucket: int, oldBucket: int): void;
+				  declare function onPlayerBucketChange(player: string, bucket: number, oldBucket: number): void;
 				*/
 				eventManager->TriggerEvent2("onPlayerBucketChange", {}, player, bucket, oldBucket);
 			}
@@ -1690,7 +1690,7 @@ static void Init()
 			 * @param oldBucket - The old bucket where the entity was previously in.
 			 *
 			#/
-			  declare function onEntityBucketChange(entity: string, bucket: int, oldBucket: int): void;
+			  declare function onEntityBucketChange(entity: string, bucket: number, oldBucket: number): void;
 			*/
 			eventManager->TriggerEvent2("onEntityBucketChange", {}, ent, bucket, oldBucket);
 		}
