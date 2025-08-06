@@ -39,10 +39,13 @@ struct bitField
 	uint8_t m_tbdGeneralFlag : 1;
 };
 
-static int32_t g_dataNodeModelHashOffset = 0;
+static int32_t g_vehicleDataNodeModelHashOffset = 0;
+static int32_t g_playerDataNodeModelHashOffset = 0;
+static int32_t g_pedDataNodeModelHashOffset = 0;
 static int32_t g_modelInfoModelTypeOffset = 0;
 static int32_t g_netObjVehicleEntityOffset = 0;
 constexpr uint8_t kModelTypeVehicle = 5;
+constexpr uint8_t kModelTypePed = 6;
 constexpr uint32_t kModelHeliFallback = 0x2C75F0DD; // Buzzard2
 constexpr uint32_t kModelBoatFallback = 0x107F392C; // Dinghy2
 constexpr uint32_t kModelTrainFallback = 0x3D6AAA9B; // Freight
@@ -50,6 +53,7 @@ constexpr uint32_t kModelBikeFallback = 0x2EF89E46; // Sanchez
 constexpr uint32_t kModelSubmarineFallback = 0x2DFF622F; // Submersible
 constexpr uint32_t kModelTrailerFallback = 0xD46F4737; // Tanker
 constexpr uint32_t kModelPlaneFallback = 0x15F27762; // Cargoplane
+constexpr uint32_t kModelPedFallback = 0x705E61F2; // MP_M_Freemode_01
 
 static hook::cdecl_stub<rage::netSyncTree*(void*, int)> getSyncTreeForType([]()
 {
@@ -92,7 +96,6 @@ namespace rage
 // CVehicleCreationDataNode::CanApply()
 // Basically the above rage::netSyncTree::CanApplyToObject()
 // will call each of its this->SyncTrees and call this virtual function that we are hooking
-static bool (*g_origVehicleCreationDataNode__CanApply)(void*, rage::netObject*);
 typedef hook::FlexStruct* (*GetArchetypeForHashFn)(uint32_t, int*);
 static GetArchetypeForHashFn g_getArcheTypeForHash;
 
@@ -113,9 +116,27 @@ static int32_t GetModelType(uint32_t hash)
 	}
 	return -1;
 }
+
+static bool IsModelAPed(uint32_t hash)
+{
+	int flags = 0xFFFF;
+	hook::FlexStruct* archetype = g_getArcheTypeForHash(hash, &flags);
+	if (archetype)
+	{
+		bitField pType = archetype->Get<bitField>(g_modelInfoModelTypeOffset);
+		if (pType.m_type == kModelTypePed)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+static bool (*g_origVehicleCreationDataNode__CanApply)(void*, rage::netObject*);
+
 static bool CVehicleCreationDataNode__CanApply(hook::FlexStruct* thisptr, rage::netObject* netObj /*Hidden argument*/)
 {
-	uint32_t& hash = thisptr->At<uint32_t>(g_dataNodeModelHashOffset);
+	uint32_t& hash = thisptr->At<uint32_t>(g_vehicleDataNodeModelHashOffset);
 
 	int32_t vehicleModelType = GetModelType(hash);
 	if (vehicleModelType < 0)
@@ -198,6 +219,44 @@ static bool CVehicleCreationDataNode__CanApply(hook::FlexStruct* thisptr, rage::
 	return g_origVehicleCreationDataNode__CanApply(thisptr, netObj);
 }
 
+static bool (*g_origPlayerCreationDataNode__CanApply)(void*, rage::netObject*);
+
+static bool CPlayerCreationDataNode__CanApply(hook::FlexStruct* thisptr, rage::netObject* netObj /*Hidden argument*/)
+{
+	if (netObj->GetObjectType() != (uint16_t)NetObjEntityType::Player)
+	{
+		return false;
+	}
+
+	uint32_t& hash = thisptr->At<uint32_t>(g_playerDataNodeModelHashOffset);
+
+	if (!IsModelAPed(hash))
+	{
+		hash = kModelPedFallback;
+	}
+
+	return g_origPlayerCreationDataNode__CanApply(thisptr, netObj);
+}
+
+static bool (*g_origPedCreationDataNode__CanApply)(void*, rage::netObject*);
+
+static bool CPedCreationDataNode__CanApply(hook::FlexStruct* thisptr, rage::netObject* netObj /*Hidden argument*/)
+{
+	if (netObj->GetObjectType() != (uint16_t)NetObjEntityType::Ped)
+	{
+		return false;
+	}
+
+	uint32_t& hash = thisptr->At<uint32_t>(g_pedDataNodeModelHashOffset);
+
+	if (!IsModelAPed(hash))
+	{
+		hash = kModelPedFallback;
+	}
+
+	return g_origPedCreationDataNode__CanApply(thisptr, netObj);
+}
+
 class CNetObjVehicle : public rage::netObject
 {
 };
@@ -269,6 +328,8 @@ static HookFunction hookinit([]()
 	location -= 25;
 	g_getArcheTypeForHash = hook::get_address<GetArchetypeForHashFn>(location, 1, 5);
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 10 55 48 8B EC 48 83 EC 20 8B 45 10 8B 89 C8 00 00 00"), CVehicleCreationDataNode__CanApply, (void**)&g_origVehicleCreationDataNode__CanApply);
+	MH_CreateHook(hook::get_pattern("48 89 5C 24 10 55 48 8B EC 48 83 EC 20 8B 45 10 8B 89 C0 00 00 00"), CPlayerCreationDataNode__CanApply, (void**)&g_origPlayerCreationDataNode__CanApply);
+	MH_CreateHook(hook::get_pattern("48 89 5C 24 10 55 48 8B EC 48 83 EC 20 8B 45 10 8B 89 C4 00 00 00"), CPedCreationDataNode__CanApply, (void**)&g_origPedCreationDataNode__CanApply);
 
 	{
 		// Offset from CNetObjVehicle to IVehicleNodeDataAccessor
@@ -295,5 +356,7 @@ static HookFunction hookinit([]()
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	g_modelInfoModelTypeOffset = *hook::get_pattern<int32_t>("8A 86 ? ? ? ? 24 ? 3C ? 75 ? 48 8D 4D", 2);
-	g_dataNodeModelHashOffset = *hook::get_pattern<int32_t>("8B 8E ? ? ? ? 0B C7", 2);
+	g_vehicleDataNodeModelHashOffset = *hook::get_pattern<int32_t>("8B 8E ? ? ? ? 0B C7", 2);
+	g_playerDataNodeModelHashOffset = *hook::get_pattern<int32_t>("41 8B 8D ? ? ? ? BE", 3);
+	g_pedDataNodeModelHashOffset = *hook::get_pattern<int32_t>("8B 8F ? ? ? ? 41 BC ? ? ? ? BB", 2);
 });

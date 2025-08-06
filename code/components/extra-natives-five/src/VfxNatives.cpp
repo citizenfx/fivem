@@ -118,7 +118,7 @@ static HookFunction hookFunction([]()
 		g_coronas = hook::get_address<void*>(hook::get_pattern("F3 0F 11 44 24 28 F3 0F 11 7C 24 20 E8 ? ? ? ? E8", -4));
 	}
 	{
-		g_orig_RenderFogVolumes = hook::trampoline(hook::get_call(hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 4C 8D 9C 24 ? ? ? ? 49 8B 5B ? 49 8B 7B")), RenderFogVolumes);
+		g_orig_RenderFogVolumes = hook::trampoline(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 70 ? 48 89 78 ? 55 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 0F 29 70 ? 0F 29 78 ? 48 8B D9"), RenderFogVolumes);
 	}
 });
 

@@ -6,6 +6,7 @@
 #include <Resource.h>
 #include <fxScripting.h>
 #include <ICoreGameInit.h>
+#include <jitasm.h>
 #include <rageVectors.h>
 #include <MinHook.h>
 #include "Hooking.Stubs.h"
@@ -414,6 +415,47 @@ static HookFunction hookFunction([]()
 			location = hook::get_pattern<uint32_t>("F3 0F 10 0D ? ? ? ? C7 45 ? ? ? ? ? 89 45", 4);
 			VehicleMeleeDamageModifier.SetLocation(location);
 		}
+	}
+
+	// CTaskGun::StateDecide
+	if (!xbr::IsGameBuild<1604>())
+	{
+		auto location = hook::get_pattern<char>("83 CE ? 44 8B C6 44 8A CD");
+		auto skipWeaponChange = location + 24;
+
+		static struct : jitasm::Frontend
+		{
+			uintptr_t skipChangeLocation;
+			uintptr_t normalLocation;
+
+			void Init(uintptr_t skip, uintptr_t normal)
+			{
+				skipChangeLocation = skip;
+				normalLocation = normal;
+			}
+
+			virtual void InternalMain() override
+			{
+				or(esi, 0xFFFFFFFF); // Original code
+				mov(r8d, esi); // Original code
+				
+				mov(rax, reinterpret_cast<uintptr_t>(&g_SET_WEAPONS_NO_AUTOSWAP));
+				mov(al, byte_ptr[rax]);
+				test(al, al);
+				jz("normalFlow");
+
+				mov(rax, skipChangeLocation);
+				jmp(rax);
+
+				L("normalFlow");
+				mov(rax, normalLocation);
+				jmp(rax);
+			}
+		} stub;
+
+		stub.Init((uintptr_t)skipWeaponChange, (uintptr_t)location + 0x6);
+		hook::nop(location, 6);
+		hook::jump(location, stub.GetCode());
 	}
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_DAMAGE_MODIFIER", [](fx::ScriptContext& context)

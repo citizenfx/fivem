@@ -49,30 +49,39 @@ struct CDynamicEntityGameStateDataNode : GenericSerializeDataNode<CDynamicEntity
 
 struct CPhysicalGameStateDataNode : GenericSerializeDataNode<CPhysicalGameStateDataNode>
 {
-	bool isVisible;
+	bool flag;
 	bool flag2;
 	bool flag3;
-	bool flag4;
+	bool isVisible;
+	bool flag5;
+	bool flag6;
+	bool flag7;
+	bool flag8;
 
-	int val1;
+	uint8_t val1;
 
 	template<typename Serializer>
 	bool Serialize(Serializer& s)
-	{
-		s.Serialize(isVisible);
+    {
+		s.Serialize(flag);
 		s.Serialize(flag2);
 		s.Serialize(flag3);
-		s.Serialize(flag4);
+		s.Serialize(isVisible);
+		s.Serialize(flag5);
+		s.Serialize(flag6);
+		s.Serialize(flag7);
+		s.Serialize(flag8);
 
-		if (flag4)
+		if (flag8)
 		{
-			s.Serialize(3, val1);
+			s.Serialize(4, val1);
 		}
 		else
 		{
 			val1 = 0;
 		}
 
+		// more data follows
 		return true;
 	}
 };
@@ -1528,8 +1537,15 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 
 	virtual bool IsEntityVisible(bool* visible) override
 	{
-		*visible = true;
-		return true;
+		auto [hasNode, node] = this->template GetData<CPhysicalGameStateDataNode>();
+
+		if (hasNode)
+		{
+			*visible = node->isVisible;
+			return true;
+		}
+
+		return false;
 	}
 };
 

@@ -685,12 +685,106 @@ static void FixSetPlayerParachutePackModelOverride()
 	});
 }
 
+static void FixActionscriptFlagNatives()
+{
+	{
+		constexpr const uint64_t nativeHash = 0xE3B05614DCE1D014; // GET_GLOBAL_ACTIONSCRIPT_FLAG
+
+		const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+		if (!handler)
+		{
+			return;
+		}
+
+		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+		{
+			int32_t flagIndex = ctx.GetArgument<uint32_t>(0);
+			if (flagIndex < 0)
+			{
+				ctx.SetResult<int>(0);
+				return;
+			}
+
+			handler(ctx);
+		});
+	}
+
+	{
+		constexpr const uint64_t nativeHash = 0xB99C4E4D9499DF29; // RESET_GLOBAL_ACTIONSCRIPT_FLAG
+
+		const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+		if (!handler)
+		{
+			return;
+		}
+
+		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+		{
+			int32_t flagIndex = ctx.GetArgument<uint32_t>(0);
+			if (flagIndex < 0)
+			{
+				return;
+			}
+
+			handler(ctx);
+		});
+	}
+}
+
+static int32_t* g_maxBestSpawnPoints;
+static void FixNatives()
+{
+	{
+		constexpr const uint64_t nativeHash = 0xae51bc858f32ba66; // N_0xae51bc858f32ba66 (PROCGRASS_ENABLE_CULLSPHERE)
+
+		const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+		if (!handler)
+		{
+			return;
+		}
+
+		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+		{
+			int32_t idx = ctx.GetArgument<uint32_t>(0);
+			if (idx < 0 || idx >= 8)
+			{
+				return;
+			}
+
+			handler(ctx);
+		});
+	}
+
+	{
+		constexpr const uint64_t nativeHash = 0x6C34F1208B8923FD; // NETWORK_GET_RESPAWN_RESULT_FLAGS
+
+		const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+		if (!handler)
+		{
+			return;
+		}
+
+		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+		{
+			int32_t idx = ctx.GetArgument<uint32_t>(0);
+			if (idx < 0 || idx >= *g_maxBestSpawnPoints)
+			{
+				ctx.SetResult(0);
+				return;
+			}
+
+			handler(ctx);
+		});
+	}
+}
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
 	g_maxHudColours = *hook::get_pattern<int32_t>("81 F9 ? ? ? ? 77 5A 48 89 5C 24", 2);
 	g_numMarkerTypes = *hook::get_pattern<int32_t>("BE FF FF FF DF 41 BF 00 00 FF 0F 41 BC FF FF FF BF", -4);
 	g_trainConfigData = hook::get_address<rage::CTrainConfigData*>(hook::get_pattern<rage::CTrainConfigData>("4C 8B 05 ? ? ? ? 0F 29 74 24 ? 48 8D 3C 40", 3));
+	g_maxBestSpawnPoints = hook::get_address<int32_t*>(hook::get_pattern<int32_t>("4C 63 05 ? ? ? ? 33 D2 4C 8B C9", 3));
 
 	// Stolen from "VehicleExtraNatives.cpp"
 	g_vehicleTypeOffset = *hook::get_pattern<int>("41 83 BF ? ? ? ? 0B 74", 3);
@@ -741,6 +835,10 @@ static HookFunction hookFunction([]()
 
 		FixSetPlayerParachuteModelOverride();
 		FixSetPlayerParachutePackModelOverride();
+
+		FixActionscriptFlagNatives();
+
+		FixNatives();
 
 		if (xbr::IsGameBuildOrGreater<2612>())
 		{
