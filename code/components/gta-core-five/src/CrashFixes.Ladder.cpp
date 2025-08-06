@@ -37,12 +37,21 @@ static HookFunction hookFunction([]()
 		
 		virtual void InternalMain() override
 		{
+			// Restore original rax value
+			mov(al, byte_ptr[rdx+0x0C]);
+			dec(al);
+			cmp(al, 1);
+			setbe(cl);
+			neg(cl);
+			sbb(rax, rax);
+			and(rax, rdx);
+
 			test(rax, rax);
 			jz("fail");
 
 			movss(xmm0, dword_ptr[rax+0x64]);
-			mov(r12, successLocation);
-			jmp(r12);
+			mov(r11, successLocation);
+			jmp(r11);
 
 			L("fail");
 			mov(rax, failLocation);
@@ -54,5 +63,5 @@ static HookFunction hookFunction([]()
 	stub.Init((uintptr_t)location + 5, (uintptr_t)failLocation);
 	
 	hook::nop(location, 5);
-	hook::jump_reg<6>(location, stub.GetCode());
+	hook::jump(location, stub.GetCode());
 });
