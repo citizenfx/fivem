@@ -742,8 +742,22 @@ static InitFunction initFunction([]()
 			}
 		});
 
-		static auto restartCommandRef = instance->AddCommand("restart", [=](const std::string& resourceName)
+		static auto restartCommandRef = instance->AddCommand("restart", [=](const std::string& resourceName) 
 		{
+			if (resourceName.empty())
+				return;
+
+			if (isCategory(resourceName))
+			{
+				for (const auto& resource : findByComponent(resourceName))
+				{
+					auto conContext = instance->GetComponent<console::Context>();
+					conContext->ExecuteSingleCommandDirect(ProgramArguments{ "restart", resource });
+				}
+
+				return;
+			}
+
 			auto resource = resman->GetResource(resourceName);
 
 			if (!resource.GetRef())
@@ -753,8 +767,8 @@ static InitFunction initFunction([]()
 			}
 
 			if (resource->GetState() != fx::ResourceState::Started)
-			{
-				trace("Can't restart a stopped resource.\n");
+			{	
+				trace(fmt::sprintf("^3Skipping resource \"%s\" restart as it is not started.^7\n", resourceName));
 				return;
 			}
 
@@ -762,6 +776,7 @@ static InitFunction initFunction([]()
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
 		});
+		
 
 #if defined(_DEBUG) && defined(_WIN32)
 		static auto openCommandRef = instance->AddCommand("open", [=](const std::string& resourceName)
