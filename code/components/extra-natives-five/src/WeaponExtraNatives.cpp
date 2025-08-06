@@ -366,6 +366,7 @@ static HookFunction hookFunction([]()
 	}
 
 	// CTaskGun::StateDecide
+	if (!xbr::IsGameBuild<1604>())
 	{
 		auto location = hook::get_pattern<char>("83 CE ? 44 8B C6 44 8A CD");
 		auto skipWeaponChange = location + 24;
