@@ -57,6 +57,7 @@ export namespace ConnectState {
     currentPureLevel: number;
     currentPoolSizesIncrease: string;
     currentReplaceExecutable: boolean;
+    optional: boolean;
   }
   export interface BuildSwitchInfo {
     type: 'buildSwitchInfo';
