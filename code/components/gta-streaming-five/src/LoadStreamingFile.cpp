@@ -1116,7 +1116,10 @@ static void ReloadMapStore()
 #endif
 		   )
 		{
+			// currently, Reloading custom collision causes it to break in RDR3
+#ifndef IS_RDR3
 			collisionFiles.push_back(std::make_pair(file, obj));
+#endif
 		}
 		else
 		{
