@@ -1800,15 +1800,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, syncData.hasCreated };
 
-			if (syncData.hasCreated)
+			if (syncData.hasCreated && !syncData.hasRoutedStateBag)
 			{
-				// Add this player as a routing target to this entity's statebag, if present.
-				// notes:
-				// * this will try to add it every frame, but the statebag will only add it once (std::set).
-				// * will occur on the next update/tick when syncData.hasCreated is true, this'll ensure that it's sent after the client knows about this entity.
-				// TODO: PERF: remove this every-frame call by giving this system a nice and fresh design
 				if (auto stateBag = entity->GetStateBag())
 				{
+					syncData.hasRoutedStateBag = true;
 					stateBag->AddRoutingTarget(slotId);
 				}
 			}

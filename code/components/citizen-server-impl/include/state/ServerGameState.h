@@ -1267,6 +1267,7 @@ struct SyncedEntityData
 	sync::SyncEntityPtr entity;
 	bool forceUpdate;
 	bool hasCreated;
+	bool hasRoutedStateBag = false;
 	bool hasNAckedCreate = false;
 };
 
