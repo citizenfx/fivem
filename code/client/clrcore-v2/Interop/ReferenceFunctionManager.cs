@@ -126,9 +126,9 @@ namespace CitizenFX.Core
 			}
 			catch (Exception e)
 			{
+				var errorMessage = Debug.CreateError(e.InnerException ?? e, "reference call");
 
-				Debug.PrintError(e.InnerException ?? e, "reference call");
-				retval = null;
+				retval = MsgPackSerializer.Serialize(new object[] { false, errorMessage });
 			}
 		}
 
@@ -148,7 +148,9 @@ namespace CitizenFX.Core
 				}
 				catch (Exception ex)
 				{
-					Debug.WriteException(ex, funcRef.m_method, args, "reference function");
+					var errorMessage = Debug.CreateError(ex, "reference function");
+
+					return MsgPackSerializer.Serialize(new object[] { false, errorMessage });
 				}
 
 				if (result is Coroutine coroutine)
@@ -160,7 +162,7 @@ namespace CitizenFX.Core
 							Debug.Write(coroutine.Exception);
 						}
 
-						return MsgPackSerializer.Serialize(new[] { coroutine.GetResultNonThrowing(), coroutine.Exception?.ToString() });
+						return MsgPackSerializer.Serialize(new object[] { true, new[] { coroutine.GetResultNonThrowing(), coroutine.Exception?.ToString() } });
 					}
 					else
 					{
@@ -179,18 +181,19 @@ namespace CitizenFX.Core
 							}
 						};
 
-						return MsgPackSerializer.Serialize(new object[] { returnDictionary });
+						return MsgPackSerializer.Serialize(new object[] { true, returnDictionary });
 					}
 				}
 
-				return MsgPackSerializer.Serialize(new[] { result });
+				return MsgPackSerializer.Serialize(new[] { true, result });
 			}
 			else
 			{
 				Debug.WriteLine($"No such reference for {reference}.");
 			}
 
-			return new byte[] { 0xC0 }; // return nil
+			// return nil
+			return MsgPackSerializer.Serialize(new object[] { false, null });
 		}
 	}
 }
