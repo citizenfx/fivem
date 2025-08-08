@@ -15,7 +15,6 @@
 
 #if IS_FXSERVER
 #include "ServerInstanceBaseRef.h"
-#include <GameServerComms.h>
 #endif
 
 #include <regex>
@@ -30,7 +29,6 @@
 
 #include <sstream>
 
-
 static std::shared_mutex g_consoleBufferMutex;
 static boost::circular_buffer<std::string> g_consoleBuffer(1500);
 
@@ -44,8 +42,18 @@ struct ConsoleListenerEntry
 static std::shared_mutex g_printListMutex;
 static std::unordered_multimap<std::string, ConsoleListenerEntry> g_resourcePrintListeners;
 
-static void DispatchPrintListeners(ConsoleChannel channel, const std::string& msgFmt)
+static void LogPrintListener(ConsoleChannel channel, const char* msg)
 {
+	const std::string msgFmt = fmt::sprintf("%s", msg);
+
+	{
+		std::unique_lock<std::shared_mutex> lock(g_consoleBufferMutex);
+		g_consoleBuffer.push_back(msgFmt);
+	}
+
+	if (g_resourcePrintListeners.empty())
+		return;
+		
 	std::unique_lock<std::shared_mutex> lock(g_printListMutex);
 
 	for (auto& [resourceName, entry] : g_resourcePrintListeners)
@@ -60,28 +68,6 @@ static void DispatchPrintListeners(ConsoleChannel channel, const std::string& ms
 			lock.lock();
 		}
 	}
-}
-
-static void LogPrintListener(ConsoleChannel channel, const char* msg)
-{
-	const std::string msgFmt = fmt::sprintf("%s", msg);
-
-	{
-		std::unique_lock<std::shared_mutex> lock(g_consoleBufferMutex);
-		g_consoleBuffer.push_back(msgFmt);
-	}
-
-	if (g_resourcePrintListeners.empty())
-		return;
-		
-#if IS_FXSERVER
-	gscomms_execute_callback_on_main_thread([channel = std::move(channel), msgFmt]()
-	{
-		DispatchPrintListeners(channel, msgFmt);
-	});
-#else
-	DispatchPrintListeners(channel, msgFmt);
-#endif
 }
 
 static void AddConsoleListener(fx::Resource* resource, ConsoleListenerEntry entry)
