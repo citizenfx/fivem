@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: server
+apiset: shared
 ---
 ## REGISTER_CONSOLE_LISTENER_WITH_FILTERS
 
