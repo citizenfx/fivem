@@ -254,7 +254,7 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 {
 	m_resource = object;
 
-	object->OnStart.Connect([this]()
+	auto addEndpoint = [this]()
 	{
 		// get the server from the resource
 		fx::ServerInstanceBase* server = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
@@ -273,11 +273,11 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 
 		// add an endpoint
 		httpManager->AddEndpoint(
-			m_endpointPrefix,
-			std::bind(&ResourceHttpComponent::HandleRequest, this, std::placeholders::_1, std::placeholders::_2));
-	}, 9999);
+		m_endpointPrefix,
+		std::bind(&ResourceHttpComponent::HandleRequest, this, std::placeholders::_1, std::placeholders::_2));
+	};
 
-	object->OnStop.Connect([this]()
+	auto removeEndpoint = [this]()
 	{
 		// get the server from the resource
 		fx::ServerInstanceBase* server = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
@@ -290,6 +290,23 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 		{
 			httpManager->RemoveEndpoint(m_endpointPrefix);
 		}
+	};
+
+	object->OnStart.Connect([addEndpoint]()
+	{
+		addEndpoint();
+	}, 9999);
+
+	object->OnClientReloadFile.Connect([removeEndpoint, addEndpoint]()
+	{
+		removeEndpoint();
+		addEndpoint();
+	},
+	9999);
+
+	object->OnStop.Connect([removeEndpoint]()
+	{
+		removeEndpoint();
 	}, -9999);
 }
 

@@ -157,7 +157,7 @@ static InitFunction initFunction([]()
 						// do we need a resource completion list?
 						bool isResourceCommand = false;
 
-						for (auto test : { "ensure", "start", "stop", "restart" })
+						for (auto test : { "ensure", "start", "stop", "restart", "reloadclientfile" })
 						{
 							if (cmd == test)
 							{

@@ -93,6 +93,11 @@ public:
 	virtual bool Start() = 0;
 
 	//
+	// Reloads client files for the resource.
+	//
+	virtual bool ClientReloadFile() = 0;
+
+	//
 	// Stops the resource.
 	//
 	virtual bool Stop() = 0;
@@ -127,6 +132,11 @@ public:
 	// An event to handle tasks to be performed when starting a resource.
 	//
 	fwEvent<> OnStart;
+
+	//
+	// An event to handle tasks to be performed when reloading client files for a resource.
+	//
+	fwEvent<> OnClientReloadFile;
 
 	//
 	// An event to handle tasks to be performed when stopping a resource.

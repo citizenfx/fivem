@@ -39,6 +39,8 @@ public:
 
 	virtual bool Start() override;
 
+	virtual bool ClientReloadFile() override;
+
 	virtual bool Stop() override;
 
 	virtual void Run(std::function<void()>&& fn) override;

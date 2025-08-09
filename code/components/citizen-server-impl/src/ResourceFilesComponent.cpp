@@ -640,7 +640,7 @@ namespace fx
 	{
 		m_resource = object;
 
-		object->OnStart.Connect([this]()
+		auto buildAndHashSets = [this]()
 		{
 			std::set<std::string> sets = { GetDefaultSetName() };
 			ParseFileSets();
@@ -682,7 +682,10 @@ namespace fx
 						hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
 				}
 			}
-		}, 500);
+		};
+
+		object->OnStart.Connect(buildAndHashSets, 500);
+		object->OnClientReloadFile.Connect(buildAndHashSets, 500);
 	}
 
 	std::string ResourceFilesComponent::GetSetFileName(const std::string& setName)
