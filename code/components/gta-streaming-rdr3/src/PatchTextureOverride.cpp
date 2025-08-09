@@ -6,6 +6,11 @@
 #include "Hooking.Stubs.h"
 #include <EntitySystem.h>
 
+enum NativeIdentifiers : uint64_t
+{
+	NETWORK_GET_PLAYER_INDEX_FROM_PED = 0x6C0E2E0125610278,
+};
+
 struct UnkTextureLayerModData
 {
 	char unk[12];
@@ -312,7 +317,7 @@ static void clearAllPedTextures(CPed* ped)
 
 	// hacky shit there for now
 	auto sguid = getScriptGuidForEntity(ped);
-	uint8_t textureOwnerId = NativeInvoke::Invoke<0x6C0E2E0125610278, uint32_t>(sguid);
+	uint8_t textureOwnerId = NativeInvoke::Invoke<NETWORK_GET_PLAYER_INDEX_FROM_PED, uint32_t>(sguid);
 
 	for (int i = 0; i < textureOverrideArraySize; i++)
 	{
