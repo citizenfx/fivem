@@ -226,6 +226,7 @@ static const char* poolEntriesTable[] = {
 	"CNetObjPropSet",
 	"CNetObjStatsTracker",
 	"CNetObjVehicle",
+	"CVehicleSyncData",
 	"CNetObjWorldState",
 	"CNetBlenderPed",
 	"CNetBlenderPhysical",
@@ -596,6 +597,10 @@ static const char* poolEntriesTable[] = {
 	"volSphere",
 	"WorldUpdateEntities",
 	"wptrec",
+	"Wheels",
+	"CMoveVehicle",
+	"Vehicle Intelligence",
+	"fragInstNMGta",
 };
 
 static RageHashList poolEntries(poolEntriesTable);
@@ -647,6 +652,21 @@ static std::unordered_map<uint32_t, std::string_view> objectPoolEntries{
 	{ HashString("atDNetObjectNode"), "atDNetObjectNode" },
 	{ HashString("CObjectCollisionDetectedComponent"), "CObjectCollisionDetectedComponent" },
 	{ HashString("reassignObjectInfo"), "reassignObjectInfo" }
+};
+
+static std::unordered_map<uint32_t, std::string_view> vehiclePoolEntries {
+	{ HashString("Vehicles"), "Vehicles" }, // This already apply default size for CVehicle & 0x4CF5F35A(audVehicleAudioEntity)
+	{ HashString("CVehicleSyncData"), "CVehicleSyncData" },
+	{ HashString("CVehicleAnimationComponent"), "CVehicleAnimationComponent" },
+	{ HashString("CVehicleDrivingComponent"), "CVehicleDrivingComponent" },
+	{ HashString("CVehicleIntelligenceComponent"), "CVehicleIntelligenceComponent" },
+	{ HashString("CVehiclePhysicsComponent"), "CVehiclePhysicsComponent" },
+	{ HashString("CVehicleWeaponsComponent"), "CVehicleWeaponsComponent" },
+	{ HashString("CVehicleCoreComponent"), "CVehicleCoreComponent" },
+	
+	{ HashString("atDNetObjectNode"), "atDNetObjectNode" },
+	{ HashString("reassignObjectInfo"), "reassignObjectInfo" },
+	{ HashString("CNetBlenderPhysical"), "CNetBlenderPhysical" },
 };
 
 atPoolBase* rage::GetPoolBase(uint32_t hash)
@@ -772,6 +792,16 @@ static int64_t GetSizeOfPool(void* configManager, uint32_t poolHash, int default
 	if (auto it = objectPoolEntries.find(poolHash); it != objectPoolEntries.end())
 	{
 		auto sizeIncreaseEntry = fx::PoolSizeManager::GetIncreaseRequest().find("CNetObjObject");
+		if (sizeIncreaseEntry != fx::PoolSizeManager::GetIncreaseRequest().end())
+		{
+			size += sizeIncreaseEntry->second;
+		}
+		return size;
+	}
+
+	if (auto it = vehiclePoolEntries.find(poolHash); it != vehiclePoolEntries.end())
+	{
+		auto sizeIncreaseEntry = fx::PoolSizeManager::GetIncreaseRequest().find("CNetObjVehicle");
 		if (sizeIncreaseEntry != fx::PoolSizeManager::GetIncreaseRequest().end())
 		{
 			size += sizeIncreaseEntry->second;
