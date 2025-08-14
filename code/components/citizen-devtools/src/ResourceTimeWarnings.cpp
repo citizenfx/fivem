@@ -906,9 +906,24 @@ static InitFunction initFunction([]()
 
 				for (const auto& poolData : poolsInfo)
 				{
-					if (!poolData.name._Starts_with(search))
+					if (search[0] != '\0')
 					{
-						continue;
+						std::string nameLower = poolData.name;
+						std::string itemsStr = std::to_string(poolData.items);
+						std::string maxItemsStr = std::to_string(poolData.maxItems);
+						std::string searchLower = search;
+
+						std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
+						std::transform(itemsStr.begin(), itemsStr.end(), itemsStr.begin(), ::tolower);
+						std::transform(maxItemsStr.begin(), maxItemsStr.end(), maxItemsStr.begin(), ::tolower);
+						std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
+
+						if (nameLower.find(searchLower) == std::string::npos &&
+							itemsStr.find(searchLower) == std::string::npos &&
+							maxItemsStr.find(searchLower) == std::string::npos)
+						{
+							continue;
+						}
 					}
 
 					std::string humanSize;

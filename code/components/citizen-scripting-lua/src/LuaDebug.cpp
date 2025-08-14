@@ -1,4 +1,4 @@
-﻿/*
+/*
 ** $Id: ldblib.c $
 ** Interface from Lua to its debug API
 ** See Copyright Notice in lua.h
@@ -116,7 +116,6 @@ void treatstackoption(lua_State* L, lua_State* L1, const char* fname)
 ** two optional outputs (function and line table) from function
 ** 'lua_getinfo'.
 */
-#if LUA_VERSION_NUM >= 504 && defined(_WIN32)
 static int db_getinfo (lua_State *L)
 {
 	lua_Debug ar;
@@ -170,63 +169,6 @@ static int db_getinfo (lua_State *L)
 		treatstackoption(L, L1, "func");
 	return 1;  /* return table */
 }
-#else
-int db_getinfo(lua_State* L)
-{
-	lua_Debug ar;
-	int arg;
-	lua_State* L1 = getthread(L, &arg);
-	const char* options = luaL_optstring(L, arg+2, "flnStu");
-	checkstack(L, L1, 3);
-	if (lua_isfunction(L, arg + 1))
-	{
-		/* info about a function? */
-		options = lua_pushfstring(L, ">%s", options); /* add '>' to 'options' */
-		lua_pushvalue(L, arg + 1); /* move function to 'L1' stack */
-		lua_xmove(L, L1, 1);
-	}
-	else
-	{
-		/* stack level */
-		if (!lua_getstack(L1, (int)luaL_checkinteger(L, arg + 1), &ar))
-		{
-			lua_pushnil(L); /* level out of range */
-			return 1;
-		}
-	}
-	if (!lua_getinfo(L1, options, &ar))
-		return luaL_argerror(L, arg + 2, "invalid option");
-	lua_newtable(L); /* table to collect results */
-	if (strchr(options, 'S'))
-	{
-		settabss(L, "source", ar.source);
-		settabss(L, "short_src", ar.short_src);
-		settabsi(L, "linedefined", ar.linedefined);
-		settabsi(L, "lastlinedefined", ar.lastlinedefined);
-		settabss(L, "what", ar.what);
-	}
-	if (strchr(options, 'l'))
-		settabsi(L, "currentline", ar.currentline);
-	if (strchr(options, 'u'))
-	{
-		settabsi(L, "nups", ar.nups);
-		settabsi(L, "nparams", ar.nparams);
-		settabsb(L, "isvararg", ar.isvararg);
-	}
-	if (strchr(options, 'n'))
-	{
-		settabss(L, "name", ar.name);
-		settabss(L, "namewhat", ar.namewhat);
-	}
-	if (strchr(options, 't'))
-		settabsb(L, "istailcall", ar.istailcall);
-	if (strchr(options, 'L'))
-		treatstackoption(L, L1, "activelines");
-	if (strchr(options, 'f'))
-		treatstackoption(L, L1, "func");
-	return 1; /* return table */
-}
-#endif
 
 
 /*

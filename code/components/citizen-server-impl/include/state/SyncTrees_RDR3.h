@@ -49,30 +49,39 @@ struct CDynamicEntityGameStateDataNode : GenericSerializeDataNode<CDynamicEntity
 
 struct CPhysicalGameStateDataNode : GenericSerializeDataNode<CPhysicalGameStateDataNode>
 {
-	bool isVisible;
+	bool flag;
 	bool flag2;
 	bool flag3;
-	bool flag4;
+	bool isVisible;
+	bool flag5;
+	bool flag6;
+	bool flag7;
+	bool flag8;
 
-	int val1;
+	uint8_t val1;
 
 	template<typename Serializer>
 	bool Serialize(Serializer& s)
-	{
-		s.Serialize(isVisible);
+    {
+		s.Serialize(flag);
 		s.Serialize(flag2);
 		s.Serialize(flag3);
-		s.Serialize(flag4);
+		s.Serialize(isVisible);
+		s.Serialize(flag5);
+		s.Serialize(flag6);
+		s.Serialize(flag7);
+		s.Serialize(flag8);
 
-		if (flag4)
+		if (flag8)
 		{
-			s.Serialize(3, val1);
+			s.Serialize(4, val1);
 		}
 		else
 		{
 			val1 = 0;
 		}
 
+		// more data follows
 		return true;
 	}
 };
@@ -488,7 +497,111 @@ struct CDoorScriptGameStateDataNode { };
 struct CHeliHealthDataNode { };
 struct CHeliControlDataNode { };
 
-struct CObjectCreationDataNode { };
+struct CObjectCreationDataNode : GenericSerializeDataNode<CObjectCreationDataNode>
+{
+	uint32_t m_unk2; // mostly 0
+	uint32_t m_createdBy;
+	uint32_t m_scriptHash;
+	bool m_unk6; // mostly false
+	bool m_unk7; // mostly false
+	uint32_t m_model;
+	bool m_hasInitPhysics;
+	CDummyObjectCreationNodeData dummy;
+	bool m_hasLodDist;
+	uint16_t m_lodDist;
+	uint16_t m_maxHealth;
+
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
+	{
+		bool unkBool = m_unk2 != 0;
+		s.Serialize(unkBool);
+
+		if (unkBool)
+		{
+			s.Serialize(32, m_unk2);
+		}
+		else
+		{
+			m_unk2 = 0;
+		}
+
+		s.Serialize(5, m_createdBy);
+
+		bool hasScript = m_scriptHash != 0;
+		s.Serialize(hasScript);
+
+		if (hasScript)
+		{
+			s.Serialize(32, m_scriptHash);
+		}
+		else
+		{
+			m_scriptHash = 0;
+		}
+
+		s.Serialize(m_unk6);
+		s.Serialize(m_unk7);
+
+		if (m_createdBy != 3 && (m_createdBy > 0x12 || (409602 & (1 << m_createdBy)) == 0))
+		{
+			s.Serialize(32, m_model);
+			s.Serialize(m_hasInitPhysics);
+		}
+		else
+		{
+			s.SerializePosition(31, dummy.dummyPosX, dummy.dummyPosY, dummy.dummyPosZ);
+
+			s.Serialize(dummy.playerWantsControl);
+			s.Serialize(dummy.hasFragGroup);
+			s.Serialize(dummy.isBroken);
+			s.Serialize(dummy.unk11);
+			s.Serialize(dummy.hasExploded);
+			s.Serialize(dummy._explodingEntityExploded);
+			// s.Serialize(dummy.keepRegistered); // 1 bool between hasFragGroup & _hasRelatedDummy needs to be deleted
+			s.Serialize(dummy._hasRelatedDummy);
+
+			if (dummy.hasFragGroup)
+			{
+				s.Serialize(4, dummy.fragGroupIndex);
+			}
+
+			if (!dummy._hasRelatedDummy)
+			{
+				int ownershipToken = 0;
+				s.Serialize(10, ownershipToken);
+
+				float objectPosX = 0.0f, objectPosY = 0.0f, objectPosZ = 0.0f;
+				s.SerializePosition(19, objectPosX, objectPosY, objectPosZ);
+
+				float objectRotX = 0.0f, objectRotY = 0.0f, objectRotZ = 0.0f;
+				s.SerializeRotation(objectRotX, objectRotY, objectRotZ);
+			}
+		}
+
+		s.Serialize(m_hasLodDist);
+
+		if (m_hasLodDist)
+		{
+			s.Serialize(16, m_lodDist);
+		}
+
+		bool hasMaxHealth = m_maxHealth != 0;
+		s.Serialize(hasMaxHealth);
+
+		if (hasMaxHealth)
+		{
+			s.Serialize(12, m_maxHealth);
+		}
+		else
+		{
+			m_maxHealth = 0;
+		}
+
+		return true;
+	}
+};
+
 struct CObjectGameStateDataNode { };
 struct CObjectScriptGameStateDataNode { };
 struct CPhysicalHealthDataNode { };
@@ -915,7 +1028,30 @@ struct CWorldStateBaseDataNode { };
 struct CIncidentCreateDataNode { };
 struct CGuardzoneCreateDataNode { };
 struct CPedGroupCreateDataNode { };
-struct CAnimalCreationDataNode { };
+
+struct CAnimalCreationDataNode : GenericSerializeDataNode<CAnimalCreationDataNode>
+{
+	ePopType m_popType;
+	uint32_t m_model;
+	uint16_t randomSeed;
+	bool isStanding;
+
+	template<typename TSerializer>
+	bool Serialize(TSerializer& s)
+	{
+		uint32_t popType = (uint32_t)m_popType;
+		s.Serialize(4, popType);
+		m_popType = (ePopType)popType;
+
+		s.Serialize(32, m_model);
+
+		s.Serialize(16, randomSeed);
+		s.Serialize(isStanding);
+
+		return true;
+	}
+};
+
 struct CProjectileCreationDataNode { };
 struct CPedStandingOnObjectDataNode { };
 struct CProjectileAttachNode { };
@@ -1358,7 +1494,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 			*modelHash = pedCreationNode->m_model;
 			return true;
 		}
-#if 0
+
 		auto[hasOcn, objectCreationNode] = this->template GetData<CObjectCreationDataNode>();
 
 		if (hasOcn)
@@ -1366,12 +1502,20 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 			*modelHash = objectCreationNode->m_model;
 			return true;
 		}
-#endif
+
 		auto[hasPan, playerAppearanceNode] = this->template GetData<CPlayerAppearanceDataNode>();
 
 		if (hasPan)
 		{
 			*modelHash = playerAppearanceNode->model;
+			return true;
+		}
+
+		auto [hasAcn, animalCreationNode] = this->template GetData<CAnimalCreationDataNode>();
+
+		if (hasAcn)
+		{
+			*modelHash = animalCreationNode->m_model;
 			return true;
 		}
 
@@ -1393,8 +1537,15 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 
 	virtual bool IsEntityVisible(bool* visible) override
 	{
-		*visible = true;
-		return true;
+		auto [hasNode, node] = this->template GetData<CPhysicalGameStateDataNode>();
+
+		if (hasNode)
+		{
+			*visible = node->isVisible;
+			return true;
+		}
+
+		return false;
 	}
 };
 

@@ -525,6 +525,11 @@ static void Init()
 		return (int)GetEntityType(entity);
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_NET_TYPE_FROM_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		return entity->type;
+	}, -1));
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_ROUTING_BUCKET_POPULATION_ENABLED", [](fx::ScriptContext& context)
 	{
 		int bucket = context.GetArgument<int>(0);
@@ -1647,7 +1652,7 @@ static void Init()
 				 * @param oldBucket - The old bucket where the player was previously in.
 				 *
 				 #/
-				  declare function onPlayerBucketChange(player: string, bucket: int, oldBucket: int): void;
+				  declare function onPlayerBucketChange(player: string, bucket: number, oldBucket: number): void;
 				*/
 				eventManager->TriggerEvent2("onPlayerBucketChange", {}, player, bucket, oldBucket);
 			}
@@ -1685,7 +1690,7 @@ static void Init()
 			 * @param oldBucket - The old bucket where the entity was previously in.
 			 *
 			#/
-			  declare function onEntityBucketChange(entity: string, bucket: int, oldBucket: int): void;
+			  declare function onEntityBucketChange(entity: string, bucket: number, oldBucket: number): void;
 			*/
 			eventManager->TriggerEvent2("onEntityBucketChange", {}, ent, bucket, oldBucket);
 		}

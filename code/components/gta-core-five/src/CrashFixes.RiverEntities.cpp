@@ -2,13 +2,15 @@
 #include <Hooking.h>
 #include <Hooking.Stubs.h>
 
-static void* (*g_orig_River__GetRiverEntity)(int RiverEntity);
+static hook::FlexStruct* (*g_orig_River__GetRiverEntity)(int RiverEntity);
 
 static void (*g_orig_GetBoundingBoxZForRiverEntity)(int RiverEntityIndex, float* MinZ, float* MaxZ);
 static void GetBoundingBoxZForRiverEntity(int RiverEntityIndex, float* MinZ, float* MaxZ)
 {
-	void* entity = g_orig_River__GetRiverEntity(RiverEntityIndex);
+	hook::FlexStruct* entity = g_orig_River__GetRiverEntity(RiverEntityIndex);
 	if (!entity)
+		return;
+	if(!entity->At<void*>(0x20)) // Entity archetype
 		return;
 
 	g_orig_GetBoundingBoxZForRiverEntity(RiverEntityIndex, MinZ, MaxZ);
