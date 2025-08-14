@@ -245,7 +245,6 @@ static int GetPlayersNearPoint(rage::Vec3V* point, uint32_t unkIndex, void* outI
 	unkIndex = idx;
 	std::copy(tempArray, tempArray + idx, outArray);
 
-	trace("Getting closest remote players %i\n", idx);
 	return idx;
 }
 
@@ -299,7 +298,10 @@ static int* sub_1424(void* a1, int* a2, void* a3, bool a4)
 static unsigned long (*g_netArrayManager__Update)(void*);
 static unsigned long netArrayManager__Update(void* a1)
 {
-	void* netArrayProvider = (void*)((uintptr_t)a1 + 0x17FC0);
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_netArrayManager__Update(a1);
+	}
 	return 0;
 }
 
@@ -314,15 +316,40 @@ static void* unkBandwidthTelemetry(void* bandwidthMgr, int a2)
 	return nullptr;
 }
 
-static uint32_t (*g_getMaxAllowedAmountOfNetObjectByType)(uint16_t);
-static uint32_t getMaxAllowedAmountOfNetObjectByType(uint16_t netObjEntityType)
+void** g_cachedPlayerArray;
+
+// This function is protected with arxan and is self-healed
+static uint32_t GetPlayerFastInstanceState(uint8_t playerIndex)
 {
-	if (netObjEntityType == 7)
+	if (playerIndex < kMaxPlayers + 1)
 	{
-		return 160;
+		hook::FlexStruct* player = reinterpret_cast<hook::FlexStruct*>(g_cachedPlayerArray[playerIndex]);
+		if (player)
+		{
+			return player->At<uint32_t>(0x4);
+		}
 	}
 
-	return g_getMaxAllowedAmountOfNetObjectByType(netObjEntityType);
+	return 0;
+}
+
+static uint16_t* g_localPlayerInstanceId;
+static uint16_t GetPlayerFastInstanceId(uint8_t playerIndex)
+{
+	if (playerIndex < kMaxPlayers + 1)
+	{
+		if (playerIndex == rage::GetLocalPlayer()->physicalPlayerIndex())
+		{
+			return *g_localPlayerInstanceId;
+		}
+
+		hook::FlexStruct* player = reinterpret_cast<hook::FlexStruct*>(g_cachedPlayerArray[playerIndex]);
+		if (player)
+		{
+			return player->At<uint16_t>(0x2);
+		}
+	}
+	return 0x100;
 }
 
 static HookFunction hookFunction([]()
@@ -349,17 +376,18 @@ static HookFunction hookFunction([]()
 			{"40 80 FF ? 73 ? 40 38 3D", 3, 0x20, kMaxPlayers + 1},
 			//CWeaponDamageEvent::_checkIfDead
 			{ "80 3D ? ? ? ? ? 40 8A 68", 6, 0x20, kMaxPlayers + 1 },
-
 		});
 	}
 
 	// Expand Player Cache data
 	{
 		static size_t kCachedPlayerSize = sizeof(void*) * (kMaxPlayers + 1);
-		void** cachedPlayerArray = (void**)hook::AllocateStubMemory(kCachedPlayerSize);
-		memset(cachedPlayerArray, 0, kCachedPlayerSize);
+		g_cachedPlayerArray = (void**)hook::AllocateStubMemory(kCachedPlayerSize);
+		memset(g_cachedPlayerArray, 0, kCachedPlayerSize);
 
-		RelocateRelative((void*)cachedPlayerArray, {
+		g_localPlayerInstanceId = hook::get_address<uint16_t*>(hook::get_pattern("66 89 05 ? ? ? ? B2", 2));
+
+		RelocateRelative((void*)g_cachedPlayerArray, {
 			{ "48 8D 0D ? ? ? ? 48 8B 0C C1 48 85 C9 74 ? 66 83 79", 3 },
 			{ "48 8D 0D ? ? ? ? 48 8B F2 BD", 3 },
 			{ "BD ? ? ? ? 8B C3 48 8D 0D", 10 },
@@ -385,41 +413,56 @@ static HookFunction hookFunction([]()
 		PatchValue<uint8_t>({
 			// player cached getters
 			{ "E8 ? ? ? ? 84 C0 74 ? 40 88 3D ? ? ? ? EB", 23, 0x20, kMaxPlayers + 1 },
-			{ "80 F9 ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? E8", 2, 0x20, kMaxPlayers + 1},
-			{ "83 F9 ? 7C ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 48 8D 0D ? ? ? ? 48 8B 0C D9", 2, 0x20, kMaxPlayers + 1},
+			//{ "80 F9 ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? E8", 2, 0x20, kMaxPlayers + 1},
+			//{ "83 F9 ? 7C ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 48 8D 0D ? ? ? ? 48 8B 0C D9", 2, 0x20, kMaxPlayers + 1},
 			{ "80 FA ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 8A CB", 2, 0x20, kMaxPlayers + 1},
 			{ "80 7B ? ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 0F B6 43 ? 48 8D 0D", 3, 0x20, kMaxPlayers + 1},
-			{ "80 F9 ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 0F B6 DB", 2, 0x20, kMaxPlayers + 1},
-			{ "80 F9 ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 0F B6 C3", 2, 0x20, kMaxPlayers + 1},
+			{ "80 F9 ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 0F B6 DB", 2, 0x20, kMaxPlayers + 1}, // removeCachedPlayerEntry
+			{ "80 F9 ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 0F B6 C3", 2, 0x20, kMaxPlayers + 1}, // _setPlayerCachedFastInstanceId
 			{ "80 FB ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 8A CB", 2, 0x20, kMaxPlayers + 1},
-			{ "48 85 C0 74 ? 83 61 ? ? B8 ? ? ? ? 66 83 61", -57, 0x20, kMaxPlayers + 1 },
-			{ "83 F9 ? 7C ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 48 8D 0D ? ? ? ? 48 8B C3", 2, 0x20, kMaxPlayers + 1 },
+			{ "48 85 C0 74 ? 83 61 ? ? B8 ? ? ? ? 66 83 61", -57, 0x20, kMaxPlayers + 1 }, // addCachedPlayerEntry
+			//{ "83 F9 ? 7C ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 48 8D 0D ? ? ? ? 48 8B C3", 2, 0x20, kMaxPlayers + 1 }, // getPlayerCachedInTutorialState
 			{ "83 F8 ? 72 ? C3 CC 0F 48 8B", 2, 0x20, kMaxPlayers + 1 },
 			{ "80 FB ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 75 ? B0", 2, 0x20, kMaxPlayers + 1},
+			{ "83 F9 ? 7C ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 48 8D 0D ? ? ? ? 48 8B C3", 2, 0x20, kMaxPlayers + 1 }
 		});
 
-	}
+		// Handle GetPlayerFastInstanceState getters
+		// This function is axran
+		{
+			std::initializer_list<PatternPair> pairs = {
+				{ "E8 ? ? ? ? 83 F8 ? 75 ? B8 ? ? ? ? EB ? 8A CB", 0 },
+				{ "E8 ? ? ? ? 83 F8 ? 75 ? 48 85 DB 0F 84", 0 },
+				{ "E8 ? ? ? ? 83 F8 ? 74 ? 32 C0 EB ? B0 ? 48 83 C4 ? 5B C3 CC 79", 0 },
+				{ "E8 ? ? ? ? 0F B6 4F ? 3B C1", 0 },
+				{ "E8 ? ? ? ? 83 F8 ? 74 ? 40 8A CE", 0 }
+			};
 
-	// Extend deseried peds
-	{
-		constexpr int newPedValue = 160;
+			for (auto& entry : pairs)
+			{
+				hook::call(hook::get_pattern(entry.pattern, entry.offset), GetPlayerFastInstanceState);
+			}
+		}
 
-		auto value = hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? C6 05 ? ? ? ? ? 89 15", 2));
-		*value = newPedValue;
+		// Handle GetPlayerFastInstanceId getters
+		// This function is also axran
+		{
+			std::initializer_list<PatternPair> pairs = {
+				{ "E8 ? ? ? ? 98 48 83 C4 ? 5B", 0 },
+				{ "E8 ? ? ? ? B9 ? ? ? ? 66 3B C1 0F 85", 0 },
+				{ "E8 ? ? ? ? 0F B7 0D ? ? ? ? 66 3B C1", 0 },
+				{ "E8 ? ? ? ? 66 41 3B C4 75 ? 83 BF", 0 },
+				{ "E8 ? ? ? ? 0F BF C8 41 3B CC", 0 },
+				{ "E8 ? ? ? ? 66 3B C3 74 ? 49 8B CE", 0 }, 
+				{ "E8 ? ? ? ? 0F BF F8 41 BF", 0 }, 
+				{ "E8 ? ? ? ? 40 84 ED 74 ? 80 BC 24", 0 }
+			};
 
-		auto value2 = hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 89 05 ? ? ? ? C6 05 ? ? ? ? ? 89 15", 2));
-		*value2 = newPedValue;
-
-		auto value3 = hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 89 05 ? ? ? ? 89 05 ? ? ? ? C6 05", 2));
-		*value3 = newPedValue;
-
-		// used in _canRegisterNetworkEntities for ped and animal
-		hook::put<uint32_t>(hook::get_pattern("BB ? ? ? ? E9 ? ? ? ? E8 ? ? ? ? 48 8B 0D", 1), newPedValue);
-
-		//hook::put<uint32_t>(*hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 89 05 ? ? ? ? C6 05 ? ? ? ? ? 89 15", 2)), newPedValue);
-		//hook::put<uint32_t>(*hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 89 05 ? ? ? ? 89 05 ? ? ? ? C6 05", 2)), newPedValue);
-		//Hacky
-		g_getMaxAllowedAmountOfNetObjectByType = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? 45 33 FF 0F B7 D1"), getMaxAllowedAmountOfNetObjectByType);
+			for (auto& entry : pairs)
+			{
+				hook::call(hook::get_pattern(entry.pattern, entry.offset), GetPlayerFastInstanceId);
+			}
+		}
 	}
 
 	// Replace 32-sized unknown CGameArray related array
@@ -645,7 +688,7 @@ static HookFunction hookFunction([]()
 		constexpr int ptrsBase = 0x30;
 		constexpr int stackSize = ptrsBase + (kMaxPlayers * 8) + 0x10;
 		constexpr int intBase = ptrsBase + (kMaxPlayers * 8);
-
+			
 		// stack frame ENTER
 		hook::put<uint32_t>(location + 0x13, stackSize);
 		// stack frame LEAVE
@@ -746,8 +789,14 @@ static HookFunction hookFunction([]()
 		hook::nop(location, 32);
 	}
 
-	// Disable text chat. 
-	hook::return_function(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 56 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B E9"));
+	// Remove network text chat. Unused in RedM/RDR but uses 32 sized arrays with minimal checks
+	{
+		// Update
+		hook::nop(hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 45 84 F6 74", -23), 28);
+
+		// AddPlayer
+		hook::nop(hook::get_pattern("48 8B 0D ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 48 8B 0D ? ? ? ? 44 8B C7"), 34);
+	}
 
 	// Rewrite functions to account for extended players
 	MH_Initialize();
@@ -773,8 +822,6 @@ static HookFunction hookFunction([]()
 	hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 54 41 56 41 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 8B F0"));
 	MH_CreateHook(hook::get_pattern("48 89 4C 24 ? 53 55 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B F9"), netArrayManager__Update, (void**)&g_netArrayManager__Update);
 	MH_CreateHook(hook::get_pattern("40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 33 F6"), unkBandwidthTelemetry, (void**)&g_unkBandwidthTelemetry);
-
-
 
 	MH_EnableHook(MH_ALL_HOOKS);
 });
