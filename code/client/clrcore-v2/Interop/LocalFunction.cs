@@ -1,4 +1,5 @@
 using CitizenFX.Core.Native;
+using CitizenFX.MsgPack;
 using System;
 using System.Collections.Generic;
 using System.Security;
@@ -44,31 +45,39 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		internal unsafe Coroutine<object> Invoke(object[] args)
 		{
-			object[] returnData = MsgPackDeserializer.DeserializeArray(ScriptInterface.InvokeFunctionReference(m_reference, new InPacket(args).value));
-			if (returnData != null && returnData.Length > 0)
+			object[] returnData = null;
+			byte[] data = ScriptInterface.InvokeFunctionReference(m_reference, new InPacket(args).value);
+
+			fixed (byte* dataPtr = data)
 			{
-				var result = returnData[0];
+				returnData = MsgPackDeserializer.DeserializeAsObjectArray(dataPtr, data.Length);
 
-				if (result is IDictionary<string, object> dict
-				    && dict.TryGetValue("__cfx_async_retval", out object requestAsyncCallback)
-				    && requestAsyncCallback is Callback callbackRequested)
+
+				if (returnData != null && returnData.Length > 0)
 				{
-					var c = new Coroutine<object>();
-					callbackRequested(new Action<object, object>((results, exception) =>
+					var result = returnData[0];
+
+					if (result is IDictionary<string, object> dict
+						&& dict.TryGetValue("__cfx_async_retval", out object requestAsyncCallback)
+						&& requestAsyncCallback is Callback callbackRequested)
 					{
-						if (exception != null)
-							c.Fail(null, new Exception(exception.ToString()));
-						else if(results is object[] array && array.Length > 0)
-							c.Complete(array[0]);
-						else
-							c.Complete(null);
+						var c = new Coroutine<object>();
+						callbackRequested(new Action<object, object>((results, exception) =>
+						{
+							if (exception != null)
+								c.Fail(null, new Exception(exception.ToString()));
+							else if (results is object[] array && array.Length > 0)
+								c.Complete(array[0]);
+							else
+								c.Complete(null);
 
-					}));
+						}));
 
-					return c;
+						return c;
+					}
+
+					return Coroutine<object>.Completed(result);
 				}
-
-				return Coroutine<object>.Completed(result);
 			}
 
 			return null;
