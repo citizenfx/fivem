@@ -41,6 +41,12 @@
 #include "GameValueStub.h"
 #include <CrashFixes.FakeParachuteProp.h>
 
+enum NativeIdentifiers : uint64_t
+{
+	GET_VEHICLE_PED_IS_USING = 0x6094AD011A2EA87D,
+	PLAYER_PED_ID = 0xD80958FC74E988A6
+};
+
 using namespace winrt::Windows::Gaming::Input;
 
 static hook::cdecl_stub<void(void*, int, float, float, float, bool, bool)> breakOffVehicleWheel([]
@@ -2202,7 +2208,7 @@ static DWORD WINAPI XInputGetStateHook(_In_ DWORD dwUserIndex, _Out_ XINPUT_STAT
 			{
 				// #TODO: gun recoil
 				// #TODO: take trigger swap into account
-				int veh = NativeInvoke::Invoke<0x6094AD011A2EA87D, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>());
+				int veh = NativeInvoke::Invoke<GET_VEHICLE_PED_IS_USING, int>(NativeInvoke::Invoke<PLAYER_PED_ID, int>());
 
 				CVehicle* currentPlayerVehicle = nullptr;
 

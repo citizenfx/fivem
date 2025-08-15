@@ -24,6 +24,11 @@
 #pragma comment(lib, "winmm.lib")
 #include <mmsystem.h>
 
+enum NativeIdentifiers : uint64_t
+{
+	NETWORK_SET_THIS_SCRIPT_IS_NETWORK_SCRIPT = 0x1CA59E306ECB80A5,
+};
+
 class FishScript
 {
 private:
@@ -123,8 +128,7 @@ public:
 
 		if (!m_initedNet)
 		{
-			// make this a network script
-			NativeInvoke::Invoke<0x1CA59E306ECB80A5, int>(32, false, -1);
+			NativeInvoke::Invoke<NETWORK_SET_THIS_SCRIPT_IS_NETWORK_SCRIPT, int>(32, false, -1);
 
 			m_initedNet = true;
 		}
