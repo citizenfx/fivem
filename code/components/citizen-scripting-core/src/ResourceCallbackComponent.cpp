@@ -102,7 +102,7 @@ result_t ResourceCallbackScriptRuntime::CallRef(int32_t refIdx, char* argsSerial
 			packer.pack_array(0);
 			return fx::MemoryScriptBuffer::Make(sb.data(), static_cast<uint32_t>(sb.size()));
 		})();
-		
+
 		rv.CopyTo(retval);
 	}
 
@@ -116,6 +116,7 @@ result_t ResourceCallbackScriptRuntime::CallRef(int32_t refIdx, char* argsSerial
 
 		if (it == m_refs.end())
 		{
+			trace("[ResourceCallbackComponent] ⚠️ refIdx %d not found in CallRef — maybe expired or invalid.", refIdx);
 			return FX_E_INVALIDARG;
 		}
 
@@ -140,6 +141,7 @@ result_t ResourceCallbackScriptRuntime::DuplicateRef(int32_t refIdx, int32_t* ou
 
 	if (it == m_refs.end())
 	{
+		trace("[ResourceCallbackComponent] ⚠️ refIdx %d not found in DuplicateRef — maybe removed or invalid.", refIdx);
 		return FX_E_INVALIDARG;
 	}
 
@@ -163,6 +165,7 @@ result_t ResourceCallbackScriptRuntime::RemoveRef(int32_t refIdx)
 
 		if (it == m_refs.end())
 		{
+			trace("[ResourceCallbackComponent] ⚠️ refIdx %d not found in RemoveRef — possibly already destroyed.", refIdx);
 			return FX_E_INVALIDARG;
 		}
 
