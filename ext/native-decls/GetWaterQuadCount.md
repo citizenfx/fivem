@@ -8,10 +8,11 @@ game: gta5
 ```c
 int GET_WATER_QUAD_COUNT();
 ```
+## Return value
+Returns the amount of water quads loaded.
+
 ## Examples
 
 ```lua
 local waterQuadCount = GetWaterQuadCount()
 ```
-## Return value
-Returns the amount of water quads loaded.
