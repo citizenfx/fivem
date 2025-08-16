@@ -11,12 +11,23 @@
 
 #include "PureModeState.h"
 
-static int(__cdecl* origSetFunc)(void* extraContentMgr, void* a2, const char* deviceName);
-int someFunc(void* a1, void* a2, const char* a3)
-{
-	int someResult = origSetFunc(a1, a2, a3);
+#if defined(GTA_FIVE)
 
-	std::string dlcName = std::string(a3);
+static int(__cdecl* origMountableContentMountContent)(void* self, void* a2, const char* deviceName);
+int MountableContentMountContent(void* self, void* a2, const char* deviceName)
+{
+	int someResult = origMountableContentMountContent(self, a2, deviceName);
+
+#else
+
+static int(__cdecl* origMountableContentMountContent)(void* self, const char* deviceName);
+int MountableContentMountContent(void* self, const char* deviceName)
+{
+	int someResult = origMountableContentMountContent(self, deviceName);
+
+#endif
+
+	std::string dlcName = std::string(deviceName);
 	dlcName = dlcName.substr(0, dlcName.find(":"));
 
 	auto exists = [](const std::string& path)
@@ -71,7 +82,11 @@ static HookFunction hookFunction([]()
 		return;
 	}
 
+#if defined(GTA_FIVE)
 	auto dlcPattern = hook::get_pattern("66 39 79 38 74 06 4C 8B 41 30 EB 07 4C 8D", 19);
-	hook::set_call(&origSetFunc, dlcPattern);
-	hook::call(dlcPattern, someFunc);
+#else
+	auto dlcPattern = hook::get_pattern("E8 ? ? ? ? 85 C0 75 ? 48 8B CB E8 ? ? ? ? B8");
+#endif
+	hook::set_call(&origMountableContentMountContent, dlcPattern);
+	hook::call(dlcPattern, MountableContentMountContent);
 });
