@@ -18,6 +18,380 @@
 #include <netObject.h>
 #include <CoreConsole.h>
 
+#include <udis86.h>
+
+//#define VERBOSE
+static size_t GetDisplacementOffset(const ud_t& ud, ud_mnemonic_code mnemonic, uint64_t stackSize, uint8_t dataSize)
+{
+	const uint8_t* instr = ud_insn_ptr(&ud);
+	size_t len = ud_insn_len(&ud);
+
+	if (!instr || len == 0 || (dataSize != 1 && dataSize != 2 && dataSize != 4 && dataSize != 8))
+	{
+		return SIZE_MAX;
+	}
+
+	const uint8_t* start = instr;
+	const uint8_t* end = instr + len;
+
+	int minOffset = 0;
+	uint16_t opcode = (instr[0] << 8) | instr[1];
+	
+	// these are Multiple byte opcodes. 
+	if (opcode == 0x0F38 || opcode == 0x0F3A || (opcode >= 0x0F00 && opcode <= 0x0FFF))
+	{
+		minOffset = 1;
+	}
+
+	int offset = 0;
+	for (const uint8_t* p = instr; p <= end; p++)
+	{
+		uint64_t value = 0;
+		memcpy(&value, instr + offset, dataSize);
+
+		// Make sure we don't take the opcode as the value
+		if (offset <= minOffset)
+		{
+			offset++;
+			continue;
+		}
+
+		if (dataSize < 8)
+		{
+			const uint64_t mask = (1ULL << (dataSize * 8)) - 1;
+			value &= mask;
+		}
+
+		if (value == stackSize)
+		{
+			return offset;
+		}
+
+		offset++;
+	}
+
+	return SIZE_MAX;
+}
+
+template<class T>
+static inline void PatchValue(uintptr_t address, size_t offset, uint64_t origValue, uint64_t newValue)
+{
+	T newData = (T)newValue;
+	T* addr = (T*)(address + offset);
+
+	assert(*addr == (T)origValue);
+	hook::put<T>(addr, newData);
+	assert(*addr == newData);
+}
+
+struct StackResizes
+{
+	int oldStackSize;
+	int newStackSize;
+};
+
+template<int NewStackSize, int kMaxInstructions = 2048, int kMaxStackResizes = 128>
+void IncreaseFunctionStack(void* address, std::initializer_list<StackResizes> list)
+{
+	auto getImmValue = [](const struct ud_operand* operand, uint8_t* size = nullptr) -> int64_t
+	{
+		if (!operand)
+		{
+			return 0;
+		}
+
+		uint8_t dataSize = 0;
+		if (operand->type == UD_OP_IMM)
+		{
+			dataSize = operand->size / 8; // Immediate size in bytes
+		}
+		else if (operand->type == UD_OP_MEM && (operand->offset != 0 && operand->offset <= 64))
+		{
+			dataSize = operand->offset / 8;
+		}
+		else
+		{
+			if (size)
+			{
+				*size = 0;
+			}
+			return 0;
+		}
+
+		int64_t disp = 0;
+		switch (dataSize)
+		{
+			case 1:
+				disp = operand->lval.sbyte;
+				break;
+			case 2:
+				disp = operand->lval.sword;
+				break;
+			case 4:
+				disp = operand->lval.sdword;
+				break;
+			case 8:
+				disp = operand->lval.sqword;
+				break;
+			default:
+				__debugbreak();
+				break;
+		}
+
+		if (size)
+		{
+			*size = dataSize;
+		}
+
+		return disp;
+	};
+
+	ud_t ud;
+	ud_init(&ud);
+	ud_set_mode(&ud, 64);
+
+	// set the program counter
+	ud_set_pc(&ud, reinterpret_cast<uint64_t>(address));
+
+	// set the input buffer
+	ud_set_input_buffer(&ud, reinterpret_cast<uint8_t*>(address), INT32_MAX);
+
+	int64_t functionStackSize = -1;
+	bool attemptStackRelocation = list.size() >= 1;
+
+	struct StackInfo
+	{
+	public:
+		uintptr_t address;
+		size_t offset;
+		uint64_t origValue;
+		uint8_t dataSize;
+	};
+
+	StackInfo stackData[kMaxStackResizes]{};
+	size_t stackCount = 0;
+
+	for (int i = 0; i < kMaxInstructions; i++)
+	{
+		if (!ud_disassemble(&ud))
+		{
+			// Nothing else to disassemble
+			break;
+		}
+																																																																																																						
+		uint8_t size;
+		uint64_t dataSize;
+		ud_mnemonic_code mnemonic = ud_insn_mnemonic(&ud);
+
+		// if this is a retn, we've likely reached the end of the function.
+		if (mnemonic == UD_Iret)
+		{
+			break;
+		}
+
+		auto addr = ud_insn_off(&ud);
+
+        const auto* op0 = ud_insn_opr(&ud, 0);
+		const auto* op1 = ud_insn_opr(&ud, 1);
+
+		bool validOperands = op0 && op1;
+
+		// Handle sub/add
+		if ((mnemonic == UD_Isub || mnemonic == UD_Iadd) && validOperands 
+			&& op0->type == UD_OP_REG && op0->base == UD_R_RSP && op1->type == UD_OP_IMM)
+		{
+			// op1 is immediate value
+			dataSize = getImmValue(op1, &size);
+
+#ifdef VERBOSE
+			trace("Found 0x%llx: %s %s, 0x%llx\n",
+			ud_insn_off(&ud),
+			ud_lookup_mnemonic(mnemonic),
+			(op0->base == UD_R_RSP) ? "RSP" : "RBP",
+			dataSize);
+#endif
+
+			size_t offset = GetDisplacementOffset(ud, mnemonic, dataSize, size);
+			stackData[stackCount++] = { addr, offset, dataSize, size };
+
+			// if this is restoring the stack pointer, we can currently assume this is the end of the function and break out here
+			if (mnemonic == UD_Iadd)
+			{
+				break;
+			}
+
+			functionStackSize = dataSize;
+		}
+
+		// If we haven't gotten the stack size of the function. Then skip.
+		if (functionStackSize == -1)
+		{
+			continue;
+		}
+
+		// LEA is a special case as the function may be using it to restore rsp
+		if (mnemonic == UD_Ilea && validOperands)
+		{
+			size_t offset = SIZE_MAX;
+
+			// LEA: op0 = reg, op1 = mem
+			if (op0->type == UD_OP_REG && op1->type == UD_OP_MEM && op1->base == UD_R_RSP)
+			{
+				dataSize = getImmValue(op1, &size);
+				offset = GetDisplacementOffset(ud, mnemonic, dataSize, size);
+
+#ifdef VERBOSE
+				trace("Found 0x%llx LEA %s, [RSP+0x%llx] (size=%zu, offset=%zu)\n",
+				ud_insn_off(&ud),
+				ud_lookup_mnemonic(mnemonic),
+				dataSize,
+				size,
+				offset);
+#endif
+
+				if (offset == SIZE_MAX)
+				{
+					continue;
+				}
+
+				// Check if this LEA restores RSP
+				if (dataSize == functionStackSize)
+				{
+					stackData[stackCount++] = { addr, offset, dataSize, size };
+					break;
+				}
+
+				if (attemptStackRelocation)
+				{
+					stackData[stackCount++] = { addr, offset, dataSize, size };
+				}
+
+				continue;
+			}
+		}
+
+		// if we aren't attempting stack relocation, this code isn't needed.
+		if (!attemptStackRelocation || !validOperands)
+		{
+			continue;
+		}
+
+		//op0 - register
+		//op1 - immediate
+
+		// if op0 is mem
+		if (op0->type == UD_OP_MEM)
+		{
+			// if immediate value
+			if (op1->type == UD_OP_IMM && op0->base == UD_R_RSP)
+			{
+				dataSize = getImmValue(op0, &size);
+#ifdef VERBOSE
+				trace("Found 0x%llx: %s [%s%+lld]\n",
+				ud_insn_off(&ud),
+				ud_lookup_mnemonic(mnemonic),
+				(op0->base == UD_R_RSP) ? "RSP" : "RBP",
+				dataSize);
+#endif
+				size_t offset = GetDisplacementOffset(ud, mnemonic, dataSize, size);
+				stackData[stackCount++] = { addr, offset, dataSize, size };
+				continue;
+			}
+
+			if (op1->type == UD_OP_REG && op0->base == UD_R_RSP)
+			{
+				dataSize = getImmValue(op0, &size);
+
+#ifdef VERBOSE
+				trace("Found 0x%llx: %s [%s%+lld]\n",
+				ud_insn_off(&ud),
+				ud_lookup_mnemonic(mnemonic),
+				(op0->base == UD_R_RSP) ? "RSP" : "RBP",
+				getImmValue(op0));
+#endif
+				size_t offset = GetDisplacementOffset(ud, mnemonic, dataSize, size);
+
+				stackData[stackCount++] = { addr, offset, dataSize, size };
+				continue;
+			}
+		}
+
+		if (op0->type == UD_OP_REG && op1->type == UD_OP_MEM && op1->base == UD_R_RSP)
+		{
+			dataSize = getImmValue(op1, &size);
+
+#ifdef VERBOSE
+			trace("Found 0x%llx: %s [%s%+lld]\n",
+			ud_insn_off(&ud),
+			ud_lookup_mnemonic(mnemonic),
+			(op1->base == UD_R_RSP) ? "RSP" : "RBP",
+			getImmValue(op1));
+#endif
+			size_t offset = GetDisplacementOffset(ud, mnemonic, dataSize, size);
+			stackData[stackCount++] = { addr, offset, dataSize, size };
+			continue;
+		}
+	}
+
+	int stackFrameReplaced = 0;
+	for (const StackInfo& val : stackData)
+	{
+		int newValue = (val.origValue == functionStackSize) ? NewStackSize : -1;
+		if (newValue == -1 && attemptStackRelocation )
+		{
+			for (auto& value : list)
+			{
+				if (value.oldStackSize == val.origValue)
+				{
+					newValue = value.newStackSize;
+				}
+			}
+		}
+
+		if (newValue == -1)
+		{
+			continue;
+		}
+
+#ifdef VERBOSE
+		trace("Changing value 0x%x (0x%x): 0x%x -> 0x%x\n", val.address + val.offset, val.address, val.origValue, newValue);
+#endif
+
+		int64_t disp = 0;
+		switch (val.dataSize)
+		{
+			// 1 byte / 8 bit
+			case 1:
+				PatchValue<uint8_t>(val.address, val.offset, val.origValue, newValue);
+				break;
+			// 2 bytes / 16 bit
+			case 2:
+				PatchValue<uint16_t>(val.address, val.offset, val.origValue, newValue);
+				break;
+			// 4 bytes / 32 bit
+			case 4:
+				PatchValue<uint32_t>(val.address, val.offset, val.origValue, newValue);
+				break;
+			// 8 bytes / 64 bit
+			case 8:
+				PatchValue<uint64_t>(val.address, val.offset, val.origValue, newValue);
+				break;
+			default:
+				disp = 0;
+				__debugbreak();
+				break;
+		}
+
+		if (val.origValue == functionStackSize)
+		{
+			stackFrameReplaced++;
+		}
+	}
+
+	// Make sure that both the stack frame allocation and stack frame have been replaced.
+	assert(stackFrameReplaced == 2);
+}
+
 static const uint8_t kMaxPlayers = 128;
 
 namespace rage
@@ -631,109 +1005,59 @@ static HookFunction hookFunction([]()
 		}
 	}
 
-	// Support entity migration for >32 in CNetObjProximityMigrateable::_passOutOfScope
+	// Support entity migration for >32 in CNetObjProximityMigrateable::_passOutOfScope & CNetObjPedBase::_passOutOfScope
 	{
-		auto location = hook::get_pattern<char>("48 81 EC ? ? ? ? 80 3D ? ? ? ? ? 48 8B D9 0F 84", -0x15);
-
 		// 256 * 8: 256 players, ptr size
 		// 256 * 4: 256 players, int size
 		constexpr int ptrsBase = 0x20;
 		constexpr int stackSize = (ptrsBase + (256 * 8) + (256 * 4));
 		constexpr int intsBase = ptrsBase + (256 * 8);
 
-		// stack frame ENTER
-		hook::put<uint32_t>(location + 0x18, stackSize);
-		// stack frame LEAVE
-		hook::put<uint32_t>(location + 0x12B, stackSize);
-		// var: rsp + 1A8
-		hook::put<uint32_t>(location + 0xDD, intsBase);
+		// CNetObjProximityMigrateable::_passOutOfScope
+		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 81 EC ? ? ? ? 80 3D ? ? ? ? ? 48 8B D9 0F 84", -0x15), { { 0x120, intsBase } });
+		// CNetObjPedBase::_passOutOfScope
+		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 81 EC ? ? ? ? 48 8B 71 ? 48 8B D9 48 85 F6", -0x15), { { 0x120, intsBase } });
 	}
 
-	// Same for CNetObjPedBase::_passOutOfScope
+	// Resize stack to support >32 players for boat population turn taking
 	{
-		auto location = hook::get_pattern<char>("48 81 EC ? ? ? ? 48 8B 71 ? 48 8B D9 48 85 F6", -0x15);
-
-		// 256 * 8: 256 players, ptr size
-		// 256 * 4: 256 players, int size
-		constexpr int ptrsBase = 0x20;
-		constexpr int stackSize = (ptrsBase + (256 * 8) + (256 * 4));
-		constexpr int intsBase = ptrsBase + (256 * 8);
-
-		// stack frame ENTER
-		hook::put<uint32_t>(location + 0x18, stackSize);
-		// stack frame LEAVE
-		hook::put<uint32_t>(location + 0x26B, stackSize);
-		// var: rsp + 1A8
-		hook::put<uint32_t>(location + 0x211, intsBase);
-	}
-
-	// Resize stack for CTheScripts::_getClosestPlayer
-	{
-		auto location = hook::get_pattern<char>("48 83 EC ? 0F 29 70 ? 33 ED 0F 29 78 ? 0F 57 FF", -0x10);
-
-		// 0x50: previous stack size
-		// 16: extra int[3] ontop of present int[2] allocation and stack alignment 
-		constexpr int stackSize = 0x50 + 16;
-
-		// stack frame ENTER
-		hook::put<uint8_t>(location + 0x13, stackSize);
-		// stack frame LEAVE
-		hook::put<uint8_t>(location + 0x188, stackSize);
-	}
-
-	// Resize stack to support >32 players for _unkCanBoatsPopulationTurnTaking
-	{
-		auto location = hook::get_pattern<char>("48 81 EC ? ? ? ? 8B E9 E8", -0x10);
-
 		constexpr int ptrsBase = 0x30;
-		constexpr int stackSize = ptrsBase + (kMaxPlayers * 8) + 0x10;
-		constexpr int intBase = ptrsBase + (kMaxPlayers * 8);
-			
-		// stack frame ENTER
-		hook::put<uint32_t>(location + 0x13, stackSize);
-		// stack frame LEAVE
-		hook::put<uint32_t>(location + 0xA7, stackSize);
-		// var: rsp + 120
-		hook::put<uint32_t>(location + 0x28, intBase);
-		hook::put<uint32_t>(location + 0x63, intBase);
-		hook::put<uint32_t>(location + 0x6F, intBase);
-		hook::put<uint32_t>(location + 0x9A, intBase);
+		constexpr int stackSize = ptrsBase + (128 * 8) + 0x10;
+		constexpr int intBase = ptrsBase + (128 * 8);
+
+		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 81 EC ? ? ? ? 8B E9 E8", -0x10), { { 0x120, intBase } });
 	}
 
 	// Resize stack to support >32 players when updating task sequences
 	{
-		auto location = hook::get_pattern<char>("48 81 EC ? ? ? ? 41 8A D9 45 8B F8", -24);
-
 		constexpr int ptrsBase = 0x40;
 		constexpr int stackSize = ptrsBase + (kMaxPlayers * 8) + 0x10;
 		constexpr int intBase = ptrsBase + (kMaxPlayers * 8);
 
-		// stack frame ENTER
-		hook::put<uint32_t>(location + 27, stackSize);
-
-		//stack frame LEAVE
-		hook::put<uint32_t>(location + 0x179, stackSize);
-
-		// var: rsp + 188
-		hook::put<uint32_t>(location + 314, intBase);
-		hook::put<uint32_t>(location + 321, intBase);
+		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 81 EC ? ? ? ? 41 8A D9 45 8B F8", -24), { { 0x188, intBase } });
 	}
 
 	// Resize stack to support >32 players with REQUEST_IS_VOLUME_EMPTY netEvent
 	{
-		auto location = hook::get_pattern<char>("48 81 EC ? ? ? ? 41 8A D8 4C 8B F2 4C 8B F9", -0x14);
-
 		constexpr int ptrsBase = 0x20;
 		constexpr int arraySize = (kMaxPlayers * 8);
 		constexpr int stackSize = ptrsBase + arraySize;
 
-		// stack frame ENTER
-		hook::put<uint32_t>(location + 0x17, stackSize);
-		// stack frame LEAVE
-		hook::put<uint32_t>(location + 0x92, stackSize);
+		IncreaseFunctionStack<stackSize, 2048, 8>(hook::get_pattern<char>("48 81 EC ? ? ? ? 41 8A D8 4C 8B F2 4C 8B F9", -0x14), { });
 		// memset 0x100 -> arraySize
 		hook::put<uint32_t>(hook::get_pattern<uint32_t>("41 B8 ? ? ? ? 48 8D 4C 24 ? E8 ? ? ? ? 84 DB", 2), arraySize);
 	}
+
+#if 0
+	// Resize stack for CTheScripts::_getClosestPlayer
+	{
+		// 0x50: previous stack size
+		// 16: extra int[3] ontop of present int[2] allocation and stack alignment 
+		constexpr int stackSize = 0x50 + 16;
+		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 83 EC ? 0F 29 70 ? 33 ED 0F 29 78 ? 0F 57 FF", -0x10), {});
+	}
+#endif
+
 
 	// Patch bubble join to prevent writing out of bounds for player objects
 	{
@@ -816,7 +1140,6 @@ static HookFunction hookFunction([]()
 
 	MH_CreateHook(hook::get_pattern("33 DB 0F 29 70 D8 49 8B F9 4D 8B F0", -0x1B), GetPlayersNearPoint, (void**)&g_origGetPlayersNearPoint);
 
-	//hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 55 41 56 41 57 48 83 EC ? 48 8B F1 E8"));
 	//TEMP: Potentially can overflow and lead to issues, and this logic isn't important in onesync at the moment.
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 65 48 8B 0C 25 ? ? ? ? 4C 8B F2"), sub_1424, NULL);
 	hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 54 41 56 41 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 8B F0"));
