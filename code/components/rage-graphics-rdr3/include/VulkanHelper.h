@@ -8,6 +8,18 @@ inline std::string_view ResultToString(VkResult result)
 {
 	switch (result)
 	{
+		case VK_NOT_READY:
+			return "VK_NOT_READY A fence or query has not yet completed";
+		case VK_INCOMPLETE:
+			return "VK_INCOMPLETE A return array was too small for the result";
+		case VK_TIMEOUT:
+			return "VK_TIMEOUT A wait operation has not completed in the specified time";
+		case VK_EVENT_SET:
+			return "VK_EVENT_SET An event is signaled";
+		case VK_EVENT_RESET:
+			return "VK_EVENT_RESET An event is unsignaled";
+		case VK_SUBOPTIMAL_KHR:
+			return "VK_SUBOPTIMAL_KHR A swapchain no longer matches the surface properties exactly, but can still be used to present to the surface successfully.";
 		case VK_ERROR_OUT_OF_HOST_MEMORY:
 			return "VK_ERROR_OUT_OF_HOST_MEMORY A host memory allocation has failed.";
 		case VK_ERROR_OUT_OF_DEVICE_MEMORY:
@@ -57,7 +69,7 @@ inline std::string_view ResultToString(VkResult result)
 		case VK_ERROR_INVALID_DEVICE_ADDRESS_EXT:
 			return "VK_ERROR_INVALID_DEVICE_ADDRESS_EXT A buffer creation failed because the requested address is not available.";
 		default:
-			return "";
+			return std::to_string(static_cast<uint32_t>(result));
 	}
 }
 #endif
