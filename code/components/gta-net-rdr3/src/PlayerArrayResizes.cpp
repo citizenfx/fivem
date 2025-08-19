@@ -20,7 +20,8 @@
 
 #include <udis86.h>
 
-//#define VERBOSE
+#define VERBOSE
+
 static size_t GetDisplacementOffset(const ud_t& ud, ud_mnemonic_code mnemonic, uint64_t stackSize, uint8_t dataSize)
 {
 	const uint8_t* instr = ud_insn_ptr(&ud);
@@ -923,7 +924,9 @@ static HookFunction hookFunction([]()
 			{ "80 7D ? ? 48 8B F8 72 ? 32 C0", 3, false },
 			
 			// CPhysical::_CorrectSyncedPosition
-			{ "40 80 FE ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84", 3, false },
+			// TODO: needs extra patching
+			//{ "40 80 FE ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84", 3, false },
+
 			// getNetPlayerFromGamerHandleIfInSession
 			{ "48 8B C8 48 8B D6 E8 ? ? ? ? 84 C0 75 ? FE C3", 19, false },
 			
@@ -933,8 +936,14 @@ static HookFunction hookFunction([]()
 			//{ "80 FB ? 72 ? 48 8B 5C 24 ? 48 8B 6C 24 ? 48 8B 74 24 ? 48 83 C4 ? 41 5F 41 5E 41 5D 41 5C 5F C3 83 FA", 2, false },
 
 			// Ped Combat related
-			{ "80 FA ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 0F B6 C3 BA", 2, false },
+			
+			// CNetGamePlayer related, Has a potentially unsafe bitset
+			//{ "80 FA ? 72 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B9 ? ? ? ? 48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 0F B6 C3 BA", 2, false },
+
+			// CPedIntelligenceComponent::_unkTaskCombatRemoteShooting
 			{ "80 FA ? 0F 83 ? ? ? ? 48 8B 05", 2, false },
+
+			// CNetworkClearGangBountyEvent
 			{ "80 3B ? 73 ? 48 8B CE", 2, false },
 
 			// CNetObjProximityMigrateable::_getRelevancePlayers
@@ -956,8 +965,6 @@ static HookFunction hookFunction([]()
 
 			// rage::netObject::_doesPlayerHaveControlOverObject
 			{ "80 79 ? ? 72 ? B0", 3, false },
-
-			//{ "80 7F ? ? 72 ? 41 B9 ? ? ? ? C7 44 24", 3, false },
 
 			// Native Fixes
 			{ "83 FB ? 73 ? 45 33 C0", 2, false }, // 0x862C5040F4888741
@@ -1122,6 +1129,13 @@ static HookFunction hookFunction([]()
 		hook::nop(hook::get_pattern("48 8B 0D ? ? ? ? E8 ? ? ? ? 84 C0 74 ? 48 8B 0D ? ? ? ? 44 8B C7"), 34);
 	}
 
+	// Temporarily disable network voice chat. RDR3's implementation slightly differs from GTA V's and requires further investigation as it has several 32-sized arrays 
+	{
+		hook::return_function(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 7B ? 48 8B CF E8 ? ? ? ? 84 C0")));
+
+		hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 54 41 56 41 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 8B F0"));
+	}
+
 	// Rewrite functions to account for extended players
 	MH_Initialize();
 	// Don't broadcast script info for script created vehicles in OneSync.
@@ -1142,7 +1156,6 @@ static HookFunction hookFunction([]()
 
 	//TEMP: Potentially can overflow and lead to issues, and this logic isn't important in onesync at the moment.
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 65 48 8B 0C 25 ? ? ? ? 4C 8B F2"), sub_1424, NULL);
-	hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 54 41 56 41 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 8B F0"));
 	MH_CreateHook(hook::get_pattern("48 89 4C 24 ? 53 55 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B F9"), netArrayManager__Update, (void**)&g_netArrayManager__Update);
 	MH_CreateHook(hook::get_pattern("40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 33 F6"), unkBandwidthTelemetry, (void**)&g_unkBandwidthTelemetry);
 
