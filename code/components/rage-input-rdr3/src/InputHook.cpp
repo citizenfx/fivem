@@ -7,12 +7,20 @@
 
 #include <CfxState.h>
 #include <CrossBuildRuntime.h>
+#include <dinput.h>
 
 static WNDPROC origWndProc;
+
+typedef IDirectInputDeviceW* LPDIRECTINPUTDEVICEW;
+static LPDIRECTINPUTDEVICEW* g_diMouseDevice = nullptr;
 
 static bool g_isFocused = true;
 static bool g_enableSetCursorPos = false;
 static bool g_isFocusStolen = false;
+
+static rage::ioMouse* g_input;
+
+static bool* g_isClippedCursor;
 
 static void(*disableFocus)();
 
@@ -34,28 +42,163 @@ static void EnableFocus()
 	}
 }
 
-void InputHook::SetGameMouseFocus(bool focus, bool flushMouse)
+static void (*recaptureLostDevices)();
+
+static void RecaptureLostDevices()
 {
-	if (!enableFocus || !disableFocus)
+	if (!g_isFocusStolen)
 	{
-		return;
+		recaptureLostDevices();
 	}
-
-	g_isFocusStolen = !focus;
-
-	return (focus) ? enableFocus() : disableFocus();
 }
 
-void InputHook::EnableSetCursorPos(bool enabled) {
-	g_enableSetCursorPos = enabled;
+static std::atomic<int> g_isFocusStolenCount;
+
+static std::map<int, std::vector<InputHook::ControlBypass>> g_controlBypasses;
+
+static bool g_useHostCursor;
+
+void EnableHostCursor()
+{
+	while (ShowCursor(TRUE) < 0)
+		;
+}
+
+void DisableHostCursor()
+{
+	while (ShowCursor(FALSE) >= 0)
+		;
+}
+
+static INT HookShowCursor(BOOL show)
+{
+	if (g_useHostCursor)
+	{
+		return (show) ? 0 : -1;
+	}
+
+	return ShowCursor(show);
+}
+
+void InputHook::SetHostCursorEnabled(bool enabled)
+{
+	static bool lastEnabled = false;
+
+	if (!lastEnabled && enabled)
+	{
+		EnableHostCursor();
+	}
+	else if (lastEnabled && !enabled)
+	{
+		DisableHostCursor();
+	}
+
+	g_useHostCursor = enabled;
 }
 
 static char* g_gameKeyArray;
 
+void InputHook::SetGameMouseFocus(bool focus, bool flushMouse)
+{
+	if (focus)
+	{
+		g_isFocusStolenCount--;
+	}
+	else
+	{
+		g_isFocusStolenCount++;
+	}
+
+	g_isFocusStolen = (g_isFocusStolenCount > 0);
+
+	if (g_isFocusStolen)
+	{
+		if (*g_diMouseDevice)
+		{
+			(*g_diMouseDevice)->Unacquire();
+		}
+
+		if (flushMouse)
+		{
+			int32_t persistingButtons = 0;
+			for (const auto& [subsystem, bypasses] : g_controlBypasses)
+			{
+				for (const auto& [isMouse, ctrlIdx] : bypasses)
+				{
+					if (isMouse)
+					{
+						persistingButtons |= ctrlIdx & 0xFF;
+					}
+				}
+			}
+
+			rage::g_input.m_Buttons() &= persistingButtons;
+		}
+
+		memset(g_gameKeyArray, 0, 0x100);
+	}
+
+	if (!enableFocus || !disableFocus)
+	{
+		return;
+	} 
+
+	return (focus) ? enableFocus() : disableFocus();
+}
+
+void InputHook::EnableSetCursorPos(bool enabled)
+{
+	g_enableSetCursorPos = enabled;
+}
+
 #include <LaunchMode.h>
 #include <ICoreGameInit.h>
 
-BOOL WINAPI ClipCursorWrap(const RECT* lpRekt);
+void InputHook::SetControlBypasses(int subsystem, std::initializer_list<ControlBypass> bypasses)
+{
+	g_controlBypasses[subsystem] = bypasses;
+}
+
+bool InputHook::IsMouseButtonDown(int buttonFlag)
+{
+	return (rage::g_input.m_Buttons() & buttonFlag);
+}
+
+bool InputHook::IsKeyDown(int vk_keycode)
+{
+	if (vk_keycode < 0 || vk_keycode > 255)
+	{
+		return false;
+	}
+
+	return g_gameKeyArray[vk_keycode] & 0x80;
+}
+
+BOOL WINAPI ClipHostCursor(const RECT* lpRekt)
+{
+	static RECT lastRect;
+	static RECT* lastRectPtr;
+
+	*g_isClippedCursor = lpRekt != nullptr;
+	if ((lpRekt && !lastRectPtr) || (lastRectPtr && !lpRekt) || (lpRekt && !EqualRect(&lastRect, lpRekt)))
+	{
+		// update last rect
+		if (lpRekt)
+		{
+			lastRect = *lpRekt;
+			lastRectPtr = &lastRect;
+		}
+		else
+		{
+			memset(&lastRect, 0xCC, 0);
+			lastRectPtr = nullptr;
+		}
+
+		return ClipCursor(lpRekt);
+	}
+
+	return TRUE;
+}
 
 LRESULT APIENTRY sgaWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -64,8 +207,7 @@ LRESULT APIENTRY sgaWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 		std::string userEmail;
 		std::string userName;
 
-		if (Instance<ICoreGameInit>::Get()->GetData("rosUserName", &userName) &&
-			Instance<ICoreGameInit>::Get()->GetData("rosUserEmail", &userEmail))
+		if (Instance<ICoreGameInit>::Get()->GetData("rosUserName", &userName) && Instance<ICoreGameInit>::Get()->GetData("rosUserEmail", &userEmail))
 		{
 			if (HashString(userEmail.c_str()) == 0x448645b5 || HashString(userEmail.c_str()) == 0x96ea6c22)
 			{
@@ -79,11 +221,6 @@ LRESULT APIENTRY sgaWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 	if (uMsg == WM_ACTIVATEAPP)
 	{
 		g_isFocused = (wParam) ? true : false;
-
-		if (!g_isFocused)
-		{
-			ClipCursorWrap(NULL);
-		}
 	}
 
 	if (uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST)
@@ -112,47 +249,90 @@ LRESULT APIENTRY sgaWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 		lresult = DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 
-	if (!pass)
-	{
-		return lresult;
-	}
-
-	//return CallWindowProc(origWndProc, hwnd, uMsg, wParam, lParam);
-	lresult = origWndProc(hwnd, uMsg, wParam, lParam);
-
 	if (g_isFocusStolen)
 	{
-		//memset(g_gameKeyArray, 0, 256);
+		if (uMsg == WM_LBUTTONDOWN || uMsg == WM_RBUTTONDOWN || uMsg == WM_MBUTTONDOWN || uMsg == WM_XBUTTONDOWN || uMsg == WM_LBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_MBUTTONUP || uMsg == WM_XBUTTONUP)
+		{
+			auto buttonIdx = 0;
+
+			if (uMsg == WM_LBUTTONUP || uMsg == WM_LBUTTONDOWN)
+			{
+				buttonIdx = 1;
+			}
+			else if (uMsg == WM_RBUTTONUP || uMsg == WM_RBUTTONDOWN)
+			{
+				buttonIdx = 2;
+			}
+			else if (uMsg == WM_MBUTTONUP || uMsg == WM_MBUTTONDOWN)
+			{
+				buttonIdx = 4;
+			}
+			else if (uMsg == WM_XBUTTONUP || uMsg == WM_XBUTTONDOWN)
+			{
+				buttonIdx = GET_XBUTTON_WPARAM(wParam) * 8;
+			}
+
+			for (const auto& bypassSystem : g_controlBypasses)
+			{
+				for (auto bypass : bypassSystem.second)
+				{
+					if (bypass.isMouse && (bypass.ctrlIdx & 0xFF) == buttonIdx)
+					{
+						if (uMsg == WM_LBUTTONUP || uMsg == WM_MBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_XBUTTONUP)
+						{
+							rage::g_input.m_Buttons() &= ~buttonIdx;
+						}
+						else
+						{
+							rage::g_input.m_Buttons() |= buttonIdx;
+						}
+
+						break;
+					}
+				}
+			}
+		}
 	}
+
+	if (!pass)
+	{
+		bool shouldPassAnyway = false;
+
+		if (uMsg == WM_KEYUP || uMsg == WM_KEYDOWN)
+		{
+			for (const auto& bypassSystem : g_controlBypasses)
+			{
+				for (auto& bypass : bypassSystem.second)
+				{
+					if (!bypass.isMouse && bypass.ctrlIdx == wParam)
+					{
+						shouldPassAnyway = true;
+					}
+				}
+			}
+		}
+
+		if (!shouldPassAnyway)
+		{
+			return lresult;
+		}
+	}
+
+	lresult = origWndProc(hwnd, uMsg, wParam, lParam);
 
 	return lresult;
 }
 
 BOOL WINAPI ClipCursorWrap(const RECT* lpRekt)
 {
-	static RECT lastRect;
-	static RECT* lastRectPtr;
-
-	if ((lpRekt && !lastRectPtr) ||
-		(lastRectPtr && !lpRekt) ||
-		!EqualRect(&lastRect, lpRekt))
+	const RECT* lpResult = nullptr;
+	if (lpRekt != nullptr)
 	{
-		// update last rect
-		if (lpRekt)
-		{
-			lastRect = *lpRekt;
-			lastRectPtr = &lastRect;
-		}
-		else
-		{
-			memset(&lastRect, 0xCC, 0);
-			lastRectPtr = nullptr;
-		}
-
-		return ClipCursor(lpRekt);
+		int may = 1;
+		InputHook::QueryMayLockCursor(may);
+		lpResult = may != 0 ? lpRekt : nullptr;
 	}
-
-	return TRUE;
+	return ClipHostCursor(lpResult);
 }
 
 HKL WINAPI ActivateKeyboardLayoutWrap(IN HKL hkl, IN UINT flags)
@@ -170,209 +350,25 @@ BOOL WINAPI SetCursorPosWrap(int X, int Y)
 	return TRUE;
 }
 
-#include <HostSharedData.h>
-#include <ReverseGameData.h>
-
-static void(*origSetInput)(int, void*, void*, void*);
-
-struct ReverseGameInputState
+static HookFunction setOffsetsHookFunction([]()
 {
-	uint8_t keyboardState[256];
-	int mouseX;
-	int mouseY;
-	int mouseWheel;
-	int mouseButtons;
-
-	ReverseGameInputState()
-	{
-		memset(keyboardState, 0, sizeof(keyboardState));
-		mouseX = 0;
-		mouseY = 0;
-		mouseWheel = 0;
-		mouseButtons = 0;
-	}
-
-	explicit ReverseGameInputState(const ReverseGameData& data)
-	{
-#if 0
-		memcpy(keyboardState, data.keyboardState, sizeof(keyboardState));
-		mouseX = data.mouseX;
-		mouseY = data.mouseY;
-		mouseWheel = data.mouseWheel;
-		mouseButtons = data.mouseButtons;
-#endif
-	}
-};
-
-static ReverseGameInputState lastInput;
-static ReverseGameInputState curInput;
-
-static bool g_mainThreadId;
-
-#include <queue>
-
-static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
-{
-#if 0
-	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
-
-	WaitForSingleObject(rgd->inputMutex, INFINITE);
-
-	std::vector<InputTarget*> inputTargets;
-	static bool lastCaught;
-	bool caught = !InputHook::QueryInputTarget(inputTargets);
-
-	if (caught)
-	{
-		if (rgd->mouseX < 0)
-		{
-			rgd->mouseX = 0;
-		}
-		else if (rgd->mouseX >= rgd->width)
-		{
-			rgd->mouseX = rgd->width;
-		}
-
-		if (rgd->mouseY < 0)
-		{
-			rgd->mouseY = 0;
-		}
-		else if (rgd->mouseY >= rgd->height)
-		{
-			rgd->mouseY = rgd->height;
-		}
-	}
-
-	curInput = ReverseGameInputState{ *rgd };
-
-	static POINT mousePos[2];
-
-	if (caught != lastCaught)
-	{
-		mousePos[caught ? 1 : 0] = { curInput.mouseX, curInput.mouseY };
-
-		curInput.mouseX = mousePos[lastCaught ? 1 : 0].x;
-		curInput.mouseY = mousePos[lastCaught ? 1 : 0].y;
-
-		rgd->mouseX = curInput.mouseX;
-		rgd->mouseY = curInput.mouseY;
-	}
-
-	lastCaught = caught;
-
-	auto loopTargets = [&inputTargets](const auto& fn)
-	{
-		for (InputTarget* t : inputTargets)
-		{
-			fn(t);
-		}
-	};
-
-	// attempt input synthesis for standard key up/down and mouse events
-	for (size_t i = 0; i < std::size(curInput.keyboardState); i++)
-	{
-		bool pass = true;
-		LRESULT lr;
-
-		// TODO: key repeat
-		if (curInput.keyboardState[i] && !lastInput.keyboardState[i])
-		{
-			loopTargets([i](InputTarget* target)
-			{
-				target->KeyDown(i, 0);
-			});
-		}
-		else if (!curInput.keyboardState[i] && lastInput.keyboardState[i])
-		{
-			loopTargets([i](InputTarget* target)
-			{
-				target->KeyUp(i, 0);
-			});
-		}
-	}
-
-	// mouse buttons
-	for (int i = 1; i <= 3; i++)
-	{
-		bool pass = true;
-		LRESULT lr;
-
-		int mx = curInput.mouseX;
-		int my = curInput.mouseY;
-
-		if ((curInput.mouseButtons & i) && !(lastInput.mouseButtons & i))
-		{
-			loopTargets([i, mx, my](InputTarget* target)
-			{
-				target->MouseDown(i - 1, mx, my);
-			});
-		}
-		else if (!(curInput.mouseButtons & i) && (lastInput.mouseButtons & i))
-		{
-			loopTargets([i, mx, my](InputTarget* target)
-			{
-				target->MouseUp(i - 1, mx, my);
-			});
-		}
-	}
-
-	// mouse wheel
-	if (curInput.mouseWheel != lastInput.mouseWheel)
-	{
-		int mw = curInput.mouseWheel;
-
-		loopTargets([mw](InputTarget* target)
-		{
-			target->MouseWheel(mw);
-		});
-	}
-
-	// mouse movement
-	if (curInput.mouseX != lastInput.mouseX || curInput.mouseY != lastInput.mouseY)
-	{
-		int mx = curInput.mouseX;
-		int my = curInput.mouseY;
-
-		loopTargets([mx, my](InputTarget* target)
-		{
-			target->MouseMove(mx, my);
-		});
-	}
-
-	lastInput = curInput;
-
-	if (!a1 && !caught)
-	{
-		int off = ((*(int*)(0x142B3FD18) - 1) & 1) ? 4 : 0;
-
-		// TODO: handle flush of keyboard
-		// 1604
-		memcpy((void*)0x142B3FAD0, rgd->keyboardState, 256);
-		*(uint32_t*)(0x142B3FD08 + off) = curInput.mouseX;
-		*(uint32_t*)(0x142B3FD10 + off) = curInput.mouseY;
-		*(uint32_t*)0x142B3FD8C = rgd->mouseButtons;
-		*(uint32_t*)0x142B3FCE4 = rgd->mouseWheel;
-
-		origSetInput(a1, a2, a3, a4);
-
-		off = 0;// ((*(int*)(0x142B3FD18) - 1) & 1) ? 4 : 0;
-
-		memcpy(rgd->keyboardState, (void*)0x142B3FAD0, 256);
-		rgd->mouseX = *(uint32_t*)(0x142B3FD08 + off);
-		rgd->mouseY = *(uint32_t*)(0x142B3FD10 + off);
-		rgd->mouseButtons = *(uint32_t*)0x142B3FD8C;
-		rgd->mouseWheel = *(uint32_t*)0x142B3FCE4;
-	}
-
-	ReleaseMutex(rgd->inputMutex);
-#endif
-}
+	rage::g_input.mouseButtons = hook::get_address<int32_t*>(hook::get_pattern("8B 05 ? ? ? ? 41 F6 46"), 2, 6);
+});
 
 static HookFunction hookFunction([]()
 {
+	static int* captureCount = hook::get_address<int*>(hook::get_pattern<char>("48 3B 05 ? ? ? ? 0F 45 CA", 0xA), 0x2, 0x6);
+
 	OnGameFrame.Connect([]()
-	{
-		SetInputWrap(-1, NULL, NULL, NULL);
+	{ 
+		int may = 1;
+		InputHook::QueryMayLockCursor(may);
+
+		if (!may)
+		{
+			ClipHostCursor(nullptr);
+			*captureCount = 0;
+		}
 	});
 
 	// window procedure
@@ -381,30 +377,6 @@ static HookFunction hookFunction([]()
 	origWndProc = (WNDPROC)(location + *(int32_t*)location + 4);
 
 	*(int32_t*)location = (intptr_t)(hook::AllocateFunctionStub(sgaWindowProcedure)) - (intptr_t)location - 4;
-
-	// disable mouse focus function
-	/*void* patternMatch = hook::pattern("74 0D 38 1D ? ? ? ? 74 05 E8 ? ? ? ? 48 39").count(1).get(0).get<void>(10);
-	hook::set_call(&disableFocus, patternMatch);
-	hook::call(patternMatch, DisableFocus);
-
-	patternMatch = hook::pattern("74 0D 38 1D ? ? ? ? 74 05 E8 ? ? ? ? 33 C9 E8").count(1).get(0).get<void>(10);
-	hook::set_call(&enableFocus, patternMatch);
-	hook::call(patternMatch, EnableFocus);
-
-	// game key array
-	location = hook::pattern("BF 00 01 00 00 48 8D 1D ? ? ? ? 48 3B 05").count(1).get(0).get<char>(8);
-
-	g_gameKeyArray = (char*)(location + *(int32_t*)location + 4);*/
-
-	// disable directinput keyboard handling
-	// TODO: change for Five
-	//hook::return_function(hook::pattern("A1 ? ? ? ? 83 EC 14 53 33 DB").count(1).get(0).get<void>());
-
-	// focus testing
-	//hook::call(hook::pattern("83 7E 0C 00 0F 84 23 01 00 00 83 7E 08 00 0F 84").count(1).get(0).get<void>(20), AreWeFocused);
-	//hook::jump(hook::pattern("8B 51 08 50 FF D2 84 C0 74 06 B8").count(1).get(0).get<void>(-17), AreWeFocused);
-
-	// force input to be handled using WM_KEYUP/KEYDOWN, not DInput/RawInput
 
 	// disable DInput device creation
 	// two matches, we want the first
@@ -418,22 +390,38 @@ static HookFunction hookFunction([]()
 	// (this will always use a US layout to map VKEY scan codes, instead of using the local layout)
 	hook::put<uint8_t>(hook::get_pattern("8D 48 ? 83 F9 ? 76 ? 83 F8 ? 75 ? B0", 6), 0xEB);
 
+	// game key array
+	location = hook::get_pattern<char>("48 3B 05 ? ? ? ? 48 8D 35", 0xA);
+
+	g_gameKeyArray = (char*)(location + *(int32_t*)location + 4);
+	
+	// ClipHostCursor now controls the rage::ioMouse field that signals that
+	// ClipCursor has non-null lpRect.
+	{
+		auto location = hook::get_pattern<char>("FF 15 ? ? ? ? C6 05 ? ? ? ? ? EB ? 80 3D");
+		g_isClippedCursor = hook::get_address<bool*>(location + 0x6, 0x2, 0x7);
+
+		hook::nop(location + 0x6, 0x7);
+		hook::nop(location + 0x20, 0x7);
+	}
+
+	// DirectInput patches
+	{
+		g_diMouseDevice = hook::get_address<LPDIRECTINPUTDEVICEW*>(hook::get_pattern("48 8B 0D ? ? ? ? 88 1D ? ? ? ? 48 8B 01", 3), 0x0, 0x7);
+
+		auto location = hook::get_pattern("48 83 EC ? 8B 0D ? ? ? ? 85 C9 74 ? 83 E9", 45);
+		hook::set_call(&recaptureLostDevices, location);
+		hook::call(location, RecaptureLostDevices);
+	}
+
 	// fix repeated ClipCursor calls (causing DWM load)
 	hook::iat("user32.dll", ClipCursorWrap, "ClipCursor");
 	hook::iat("user32.dll", ActivateKeyboardLayoutWrap, "ActivateKeyboardLayout");
 
 	// don't allow SetCursorPos during focus
 	hook::iat("user32.dll", SetCursorPosWrap, "SetCursorPos");
-
-	/*static HostSharedData<CfxState> initState("CfxInitState");
-
-	if (initState->isReverseGame)
-	{
-		// 1604
-		// rg
-		hook::set_call(&origSetInput, 0x1407D1840);
-		hook::call(0x1407D1840, SetInputWrap);
-	}*/
+	// Hook ShowCursor to support host cursor
+	hook::iat("user32.dll", HookShowCursor, "ShowCursor");
 });
 
 fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> InputHook::DeprecatedOnWndProc;
