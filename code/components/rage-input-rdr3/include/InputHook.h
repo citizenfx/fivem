@@ -8,8 +8,6 @@
 #define INPUT_DECL __declspec(dllexport)
 #endif
 
-#define INPUT_HOOK_HOST_CURSOR_SUPPORT
-
 namespace rage
 {
 static constexpr uint32_t METHOD_RAW_INPUT = 0;
