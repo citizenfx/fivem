@@ -229,6 +229,20 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 
 	const uint32_t netId = client->GetNetId();
 
+	// Parse the packet first to get StateBag name for tracking
+	std::string stateBagName = "unknown";
+	uint32_t readerOffset = reader.GetOffset();
+	
+	net::packet::StateBagV2 tempStateBag;
+	if (tempStateBag.Process(reader))
+	{
+		// V2 packets have the StateBag name directly accessible
+		stateBagName = std::string(tempStateBag.stateBagName.GetValue());
+	}
+	
+	// Reset reader position
+	reader.Seek(readerOffset);
+
 	const bool hitRateLimit = !stateBagRateLimiter->Consume(netId);
 	const bool hitFloodRateLimit = !stateBagRateFloodLimiter->Consume(netId);
 
@@ -264,9 +278,15 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 				                  kStateBagRateFloodLimit, kStateBagRateFloodLimitBurst);
 			}
 
+			// Track the dropped update for flood rate limiting  
+			stateBagComponent->TrackDroppedStateBagUpdate(netId, stateBagName);
+
 			instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::STATE_BAG_RATE_LIMIT, "Reliable state bag packet overflow.");
 			return;
 		}
+
+		// Track the dropped update for normal rate limiting
+		stateBagComponent->TrackDroppedStateBagUpdate(netId, stateBagName);
 
 		// only log here if we didn't log before, logging should only happen once in every 15 seconds.
 		if (logLimiter.Consume(netId))
@@ -299,6 +319,9 @@ void StateBagPacketHandlerV2::HandleStateBagMessage(fx::ServerInstanceBase* inst
 				"You can disable this warning with `con_addChannelFilter %s drop` if you think you have this properly set up.\n",
 				logChannel);
 		}
+
+		// Track the dropped update for size rate limiting
+		stateBagComponent->TrackDroppedStateBagUpdate(netId, stateBagName);
 
 		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::STATE_BAG_RATE_LIMIT, "Reliable state bag packet overflow.");
 		return;

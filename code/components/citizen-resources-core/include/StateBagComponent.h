@@ -4,6 +4,8 @@
 
 #include <optional>
 #include <string_view>
+#include <map>
+#include <chrono>
 
 #include <msgpack.hpp>
 
@@ -183,6 +185,67 @@ public:
 	// Set the StateBagRole, used when the StateBagRole dynamically changes depending on protocol version between the server and client
 	//
 	virtual void SetRole(StateBagRole role) = 0;
+
+	//
+	// Methods for the debug UI
+	//
+	virtual void ClearOrphanedStateBags() = 0;
+	virtual void ForceStateBagUpdates() = 0;
+	virtual size_t GetStateBagCount() = 0;
+	virtual size_t GetActiveStateBagCount() = 0;
+	virtual size_t GetExpiredStateBagCount() = 0;
+	virtual std::vector<std::string> GetStateBagIds() = 0;
+	virtual size_t GetTargetCount() = 0;
+	virtual size_t GetPreCreatedStateBagCount() = 0;
+	virtual size_t GetErasureListCount() = 0;
+	virtual size_t GetPreCreatePrefixCount() = 0;
+	virtual bool IsGameInterfaceConnected() = 0;
+	virtual const char* GetRoleName() = 0;
+	virtual std::vector<int> GetRegisteredTargets() = 0;
+	virtual size_t GetStateBagCountForTarget(int target) = 0;
+	virtual std::vector<std::pair<std::string, bool>> GetPreCreatePrefixes() = 0;
+	
+	struct StateBagInfo {
+		std::string id;
+		bool isExpired;
+		bool isActive;
+		size_t keyCount;
+	};
+	
+	struct StateBagDetails {
+		std::string id;
+		bool useParentTargets;
+		bool replicationEnabled;
+		std::optional<int> owningPeer;
+		std::vector<int> routingTargets;
+		std::map<std::string, std::string> storedData;
+		std::map<std::string, size_t> queuedData; // key -> size
+		bool isExpired;
+	};
+	
+	virtual std::vector<StateBagInfo> GetStateBagInfoList() = 0;
+	virtual bool IsStateBagExpired(const std::string& id) = 0;
+	virtual std::optional<StateBagDetails> GetStateBagDetails(const std::string& id) = 0;
+	virtual void SendStateBagQueuedUpdates(const std::string& id) = 0;
+
+	struct RateLimitInfo {
+		int clientId;
+		uint32_t currentRate;      // Updates per second
+		uint32_t burstCount;       // Current burst count
+		uint32_t droppedUpdates;   // Total dropped updates
+		std::string lastDroppedStateBag; // Last StateBag that caused a drop
+		std::chrono::steady_clock::time_point lastDropTime;
+		std::vector<std::string> recentStateBags; // Recent StateBags from this client
+	};
+	
+	virtual std::vector<RateLimitInfo> GetRateLimitInfo() = 0;
+	virtual uint32_t GetRateLimitRate() = 0;      // Current rate limit setting
+	virtual uint32_t GetRateLimitBurst() = 0;     // Current burst limit setting
+	virtual void ResetClientRateLimit(int clientId) = 0;
+	virtual void TrackStateBagUpdate(int clientId, const std::string& stateBagId, bool wasDropped = false) = 0;
+	
+	// Method to track dropped updates from packet handlers
+	virtual void TrackDroppedStateBagUpdate(int clientId, const std::string& stateBagId) = 0;
 
 	//
 	// An event handling a state bag value change.
