@@ -1250,33 +1250,51 @@ static void Init()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_PED_IS_IN", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
-		auto node = entity->syncTree->GetPedGameState();
-		bool lastVehicleArg = context.GetArgument<bool>(1);
+		 bool lastVehicleArg = context.GetArgument<bool>(1);
 
+		 // get the current resource manager
+		 auto resourceManager = fx::ResourceManager::GetCurrent();
 
-		// get the current resource manager
-		auto resourceManager = fx::ResourceManager::GetCurrent();
+		 // get the owning server instance
+		 auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 
-		// get the owning server instance
-		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+		 // get the server's game state
+		 auto gameState = instance->GetComponent<fx::ServerGameState>();
 
-		// get the server's game state
-		auto gameState = instance->GetComponent<fx::ServerGameState>();
+		 int lastVeh = 0;
+		 int curVeh = 0;
 
-		if (!node)
-			return (uint32_t)0;
+#ifdef STATE_RDR3
+		 auto pedVehicleData = entity->syncTree->GetPedVehicleData();
+		 if (!pedVehicleData)
+			 return (uint32_t)0;
 
-		// If ped is not in a vehicle, or was not in a previous vehicle (depending on the lastVehicleArg) return 0
-		if ((lastVehicleArg == true && node->lastVehiclePedWasIn == -1) || (lastVehicleArg == false && node->curVehicle == -1))
-			return (uint32_t)0;
+		 if ((lastVehicleArg == true && pedVehicleData->lastVehiclePedWasIn == 0) || (lastVehicleArg == false && pedVehicleData->curVehicle == 0))
+			 return (uint32_t)0;
 
-		auto returnEntity = lastVehicleArg == true ? gameState->GetEntity(0, node->lastVehiclePedWasIn) : gameState->GetEntity(0, node->curVehicle);
+		 lastVeh = pedVehicleData->lastVehiclePedWasIn;
+		 curVeh = pedVehicleData->curVehicle;
 
-		if (!returnEntity)
-			return (uint32_t)0;
+#else
+		 auto node = entity->syncTree->GetPedGameState();
+		 if (!node)
+			 return (uint32_t)0;
 
-		// Return the entity
-		return gameState->MakeScriptHandle(returnEntity);
+		 // If ped is not in a vehicle, or was not in a previous vehicle (depending on the lastVehicleArg) return 0
+		 if ((lastVehicleArg == true && node->lastVehiclePedWasIn == -1) || (lastVehicleArg == false && node->curVehicle == -1))
+			 return (uint32_t)0;
+
+		 lastVeh = node->lastVehiclePedWasIn;
+		 curVeh = node->curVehicle;
+#endif
+
+		 auto returnEntity = lastVehicleArg == true ? gameState->GetEntity(0, lastVeh) : gameState->GetEntity(0, curVeh);
+
+		 if (!returnEntity)
+			 return (uint32_t)0;
+
+		 // Return the entity
+		 return gameState->MakeScriptHandle(returnEntity);
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_IN_VEHICLE_SEAT", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
