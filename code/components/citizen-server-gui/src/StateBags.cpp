@@ -7,6 +7,7 @@
 #include "StateBagComponent.h"
 
 static fwRefContainer<fx::StateBagComponent> g_stateBagComponent = nullptr;
+static fwRefContainer<fx::ClientRegistry> g_clientRegistry = nullptr;
 static std::string selectedStateBagId;
 static int selectedStateBagIndex = -1;
 static char searchFilter[128] = "";
@@ -65,7 +66,8 @@ void RenderStateBagDetails()
         {
             for (int target : d.routingTargets)
             {
-                ImGui::Text("  Target: %d", target);
+            	auto client = g_clientRegistry->GetClientBySlotID(target);
+                ImGui::Text("  Target: %d", client->GetNetId());
             }
         }
     }
@@ -225,8 +227,10 @@ void RenderRateLimitingDebug()
 				{
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
 				}
+
+				auto client = g_clientRegistry->GetClientBySlotID(info.clientId);
 				
-				ImGui::Text("%d", info.clientId);
+				ImGui::Text("%d", client->GetNetId());
 				ImGui::NextColumn();
 				
 				ImGui::Text("%u/s", info.currentRate);
@@ -385,6 +389,7 @@ void RenderStateBagsList()
 
 static SvGuiModule stateBags("State Bags", "svstatebags", ImGuiWindowFlags_MenuBar, [](fx::ServerInstanceBase* instance)
 {
+	g_clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 	g_stateBagComponent = fx::ResourceManager::GetCurrent()->GetComponent<fx::StateBagComponent>();
 
 	if (ImGui::BeginMenuBar())
