@@ -6,6 +6,11 @@
 
 #include <CrossBuildRuntime.h>
 
+enum NativeIdentifiers : uint64_t
+{
+	_NETWORK_OVERRIDE_CLOCK_MILLISECONDS_PER_GAME_MINUTE = 0x42BF1D2E723B6D7E
+};
+
 static uint32_t* msPerMinute;
 static std::optional<uint32_t> customMsPerMinute;
 static constexpr uint32_t msPerMinuteDefault = 2000;
@@ -61,12 +66,11 @@ static InitFunction initFunction([]()
 	{
 		SetMillisecondsPerGameMinute(context);
 	});
-
-	// b2189+ _NETWORK_OVERRIDE_CLOCK_MILLISECONDS_PER_GAME_MINUTE
+	
 	if (xbr::IsGameBuildOrGreater<2189>())
 	{
 		// the actual native works a *bit* differently from ours, but this is safe enough for our use case
-		fx::ScriptEngine::RegisterNativeHandler(0x42BF1D2E723B6D7E, [](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(_NETWORK_OVERRIDE_CLOCK_MILLISECONDS_PER_GAME_MINUTE, [](fx::ScriptContext& context)
 		{
 			SetMillisecondsPerGameMinute(context);
 		});
