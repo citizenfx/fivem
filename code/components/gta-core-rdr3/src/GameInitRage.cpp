@@ -29,6 +29,9 @@ DLL_EXPORT fwEvent<> OnMsgConfirm;
 static bool g_showWarningMessage;
 static std::string g_warningMessage;
 
+static bool g_triedLoading = false;
+static bool g_shouldSetState;
+
 void RageGameInit::KillNetwork(const wchar_t* errorString)
 {
 	if (errorString == (wchar_t*)1)
@@ -67,22 +70,121 @@ void RageGameInit::SetPreventSavePointer(bool* preventSaveValue)
 
 }
 
+extern bool g_setLoadingScreens;
 extern bool g_isNetworkKilled;
+extern bool g_shouldKillNetwork;
+extern int* g_initState;
+
+void SetRenderThreadOverride()
+{
+	g_setLoadingScreens = true;
+}
 
 void RageGameInit::ReloadGame()
 {
+	AddCrashometry("reload_game", "true");
+	
+	m_gameLoaded = false;
 	g_isNetworkKilled = false;
+
+	ClearVariable("gameKilled");
 }
 
-static bool canContinueLoad;
 static bool(*g_callBeforeLoad)();
+static void (*g_runInitFunctions)(void*, int);
+static void (*g_lookAlive)();
+
+static void RunInitFunctionsWrap(void* skel, int type)
+{
+	if (g_callBeforeLoad)
+	{
+		while (!g_callBeforeLoad())
+		{
+			g_lookAlive();
+		}
+	}
+	g_runInitFunctions(skel, type);
+}
 
 void RageGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 {
-	canContinueLoad = true;
+	AddCrashometry("load_game_first_launch", "true");
 	g_callBeforeLoad = callBeforeLoad;
 
+	OnGameFrame.Connect([=]()
+	{
+		if (g_shouldSetState)
+		{
+			if (*g_initState == 10)
+			{
+				*g_initState = 21;
+				g_triedLoading = true;
+
+				g_shouldSetState = false;
+			}
+		}
+
+		static bool isLoading = false;
+
+		if (isLoading)
+		{
+			if (*g_initState == 0)
+			{
+				trace("^2Game finished loading!\n");
+
+				ClearVariable("shutdownGame");
+				ClearVariable("killedGameEarly");
+
+				OnGameFinalizeLoad();
+				isLoading = false;
+			}
+		}
+		else
+		{
+			if (*g_initState != 0)
+			{
+				isLoading = true;
+			}
+		}
+		//trace("g_initState %i\n", *g_initState);
+	});
+
+	OnKillNetwork.Connect([=](const char* message)
+	{
+		AddCrashometry("kill_network", "true");
+		AddCrashometry("kill_network_msg", message);
+
+		trace("Killing network: %s\n", message);
+
+		g_shouldKillNetwork = true;
+
+		Instance<ICoreGameInit>::Get()->ClearVariable("networkInited");
+
+		SetRenderThreadOverride();
+
+		if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			Instance<ICoreGameInit>::Get()->SetVariable("killedGameEarly");
+			Instance<ICoreGameInit>::Get()->SetVariable("gameKilled");
+			Instance<ICoreGameInit>::Get()->SetVariable("shutdownGame");
+
+			AddCrashometry("kill_network_game_early", "true");
+
+			OnKillNetworkDone();
+		}
+	}, 500);
+
 	OnGameRequestLoad();
+
+	if (*g_initState == 10)
+	{
+		*g_initState = 21;
+		g_triedLoading = true;
+	}
+	else
+	{
+		g_shouldSetState = true;
+	}
 }
 
 bool RageGameInit::TryDisconnect()
@@ -95,10 +197,6 @@ bool RageGameInit::TriggerError(const char* message)
 	return (!OnTriggerError(message));
 }
 
-hook::cdecl_stub<void()> _doLookAlive([]()
-{
-	return hook::get_pattern("40 8A FB 38 1D", -0x29);
-});
 
 // share this(!)
 static std::vector<ProgramArguments> g_argumentList;
@@ -157,21 +255,6 @@ static InitFunction initFunction([]()
 
 static InitFunction initFunctionTwo([]()
 {
-	rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
-	{
-		if (type == rage::INIT_SESSION)
-		{
-			while (!canContinueLoad || (g_callBeforeLoad && !g_callBeforeLoad()))
-			{
-				Sleep(50);
-
-				_doLookAlive();
-
-				// todo: add critical servicing
-			}
-		}
-	}, -99999);
-
 	// early init command stuff
 	rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 	{
@@ -192,7 +275,6 @@ static InitFunction initFunctionTwo([]()
 		if (type == rage::INIT_SESSION)
 		{
 			g_gameInit.SetGameLoaded();
-			g_gameInit.OnGameFinalizeLoad();
 		}
 	});
 
@@ -298,4 +380,12 @@ static HookFunction hookFunctionNet([]()
 	MH_Initialize();
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 3C ? 75 ? 48 8B 0D")), fiAssetManagerExists, (void**)&g_fiAssetManagerExists);
 	MH_EnableHook(MH_ALL_HOOKS);
+
+	// block loading until conditions succeed
+	{
+		char* loadStarter = hook::get_pattern<char>("C6 05 ? ? ? ? 00 E8 ? ? ? ? E8 ? ? ? ? 8B CB E8", 7);
+		hook::set_call(&g_runInitFunctions, loadStarter);
+		hook::set_call(&g_lookAlive, loadStarter + 5);
+		hook::call(loadStarter, RunInitFunctionsWrap);
+	}
 });
