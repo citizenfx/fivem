@@ -11,7 +11,7 @@ int GET_PLAYER_TIME_ONLINE(char* playerSrc);
 Gets the current time online for a specified player.
 
 ## Parameters
-* **playerSrc**: A player.
+* **playerSrc**: The player to get
 
 ## Return value
 

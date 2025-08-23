@@ -22,6 +22,12 @@ follows:
 * `CVehicle`: Vehicles.
 * `CPickup`: Pickups.
 
+## Parameters
+* **poolName**: The pool name to get a list of entities from.
+
+## Return value
+An array containing entity handles for each entity in the named pool.
+
 ## Examples
 ```lua
 local vehiclePool = GetGamePool('CVehicle') -- Get the list of vehicles (entities) from the pool
@@ -31,9 +37,3 @@ for i = 1, #vehiclePool do -- loop through each vehicle (entity)
     end
 end
 ```
-
-## Parameters
-* **poolName**: The pool name to get a list of entities from.
-
-## Return value
-An array containing entity handles for each entity in the named pool.

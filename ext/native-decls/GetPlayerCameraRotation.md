@@ -9,12 +9,10 @@ apiset: server
 Vector3 GET_PLAYER_CAMERA_ROTATION(char* playerSrc);
 ```
 
-Gets the current camera rotation for a specified player. This native is used server side when using OneSync.
+Gets the current camera rotation for a specified player.
 
 ## Parameters
-
 - **playerSrc**: The player handle.
 
 ## Return value
-
-The player's camera rotation. Values are in radians.
+Returns the players camera rotation in radians
