@@ -1076,7 +1076,76 @@ struct CGuardZoneGuardDataNode { };
 struct CGuardZonePointOfInterestFinderDataNode { };
 struct CCombatDirectorCreateUpdateDataNode { };
 struct CPedWeaponDataNode { };
-struct CPedVehicleDataNode { };
+struct CPedVehicleDataNode : GenericSerializeDataNode<CPedVehicleDataNode>
+{
+	CPedVehicleNodeData data;
+
+	bool wasInVehicle;
+	bool wasOnHorse;
+
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
+	{
+
+		bool wasInVehicle = data.curVehicle != 0;
+		s.Serialize(wasInVehicle);
+
+		if (wasInVehicle)
+		{
+			s.Serialize(data.inVehicle);
+			s.Serialize(13, data.curVehicle);
+		}
+		else
+		{
+			data.curVehicle = 0;
+			data.inVehicle = false;
+		}
+
+		bool wasOnHorse = data.curHorse != 0;
+		s.Serialize(wasOnHorse);
+		if (wasOnHorse)
+		{
+			s.Serialize(data.onHorse);
+			s.Serialize(13, data.curHorse);
+		}
+		else
+		{
+			data.curHorse = 0;
+			data.onHorse = false;
+		}
+
+		if (data.onHorse || data.inVehicle)
+		{
+			s.Serialize(5, data.curSeat);
+
+			if (data.onHorse && data.lastHorsePedWasOn == 0)
+			{
+				data.lastHorsePedWasOn = data.curHorse;
+			}
+
+			if (data.inVehicle && data.lastVehiclePedWasIn == 0)
+			{
+				data.lastVehiclePedWasIn = data.curVehicle;
+			}
+		}
+		else
+		{
+			data.curSeat = 0;
+
+			if (!data.onHorse && data.lastHorsePedWasOn != data.curHorse)
+			{
+				data.lastHorsePedWasOn = data.curHorse;
+			}
+
+			if (!data.inVehicle && data.lastVehiclePedWasIn != data.curVehicle)
+			{
+				data.lastVehiclePedWasIn = data.curVehicle;
+			}
+		}
+
+		return true;
+	}
+};
 struct CPlayerCharacterCreatorDataNode { };
 struct CPlayerAmbientModelStreamingDataNode { };
 struct CPlayerVoiceDataNode { };
@@ -1546,6 +1615,13 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 		}
 
 		return false;
+	}
+
+	virtual CPedVehicleNodeData* GetPedVehicleData() override
+	{
+		auto [hasNode, node] = this->template GetData<CPedVehicleDataNode>();
+
+		return hasNode ? &node->data : nullptr;
 	}
 };
 
