@@ -1,3 +1,4 @@
+using CitizenFX.MsgPack;
 using System;
 using System.ComponentModel;
 using System.Collections.Generic;
@@ -6,7 +7,7 @@ namespace CitizenFX.Core
 {
 	public class Exports
 	{
-		private Dictionary<string, DynFunc> m_exports => new Dictionary<string, DynFunc>();
+		private Dictionary<string, MsgPackFunc> m_exports => new Dictionary<string, MsgPackFunc>();
 
 		public static LocalExports Local { get; } = new LocalExports();
 
@@ -58,7 +59,19 @@ namespace CitizenFX.Core
 			}
 		}
 
-		public DynFunc this[string export]
+		public ExportFunc<T> Get<T>(string resource, string export)
+		{
+			CString fullExportName = ExportsManager.CreateFullExportName(resource, export);
+			return (args) => ExportsManager.LocalInvokeTyped<T>(fullExportName, args);
+		}
+
+		public Coroutine<T> Get<T>(string resource, string export, params object[] args)
+		{
+			CString fullExportName = ExportsManager.CreateFullExportName(resource, export);
+			return ExportsManager.LocalInvokeTyped<T>(fullExportName, args);
+		}
+
+		public MsgPackFunc this[string export]
 		{
 			set => Add(export, value);
 			get => m_exports[export];
@@ -71,7 +84,29 @@ namespace CitizenFX.Core
 		}
 #endif
 
-		public void Add(string name, DynFunc method, Binding binding = Binding.Local)
+		/// <summary>
+		/// Adds a new export to the resource. The export name must be unique.
+		/// </summary>
+		/// <param name="name">The export's name, must be unique</param>
+		/// <param name="method">The method that will be run when called</param>
+		/// <param name="binding">Incoming call allowance, defaults to Local (Same side only)</param>
+		public void Add(string name, Delegate method, Binding binding = Binding.Local)
+		{
+			if (method is MsgPackFunc msgPackFunc)
+			{
+				Add(name, msgPackFunc, binding);
+			}
+			else if (method is DynFunc dynFunc)
+			{
+				Add(name, dynFunc, binding);
+			}
+			else
+			{
+				Add(name, MsgPackDeserializer.CreateDelegate(method), binding);
+			}
+		}
+
+		internal void Add(string name, MsgPackFunc method, Binding binding = Binding.Local)
 		{
 			if (ExportsManager.AddExportHandler(name, method, binding))
 				m_exports.Add(name, method);
@@ -101,6 +136,18 @@ namespace CitizenFX.Core
 				return (args) => ExportsManager.LocalInvoke(fullExportName, args);
 			}
 		}
+
+		public ExportFunc<T> Get<T>(string resource, string export)
+		{
+			CString fullExportName = ExportsManager.CreateFullExportName(resource, export);
+			return (args) => ExportsManager.LocalInvokeTyped<T>(fullExportName, args);
+		}
+
+		public Coroutine<T> Get<T>(string resource, string export, params object[] args)
+		{
+			CString fullExportName = ExportsManager.CreateFullExportName(resource, export);
+			return ExportsManager.LocalInvokeTyped<T>(fullExportName, args);
+		}
 	}
 
 	[Browsable(false)]
@@ -114,6 +161,18 @@ namespace CitizenFX.Core
 				CString fullExportName = ExportsManager.CreateFullExportName(resource, export);
 				return (args) => ExportsManager.LocalInvoke(fullExportName, args);
 			}
+		}
+
+		public ExportFunc<T> Get<T>(string resource, string export)
+		{
+			CString fullExportName = ExportsManager.CreateFullExportName(resource, export);
+			return (args) => ExportsManager.LocalInvokeTyped<T>(fullExportName, args);
+		}
+
+		public Coroutine<T> Get<T>(string resource, string export, params object[] args)
+		{
+			CString fullExportName = ExportsManager.CreateFullExportName(resource, export);
+			return ExportsManager.LocalInvokeTyped<T>(fullExportName, args);
 		}
 	}
 
