@@ -1399,6 +1399,146 @@ struct CInteriorProxy
 };
 
 #ifdef GTA_FIVE
+#include <RageParser.h>
+
+struct CPedFacialOverlays
+{
+	atArray<uint32_t> m_blemishes;
+	atArray<uint32_t> m_facialHair;
+	atArray<uint32_t> m_eyebrow;
+	atArray<uint32_t> m_aging;
+	atArray<uint32_t> m_makeup;
+	atArray<uint32_t> m_blusher;
+	atArray<uint32_t> m_damage;
+	atArray<uint32_t> m_baseDetail;
+	atArray<uint32_t> m_skinDetail1;
+	atArray<uint32_t> m_skinDetail2;
+	atArray<uint32_t> m_bodyOverlay1;
+	atArray<uint32_t> m_bodyOverlay2;
+	atArray<uint32_t> m_bodyOverlay3;
+
+	bool LoadFromFile(const char* filePath);
+};
+
+bool CPedFacialOverlays::LoadFromFile(const char* filePath)
+{
+	auto parserStruct = rage::GetStructureDefinition("CPedFacialOverlays");
+	
+	return LoadFromStructure(filePath, "meta", parserStruct, this, true, nullptr);
+}
+
+static CPedFacialOverlays* g_pedFacialOverlaysStore;
+
+class CfxPedFacialOverlaysMounter : public CDataFileMountInterface
+{
+public:
+	virtual bool LoadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		CPedFacialOverlays loadedOverlays{};
+
+		const auto fileName = std::string(entry->name);
+		auto basePath = fileName.substr(0, fileName.find_last_of('.'));
+		
+		if (loadedOverlays.LoadFromFile(basePath.c_str()))
+		{
+			auto overlaysStore = g_pedFacialOverlaysStore;
+
+			AddToArray(overlaysStore->m_blemishes, loadedOverlays.m_blemishes);
+			AddToArray(overlaysStore->m_facialHair, loadedOverlays.m_facialHair);
+			AddToArray(overlaysStore->m_eyebrow, loadedOverlays.m_eyebrow);
+			AddToArray(overlaysStore->m_aging, loadedOverlays.m_aging);
+			AddToArray(overlaysStore->m_makeup, loadedOverlays.m_makeup);
+			AddToArray(overlaysStore->m_blusher, loadedOverlays.m_blusher);
+			AddToArray(overlaysStore->m_damage, loadedOverlays.m_damage);
+			AddToArray(overlaysStore->m_baseDetail, loadedOverlays.m_baseDetail);
+			AddToArray(overlaysStore->m_skinDetail1, loadedOverlays.m_skinDetail1);
+			AddToArray(overlaysStore->m_skinDetail2, loadedOverlays.m_skinDetail2);
+			AddToArray(overlaysStore->m_bodyOverlay1, loadedOverlays.m_bodyOverlay1);
+			AddToArray(overlaysStore->m_bodyOverlay2, loadedOverlays.m_bodyOverlay2);
+			AddToArray(overlaysStore->m_bodyOverlay3, loadedOverlays.m_bodyOverlay3);
+			return true;
+		}
+
+		return false;
+	}
+
+	virtual void UnloadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		CPedFacialOverlays loadedOverlays{};
+
+		const auto fileName = std::string(entry->name);
+		auto basePath = fileName.substr(0, fileName.find_last_of('.'));
+
+		if (loadedOverlays.LoadFromFile(basePath.c_str()))
+		{
+			auto overlaysStore = g_pedFacialOverlaysStore;
+
+			RemoveFromArray(overlaysStore->m_blemishes, loadedOverlays.m_blemishes);
+			RemoveFromArray(overlaysStore->m_facialHair, loadedOverlays.m_facialHair);
+			RemoveFromArray(overlaysStore->m_eyebrow, loadedOverlays.m_eyebrow);
+			RemoveFromArray(overlaysStore->m_aging, loadedOverlays.m_aging);
+			RemoveFromArray(overlaysStore->m_makeup, loadedOverlays.m_makeup);
+			RemoveFromArray(overlaysStore->m_blusher, loadedOverlays.m_blusher);
+			RemoveFromArray(overlaysStore->m_damage, loadedOverlays.m_damage);
+			RemoveFromArray(overlaysStore->m_baseDetail, loadedOverlays.m_baseDetail);
+			RemoveFromArray(overlaysStore->m_skinDetail1, loadedOverlays.m_skinDetail1);
+			RemoveFromArray(overlaysStore->m_skinDetail2, loadedOverlays.m_skinDetail2);
+			RemoveFromArray(overlaysStore->m_bodyOverlay1, loadedOverlays.m_bodyOverlay1);
+			RemoveFromArray(overlaysStore->m_bodyOverlay2, loadedOverlays.m_bodyOverlay2);
+			RemoveFromArray(overlaysStore->m_bodyOverlay3, loadedOverlays.m_bodyOverlay3);
+		}
+	}
+
+	inline void AddToArray(atArray<uint32_t>& global, atArray<uint32_t>& loading)
+	{
+		auto numOverlays = loading.GetCount();
+		if (numOverlays == 0)
+		{
+			return;
+		}
+
+		auto startIndex = global.GetCount();
+
+		if (global.GetCount() + numOverlays >= global.GetSize())  
+		{																	 
+			global.Expand(startIndex + numOverlays);								
+		}
+
+		for (uint16_t i = 0; i < numOverlays; i++)									 
+		{																		
+			global[startIndex + i] = loading[i];										
+		}
+
+		global.m_count += numOverlays;
+	}
+
+	inline void RemoveFromArray(atArray<uint32_t>& global, atArray<uint32_t>& removing)
+	{
+		auto numOverlays = removing.GetCount();
+		if (numOverlays == 0)
+		{
+			return;
+		}
+
+		for (uint32_t targetHash : removing)
+		{
+			for (int i = 0; i < global.GetCount(); i++)
+			{
+				if (global[i] == targetHash)
+				{
+					global.Remove(i);
+					break;
+				}
+			}
+		}
+	}
+};
+
+static CfxPedFacialOverlaysMounter g_pedFacialOverlaysMounter;
+
+#endif
+
+#ifdef GTA_FIVE
 static hook::thiscall_stub<int(void* store, int* out, uint32_t* inHash)> _getIndexByKey([]()
 {
 	return hook::get_pattern("39 1C 91 74 4F 44 8B 4C 91 08 45 3B", -0x34);
@@ -1497,6 +1637,14 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 	{
 		return &g_staticCacheMounter;
 	}
+
+	// Custom data file mounters.
+#if GTA_FIVE
+	if (type == "CFX_PED_FACIAL_OVERLAYS")
+	{
+		return &g_pedFacialOverlaysMounter;
+	}
+#endif
 
 	int fileType = LookupDataFileType(type);
 
@@ -3494,6 +3642,7 @@ static HookFunction hookFunction([]()
 #endif
 
 #ifdef GTA_FIVE
+	g_pedFacialOverlaysStore = hook::get_address<decltype(g_pedFacialOverlaysStore)>(hook::get_pattern<char>("48 8D 05 ? ? ? ? 48 8D 1D ? ? ? ? 48 8D 15", 3));
 
 	loadChangeSet = hook::get_pattern<char>("48 81 EC 50 03 00 00 49 8B F0 4C", -0x18);
 
