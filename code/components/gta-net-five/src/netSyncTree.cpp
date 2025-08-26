@@ -141,7 +141,7 @@ static bool CVehicleCreationDataNode__CanApply(hook::FlexStruct* thisptr, rage::
 	int32_t vehicleModelType = GetModelType(hash);
 	if (vehicleModelType < 0)
 	{
-		trace("CNetObjVehicle_SetVehicleCreateData: model hash %x is not a vehicle, skipping.\n", hash);
+		console::DPrintf("gta-net", "CNetObjVehicle_SetVehicleCreateData: model hash %x is not a vehicle, skipping.\n", hash);
 		return false;
 	}
 
