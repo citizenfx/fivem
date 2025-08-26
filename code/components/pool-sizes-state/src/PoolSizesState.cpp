@@ -36,7 +36,15 @@ namespace fx
 			std::string request = ToNarrow(requestRaw);
 			if (!request.empty())
 			{
-				sizeIncrease = nlohmann::json::parse(request).get<std::unordered_map<std::string, uint32_t>>();
+				try
+				{
+					sizeIncrease = nlohmann::json::parse(request).get<std::unordered_map<std::string, uint32_t>>();
+				}
+				catch (std::exception& e)
+				{
+					trace("Error occured while parsing the pool size increase request json: %s.\n", e.what());
+					WritePrivateProfileString(L"Game", L"PoolSizesIncrease", L"", fpath.c_str());
+				}
 			}
 		}
 	}
