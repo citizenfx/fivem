@@ -83,6 +83,9 @@ static std::unordered_map<uint64_t, int> g_nativeBlockedBeforeBuild = {
 	{0xA6EEF01087181EDD, std::numeric_limits<int>::max()},
 	{0xDBF860CF1DB8E599, std::numeric_limits<int>::max()},
 
+	{0xC8B189ED9138BCD4, std::numeric_limits<int>::max()}, // TERMINATE_THREAD
+	{0x1090044AD1DA76FA, std::numeric_limits<int>::max()}, // TERMINATE_THIS_THREAD
+
 	// Natives that were introduces after a certain build and are closely coupled with the DLC content.
 	// When running new game executable with old DLC set - we have to explicitly disable these natives.
 
