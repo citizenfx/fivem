@@ -580,6 +580,15 @@ static void StartupScriptWrap()
 	origStartupScript();
 }
 
+static void (*g_origPauseMenuLaunchScript)(void*, void*);
+static void PauseMenuLaunchScript(void* a1, void* a2)
+{
+	if (storyMode)
+	{
+		g_origPauseMenuLaunchScript(a1, a2);
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	Instance<ICoreGameInit>::Get()->OnSetVariable.Connect([](const std::string& name, bool value)
@@ -659,6 +668,10 @@ static HookFunction hookFunction([] ()
 		// NOTE: before removing make sure scrObfuscation in fivem-private can handle opcode 0x2C (NATIVE)
 		//hook::jump(hook::pattern("48 83 EC 20 80 B9 ? 01 00 00 00 8B FA").count(1).get(0).get<void>(-0xB), JustNoScript);
 		MH_CreateHook(hook::pattern("48 83 EC 20 80 B9 ? 01 00 00 00 8B FA").count(1).get(0).get<void>(-0xB), JustNoScript, (void**)&g_origNoScript);
+
+		// Prevent the pause menu from attempting to start scripts
+		// For some reason this rarely causes crashes on certain servers.
+		MH_CreateHook(hook::pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? 48 8B 01 48 8B EA 4C 8B F1").count(1).get(0).get<void>(), PauseMenuLaunchScript, (void**)&g_origPauseMenuLaunchScript);
 
 		// make all CGameScriptId instances return 'true' in matching function (mainly used for 'is script allowed to use this object' checks)
 		//hook::jump(hook::pattern("74 3C 48 8B 01 FF 50 10 84 C0").count(1).get(0).get<void>(-0x1A), ReturnTrue);
