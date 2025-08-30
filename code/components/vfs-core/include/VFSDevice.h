@@ -88,6 +88,12 @@ public:
 	virtual std::string GetAbsolutePath() const = 0;
 
 	virtual bool Flush(THandle handle) = 0;
+	
+	virtual bool Truncate(THandle handle, uint64_t length)
+	{
+		// Not implemented - see LocalDevice.cpp / RelativeDevice.cpp
+		return false;
+	};
 };
 
 #define VFS_FLUSH_BUFFERS 0x10001

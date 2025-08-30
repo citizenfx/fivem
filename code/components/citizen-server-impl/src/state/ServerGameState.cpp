@@ -104,6 +104,9 @@ static bool g_networkedPhoneExplosionsEnabled;
 static std::shared_ptr<ConVar<bool>> g_networkedScriptEntityStatesEnabledVar;
 static bool g_networkedScriptEntityStatesEnabled;
 
+static std::shared_ptr<ConVar<bool>> g_protectServerEntitiesDeletionVar;
+static bool g_protectServerEntitiesDeletion;
+
 static std::shared_ptr<ConVar<int>> g_requestControlVar;
 static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
 
@@ -1797,15 +1800,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, syncData.hasCreated };
 
-			if (syncData.hasCreated)
+			if (syncData.hasCreated && !syncData.hasRoutedStateBag)
 			{
-				// Add this player as a routing target to this entity's statebag, if present.
-				// notes:
-				// * this will try to add it every frame, but the statebag will only add it once (std::set).
-				// * will occur on the next update/tick when syncData.hasCreated is true, this'll ensure that it's sent after the client knows about this entity.
-				// TODO: PERF: remove this every-frame call by giving this system a nice and fresh design
 				if (auto stateBag = entity->GetStateBag())
 				{
+					syncData.hasRoutedStateBag = true;
 					stateBag->AddRoutingTarget(slotId);
 				}
 			}
@@ -2636,6 +2635,11 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 /// <param name="callOnInitialEntity">Whether the function should do the `fn` call on the initialTrain</param>
 void ServerGameState::IterateTrainLink(const sync::SyncEntityPtr& initialTrain, std::function<bool(sync::SyncEntityPtr&)> fn, bool callOnInitialEntity)
 {
+	static constexpr uint16_t kMaxDuplicateEntityIds = 3;
+
+	static thread_local std::unordered_set<uint32_t> processedTrains{};
+	processedTrains.clear();
+
 	// for most stuff we want to call on the intial entity
 	if (callOnInitialEntity)
 	{
@@ -2645,21 +2649,25 @@ void ServerGameState::IterateTrainLink(const sync::SyncEntityPtr& initialTrain, 
 		}
 	}
 
-	if (auto trainState = initialTrain->syncTree->GetTrainState())
+	if (const auto trainState = initialTrain->syncTree->GetTrainState())
 	{
-		auto recurseTrain = [=](const fx::sync::SyncEntityPtr& train)
+		uint16_t duplicateEntityIds = 0;
+		auto recurseTrain = [this, &duplicateEntityIds, &fn](const fx::sync::SyncEntityPtr& train)
 		{
 			for (auto link = GetNextTrain(this, train); link; link = GetNextTrain(this, link))
 			{
-				// this is expected to make sure that the initial train & the link trains are not called twice
-				// since this could lead to double locking the client mutex in ReassignEntity
-				// we also ignore the train sent via the call to `recurseTrain` as we should've called `fn` before here
-				if (link->handle == initialTrain->handle)
+				// train links back to another train that has already been processed, this shouldn't happen.
+				if (!processedTrains.insert(link->handle).second)
 				{
+					// our linked trains are looped at least 3 times together
+					if (++duplicateEntityIds > kMaxDuplicateEntityIds)
+					{
+						return;
+					}
+
 					continue;
 				}
 
-				// if the function returns true then we should stop iterating
 				if (!fn(link))
 				{
 					return;
@@ -2670,8 +2678,10 @@ void ServerGameState::IterateTrainLink(const sync::SyncEntityPtr& initialTrain, 
 		if (trainState->isEngine)
 		{
 			recurseTrain(initialTrain);
+			return;
 		}
-		else if (trainState->engineCarriage && trainState->engineCarriage != initialTrain->handle)
+
+		if (trainState->engineCarriage && static_cast<uint32_t>(trainState->engineCarriage) != initialTrain->handle)
 		{
 			if (auto engine = GetTrain(this, trainState->engineCarriage))
 			{
@@ -2679,6 +2689,8 @@ void ServerGameState::IterateTrainLink(const sync::SyncEntityPtr& initialTrain, 
 				{
 					return;
 				}
+
+				processedTrains.insert(engine->handle);
 				recurseTrain(engine);
 			}
 		}
@@ -3163,6 +3175,13 @@ void ServerGameState::ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::
 			return;
 		}
 
+		if (entity->IsOwnedByServerScript() && g_protectServerEntitiesDeletion)
+		{
+			GS_LOG("%s: entity is owned by server script %d\n", __func__, objectId);
+
+			return;
+		}
+
 		GS_LOG("%s: queueing remove (%d - %d)\n", __func__, objectId, uniqifier);
 		RemoveClone(client, objectId, uniqifier);
 	}
@@ -3296,6 +3315,20 @@ auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const st
 		std::unique_lock entitiesByIdLock(m_entitiesByIdMutex);
 		m_entitiesById[id] = entity;
 	}
+
+	const auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+
+	/*NETEV serverEntityCreated SERVER
+	/#*
+	 * A server-side event that is triggered when an entity has been created by a server-side script.
+	 *
+	 * Unlike "entityCreated" the newly created entity may not yet have an assigned network owner.
+	 *
+	 * @param entity - The created entity handle.
+	 #/
+	declare function serverEntityCreated(handle: number): void;
+	*/
+	evComponent->QueueEvent2("serverEntityCreated", { }, MakeScriptHandle(entity));
 
 	return entity;
 }
@@ -4616,6 +4649,58 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 
 		console::Printf("net", "---------------- END OBJECT ID DUMP ----------------\n");
 	});
+
+	static auto blockNetGameEvent = instance->AddCommand("block_net_game_event", [this](std::string& eventName)
+	{
+		if (eventName.empty())
+		{
+			trace("^3You must specify an event name to block.^7\n");
+			return;
+		}
+		if (!g_experimentalNetGameEventHandler->GetValue())
+		{
+			trace("^3You must enable sv_experimentalNetGameEventHandler convar before using this command.^7\n");
+			return;
+		}
+
+		std::transform(eventName.begin(), eventName.end(), eventName.begin(),
+		[](unsigned char c)
+		{
+			return std::toupper(c);
+		});
+
+		std::unique_lock lock(this->blockedEventsMutex);
+		this->blockedEvents.insert(HashRageString(eventName));
+	});
+
+	static auto unblockNetGameEvent = instance->AddCommand("unblock_net_game_event", [this](std::string& eventName)
+	{
+		if (eventName.empty())
+		{
+			trace("^3You must specify an event name to unblock.^7\n");
+			return;
+		}
+		if (!g_experimentalNetGameEventHandler->GetValue())
+		{
+			trace("^3You must enable sv_experimentalNetGameEventHandler convar before using this command.^7\n");
+			return;
+		}
+
+		std::transform(eventName.begin(), eventName.end(), eventName.begin(),
+		[](unsigned char c)
+		{
+			return std::toupper(c);
+		});
+
+		std::unique_lock lock(this->blockedEventsMutex);
+		this->blockedEvents.erase(HashRageString(eventName));
+	});
+}
+
+bool ServerGameState::IsNetGameEventBlocked(uint32_t eventNameHash)
+{
+	std::shared_lock lock(this->blockedEventsMutex);
+	return blockedEvents.find(eventNameHash) != blockedEvents.end();
 }
 }
 
@@ -5756,12 +5841,11 @@ struct CNetworkPtFXEvent
 
 struct CRequestNetworkSyncedSceneEvent
 {
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 	}
 
 	inline std::string GetName()
@@ -5847,8 +5931,22 @@ private:
 		MSGPACK_DEFINE_MAP(nameHash, posX, posY, posZ, blendIn, blendOut, flags, animHash);
 	};
 
+	template<typename TEntityData>
+	static bool SanitizeEntity(fx::ServerGameState* sgs, const TEntityData& entityData, const uint32_t clientNetId)
+	{
+		const auto entity = sgs->GetEntity(0, entityData.objectId);
+		const auto owner = entity ? entity->GetClient() : fx::ClientSharedPtr{};
+
+		if (owner && clientNetId != owner->GetNetId() && !entity->allowRemoteSyncedScenes)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 public:
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 	uint32_t startTime;
 
 	bool isActive;
@@ -5882,9 +5980,7 @@ public:
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Synced scene IDs are 13 bits in length, but since it's not an object ID, it's conflicting
-		// with our length-hack logic... We're working around this issue by reading these 13 bits in two parts.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 
 		startTime = buffer.Read<uint32_t>(32);
 
@@ -5962,18 +6058,48 @@ public:
 		return "startNetworkSyncedSceneEvent";
 	}
 
+	bool Sanitize(fx::ServerGameState* sgs, const fx::ClientSharedPtr& client) const
+	{
+		const auto clientNetId = client->GetNetId();
+
+		const auto passedValidation = std::all_of(pedEntities.begin(), pedEntities.end(), [&sgs, clientNetId](const auto& pedEntity)
+		{
+			return SanitizeEntity<PedEntityData>(sgs, pedEntity, clientNetId);
+		}) && std::all_of(nonPedEntities.begin(), nonPedEntities.end(), [&sgs, clientNetId](const auto& nonPedEntity)
+		{
+			return SanitizeEntity<NonPedEntityData>(sgs, nonPedEntity, clientNetId);
+		});
+
+		if (!passedValidation)
+		{
+			static std::chrono::milliseconds lastWarn{ -120 * 1000 };
+
+			auto now = msec();
+
+			if ((now - lastWarn) > std::chrono::seconds{ 120 })
+			{
+				console::PrintWarning("sync", "A client (netID %d) tried to use NetworkStartSynchronisedScene, but it was rejected.\n"
+					"Synchronized Scenes that include remotely owned entities need to be allowlisted. To fix this, use \"SetEntityRemoteSyncedScenesAllowed(entityId, true)\".\n",
+					client->GetNetId());
+
+				lastWarn = now;
+			}
+		}
+
+		return passedValidation;
+	}
+
 	MSGPACK_DEFINE_MAP(sceneId, startTime, isActive, scenePosX, scenePosY, scenePosZ, sceneRotX, sceneRotY, sceneRotZ, sceneRotW, hasAttachEntity, attachEntityId, attachEntityBone, phaseToStopScene, rate, holdLastFrame, isLooped, phase, cameraAnimHash, animDictHash, pedEntities, nonPedEntities, mapEntities);
 };
 
 struct CUpdateNetworkSyncedSceneEvent
 {
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 	float rate;
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 
 		rate = (buffer.Read<uint8_t>(8) / 255.0f) * 2.0f;
 	}
@@ -5988,12 +6114,11 @@ struct CUpdateNetworkSyncedSceneEvent
 
 struct CStopNetworkSyncedSceneEvent
 {
-	uint16_t sceneId;
+	uint32_t sceneId; // Increased from uint16_t, see "NetworkSynchronisedSceneHacks.cpp"
 
 	void Parse(rl::MessageBufferView& buffer)
 	{
-		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
-		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+		sceneId = buffer.Read<uint32_t>(32);
 	}
 
 	inline std::string GetName()
@@ -6125,7 +6250,7 @@ void CExplosionEvent::Parse(rl::MessageBufferView& buffer)
 	f142 = buffer.ReadBit();
 	f273 = buffer.ReadBit();
 
-	unkHash1436 = Is1436() ? buffer.Read<uint32_t>(32) : 0;
+	unkHash1436 = buffer.Read<uint32_t>(32);
 
 	attachEntityId = buffer.Read<uint16_t>(13);
 	f244 = buffer.Read<uint8_t>(5); // 1311+
@@ -6794,6 +6919,18 @@ static constexpr auto HasTargetPlayerSetter(int) -> decltype(std::is_same_v<decl
 	return true;
 }
 
+template<typename TEvent>
+static constexpr auto HasSanitizer(char)
+{
+	return false;
+}
+
+template<typename TEvent>
+static constexpr auto HasSanitizer(int) -> decltype(std::is_same_v<decltype(std::declval<TEvent>().Sanitize(std::declval<fx::ServerGameState*>(), std::declval<const fx::ClientSharedPtr&>())), void>)
+{
+	return true;
+}
+
 // todo: remove when msgNetGameEventV2 is the default handler for game events
 template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer, const std::vector<uint16_t>& targetPlayers = {}) -> std::function<bool()>
@@ -6811,6 +6948,17 @@ inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedP
 	if (msgBuf.GetLength())
 	{
 		ev->Parse(msgBuf);
+
+		if constexpr (HasSanitizer<TEvent>(0))
+		{
+			if (!ev->Sanitize(instance->GetComponent<fx::ServerGameState>().GetRef(), client))
+			{
+				return []()
+				{
+					return false;
+				};
+			}
+		}
 	}
 
 	if constexpr (HasTargetPlayerSetter<TEvent>(0))
@@ -6833,6 +6981,17 @@ inline auto GetHandlerWithEvent(fx::ServerInstanceBase* instance, const fx::Clie
 	{
 		rl::MessageBufferView msgBuf { netGameEvent.data.GetValue() };
 		ev->Parse(msgBuf);
+
+		if constexpr (HasSanitizer<TEvent>(0))
+		{
+			if (!ev->Sanitize(instance->GetComponent<fx::ServerGameState>().GetRef(), client))
+			{
+				return []()
+				{
+					return false;
+				};
+			}
+		}
 	}
 
 	if constexpr (HasTargetPlayerSetter<TEvent>(0))
@@ -7689,6 +7848,8 @@ static InitFunction initFunction([]()
 
 		g_networkedPhoneExplosionsEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedPhoneExplosions", ConVar_None, false, &g_networkedPhoneExplosionsEnabled);
 
+		g_protectServerEntitiesDeletionVar = instance->AddVariable<bool>("sv_protectServerEntities", ConVar_Replicated, false, &g_protectServerEntitiesDeletion);
+
 		g_networkedScriptEntityStatesEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedScriptEntityStates", ConVar_None, true, &g_networkedScriptEntityStatesEnabled);
 
 		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::NoFilter, (int*)&g_requestControlFilterState);
@@ -7710,7 +7871,7 @@ static InitFunction initFunction([]()
 		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_ReadOnly, false);
 
 		g_experimentalOneSyncPopulation = instance->AddVariable<bool>("sv_experimentalOneSyncPopulation", ConVar_None, true);
-		g_experimentalNetGameEventHandler = instance->AddVariable<bool>("sv_experimentalNetGameEventHandler", ConVar_None, false);
+		g_experimentalNetGameEventHandler = instance->AddVariable<bool>("sv_experimentalNetGameEventHandler", ConVar_None, true);
 
 		constexpr bool canLengthHack =
 #ifdef STATE_RDR3
@@ -7790,6 +7951,10 @@ static InitFunction initFunction([]()
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgNetGameEvent"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::ByteReader& reader, fx::ENetPacketPtr packet)
 		{
+			if (g_experimentalNetGameEventHandler->GetValue())
+			{
+				return;
+			}
 			// this should match up with SendGameEventRaw on client builds
 			// 1024 bytes is from the rlBuffer
 			// 512 is from the max amount of players (2 * 256)
@@ -7869,5 +8034,17 @@ static InitFunction initFunction([]()
 				routeEvent();
 			}
 		} });
+
+		auto consoleCtx = instance->GetComponent<console::Context>();
+
+		// start sessionmanager
+		if (gameServer->GetGameName() == fx::GameName::RDR3)
+		{
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+		}
+		else if (!g_oneSyncEnabledVar->GetValue() && g_oneSyncVar->GetValue() == fx::OneSyncState::Off)
+		{
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
+		}
 	}, 999999);
 });

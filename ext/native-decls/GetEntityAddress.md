@@ -18,4 +18,4 @@ This native is intended for singleplayer debugging, and may not be available dur
 * **entity**: The handle of the entity to get the address of.
 
 ## Return value
-A pointer contaning the memory address of the entity.
+A pointer containing the memory address of the entity.

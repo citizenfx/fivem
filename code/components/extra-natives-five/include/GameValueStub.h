@@ -40,4 +40,13 @@ struct GameValueStub
 	{
 		hook::put<int32_t>(location, (intptr_t)m_address - (intptr_t)location - offset);
 	}
+
+	inline void SetLocation(void* location, ptrdiff_t offset, ptrdiff_t instruction_size)
+	{
+		intptr_t rip = (intptr_t)location + instruction_size;
+
+		int32_t relOffset = (int32_t)((intptr_t)m_address - rip);
+
+		hook::put<int32_t>((char*)location + offset, relOffset);
+	}
 };

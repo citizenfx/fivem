@@ -172,7 +172,10 @@ static std::array<void*, 2> g_swapChainFlagLocations;
 static ID3D11DeviceContext* g_dc;
 
 static bool g_allowTearing;
+
+#if DISABLE_RENDERING
 static bool g_disableRendering;
+#endif
 
 void MakeDummyDevice(ID3D11Device** device, ID3D11DeviceContext** context, const DXGI_SWAP_CHAIN_DESC* desc, IDXGISwapChain** swapChain);
 
@@ -530,7 +533,11 @@ void DLL_EXPORT UiDone()
 		SetEvent(uiExitEvent);
 	}
 
+#if DISABLE_RENDERING
 	if (uiDoneEvent && !g_disableRendering)
+#else
+	if(uiDoneEvent)
+#endif
 	{
 		WaitForSingleObject(uiDoneEvent, INFINITE);
 	}
@@ -597,6 +604,7 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 
 	SetEvent(g_gameWindowEvent);
 
+#if DISABLE_RENDERING
 	if (g_disableRendering)
 	{
 		*pFeatureLevel = D3D_FEATURE_LEVEL_11_0;
@@ -605,6 +613,7 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 
 		return S_OK;
 	}
+#endif
 
 	if (!IsWindows10OrGreater())
 	{
@@ -1972,8 +1981,9 @@ static HRESULT FakeOutput(IDXGIAdapter* adap, UINT idx, IDXGIOutput** out)
 
 static HookFunction hookFunction([] ()
 {
+#if DISABLE_RENDERING
 	static ConVar<bool> disableRenderingCvar("r_disableRendering", ConVar_None, false, &g_disableRendering);
-
+#endif
 	g_backBuffer = hook::get_address<decltype(g_backBuffer)>(hook::get_pattern("48 8B D0 48 89 05 ? ? ? ? EB 07 48 8B 15", 6));
 
 	// end scene
@@ -2014,6 +2024,7 @@ static HookFunction hookFunction([] ()
 
 	MH_EnableHook(MH_ALL_HOOKS);
 
+#if DISABLE_RENDERING
 	if (g_disableRendering)
 	{
 		hook::jump(hook::get_pattern("84 D2 0F 45 C7 8A D9 89 05", -0x1F), Return1);
@@ -2029,6 +2040,7 @@ static HookFunction hookFunction([] ()
 		memcpy(location, mov, 5);
 		hook::call(location + 5, FakeOutput);
 	}
+#endif
 
 	// add D3D11_CREATE_DEVICE_BGRA_SUPPORT flag
 	if (xbr::IsGameBuildOrGreater<3095>())

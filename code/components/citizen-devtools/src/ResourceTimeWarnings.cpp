@@ -906,9 +906,24 @@ static InitFunction initFunction([]()
 
 				for (const auto& poolData : poolsInfo)
 				{
-					if (!poolData.name._Starts_with(search))
+					if (search[0] != '\0')
 					{
-						continue;
+						std::string nameLower = poolData.name;
+						std::string itemsStr = std::to_string(poolData.items);
+						std::string maxItemsStr = std::to_string(poolData.maxItems);
+						std::string searchLower = search;
+
+						std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
+						std::transform(itemsStr.begin(), itemsStr.end(), itemsStr.begin(), ::tolower);
+						std::transform(maxItemsStr.begin(), maxItemsStr.end(), maxItemsStr.begin(), ::tolower);
+						std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
+
+						if (nameLower.find(searchLower) == std::string::npos &&
+							itemsStr.find(searchLower) == std::string::npos &&
+							maxItemsStr.find(searchLower) == std::string::npos)
+						{
+							continue;
+						}
 					}
 
 					std::string humanSize;
@@ -988,35 +1003,35 @@ static InitFunction initFunction([]()
 
 				if (assets.GetCount() > 1)
 				{
-					ImGuiListClipper clipper;
-					// -1 because 1st item in Entries always dummy in GTAV and RDR3
-					clipper.Begin(assets.GetCount() - 1);
+					std::vector<uint32_t> filteredIndices;
+					for (uint32_t i = 0; i < assets.GetCount(); i++)
+					{
+						if (assets[i].fileName && strstr(assets[i].fileName, search) != nullptr)
+						{
+							filteredIndices.push_back(i);
+						}
+					}
 
+					ImGuiListClipper clipper;
+
+					// -1 because 1st item in Entries always dummy in GTAV and RDR3
+					clipper.Begin(static_cast<int>(filteredIndices.size()));
 					while (clipper.Step())
 					{
-						for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
+						for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
 						{
-							int assetsIndex = row + 1;
-							if (!assets[assetsIndex].name)
-							{
-								continue;
-							}
-
-							const std::string name = assets[assetsIndex].name;
-							if (!name._Starts_with(search))
-							{
-								continue;
-							}
+							const uint32_t assetsIndex = filteredIndices[i];
 
 							const std::string datetime = PrettyFormatFileTime(assets[assetsIndex].timestamp);
 
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::Text("%s", assets[assetsIndex].name);
+							ImGui::Text("%s", assets[assetsIndex].fileName);
 							ImGui::TableNextColumn();
 							ImGui::Text("%s", datetime.c_str());
 						}
 					}
+					clipper.End();
 				}
 
 				ImGui::EndTable();

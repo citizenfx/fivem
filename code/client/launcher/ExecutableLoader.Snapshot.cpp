@@ -12,9 +12,14 @@ inline static uintptr_t GetLauncherTriggerEP()
 {
 	if (getenv("CitizenFX_ToolMode"))
 	{
-		if (wcsstr(GetCommandLineW(), L"launcher.exe"))
+		LPWSTR commandLine = GetCommandLineW();
+
+		// Case insensitive: name must match newCommandLine in LoopbackTcpServer
+		if (wcsstr(commandLine, L"Launcher.exe") != nullptr && wcsstr(commandLine, L"ros:legit") == nullptr)
 		{
-			// launcher.exe with sha256 hash 0dbf58119cdd2d67e6ecee1e31be3f19827444df978f7df747064a870736bce4
+			// Launcher.exe with
+			//	sha1 = f259de45c50f399d3e278fd39401ef51a3cc031a
+			//	sha256 = 0dbf58119cdd2d67e6ecee1e31be3f19827444df978f7df747064a870736bce4
 			return 0x14020b70c;
 		}
 	}
@@ -29,6 +34,11 @@ inline uintptr_t GetTriggerEP()
 	if (auto ep = GetLauncherTriggerEP(); ep != 0)
 	{
 		return ep;
+	}
+
+	if (xbr::IsGameBuild<xbr::Build::Summer_2025>())
+	{
+		return 0x141868504;
 	}
 
 	if (xbr::IsGameBuild<3407>())
@@ -103,22 +113,7 @@ inline uintptr_t GetTriggerEP()
 		return ep;
 	}
 
-	if (xbr::IsGameBuild<1355>())
-	{
-		return 0x142DE455C; // 1355.18
-	}
-
-	if (xbr::IsGameBuild<1436>())
-	{
-		return 0x142E13DA4; // 1436.31
-	}
-
-	if (xbr::IsGameBuild<1491>())
-	{
-		return 0x142E4FAD0; // 1491.50
-	}
-
-	return 0x142E0F92C; // 1311.20
+	return 0x142E4FAD0; // 1491.50
 }
 
 #define TRIGGER_EP (GetTriggerEP())

@@ -69,6 +69,17 @@ const EXT_LOCALFUNCREF = 11;
 		return Citizen.canonicalizeRef(ref);
 	};
 
+	/**
+	 * @param {Function} refFunction
+	 * @returns {string|null} the function reference, or null if the refFunction that was passed wasn't a function
+	 */
+	Citizen.getRefFunction = (refFunction) => {
+		if (typeof refFunction !== "function") {
+			return null;
+		}
+		return Citizen.makeRefFunction(refFunction);
+	}
+
 	function refFunctionPacker(refFunction) {
 		const ref = Citizen.makeRefFunction(refFunction);
 
@@ -534,7 +545,12 @@ const EXT_LOCALFUNCREF = 11;
 	const exportKey = isDuplicityVersion ? 'server_export' : 'export';
 	const eventType = isDuplicityVersion ? 'Server' : 'Client';
 
-	const getExportEventName = (resource, name) => `__cfx_export_${resource}_${name}`;
+	const getExportEventName = (resource, name) => {
+		if(resource == "txAdmin") {
+			resource = "monitor";
+		}
+		return `__cfx_export_${resource}_${name}`;
+	}
 
 	on(`on${eventType}ResourceStart`, (resource) => {
 		if (resource === currentResourceName) {

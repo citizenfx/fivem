@@ -11,7 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@cfx-dev/ui-components": "^0.0.21",
+    "@cfx-dev/ui-components": "1.0.2",
     "@sentry/react": "^7.14.0",
     "@sentry/tracing": "^7.14.0",
     "adaptivecards": "^2.10.0",

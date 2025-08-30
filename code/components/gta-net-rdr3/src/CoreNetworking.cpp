@@ -15,6 +15,8 @@
 
 NetLibrary* g_netLibrary;
 
+#include <HostSystem.h>
+
 // shared relay functions (from early rev. gta:net:five; do update!)
 #include <ws2tcpip.h>
 
@@ -255,7 +257,7 @@ static HookFunction initFunction([]()
 	// set base to the ROS ID as that's the default gamer handle value
 	// this needs patching, otherwise rlJoinSessionTask::Configure will complain that the alleged session host
 	// is not in the list of gamers in the session
-	auto hModule = GetModuleHandleW(L"ros-patches-rdr3.dll");
+	auto hModule = GetModuleHandleW(L"legitimacy.dll");
 	
 	if (hModule)
 	{
@@ -661,7 +663,7 @@ static void HandleInitPlayerResultStub(void* mgr, void* status, void* reader)
 #include <scrEngine.h>
 #include <scrThread.h>
 
-static struct : GtaThread
+static struct : CfxThread
 {
 	virtual void DoRun() override
 	{
@@ -699,6 +701,148 @@ static int ReturnTrue()
 	return true;
 }
 
+
+GTA_NET_EXPORT fwEvent<HostState, HostState> OnHostStateTransition;
+
+struct HostStateHolder
+{
+	HostState state;
+
+	inline bool operator==(HostState right)
+	{
+		return (state == right);
+	}
+
+	inline HostState operator=(HostState right)
+	{
+		trace("SessionState transitioning from %s to %s\n", HostStateToString(state), HostStateToString(right));
+
+		AddCrashometry("hs_state", HostStateToString(right));
+
+		OnHostStateTransition(right, state);
+		state = right;
+
+		return right;
+	}
+};
+
+struct
+{
+	HostStateHolder state;
+	int attempts;
+
+	std::string hostResult;
+
+	void handleHostResult(const std::string& str)
+	{
+		hostResult = str;
+	}
+
+	void process()
+	{
+		ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
+
+		switch (state.state)
+		{
+			case SESSION_STATE_NONE:
+			{
+				// update presence
+				_rlPresence_GamerPresence_Clear(rlPresence__m_GamerPresences);
+				_rlPresence_refreshSigninState(0);
+				_rlPresence_refreshNetworkStatus(0);
+
+				state = SESSION_STATE_ENTER;
+				break;
+			}
+			case SESSION_STATE_ENTER:
+				// wait for transition
+				if (_getCurrentTransitionState() == 0)
+				{
+					state = SESSION_STATE_START_JOINING;
+				}
+
+				break;
+
+			case SESSION_STATE_START_JOINING:
+			{
+				auto lastThread = rage::scrEngine::GetActiveThread();
+				rage::scrEngine::SetActiveThread(fakeThread.GetThread());
+
+				// transition to mp
+				_transitionToState(0x73040199);
+
+				rage::scrEngine::SetActiveThread(lastThread);
+
+				state = SESSION_STATE_JOINING;
+				break;
+			}
+			case SESSION_STATE_JOINING:
+				// wait for transition
+				if (_getCurrentTransitionState() == 0x73040199) // MP MODE
+				{
+					state = SESSION_STATE_JOINED;
+				}
+				else if (_getCurrentTransitionState() == 0x1D94DE8C || _getCurrentTransitionState() == 0) // SP MODE
+				{
+					state = SESSION_STATE_START_JOINING;
+				}
+
+				break;
+
+			case SESSION_STATE_JOINED:
+				if (g_initedPlayer)
+				{
+					state = SESSION_STATE_5;
+				}
+				else if (_getCurrentTransitionState() == 0x1D94DE8C || _getCurrentTransitionState() == 0) // SP MODE
+				{
+					state = SESSION_STATE_START_JOINING;
+				}
+
+				break;
+
+			case SESSION_STATE_5:
+				if (cgi->OneSyncEnabled)
+				{
+					if (sync::IsWaitingForTimeSync())
+					{
+						return;
+					}
+				}
+
+				static char sessionIdPtr[48];
+				memset(sessionIdPtr, 0, sizeof(sessionIdPtr));
+				joinOrHost(1, nullptr, sessionIdPtr);
+
+				state = SESSION_STATE_6;
+
+				break;
+
+			case SESSION_STATE_6:
+				struct
+				{
+					char* sessionMultiplayer;
+					char pad[16];
+					uint8_t networkInited;
+				}* networkMgr;
+
+				networkMgr = *(decltype(networkMgr)*)g_networkMgrPtr;
+
+				if (networkMgr->networkInited)
+				{
+					auto networkState = *(BYTE*)(networkMgr->sessionMultiplayer + networkStateOffset);
+
+					if (networkState == 4)
+					{
+						state = SESSION_STATE_7;
+						Instance<ICoreGameInit>::Get()->SetVariable("networkInited");
+					}
+				}
+				break;
+		}
+	}
+} hostSystem;
+
 static HookFunction hookFunction([]()
 {
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
@@ -723,7 +867,7 @@ static HookFunction hookFunction([]()
 	// exitprocess -> terminateprocess
 	MH_Initialize();
 	MH_CreateHookApi(L"kernel32.dll", "ExitProcess", ExitProcessReplacement, nullptr);
-	MH_CreateHook(hook::get_pattern("45 33 C9 4C 8B 11 49 8B D8 48 8B F9", xbr::IsGameBuildOrGreater<1436>() ? -0x1E : -0x19), HandleInitPlayerResultStub, (void**)&g_origHandleInitPlayerResult);
+	MH_CreateHook(hook::get_pattern("45 33 C9 4C 8B 11 49 8B D8 48 8B F9", -0x1E), HandleInitPlayerResultStub, (void**)&g_origHandleInitPlayerResult);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	hook::iat("ws2_32.dll", CfxSendTo, 20);
@@ -739,35 +883,15 @@ static HookFunction hookFunction([]()
 		hook::jump(getLocalPeerAddress, GetLocalPeerAddress);
 		hook::jump(hook::get_call(getLocalPeerAddress + 0x28), GetLocalPeerId);
 
-		if (xbr::IsGameBuildOrGreater<1491>())
-		{
-			hook::jump(hook::get_call(getLocalPeerAddress + 0x103), GetGamerHandle);
-			hook::jump(hook::get_call(hook::get_call(getLocalPeerAddress + 0x114) + 0x14), InitP2PCryptKey);
-		}
-		else if (xbr::IsGameBuildOrGreater<1436>())
-		{
-			hook::jump(hook::get_call(getLocalPeerAddress + 0xF1), GetGamerHandle);
-			hook::jump(hook::get_call(hook::get_call(getLocalPeerAddress + 0x102) + 0x14), InitP2PCryptKey);
-		}
-		else
-		{
-			hook::jump(hook::get_call(getLocalPeerAddress + 0xF5), GetGamerHandle);
-			hook::jump(hook::get_call(getLocalPeerAddress + 0x116), InitP2PCryptKey);
-		}
+		hook::jump(hook::get_call(getLocalPeerAddress + 0x103), GetGamerHandle);
+		hook::jump(hook::get_call(hook::get_call(getLocalPeerAddress + 0x114) + 0x14), InitP2PCryptKey);
 	}
 
 	//
 	//hook::call(0x1426E100B, ParseAddGamer);
 
 	// all uwuids be 2
-	if (xbr::IsGameBuildOrGreater<1436>())
-	{
-		hook::call(hook::get_pattern("48 83 A4 24 E0 00 00 00 00 48 8D 8C 24 E0", 17), ZeroUUID);
-	}
-	else
-	{
-		hook::call(hook::get_pattern("B9 03 00 00 00 B8 01 00 00 00 87 83", -85), ZeroUUID);
-	}
+	hook::call(hook::get_pattern("48 83 A4 24 E0 00 00 00 00 48 8D 8C 24 E0", 17), ZeroUUID);
 
 	// get session for find result
 	// 1207.58
@@ -787,139 +911,28 @@ static HookFunction hookFunction([]()
 	// pretend to have CGameScriptHandlerNetComponent always be host
 	hook::jump(hook::get_pattern("33 DB 48 85 C0 74 17 48 8B 48 10 48 85 C9 74 0E", -10), ReturnTrue);
 
-	static LoggedInt tryHostStage = 0;
-
-	static bool gameLoaded;
-
-	Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
-	{
-		gameLoaded = true;
-	});
-
-	static ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
-
 	OnKillNetwork.Connect([](const char*)
 	{
-		gameLoaded = false;
 		g_initedPlayer = false;
 	});
 
 	OnMainGameFrame.Connect([]()
 	{
-		if (!gameLoaded)
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 		{
-			return;
+			hostSystem.process();
 		}
 
-		switch (tryHostStage)
-		{
-		case 0:
-		{
-			// update presence
-			_rlPresence_GamerPresence_Clear(rlPresence__m_GamerPresences);
-			_rlPresence_refreshSigninState(0);
-			_rlPresence_refreshNetworkStatus(0);
-
-			tryHostStage = 1;
-			break;
-		}
-		case 1:
-			// wait for transition
-			if (_getCurrentTransitionState() == 0)
-			{
-				tryHostStage = 2;
-			}
-
-			break;
-
-		case 2:
-		{
-			auto lastThread = rage::scrEngine::GetActiveThread();
-			rage::scrEngine::SetActiveThread(&fakeThread);
-
-			// transition to mp
-			_transitionToState(0x73040199);
-
-			rage::scrEngine::SetActiveThread(lastThread);
-
-			tryHostStage = 3;
-			break;
-		}
-		case 3:
-			// wait for transition
-			if (_getCurrentTransitionState() == 0x73040199)
-			{
-				tryHostStage = 4;
-			}
-			else if (_getCurrentTransitionState() == 0x1D94DE8C || _getCurrentTransitionState() == 0)
-			{
-				tryHostStage = 2;
-			}
-
-			break;
-
-		case 4:
-			if (g_initedPlayer)
-			{
-				tryHostStage = 5;
-			}
-			else if (_getCurrentTransitionState() == 0x1D94DE8C || _getCurrentTransitionState() == 0)
-			{
-				tryHostStage = 2;
-			}
-
-			break;
-
-		case 5:
-			if (cgi->OneSyncEnabled)
-			{
-				if (sync::IsWaitingForTimeSync())
-				{
-					return;
-				}
-			}
-
-			static char sessionIdPtr[48];
-			memset(sessionIdPtr, 0, sizeof(sessionIdPtr));
-			joinOrHost(1, nullptr, sessionIdPtr);
-
-			tryHostStage = 6;
-
-			break;
-
-		case 6:
-			struct
-			{
-				char* sessionMultiplayer;
-				char pad[16];
-				uint8_t networkInited;
-			}* networkMgr;
-
-			networkMgr = *(decltype(networkMgr)*)g_networkMgrPtr;
-
-			if (networkMgr->networkInited)
-			{
-				auto networkState = *(BYTE*)(networkMgr->sessionMultiplayer + networkStateOffset);
-
-				if (networkState == 4)
-				{
-					tryHostStage = 7;
-					Instance<ICoreGameInit>::Get()->SetVariable("networkInited");
-				}
-			}
-
-			break;
-		}
 	});
 
 	static ConsoleCommand hhh("hhh", []()
 	{
-		tryHostStage = 0;
+		hostSystem.state = SESSION_STATE_NONE;
 	});
 
 	OnKillNetworkDone.Connect([]()
 	{
-		tryHostStage = 0;
+		hostSystem.state = SESSION_STATE_NONE;
 	});
 
 	// rlSession::InformPeersOfJoiner bugfix: reintroduce loop (as in, remove break; statement)
@@ -939,24 +952,12 @@ static HookFunction hookFunction([]()
 			}
 		} stub;
 
-		if (xbr::IsGameBuildOrGreater<1436>())
-		{
-			playerCountOffset = *(uint32_t*)(location - 15 + 3);
-			playerListOffset = *(uint32_t*)(location + 3);
-			backwardsOffset = *(uint32_t*)(location + 45 + 3);
+		playerCountOffset = *(uint32_t*)(location - 15 + 3);
+		playerListOffset = *(uint32_t*)(location + 3);
+		backwardsOffset = *(uint32_t*)(location + 45 + 3);
 
-			hook::set_call(&origSendGamer, location + 70);
-			hook::call(location + 70, stub.GetCode());
-		}
-		else
-		{
-			playerCountOffset = *(uint32_t*)(location - 14 + 3);
-			playerListOffset = *(uint32_t*)(location + 3);
-			backwardsOffset = *(uint32_t*)(location + 48 + 3);
-
-			hook::set_call(&origSendGamer, location + 72);
-			hook::call(location + 72, stub.GetCode());
-		}
+		hook::set_call(&origSendGamer, location + 70);
+		hook::call(location + 70, stub.GetCode());
 	}
 
 #if 0
@@ -1003,27 +1004,11 @@ static HookFunction hookFunction([]()
 	hook::jump(hook::get_pattern("33 C0 39 41 18 74 11 F6 81 B4 00 00"), Return<int, 1>); // 1408A1014
 
 	// skip cash/inventory
-	if (xbr::IsGameBuildOrGreater<1436>())
-	{
-		hook::jump(hook::get_pattern("75 42 8D 53 03 C7 44 24 20 F4 D2", -0x21), Return<int, 2>);
-		hook::jump(hook::get_pattern("A9 FD FF FF FF 0F 85 B1 00 00 00 48", -0x3E), Return<int, 2>);
-	}
-	else
-	{
-		hook::jump(hook::get_pattern("75 21 4C 8D 0D ? ? ? ? 41 B8 30 10 00 10", -0x21), Return<int, 2>);
-		hook::jump(hook::get_pattern("A9 FD FF FF FF 75 64 48 8B 0D", -0x3A), Return<int, 2>);
-	}
+	hook::jump(hook::get_pattern("75 42 8D 53 03 C7 44 24 20 F4 D2", -0x21), Return<int, 2>);
+	hook::jump(hook::get_pattern("A9 FD FF FF FF 0F 85 B1 00 00 00 48", -0x3E), Return<int, 2>);
 
 	// skip poker
-	if (xbr::IsGameBuildOrGreater<1436>())
-	{
-		hook::jump(hook::get_pattern("48 83 EC 38 48 8B 0D ? ? ? ? E8 ? ? ? ? 33"), Return<int, 2>);
-	}
-	else
-	{
-		hook::jump(hook::get_pattern("48 83 EC 28 48 8B 0D ? ? ? ? E8 ? ? ? ? F6 D8 1B C0 83 C0 02"), Return<int, 2>);
-		hook::jump(hook::get_pattern("B8 02 00 00 00 EB 1F 38 91", -0x22), Return<int, 2>);
-	}
+	hook::jump(hook::get_pattern("48 83 EC 38 48 8B 0D ? ? ? ? E8 ? ? ? ? 33"), Return<int, 2>);
 
 	// don't stop unsafe network scripts
 	hook::jump(hook::get_pattern("83 7B 10 02 74 21 48 8B CB E8", -0x35), Return<int, 0>); // 0x140E8A58C
@@ -1045,19 +1030,20 @@ static HookFunction hookFunction([]()
 	}
 
 	// unusual script check before allowing session to continue
-	if (xbr::IsGameBuildOrGreater<1436>())
-	{
-		hook::nop(hook::get_pattern("84 C0 0F 85 ? 00 00 00 ? ? ? ? 75 ? BA 02 00 00 00", 2), 6);
-	}
-	else
-	{
-		hook::nop(hook::get_pattern("84 C0 75 6C 44 39 7B 20 75", 2), 2);
-	}
+	hook::nop(hook::get_pattern("84 C0 0F 85 ? 00 00 00 ? ? ? ? 75 ? BA 02 00 00 00", 2), 6);
 
 	// ignore tunable (0xE3AFC5BD/0x7CEC5CDA) which intentionally breaking some certain
 	// ped models appearance from syncing between clients, initially added in 1436.31
-	if (xbr::IsGameBuildOrGreater<1436>())
+	hook::jump(hook::get_pattern("B9 BD C5 AF E3 BA DA 5C EC 7C E8", -19), Return<bool, false>);
+
+	// Increase network memory heap allocation to accommodate  for pool sizes increases.
 	{
-		hook::jump(hook::get_pattern("B9 BD C5 AF E3 BA DA 5C EC 7C E8", -19), Return<bool, false>);
+		// Was originally 26mb
+		constexpr int kNetworkHeapSize = 35;
+
+		uint32_t* size1 = hook::get_pattern<uint32_t>("B9 ? ? ? ? E8 ? ? ? ? 48 89 05 ? ? ? ? E8 ? ? ? ? 48 83 C4", 1);
+		uint32_t* size2 = hook::get_pattern<uint32_t>("41 B8 ? ? ? ? C6 44 24 ? ? 48 8B C8 E8 ? ? ? ? 48 8B D8", 2);
+		*size1 = kNetworkHeapSize * 1024 * 1024;
+		*size2 = kNetworkHeapSize * 1024 * 1024;
 	}
 });

@@ -24,7 +24,7 @@ static __declspec(thread) MumbleClient* g_currentMumbleClient;
 
 using namespace std::chrono_literals;
 
-constexpr auto kUDPPingInterval = 1000ms;
+constexpr auto kPingInterval = 1000ms;
 constexpr uint16_t kMaxUdpPacket = 1024;
 
 inline std::chrono::milliseconds msec()
@@ -115,6 +115,7 @@ void MumbleClient::Initialize()
 				// don't start idle timer here - it should only start after TLS handshake is done!
 
 				m_timeSinceJoin = msec();
+				m_inFlightTcpPings = 0;
 				m_connectionInfo.isConnected = true;
 			});
 
@@ -159,13 +160,12 @@ void MumbleClient::Initialize()
 			m_tcp->connect(*address.GetSocketAddress());
 			m_state.Reset();
 			m_state.SetClient(this);
-			m_state.SetUsername(ToWide(m_connectionInfo.username));
+			m_state.SetUsername(m_connectionInfo.username);
 		});
 
 		m_idleTimer = m_loop->Get()->resource<uvw::TimerHandle>();
 		m_idleTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
 		{
-
 			auto lockedIsActive = [this]()
 			{
 				std::unique_lock _(m_clientMutex);
@@ -178,15 +178,14 @@ void MumbleClient::Initialize()
 			{
 				if (m_curManualChannel != m_lastManualChannel && !m_state.GetChannels().empty())
 				{
-					// check if the channel already exists
-					std::wstring wname = ToWide(m_curManualChannel);
 					m_lastManualChannel = m_curManualChannel;
 
 					bool existed = false;
 
+					// check if the channel already exists, if it does set us to the channel
 					for (const auto& channel : m_state.GetChannels())
 					{
-						if (channel.second.GetName() == wname)
+						if (channel.second.GetName() == m_curManualChannel)
 						{
 							// join the channel
 							MumbleProto::UserState state;
@@ -224,11 +223,9 @@ void MumbleClient::Initialize()
 
 					auto findCh = [&](const std::string& ch)
 					{
-						std::wstring wname = ToWide(ch);
-
 						for (const auto& channel : m_state.GetChannels())
 						{
-							if (channel.second.GetName() == wname)
+							if (channel.second.GetName() == ch)
 							{
 								return channel.first;
 							}
@@ -287,35 +284,31 @@ void MumbleClient::Initialize()
 						MumbleProto::VoiceTarget target;
 						target.set_id(idx);
 
-						for (auto& t : config.targets)
+						// Voice targets can all be set in a single target
+						auto vt = target.add_targets();
+						for (auto& userName : config.users)
 						{
-							auto vt = target.add_targets();
-
-							for (auto& userName : t.users)
+							m_state.ForAllUsers([this, &userName, &vt](const std::shared_ptr<MumbleUser>& user)
 							{
-								m_state.ForAllUsers([this, &userName, &vt](const std::shared_ptr<MumbleUser>& user)
+								if (user->GetName() == userName)
 								{
-									if (user->GetName() == userName)
-									{
-										vt->add_session(user->GetSessionId());
-									}
-								});
-							}
+									vt->add_session(user->GetSessionId());
+								}
+							});
+						}
+						
 
-							if (!t.channel.empty())
+						for (auto& channelName: config.channels)
+						{
+							for (auto& channelPair : m_state.GetChannels())
 							{
-								std::wstring wname = ToWide(t.channel);
-								for (auto& channelPair : m_state.GetChannels())
+								if (channelPair.second.GetName() == channelName)
 								{
-									if (channelPair.second.GetName() == wname)
-									{
-										vt->set_channel_id(channelPair.first);
-									}
+									// Channel targeting happens per channel, so we need to add a new target per channel
+									auto vt = target.add_targets();
+									vt->set_channel_id(channelPair.first);
 								}
 							}
-
-							vt->set_links(t.links);
-							vt->set_children(t.children);
 						}
 
 						Send(MumbleMessageType::VoiceTarget, target);
@@ -337,7 +330,7 @@ void MumbleClient::Initialize()
 
 						if (!name.empty())
 						{
-							m_lastManualChannel = ToNarrow(name);
+							m_lastManualChannel = name;
 						}
 					}
 				}
@@ -345,10 +338,13 @@ void MumbleClient::Initialize()
 				if (msec() > m_nextPing)
 				{
 					{
-						// only log once at 4 pings
-						if (m_inFlightTcpPings == 4)
+						// reset the connection when we're at more than 4 pings (which will be about 4 seconds) and we haven't just connected
+						if (m_inFlightTcpPings >= 4 && (msec() - m_timeSinceJoin) > 20s)
 						{
-							console::PrintWarning("mumble", "Server is not responding to TCP pings\n");
+							// Reset our connection status so that mumble will try to reconnect us
+							m_connectionInfo.isConnected = false;
+							m_connectionInfo.isConnecting = false;
+							console::PrintWarning("mumble", "Server is not responding to TCP pings after 4 seconds, resetting connection\n");
 						}
 
 						m_inFlightTcpPings += 1;
@@ -383,7 +379,7 @@ void MumbleClient::Initialize()
 						SendUDP(pingBuf, pds.size());
 					}
 
-					m_nextPing = msec() + kUDPPingInterval;
+					m_nextPing = msec() + kPingInterval;
 				}
 			}
 			else if (m_connectionInfo.address.GetAddressFamily() != 0)
@@ -422,11 +418,10 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::P
 
 	m_tcpPingCount = 0;
 
-
 	memset(m_tcpPings, 0, sizeof(m_tcpPings));
 
 	m_state.SetClient(this);
-	m_state.SetUsername(ToWide(userName));
+	m_state.SetUsername(userName);
 
 	m_loop->EnqueueCallback([this]()
 	{
@@ -590,7 +585,7 @@ float MumbleClient::GetInputAudioLevel()
 	return m_audioInput.GetAudioLevel();
 }
 
-void MumbleClient::SetClientVolumeOverride(const std::wstring& clientName, float volume)
+void MumbleClient::SetClientVolumeOverride(const std::string& clientName, float volume)
 {
 	m_state.ForAllUsers([this, &clientName, volume](const std::shared_ptr<MumbleUser>& user)
 	{
@@ -612,9 +607,9 @@ void MumbleClient::SetClientVolumeOverrideByServerId(uint32_t serverId, float vo
 	});
 }
 
-std::wstring MumbleClient::GetPlayerNameFromServerId(uint32_t serverId)
+std::string MumbleClient::GetPlayerNameFromServerId(uint32_t serverId)
 {
-	std::wstring retName;
+	std::string retName;
 
 	m_state.ForAllUsers([serverId, &retName](const std::shared_ptr<MumbleUser>& user)
 	{
@@ -634,10 +629,11 @@ std::wstring MumbleClient::GetPlayerNameFromServerId(uint32_t serverId)
 
 std::string MumbleClient::GetVoiceChannelFromServerId(uint32_t serverId)
 {
-	std::string retString = "";
+	std::string retString;
 
 	m_state.ForAllUsers([this, serverId, &retString](const std::shared_ptr<MumbleUser>& user)
 	{
+		// if we already have a name we can ignore and bail
 		if (!retString.empty())
 		{
 			return;
@@ -651,7 +647,7 @@ std::string MumbleClient::GetVoiceChannelFromServerId(uint32_t serverId)
 
 			if (chit != channels.end())
 			{
-				retString = ToNarrow(chit->second.GetName());
+				retString = chit->second.GetName();
 			}
 		}
 	});
@@ -661,11 +657,9 @@ std::string MumbleClient::GetVoiceChannelFromServerId(uint32_t serverId)
 
 bool MumbleClient::DoesChannelExist(const std::string& channelName)
 {
-	std::wstring wname = ToWide(channelName);
-
 	for (const auto& channel : m_state.GetChannels())
 	{
-		if (channel.second.GetName() == wname)
+		if (channel.second.GetName() == channelName)
 		{
 			return true;
 		}
@@ -687,14 +681,14 @@ void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
 
 		if (user)
 		{
-			referenceIds->push_back(ToNarrow(user->GetName()));
+			referenceIds->push_back(user->GetName());
 		}
 	}
 
 	// local talker talking?
 	if (m_audioInput.IsTalking())
 	{
-		referenceIds->push_back(ToNarrow(m_state.GetUsername()));
+		referenceIds->push_back(m_state.GetUsername());
 	}
 }
 
@@ -772,9 +766,18 @@ void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 	if (!m_crypto.Decrypt(buf, outBuf, size))
 	{
 		console::DPrintf("mumble", "Failed to decrypt packet\n");
+		if ((msec() - m_crypto.m_lastGoodUdp) > kPingInterval) // we expect to have a good ping atleast once every ping interval 
+		{
+			// we don't want to spam the server with cryto resets
+			m_crypto.m_lastGoodUdp = msec();
+
+			// send a request to the server to reset our crypt state
+			MumbleProto::CryptSetup crypt;
+			Send(MumbleMessageType::CryptSetup, crypt);
+			console::DPrintf("mumble", "Failed to decrypt after 1 seconds, requesting crypt reset\n");
+		}
 		return;
 	}
-
 
 	// handle voice packet
 	HandleVoice(outBuf, size - 4);
@@ -928,7 +931,7 @@ void MumbleClient::RunFrame()
 		{
 			if (m_positionHook)
 			{
-				auto newPos = m_positionHook(ToNarrow(user->GetName()));
+				auto newPos = m_positionHook(user->GetName());
 
 				if (newPos)
 				{
@@ -1102,14 +1105,25 @@ void MumbleClient::OnActivated()
 	// the idle event would immediately try to reconnect)
 	m_idleTimer->start(500ms, 500ms);
 
-	// send our own version
+	// https://github.com/mumble-voip/mumble/blob/master/docs/dev/network-protocol/establishing_connection.md#version-exchange
+	// Send our version whenever our TLS Session gets initialized
 	MumbleProto::Version ourVersion;
 	ourVersion.set_version(0x00010204);
 	ourVersion.set_os("Windows");
 	ourVersion.set_os_version("Cfx/Embedded");
 	ourVersion.set_release("CitizenFX Client");
 
-	this->Send(MumbleMessageType::Version, ourVersion);
+	Send(MumbleMessageType::Version, ourVersion);
+
+	// https://github.com/mumble-voip/mumble/blob/master/docs/dev/network-protocol/establishing_connection.md#authenticate
+	// Send our auth packet immediately after
+	auto username = GetState().GetUsername();
+
+	MumbleProto::Authenticate authenticate;
+	authenticate.set_opus(true);
+	authenticate.set_username(username);
+
+	Send(MumbleMessageType::Authenticate, authenticate);
 }
 
 fwRefContainer<MumbleClient> MumbleClient::GetCurrent()

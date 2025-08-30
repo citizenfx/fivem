@@ -2909,20 +2909,30 @@ struct CTrainGameStateDataNode : GenericSerializeDataNode<CTrainGameStateDataNod
 		s.Serialize(3, data.trainState);
 
 		s.Serialize(data.isEngine);
-		s.Serialize(data.isCaboose);
-		s.Serialize(data.unk12);
-		s.Serialize(data.direction);
-		s.Serialize(data.unk14);
-		s.Serialize(data.renderDerailed);
 
-		if (Is2372()) // Sequence of bits need to be verified for 2732
+		//2372 inserted a bool between isEngine and isCaboose
+		if (Is2372())
 		{
-			s.Serialize(data.unk198);
-			s.Serialize(data.unk224);
-			s.Serialize(data.unk199);
+			//Modified by 0x2310A8F9421EBF43
+			s.Serialize(data.allowRemovalByPopulation);
 		}
 
+		s.Serialize(data.isCaboose);
+		s.Serialize(data.isMissionTrain);
+		s.Serialize(data.direction);
+		s.Serialize(data.hasPassengerCarriages);
+		s.Serialize(data.renderDerailed);
+
 		s.Serialize(data.forceDoorsOpen);
+
+		if (Is2372())
+		{ 
+			// Set on population trains or with SET_TRAIN_STOP_AT_STATIONS
+			s.Serialize(data.stopAtStations);
+
+			// Modified by _NETWORK_USE_HIGH_PRECISION_VEHICLE_BLENDING
+			s.Serialize(data.highPrecisionBlending);
+		}
 
 		return true;
 	}
@@ -4517,7 +4527,7 @@ using CPedSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 114>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 115>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,

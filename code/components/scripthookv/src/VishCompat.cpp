@@ -104,7 +104,7 @@ void FishScript::Yield(uint32_t time)
 	SwitchToFiber(g_mainFiber);
 }
 
-class FishThread : public GtaThread
+class FishThread : public CfxThread
 {
 private:
 	std::vector<std::shared_ptr<FishScript>> m_scripts;
@@ -118,9 +118,7 @@ public:
 	{
 		if (!m_hasScriptHandler)
 		{
-			CGameScriptHandlerMgr::GetInstance()->AttachScript(this);
-
-			m_hasScriptHandler = true;
+			AttachScriptHandler();
 		}
 
 		if (!m_initedNet)
@@ -141,14 +139,14 @@ public:
 
 	virtual void Kill() override;
 
-	virtual rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) override;
+	virtual void Reset() override;
 
 	void AddScript(void(*fn)());
 
 	void RemoveScript(void(*fn)());
 };
 
-rage::eThreadState FishThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount)
+void FishThread::Reset()
 {
 	// uninit net
 	m_initedNet = false;
@@ -169,8 +167,6 @@ rage::eThreadState FishThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t 
 	{
 		AddScript(fn);
 	}
-
-	return GtaThread::Reset(scriptHash, pArgs, argCount);
 }
 
 void FishThread::Kill()
@@ -441,7 +437,7 @@ static InitFunction initFunction([]()
 {
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
-		rage::scrEngine::CreateThread(&g_fish);
+		rage::scrEngine::CreateThread(g_fish.GetThread());
 	});
 
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)

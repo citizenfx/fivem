@@ -506,8 +506,20 @@ struct
 				*(uint16_t*)&out->gamerHandle.handle[8] = 3;
 				out->localAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
 				out->localAddr.port = 6672;
-				out->relayAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
-				out->relayAddr.port = 6672;
+
+				if constexpr (Build >= 2824)
+				{
+					out->relayAddrStruct.proxyAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+					out->relayAddrStruct.proxyAddr.port = 6672;
+					out->relayAddrStruct.publicAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+					out->relayAddrStruct.publicAddr.port = 6672;
+				}
+				else
+				{
+					out->relayAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+					out->relayAddr.port = 6672;
+				}
+
 				out->publicAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
 				out->publicAddr.port = 6672;
 
@@ -664,9 +676,14 @@ struct
 		}
 		else if (state == HS_HOSTED || state == HS_JOINED)
 		{
+			if (cgi->OneSyncEnabled)
+			{
+				return;
+			}
+
 			int playerCount = 0;
 
-			for (int i = 0; i < 256; i++)
+			for (int i = 0; i < 256 && playerCount <= 1; i++)
 			{
 				// NETWORK_IS_PLAYER_ACTIVE
 				if (NativeInvoke::Invoke<0xB8DFD30D6973E135, bool>(i))
@@ -677,7 +694,7 @@ struct
 
 			static uint64_t mismatchStart = UINT64_MAX;
 
-			if (isNetworkHost() && playerCount == 1 && !cgi->OneSyncEnabled && g_netLibrary->GetHostNetID() != g_netLibrary->GetServerNetID())
+			if (isNetworkHost() && playerCount == 1 && g_netLibrary->GetHostNetID() != g_netLibrary->GetServerNetID())
 			{
 				if (mismatchStart == UINT64_MAX)
 				{
@@ -1459,7 +1476,14 @@ static HookFunction hookFunction([] ()
 	}
 
 	// exit game on game exit from alt-f4
-	hook::call(hook::get_pattern("48 83 F8 04 75 ? 40 88", 6), ExitCleanly);
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	{
+		hook::call(hook::get_pattern("40 88 35 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 48 8B CF"), ExitCleanly);
+	}
+	else
+	{
+		hook::call(hook::get_pattern("48 83 F8 04 75 ? 40 88", 6), ExitCleanly);
+	}
 
 	// no netgame jumpouts in alt-f4
 	hook::put<uint8_t>(hook::get_pattern("40 38 35 ? ? ? ? 74 0A 48 8B CF", 7), 0xEB);
@@ -1683,7 +1707,11 @@ static HookFunction hookFunction([] ()
 	// semi-related: adding to a script handler checking for the above value being 0
 	hook::nop(hook::pattern("FF 50 28 45 33 E4 48 85 C0 0F 85").count(1).get(0).get<void>(9), 6);
 
-	if (xbr::IsGameBuildOrGreater<2699>())
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	{
+		hook::jump(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 ? 33 D2 8D 4A ? E8 ? ? ? ? 84 C0 74 ? 85 F6")), ReturnTrue);
+	}
+	else if (xbr::IsGameBuildOrGreater<2699>())
 	{
 		// now it's completely obfuscated, so just ignoring the entire list of checks
 		hook::jump(hook::get_call(hook::get_pattern("41 BD 20 00 00 00 48 8B CE 41 3B FD", -13)), ReturnTrue);
@@ -1706,11 +1734,19 @@ static HookFunction hookFunction([] ()
 	hook::put<uint16_t>(hook::pattern("8B B5 ? ? 00 00 85 F6 0F 84 ? 00 00").count(1).get(0).get<void>(8), 0xE990);
 
 	// objectmgr bandwidth stuff?
-	hook::put<uint8_t>(hook::pattern("F6 82 ? 00 00 00 01 74 2C 48").count(1).get(0).get<void>(7), 0xEB);
-	hook::put<uint8_t>(hook::pattern("74 21 80 7F ? FF B3 01 74 19 0F").count(1).get(0).get<void>(8), 0xEB);
+	hook::put<uint8_t>(hook::pattern("74 ? 48 89 54 24 ? 48 8D 54 24 ? 48 81 C1").count(1).get(0).get<void>(0), 0xEB);
+
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	{
+		hook::put<uint8_t>(hook::pattern("74 ? 48 8B 4E ? 0F B6 C0").count(1).get(0).get<void>(0), 0xEB);
+	}
+	else
+	{
+		hook::put<uint8_t>(hook::pattern("74 21 80 7F ? FF B3 01 74 19 0F").count(1).get(0).get<void>(8), 0xEB);
+	}
 
 	// even more stuff in the above function?! 
-	hook::nop(hook::pattern("85 ED 78 52 84 C0 74 4E 48").count(1).get(0).get<void>(), 8);
+	hook::nop(hook::pattern("85 ED 78 ? 84 C0 74").count(1).get(0).get<void>(), 8);
 
 	// DLC mounts
 	auto location = hook::pattern("0F 85 A4 00 00 00 8D 57 10 48 8D 0D").count(1).get(0).get<char>(12);
@@ -1952,6 +1988,15 @@ static HookFunction hookFunction([] ()
 		auto location = hook::get_pattern("48 8D 0D ? ? ? ? 33 D2 E8 ? ? ? ? 48 8B 05 ? ? ? ? 48 8B 48 08", 9);
 		hook::set_call(&g_origPoliceScanner_Stop, location);
 		hook::call(location, PoliceScanner_StopWrap);
+	}
+
+	// Disable relay address verification.
+	// Otherwise updating relay address in `HS_START_JOINING` branch of `process()` method above doesn't work.
+	// Which leads to the "Could not connect to session provider." error on builds 2944+.
+	// It seems that with one sync all clients are being processed as hosting, so this change is not necessary.
+	if (xbr::IsGameBuildOrGreater<2944>() && !Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		*hook::get_address<bool*>(hook::get_pattern("80 3D ? ? ? ? ? 49 8B F0 48 8B DA 48 8B F9 74"), 2, 7) = false;
 	}
 
 	// default netnoupnp and netnopcp to true

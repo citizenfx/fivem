@@ -21,7 +21,7 @@ namespace Botan {
 class BOTAN_PUBLIC_API(2,0) StreamCipher : public SymmetricAlgorithm
    {
    public:
-      virtual ~StreamCipher() = default;
+      virtual ~StreamCipher() {}
 
       /**
       * Create an instance based on a name

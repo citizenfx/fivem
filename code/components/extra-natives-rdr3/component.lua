@@ -17,6 +17,7 @@ return function()
 		'components/extra-natives-five/src/PoolTraversalNatives.cpp',
 		'components/extra-natives-five/src/RadioDSP.cpp',
 		'components/extra-natives-five/src/NuiAudioSink.cpp',
+		'components/extra-natives-five/src/InputNatives.cpp',
 		'components/gta-core-five/include/GameAudioState.h',
 		'components/extra-natives-five/include/audDspEffect.h',
 	}

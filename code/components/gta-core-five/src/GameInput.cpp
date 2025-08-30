@@ -292,7 +292,7 @@ public:
 
 static hook::thiscall_stub<rage::ioInputSource*(CControl*, rage::ioInputSource*, int, int, bool, bool)> _control_getBinding([]()
 {
-	return hook::get_call(hook::get_pattern("40 88 6C 24 28 40 88 6C 24 20 E8 ? ? ? ? 41 8D", 10));
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? EB ? 8B 05 ? ? ? ? 89 03 8B 05"));
 });
 
 rage::ioInputSource* CControl::GetBinding(rage::ioInputSource& outParam, int controlIdx, int unkN1, bool secondaryBinding, bool fallback)
@@ -1440,6 +1440,9 @@ static HookFunction hookFunction([]()
 	});
 
 	game::AddCustomText("PM_PANE_CFX", "FiveM");
+
+	// Snapmatic gallery error message when not logged-in to the forum / Discourse account
+	game::AddCustomText("SG_PH_LS_CL_FL", "To upload Snapmatic photos to the forum, please log in to your Cfx.re account in the main menu.");
 
 	bindingManager.Initialize();
 

@@ -6,6 +6,7 @@
 #include <Resource.h>
 #include <fxScripting.h>
 #include <ICoreGameInit.h>
+#include <jitasm.h>
 #include <rageVectors.h>
 #include <MinHook.h>
 #include "Hooking.Stubs.h"
@@ -13,6 +14,7 @@
 static int WeaponDamageModifierOffset;
 static int WeaponAnimationOverrideOffset;
 static int WeaponRecoilShakeAmplitudeOffset;
+static int WeaponSpreadOffset;
 static int ObjectWeaponOffset;
 
 static int PedOffset = 0x10;
@@ -354,12 +356,54 @@ static HookFunction hookFunction([]()
 		WeaponDamageModifierOffset = *hook::get_pattern<int>("48 8B 0C F8 89 B1", 6);
 		WeaponAnimationOverrideOffset = *hook::get_pattern<int>("8B 9F ? ? ? ? 85 DB 75 3E", 2);
 		WeaponRecoilShakeAmplitudeOffset = *hook::get_pattern<int>("48 8B 47 40 F3 0F 10 B0 ? ? ? ?", 8);
+		WeaponSpreadOffset = *hook::get_pattern<uint8_t>("F3 0F 10 43 ? F3 0F 59 05 ? ? ? ? F3 0F 2C C0", 4);
 
 		ObjectWeaponOffset = *hook::get_pattern<int>("74 5C 48 83 BB ? ? ? ? 00 75 52", 5);
 
 		CurrentPitchOffset = *hook::get_pattern<uint32_t>("89 83 ? ? ? ? C7 83 ? ? ? ? ? ? ? ? 0F 28 74 24", 2);
 		NetworkObjectOffset = *hook::get_pattern<uint32_t>("48 8B 81 ? ? ? ? 48 85 C0 74 ? 80 78 ? ? 74 ? 8A 80 ? ? ? ? C0 E8", 3);
 		IsCloneOffset = *hook::get_pattern<uint16_t>("80 78 ? ? 74 ? 8A 80 ? ? ? ? C0 E8", 2);
+	}
+
+	// CTaskGun::StateDecide
+	if (!xbr::IsGameBuild<1604>())
+	{
+		auto location = hook::get_pattern<char>("83 CE ? 44 8B C6 44 8A CD");
+		auto skipWeaponChange = location + 24;
+
+		static struct : jitasm::Frontend
+		{
+			uintptr_t skipChangeLocation;
+			uintptr_t normalLocation;
+
+			void Init(uintptr_t skip, uintptr_t normal)
+			{
+				skipChangeLocation = skip;
+				normalLocation = normal;
+			}
+
+			virtual void InternalMain() override
+			{
+				or(esi, 0xFFFFFFFF); // Original code
+				mov(r8d, esi); // Original code
+				
+				mov(rax, reinterpret_cast<uintptr_t>(&g_SET_WEAPONS_NO_AUTOSWAP));
+				mov(al, byte_ptr[rax]);
+				test(al, al);
+				jz("normalFlow");
+
+				mov(rax, skipChangeLocation);
+				jmp(rax);
+
+				L("normalFlow");
+				mov(rax, normalLocation);
+				jmp(rax);
+			}
+		} stub;
+
+		stub.Init((uintptr_t)skipWeaponChange, (uintptr_t)location + 0x6);
+		hook::nop(location, 6);
+		hook::jump(location, stub.GetCode());
 	}
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_DAMAGE_MODIFIER", [](fx::ScriptContext& context)
@@ -396,6 +440,26 @@ static HookFunction hookFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_ACCURACY_SPREAD", [](fx::ScriptContext& context)
+	{
+		float accuracySpread = 0;
+
+		if (auto weapon = getWeaponFromHash(context))
+		{
+			accuracySpread = reinterpret_cast<hook::FlexStruct*>(weapon)->Get<float>(WeaponSpreadOffset);
+		}
+
+		context.SetResult<float>(accuracySpread);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_WEAPON_ACCURACY_SPREAD", [](fx::ScriptContext& context)
+	{
+		if (auto weapon = getWeaponFromHash(context))
+		{
+			float weaponSpreadAccuracy = context.GetArgument<float>(1);
+			reinterpret_cast<hook::FlexStruct*>(weapon)->Set<float>(WeaponSpreadOffset, weaponSpreadAccuracy);
+		}
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING", [](fx::ScriptContext& context) 
 	{
@@ -543,7 +607,7 @@ static HookFunction hookFunction([]()
 		int index = (xbr::IsGameBuildOrGreater<2802>()) ? 6 : 0;
 
 		// Get the original CWeapon vtable - We will plant a vmt-hook on weapons that we own so we can track their destruction.
-		uintptr_t* cWeapon_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("45 33 FF 0F 57 C9 48 8D 05 ? ? ? ? 48 89 01", 9));
+		uintptr_t* cWeapon_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 8D 05 ? ? ? ? 48 8B D9 48 89 01 75 ? E8 ? ? ? ? C6 83", 3));
 		origWeaponDtor = (Weapon_DtorFn)cWeapon_vtable[index];
 		
 		if (xbr::IsGameBuildOrGreater<2802>())
@@ -583,7 +647,11 @@ static HookFunction hookFunction([]()
 	}
 
 	// Disable weapon status copy over the network. I.e. return to 3095 behavior.
-	if (xbr::IsGameBuildOrGreater<3258>())
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	{
+		hook::put<uint8_t>(hook::get_pattern("74 ? 88 87 ? ? ? ? 80 BD"), 0xEB);
+	}
+	else if (xbr::IsGameBuildOrGreater<3258>())
 	{
 		hook::put<uint8_t>(hook::get_pattern("74 ? 88 87 ? ? ? ? 80 BE"), 0xEB);
 	}

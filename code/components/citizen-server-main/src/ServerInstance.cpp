@@ -77,8 +77,15 @@ namespace fx
 
 		auto quit = [this](const std::string& reason)
 		{
-			trace("-> Quitting: %s\n", reason);
-			OnRequestQuit(reason);
+			if (!reason.empty())
+			{
+				trace("-> Quitting: %s\n", reason);
+				OnRequestQuit(reason);
+			}
+			else
+			{
+				OnRequestQuit("Quit command executed.");
+			}
 
 			m_shouldTerminate = true;
 		};
@@ -249,12 +256,6 @@ namespace fx
 				consoleCtx->GetVariableManager()->ShouldSuppressReadOnlyWarning(false);
 
 				OnInitialConfiguration();
-
-				console::PrintWarning(
-					_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
-					"The players.json endpoint has been modified to no longer return the player identifiers without authentication.\n"
-					"To learn more about this change read our announcement at https://forum.cfx.re/t/celebrating-one-year-with-rockstar-games/5269938#fivem-and-redm-6\n"
-				);
 			});
 		}
 

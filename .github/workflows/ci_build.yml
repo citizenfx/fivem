@@ -3,6 +3,9 @@ name: CI Build all products
 on:
   workflow_call:
 
+permissions:
+  packages: read
+
 jobs:
   build_all:
     strategy:
@@ -13,7 +16,7 @@ jobs:
           - [ Server, server, windows ]
           - [ Server, server, linux   ]
     name: ${{ matrix.builds[0] }}${{ matrix.builds[2] == 'linux' && ' (Linux)' || '' }}
-    runs-on: ${{ matrix.builds[2] == 'windows' && 'windows-latest' || 'ubuntu-20.04' }}
+    runs-on: ${{ matrix.builds[2] == 'windows' && 'windows-latest' || 'ubuntu-24.04' }}
     env:
       PROGRAM: ${{ matrix.builds[1] }}
       PLATFORM: ${{ matrix.builds[2] }}      
@@ -40,15 +43,23 @@ jobs:
           # Call each git command individually, preventing unnecessary checkouts
           git init .
           git config core.symlinks true
-          git remote add origin https://github.com/$GITHUB_REPOSITORY.git
-          git pull origin $GITHUB_REF:PR_BRANCH --depth=1
+          git remote add origin ${{github.event.pull_request.head.repo.clone_url}}
+          git pull origin ${{github.event.pull_request.head.ref}} --depth=1
           git submodule update --jobs=$JOB_SLOTS --init --depth=1
         
       - name: Dependencies
         shell: bash
         run: |
           mkdir -p "$ROOT_DEP" && cd "$_" || exit 1
-        
+      
+      - name: Log in to the Container registry
+        if: ${{ matrix.builds[2] == 'linux' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Compile
         shell: bash
         run: |

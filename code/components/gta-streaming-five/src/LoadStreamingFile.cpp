@@ -1116,7 +1116,10 @@ static void ReloadMapStore()
 #endif
 		   )
 		{
+			// currently, Reloading custom collision causes it to break in RDR3
+#ifndef IS_RDR3
 			collisionFiles.push_back(std::make_pair(file, obj));
+#endif
 		}
 		else
 		{
@@ -1157,7 +1160,7 @@ static void ReloadMapStore()
 
 #ifdef GTA_FIVE
 	// needs verification for newer builds
-	if (!xbr::IsGameBuildOrGreater<3407 + 1>())
+	if (!xbr::IsGameBuildOrGreater<xbr::Build::Latest + 1>())
 	{
 		ReloadMapStoreNative();
 	}
@@ -1749,8 +1752,6 @@ namespace rage
 }
 
 #ifdef GTA_FIVE
-extern bool GetRawStreamerForFile(const char* fileName, rage::fiCollection** collection);
-
 static hook::cdecl_stub<void(int, const char*)> initGfxTexture([]()
 {
 	return hook::get_pattern("4C 23 C0 41 83 78 10 FF", -0x57);
@@ -1908,12 +1909,9 @@ static void LoadStreamingFiles(LoadType loadType)
 			int collectionId = 0;
 
 #ifdef GTA_FIVE
-			rage::fiCollection* customRawStreamer;
-
-			if (GetRawStreamerForFile(file.c_str(), &customRawStreamer))
+			if (auto idx = streaming::GetRawStreamerForFile(file.c_str(), &rawStreamer))
 			{
-				rawStreamer = customRawStreamer;
-				collectionId = 1;
+				collectionId = idx;
 			}
 #endif
 
@@ -1955,9 +1953,18 @@ static void LoadStreamingFiles(LoadType loadType)
 					g_handleStack[fileId].push_front(entry.handle);
 
 					// only for 'real' rawStreamer (mod variant likely won't reregister)
-					if ((entry.handle >> 16) == 0)
+					if (streaming::IsRawHandle(entry.handle))
 					{
-						rage::pgRawStreamerInvalidateEntry(entry.handle & 0xFFFF);
+#ifdef GTA_FIVE
+						if (auto rawEntry = rawStreamer->GetEntry(streaming::GetEntryIndex(entry.handle)))
+						{
+							// if timestamp is 0 then GetEntry triggers the invalidation as well
+							rawEntry->timestamp = 0;
+							rawStreamer->GetEntry(streaming::GetEntryIndex(entry.handle));
+						}
+#else
+						rage::pgRawStreamerInvalidateEntry(streaming::GetEntryIndex(entry.handle));
+#endif
 					}
 
 					g_handlesToTag[entry.handle] = tag;
@@ -1993,8 +2000,8 @@ static void LoadStreamingFiles(LoadType loadType)
 							auto& entry = cstreaming->Entries[fileId];
 
 							// incorrect: fix it in the raw streamer
-							auto strEntry = const_cast<rage::fiCollection::FileEntry*>(rawStreamer->GetEntry(entry.handle & 0xFFFF));
-							strEntry->size = fd.fileSize;
+							auto strEntry = rawStreamer->GetEntry(streaming::GetEntryIndex(entry.handle));
+							strEntry->fe.size = fd.fileSize;
 						}
 					}
 				}
@@ -2592,8 +2599,8 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 
 			if (strId != -1)
 			{
-				auto rawStreamer = getRawStreamer();
 #ifdef IS_RDR3
+				auto rawStreamer = getRawStreamer();
 				uint32_t idx = (rawStreamer->GetCollectionId() << 16) | rawStreamer->GetEntryByName(file.c_str());
 #endif
 
@@ -2606,7 +2613,8 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 				for (auto it = handleData.begin(); it != handleData.end(); ++it)
 				{
 #ifdef GTA_FIVE
-					auto entryName = rawStreamer->GetEntryName((*it & 0xFFFF));
+					auto rawStreamer = streaming::GetRawStreamerByIndex(streaming::GetCollectionIndex(*it));
+					auto entryName = rawStreamer->GetEntryName(streaming::GetEntryIndex(*it));
 					if (entryName && strcmp(file.c_str(), entryName) == 0)
 #elif IS_RDR3
 					if (*it == idx)
@@ -2687,25 +2695,9 @@ static const char* NormalizePath(char* out, const char* in, size_t length)
 	return out;
 }
 
-struct pgRawStreamer
+static const char* pgRawStreamer__GetEntryNameToBuffer(rage::fiCollection* streamer, uint16_t index, char* buffer, int len)
 {
-	struct Entry
-	{
-#ifdef GTA_FIVE
-		char m_pad[24];
-#elif IS_RDR3
-		char m_pad[32];
-#endif
-		const char* fileName;
-	};
-
-	char m_pad[1456];
-	Entry* m_entries[64];
-};
-
-static const char* pgRawStreamer__GetEntryNameToBuffer(pgRawStreamer* streamer, uint16_t index, char* buffer, int len)
-{
-	const char* fileName = streamer->m_entries[index >> 10][index & 0x3FF].fileName;
+	const char* fileName = streamer->m_entries[index].fileName;
 
 	if (fileName == nullptr)
 	{
@@ -2719,7 +2711,7 @@ static const char* pgRawStreamer__GetEntryNameToBuffer(pgRawStreamer* streamer, 
 	return buffer;
 }
 
-static void DisplayRawStreamerError [[noreturn]] (pgRawStreamer* streamer, uint16_t index, const char* why)
+static void DisplayRawStreamerError [[noreturn]] (rage::fiCollection* streamer, uint16_t index, const char* why)
 {
 	auto streamingMgr = streaming::Manager::GetInstance();
 
@@ -2741,21 +2733,20 @@ static void DisplayRawStreamerError [[noreturn]] (pgRawStreamer* streamer, uint1
 		}
 	}
 
-	FatalError("Invalid pgRawStreamer call - %s.\nStreaming index: %d\n%s", why, index, extraData);
+	FatalError("Invalid pgRawStreamer call - %s.\nStreaming index: %d\n%s\n\nIf this issue persists make sure to remove incompatible asi mods.", why, index, extraData);
 }
 
-static void ValidateRawStreamerReq(pgRawStreamer* streamer, uint16_t index)
+static void ValidateRawStreamerReq(rage::fiCollection* streamer, uint16_t index)
 {
 	uint32_t index0 = index >> 10;
 	uint32_t index1 = index & 0x3FF;
 
-	if (index0 >= std::size(streamer->m_entries))
+	if (index0 >= std::size(streamer->m_entries.memory))
 	{
 		DisplayRawStreamerError(streamer, index, "index >= size(entries)");
 	}
 
-	auto entryList = streamer->m_entries[index0];
-
+	auto entryList = streamer->m_entries.memory[index0];
 	if (!entryList)
 	{
 		DisplayRawStreamerError(streamer, index, "!entryList");
@@ -2769,18 +2760,18 @@ static void ValidateRawStreamerReq(pgRawStreamer* streamer, uint16_t index)
 	}
 }
 
-static int64_t(*g_origOpenCollectionEntry)(pgRawStreamer* streamer, uint16_t index, uint64_t* ptr);
+static int64_t(*g_origOpenCollectionEntry)(rage::fiCollection* streamer, uint16_t index, uint64_t* ptr);
 
-static int64_t pgRawStreamer__OpenCollectionEntry(pgRawStreamer* streamer, uint16_t index, uint64_t* ptr)
+static int64_t pgRawStreamer__OpenCollectionEntry(rage::fiCollection* streamer, uint16_t index, uint64_t* ptr)
 {
 	ValidateRawStreamerReq(streamer, index);
 
 	return g_origOpenCollectionEntry(streamer, index, ptr);
 }
 
-static int64_t(*g_origGetEntry)(pgRawStreamer* streamer, uint16_t index);
+static int64_t(*g_origGetEntry)(rage::fiCollection* streamer, uint16_t index);
 
-static int64_t pgRawStreamer__GetEntry(pgRawStreamer* streamer, uint16_t index)
+static int64_t pgRawStreamer__GetEntry(rage::fiCollection* streamer, uint16_t index)
 {
 	ValidateRawStreamerReq(streamer, index);
 
@@ -3280,7 +3271,7 @@ DLL_IMPORT extern fwEvent<> PreSetupLoadingScreens;
 #endif
 
 #if defined(GTA_FIVE) || IS_RDR3
-pgRawStreamer* (*g_GetRawStreamer)(void);
+rage::fiCollection* (*g_GetRawStreamer)(void);
 static int32_t chunkyArrayCountOffset = 0;
 static int32_t chunkyArrayOffset = 0;
 void* (*g_chunkyArrayAppend)(hook::FlexStruct* self);
@@ -3295,6 +3286,13 @@ void* chunkyArrayAppend(hook::FlexStruct* self)
 			ss << ext << ": " << num << ", ";
 		}
 		AddCrashometry("asset_stats", ss.str());
+
+		AddCrashometry("pgRawStreamer", std::to_string(g_GetRawStreamer()->m_entries.count));
+#ifdef GTA_FIVE
+		AddCrashometry("pgRawStreamer(ytd)", std::to_string(streaming::GetRawStreamerByIndex(1)->m_entries.count));
+		AddCrashometry("pgRawStreamer(mod)", std::to_string(streaming::GetRawStreamerByIndex(2)->m_entries.count));
+#endif
+		
 		FatalError("ERR_STR_FAILURE: trying to add more assets to pgRawStreamer when it's already full (65535).");
 	}
 
@@ -3303,24 +3301,23 @@ void* chunkyArrayAppend(hook::FlexStruct* self)
 
 static ConsoleCommand pgRawStreamer_AssetsCountCmd("assetscount", []()
 {
-	hook::FlexStruct* rawStreamerFlex = (hook::FlexStruct*)g_GetRawStreamer();
-	const int32_t loadedEntriesCount = rawStreamerFlex->Get<int32_t>(chunkyArrayOffset + chunkyArrayCountOffset);
-	trace("Total loaded assets in pgRawStreamer - %d/65535\n", loadedEntriesCount);
+	std::stringstream ss;
+	for (auto& [ext, num] : g_resourceStats)
+	{
+		ss << ext << ": " << num << ", ";
+	}
+	trace("%s\n", ss.str());
+	trace("Total loaded assets in pgRawStreamer - %d/65535\n", g_GetRawStreamer()->m_entries.count);
+
+#ifdef GTA_FIVE
+	trace("Total loaded assets in pgRawStreamer(ytd) - %d/65535\n", streaming::GetRawStreamerByIndex(1)->m_entries.count);
+	trace("Total loaded assets in pgRawStreamer(mod) - %d/65535\n", streaming::GetRawStreamerByIndex(2)->m_entries.count);
+#endif
 });
 
-const rage::chunkyArray<rage::pgRawEntry, 1024, 64>& rage::GetPgRawStreamerEntries()
+const rage::chunkyArray<rage::fiCollection::RawEntry, 1024, 64>& rage::GetPgRawStreamerEntries()
 {
-	static rage::chunkyArray<rage::pgRawEntry, 1024, 64> empty;
-	hook::FlexStruct* rawStreamerFlex = (hook::FlexStruct*)g_GetRawStreamer();
-
-	if (rawStreamerFlex)
-	{
-		return rawStreamerFlex->Get<rage::chunkyArray<rage::pgRawEntry, 1024, 64>>(chunkyArrayOffset);
-	}
-	else
-	{
-		return empty;
-	}
+	return g_GetRawStreamer()->m_entries;
 }
 
 #endif

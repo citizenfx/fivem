@@ -110,6 +110,13 @@ void ServerResourceList::ScanResources(const std::string& resourceRoot, ScanResu
 					else if (scannedNow.find(findData.name) == scannedNow.end())
 					{
 						const auto& resourceName = findData.name;
+
+						// ignore hidden folders and txAdmin
+						if (resourceName[0] == '.' || boost::algorithm::to_lower_copy(resourceName) == "txadmin")
+						{
+							continue;
+						}
+
 						scannedNow.emplace(resourceName, resPath);
 
 						auto oldRes = m_manager->GetResource(resourceName, false);

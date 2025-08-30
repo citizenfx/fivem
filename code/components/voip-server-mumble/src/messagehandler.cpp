@@ -45,9 +45,11 @@
 #include "ban.h"
 
 #include "ChannelListener.h"
+#include "server.h"
 
 #define MAX_TEXT 512
-#define MAX_USERNAME 128
+// fivem usernames can be 200 characters long + 8 for the max prefix size "[65535] "
+#define MAX_USERNAME 208
 
 #define NO_CELT_MESSAGE "<strong>WARNING:</strong> Your client doesn't support the CELT codec, you won't be able to talk to or hear most clients. Please make sure your client was built with CELT support."
 
@@ -122,6 +124,7 @@ void Mh_handle_message(client_t *client, message_t *msg)
 
 	switch (msg->messageType) {
 	case Authenticate:
+	{
 		Log_debug("Authenticate message received");
 
 		if (IS_AUTH(client) || !msg->payload.authenticate->username().c_str()) {
@@ -176,11 +179,52 @@ void Mh_handle_message(client_t *client, message_t *msg)
 			goto disconnect;
 		}
 
-		if (Client_count() >= getIntConf(MAX_CLIENTS)) {
+		if (Client_count() >= getIntConf(MUMBLE_MAX_CLIENTS)) {
 			char buf[64];
-			snprintf(buf, 64, "Server is full (max %d users)", getIntConf(MAX_CLIENTS));
+			snprintf(buf, 64, "Server is full (max %d users)", getIntConf(MUMBLE_MAX_CLIENTS));
 			sendServerReject(client, buf, MumbleProto::Reject_RejectType_ServerFull);
 			goto disconnect;
+		}
+		
+		if(!mumble_allowExternalConnections->GetValue())
+		{
+			char buf[64];
+			if (!client->os_version || !client->release || 
+				strcmp(client->os_version, "Cfx/Embedded") != 0 || 
+				strcmp(client->release, "CitizenFX Client") != 0)
+			{
+				snprintf(buf, 64, "Invalid client os_version or release");
+				sendServerReject(client, buf, MumbleProto::Reject_RejectType_WrongVersion);
+				goto disconnect;
+			}
+			int playerId = Client_getPlayerId(client, (char*)msg->payload.authenticate->username().c_str());
+			if(playerId == -1) {
+				snprintf(buf, 64, "Invalid player id in username");
+				sendServerReject(client, buf, MumbleProto::Reject_RejectType_InvalidUsername);
+				goto disconnect;
+			}
+			
+			{
+				std::shared_lock lock(g_clientIdsMutex);
+				if(g_clientIds.find(playerId) != g_clientIds.end()) {
+					snprintf(buf, 64, "Player id already in use");
+					sendServerReject(client, buf, MumbleProto::Reject_RejectType_UsernameInUse);
+					goto disconnect;
+				}
+			}
+			
+			auto netClient = g_clientRegistry->GetClientByNetID(playerId);
+			if(!netClient || !netClient->HasRouted())
+			{
+				snprintf(buf, 64, "Player id does not exist or didn't routed yet");
+				sendServerReject(client, buf, MumbleProto::Reject_RejectType_InvalidUsername);
+				goto disconnect;
+			}
+		
+			{
+				std::unique_lock lock(g_clientIdsMutex);
+				g_clientIds.insert(playerId);
+			}
 		}
 
 		client->authenticated = true;
@@ -346,7 +390,7 @@ void Mh_handle_message(client_t *client, message_t *msg)
 
 		Log_info_client(client, "User %s authenticated", client->username);
 		break;
-
+	}
 	case Ping:
 		if (msg->payload.ping->has_good())
 			client->cryptState.uiRemoteGood = msg->payload.ping->good();

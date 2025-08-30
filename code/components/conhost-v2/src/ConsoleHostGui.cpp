@@ -149,6 +149,27 @@ struct FiveMConsoleBase
 	static int Stricmp(const char* str1, const char* str2) { int d; while ((d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; } return d; }
 	static int Strnicmp(const char* str1, const char* str2, int n) { int d = 0; while (n > 0 && (d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; n--; } return d; }
 	static char* Strdup(const char* str) { size_t len = strlen(str) + 1; void* buff = malloc(len); return (char*)memcpy(buff, (const void*)str, len); }
+	static bool Stristr(const char* haystack, const char* needle)
+	{
+		if (!needle || !needle[0])
+			return true;
+
+		for (const char* h = haystack; *h; h++)
+		{
+			const char* h1 = h;
+			const char* n1 = needle;
+
+			while (*h1 && *n1 && toupper(*h1) == toupper(*n1))
+			{
+				h1++; n1++;
+			}
+
+			if (!*n1)
+				return true;
+		}
+
+		return false;
+	}
 
 	virtual void AddLog(const char* key, const char* fmt, ...)
 	{
@@ -291,6 +312,9 @@ struct CfxBigConsole : FiveMConsoleBase
 	ImVector<char*> History;
 	int HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.
 	ImVector<const char*> Commands;
+	ImVec2 PreviousWindowSize;
+
+	char FilterBuf[128];
 
 	concurrency::concurrent_queue<std::string> CommandQueue;
 
@@ -298,6 +322,7 @@ struct CfxBigConsole : FiveMConsoleBase
 	{
 		ClearLog();
 		memset(InputBuf, 0, sizeof(InputBuf));
+		memset(FilterBuf, 0, sizeof(FilterBuf));
 		HistoryPos = -1;
 		Commands.push_back("HELP");
 		Commands.push_back("HISTORY");
@@ -307,6 +332,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		Commands.push_back("QUIT");
 		Commands.push_back("NETGRAPH");
 		Commands.push_back("STRDBG");
+		PreviousWindowSize = { 0, 0 };
 
 #ifndef IS_FXSERVER
 		AutoScrollEnabled = g_conAutoScroll->GetValue();
@@ -351,20 +377,33 @@ struct CfxBigConsole : FiveMConsoleBase
 
 	virtual bool StartWindow(const char* title, bool* p_open)
 	{
-		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + g_menuHeight));
-		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x,
+		ImVec2 viewportPos = ImGui::GetMainViewport()->Pos;
+		ImVec2 viewportSize = ImGui::GetMainViewport()->Size;
+		float windowPosY = viewportPos.y + g_menuHeight;
+		ImGui::SetNextWindowPos(ImVec2(viewportPos.x, windowPosY));
+
 #ifndef IS_FXSERVER
-										ImGui::GetFrameHeightWithSpacing() * 12.0f
+		const float forcedWidth = viewportSize.x;
+		const float initialHeight = ImGui::GetFrameHeightWithSpacing() * 12.0f;
+		ImVec2 initialSize(forcedWidth, initialHeight);
+		ImVec2 minSize(forcedWidth, initialHeight * 0.5f);
+		ImVec2 maxSize(forcedWidth, viewportSize.y - g_menuHeight);
+		ImGui::SetNextWindowSize(initialSize, ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSizeConstraints(minSize, maxSize);
 #else
-										ImGui::GetIO().DisplaySize.y - g_menuHeight
+		ImVec2 fullSize(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y - g_menuHeight);
+		ImGui::SetNextWindowSize(fullSize, ImGuiCond_Always);
 #endif
-								 ),
-		ImGuiCond_Always);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 4.0f, 3.0f });
 
-		constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
+		constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings
+#ifdef IS_FXSERVER
+		| ImGuiWindowFlags_NoResize;
+#endif
+		;
+
 		return ImGui::Begin(title, nullptr, flags);
 	}
 
@@ -392,12 +431,23 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing() - 8.0f), false);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1)); // Tighten spacing
-		ImGuiListClipper clipper(Items.size());
+		std::vector<int> filteredIndices;
+		for (size_t i = 0; i < Items.size(); i++)
+		{
+			if (FilterBuf[0] == '\0' ||
+				Stristr(Items[i].c_str(), FilterBuf) ||
+				Stristr(ItemKeys[i].c_str(), FilterBuf))
+			{
+				filteredIndices.push_back(i);
+			}
+		}
+
+		ImGuiListClipper clipper(filteredIndices.size());
 		while (clipper.Step())
 		{
 			for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
 			{
-				DrawItem(i);
+				DrawItem(filteredIndices[i]);
 			}
 		}
 
@@ -467,9 +517,14 @@ struct CfxBigConsole : FiveMConsoleBase
 				ImGui::SetKeyboardFocusHere(-1);
 			}
 
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(ImGui::GetMainViewport()->Size.x * 0.15f);
+			ImGui::InputTextWithHint("##LogFilter", "Filter", FilterBuf, sizeof(FilterBuf));
+
 			bool preAutoScrollValue = AutoScrollEnabled;
 
 			// Controls in the second column
+			ImGui::SameLine();
 			ImGui::Checkbox("Auto scroll", &AutoScrollEnabled);
 
 			if (preAutoScrollValue != AutoScrollEnabled)
@@ -496,6 +551,14 @@ struct CfxBigConsole : FiveMConsoleBase
 #endif
 
 			ImGui::EndTable();
+		}
+
+		// Check if the screen is being resized
+		const ImVec2 currentSize = ImGui::GetWindowSize();
+		if (AutoScrollEnabled && currentSize.y != PreviousWindowSize.y)
+		{
+			ScrollToBottom = true;
+			PreviousWindowSize = currentSize;
 		}
 
 		EndWindow();
@@ -709,7 +772,7 @@ struct CfxBigConsole : FiveMConsoleBase
 			return false;
 		}
 
-		if (channel == "cmd" || channel == "IO")
+		if (channel == "cmd" || channel == "IO" || channel == "loading-screens-rdr3")
 		{
 			return true;
 		}
@@ -914,7 +977,7 @@ static void EnsureConsoles()
 
 bool IsNonProduction()
 {
-#if !defined(GTA_FIVE) || defined(_DEBUG)
+#if (!defined(GTA_FIVE) && !defined(IS_RDR3)) || defined(_DEBUG)
 	return true;
 #else
 	static ConVar<int> moo("moo", ConVar_None, 0);

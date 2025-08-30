@@ -5,6 +5,8 @@
 
 #include <uvw.hpp>
 
+#include "UvTcpServer.h"
+
 namespace fx
 {
 	class MonitorInstance : public ServerInstanceBase
@@ -33,6 +35,6 @@ namespace fx
 		std::vector<std::pair<std::string, std::string>> m_setList;
 		std::vector<ProgramArguments> m_arguments;
 
-		std::shared_ptr<uvw::TimerHandle> m_tickTimer;
+		UvHandleContainer<uv_timer_t> m_tickTimer;
 	};
 }

@@ -8,6 +8,10 @@
 #ifndef BOTAN_TLS_PROTOCOL_MAGIC_H_
 #define BOTAN_TLS_PROTOCOL_MAGIC_H_
 
+#include <botan/types.h>
+
+//BOTAN_FUTURE_INTERNAL_HEADER(tls_magic.h)
+
 namespace Botan {
 
 namespace TLS {
@@ -24,8 +28,10 @@ enum Size_Limits {
    MAX_CIPHERTEXT_SIZE = MAX_COMPRESSED_SIZE + 1024,
 };
 
+// This will become an enum class in a future major release
 enum Connection_Side { CLIENT = 1, SERVER = 2 };
 
+// This will become an enum class in a future major release
 enum Record_Type {
    CHANGE_CIPHER_SPEC = 20,
    ALERT              = 21,
@@ -35,6 +41,7 @@ enum Record_Type {
    NO_RECORD          = 256
 };
 
+// This will become an enum class in a future major release
 enum Handshake_Type {
    HELLO_REQUEST        = 0,
    CLIENT_HELLO         = 1,

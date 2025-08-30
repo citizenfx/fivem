@@ -4,6 +4,7 @@
 #include <Error.h>
 
 #include <ICoreGameInit.h>
+#include <CrossBuildRuntime.h>
 
 #include <Hooking.Stubs.h>
 #include <jitasm.h>

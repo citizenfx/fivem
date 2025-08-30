@@ -57,6 +57,11 @@ public:
 
 	size_t ReadToEndBuffered(std::vector<uint8_t>& buffer);
 
+	inline fwRefContainer<vfs::Device> GetDevice()
+	{
+		return m_device;
+	}
+
 	inline Device::THandle GetHandle()
 	{
 		return m_handle;

@@ -20,7 +20,7 @@ DLL_IMPORT
 #else
 DLL_EXPORT
 #endif
-fwEvent<const std::wstring&, fwRefContainer<IMumbleAudioSink>*>
+fwEvent<const std::string&, fwRefContainer<IMumbleAudioSink>*>
 OnGetMumbleAudioSink;
 
 extern

@@ -350,30 +350,30 @@ nuget_server:
 # --------------------
 # -- UPLOAD REVIEWS --
 # --------------------
-.base_upload_review:
-  stage: postdeploy
-  extends: [.only_for_public_build]
-  allow_failure: true
-  script:
-    - ".\\code\\tools\\ci\\upload_review.ps1"
-  tags:
-    - windows
+# .base_upload_review:
+#   stage: postdeploy
+#   extends: [.only_for_public_build]
+#   allow_failure: true
+#   script:
+#     - ".\\code\\tools\\ci\\upload_review.ps1"
+#   tags:
+#     - windows
 
-fivem_upload_review:
-  extends: [.base_upload_review]
-  variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT
-  needs:
-    - job: build_client
-      artifacts: true
+# fivem_upload_review:
+#   extends: [.base_upload_review]
+#   variables:
+#     GIT_CLONE_PATH: $CFX_CLONE_ROOT
+#   needs:
+#     - job: build_client
+#       artifacts: true
 
-redm_upload_review:
-  extends: [.base_upload_review]
-  variables:
-    GIT_CLONE_PATH: $CFX_CLONE_ROOT
-  needs:
-    - job: build_client_rdr3
-      artifacts: true
+# redm_upload_review:
+#   extends: [.base_upload_review]
+#   variables:
+#     GIT_CLONE_PATH: $CFX_CLONE_ROOT
+#   needs:
+#     - job: build_client_rdr3
+#       artifacts: true
 
 prebuild_linux_docker_container:
   image: docker:24.0

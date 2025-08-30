@@ -5,7 +5,7 @@
  * regarding licensing.
  */
 
-// This file contains code adapted from the original GTA IV script hook, the 
+// This file contains code adapted from the original GTA IV script hook, the
 // copyright notice for which follows below.
 
 /*****************************************************************************\
@@ -50,7 +50,7 @@ enum eThreadState
 	ThreadStateRunning,
 	ThreadStateKilled,
 	ThreadState3,
-	ThreadState4,			// Sets opsToExecute to 1100000, and state to Idle in CallNative
+	ThreadState4, // Sets opsToExecute to 1100000, and state to Idle in CallNative
 };
 
 struct scrVector
@@ -161,7 +161,7 @@ struct scrThreadContext
 	uint32_t ScriptHash; // + 4 (program id)
 	eThreadState State; // + 8
 	uint32_t IP; // + 12
-	uint32_t FrameSP; // 
+	uint32_t FrameSP; //
 	uint32_t SP; // + 20, aka + 28
 	uint32_t TimerA; // + 24
 	uint32_t TimerB; // + 28
@@ -190,147 +190,50 @@ struct scrThreadContext
 
 static_assert(sizeof(scrThreadContext) == 168, "scrThreadContext has wrong size!");
 
-class
-#ifdef COMPILING_RAGE_SCRIPTING_FIVE
-__declspec(dllexport)
-#endif
-scrThread
+class RAGE_SCRIPTING_EXPORT scrThread
 {
-protected:
-	scrThreadContext m_Context;
-	void* m_pStack; // should be +176 including vtable
-	void* pad;
-	void* pad2;
-
-	// should be +200
-	const char* m_pszExitMessage;
-
 public:
-	virtual uint64_t proxyMethod1(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
-	virtual uint64_t proxyMethod2(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
-	virtual uint64_t proxyMethod3(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
-	virtual uint64_t proxyMethod4(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
-	virtual uint64_t proxyMethod5(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
-	virtual uint64_t proxyMethod6(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
-
-	virtual eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) = 0;
-	virtual eThreadState Run(uint32_t opsToExecute) = 0;
-	virtual eThreadState Tick(uint32_t opsToExecute) = 0;
-	virtual void Kill() = 0;
-
-	scrThreadContext* GetContext()
-	{
-		return &m_Context;
-	}
+	scrThreadContext* GetContext();
 };
 }
 
-class
-#ifdef COMPILING_RAGE_SCRIPTING_FIVE
-	__declspec(dllexport)
-#endif
-	GtaThread :
-		public rage::scrThread
+class RAGE_SCRIPTING_EXPORT GtaThread : public rage::scrThread
 {
-protected:
-//[2699] - GtaThread layout was changed, but not rage::scrThread
-	char scriptName[64];                        // 208 0xD0 
-	rage::scriptHandler* m_pScriptHandler;      // 272 0x110
-	void* m_pNetcomponent;                      // 280 0x118
-	char gta_pad2[24];                          // 288 0x120
-	uint32_t m_networkId;                       // 312 0x138
-	uint32_t gta_padInt;                        // 316 0x13C
-	char flag1;                                 // 320 0x140
-	char m_networkFlag;                         // 321 0x141
-	uint16_t gta_pad3;                          // 322 0x142
-	char gta_pad4[12];                          // 324 0x144
-	uint8_t m_canRemoveBlipsFromOtherScripts;   // 336 0x150
-	char gta_pad5[7];                           // 337 0x151
-	char pad_b2699[8];
-
 public:
-	virtual rage::eThreadState		Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount);
-	virtual rage::eThreadState		Run(uint32_t opsToExecute);
-	virtual rage::eThreadState		Tick(uint32_t opsToExecute);
-	virtual void					Kill();
+	void SetScriptName(const char* name);
+	rage::scriptHandler* GetScriptHandler();
+
+	rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount);
+	rage::eThreadState Run(uint32_t opsToExecute);
+	rage::eThreadState Tick(uint32_t opsToExecute);
+	void Kill();
+};
+
+class RAGE_SCRIPTING_EXPORT CfxThread
+{
+public:
+	CfxThread();
+
+	virtual ~CfxThread();
+
+	virtual void Reset()
+	{
+	}
 
 	virtual void DoRun() = 0;
 
-	inline void SetScriptName(const char* name)
+	virtual void Kill()
 	{
-		if (xbr::IsGameBuildOrGreater<2699>())
-		{
-			auto scriptHashPtr = reinterpret_cast<uint32_t*>((uint64_t)this + 0xD0);
-			auto scriptNamePtr = reinterpret_cast<char*>((uint64_t)this + 0xD4);
-
-			strncpy(scriptNamePtr, name, sizeof(scriptName) - 1);
-			scriptNamePtr[sizeof(scriptName) - 1] = '\0';
-
-			*scriptHashPtr = HashString(name);
-		}
-		else
-		{
-			strncpy(scriptName, name, sizeof(scriptName) - 1);
-			scriptName[sizeof(scriptName) - 1] = '\0';
-		}
 	}
 
-	inline void SetNetworkFlag(char state)
+	void AttachScriptHandler();
+	void DetachScriptHandler();
+
+	GtaThread* GetThread()
 	{
-		if (xbr::IsGameBuildOrGreater<2699>())
-		{
-			bool* thisNetFlag = (bool*)((uintptr_t)this + 0x149); // See GtaThreadInit function in GtaThread::GtaThread() (and extrapolate)
-			*thisNetFlag = state;
-		}
-		else
-		{
-			m_networkFlag = state;
-		}
+		return Thread;
 	}
 
-	inline void SetCanRemoveBlipsFromOtherScripts(uint8_t state)
-	{
-		if (xbr::IsGameBuildOrGreater<2699>())
-		{
-			bool* thisCanRemoveBlips = (bool*)((uintptr_t)this + 0x150); // See GtaThreadInit function in GtaThread::GtaThread()
-			*thisCanRemoveBlips = state;
-		}
-		else
-		{
-			m_canRemoveBlipsFromOtherScripts = state;
-		}
-	}
-
-	inline rage::scriptHandler* GetScriptHandler() 
-	{
-		if (xbr::IsGameBuildOrGreater<2699>())
-		{
-			return *(rage::scriptHandler**)((uintptr_t)this + 0x118);
-		}
-
-		return m_pScriptHandler;
-	}
-
-	inline void SetScriptHandler(rage::scriptHandler* scriptHandler) 
-	{ 
-		if (xbr::IsGameBuildOrGreater<2699>())
-		{
-			rage::scriptHandler** thisHandler = *(rage::scriptHandler***)((uintptr_t)this + 0x118); // See GtaThread constructor
-			*thisHandler = scriptHandler;
-		}
-		else
-		{
-			m_pScriptHandler = scriptHandler; 
-		}
-	}
-
-	inline void SetScriptHandler(void* scriptHandler)
-	{
-		SetScriptHandler(reinterpret_cast<rage::scriptHandler*>(scriptHandler));
-	}
-
-	inline void RemoveCleanupFlag() {  }
+private:
+	GtaThread* Thread;
 };
-
-//static_assert(sizeof(GtaThread) == 344, "GtaThread has wrong size!");
-static_assert(sizeof(GtaThread) == 352, "GtaThread has wrong size!"); // [2699]

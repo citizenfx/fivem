@@ -34,16 +34,7 @@ void AddCustomText(const char* key, const char* value);
 
 static hook::cdecl_stub<void(int unk, uint32_t* titleHash, uint32_t* messageHash, uint32_t* subMessageHash, int flags, bool, int8_t, void*, void*, bool, bool)> setWarningMessage([] ()
 {
-	if (xbr::IsGameBuildOrGreater<3258>())
-	{
-		return hook::get_pattern("48 89 5C 24 ? 4C 89 44 24 ? 89 4C 24");
-	}
-	else if (xbr::IsGameBuildOrGreater<2699>())
-	{
-		return hook::get_pattern("44 38 ? ? ? ? ? 0F 85 C5 02 00 00 E8", -0x38);
-	}
-
-	return hook::get_pattern("44 38 ? ? ? ? ? 0F 85 C2 02 00 00 E8", -0x3A);
+	return hook::get_call(hook::get_pattern("4D 89 43 ? 4D 8D 43 ? 4D 8D 4B", 12));
 });
 
 static hook::cdecl_stub<int(bool, int)> getWarningResult([] ()
@@ -136,7 +127,9 @@ static HookFunction hookFunction([]()
 	//hook::return_function(hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0));
 
 	// force SET_GAME_PAUSES_FOR_STREAMING (which makes collision loading, uh, blocking) to be off
-	hook::put<uint8_t>(hook::get_pattern("74 20 84 C9 74 1C 84 DB 74 18", 0), 0xEB);
+	// hook::put<uint8_t>(hook::get_pattern("74 20 84 C9 74 1C 84 DB 74 18", 0), 0xEB);
+	// New approach: allow the game to still ensure static bounds, but don't block on it.
+	hook::nop(hook::get_pattern("E8 ? ? ? ? 66 44 39 7D ? 74 ? 48 8B 4D ? E8 ? ? ? ? 4C 8D 5C 24"), 5);
 });
 
 static void __declspec(noinline) CrashCommand()

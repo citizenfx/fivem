@@ -150,7 +150,9 @@ static char* g_gameKeyArray;
 
 static std::atomic<int> g_isFocusStolenCount;
 
-void InputHook::SetGameMouseFocus(bool focus)
+static std::map<int, std::vector<InputHook::ControlBypass>> g_controlBypasses;
+
+void InputHook::SetGameMouseFocus(bool focus, bool flushMouse)
 {
 	if (focus)
 	{
@@ -165,11 +167,27 @@ void InputHook::SetGameMouseFocus(bool focus)
 
 	if (g_isFocusStolen)
 	{
-		rage::g_input.m_Buttons() = 0;
 		if (*g_diMouseDevice)
 		{
 			(*g_diMouseDevice)->Unacquire();
 		}
+
+		if (flushMouse)
+		{
+			int32_t persistingButtons = 0;
+			for (const auto& [subsystem, bypasses] : g_controlBypasses)
+			{
+				for (const auto [isMouse, ctrlIdx] : bypasses)
+				{
+					if (isMouse)
+					{
+						persistingButtons |= ctrlIdx & 0xFF;
+					}
+				}
+			}
+			rage::g_input.m_Buttons() &= persistingButtons;
+		}
+
 		memset(g_gameKeyArray, 0, 256);
 	}
 
@@ -180,8 +198,6 @@ void InputHook::EnableSetCursorPos(bool enabled)
 {
 	g_enableSetCursorPos = enabled;
 }
-
-static std::map<int, std::vector<InputHook::ControlBypass>> g_controlBypasses;
 
 void InputHook::SetControlBypasses(int subsystem, std::initializer_list<ControlBypass> bypasses)
 {
@@ -431,8 +447,6 @@ static hook::cdecl_stub<bool(wchar_t, int)> ProcessWMChar([]()
 
 static ReverseGameInputState lastInput;
 static ReverseGameInputState curInput;
-
-static bool g_mainThreadId;
 
 #include <queue>
 

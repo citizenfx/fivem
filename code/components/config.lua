@@ -20,6 +20,7 @@ if _OPTIONS['game'] == 'server' then
 	component 'citizen-scripting-v8node'
 	component 'citizen-scripting-mono'
 	component 'citizen-scripting-mono-v2'
+	component 'citizen-scripting-node'
 	component 'citizen-server-instance'
 	component 'citizen-server-impl'
 	component 'citizen-server-state-fivesv'
@@ -64,9 +65,13 @@ else
 	component 'citizen-scripting-mono'
 	component 'citizen-scripting-mono-v2'
 
+	component 'legitimacy'
+
 	if _OPTIONS['game'] ~= 'ny' then
 		component 'citizen-scripting-v8client'
 		component 'citizen-scripting-v8node'
+
+		component 'citizen-scripting-v8-v12.4'
 	end
 
 	--component 'n19ui'
@@ -84,8 +89,6 @@ component 'rage-graphics-five'
 component 'rage-scripting-five'
 component 'rage-scripting-rdr3'
 component 'lovely-script'
-component 'ros-patches-five'
-component 'ros-patches-rdr3'
 
 component 'gta-net-five'
 component 'rage-input-five'
@@ -103,7 +106,6 @@ component 'citizen-level-loader-five'
 component 'citizen-resources-metadata-lua'
 component 'citizen-scripting-core'
 component 'citizen-scripting-lua'
-component 'citizen-scripting-lua54'
 component 'citizen-playernames-five'
 component 'scripting-gta'
 component 'gta-game-five'
@@ -129,6 +131,7 @@ component 'gta-net-rdr3'
 component 'extra-natives-rdr3'
 component 'citizen-playernames-rdr3'
 component 'devtools-rdr3'
+component 'loading-screens-rdr3'
 
 component 'gta-game-ny'
 component 'rage-graphics-ny'
@@ -143,5 +146,4 @@ component 'gta-streaming-ny'
 component 'gta-core-ny'
 component 'citizen-level-loader-ny'
 component 'extra-natives-ny'
-component 'ros-patches-ny'
 component 'gta-net-ny'

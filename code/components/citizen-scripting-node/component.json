@@ -1,0 +1,11 @@
+{
+	"name": "citizen:scripting:node",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"net:tcp-server",
+        "citizen:server:instance",
+        "citizen:scripting:core"
+	],
+	"provides": []
+}

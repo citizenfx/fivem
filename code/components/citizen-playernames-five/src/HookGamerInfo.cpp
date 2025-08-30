@@ -402,7 +402,14 @@ static HookFunction hookFunction([]()
 	{
 		LimitPatch(hook::pattern("83 FB ? 77 ? 48 69 DB").count(1).get(0).get<void>(0));
 
-		if (xbr::IsGameBuildOrGreater<3258>())
+		if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+		{
+			LimitPatch(hook::pattern("83 FB ? 0F 87 ? ? ? ? 48 8B FB").count(1).get(0).get<void>(0));
+
+			// There's a new unknown "privilege" check that needs to be patched. Nuking the whole code block.
+			hook::nop(hook::get_pattern("83 FB ? 7D ? 8A CB"), 0x3A);
+		}
+		else if (xbr::IsGameBuildOrGreater<3258>())
 		{
 			LimitPatch(hook::pattern("83 FB ? 77 ? 48 8B FB 48 69 FF ? ? ? ? 80 BC 37").count(1).get(0).get<void>(0));
 
