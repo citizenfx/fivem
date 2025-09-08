@@ -223,7 +223,7 @@ static CMloRoomDef* GetInteriorRoomDef(int interiorId, int roomId)
 {
 	CMloModelInfo* arch = GetInteriorArchetype(interiorId);
 
-	if (arch == nullptr || roomId < 0 || roomId > arch->rooms->GetCount())
+	if (arch == nullptr || roomId < 0 || roomId >= arch->rooms->GetCount())
 	{
 		return nullptr;
 	}
@@ -235,7 +235,7 @@ static CMloPortalDef* GetInteriorPortalDef(int interiorId, int portalId)
 {
 	CMloModelInfo* arch = GetInteriorArchetype(interiorId);
 
-	if (arch == nullptr || portalId < 0 || portalId > arch->portals->GetCount())
+	if (arch == nullptr || portalId < 0 || portalId >= arch->portals->GetCount())
 	{
 		return nullptr;
 	}
@@ -247,7 +247,7 @@ static CMloEntitySet* GetInteriorEntitySet(int interiorId, int setId)
 {
 	CMloModelInfo* arch = GetInteriorArchetype(interiorId);
 
-	if (arch == nullptr || setId < 0 || setId > arch->entitySets->GetCount())
+	if (arch == nullptr || setId < 0 || setId >= arch->entitySets->GetCount())
 	{
 		return nullptr;
 	}
@@ -281,7 +281,7 @@ static CMloTimeCycleModifier* GetInteriorTimecycleModifier(int interiorId, int m
 {
 	CMloModelInfo* arch = GetInteriorArchetype(interiorId);
 
-	if (arch == nullptr || modId < 0 || modId > arch->timecycleModifiers->GetCount())
+	if (arch == nullptr || modId < 0 || modId >= arch->timecycleModifiers->GetCount())
 	{
 		return nullptr;
 	}
@@ -589,7 +589,7 @@ static HookFunction initFunction([]()
 
 		CMloPortalDef* portalDef = GetInteriorPortalDef(interiorId, portalId);
 
-		if (cornerIndex < 0 || cornerIndex > portalDef->corners.GetCount())
+		if (cornerIndex < 0 || cornerIndex >= portalDef->corners.GetCount())
 		{
 			return false;
 		}
