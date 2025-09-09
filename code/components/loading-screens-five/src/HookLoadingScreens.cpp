@@ -572,7 +572,7 @@ static InitFunction initFunction([] ()
 		
 	OnPostFrontendRender.Connect([]()
 	{
-		if (nui::HasFrame("loadingScreen"))
+		if (nui::HasFrame("loadingScreen") && showBusySpinner)
 		{
 			*g_isPendingGFx = true;
 
