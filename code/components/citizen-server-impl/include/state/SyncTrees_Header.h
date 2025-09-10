@@ -500,6 +500,13 @@ struct ParseSerializer
 		return true;
 	}
 
+	template<typename T>
+	bool SerializeSigned(int size, T& data)
+	{
+		data = state->buffer.ReadSigned<T>(size);
+		return true;
+	}
+
 	bool SerializeSigned(int size, float div, float& data)
 	{
 		data = state->buffer.ReadSignedFloat(size, div);
