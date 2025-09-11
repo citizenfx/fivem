@@ -967,6 +967,23 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					}
 				}
 			}
+			
+			if (entity->type == sync::NetObjEntityType::Player)
+			{
+				auto entityHealth = entity->syncTree->GetPedHealth();
+				auto ownerRef = entity->GetClient();
+
+				if (entityHealth->health <= 0 && !entityHealth->isDead)
+				{
+					entity->syncTree->SetPedDead(true);
+					evMan->TriggerEvent2("playerDeathEvent", {}, fmt::sprintf("%d", ownerRef->GetNetId()), entityHealth->causeOfDeath, entityHealth->sourceOfDamage);
+				}
+				else if (entityHealth->isDead && entityHealth->health >= 1)
+				{
+					entity->syncTree->SetPedDead(false);
+					evMan->TriggerEvent2("playerReviveEvent", {}, fmt::sprintf("%d", ownerRef->GetNetId()));
+				}
+			}
 
 			float position[3];
 			entity->syncTree->GetPosition(position);
