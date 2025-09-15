@@ -743,6 +743,19 @@ struct CPedAINodeData
 	int decisionMaker;
 };
 
+struct CPedVehicleNodeData
+{
+	bool inVehicle;
+	int curVehicle;
+	int lastVehiclePedWasIn;
+
+	bool onHorse;
+	int curHorse;
+	int lastHorsePedWasOn;
+
+	int curSeat;
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -848,6 +861,8 @@ public:
 	virtual bool GetScriptHash(uint32_t* scriptHash) = 0;
 
 	virtual bool IsEntityVisible(bool* visible) = 0;
+
+	virtual CPedVehicleNodeData* GetPedVehicleData() = 0;
 };
 
 enum EntityOrphanMode : uint8_t

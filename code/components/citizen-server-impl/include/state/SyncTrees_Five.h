@@ -4205,6 +4205,11 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 		return false;
 	}
+
+	virtual CPedVehicleNodeData* GetPedVehicleData() override
+	{
+		return nullptr;
+	}
 };
 
 using CAutomobileSyncTree = SyncTree<
