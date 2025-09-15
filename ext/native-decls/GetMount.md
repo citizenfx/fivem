@@ -6,7 +6,7 @@ game: rdr3
 ## GET_MOUNT
 
 ```c
-int GET_MOUNT(Ped ped)
+int GET_MOUNT(Ped ped);
 ```
 returns the entity of the mount the ped is on
 
