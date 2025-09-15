@@ -257,7 +257,7 @@ static HookFunction initFunction([]()
 	{
 		auto index = context.GetArgument<int>(0);
 
-		if (index > zoomData->zoomLevels.GetCount())
+		if (index >= zoomData->zoomLevels.GetCount())
 		{
 			context.SetResult<bool>(false);
 			return false;
@@ -284,7 +284,7 @@ static HookFunction initFunction([]()
 	{
 		auto index = context.GetArgument<int>(0);
 
-		if (index > zoomData->zoomLevels.GetCount())
+		if (index >= zoomData->zoomLevels.GetCount())
 		{
 			return;
 		}
@@ -306,7 +306,7 @@ static HookFunction initFunction([]()
 	{
 		auto index = context.GetArgument<int>(0);
 
-		if (index > zoomData->zoomLevels.GetCount())
+		if (index >= zoomData->zoomLevels.GetCount())
 		{
 			return;
 		}
