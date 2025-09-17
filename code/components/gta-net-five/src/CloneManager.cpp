@@ -457,7 +457,11 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	LZ4_initStreamHC(&m_compStreamDict, sizeof(m_compStreamDict));
 
 	const static uint8_t dictBuffer[65536] = {
+#ifdef IS_RDR3
+#include <state/dict_redm_20250412.h>
+#else
 #include <state/dict_five_20210329.h>
+#endif
 	};
 
 	LZ4_loadDictHC(&m_compStreamDict, reinterpret_cast<const char*>(dictBuffer), std::size(dictBuffer));
