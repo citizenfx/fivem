@@ -16,6 +16,13 @@
 
 #include "GameValueStub.h"
 
+enum NativeIdentifiers : uint64_t
+{
+	GET_ENTITY_BONE_POSITION = 0x46F8696933A63C9B,
+	_GET_VEHICLE_MAX_EXHAUST_BONE_COUNT = 0x3EE18B00CD86C54F,
+	_GET_VEHICLE_EXHAUST_BONE = 0xE728F090D538CB18,
+};
+
 static GameValueStub<float> g_vfxNitrousOverride;
 static bool g_scriptExhaustBones;
 static bool g_disableFogVolumeRender = false;
@@ -63,7 +70,7 @@ void RenderFogVolumes(void* self, float* FogVolumeParams[4])
 // exhaust bone matrices (0x140A7E4E6/b3095).
 static void UpdateGetEntityBonePosition()
 {
-	constexpr uint64_t GET_ENTITY_BONE_POSITION = 0x46F8696933A63C9B;
+	constexpr uint64_t ;
 	const auto handler = fx::ScriptEngine::GetNativeHandler(GET_ENTITY_BONE_POSITION);
 	if (!handler)
 	{
@@ -186,12 +193,12 @@ static InitFunction initFunction([]()
 			UpdateGetEntityBonePosition();
 		});
 
-		fx::ScriptEngine::RegisterNativeHandler(0x3EE18B00CD86C54F, [](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(_GET_VEHICLE_MAX_EXHAUST_BONE_COUNT, [](fx::ScriptContext& context)
 		{
 			context.SetResult<int32_t>(kVehicleBoneLimit);
 		});
 
-		fx::ScriptEngine::RegisterNativeHandler(0xE728F090D538CB18, [](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(_GET_VEHICLE_EXHAUST_BONE, [](fx::ScriptContext& context)
 		{
 			auto entityIndex = context.GetArgument<uint32_t>(0);
 			auto exhaustIndex = context.GetArgument<int32_t>(1);
