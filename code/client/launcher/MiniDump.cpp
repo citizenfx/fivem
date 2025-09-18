@@ -386,8 +386,7 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 	if (wcsstr(crashHash.c_str(), L"nvwgf"))
 	{
 		blame = L"NVIDIA GPU drivers";
-		blame_two = L"This is not the fault of the " PRODUCT_NAME L" developers, and can not be resolved by them. NVIDIA does not provide any error reporting contacts to use to report this problem, nor do they provide "
-			L"debugging information that the developers can use to resolve this issue.";
+		blame_two = L"Please try updating your NVIDIA drivers, restarting your PC and then starting the game again.";
 	}
 
 	if (wcsstr(crashHash.c_str(), L"guard64"))
