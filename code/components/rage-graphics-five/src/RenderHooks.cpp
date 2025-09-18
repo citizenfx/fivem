@@ -8,6 +8,9 @@
 #include <dxgi1_4.h>
 #include <dxgi1_5.h>
 #include <wrl.h>
+#include <vector>
+#include <atomic>
+#include <string>
 
 #include "DrawCommands.h"
 #include "Hooking.h"
@@ -70,6 +73,7 @@ static bool g_overrideVsync;
 
 static void CaptureBufferOutput();
 static void CaptureInternalScreenshot();
+
 
 static hook::cdecl_stub<void()> flushRenderStates([]()
 {
@@ -600,6 +604,11 @@ static void GoGetAdapter(IDXGIAdapter** ppAdapter)
 
 static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
+	// Ensure out parameter is initialized on entry
+	if (ppSwapChain)
+	{
+		*ppSwapChain = nullptr;
+	}
 	GoGetAdapter(&pAdapter);
 
 	SetEvent(g_gameWindowEvent);
@@ -690,6 +699,12 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 			}
 		}
 
+		// If a swap chain was created via callback, ensure legacy pointer is provided
+		if (!initState->isReverseGame && swapChain1 && ppSwapChain && !*ppSwapChain)
+		{
+			swapChain1->QueryInterface(__uuidof(IDXGISwapChain), (void**)ppSwapChain);
+		}
+
 		if (initState->isReverseGame)
 		{
 			auto sc = WRL::Make<BufferBackedDXGISwapChain>(*ppDevice, *pSwapChainDesc);
@@ -761,7 +776,7 @@ namespace rage
 	class grcRenderTargetDX11 : public grcTexture
 	{
 	public:
-		char m_pad[136 - sizeof(grcTexture)];
+		char m_pad[8]; // 136 - 128 (grcTexture size: vtable(8) + m_pad(48) + texture(8) + m_pad2(56) + srv(8) = 128)
 		ID3D11ShaderResourceView* m_srv2;
 		void* m_pad2;
 		ID3D11Resource* m_resource2;
@@ -772,6 +787,14 @@ namespace rage
 static bool(*g_resetVideoMode)(VideoModeInfo*);
 
 static std::vector<ID3D11Resource**> g_resources;
+
+// Shared texture (exported to consumer) + RTV
+static ID3D11Texture2D* g_sharedTex = nullptr;
+static ID3D11RenderTargetView* g_sharedRTV = nullptr;
+
+// Private temp RTV we render into (never shared)
+static ID3D11Texture2D* g_tempTex = nullptr;
+static ID3D11RenderTargetView* g_tempRTV = nullptr;
 
 void(*g_origCreateBackbuffer)(void*);
 
@@ -1040,143 +1063,141 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 	static auto didCallCrashometry = ([]()
 	{
 		AddCrashometry("did_render_backbuf", "true");
-
 		return true;
 	})();
 
 	D3D11_TEXTURE2D_DESC resDesc = { 0 };
 	auto backBuf = GetBackbuf();
-
-	if (backBuf)
+	if (backBuf && backBuf->texture)
 	{
-		if (backBuf->texture)
+		((ID3D11Texture2D*)backBuf->texture)->GetDesc(&resDesc);
+	}
+
+	if (!backBuf)
+	{
+		return;
+	}
+
+	WRL::ComPtr<IUnknown> realSrvUnk;
+	WRL::ComPtr<ID3D11ShaderResourceView> realSrv;
+	backBuf->m_srv2->QueryInterface(IID_PPV_ARGS(&realSrvUnk));
+	realSrvUnk.As(&realSrv);
+
+	auto realDevice = GetInvariantD3D11Device();
+	auto realDeviceContext = GetInvariantD3D11DeviceContext();
+	if (!realDevice)
+	{
+		return;
+	}
+
+	static ID3D11BlendState* bs;
+	static ID3D11SamplerState* ss;
+	static ID3D11VertexShader* vs;
+	static ID3D11PixelShader* ps;
+
+	static std::once_flag of;
+	std::call_once(of, [&realDevice]()
+	{
+		D3D11_SAMPLER_DESC sd = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
+		realDevice->CreateSamplerState(&sd, &ss);
+
+		D3D11_BLEND_DESC bd = CD3D11_BLEND_DESC(CD3D11_DEFAULT());
+		bd.RenderTarget[0].BlendEnable = FALSE;
+		realDevice->CreateBlendState(&bd, &bs);
+
+		realDevice->CreateVertexShader(quadVS, sizeof(quadVS), nullptr, &vs);
+		realDevice->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
+	});
+
+	WRL::ComPtr<ID3DUserDefinedAnnotation> pPerf = NULL;
+	realDeviceContext->QueryInterface(IID_PPV_ARGS(&pPerf));
+	if (pPerf)
+	{
+		pPerf->BeginEvent(L"DrawRenderTexture");
+	}
+
+	auto deviceContext = realDeviceContext;
+
+	WRL::ComPtr<ID3D11RenderTargetView> oldRtv;
+	WRL::ComPtr<ID3D11DepthStencilView> oldDsv;
+	deviceContext->OMGetRenderTargets(1, &oldRtv, &oldDsv);
+
+	WRL::ComPtr<ID3D11SamplerState> oldSs;
+	WRL::ComPtr<ID3D11BlendState> oldBs;
+	WRL::ComPtr<ID3D11PixelShader> oldPs;
+	WRL::ComPtr<ID3D11VertexShader> oldVs;
+	WRL::ComPtr<ID3D11ShaderResourceView> oldSrv;
+
+	D3D11_VIEWPORT oldVp;
+	UINT numVPs = 1;
+	deviceContext->RSGetViewports(&numVPs, &oldVp);
+
+	// Determine viewport size from parameters or RTV
+	UINT vpW = (width > 0) ? (UINT)width : 0;
+	UINT vpH = (height > 0) ? (UINT)height : 0;
+	if (!vpW || !vpH)
+	{
+		WRL::ComPtr<ID3D11Resource> dstRes;
+		rtv->GetResource(&dstRes);
+		WRL::ComPtr<ID3D11Texture2D> dstTex;
+		dstRes.As(&dstTex);
+		if (dstTex)
 		{
-			((ID3D11Texture2D*)backBuf->texture)->GetDesc(&resDesc);
+			D3D11_TEXTURE2D_DESC ddesc = {};
+			dstTex->GetDesc(&ddesc);
+			vpW = ddesc.Width;
+			vpH = ddesc.Height;
+		}
+		else
+		{
+			vpW = resDesc.Width;
+			vpH = resDesc.Height;
 		}
 	}
 
-	// guess what we can't just CopyResource, so time for copy/pasted D3D11 garbage
-	if (backBuf)
+	CD3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, (float)vpW, (float)vpH);
+	deviceContext->RSSetViewports(1, &vp);
+
+	deviceContext->OMGetBlendState(&oldBs, nullptr, nullptr);
+	deviceContext->PSGetShader(&oldPs, nullptr, nullptr);
+	deviceContext->PSGetSamplers(0, 1, &oldSs);
+	deviceContext->PSGetShaderResources(0, 1, &oldSrv);
+	deviceContext->VSGetShader(&oldVs, nullptr, nullptr);
+
+	ID3D11RenderTargetView* target = rtv;
+	deviceContext->OMSetRenderTargets(1, &target, nullptr);
+	deviceContext->OMSetBlendState(bs, nullptr, 0xffffffff);
+
+	ID3D11ShaderResourceView* srvs[] = { realSrv.Get() };
+	deviceContext->PSSetShader(ps, nullptr, 0);
+	deviceContext->PSSetSamplers(0, 1, &ss);
+	deviceContext->PSSetShaderResources(0, 1, srvs);
+	deviceContext->VSSetShader(vs, nullptr, 0);
+
+	D3D11_PRIMITIVE_TOPOLOGY oldTopo;
+	deviceContext->IAGetPrimitiveTopology(&oldTopo);
+	ID3D11InputLayout* oldLayout;
+	deviceContext->IAGetInputLayout(&oldLayout);
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	deviceContext->IASetInputLayout(nullptr);
+
+	const FLOAT clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	deviceContext->ClearRenderTargetView(rtv, clearColor);
+	deviceContext->Draw(4, 0);
+
+	deviceContext->OMSetRenderTargets(1, oldRtv.GetAddressOf(), oldDsv.Get());
+	deviceContext->IASetPrimitiveTopology(oldTopo);
+	deviceContext->IASetInputLayout(oldLayout);
+	deviceContext->VSSetShader(oldVs.Get(), nullptr, 0);
+	deviceContext->PSSetShader(oldPs.Get(), nullptr, 0);
+	deviceContext->PSSetSamplers(0, 1, oldSs.GetAddressOf());
+	deviceContext->PSSetShaderResources(0, 1, oldSrv.GetAddressOf());
+	deviceContext->OMSetBlendState(oldBs.Get(), nullptr, 0xffffffff);
+	deviceContext->RSSetViewports(1, &oldVp);
+
+	if (pPerf)
 	{
-		WRL::ComPtr<IUnknown> realSrvUnk;
-		WRL::ComPtr<ID3D11ShaderResourceView> realSrv;
-
-		backBuf->m_srv2->QueryInterface(IID_PPV_ARGS(&realSrvUnk));
-		realSrvUnk.As(&realSrv);
-
-		auto realDevice = GetInvariantD3D11Device();
-		auto realDeviceContext = GetInvariantD3D11DeviceContext();
-		if (!realDevice)
-		{
-			return;
-		}
-
-		auto m_width = resDesc.Width;
-		auto m_height = resDesc.Height;
-
-		//
-		// LOTS of D3D11 garbage to flip a texture...
-		//
-		static ID3D11BlendState* bs;
-		static ID3D11SamplerState* ss;
-		static ID3D11VertexShader* vs;
-		static ID3D11PixelShader* ps;
-
-		static std::once_flag of;
-		std::call_once(of, [&realDevice]()
-		{
-			D3D11_SAMPLER_DESC sd = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
-			realDevice->CreateSamplerState(&sd, &ss);
-
-			D3D11_BLEND_DESC bd = CD3D11_BLEND_DESC(CD3D11_DEFAULT());
-			bd.RenderTarget[0].BlendEnable = FALSE;
-
-			realDevice->CreateBlendState(&bd, &bs);
-
-			realDevice->CreateVertexShader(quadVS, sizeof(quadVS), nullptr, &vs);
-			realDevice->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
-		});
-
-		WRL::ComPtr<ID3DUserDefinedAnnotation> pPerf = NULL;
-		realDeviceContext->QueryInterface(IID_PPV_ARGS(&pPerf));
-
-		if (pPerf)
-		{
-			pPerf->BeginEvent(L"DrawRenderTexture");
-		}
-
-		auto deviceContext = realDeviceContext;
-		
-		WRL::ComPtr<ID3D11RenderTargetView> oldRtv;
-		WRL::ComPtr<ID3D11DepthStencilView> oldDsv;
-		deviceContext->OMGetRenderTargets(1, &oldRtv, &oldDsv);
-
-		WRL::ComPtr<ID3D11SamplerState> oldSs;
-		WRL::ComPtr<ID3D11BlendState> oldBs;
-		WRL::ComPtr<ID3D11PixelShader> oldPs;
-		WRL::ComPtr<ID3D11VertexShader> oldVs;
-		WRL::ComPtr<ID3D11ShaderResourceView> oldSrv;
-
-		D3D11_VIEWPORT oldVp;
-		UINT numVPs = 1;
-
-		deviceContext->RSGetViewports(&numVPs, &oldVp);
-
-		CD3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, width ? width : m_width, height ? height : m_height);
-		deviceContext->RSSetViewports(1, &vp);
-
-		deviceContext->OMGetBlendState(&oldBs, nullptr, nullptr);
-
-		deviceContext->PSGetShader(&oldPs, nullptr, nullptr);
-		deviceContext->PSGetSamplers(0, 1, &oldSs);
-		deviceContext->PSGetShaderResources(0, 1, &oldSrv);
-
-		deviceContext->VSGetShader(&oldVs, nullptr, nullptr);
-
-		deviceContext->OMSetRenderTargets(1, &rtv, nullptr);
-		deviceContext->OMSetBlendState(bs, nullptr, 0xffffffff);
-
-		ID3D11ShaderResourceView* srvs[] =
-		{
-			realSrv.Get()
-		};
-
-		deviceContext->PSSetShader(ps, nullptr, 0);
-		deviceContext->PSSetSamplers(0, 1, &ss);
-		deviceContext->PSSetShaderResources(0, 1, srvs);
-
-		deviceContext->VSSetShader(vs, nullptr, 0);
-
-		D3D11_PRIMITIVE_TOPOLOGY oldTopo;
-		deviceContext->IAGetPrimitiveTopology(&oldTopo);
-
-		ID3D11InputLayout* oldLayout;
-		deviceContext->IAGetInputLayout(&oldLayout);
-
-		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		deviceContext->IASetInputLayout(nullptr);
-
-		FLOAT blank[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		deviceContext->ClearRenderTargetView(rtv, blank);
-
-		deviceContext->Draw(4, 0);
-
-		deviceContext->OMSetRenderTargets(1, oldRtv.GetAddressOf(), oldDsv.Get());
-
-		deviceContext->IASetPrimitiveTopology(oldTopo);
-		deviceContext->IASetInputLayout(oldLayout);
-
-		deviceContext->VSSetShader(oldVs.Get(), nullptr, 0);
-		deviceContext->PSSetShader(oldPs.Get(), nullptr, 0);
-		deviceContext->PSSetSamplers(0, 1, oldSs.GetAddressOf());
-		deviceContext->PSSetShaderResources(0, 1, oldSrv.GetAddressOf());
-		deviceContext->OMSetBlendState(oldBs.Get(), nullptr, 0xffffffff);
-		deviceContext->RSSetViewports(1, &oldVp);
-
-		if (pPerf)
-		{
-			pPerf->EndEvent();
-		}
+		pPerf->EndEvent();
 	}
 }
 
@@ -1343,84 +1364,108 @@ void CaptureBufferOutput()
 	}
 
 	bool change = false;
-	static ID3D11Texture2D* myTexture;
-	static ID3D11RenderTargetView* rtv;
-
 	if (lastWidth != handleData->width || lastHeight != handleData->height || g_lastBackbufTexture != backBuf->texture)
 	{
 		lastWidth = handleData->width;
 		lastHeight = handleData->height;
 		g_lastBackbufTexture = backBuf->texture;
 
-		if (rtv)
-		{
-			rtv->Release();
-			rtv = NULL;
-		}
-
-		if (myTexture)
-		{
-			myTexture->Release();
-			myTexture = NULL;
-		}
+		if (g_sharedRTV) { g_sharedRTV->Release(); g_sharedRTV = nullptr; }
+		if (g_sharedTex) { g_sharedTex->Release(); g_sharedTex = nullptr; }
+		if (g_tempRTV)   { g_tempRTV->Release();   g_tempRTV   = nullptr; }
+		if (g_tempTex)   { g_tempTex->Release();   g_tempTex   = nullptr; }
 
 		change = true;
 	}
 
 	if (change)
 	{
-		D3D11_TEXTURE2D_DESC texDesc = { 0 };
-		texDesc.Width = resDesc.Width;
-		texDesc.Height = resDesc.Height;
-		texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-		texDesc.MipLevels = 1;
-		texDesc.ArraySize = 1;
-		texDesc.SampleDesc.Count = 1;
-		texDesc.SampleDesc.Quality = 0;
-		texDesc.Usage = D3D11_USAGE_DEFAULT;
-		texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-		texDesc.CPUAccessFlags = 0;
-		texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-
 		WRL::ComPtr<ID3D11Device> device = GetInvariantD3D11Device();
 		if (!device)
 		{
 			return;
 		}
 
-		WRL::ComPtr<ID3D11Texture2D> d3dTex;
-		HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, &d3dTex);
-		if (FAILED(hr))
+		// Create shared texture and RTV for consumer
 		{
-			return;
+			D3D11_TEXTURE2D_DESC texDesc = { 0 };
+			texDesc.Width = resDesc.Width;
+			texDesc.Height = resDesc.Height;
+			texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+			texDesc.MipLevels = 1;
+			texDesc.ArraySize = 1;
+			texDesc.SampleDesc.Count = 1;
+			texDesc.SampleDesc.Quality = 0;
+			texDesc.Usage = D3D11_USAGE_DEFAULT;
+			texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+			texDesc.CPUAccessFlags = 0;
+			texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+
+			WRL::ComPtr<ID3D11Texture2D> d3dTex;
+			HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+			if (FAILED(hr))
+			{
+				return;
+			}
+
+			D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
+			device->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &g_sharedRTV);
+
+			d3dTex.CopyTo(&g_sharedTex);
+
+			WRL::ComPtr<IDXGIResource> dxgiResource;
+			HANDLE sharedHandle;
+			hr = d3dTex.As(&dxgiResource);
+			if (FAILED(hr))
+			{
+				return;
+			}
+
+			hr = dxgiResource->GetSharedHandle(&sharedHandle);
+			if (FAILED(hr))
+			{
+				// no error handling for safety
+			}
+
+			handleData->handle = sharedHandle;
 		}
 
-		D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
-		device->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
-
-		d3dTex.CopyTo(&myTexture);
-
-		WRL::ComPtr<IDXGIResource> dxgiResource;
-		HANDLE sharedHandle;
-		hr = d3dTex.As(&dxgiResource);
-		if (FAILED(hr))
+		// Create non-shared temp texture and RTV for private rendering
 		{
-			return;
+			D3D11_TEXTURE2D_DESC texDesc = { 0 };
+			texDesc.Width = resDesc.Width;
+			texDesc.Height = resDesc.Height;
+			texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+			texDesc.MipLevels = 1;
+			texDesc.ArraySize = 1;
+			texDesc.SampleDesc.Count = 1;
+			texDesc.SampleDesc.Quality = 0;
+			texDesc.Usage = D3D11_USAGE_DEFAULT;
+			texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+			texDesc.CPUAccessFlags = 0;
+			texDesc.MiscFlags = 0;
+
+			WRL::ComPtr<ID3D11Texture2D> d3dTex;
+			HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+			if (FAILED(hr))
+			{
+				return;
+			}
+
+			D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
+			device->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &g_tempRTV);
+
+			d3dTex.CopyTo(&g_tempTex);
 		}
 
-		hr = dxgiResource->GetSharedHandle(&sharedHandle);
-		if (FAILED(hr))
-		{
-			// no error handling for safety
-		}
-
-		handleData->handle = sharedHandle;
-
-		g_resources.push_back((ID3D11Resource**)&myTexture);
-		g_resources.push_back((ID3D11Resource**)&rtv);
+		// Track for cleanup on mode change
+		g_resources.push_back((ID3D11Resource**)&g_sharedTex);
+		g_resources.push_back((ID3D11Resource**)&g_sharedRTV);
+		g_resources.push_back((ID3D11Resource**)&g_tempTex);
+		g_resources.push_back((ID3D11Resource**)&g_tempRTV);
 	}
 
-	if (!rtv || !myTexture)
+	if (!g_sharedRTV || !g_sharedTex)
 	{
 		return;
 	}
@@ -1430,7 +1475,22 @@ void CaptureBufferOutput()
 		return;
 	}
 
-	RenderBufferToBuffer(rtv);
+	// choose render target: always use temp RTV
+	ID3D11RenderTargetView* targetRTV = g_tempRTV;
+	if (!targetRTV)
+	{
+		return;
+	}
+
+	// draw backbuffer SRV -> selected RTV via existing shader blit
+	RenderBufferToBuffer(targetRTV);
+
+	// copy the temp texture into the shared texture for the consumer
+	auto ctx = GetInvariantD3D11DeviceContext();
+	if (ctx && g_sharedTex && g_tempTex)
+	{
+		ctx->CopyResource(g_sharedTex, g_tempTex);
+	}
 }
 
 extern void RootCheckPresented(int& flags);
@@ -1538,7 +1598,7 @@ static std::string GetGraphicsModDetails(const std::string& fileName)
 
 	if (versionInfoSize)
 	{
-		std::vector<uint8_t> versionInfo(versionInfoSize);
+		std::vector<uint8_t> versionInfo(static_cast<size_t>(versionInfoSize));
 
 		if (GetFileVersionInfo(path.c_str(), 0, versionInfo.size(), &versionInfo[0]))
 		{
