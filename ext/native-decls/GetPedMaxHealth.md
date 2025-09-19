@@ -10,6 +10,7 @@ int GET_PED_MAX_HEALTH(Ped ped);
 
 
 ## Parameters
-* **ped**: 
+* **ped**: The ped to get the max health of
 
 ## Return value
+Returns the peds current max health.
