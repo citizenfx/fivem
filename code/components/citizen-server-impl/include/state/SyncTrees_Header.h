@@ -506,6 +506,14 @@ struct ParseSerializer
 		return true;
 	}
 
+	template<typename T>
+	bool SerializeCapped(int size, int maxValue, T& data)
+	{
+		data = std::min(data, static_cast<T>(maxValue));
+
+		return Serialize(size, data);
+  }
+
 	bool SerializePosition(int size, float& dataX, float& dataY, float& dataZ)
 	{
 		dataX = state->buffer.ReadSignedFloat(size, 27648.0f);
@@ -560,6 +568,14 @@ struct UnparseSerializer
 		state->buffer.WriteSignedFloat(size, div, data);
 		return true;
 	}
+
+	template<typename T>
+	bool SerializeCapped(int size, int maxValue, T& data)
+	{
+		data = std::min(data, static_cast<T>(maxValue));
+
+		return Serialize(size, data);
+  }
 
 	bool SerializePosition(int size, float& dataX, float& dataY, float& dataZ)
 	{
