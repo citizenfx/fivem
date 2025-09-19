@@ -305,20 +305,12 @@ struct CEntityOrientationDataNode : GenericSerializeDataNode<CEntityOrientationD
 	template<typename Serializer>
 	bool Serialize(Serializer& s)
 	{
-#if 0
-		auto rotX = state.buffer.ReadSigned<int>(9) * 0.015625f;
-		auto rotY = state.buffer.ReadSigned<int>(9) * 0.015625f;
-		auto rotZ = state.buffer.ReadSigned<int>(9) * 0.015625f;
 
-		data.rotX = rotX;
-		data.rotY = rotY;
-		data.rotZ = rotZ;
-#else
+		s.SerializeRotation(data.rotX, data.rotY, data.rotZ);
 		s.Serialize(2, data.quat.largest);
 		s.Serialize(11, data.quat.integer_a);
 		s.Serialize(11, data.quat.integer_b);
 		s.Serialize(11, data.quat.integer_c);
-#endif
 
 		return true;
 	}

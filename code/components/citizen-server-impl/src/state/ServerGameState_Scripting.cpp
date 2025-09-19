@@ -383,6 +383,7 @@ static void Init()
 		}
 		else
 		{
+#ifdef STATE_FIVE
 			auto en = entity->syncTree->GetEntityOrientation();
 			auto on = entity->syncTree->GetObjectOrientation();
 
@@ -426,6 +427,16 @@ static void Init()
 					resultVec.z = glm::degrees(resultVec.z);
 				}
 			}
+#elif STATE_RDR3
+
+			auto en = entity->syncTree->GetEntityOrientation();
+			if (en)
+			{
+				resultVec.x = en->rotX * 180.0f / pi;
+				resultVec.y = en->rotY * 180.0f / pi;
+				resultVec.z = en->rotZ * 180.0f / pi;
+			}
+#endif
 		}
 	};
 
