@@ -640,7 +640,9 @@ static std::unordered_map<uint32_t, std::string_view> pedPoolEntries{
 	{ HashString("CPedVisibilityComponent"), "CPedVisibilityComponent" },
 	{ HashString("CNetBlenderPed"), "CNetBlenderPed" },
 	{ HashString("CPedSyncData"), "CPedSyncData" },
-
+	{ HashString("CEmotionalLocoHelper"), "CEmotionalLocoHelper" },
+	{ HashString("CCrimeObserver"), "CCrimeObserver" },
+	{ HashString("CAnimalGroupMember"), "CAnimalGroupMember" },
 	{ HashString("CPedFootstepComponent"), "CPedSyncData" },
 	{ HashString("CCharacterItem"), "CCharacterItem" },
 	{ HashString("CPedBreatheComponent"), "CPedBreatheComponent" }
