@@ -1,4 +1,4 @@
----
+daugus.lt
 ns: CFX
 apiset: server
 ---
