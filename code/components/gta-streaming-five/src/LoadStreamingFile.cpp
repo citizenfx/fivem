@@ -1760,6 +1760,10 @@ static hook::cdecl_stub<void(int, const char*)> initGfxTexture([]()
 
 std::unordered_map<std::string, int> g_resourceStats;
 
+static void (*g_assetOverridesCb)(uint32_t, const char*) = nullptr;
+
+static void (*g_assetOverridesRemovalCb)(uint32_t) = nullptr;
+
 static void LoadStreamingFiles(LoadType loadType)
 {
 	auto cstreaming = streaming::Manager::GetInstance();
@@ -1940,6 +1944,11 @@ static void LoadStreamingFiles(LoadType loadType)
 
 					// save the new handle
 					hs.push_front(entry.handle);
+
+					if (g_assetOverridesCb)
+					{
+						g_assetOverridesCb(strId + strModule->baseIdx, file.c_str());
+					}
 				}
 			}
 			else
@@ -2637,6 +2646,11 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 
 					g_customStreamingFileRefs.erase(baseName);
 					entry.handle = 0;
+				}
+
+				if (g_assetOverridesRemovalCb)
+				{
+					g_assetOverridesRemovalCb(strId + strModule->baseIdx);
 				}
 			}
 		}
