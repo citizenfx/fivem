@@ -1306,7 +1306,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 					{
 						windowTitle = L"Fatal Error";
 						mainInstruction = L"Early-exit trap";
-						content = fmt::sprintf(L"A problem while running %s has tripped an early-exit trap.\n\nIf asking for support, please provide a readable 'report ID' from the expanded information below.", PRODUCT_NAME);
+						content = fmt::sprintf(L"An error occurred while running %s, triggering an early-exit trap.\n\nIf asking for support, please provide a readable ‘report ID’ from the expanded information below:", PRODUCT_NAME);
 					}
 					else
 					{
