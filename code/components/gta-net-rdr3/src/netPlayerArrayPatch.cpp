@@ -78,6 +78,14 @@ static int GetPlayerCount()
 	return 0;
 }
 
+static void* (*g_getRelevancePlayers)(void*, void*, void*, bool);
+static void* _getRelevancePlayers(void* a1, void* a2, void* a3, bool a4)
+{
+	trace("Return address %p\n", (void*)hook::get_unadjusted(_ReturnAddress()));
+	return g_getRelevancePlayers(a1, a2, a3, a4);
+}
+
+
 static HookFunction hookFunction([]
 {
 	// Fix netObject::_isObjectSyncedWithPlayers
@@ -294,4 +302,6 @@ static HookFunction hookFunction([]
 		patchStub2.Init(retnSuccess, retnFail);
 		hook::jump_reg<5>(location, patchStub2.GetCode());
 	}
+
+	g_getRelevancePlayers = hook::trampoline(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 0F 29 70 ? 41 8A D9"), _getRelevancePlayers);
 });

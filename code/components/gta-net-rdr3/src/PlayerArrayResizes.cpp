@@ -19,6 +19,7 @@
 #include <CoreConsole.h>
 
 #include <udis86.h>
+#include <netBitsets.h>
 
 #define VERBOSE
 
@@ -400,7 +401,7 @@ namespace rage
 	using Vec3V = DirectX::XMVECTOR;
 }
 
-uint32_t g_playerFocusPositionUpdateBitset[(kMaxPlayers / 32) + 1];
+extern rage::atPlayerBitsets g_playerFocusPositionUpdateBitset;
 alignas(16) rage::Vec3V g_playerFocusPositions[kMaxPlayers + 1];
 
 extern ICoreGameInit* icgi;
@@ -481,15 +482,18 @@ static hook::cdecl_stub<rage::Vec3V*(rage::Vec3V*, CNetGamePlayer*, char*)> _get
 });
 
 static void (*g_origUpdatePlayerFocusPosition)(void*, CNetGamePlayer*);
-static void UpdatePlayerFocusPosition(void* objMgr, CNetGamePlayer* player)
+static DirectX::XMVECTOR* (*g_origGetNetPlayerRelevancePosition)(DirectX::XMVECTOR* position, CNetGamePlayer* player, void* unk);
+namespace rage
+{
+void UpdatePlayerFocusPosition(void* objMgr, CNetGamePlayer* player)
 {
 	if (!icgi->OneSyncEnabled)
 	{
 		return g_origUpdatePlayerFocusPosition(objMgr, player);
 	}
 
-	bool isRemote = player->physicalPlayerIndex() == 31;
 	uint8_t playerIndex = player->physicalPlayerIndex();
+	bool isRemote = playerIndex == 31;
 
 	// Find the players index if remote.
 	if (isRemote)
@@ -509,26 +513,24 @@ static void UpdatePlayerFocusPosition(void* objMgr, CNetGamePlayer* player)
 		return;
 	}
 
-	rage::Vec3V position;
+	DirectX::XMVECTOR position;
 	char outFlag = 0;
-	rage::Vec3V* outPosition = _getNetPlayerFocusPosition(&position, player, &outFlag);
-
+	DirectX::XMVECTOR* outPosition = _getNetPlayerFocusPosition(&position, player, &outFlag);
 
 	g_playerFocusPositions[playerIndex] = *outPosition;
 	if (outFlag != 0)
 	{
-		g_playerFocusPositionUpdateBitset[playerIndex / 32] |= 1 << (playerIndex % 32);
+		g_playerFocusPositionUpdateBitset.SetValue(playerIndex);
 	}
 }
 
-static rage::Vec3V* (*g_origGetNetPlayerRelevancePosition)(rage::Vec3V* position, CNetGamePlayer* player, void* unk);
-static rage::Vec3V* GetPlayerFocusPosition(rage::Vec3V* position, CNetGamePlayer* player, uint8_t* unk)
+DirectX::XMVECTOR* GetPlayerFocusPosition(DirectX::XMVECTOR* position, CNetGamePlayer* player, uint8_t* unk)
 {
 	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetNetPlayerRelevancePosition(position, player, unk);
 	}
-
+	 
 	bool isRemote = player->physicalPlayerIndex() == 31;
 	uint8_t playerIndex = player->physicalPlayerIndex();
 
@@ -552,18 +554,22 @@ static rage::Vec3V* GetPlayerFocusPosition(rage::Vec3V* position, CNetGamePlayer
 
 	if (unk)
 	{
-		uint32_t bitset = g_playerFocusPositionUpdateBitset[playerIndex / 32];
-		int bit = playerIndex % 32;
-		*unk = (bitset >> bit) & 1;
+		*unk = g_playerFocusPositionUpdateBitset.IsSet(playerIndex);
 	}
 
 	*position = g_playerFocusPositions[playerIndex];
 	return position;
 }
+}
 
 static hook::cdecl_stub<void*(CNetGamePlayer*)> getPlayerPedForNetPlayer([]()
 {
 	return hook::get_call(hook::get_pattern("48 8B CD 0F 11 06 48 8B D8 E8", -8));
+});
+
+static hook::cdecl_stub<void*(CNetGamePlayer*, int32_t*, bool*, float*)> _isUsingScopedWeapon([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 80 A7 ? ? ? ? ? 8A 54 24"));
 });
 
 static float VectorDistance(rage::Vec3V a, rage::Vec3V b)
@@ -581,7 +587,7 @@ static int GetPlayersNearPoint(rage::Vec3V* point, uint32_t unkIndex, void* outI
 		return g_origGetPlayersNearPoint(point, unkIndex, outIndex, outArray, range, range, sorted);
 	}
 
-	CNetGamePlayer* tempArray[kMaxPlayers]{};
+	CNetGamePlayer* tempArray[kMaxPlayers + 1]{};
 
 	int idx = 0;
 
@@ -621,6 +627,46 @@ static int GetPlayersNearPoint(rage::Vec3V* point, uint32_t unkIndex, void* outI
 	std::copy(tempArray, tempArray + idx, outArray);
 
 	return idx;
+}
+
+uint32_t g_playerInteriorHandles[kMaxPlayers + 1] = {};
+
+static void (*g_origNetworkObjectMgr__UpdateBitsets)(void*);
+static void CNetworkObjectMgr__UpdateBitsets(void* networkMgr)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origNetworkObjectMgr__UpdateBitsets(networkMgr);
+	}
+
+	g_playerFocusPositionUpdateBitset.Clear();
+
+	for (auto& player : g_players)
+	{
+		if (!player)
+		{
+			continue;
+		}
+
+		// also updates player focus bitset.
+		rage::UpdatePlayerFocusPosition(networkMgr, player);
+
+		hook::FlexStruct* playerPed = reinterpret_cast<hook::FlexStruct*>(getPlayerPedForNetPlayer(player));
+		if (!playerPed)
+		{
+			continue;
+		}
+
+		hook::FlexStruct* netObj = playerPed->At<hook::FlexStruct*>(0xE0);
+		if (!netObj)
+		{
+			g_playerInteriorHandles[player->physicalPlayerIndex()] = 0;
+			continue;
+		}
+
+		//TODO: replace other locations this is accessed.
+		g_playerInteriorHandles[player->physicalPlayerIndex()] = netObj->At<int32_t>(0x218);
+	}
 }
 
 static void (*g_unkRemoteBroadcast)(void*, __int64);
@@ -874,7 +920,9 @@ static HookFunction hookFunction([]()
 	{
 		// 32/31 comparsions
 		PatchValue<uint8_t>({
+			// _addDamageDealtByPlayer
 			{"80 7A ? ? 0F 28 F2 48 8B F2", 3, 0x20, kMaxPlayers + 1},
+			// _getDamageDealtByPlayer
 			{"80 7A ? ? 48 8B F9 72", 3, 0x20, kMaxPlayers + 1}
 		});
 	}
@@ -896,10 +944,11 @@ static HookFunction hookFunction([]()
 			{ "80 F9 ? 73 ? E8 ? ? ? ? 48 8B D8 EB", 2, 0x20, kMaxPlayers },
 			// rage::netObject::IsPendingOwnerChange
 			{ "80 79 ? ? 0F 92 C0 C3 48 8B 91", 3, 0x20,  kMaxPlayers + 1 },
-			// rage::netObject::StartSynchronising
-			{ "8B E9 4C 8B 33", 48, 0x20, kMaxPlayers + 1 },
+			
+			// this bitset isn't relevant in onesync.
+			//{ "8B E9 4C 8B 33", 48, 0x20, kMaxPlayers + 1 },
 
-			// NetObjVehicle scene/viewport related.
+			// NetObjVehicle scene/viewport related. Array access is patched elsewhere.
 			{ "49 8B 7E ? 48 85 FF 0F 84 ? ? ? ? 48 8B 2D", 23, 0x20, kMaxPlayers + 1 }
 		});
 	}
@@ -971,9 +1020,11 @@ static HookFunction hookFunction([]()
 			{ "83 F9 ? 0F 83 ? ? ? ? B2", 2, false }, // 0x236321F1178A5446
 			{ "83 F9 ? 73 ? 80 3D", 2, false }, // 0x93DC1BE4E1ABE9D1
 			{ "48 85 C9 74 0F 83 FE 20", 7, false }, // 0x66B57B72E0836A76
+			{ "83 F9 ? 73 ? B2", 2, false }, // 0x4CACA84440FA26F6 
 
 			// netObject vtable functions
-			{ "49 81 ? C0 7A 02 00 E8 F3 ? ? 00 40 8A F0 ? 20", 16, false },
+			// Some bitsets are accessed here.
+			//{ "49 81 ? C0 7A 02 00 E8 F3 ? ? 00 40 8A F0 ? 20", 16, false },
 			
 			//TODO: Investigate further if these patches are needed
 			//{ "E8 76 68 E6 FD 84 C0 0F 84 96 00 00 00 ? ? ? 20", 16, false },
@@ -1040,7 +1091,7 @@ static HookFunction hookFunction([]()
 		constexpr int ptrsBase = 0x40;
 		constexpr int stackSize = ptrsBase + (kMaxPlayers * 8) + 0x10;
 		constexpr int intBase = ptrsBase + (kMaxPlayers * 8);
-
+ 
 		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 81 EC ? ? ? ? 41 8A D9 45 8B F8", -24), { { 0x188, intBase } });
 	}
 
@@ -1107,7 +1158,8 @@ static HookFunction hookFunction([]()
 		hook::jump_rcx(location, patchStub.GetCode());
 	}
 
-	// Extend bitshift in order to not lead to crashes
+	// Extend bitshift in order to not lead to crashes 
+	//TODO: Resize struct, stack and rewrite logic to handle the new bitset size. But for now this is a good enough temporary solution.
 	hook::put<uint8_t>(hook::get_pattern("48 C1 EA ? 8B 44 94 ? 0F AB C8 48 8B CE", 3), 8);
 
 	// Skip unused host kick related >32-unsafe arrays in onesync
@@ -1136,6 +1188,14 @@ static HookFunction hookFunction([]()
 		hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 54 41 56 41 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 8B F0"));
 	}
 
+	// NetworkObjectMgr sub update. Manages several int 32 bitsets (not safe for > 32).
+	// Only some of these bitsets are relevant for OneSync along with the focus position call.
+	{
+		auto location = hook::get_pattern("E8 ? ? ? ? 40 84 F6 74 ? 48 8B CF E8 ? ? ? ? 48 8B CF");
+		hook::set_call(&g_origNetworkObjectMgr__UpdateBitsets, location);
+		hook::call(location, CNetworkObjectMgr__UpdateBitsets);
+	}
+
 	// Rewrite functions to account for extended players
 	MH_Initialize();
 	// Don't broadcast script info for script created vehicles in OneSync.
@@ -1145,8 +1205,8 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("48 8B 0F 0F B6 51 19 48 03 D2 49 8B 5C D6 08", -49), unkP2PObjectInit, NULL);
 
 	// Update Player Focus Positions to support 128 players.
-	MH_CreateHook(hook::get_pattern("0F A3 D0 0F 92 C0 88 06", -0x76), GetPlayerFocusPosition, (void**)&g_origGetNetPlayerRelevancePosition);
-	MH_CreateHook(hook::get_pattern("74 ? 4C 8D 44 24 ? C6 44 24 ? ? 48 8B D6", -68), UpdatePlayerFocusPosition, (void**)&g_origUpdatePlayerFocusPosition);
+	MH_CreateHook(hook::get_pattern("0F A3 D0 0F 92 C0 88 06", -0x76), rage::GetPlayerFocusPosition, (void**)&g_origGetNetPlayerRelevancePosition);
+	MH_CreateHook(hook::get_pattern("74 ? 4C 8D 44 24 ? C6 44 24 ? ? 48 8B D6", -68), rage::UpdatePlayerFocusPosition, (void**)&g_origUpdatePlayerFocusPosition);
 
 	// Allocate greater sized bitsets to avoid stack corruption
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 4C 89 44 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 65 4C 8B 14 25"), sub_1422B40D4, (void**)&g_sub_1422B40D4);
