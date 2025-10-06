@@ -3,6 +3,7 @@
 #include <netObject.h>
 #include <CrossBuildRuntime.h>
 #include <rlNetBuffer.h>
+#include <DirectXMath.h>
 
 class CNetGamePlayer;
 
@@ -122,4 +123,7 @@ struct CSyncDataSizeCalculator : CSyncDataBase
 {
 	uint32_t m_size;
 };
+
+void UpdatePlayerFocusPosition(void* objMgr, CNetGamePlayer* player);
+DirectX::XMVECTOR* GetPlayerFocusPosition(DirectX::XMVECTOR* position, CNetGamePlayer* player, uint8_t* unk);
 }
