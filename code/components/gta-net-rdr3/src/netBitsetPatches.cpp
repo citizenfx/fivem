@@ -8,6 +8,8 @@
 #include <ICoreGameInit.h>
 #include <CoreConsole.h>
 #include <netPlayerManager.h>
+#include <netBitsets.h>
+#include <netObjectMgr.h>
 
 // RDR3 makes extensive use of 32 sized ints that are used as bitsets with flags being the players physicalIndexes.
 // This causes unintended behaviour with >32 indexes as they will try reading/writing past the bounds of the bitset.
@@ -34,6 +36,9 @@ ObjectBitset g_netObjAcknowledgement;
 ObjectBitset g_netObjScopeState;
 ObjectBitset g_netObjPlayerTargetting;
 // Bitsets for Players
+
+rage::atPlayerBitsets g_playerFocusPositionUpdateBitset;
+rage::atPlayerBitsets g_physicalPlayers;
 
 void ClearNetObject(rage::netObject* object)
 {
@@ -194,8 +199,6 @@ static uint32_t netObject__setScopeState(rage::netObject* object, CNetGamePlayer
 	return 0;
 }
 
-
-
 static HookFunction hookFunction([]()
 {
 	// Avoid writing to netPlayerMgrBase remotePlayer bitset with extended physical indexes.
@@ -220,7 +223,7 @@ static HookFunction hookFunction([]()
 				mov(edx, ecx);
 
 				// Only use original behaviour if the index is 32 safe.
-				cmp(edx, 32);
+				cmp(edx, kOriginalPlayers);
 				jge("Fail");
 
 				L("Fail");

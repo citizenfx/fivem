@@ -1011,7 +1011,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// owner ID (forced to be remote so we can call ChangeOwner later)
 	auto isRemote = true;
 	auto owner = 31;
-
+	
 	// create the object
 	auto obj = rage::CreateCloneObject(msg.GetEntityType(), msg.GetObjectId(), owner, 0, 32);
 
