@@ -221,6 +221,10 @@ LRESULT APIENTRY sgaWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 	if (uMsg == WM_ACTIVATEAPP)
 	{
 		g_isFocused = (wParam) ? true : false;
+		if (!g_isFocused)
+		{
+			ClipHostCursor(NULL);
+		}
 	}
 
 	if (uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST)
@@ -342,7 +346,7 @@ HKL WINAPI ActivateKeyboardLayoutWrap(IN HKL hkl, IN UINT flags)
 
 BOOL WINAPI SetCursorPosWrap(int X, int Y)
 {
-	if (!g_isFocused || g_enableSetCursorPos)
+	if (!g_isFocusStolen || g_enableSetCursorPos)
 	{
 		return SetCursorPos(X, Y);
 	}
