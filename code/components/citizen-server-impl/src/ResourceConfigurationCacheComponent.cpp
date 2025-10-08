@@ -102,6 +102,12 @@ void ResourceConfigurationCacheComponent::AttachToObject(Resource* object)
 	},
 	501);
 
+	object->OnClientReloadFile.Connect([=]()
+	{
+		Invalidate();
+	},
+	501);
+
 	object->OnStop.Connect([=]()
 	{
 		Invalidate();
