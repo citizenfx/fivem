@@ -8,6 +8,12 @@ apiset: client
 int GET_TIMECYCLE_MODIFIER_INDEX_BY_NAME(char* modifierName);
 ```
 
+## Parameters
+* **modifierName**: The timecycle modifier name.
+
+## Return value
+The timecycle modifier index.
+
 ## Examples
 
 ```lua
@@ -18,9 +24,3 @@ if currentIndex ~= -1 and currentIndex == modifierIndex then
   print("we're actually using 'underwater' timecycle!")
 end
 ```
-
-## Parameters
-* **modifierName**: The timecycle modifier name.
-
-## Return value
-The timecycle modifier index.
