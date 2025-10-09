@@ -8,9 +8,10 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
   - Workloads
     - .NET desktop development
     - Desktop development with C++
-    - Windows application development
+    - WinUI application development
   - Individual components
     - .NET Framework 4.6 targeting pack
+    - MSVC v143 C++ x64 build tools
     - Windows 11 SDK (10.0.22000.0)
   
   You can install these workloads by going to "Tools" -> "Get Tools and Features..." -> Check the checkboxes -> Click "Modify" in the bottom right corner.
@@ -18,7 +19,8 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
 * [PowerShell 7](https://aka.ms/powershell-release?tag=stable) or higher.
 * [Python 3.8 or higher](https://python.org/) with the `py` launcher installed.
 * [MSYS2](https://www.msys2.org/) at `C:\msys64\` which is where the installer places it.
-* [Node.js](https://nodejs.org/en/download/) and [Yarn](https://classic.yarnpkg.com/en/docs/install/) in your PATH as `node` and `yarn`.
+* [Node.js up-to 20](https://nodejs.org/en/download/) in your path
+* [Yarn](https://classic.yarnpkg.com/en/docs/install/) installed via npm globally
 
 Then, execute the following commands in a `cmd.exe` shell to set up the build environment:
 
