@@ -8,8 +8,10 @@ game: rdr3
 ```c
 BOOL IS_PED_ON_MOUNT(Ped ped);
 ```
-returns true if the specified ped is on a mount
 
 ## Parameters
 * **ped**: the ped id
+
+## Return value
+Returns `true` if the specified `ped` is on a mount.
 
