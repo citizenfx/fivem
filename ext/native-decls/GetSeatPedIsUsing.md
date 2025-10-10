@@ -7,8 +7,9 @@ apiset: server
 ```c
 int GET_SEAT_PED_IS_USING(Ped ped);
 ```
-returns the seat index of the specified ped, if not seated or not in vehicle returns -3 just client natives
 
 ## Parameters
 * **ped**: the ped id
 
+## Return Value
+Returns the seat index for specified `ped`, if the ped is not sitting in a vehicle it will return -3.
