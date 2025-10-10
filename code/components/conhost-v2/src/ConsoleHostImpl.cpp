@@ -661,6 +661,9 @@ static HookFunction initFunction([]()
 	io.ConfigWindowsResizeFromEdges = true;
 	io.ConfigWindowsMoveFromTitleBarOnly = true;
 
+	io.KeyRepeatDelay = 0.250f;  // 250ms initial delay before repeat starts
+	io.KeyRepeatRate = 0.050f;   // 50ms between repeats (20 repeats per second)
+
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
@@ -958,3 +961,4 @@ static HookFunction hookFunction([]()
 {
 	g_origReleaseCapture = (decltype(g_origReleaseCapture))hook::iat("user32.dll", ReleaseCaptureStub, "ReleaseCapture");
 });
+
