@@ -315,6 +315,8 @@ struct CfxBigConsole : FiveMConsoleBase
 	ImVec2 PreviousWindowSize;
 
 	char FilterBuf[128];
+	std::vector<int> filteredIndices;
+	std::string previousFilter;
 
 	concurrency::concurrent_queue<std::string> CommandQueue;
 
@@ -334,6 +336,13 @@ struct CfxBigConsole : FiveMConsoleBase
 		Commands.push_back("STRDBG");
 		PreviousWindowSize = { 0, 0 };
 
+		// Update textSelect to work with filtered indices
+		textSelect = TextSelect(
+			[this](const size_t idx) { return GetFilteredLineAtIdx(idx); },
+			[this]() { return GetFilteredNumLines(); },
+			[this](const size_t idx) { return GetFilteredTextOffset(idx); }
+		);
+
 #ifndef IS_FXSERVER
 		AutoScrollEnabled = g_conAutoScroll->GetValue();
 #else
@@ -348,9 +357,32 @@ struct CfxBigConsole : FiveMConsoleBase
 			free(History[i]);
 	}
 
+	// Helper functions for filtered text selection
+	std::string_view GetFilteredLineAtIdx(const size_t idx)
+	{
+		if (idx >= filteredIndices.size()) return "";
+		const size_t originalIdx = filteredIndices[idx];
+		return GetLineAtIdx(originalIdx);
+	}
+
+	size_t GetFilteredNumLines()
+	{
+		return filteredIndices.size();
+	}
+
+	float GetFilteredTextOffset(const size_t idx)
+	{
+		if (idx >= filteredIndices.size()) return 0.0f;
+		const size_t originalIdx = filteredIndices[idx];
+		return GetTextOffset(originalIdx);
+	}
+
 	virtual void ClearLog() override
 	{
 		FiveMConsoleBase::ClearLog();
+
+		// Clear filtered indices
+		filteredIndices.clear();
 
 		ScrollToBottom = true;
 	}
@@ -431,16 +463,30 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing() - 8.0f), false);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1)); // Tighten spacing
-		std::vector<int> filteredIndices;
+		// Check if filter has changed
+		std::string currentFilter(FilterBuf);
+		bool filterChanged = (currentFilter != previousFilter);
+
+		// Update filtered indices
+		filteredIndices.clear();
 		for (size_t i = 0; i < Items.size(); i++)
 		{
 			if (FilterBuf[0] == '\0' ||
 				Stristr(Items[i].c_str(), FilterBuf) ||
 				Stristr(ItemKeys[i].c_str(), FilterBuf))
 			{
-				filteredIndices.push_back(i);
+				filteredIndices.push_back(static_cast<int>(i));
 			}
 		}
+
+		// If filter changed and auto scroll is enabled, scroll to bottom
+		if (filterChanged && AutoScrollEnabled)
+		{
+			ScrollToBottom = true;
+		}
+
+		// Update previous filter for next frame
+		previousFilter = currentFilter;
 
 		ImGuiListClipper clipper(filteredIndices.size());
 		while (clipper.Step())
