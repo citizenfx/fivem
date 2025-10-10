@@ -141,6 +141,32 @@ struct PickupPoolTraits
 	}
 };
 
+#ifdef IS_RDR3
+struct BlipPoolTraits
+{
+	using PoolType = atPoolBase;
+
+	static PoolType* GetPool()
+	{
+		return rage::GetPoolBase("fwuiBlip");
+	}
+
+	static uint32_t getScriptGuid(void* entry, int index)
+	{
+		auto pool = GetPool();
+		if (!pool)
+			return 0;
+			
+		// Blips use flag value 2
+		// The handle format is: (index << 8) | flag
+		uint32_t handle = (index << 8) | 2;
+		
+		return handle;
+	}
+};
+#endif
+
+
 template<typename TTraits, bool NetworkOnly = false>
 static void SerializePool(fx::ScriptContext& context)
 {
@@ -161,6 +187,28 @@ static void SerializePool(fx::ScriptContext& context)
 			}
 
 			uint32_t guid = TTraits::getScriptGuid(entry);
+			if (guid != 0)
+			{
+				guids.push_back(guid);
+			}
+		}
+	}
+
+	context.SetResult(fx::SerializeObject(guids));
+}
+
+template<typename TTraits>
+static void SerializePoolBase(fx::ScriptContext& context)
+{
+	std::vector<uint32_t> guids;
+
+	auto pool = static_cast<atPoolBase*>(TTraits::GetPool());
+	for (int i = 0; i < pool->GetCountDirect(); ++i)
+	{
+		auto entry = pool->GetAt<void>(i);
+		if (entry)
+		{
+			uint32_t guid = TTraits::getScriptGuid(entry, i);
 			if (guid != 0)
 			{
 				guids.push_back(guid);
@@ -296,6 +344,10 @@ static InitFunction initFunction([]()
 			SerializePool<PickupPoolTraits>(context);
 		else if (pool.compare("CVehicle") == 0)
 			SerializePool<VehiclePoolTraits>(context);
+#ifdef IS_RDR3
+		else if (pool.compare("CBlip") == 0)
+			SerializePoolBase<BlipPoolTraits>(context);
+#endif
 		else
 		{
 			throw std::runtime_error(va("Invalid pool: %s", pool));
