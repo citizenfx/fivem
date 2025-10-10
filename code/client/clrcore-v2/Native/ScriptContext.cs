@@ -1,3 +1,4 @@
+using CitizenFX.MsgPack;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -53,7 +54,7 @@ namespace CitizenFX.Core
 		[SecurityCritical]
 		internal static unsafe ByteArray SerializeObject(object v)
 		{
-			var argsSerialized = MsgPackSerializer.Serialize(v);
+			var argsSerialized = MsgPackSerializer.SerializeToByteArray(v);
 
 			var handle = GCHandle.Alloc(argsSerialized, GCHandleType.Pinned);
 			s_gcHandles.Enqueue(handle);
@@ -142,7 +143,7 @@ namespace CitizenFX.Core
 				else if (type == typeof(object))
 				{
 					if ((retSafetyInfo & (byte)PASFlags.OBJECT) != 0)
-						return MsgPackDeserializer.Deserialize((byte*)ptr[0], *(long*)&ptr[1]);
+						return MsgPackDeserializer.DeserializeAsObject((byte*)ptr[0], *(long*)&ptr[1]);
 				}
 				else if (type == typeof(Callback))
 				{
