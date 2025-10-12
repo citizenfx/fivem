@@ -17,6 +17,18 @@
 #include <EntitySystem.h>
 #include <vector>
 
+enum NativeIdentifiers : uint64_t
+{
+	_DISPLAY_TEXT = 0xD79334A4BB99BAD1,
+	_BG_DISPLAY_TEXT = 0x16794E044C9EFB58,
+	_SET_TEXT_COLOR = 0x50A41AD966910F03,
+	_BG_SET_TEXT_COLOR = 0x16FA5CE47F184F1E,
+	_SET_TEXT_SCALE = 0x4170B650590B3B00,
+	_BG_SET_TEXT_SCALE = 0xA1253A3C870B6843,
+	SET_TEXT_CENTRE = 0xBE5261939FBECB8C,
+	SET_TEXT_DROPSHADOW = 0x1BE39DBAA7263CA5,
+};
+
 static bool* g_textCentre;
 static bool* g_textDropshadow;
 
@@ -56,9 +68,9 @@ static void RedirectNoppedTextNatives()
 {
 	// original hash, target hash
 	std::pair<uint64_t, uint64_t> nativesRedirects[] = {
-		{ 0xD79334A4BB99BAD1, 0x16794E044C9EFB58 }, // _DISPLAY_TEXT to _BG_DISPLAY_TEXT
-		{ 0x50A41AD966910F03, 0x16FA5CE47F184F1E }, // _SET_TEXT_COLOR to _BG_SET_TEXT_COLOR
-		{ 0x4170B650590B3B00, 0xA1253A3C870B6843 }, // _SET_TEXT_SCALE to _BG_SET_TEXT_SCALE
+		{ _DISPLAY_TEXT, _BG_DISPLAY_TEXT },
+		{ _SET_TEXT_COLOR, _BG_SET_TEXT_COLOR },
+		{ _SET_TEXT_SCALE, _BG_SET_TEXT_SCALE },
 	};
 
 	for (auto native : nativesRedirects)
@@ -81,7 +93,7 @@ static void RedirectNoppedTextNatives()
 static void ImplementRemovedTextNatives()
 {
 	// SET_TEXT_CENTRE
-	fx::ScriptEngine::RegisterNativeHandler(0xBE5261939FBECB8C, [=](fx::ScriptContext& ctx)
+	fx::ScriptEngine::RegisterNativeHandler(SET_TEXT_CENTRE, [=](fx::ScriptContext& ctx)
 	{
 		auto value = *g_textCentre;
 
@@ -94,7 +106,7 @@ static void ImplementRemovedTextNatives()
 	});
 
 	// SET_TEXT_DROPSHADOW
-	fx::ScriptEngine::RegisterNativeHandler(0x1BE39DBAA7263CA5, [=](fx::ScriptContext& ctx)
+	fx::ScriptEngine::RegisterNativeHandler(SET_TEXT_DROPSHADOW, [=](fx::ScriptContext& ctx)
 	{
 		*g_textDropshadow = (ctx.GetArgument<int>(0) > 0);
 	});
