@@ -2109,7 +2109,7 @@ void CloneManagerLocal::WriteUpdates()
 		auto& objectData = m_trackedObjects[objectId];
 
 #ifdef IS_RDR3
-		if (objectData.lastSyncTime == 0ms && object->GetObjectType() == (int)NetObjEntityType::DraftVeh)
+		if (objectData.lastSyncTime == 0ms && (object->GetObjectType() == (int)NetObjEntityType::DraftVeh || object->GetObjectType() == (int)NetObjEntityType::PropSet))
 		{
 			uint32_t reason = 0;
 
