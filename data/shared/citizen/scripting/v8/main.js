@@ -92,9 +92,10 @@ const EXT_LOCALFUNCREF = 11;
 
 		return function (...args) {
 			return runWithBoundaryEnd(() => {
+				let success = false;
 				let retvals = null;
 				try {
-					retvals = unpack(fnRef(pack(args)));
+					[success, ...retvals] = unpack(fnRef(pack(args)));
 				} catch (e) {
 				}
 
@@ -112,6 +113,12 @@ const EXT_LOCALFUNCREF = 11;
 					}
 
 					throw new Error(errorMessage);
+				}
+
+				if (success === false) {
+					const err = new Error(retvals[0]);
+					err.stack = '';
+					throw err;
 				}
 
 				switch (retvals.length) {
@@ -176,14 +183,15 @@ const EXT_LOCALFUNCREF = 11;
 		if (!refFunctionsMap.has(ref)) {
 			console.error('Invalid ref call attempt:', ref);
 
-			return pack([]);
+			return pack([false]);
 		}
 
 		try {
 			return runWithBoundaryStart(() => {
 				const rv = refFunctionsMap.get(ref).callback(...unpack(argsSerialized));
 				if (rv instanceof Promise) {
-					return pack([{'__cfx_async_retval': (cb) => {
+					return pack([true, {
+						'__cfx_async_retval': (cb) => {
 						rv.then(v => {
 							if (cb != null)
 								cb([v], null);
@@ -200,14 +208,13 @@ const EXT_LOCALFUNCREF = 11;
 								cb(null, msg);
 							}
 						});
-					}}]);
 				}
-				return pack([rv]);
+					}]);
+				}
+				return pack([true, rv]);
 			});
 		} catch (e) {
-			global.printError('call ref', e);
-
-			return pack(null);
+			return pack([false, getError('call ref', e)]);
 		}
 	});
 
@@ -598,6 +605,8 @@ const EXT_LOCALFUNCREF = 11;
 							try {
 								return exportsCallbackCache[resource][k](...args);
 							} catch (e) {
+								console.log(e);
+
 								throw new Error(`An error occurred while calling export ${k} of resource ${resource} - see above for details`);
 							}
 						};
