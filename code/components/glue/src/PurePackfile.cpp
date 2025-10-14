@@ -5,9 +5,15 @@
 #include <PureModeState.h>
 #include <botan/sha2_32.h>
 
+#ifdef GTA_FIVE
 #include <BaseGameRpfHeaderHashes.h>
 #include <UpdateRpfHeaderHashes.h>
 #include <DlcRpfHeaderHashes.h>
+#else
+#include <BaseGameRpfHeaderHashes_RDR3.h>
+#include <UpdateRpfHeaderHashes_RDR3.h>
+#include <DlcRpfHeaderHashes_RDR3.h>
+#endif
 #include <ManualRpfHeaderHashes.h>
 
 DLL_IMPORT void SetPackfileValidationRoutine(bool (*routine)(const char*, const uint8_t*, size_t));

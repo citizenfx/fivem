@@ -127,22 +127,11 @@ static HookFunction hookFunction([] ()
             
             virtual void InternalMain() override
             {
+            	jitasm::Reg regs[] = { rbx, rsi, rdi, r12, r13, r14, r15, rax, rcx, rdx, r8, r9, r10, r11 };
+            	
                 lea(rsi, qword_ptr[r9+0x110]);
-                push(rbx);
-                push(rsi);
-                push(rdi);
-                push(r12);
-                push(r13);
-                push(r14);
-                push(r15);
-
-                push(rax);
-                push(rcx);
-                push(rdx);
-                push(r8);
-                push(r9);
-                push(r10);
-                push(r11);
+                
+            	for (auto& reg : regs) push(reg);
 
                 sub(rsp, 32);
 
@@ -153,21 +142,8 @@ static HookFunction hookFunction([] ()
 
                 add(rsp, 32);
 
-                pop(r11);
-                pop(r10);
-                pop(r9);
-                pop(r8);
-                pop(rdx);
-                pop(rcx);
-                pop(rax);
-
-                pop(r15);
-                pop(r14);
-                pop(r13);
-                pop(r12);
-                pop(rdi);
-                pop(rsi);
-                pop(rbx);
+            	for (int i = std::size(regs) - 1; i >= 0; --i)
+            		pop(regs[i]);
 
                 mov(rax, returnAddress);
                 jmp(rax);
