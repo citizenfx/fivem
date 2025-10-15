@@ -345,6 +345,7 @@ static std::unordered_set<void*> g_deletionTraces2;
 
 static bool g_isFuelConsumptionOn = false;
 static float g_globalFuelConsumptionMultiplier = 1.f;
+static bool g_disableRainGrip = false;
 
 static bool g_disableReactToSirens = false;
 static bool g_disableReactToSirensBySwerving = false;
@@ -1686,6 +1687,16 @@ static HookFunction initFunction([]()
 		context.SetResult<float>(SnowGripFactor.Get());
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_RAIN_GRIP_DISABLED", [](fx::ScriptContext& context)
+	{
+		g_disableRainGrip = context.GetArgument<bool>(0);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_RAIN_GRIP_DISABLED", [](fx::ScriptContext& context)
+	{
+		context.SetResult<bool>(g_disableRainGrip);
+	});
+
 	static struct : jitasm::Frontend
 	{
 		static bool ShouldSkipRepairFunc(fwEntity* VehPointer)
@@ -1824,6 +1835,46 @@ static HookFunction initFunction([]()
 	{
 		g_overrideUseDefaultDriveByClipset = context.GetArgument<bool>(0);
 	});
+
+	{
+		static struct : jitasm::Frontend
+		{
+			intptr_t OrigJump;
+
+			void Init(intptr_t location)
+			{
+				this->OrigJump = location + 16;
+			}
+
+			virtual void InternalMain() override
+			{
+				mov(rax, (intptr_t)&g_disableRainGrip);
+				movzx(eax, byte_ptr[rax]);
+				test(eax, eax);
+				jz("keep");
+
+				xorps(xmm0, xmm0);
+				xorps(xmm7, xmm7);
+
+				L("keep");
+				addss(xmm1, xmm2);
+				mulss(xmm1, xmm0);
+				movaps(xmm0, xmm2);
+				subss(xmm0, xmm7);
+
+				mov(rax, OrigJump);
+				jmp(rax);
+			}
+		} RainGripStub;
+
+		{
+			auto location = hook::get_pattern("F3 0F 58 CA F3 0F 59 C8 0F 28 C2");
+
+			RainGripStub.Init(reinterpret_cast<intptr_t>(location));
+
+			hook::jump(location, RainGripStub.GetCode());
+		}
+	}
 
 	// vehicle xenon lights patches to support RGB colors
 	{
