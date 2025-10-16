@@ -51,18 +51,20 @@ unsigned int rage_CrashStreamer(pgReadData_pgReadRequest* request)
 	char fullName[0x100 + 1] = { 0 };
 	device->CallVirtual<const char*, const void*, char*, int>(g_getEntryFullnameOffset, request->m_Handle, fullName, sizeof(fullName));
 
-	const std::string errorMessage = fmt::format("m_Handle = {:x}\nm_Offset = {:x}\nm_Dest = {:x}\nm_BufferIndex = {}\nm_Count = {}\nm_SortKey = {}\nm_Uncached = {}\nm_CloseWhenFinished = {}\nstreamingIndex = {}",
+	char errorMessage[1024] = { 0 };
+
+	sprintf(errorMessage, "m_Handle = %x\nm_Offset = %d\nm_Dest = %x\nm_BufferIndex = %d\nm_Count = %d\nm_SortKey = %d\nm_Uncached = %s\nm_CloseWhenFinished = %s\nstreamingIndex = %d",
 		request->m_Handle, request->m_Offset, request->m_Dest, request->m_BufferIndex,
 		request->m_Count, request->m_SortKey, request->m_Uncached ? "true" : "false",
 		request->m_CloseWhenFinished ? "true" : "false", streamingIndex);
 
 	if (fullName[0] == '\0')
 	{
-		FatalError("Streamer crashed. Can't extract any useful information for debugging.\n\n%s", errorMessage.c_str());
+		FatalError("Streamer crashed. Can't extract any useful information for debugging.\n\n%s", errorMessage);
 		return 0;
 	}
 
-	FatalError("Streamer crashed on requesting %s asset file.\n\n%s", fullName, errorMessage.c_str());
+	FatalError("Streamer crashed on requesting %s asset file.\n\n%s", fullName, errorMessage);
 	return 0;
 }
 
