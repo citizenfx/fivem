@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## SET_INTERIOR_PORTAL_CORNER_POSITION
 

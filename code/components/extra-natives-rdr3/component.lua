@@ -15,6 +15,7 @@ return function()
 		'components/extra-natives-five/src/TimecycleNatives.cpp',
 		'components/extra-natives-five/src/VisualSettingsNatives.cpp',
 		'components/extra-natives-five/src/PoolTraversalNatives.cpp',
+		'components/extra-natives-five/src/InteriorExtraNatives.cpp',
 		'components/extra-natives-five/src/RadioDSP.cpp',
 		'components/extra-natives-five/src/NuiAudioSink.cpp',
 		'components/extra-natives-five/src/InputNatives.cpp',
