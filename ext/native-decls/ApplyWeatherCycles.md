@@ -13,12 +13,6 @@ BOOL APPLY_WEATHER_CYCLES(int numEntries, int msPerCycle);
 Overrides the weather cycles, using the values set through previous calls to ['SET_WEATHER_CYCLE_ENTRY'](#_0xD264D4E1).
 Once applied, the list of cycles will run sequentially, and repeat after reaching the end.
 
-```lua
--- Cycle between XMAS weather for 30 seconds (3 * 10000 milliseconds), and SMOG weather for 20 seconds (2 * 10000 milliseconds)
-local success = SetWeatherCycleEntry(0, "XMAS", 3) and
-                SetWeatherCycleEntry(1, "SMOG", 2) and
-                ApplyWeatherCycles(2, 10000)
-```
 
 ## Parameters
 * **numEntries**: The number of cycle entries. Must be between 1 and 256
@@ -26,3 +20,12 @@ local success = SetWeatherCycleEntry(0, "XMAS", 3) and
 
 ## Return value
 Returns true if all parameters were valid, otherwise false.
+
+## Examples
+```lua
+-- Cycle between XMAS weather for 30 seconds (3 * 10000 milliseconds), and SMOG weather for 20 seconds (2 * 10000 milliseconds)
+local success = SetWeatherCycleEntry(0, "XMAS", 3) and
+                SetWeatherCycleEntry(1, "SMOG", 2) and
+                ApplyWeatherCycles(2, 10000)
+print(success)
+```

@@ -5,7 +5,7 @@ apiset: shared
 ## STATE_BAG_HAS_KEY
 
 ```c
-bool STATE_BAG_HAS_KEY(char* bagName, char* key);
+BOOL STATE_BAG_HAS_KEY(char* bagName, char* key);
 ```
 
 ## Parameters
@@ -13,4 +13,4 @@ bool STATE_BAG_HAS_KEY(char* bagName, char* key);
 * **key**: The key used to check data existence.
 
 ## Return value
-Returns true if the data associated with the specified key exists; otherwise, returns false.
+Returns `true` if the data associated with the specified key exists; otherwise, returns false.

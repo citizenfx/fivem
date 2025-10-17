@@ -37,23 +37,6 @@ If bagName refers to a player, use [GET_PLAYER_FROM_STATE_BAG_NAME](#_0xA56135E0
 A cookie to remove the change handler.
 
 ## Examples
-```js
-AddStateBagChangeHandler("blockTasks", null, async (bagName, key, value /* boolean */) => {
-    let entity = GetEntityFromStateBagName(bagName);
-    // Whoops, we don't have a valid entity!
-    if (entity === 0) return;
-    // We don't want to freeze the entity position if the entity collision hasn't loaded yet
-    while (!HasCollisionLoadedAroundEntity(entity)) {
-        // The entity went out of our scope before the collision loaded
-        if (!DoesEntityExist(entity)) return;
-        await Delay(250);
-    }
-    SetEntityInvincible(entity, value)
-    FreezeEntityPosition(entity, value)
-    TaskSetBlockingOfNonTemporaryEvents(entity, value)
-})
-```
-
 ```lua
 AddStateBagChangeHandler("blockTasks", nil, function(bagName, key, value) 
     local entity = GetEntityFromStateBagName(bagName)
@@ -69,6 +52,23 @@ AddStateBagChangeHandler("blockTasks", nil, function(bagName, key, value)
     FreezeEntityPosition(entity, value)
     TaskSetBlockingOfNonTemporaryEvents(entity, value)
 end)
+```
+
+```js
+AddStateBagChangeHandler("blockTasks", null, async (bagName, key, value /* boolean */) => {
+    let entity = GetEntityFromStateBagName(bagName);
+    // Whoops, we don't have a valid entity!
+    if (entity === 0) return;
+    // We don't want to freeze the entity position if the entity collision hasn't loaded yet
+    while (!HasCollisionLoadedAroundEntity(entity)) {
+        // The entity went out of our scope before the collision loaded
+        if (!DoesEntityExist(entity)) return;
+        await Delay(250);
+    }
+    SetEntityInvincible(entity, value)
+    FreezeEntityPosition(entity, value)
+    TaskSetBlockingOfNonTemporaryEvents(entity, value)
+})
 ```
 
 ```cs
