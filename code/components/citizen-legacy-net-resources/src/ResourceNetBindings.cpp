@@ -503,6 +503,11 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 							entry.rscPagesPhysical = 0;
 						}
 
+						if (i->value.HasMember("e"))
+						{
+							entry.e = i->value["e"].GetBool();
+						}
+
 						uint32_t size = i->value["size"].GetUint();
 						auto rawSize = size;
 
@@ -523,6 +528,7 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 																																{ "rscPagesPhysical", std::to_string(entry.rscPagesPhysical) },
 																																{ "rscPagesVirtual", std::to_string(entry.rscPagesVirtual) },
 																																{ "rawSize", std::to_string(rawSize) },
+																																{ "e", std::to_string(entry.e) },
 																																});
 
 						entry.filePath = mounter->FormatPath(resourceName, filename);

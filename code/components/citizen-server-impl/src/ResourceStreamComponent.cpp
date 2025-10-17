@@ -384,6 +384,7 @@ namespace fx
 				strncpy(entry.entryName, entryName.c_str(), sizeof(entry.entryName) - 1);
 				strncpy(entry.hashString, json.value("hash", "").c_str(), sizeof(entry.hashString) - 1);
 				entry.isResource = json.value("isResource", false);
+				entry.e = json.value("e", false);
 				strncpy(entry.onDiskPath, diskPath.c_str(), sizeof(entry.onDiskPath) - 1);
 				entry.rscPagesPhysical = json.value("rscPagesPhysical", -1);
 				entry.rscPagesVirtual = json.value("rscPagesVirtual", -1);
