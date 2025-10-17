@@ -550,7 +550,7 @@ local ourGame = 'gta5'
 function matchApiSet(native)
 	local game = native.game
 
-	if ourGame and native.game and native.game ~= ourGame then
+	if ourGame and native.game and native.game ~= ourGame and gApiSet ~= 'server' then
 		return false
 	end
 
