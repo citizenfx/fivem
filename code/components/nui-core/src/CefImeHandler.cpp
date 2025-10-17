@@ -56,9 +56,9 @@ namespace {
 		int target_end,
 		std::vector<CefCompositionUnderline>& underlines) {
 		int clause_size = ::ImmGetCompositionString(imc, GCS_COMPCLAUSE, NULL, 0);
-		int clause_length = clause_size / sizeof(uint32);
+		int clause_length = clause_size / sizeof(uint32_t);
 		if (clause_length) {
-			std::vector<uint32> clause_data(clause_length);
+			std::vector<uint32_t> clause_data(clause_length);
 
 			::ImmGetCompositionString(imc, GCS_COMPCLAUSE, &clause_data[0],
 				clause_size);

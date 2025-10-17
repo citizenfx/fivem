@@ -343,7 +343,7 @@ static InitFunction initFunction([]()
 			return CefV8Value::CreateUndefined();
 		}
 
-		const std::wstring text(arguments[0]->GetStringValue().c_str());
+		const std::wstring text = ToWide(arguments[0]->GetStringValue().ToString());
 		const size_t textSize = text.size() + 1;
 
 		if (OpenClipboard(nullptr))

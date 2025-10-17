@@ -393,8 +393,10 @@ void NUIWindow::InitializeRenderBacking()
 {
 	if (!nui::g_rendererInit)
 	{
+		trace(__FUNCTION__": nui::g_rendererInit is false\n");
 		return;
 	}
+	trace(__FUNCTION__ ": RUNNING InitializeRenderBacking\n");
 
 	// create the backing texture
 	{
@@ -404,11 +406,13 @@ void NUIWindow::InitializeRenderBacking()
 
 	if (!m_rawBlit)
 	{
+		trace(__FUNCTION__": !m_rawBlit\n");
 		D3D11_TEXTURE2D_DESC tgtDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_B8G8R8A8_UNORM, m_width, m_height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 
 		auto d3d = g_nuiGi->GetD3D11Device();
 		if (SUCCEEDED(d3d->CreateTexture2D(&tgtDesc, nullptr, &m_swapTexture)))
 		{
+			trace(__FUNCTION__": SUCCEEDED(d3d->CreateTexture2D) %dx%d\n", m_width, m_height);
 			D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(m_swapTexture.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
 			d3d->CreateRenderTargetView(m_swapTexture.Get(), &rtDesc, &m_swapRtv);
 		}
@@ -436,17 +440,20 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 {
 	if (!sharedHandle)
 	{
+		trace(__FUNCTION__": sharedHandle is null\n");
 		return;
 	}
 
 	if (!m_rawBlit && type != CefRenderHandler::PaintElementType::PET_VIEW)
 	{
+		trace(__FUNCTION__": CefRenderHandler::PaintElementType::PET_VIEW\n");
 		return;
 	}
 
 	if (!m_nuiTexture.GetRef())
 	{
 		// hope we'll resize soon
+		trace(__FUNCTION__": m_nuiTexture.GetRef()\n");
 		return;
 	}
 
@@ -456,6 +463,7 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 	{
 		if (sharedHandle != m_lastParentHandle[type])
 		{
+			trace(__FUNCTION__": sharedHandle != m_lastParentHandle[type]\n");
 			m_lastParentHandle[type] = parentHandle;
 
 			auto& texRef = (type == CefRenderHandler::PaintElementType::PET_VIEW) ? m_nuiTexture : m_popupTexture;
@@ -464,17 +472,20 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 
 			if (type == CefRenderHandler::PaintElementType::PET_VIEW)
 			{
+				trace(__FUNCTION__": type == CefRenderHandler::PaintElementType::PET_VIEW\n");
 				w = m_width;
 				h = m_height;
 			}
 			else
 			{
+				trace(__FUNCTION__": type != CefRenderHandler::PaintElementType::PET_VIEW\n");
 				w = m_popupRect.width;
 				h = m_popupRect.height;
 			}
 
 			if (!m_rawBlit)
 			{
+				trace(__FUNCTION__": !m_rawBlit\n");
 				auto oldRef = m_parentTextures[type];
 
 				auto fakeTexRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
@@ -484,12 +495,14 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 			}
 			else
 			{
+				trace(__FUNCTION__": ELSE m_rawBlit\n");
 				std::lock_guard<std::shared_mutex> _(m_textureMutex);
 
 				texRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
 				SetParentTexture(type, texRef);
 			}
 
+			trace(__FUNCTION__": NUI_AcceptTexture(%llu)\n", (uint64_t)parentHandle);
 			NUI_AcceptTexture((uint64_t)parentHandle);
 		}
 	}
@@ -513,6 +526,8 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 
 		UnionRect(&m_lastDirtyRect, &newRect, &oldRect);
 	}
+
+	trace(__FUNCTION__": MarkRenderBufferDirty\n");
 
 	MarkRenderBufferDirty();
 }
@@ -552,11 +567,12 @@ void NUIWindow::UpdateFrame()
 
 	if (!GetTexture().GetRef())
 	{
+		trace(__FUNCTION__": GetTexture().GetRef() is null\n");
 		return;
 	}
 
 	if (m_rawBlit)
-	{		
+	{
 		int resX, resY;
 		g_nuiGi->GetGameResolution(&resX, &resY);
 
@@ -619,6 +635,7 @@ void NUIWindow::UpdateFrame()
 			argList->SetSize(1);
 			argList->SetString(0, item);
 
+			trace(__FUNCTION__": Sending PID_RENDERER message for %s\n", item);
 			browser->GetMainFrame()->SendProcessMessage(PID_RENDERER, message);
 		}
 	}

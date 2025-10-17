@@ -42,12 +42,15 @@ static InitFunction initFunction([] ()
 
 	NUIClient::OnClientCreated.Connect([] (NUIClient* client)
 	{
+		trace(__FUNCTION__ ": Hello!");
 		client->AddProcessMessageHandler("invokeNative", [] (CefRefPtr<CefBrowser> browser, CefRefPtr<CefProcessMessage> message)
 		{
 			auto args = message->GetArgumentList();
 			auto nativeType = args->GetString(0);
 
-			nui::OnInvokeNative(nativeType.c_str(), ToWide(args->GetString(1).ToString()).c_str());
+			trace(__FUNCTION__ ": Calling onInvokeNative!\n");
+			nui::OnInvokeNative(ToWide(nativeType.ToString()).c_str(), ToWide(args->GetString(1).ToString()).c_str());
+			trace(__FUNCTION__ ": Called onInvokeNative!\n");
 
 			if (nativeType == "quit")
 			{
