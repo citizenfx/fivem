@@ -1,14 +1,19 @@
 #include <StdInc.h>
 
-#ifdef GTA_FIVE
 #include <unordered_set>
 
 #include <PureModeState.h>
 #include <botan/sha2_32.h>
 
+#ifdef GTA_FIVE
 #include <BaseGameRpfHeaderHashes.h>
 #include <UpdateRpfHeaderHashes.h>
 #include <DlcRpfHeaderHashes.h>
+#else
+#include <BaseGameRpfHeaderHashes_RDR3.h>
+#include <UpdateRpfHeaderHashes_RDR3.h>
+#include <DlcRpfHeaderHashes_RDR3.h>
+#endif
 #include <ManualRpfHeaderHashes.h>
 
 DLL_IMPORT void SetPackfileValidationRoutine(bool (*routine)(const char*, const uint8_t*, size_t));
@@ -53,14 +58,23 @@ static InitFunction initFunction([]
 		if (fx::client::GetPureLevel() == 1)
 		{
 			std::string_view pathTest{ path };
-			if (pathTest == "x64/audio/sfx/RESIDENT.rpf" || pathTest == "x64/audio/sfx/WEAPONS_PLAYER.rpf" || pathTest.find("x64/audio/sfx/STREAMED_VEHICLES") == 0 || pathTest.find("x64/audio/sfx/RADIO") == 0)
+			if (pathTest == "x64/audio/sfx/RESIDENT.rpf" ||
+				pathTest == "x64/audio/sfx/WEAPONS_PLAYER.rpf" ||
+#ifdef GTA_FIVE
+				pathTest.find("x64/audio/sfx/STREAMED_VEHICLES") == 0 ||
+				pathTest.find("x64/audio/sfx/RADIO") == 0
+#else
+				pathTest.find("x64/audio/sfx/STREAMED_AMBIENCE") == 0
+#endif
+				)
 			{
 				return true;
 			}
 		}
 
 		std::vector<uint8_t> fixedHeader(header, header + headerLength);
-
+		
+#ifdef GTA_FIVE
 		for (size_t i = 0; i < fixedHeader.size(); i += 16)
 		{
 			auto x = *(uint32_t*)(&fixedHeader[i + 4]);
@@ -74,6 +88,7 @@ static InitFunction initFunction([]
 				}
 			}
 		}
+#endif
 
 		cfx::puremode::Sha256Result out;
 		{
@@ -87,4 +102,3 @@ static InitFunction initFunction([]
 
 	SetPackfileValidationRoutine(validationCallback);
 });
-#endif
