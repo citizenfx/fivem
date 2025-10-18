@@ -902,7 +902,7 @@
 					<MaxWeaponModelInfos value="115"/>
 					<MaxExtraPedModelInfos value="1044"/>
 					<MaxExtraVehicleModelInfos value="2068"/>
-					<MaxExtraWeaponModelInfos value="2048"/>
+					<MaxExtraWeaponModelInfos value="4096"/>
 				</ConfigModelInfo>
 
 				<ConfigExtensions>
