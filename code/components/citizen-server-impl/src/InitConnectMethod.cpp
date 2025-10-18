@@ -54,6 +54,7 @@
 #include <HttpClient.h>
 
 #include "CnlEndpoint.h"
+#include <net/ProtocolVersion.h>
 
 using json = nlohmann::json;
 
@@ -564,7 +565,7 @@ static InitFunction initFunction([]()
 			auto gameBuildField = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
 			auto gameName = (gameNameIt != postMap.end()) ? gameNameIt->second : "";
 
-			if (protocol < 12)
+			if (protocol < kNetworkProtocolVersion)
 			{
 				sendError("Client/server version mismatch. Restart your game client to update. If that did not help, "
 					"this server is using too new a version for the current game client.");
