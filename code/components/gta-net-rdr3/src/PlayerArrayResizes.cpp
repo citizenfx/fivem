@@ -777,7 +777,7 @@ static HookFunction hookFunction([]()
 {
 	// Expand Player Damage Array to support more players
 	{
-		constexpr size_t kDamageArraySize = sizeof(uint32_t) * 256;
+		constexpr size_t kDamageArraySize = sizeof(uint32_t) * kMaxPlayers + 1;
 		uint32_t* damageArrayReplacement = (uint32_t*)hook::AllocateStubMemory(kDamageArraySize);
 		memset(damageArrayReplacement, 0, kDamageArraySize);
 
@@ -897,9 +897,9 @@ static HookFunction hookFunction([]()
 		}, 3);
 	}
 
-	// Replace 33-sized player bandwidth related array.
+	// Replace player bandwidth array related to resend timers.
 	{
-		constexpr size_t kBandwithArraySize = sizeof(unsigned int) * kMaxPlayers + 2;
+		constexpr size_t kBandwithArraySize = sizeof(uint32_t) * kMaxPlayers + 1;
 		void** bandwidthRelatedArray = (void**)hook::AllocateStubMemory(kBandwithArraySize);
 		memset(bandwidthRelatedArray, 0, kBandwithArraySize);
 
@@ -912,7 +912,7 @@ static HookFunction hookFunction([]()
 		});
 
 		PatchValue<uint32_t>({
-			{ "B9 ? ? ? ? F3 AB 48 8D 8B ? ? ? ? 33 D2", 1, 0x20, kMaxPlayers },
+			{ "B9 ? ? ? ? F3 AB 48 8D 8B ? ? ? ? 33 D2", 1, 0x20, kMaxPlayers + 1 },
 		});
 	}
 
@@ -941,13 +941,10 @@ static HookFunction hookFunction([]()
 			// rage::netObject::CanPassControl
 			{ "3C ? 73 ? 3A 46", 1, 0x20, kMaxPlayers + 1},
 			// rage::netObject::SetOwner
-			{ "80 F9 ? 73 ? E8 ? ? ? ? 48 8B D8 EB", 2, 0x20, kMaxPlayers },
+			{ "80 F9 ? 73 ? E8 ? ? ? ? 48 8B D8 EB", 2, 0x20, kMaxPlayers + 1},
 			// rage::netObject::IsPendingOwnerChange
 			{ "80 79 ? ? 0F 92 C0 C3 48 8B 91", 3, 0x20,  kMaxPlayers + 1 },
-			
-			// this bitset isn't relevant in onesync.
-			//{ "8B E9 4C 8B 33", 48, 0x20, kMaxPlayers + 1 },
-
+		
 			// NetObjVehicle scene/viewport related. Array access is patched elsewhere.
 			{ "49 8B 7E ? 48 85 FF 0F 84 ? ? ? ? 48 8B 2D", 23, 0x20, kMaxPlayers + 1 }
 		});
@@ -1021,6 +1018,7 @@ static HookFunction hookFunction([]()
 			{ "83 F9 ? 73 ? 80 3D", 2, false }, // 0x93DC1BE4E1ABE9D1
 			{ "48 85 C9 74 0F 83 FE 20", 7, false }, // 0x66B57B72E0836A76
 			{ "83 F9 ? 73 ? B2", 2, false }, // 0x4CACA84440FA26F6 
+			{ "83 38 ? 48 8B 01 0F 92 C2", 2, false }, // 0x255A5EF65EDA9167
 
 			// netObject vtable functions
 			// Some bitsets are accessed here.
@@ -1035,7 +1033,12 @@ static HookFunction hookFunction([]()
 
 			// getPlayer
 			{ "83 F9 ? 73 ? E8 ? ? ? ? 48 83 C4 ? C3 90 23 E0", 2, false },
-			{ "80 F9 ? 73 ? E8 ? ? ? ? 48 8B D8 48 85 C0", 2, false }
+			{ "80 F9 ? 73 ? E8 ? ? ? ? 48 8B D8 48 85 C0", 2, false },
+
+			// Ped Group player comparsions
+			{ "80 79 ? ? 73 ? 0F B6 41", 3, false }, 
+			{ "83 F8 ? 76 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B8 ? ? ? ? 48 8D 0D ? ? ? ? 44 8D 4A ? E8 ? ? ? ? 84 C0 74 ? 48 69 C7", 2, true}
+
 		};
 
 		for (auto& entry : list)
@@ -1116,7 +1119,6 @@ static HookFunction hookFunction([]()
 	}
 #endif
 
-
 	// Patch bubble join to prevent writing out of bounds for player objects
 	{
 		auto location = hook::get_pattern("44 0F B6 4E ? 0F B6 40");
@@ -1188,7 +1190,7 @@ static HookFunction hookFunction([]()
 		hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 54 41 56 41 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 8B F0"));
 	}
 
-	// NetworkObjectMgr sub update. Manages several int 32 bitsets (not safe for > 32).
+	// NetworkObjectMgr bitset update. Manages several int32 bitsets.
 	// Only some of these bitsets are relevant for OneSync along with the focus position call.
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? 40 84 F6 74 ? 48 8B CF E8 ? ? ? ? 48 8B CF");
