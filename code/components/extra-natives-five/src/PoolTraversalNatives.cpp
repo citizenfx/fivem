@@ -8,7 +8,7 @@
 #include <Pool.h>
 
 #ifdef IS_RDR3
-#include <NativeWrappers.h>
+#include <EntitySystem.h>
 #endif
 
 #include <Local.h>

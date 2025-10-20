@@ -22,3 +22,9 @@ fwArchetype* rage::fwArchetypeManager::GetArchetypeFromHashKey(uint32_t hash, fw
 {
 	return getArchetype(hash, id);
 }
+
+bool fwEntity::IsOfTypeH(uint32_t hash)
+{
+	hook::FlexStruct* flexStruct = reinterpret_cast<hook::FlexStruct*>(this);
+	return flexStruct->CallVirtual<bool, const uint32_t&>(sizeof(void*), hash);
+}
