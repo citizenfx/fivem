@@ -97,7 +97,7 @@
 	url = https://github.com/citizenfx/websocketpp.git
 [submodule "vendor/replxx"]
 	path = vendor/replxx
-	url = https://github.com/blattersturm/replxx.git
+	url = https://github.com/citizenfx/replxx.git
 [submodule "vendor/thread-pool-cpp"]
 	path = vendor/thread-pool-cpp
 	url = https://github.com/inkooboo/thread-pool-cpp.git
