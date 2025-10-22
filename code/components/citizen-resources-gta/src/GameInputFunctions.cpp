@@ -4,6 +4,7 @@
 #include <GameInput.h>
 
 #include <ScriptEngine.h>
+#include <ScriptSerialization.h>
 
 #include <Resource.h>
 #include <fxScripting.h>
@@ -35,6 +36,52 @@ static InitFunction initFunction([]()
 		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
 		{
 			game::SetKeyMappingHideResources(hide);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_BIND_INFO_FROM_COMMAND", [](fx::ScriptContext& context)
+	{
+		std::string commandString = context.CheckArgument<const char*>(0);
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			auto bindInfo = game::GetBindingInfo(commandString);
+			
+			std::map<std::string, msgpack::type::variant> obj;
+			obj["tag"]        = bindInfo.tag;
+			obj["description"]= bindInfo.description;
+			obj["keyName"]    = bindInfo.keyName;
+			obj["sourceName"] = bindInfo.sourceName;
+			obj["parameter"]  = bindInfo.parameter;
+			obj["found"]      = bindInfo.found;
+			obj["hasKey"]     = bindInfo.hasKey;
+
+			context.SetResult(fx::SerializeObject(obj));
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_BIND_KEY_FOR_COMMAND", [](fx::ScriptContext& context)
+	{
+		std::string commandString = context.CheckArgument<const char*>(0);
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			auto sourceName = context.CheckArgument<const char*>(1);
+			auto keyName = context.CheckArgument<const char*>(2);
+			context.SetResult(game::RebindCommand(commandString, sourceName, keyName));
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("UNBIND_KEY_FOR_COMMAND", [](fx::ScriptContext& context)
+	{
+		std::string commandString = context.CheckArgument<const char*>(0);
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			context.SetResult(game::UnbindCommand(commandString));
 		}
 	});
 
