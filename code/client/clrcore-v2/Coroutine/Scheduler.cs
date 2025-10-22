@@ -9,7 +9,7 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Current time of this scheduler
 		/// </summary>
-		public static TimePoint CurrentTime { get; internal set; }
+		public static TimePoint CurrentTime { get; internal set; } = (TimePoint)0;
 
 		/// <summary>
 		/// Thread onto which all coroutines will run and be put back to

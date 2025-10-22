@@ -1,3 +1,4 @@
+using CitizenFX.MsgPack;
 using System;
 using System.ComponentModel;
 using System.Reflection;
@@ -74,6 +75,99 @@ namespace CitizenFX.Core
 				return Native.Function.Call<string>((Native.Hash)0xd70c3bca, ptr, serializedFrames.Length);
 			}
 		}*/
+
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[SecuritySafeCritical]
+		public static void WriteException(Exception exception, MsgPackFunc mspFunc, object[] arguments, string methodAnnotation = "dynamic method")
+		{
+			if (LogExceptionsOnDynFunc == 0)
+				return;
+
+			string errorMessage = "";
+
+			if (exception is InvalidCastException && (LogExceptionsOnDynFunc & DynFuncExceptions.InvalidCastException) != 0)
+			{
+				if ((LogExceptionsOnDynFunc & DynFuncExceptions.ReportTypeMatching) != 0)
+				{
+					string GetTypeName(Type type)
+					{
+						return type.Assembly == typeof(Int32).Assembly
+							? type.ToString().Substring(type.Namespace.Length + 1)
+							: type.ToString();
+					}
+
+					MethodInfo methodInfo = MsgPackDeserializer.GetMethodInfoFromDelegate(mspFunc);
+					ParameterInfo[] parameters = methodInfo.GetParameters();
+
+					string comma = "";
+					string argumentsString = "";
+					string parametersString = "";
+
+					const string sourceString = " ^2// [Source] parameters are hidden^7";
+					string hasSource = "";
+
+					// Test arguments against the parameters
+					int a = 0, p = 0;
+					for (; p < parameters.Length && a < arguments.Length; ++p)
+					{
+						ParameterInfo pInfo = parameters[p];
+						Type pType = pInfo.ParameterType;
+						string pName = GetTypeName(pType);
+
+						if (pInfo.GetCustomAttribute<SourceAttribute>() != null)
+						{
+							hasSource = sourceString;
+						}
+						else
+						{
+							Type aType = arguments[a]?.GetType();
+							string aName = aType is null ? "null" : GetTypeName(aType);
+
+							bool assignable = pType.IsAssignableFrom(aType)
+								|| (typeof(IConvertible).IsAssignableFrom(pType) && typeof(IConvertible).IsAssignableFrom(aType));
+
+							int maxNameSize = Math.Max(aName.Length, pName.Length);
+							argumentsString += comma + (assignable ? aName.PadRight(maxNameSize) : $"^1{aName}^7".PadRight(maxNameSize + 4));
+							parametersString += comma + (assignable ? pName.PadRight(maxNameSize) : $"^1{pName}^7".PadRight(maxNameSize + 4));
+
+							++a;
+						}
+
+						comma = ", ";
+					}
+
+					// add missing parameters
+					for (; p < parameters.Length; ++p)
+					{
+						ParameterInfo pInfo = parameters[p];
+						if (pInfo.GetCustomAttribute<SourceAttribute>() != null)
+						{
+							hasSource = sourceString;
+						}
+
+						parametersString += comma + $"^1{GetTypeName(pInfo.ParameterType)}^7";
+						comma = ", ";
+					}
+
+					// add excess arguments
+					for (; a < arguments.Length; ++a)
+					{
+						Type aType = arguments[a]?.GetType();
+						string aName = aType is null ? "null" : GetTypeName(aType);
+						argumentsString += comma + aName;
+						comma = ", ";
+					}
+
+					errorMessage += $"\n  expected: ({parametersString}){hasSource}\n  received: ({argumentsString})" +
+						$"\n  * Any type in ^1red^7 is not convertible, castable, or simply missing and requires attention.";
+				}
+			}
+
+			// Write the actual error/exception
+			WriteLine($"^1SCRIPT ERROR: Could not invoke {methodAnnotation} {mspFunc.Method.Name}^7" +
+				errorMessage +
+				$"\n^3Failed with exception:\n{exception}^7");
+		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[SecuritySafeCritical]
