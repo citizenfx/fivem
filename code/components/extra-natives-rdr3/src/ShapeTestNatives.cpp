@@ -6,6 +6,11 @@
 #include <EntitySystem.h>
 #include <ScriptSerialization.h>
 
+enum NativeIdentifiers : uint64_t
+{
+	GET_SHAPE_TEST_RESULT = 0xEDE8AC7C5108FB1D
+};
+
 struct ShapeTestResult
 {
 	uint32_t shapeTestHandle;
@@ -77,7 +82,7 @@ static HookFunction hookFunction([]()
 
 		// Fetch material result before invoke native as it cleans up the shapetest handle
 		uint8_t materialIndex = GetMateralIndexFromTraceHandle(shapeTestResult.shapeTestHandle);
-		uint32_t status = NativeInvoke::Invoke<0xEDE8AC7C5108FB1D, uint32_t>(shapeTestResult.shapeTestHandle, &shapeTestResult.hit, &shapeTestResult.endCoords, &shapeTestResult.surfaceNormal, &shapeTestResult.entityHit);
+		uint32_t status = NativeInvoke::Invoke<GET_SHAPE_TEST_RESULT, uint32_t>(shapeTestResult.shapeTestHandle, &shapeTestResult.hit, &shapeTestResult.endCoords, &shapeTestResult.surfaceNormal, &shapeTestResult.entityHit);
 
 		// Unless the return value is 2, the other return values are undefined.
 		if (status != 2)
