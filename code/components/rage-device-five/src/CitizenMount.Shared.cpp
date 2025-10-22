@@ -25,14 +25,15 @@
 
 #include <Error.h>
 
+#include "Hooking.Patterns.h"
+#include "Hooking.Stubs.h"
+
 using namespace std::string_literals;
 
 #include <ShlObj.h>
 
 #include <unordered_set>
 
-// RDR3 isn't compatible with vfs::RelativeDevice here
-#ifdef GTA_FIVE
 static std::unordered_set<std::string> g_basePaths{
 	// common/
 	"data/gameconfig.xml",
@@ -44,8 +45,42 @@ static std::unordered_set<std::string> g_basePaths{
 	"data/control/default.meta",
 	"data/control/settings.meta",
 	"data/control/keyboard layout/da.meta",
+
+	// platform(rdr3)
+	"data/startup.ymt",
+	"boot_launcher_flow.ymt",
+	"landing_launcher_flow.ymt"
 };
 
+inline bool IsPathFiltered(const std::string& fileName)
+{
+	std::string relPath = fileName.substr(fileName.find(":/") + 2);
+	boost::algorithm::replace_all(relPath, "\\", "/");
+	boost::algorithm::to_lower(relPath);
+
+	if (fx::client::GetPureLevel() >= 1)
+	{
+		if (g_basePaths.find(relPath) == g_basePaths.end())
+		{
+			return true;
+		}
+	}
+
+	if (relPath == "data/levels/gta5/trains.xml" ||
+		relPath == "data/materials/materials.dat" ||
+		relPath == "data/relationships.dat" ||
+		relPath == "data/dlclist.xml" ||
+		relPath == "data/ai/scenarios.meta" ||
+		relPath == "data/ai/conditionalanims.meta")
+	{
+		return true;
+	}
+
+	return false;
+}
+
+// RDR3 isn't compatible with vfs::RelativeDevice here
+#ifdef GTA_FIVE
 class PathFilteringDevice : public vfs::RelativeDevice
 {
 public:
@@ -56,29 +91,7 @@ public:
 
 	bool FilterFile(const std::string& fileName)
 	{
-		std::string relPath = fileName.substr(fileName.find(":/") + 2);
-		boost::algorithm::replace_all(relPath, "\\", "/");
-		boost::algorithm::to_lower(relPath);
-
-		if (fx::client::GetPureLevel() >= 1)
-		{
-			if (g_basePaths.find(relPath) == g_basePaths.end())
-			{
-				return true;
-			}
-		}
-
-		if (relPath == "data/levels/gta5/trains.xml" ||
-			relPath == "data/materials/materials.dat" ||
-			relPath == "data/relationships.dat" ||
-			relPath == "data/dlclist.xml" ||
-			relPath == "data/ai/scenarios.meta" ||
-			relPath == "data/ai/conditionalanims.meta")
-		{
-			return true;
-		}
-
-		return false;
+		return IsPathFiltered(fileName);
 	}
 
 	virtual THandle Open(const std::string& fileName, bool readOnly, bool append = false) override
@@ -171,6 +184,55 @@ static void ApplyPaths(TContainer& container)
 
 	container.clear();
 }
+
+#if defined(IS_RDR3)
+namespace
+{
+	bool ShouldBlockMount(const char* mountPath)
+	{
+		return strcmp(mountPath, "commonFilter:") == 0 ||
+			   strcmp(mountPath, "platformFilter:") == 0 ||
+			   strcmp(mountPath, "platformFilterV:") == 0;
+	}
+
+	const char* GetDeviceMountPath(void* self)
+	{
+		return reinterpret_cast<char*>(self) + 0x10;
+	}
+}
+
+static uintptr_t (*g_origFiDeviceRelativeOpen)(void* self, const char* path, bool readOnly);
+uintptr_t FiDeviceRelativeOpen(void* self, const char* path, bool readOnly)
+{
+	const char* mountPath = GetDeviceMountPath(self);
+
+	if (ShouldBlockMount(mountPath) && IsPathFiltered(path))
+	{
+		return static_cast<uintptr_t>(-1);
+	}
+
+	return g_origFiDeviceRelativeOpen(self, path, readOnly);
+}
+
+static uint32_t (*g_origFiDeviceRelativeGetAttributes)(void* self, const char* path);
+uint32_t FiDeviceRelativeGetAttributes(void* self, const char* path)
+{
+	const char* mountPath = GetDeviceMountPath(self);
+
+	if (ShouldBlockMount(mountPath) && IsPathFiltered(path))
+	{
+		return static_cast<uint32_t>(-1);
+	}
+
+	return g_origFiDeviceRelativeGetAttributes(self, path);
+}
+
+static HookFunction hookFunction([]()
+{
+	g_origFiDeviceRelativeOpen = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 57 48 81 EC ? ? ? ? 41 8A F8"), FiDeviceRelativeOpen);
+	g_origFiDeviceRelativeGetAttributes = hook::trampoline(hook::get_pattern("E8 31 ? ? ? 48 8B 4B 08 48 8D 54 24 20 48 8B 01 FF 90 58 01 00 00", -26), FiDeviceRelativeGetAttributes);
+});
+#endif
 
 static InitFunction initFunction([]()
 {
