@@ -613,6 +613,25 @@ static InitFunction initFunction([]()
 				});
 			}, 99999999);
 
+			resource->OnClientReloadFile.Connect([=]()
+			{
+				int numWarnings = 0;
+				CheckResourceGlobs(resource, &numWarnings);
+
+				auto streamComponent = resource->GetComponent<fx::ResourceStreamComponent>();
+				streamComponent->CheckSizes(&numWarnings);
+				
+				if (numWarnings == 0)
+				{
+					console::Printf("resources", "File restarted resource %s\n", resource->GetName());
+				}
+				else
+				{
+					console::Printf("resources", "File restarted resource %s (%d warning%s)\n",
+						resource->GetName(), numWarnings, numWarnings == 1 ? "" : "s");
+				}
+			}, 99999999);
+
 			resource->OnStop.Connect([=]()
 			{
 				console::Printf("resources", "Stopping resource %s\n", resource->GetName());
@@ -701,6 +720,42 @@ static InitFunction initFunction([]()
 				if (resource->GetState() == fx::ResourceState::Stopped)
 				{
 					trace("^3Couldn't start resource %s.^7\n", resourceName);
+					return;
+				}
+			}
+		});
+
+		static auto reloadclientfileCommandRef = instance->AddCommand("reloadclientfile", [=](const std::string& resourceName)
+		{
+			if (resourceName.empty())
+			{
+				return;
+			}
+
+			if (isCategory(resourceName))
+			{
+				for (const auto& resource : findByComponent(resourceName))
+				{
+					auto conCtx = instance->GetComponent<console::Context>();
+					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "reloadclientfile", resource });
+				}
+
+				return;
+			}
+
+			auto resource = resman->GetResource(resourceName);
+
+			if (!resource.GetRef())
+			{
+				trace("^3Couldn't find resource %s.^7\n", resourceName);
+				return;
+			}
+
+			if (!resource->ClientReloadFile())
+			{
+				if (resource->GetState() != fx::ResourceState::Stopped)
+				{
+					trace("^3Couldn't stop resource %s.^7\n", resourceName);
 					return;
 				}
 			}
