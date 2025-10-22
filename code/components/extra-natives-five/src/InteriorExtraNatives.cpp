@@ -2,16 +2,23 @@
 
 #include <atArray.h>
 #include <Local.h>
-#include <Hooking.h>
 #include <ScriptEngine.h>
 #include <nutsnbolts.h>
-#include <atPool.h>
 #include <DirectXMath.h>
-#include <CrossBuildRuntime.h>
+#include <atPool.h>
 #include <GameInit.h>
+
+#ifdef GTA_FIVE
+#include <Hooking.h>
+#include <CrossBuildRuntime.h>
+#include <DirectXMath.h>
+#elif IS_RDR3
+#include <Pool.h>
+#endif
 
 #include "GameValueStub.h"
 
+#ifdef GTA_FIVE
 #define DECLARE_ACCESSOR(x) \
 	decltype(impl.m2060.x)& x()        \
 	{                       \
@@ -21,6 +28,41 @@
 	{                                                    \
 		return (xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);  \
 	}
+#elif IS_RDR3
+#define DECLARE_ACCESSOR(x) \
+	decltype(impl.x)& x()        \
+	{                       \
+		return impl.x;   \
+	} \
+	const decltype(impl.x)& x() const                         \
+	{                                                    \
+		return impl.x;  \
+	}
+#endif
+
+#ifdef GTA_FIVE
+#define GET_INTERIOR_PROXY(interiorId) \
+	([](int handle) -> InteriorProxy* { \
+		if (xbr::IsGameBuildOrGreater<2060>()) { \
+			auto impl = GetInteriorProxyImpl<2060>(handle); \
+			if (impl) { \
+				static InteriorProxy proxy; \
+				proxy.impl.m2060 = *impl; \
+				return &proxy; \
+			} \
+		} else { \
+			auto impl = GetInteriorProxyImpl<1604>(handle); \
+			if (impl) { \
+				static InteriorProxy proxy; \
+				proxy.impl.m1604 = *impl; \
+				return &proxy; \
+			} \
+		} \
+		return nullptr; \
+	})(interiorId)
+#elif IS_RDR3
+#define GET_INTERIOR_PROXY(interiorId) GetInteriorProxyImpl<1491>(interiorId)
+#endif
 
 using Matrix3x4 = DirectX::XMFLOAT3X4;
 
@@ -29,8 +71,23 @@ struct Vector
 	float x; // +0
 	float y; // +4
 	float z; // +8
-	float w; // +16
+	float w; // +12
 };
+
+#ifdef IS_RDR3
+struct CReflectionProbe
+{
+	char pad0[16]; // +0
+	Vector minExtents; // +16
+	Vector maxExtents; // +32
+	Vector rotation; // +48
+	Vector centerOffset; // +64
+	Vector influenceExtents; // +80
+	uint8_t probePriority; // +96
+	char pad1[3]; // +97
+	uint64_t guid; // +100
+};
+#endif
 
 struct iCEntityDef
 {
@@ -68,6 +125,9 @@ struct CMloRoomDef
 	int32_t floorId; // +84
 	int16_t exteriorVisibilityDepth; // +88
 	atArray<uint32_t> attachedObjects; // +90
+#ifdef IS_RDR3
+	atArray<CReflectionProbe> reflectionProbes; // +106
+#endif
 };
 
 struct CMloPortalDef
@@ -78,9 +138,15 @@ struct CMloPortalDef
 	uint32_t flags; // +16
 	int32_t mirrorPriority; // +20
 	float opacity;	// +24
-	int32_t audioOcclusion; // +28
-	atArray<Vector> corners; // +32
-	atArray<uint32_t> attachedObjects; // +48
+#ifdef IS_RDR3
+	float fyboamga_0x7c096c2e; // +28
+	float iikmykba_0x91171666; // +32
+	float rlibjjda_0x96816ddf; // +36
+	float qdszgwfa_0x0854fdee; // +40
+#endif
+	int32_t audioOcclusion; // +28 (FiveM) / +44 (RDR3)
+	atArray<Vector> corners; // +32 (FiveM) / +48 (RDR3)
+	atArray<uint32_t> attachedObjects; // +48 (FiveM) / +64 (RDR3)
 };
 
 struct CMloEntitySet
@@ -126,6 +192,8 @@ struct CInteriorInst
 struct InteriorProxy
 {
 public:
+
+#ifdef GTA_FIVE
 	struct Impl1604
 	{
 		void* vtbl;
@@ -163,12 +231,34 @@ public:
 		uint32_t archetypeHash; // +228
 		char pad6[8]; // +232
 	};
+#elif IS_RDR3
+	struct Impl1491
+	{
+		void* vtbl;
+		uint32_t mapIndex; // +8
+		char pad1[4]; // +12
+		uint32_t occlusionIndex; // +16
+		char pad2[36]; // +20
+		CInteriorInst* instance; // +56
+		char pad3[16]; // +64
+		Vector rotation; // +80
+		Vector position; // +96
+		Vector center; // +112
+		Vector entitiesExtentsMin; // +128
+		Vector entitiesExtentsMax; // +144
+		char pad4[80]; // +160
+	};
+#endif
 
+#ifdef GTA_FIVE
 	union
 	{
 		Impl1604 m1604;
 		Impl2060 m2060;
 	} impl;
+#elif IS_RDR3
+	Impl1491 impl;
+#endif
 
 public:
 	DECLARE_ACCESSOR(instance);
@@ -178,37 +268,41 @@ public:
 	DECLARE_ACCESSOR(entitiesExtentsMax);
 };
 
+#ifdef GTA_FIVE
 template<int Build>
 using CInteriorProxy = std::conditional_t<(Build >= 2060), InteriorProxy::Impl2060, InteriorProxy::Impl1604>;
-
 template<int Build>
 static atPool<CInteriorProxy<Build>>** g_interiorProxyPool;
 
 template<int Build>
-static CInteriorProxy<Build>* GetInteriorProxy(int handle)
+static CInteriorProxy<Build>* GetInteriorProxyImpl(int handle)
 {
 	return (*g_interiorProxyPool<Build>)->GetAtHandle<CInteriorProxy<Build>>(handle);
 }
+#elif IS_RDR3
+template<int Build>
+using CInteriorProxy = InteriorProxy;
+
+template<int Build>
+static CInteriorProxy<Build>* GetInteriorProxyImpl(int handle)
+{
+    static auto pool = rage::GetPool<CInteriorProxy<Build>>("InteriorProxy");
+    if (pool)
+    {
+        return pool->GetAtHandle<CInteriorProxy<Build>>(handle);
+    }
+    return nullptr;
+}
+#endif
 
 static CMloModelInfo* GetInteriorArchetype(int interiorId)
 {
 	CInteriorInst* instance = nullptr;
 
-	if (xbr::IsGameBuildOrGreater<2060>())
+	auto proxy = GET_INTERIOR_PROXY(interiorId);
+	if (proxy)
 	{
-		CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
-		if (proxy)
-		{
-			instance = proxy->instance;
-		}
-	}
-	else
-	{
-		CInteriorProxy<1604>* proxy = GetInteriorProxy<1604>(interiorId);
-		if (proxy)
-		{
-			instance = proxy->instance;
-		}
+		instance = proxy->instance();
 	}
 
 	if (instance && instance->mloModel)
@@ -306,6 +400,7 @@ static int GetInteriorRoomIdByHash(CMloModelInfo* arch, int searchHash)
 	return -1;
 }
 
+#ifdef GTA_FIVE
 static GameValueStub<float> g_emitterAudioEntityProbeLength;
 static float g_interiorProbeLengthOverride = 0.0;
 
@@ -322,9 +417,11 @@ static bool CPortalTracker__Probe(Vector3* pos, CInteriorInst** ppInteriorInstan
 
 	return g_CPortalTracker__Probe(pos, ppInteriorInstance, roomId, traceImpactPoint, traceLength);
 }
+#endif
 
 static HookFunction initFunction([]()
 {
+#ifdef GTA_FIVE
 	{
 		auto location = hook::get_pattern<void>("E8 ? ? ? ? 40 8A F8 49 ? ? E8");
 		hook::set_call(&g_CPortalTracker__Probe, location);
@@ -349,6 +446,7 @@ static HookFunction initFunction([]()
 			g_interiorProxyPool<1604> = hook::get_address<decltype(g_interiorProxyPool<1604>)>(location);
 		}
 	}
+#endif
 
 #ifdef _DEBUG
 	fx::ScriptEngine::RegisterNativeHandler("INTERIOR_DEBUG", [=](fx::ScriptContext& context)
@@ -366,6 +464,78 @@ static HookFunction initFunction([]()
 		auto entitySetCount = arch->entitySets->GetCount();
 		auto timecycleModifierCount = arch->timecycleModifiers->GetCount();
 
+		// Archetype Information
+		trace("\n=== INTERIOR ARCHETYPE INFO ===\n");
+		trace("Interior ID: %d\n", interiorId);
+		trace("Archetype Address: %08x\n", (uint64_t)arch);
+		trace("Room Count: %d\n", roomCount);
+		trace("Portal Count: %d\n", portalCount);
+		trace("Entity Set Count: %d\n", entitySetCount);
+		trace("Timecycle Modifier Count: %d\n", timecycleModifierCount);
+		
+		// Get interior proxy for position/rotation info
+		auto proxy = GET_INTERIOR_PROXY(interiorId);
+		if (proxy)
+		{
+			auto position = proxy->position();
+			auto rotation = proxy->rotation();
+			auto entitiesExtentsMin = proxy->entitiesExtentsMin();
+			auto entitiesExtentsMax = proxy->entitiesExtentsMax();
+			trace("Interior Proxy Address: %08x\n", (uint64_t)proxy);
+			trace("Interior Position: %f %f %f\n", position.x, position.y, position.z);
+			trace("Interior Rotation: %f %f %f %f\n", rotation.x, rotation.y, rotation.z, rotation.w);
+			trace("Entities Extents Min: %f %f %f\n", entitiesExtentsMin.x, entitiesExtentsMin.y, entitiesExtentsMin.z);
+			trace("Entities Extents Max: %f %f %f\n", entitiesExtentsMax.x, entitiesExtentsMax.y, entitiesExtentsMax.z);
+			
+			// Raw memory dump of interior proxy (increased to 256 bytes to capture full struct)
+			trace("\n--- Raw Interior Proxy Memory Dump ---\n");
+			uint8_t* proxyBytes = (uint8_t*)proxy;
+			for (int i = 0; i < 256; i += 16)
+			{
+				trace("%08x: ", (uint64_t)proxyBytes + i);
+				for (int j = 0; j < 16; j++)
+				{
+					if (i + j < 256)
+						trace("%02x ", proxyBytes[i + j]);
+					else
+						trace("   ");
+				}
+				trace(" |");
+				for (int j = 0; j < 16 && i + j < 256; j++)
+				{
+					char c = proxyBytes[i + j];
+					trace("%c", (c >= 32 && c <= 126) ? c : '.');
+				}
+				trace("|\n");
+			}
+			trace("------------------------------------\n");
+			
+		}
+		
+		// Raw memory dump of archetype (increased to 128 bytes)
+		trace("\n--- Raw Archetype Memory Dump ---\n");
+		uint8_t* archBytes = (uint8_t*)arch;
+		for (int i = 0; i < 128; i += 16)
+		{
+			trace("%08x: ", (uint64_t)archBytes + i);
+			for (int j = 0; j < 16; j++)
+			{
+				if (i + j < 128)
+					trace("%02x ", archBytes[i + j]);
+				else
+					trace("   ");
+			}
+			trace(" |");
+			for (int j = 0; j < 16 && i + j < 128; j++)
+			{
+				char c = archBytes[i + j];
+				trace("%c", (c >= 32 && c <= 126) ? c : '.');
+			}
+			trace("|\n");
+		}
+		trace("--------------------------------\n");
+		trace("===============================\n");
+
 		for (int roomId = 0; roomId < roomCount; ++roomId)
 		{
 			auto room = GetInteriorRoomDef(interiorId, roomId);
@@ -378,6 +548,22 @@ static HookFunction initFunction([]()
 			trace(" - TimecycleName Hash: %d / %d\n", room->timecycleName, room->secondaryTimecycleName);
 			trace(" - FloorId: %d | ExteriorVisibilityDepth: %d\n", room->floorId, room->exteriorVisibilityDepth);
 			trace(" - AttachedObjects: %d\n", room->attachedObjects.GetCount());
+#ifdef IS_RDR3
+			trace(" - ReflectionProbes: %d\n", room->reflectionProbes.GetCount());
+			for (int probeId = 0; probeId < room->reflectionProbes.GetCount(); ++probeId)
+			{
+				auto probe = &room->reflectionProbes[probeId];
+				trace("   - Probe %d: MinExtents(%f %f %f) MaxExtents(%f %f %f)\n", 
+					probeId, probe->minExtents.x, probe->minExtents.y, probe->minExtents.z,
+					probe->maxExtents.x, probe->maxExtents.y, probe->maxExtents.z);
+				trace("     Rotation(%f %f %f %f) CenterOffset(%f %f %f)\n",
+					probe->rotation.x, probe->rotation.y, probe->rotation.z, probe->rotation.w,
+					probe->centerOffset.x, probe->centerOffset.y, probe->centerOffset.z);
+				trace("     InfluenceExtents(%f %f %f) Priority(%d) GUID(0x%016llX)\n",
+					probe->influenceExtents.x, probe->influenceExtents.y, probe->influenceExtents.z,
+					probe->probePriority, probe->guid);
+			}
+#endif
 		}
 
 		for (int portalId = 0; portalId < portalCount; ++portalId)
@@ -421,6 +607,7 @@ static HookFunction initFunction([]()
 	});
 #endif
 
+#ifdef GTA_FIVE
 	fx::ScriptEngine::RegisterNativeHandler("SET_INTERIOR_PROBE_LENGTH", [=](fx::ScriptContext& context)
 	{
 		auto length = context.GetArgument<float>(0);
@@ -444,6 +631,7 @@ static HookFunction initFunction([]()
 		g_emitterAudioEntityProbeLength.Set(std::clamp(length, 20.0f, 150.0f));
 		return true;
 	});
+#endif
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ROOM_INDEX_BY_HASH", [=](fx::ScriptContext& context)
 	{
@@ -717,78 +905,54 @@ static HookFunction initFunction([]()
 		return false;
 	});
 
+// Native already exists in RDR3
+#ifdef GTA_FIVE
 	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_POSITION", [=](fx::ScriptContext& context)
 	{
 		auto interiorId = context.GetArgument<int>(0);
 
-		Vector* position;
-
-		if (xbr::IsGameBuildOrGreater<2060>())
+		auto proxy = GET_INTERIOR_PROXY(interiorId);
+		if (proxy)
 		{
-			CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
-			position = &proxy->position;
+			auto position = proxy->position();
+			*context.GetArgument<float*>(1) = position.x;
+			*context.GetArgument<float*>(2) = position.y;
+			*context.GetArgument<float*>(3) = position.z;
 		}
-		else
-		{
-			CInteriorProxy<1604>* proxy = GetInteriorProxy<1604>(interiorId);
-			position = &proxy->position;
-		}
-
-		*context.GetArgument<float*>(1) = position->x;
-		*context.GetArgument<float*>(2) = position->y;
-		*context.GetArgument<float*>(3) = position->z;
 	});
+#endif
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ROTATION", [=](fx::ScriptContext& context)
 	{
 		auto interiorId = context.GetArgument<int>(0);
 
-		Vector* rotation;
-
-		if (xbr::IsGameBuildOrGreater<2060>())
+		auto proxy = GET_INTERIOR_PROXY(interiorId);
+		if (proxy)
 		{
-			CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
-			rotation = &proxy->rotation;
+			auto rotation = proxy->rotation();
+			*context.GetArgument<float*>(1) = rotation.x;
+			*context.GetArgument<float*>(2) = rotation.y;
+			*context.GetArgument<float*>(3) = rotation.z;
+			*context.GetArgument<float*>(4) = rotation.w;
 		}
-		else
-		{
-			CInteriorProxy<1604>* proxy = GetInteriorProxy<1604>(interiorId);
-			rotation = &proxy->rotation;
-		}
-
-		*context.GetArgument<float*>(1) = rotation->x;
-		*context.GetArgument<float*>(2) = rotation->y;
-		*context.GetArgument<float*>(3) = rotation->z;
-		*context.GetArgument<float*>(4) = rotation->w;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ENTITIES_EXTENTS", [=](fx::ScriptContext& context)
 	{
 		auto interiorId = context.GetArgument<int>(0);
 
-		Vector* bbMin;
-		Vector* bbMax;
-
-		if (xbr::IsGameBuildOrGreater<2060>())
+		auto proxy = GET_INTERIOR_PROXY(interiorId);
+		if (proxy)
 		{
-			CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
-			bbMin = &proxy->entitiesExtentsMin;
-			bbMax = &proxy->entitiesExtentsMax;
+			auto bbMin = proxy->entitiesExtentsMin();
+			auto bbMax = proxy->entitiesExtentsMax();
+			*context.GetArgument<float*>(1) = bbMin.x;
+			*context.GetArgument<float*>(2) = bbMin.y;
+			*context.GetArgument<float*>(3) = bbMin.z;
+			*context.GetArgument<float*>(4) = bbMax.x;
+			*context.GetArgument<float*>(5) = bbMax.y;
+			*context.GetArgument<float*>(6) = bbMax.z;
 		}
-		else
-		{
-			CInteriorProxy<1604>* proxy = GetInteriorProxy<1604>(interiorId);
-			bbMin = &proxy->entitiesExtentsMin;
-			bbMax = &proxy->entitiesExtentsMax;
-		}
-
-		*context.GetArgument<float*>(1) = bbMin->x;
-		*context.GetArgument<float*>(2) = bbMin->y;
-		*context.GetArgument<float*>(3) = bbMin->z;
-
-		*context.GetArgument<float*>(4) = bbMax->x;
-		*context.GetArgument<float*>(5) = bbMax->y;
-		*context.GetArgument<float*>(6) = bbMax->z;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_PORTAL_COUNT", [=](fx::ScriptContext& context)
@@ -922,10 +1086,232 @@ static HookFunction initFunction([]()
 		return true;
 	});
 
+#ifdef IS_RDR3
+	// Reflection Probe Natives
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ROOM_REFLECTION_PROBE_COUNT", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto result = 0;
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room)
+		{
+			result = room->reflectionProbes.GetCount();
+		}
+
+		context.SetResult<int>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ROOM_REFLECTION_PROBE_EXTENTS", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto probeId = context.GetArgument<int>(2);
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room && probeId >= 0 && probeId < room->reflectionProbes.GetCount())
+		{
+			auto probe = &room->reflectionProbes[probeId];
+			*context.GetArgument<float*>(3) = probe->minExtents.x;
+			*context.GetArgument<float*>(4) = probe->minExtents.y;
+			*context.GetArgument<float*>(5) = probe->minExtents.z;
+			*context.GetArgument<float*>(6) = probe->maxExtents.x;
+			*context.GetArgument<float*>(7) = probe->maxExtents.y;
+			*context.GetArgument<float*>(8) = probe->maxExtents.z;
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ROOM_REFLECTION_PROBE_CENTER_OFFSET", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto probeId = context.GetArgument<int>(2);
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room && probeId >= 0 && probeId < room->reflectionProbes.GetCount())
+		{
+			auto probe = &room->reflectionProbes[probeId];
+			*context.GetArgument<float*>(3) = probe->centerOffset.x;
+			*context.GetArgument<float*>(4) = probe->centerOffset.y;
+			*context.GetArgument<float*>(5) = probe->centerOffset.z;
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ROOM_REFLECTION_PROBE_INFLUENCE_EXTENTS", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto probeId = context.GetArgument<int>(2);
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room && probeId >= 0 && probeId < room->reflectionProbes.GetCount())
+		{
+			auto probe = &room->reflectionProbes[probeId];
+			*context.GetArgument<float*>(3) = probe->influenceExtents.x;
+			*context.GetArgument<float*>(4) = probe->influenceExtents.y;
+			*context.GetArgument<float*>(5) = probe->influenceExtents.z;
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ROOM_REFLECTION_PROBE_ROTATION", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto probeId = context.GetArgument<int>(2);
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room && probeId >= 0 && probeId < room->reflectionProbes.GetCount())
+		{
+			auto probe = &room->reflectionProbes[probeId];
+			*context.GetArgument<float*>(3) = probe->rotation.x;
+			*context.GetArgument<float*>(4) = probe->rotation.y;
+			*context.GetArgument<float*>(5) = probe->rotation.z;
+			*context.GetArgument<float*>(6) = probe->rotation.w;
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ROOM_REFLECTION_PROBE_PRIORITY", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto probeId = context.GetArgument<int>(2);
+		auto result = 0;
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room && probeId >= 0 && probeId < room->reflectionProbes.GetCount())
+		{
+			auto probe = &room->reflectionProbes[probeId];
+			result = probe->probePriority;
+		}
+
+		context.SetResult<int>(result);
+	});
+
+	// Reflection Probe Setters
+	fx::ScriptEngine::RegisterNativeHandler("SET_INTERIOR_ROOM_REFLECTION_PROBE_EXTENTS", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto probeId = context.GetArgument<int>(2);
+		auto minX = context.GetArgument<float>(3);
+		auto minY = context.GetArgument<float>(4);
+		auto minZ = context.GetArgument<float>(5);
+		auto maxX = context.GetArgument<float>(6);
+		auto maxY = context.GetArgument<float>(7);
+		auto maxZ = context.GetArgument<float>(8);
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room && probeId >= 0 && probeId < room->reflectionProbes.GetCount())
+		{
+			auto probe = &room->reflectionProbes[probeId];
+			probe->minExtents.x = minX;
+			probe->minExtents.y = minY;
+			probe->minExtents.z = minZ;
+			probe->maxExtents.x = maxX;
+			probe->maxExtents.y = maxY;
+			probe->maxExtents.z = maxZ;
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_INTERIOR_ROOM_REFLECTION_PROBE_CENTER_OFFSET", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto probeId = context.GetArgument<int>(2);
+		auto x = context.GetArgument<float>(3);
+		auto y = context.GetArgument<float>(4);
+		auto z = context.GetArgument<float>(5);
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room && probeId >= 0 && probeId < room->reflectionProbes.GetCount())
+		{
+			auto probe = &room->reflectionProbes[probeId];
+			probe->centerOffset.x = x;
+			probe->centerOffset.y = y;
+			probe->centerOffset.z = z;
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_INTERIOR_ROOM_REFLECTION_PROBE_INFLUENCE_EXTENTS", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto probeId = context.GetArgument<int>(2);
+		auto x = context.GetArgument<float>(3);
+		auto y = context.GetArgument<float>(4);
+		auto z = context.GetArgument<float>(5);
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room && probeId >= 0 && probeId < room->reflectionProbes.GetCount())
+		{
+			auto probe = &room->reflectionProbes[probeId];
+			probe->influenceExtents.x = x;
+			probe->influenceExtents.y = y;
+			probe->influenceExtents.z = z;
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_INTERIOR_ROOM_REFLECTION_PROBE_ROTATION", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto probeId = context.GetArgument<int>(2);
+		auto x = context.GetArgument<float>(3);
+		auto y = context.GetArgument<float>(4);
+		auto z = context.GetArgument<float>(5);
+		auto w = context.GetArgument<float>(6);
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room && probeId >= 0 && probeId < room->reflectionProbes.GetCount())
+		{
+			auto probe = &room->reflectionProbes[probeId];
+			probe->rotation.x = x;
+			probe->rotation.y = y;
+			probe->rotation.z = z;
+			probe->rotation.w = w;
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_INTERIOR_ROOM_REFLECTION_PROBE_PRIORITY", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto probeId = context.GetArgument<int>(2);
+		auto priority = context.GetArgument<int>(3);
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room && probeId >= 0 && probeId < room->reflectionProbes.GetCount())
+		{
+			auto probe = &room->reflectionProbes[probeId];
+			probe->probePriority = (uint8_t)priority;
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ROOM_REFLECTION_PROBE_GUID", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto roomId = context.GetArgument<int>(1);
+		auto probeId = context.GetArgument<int>(2);
+
+		auto room = GetInteriorRoomDef(interiorId, roomId);
+		if (room && probeId >= 0 && probeId < room->reflectionProbes.GetCount())
+		{
+			context.SetResult<uint64_t>(room->reflectionProbes[probeId].guid);
+		}
+		else
+		{
+			context.SetResult<uint64_t>(0);
+		}
+	});
+#endif
+
+#ifdef GTA_FIVE
 	// Sharing OnKillNetworkDone for probe lengths
 	OnKillNetworkDone.Connect([]()
 	{
 		g_interiorProbeLengthOverride = 0.0f;
 		g_emitterAudioEntityProbeLength.Reset();
 	});
+#endif
 });
