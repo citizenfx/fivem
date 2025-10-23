@@ -773,6 +773,16 @@ static uint16_t GetPlayerFastInstanceId(uint8_t playerIndex)
 	return 0x100;
 }
 
+//TODO: We really, really need a shared file for this. It's starting to get duplicated
+template<int instrLen = 7, int instrOffset = 3>
+static void PatchRelativeLocation(uintptr_t address, uintptr_t newLocation)
+{
+	uint8_t* instructions = reinterpret_cast<uint8_t*>(address);
+	uintptr_t instrNext = address + instrLen;
+	int32_t newDisp = (int32_t)((int64_t)newLocation - (int64_t)instrNext);
+	hook::put<int32_t>(instructions + instrOffset, newDisp);
+}
+
 static HookFunction hookFunction([]()
 {
 	// Expand Player Damage Array to support more players
@@ -797,6 +807,71 @@ static HookFunction hookFunction([]()
 			{"40 80 FF ? 73 ? 40 38 3D", 3, 0x20, kMaxPlayers + 1},
 			//CWeaponDamageEvent::_checkIfDead
 			{ "80 3D ? ? ? ? ? 40 8A 68", 6, 0x20, kMaxPlayers + 1 },
+		});
+	}
+
+	// Extend AnimScene handler array, as we need to support kMaxPlayers instead of just 32
+	{
+		const size_t kPlayerEntriesSize = (kMaxPlayers + 1 * 0x3200);
+		const size_t kObjectEntriesSize = (1600 * 0x40);
+		const size_t kStructSize = kPlayerEntriesSize + kObjectEntriesSize;
+		void** animSceneArray = (void**)hook::AllocateStubMemory(kStructSize);
+		memset(animSceneArray, 0, kStructSize);
+
+		RelocateRelative((void*)animSceneArray, {
+			{ "48 8D 05 ? ? ? ? 48 03 D8 48 85 DB", 3},
+			{ "48 8D 05 ? ? ? ? 48 03 C8 48 85 C9 74 ? 0F B7 47 ? 66 39 01 75 ? 80 79", 3 },
+			{ "48 8D 05 ? ? ? ? 48 03 C8 48 85 C9 74 ? 41 0F B7 46 ? 66 39 01 75 ? 8A 41 ? 2C ? 3C", 3 },
+			{ "48 8D 05 ? ? ? ? 48 03 C8 48 85 C9 74 ? 0F B7 43", 3 },
+			{ "48 8D 05 ? ? ? ? 48 03 C8 48 85 C9 74 ? 41 0F B7 46 ? 66 39 01 75 ? 8A 41 ? 2C ? 75", 3 },
+			{ "48 8D 05 ? ? ? ? 48 03 C8 48 85 C9 74 ? 0F B7 46 ? 66 39 01 75 ? 8A 41", 3 },
+			{ "48 8D 05 ? ? ? ? 8B D3 48 03 C8 48 85 C9 74 ? 41 0F B7 46", 3 },
+			{ "48 8D 05 ? ? ? ? 48 03 C8 48 85 C9 74 ? 0F B7 47 ? 66 39 01 75 ? 8A 41", 3 },
+            { "48 8D 05 ? ? ? ? 48 03 C8 48 85 C9 74 ? 0F B7 46 ? 66 39 01 75 ? 8B D5", 3 },
+			{ "48 8D 35 ? ? ? ? 33 C9 E8", 3 },
+			{ "48 8D 1D ? ? ? ? 8B F5", 3 },
+			{ "48 8D 15 ? ? ? ? 48 69 C9 ? ? ? ? 44 8B CD", 3 },
+			{ "48 8D 05 ? ? ? ? 48 03 C8 48 85 C9 74 ? 0F B7 47 ? 66 39 01 74", 3},
+			{ "48 8D 05 ? ? ? ? 48 69 D1 ? ? ? ? 45 33 C0", 3 }
+		});
+
+		// struct
+		// {
+		//   char playerEntries[0x3200 * kMaxPlayers + 1];
+		//   char objectEntries[0x40 * 1600];
+		//}
+
+		// Start of object entries
+		PatchRelativeLocation((uintptr_t)hook::get_pattern("48 8D 0D ? ? ? ? BA ? ? ? ? 45 33 C0 66 44 89 41"), (uintptr_t)animSceneArray + kPlayerEntriesSize);
+		PatchRelativeLocation((uintptr_t)hook::get_pattern("48 8D 1D ? ? ? ? 33 F6 48 FF CF 48 8D 5B ? 66 39 33"), (uintptr_t)animSceneArray + kPlayerEntriesSize);
+
+		// Patch 8-bit registers
+		PatchValue<uint8_t>({
+			{ "40 80 FF ? 72 ? 40 8A C5", 3, 0x20, kMaxPlayers + 1 },
+			{ "48 8D 05 ? ? ? ? 48 03 C8 48 85 C9 74 ? 0F B7 47 ? 66 39 01 75 ? 80 79", 48, 0x20, kMaxPlayers + 1 },
+			{ "40 80 FF ? 72 ? 40 8A C6 EB ? 83 B8 ? ? ? ? ? 0F 9D C0", 3, 0x20, kMaxPlayers + 1 },
+			{ "40 80 FF ? 72 ? 40 8A C6 EB ? F6 80", 3, 0x20, kMaxPlayers + 1 },
+			{ "40 80 FF ? 72 ? 32 C0", 3, 0x20, kMaxPlayers + 1 },
+			{ "40 80 FF ? 72 ? 40 8A C6 EB ? 83 B8 ? ? ? ? ? 7D", 3, 0x20, kMaxPlayers + 1 },
+			{ "48 8D 05 ? ? ? ? 48 03 C8 48 85 C9 74 ? 0F B7 47 ? 66 39 01 75 ? 8A 41", 51, 0x20, kMaxPlayers + 1 },
+			{ "80 FB ? 0F 82 ? ? ? ? B0", 2, 0x20, kMaxPlayers + 1 }
+		});
+	}
+
+	// Extend AnimScene ArrayHandler array, as the game may need up to kMaxPlayers and not just 32.
+	{
+		void** playerArrayHandler = (void**)hook::AllocateStubMemory(sizeof(void*) * kMaxPlayers + 1);
+
+		RelocateRelative((void*)playerArrayHandler, {
+			{ "48 8D 3D ? ? ? ? BD ? ? ? ? 48 8D 35", 3 },
+			{ "48 8D 3D ? ? ? ? 48 8B 3C C7 48 85 FF 75", 3 },
+			{ "48 8D 1D ? ? ? ? 48 8B 33 48 85 F6 74 ? 48 8B 06", 3 }
+		});
+
+		// Patch 32-bit registers
+		PatchValue<uint32_t>({
+			{ "BD ? ? ? ? 48 8D 35 ? ? ? ? 33 C9", 1, 0x20, kMaxPlayers + 1 },
+			{ "BD ? ? ? ? 48 8D 1D ? ? ? ? 8B F5", 1, 0x20, kMaxPlayers + 1 }
 		});
 	}
 
@@ -1038,7 +1113,6 @@ static HookFunction hookFunction([]()
 			// Ped Group player comparsions
 			{ "80 79 ? ? 73 ? 0F B6 41", 3, false }, 
 			{ "83 F8 ? 76 ? BA ? ? ? ? C7 44 24 ? ? ? ? ? 41 B8 ? ? ? ? 48 8D 0D ? ? ? ? 44 8D 4A ? E8 ? ? ? ? 84 C0 74 ? 48 69 C7", 2, true}
-
 		};
 
 		for (auto& entry : list)
@@ -1107,6 +1181,15 @@ static HookFunction hookFunction([]()
 		IncreaseFunctionStack<stackSize, 2048, 8>(hook::get_pattern<char>("48 81 EC ? ? ? ? 41 8A D8 4C 8B F2 4C 8B F9", -0x14), { });
 		// memset 0x100 -> arraySize
 		hook::put<uint32_t>(hook::get_pattern<uint32_t>("41 B8 ? ? ? ? 48 8D 4C 24 ? E8 ? ? ? ? 84 DB", 2), arraySize);
+	}
+
+	// Resize stack to support extra bitsets related to NETWORK_BOUNTY_HUNT_EVENT netEvent
+	{
+		constexpr int ptrsBase = 0x30;
+		// 0x30: previous stack size (also containing an int[1])
+		// 16: extra int[4] ontop of present int[1] allocation.
+		constexpr int stackSize = ptrsBase + 16;
+		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 83 EC ? 83 B9 ? ? ? ? ? 4C 8B FA 48 8B F9", -0x14), {});
 	}
 
 #if 0
