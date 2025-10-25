@@ -787,7 +787,7 @@ static HookFunction hookFunction([]()
 {
 	// Expand Player Damage Array to support more players
 	{
-		constexpr size_t kDamageArraySize = sizeof(uint32_t) * kMaxPlayers + 1;
+		constexpr size_t kDamageArraySize = sizeof(uint32_t) * (static_cast<size_t>(kMaxPlayers) + 1);
 		uint32_t* damageArrayReplacement = (uint32_t*)hook::AllocateStubMemory(kDamageArraySize);
 		memset(damageArrayReplacement, 0, kDamageArraySize);
 
@@ -812,11 +812,10 @@ static HookFunction hookFunction([]()
 
 	// Extend AnimScene handler array, as we need to support kMaxPlayers instead of just 32
 	{
-		const size_t kPlayerEntriesSize = (kMaxPlayers + 1 * 0x3200);
-		const size_t kObjectEntriesSize = (1600 * 0x40);
+		const size_t kPlayerEntriesSize = (static_cast<size_t>((kMaxPlayers + 1)) * 0x3200);
+		const size_t kObjectEntriesSize = (static_cast<size_t>(1600) * 0x40);
 		const size_t kStructSize = kPlayerEntriesSize + kObjectEntriesSize;
 		void** animSceneArray = (void**)hook::AllocateStubMemory(kStructSize);
-		memset(animSceneArray, 0, kStructSize);
 
 		RelocateRelative((void*)animSceneArray, {
 			{ "48 8D 05 ? ? ? ? 48 03 D8 48 85 DB", 3},
@@ -843,7 +842,7 @@ static HookFunction hookFunction([]()
 
 		// Start of object entries
 		PatchRelativeLocation((uintptr_t)hook::get_pattern("48 8D 0D ? ? ? ? BA ? ? ? ? 45 33 C0 66 44 89 41"), (uintptr_t)animSceneArray + kPlayerEntriesSize);
-		PatchRelativeLocation((uintptr_t)hook::get_pattern("48 8D 1D ? ? ? ? 33 F6 48 FF CF 48 8D 5B ? 66 39 33"), (uintptr_t)animSceneArray + kPlayerEntriesSize);
+		PatchRelativeLocation((uintptr_t)hook::get_pattern("48 8D 1D ? ? ? ? 33 F6 48 FF CF 48 8D 5B ? 66 39 33"), (uintptr_t)animSceneArray + kStructSize);
 
 		// Patch 8-bit registers
 		PatchValue<uint8_t>({
@@ -858,9 +857,10 @@ static HookFunction hookFunction([]()
 		});
 	}
 
-	// Extend AnimScene ArrayHandler array, as the game may need up to kMaxPlayers and not just 32.
+	// Extend AnimScene ArrayHandler array
 	{
-		void** playerArrayHandler = (void**)hook::AllocateStubMemory(sizeof(void*) * kMaxPlayers + 1);
+		static size_t kPlayerArraySize = sizeof(void*) * (kMaxPlayers + 1);
+		void** playerArrayHandler = (void**)hook::AllocateStubMemory(kPlayerArraySize);
 
 		RelocateRelative((void*)playerArrayHandler, {
 			{ "48 8D 3D ? ? ? ? BD ? ? ? ? 48 8D 35", 3 },
@@ -961,20 +961,9 @@ static HookFunction hookFunction([]()
 		}
 	}
 
-	// Replace 32-sized unknown CGameArray related array
-	{
-		void** unkPlayerArray = (void**)hook::AllocateStubMemory(sizeof(void*) * kMaxPlayers + 1);
-
-		RelocateRelative((void*)unkPlayerArray, { 
-			{ "48 8D 3D ? ? ? ? 48 8B 3C C7 48 85 FF 75", 3},
-			{ "48 8D 1D ? ? ? ? 48 8B 33 48 85 F6 74 ? 48 8B 06", 3 },
-			{ "48 8D 3D ? ? ? ? BD ? ? ? ? 48 8D 35", 3 }
-		}, 3);
-	}
-
 	// Replace player bandwidth array related to resend timers.
 	{
-		constexpr size_t kBandwithArraySize = sizeof(uint32_t) * kMaxPlayers + 1;
+		constexpr size_t kBandwithArraySize = sizeof(uint32_t) * (static_cast<size_t>(kMaxPlayers) + 1);
 		void** bandwidthRelatedArray = (void**)hook::AllocateStubMemory(kBandwithArraySize);
 		memset(bandwidthRelatedArray, 0, kBandwithArraySize);
 
@@ -1157,8 +1146,8 @@ static HookFunction hookFunction([]()
 	// Resize stack to support >32 players for boat population turn taking
 	{
 		constexpr int ptrsBase = 0x30;
-		constexpr int stackSize = ptrsBase + (128 * 8) + 0x10;
-		constexpr int intBase = ptrsBase + (128 * 8);
+		constexpr int stackSize = ptrsBase + (kMaxPlayers * 8) + 0x10;
+		constexpr int intBase = ptrsBase + (kMaxPlayers * 8);
 
 		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 81 EC ? ? ? ? 8B E9 E8", -0x10), { { 0x120, intBase } });
 	}
