@@ -10,4 +10,4 @@ BOOL GET_FUEL_CONSUMPTION_STATE();
 ```
 
 ## Return value
-True if fuel consumption is turned on. False otherwise.
+Returns `true` if fuel consumption is turned on, `false` otherwise.

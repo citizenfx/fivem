@@ -14,4 +14,4 @@ Unlike [GET_PLAYER_INVINCIBLE](#_0xB721981B2B939E07) this native gets both [SET_
 * **player**: The player id
 
 ## Return value
-A boolean to tell if the player is invincible.
+Returns `true` if the player is set to be invincible.
