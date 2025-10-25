@@ -52,11 +52,11 @@ namespace rage
 
 void* g_tempRemotePlayer;
 
-static CNetGamePlayer* g_playerList[256];
-static int g_playerListCount;
+CNetGamePlayer* g_playerList[256];
+int g_playerListCount;
 
-static CNetGamePlayer* g_playerListRemote[256];
-static int g_playerListCountRemote;
+CNetGamePlayer* g_playerListRemote[256];
+int g_playerListCountRemote;
 
 static std::unordered_map<uint16_t, std::shared_ptr<fx::StateBag>> g_playerBags;
 
@@ -120,8 +120,8 @@ static void JoinPhysicalPlayerOnHost(void* bubbleMgr, CNetGamePlayer* player)
 	}
 }
 #elif IS_RDR3
-static void*(*g_origJoinBubble)(void* bubbleMgr, void* scSessionImpl, void* playerDataMsg, void* a4, uint8_t slotIndex);
 
+static void*(*g_origJoinBubble)(void* bubbleMgr, void* scSessionImpl, void* playerDataMsg, void* a4, uint8_t slotIndex);
 static void* JoinPhysicalPlayerOnHost(void* bubbleMgr, void* scSessionImpl, void* playerDataMsg, void* a4, uint8_t slotIndex)
 {
 	if (!icgi->OneSyncEnabled)
@@ -130,6 +130,7 @@ static void* JoinPhysicalPlayerOnHost(void* bubbleMgr, void* scSessionImpl, void
 	}
 
 	auto result = g_origJoinBubble(bubbleMgr, scSessionImpl, playerDataMsg, a4, g_netLibrary->GetServerSlotID());
+
 	SetupLocalPlayer(rage::GetLocalPlayer());
 	return result;
 }
@@ -1125,31 +1126,6 @@ static hook::cdecl_stub<float*(float*, CNetGamePlayer*, void*, bool)> getNetPlay
 		return hook::get_pattern("45 33 FF 48 85 C0 0F 84 5B 01 00 00", -0x34);
 	}
 });
-#elif IS_RDR3
-static float*(*g_origGetNetPlayerRelevancePosition)(float* position, CNetGamePlayer* player, void* unk);
-
-static float* getNetPlayerRelevancePosition(float* position, CNetGamePlayer* player, void* unk)
-{
-	if (!icgi->OneSyncEnabled || !player || player->physicalPlayerIndex() != 31)
-	{
-		return g_origGetNetPlayerRelevancePosition(position, player, unk);
-	}
-
-	for (int i = 0; i < 256; i++)
-	{
-		if (g_players[i] == player)
-		{
-			player->physicalPlayerIndex() = i;
-			break;
-		}
-	}
-
-	auto result = g_origGetNetPlayerRelevancePosition(position, player, unk);
-
-	player->physicalPlayerIndex() = 31;
-
-	return result;
-}
 #endif
 
 #ifdef GTA_FIVE
@@ -1203,58 +1179,6 @@ static int GetPlayersNearPoint(const float* point, float range, CNetGamePlayer* 
 
 	return idx;
 }
-#elif IS_RDR3
-static int(*g_origGetPlayersNearPoint)(const float* point, uint32_t unkIndex, void* outIndex, CNetGamePlayer* outArray[32], bool unkVal, float range, bool sorted);
-
-static int GetPlayersNearPoint(const float* point, uint32_t unkIndex, void* outIndex, CNetGamePlayer* outArray[32], bool unkVal, float range, bool sorted)
-{
-	if (!icgi->OneSyncEnabled)
-	{
-		return g_origGetPlayersNearPoint(point, unkIndex, outIndex, outArray, range, range, sorted);
-	}
-
-	CNetGamePlayer* tempArray[512];
-
-	int idx = 0;
-
-	auto playerList = netInterface_GetRemotePhysicalPlayers();
-	for (int i = 0; i < netInterface_GetNumRemotePhysicalPlayers(); i++)
-	{
-		auto player = playerList[i];
-
-		if (getPlayerPedForNetPlayer(player))
-		{
-			alignas(16) float vectorPos[4];
-
-			if (range >= 100000000.0f || VectorDistance(point, getNetPlayerRelevancePosition(vectorPos, player, nullptr)) < range)
-			{
-				tempArray[idx] = player;
-				idx++;
-			}
-		}
-	}
-
-	if (sorted)
-	{
-		std::sort(tempArray, tempArray + idx, [point](CNetGamePlayer* a1, CNetGamePlayer* a2)
-		{
-			alignas(16) float vectorPos1[4];
-			alignas(16) float vectorPos2[4];
-
-			float d1 = VectorDistance(point, getNetPlayerRelevancePosition(vectorPos1, a1, nullptr));
-			float d2 = VectorDistance(point, getNetPlayerRelevancePosition(vectorPos2, a2, nullptr));
-
-			return (d1 < d2);
-		});
-	}
-
-	idx = std::min(idx, 32);
-	unkIndex = idx;
-
-	std::copy(tempArray, tempArray + idx, outArray);
-
-	return idx;
-}
 #endif
 
 static void(*g_origVoiceChatMgr_EstimateBandwidth)(void*);
@@ -1298,7 +1222,6 @@ static void ManageHostMigrationStub(void* a1)
 	}
 }
 
-#ifdef GTA_FIVE
 static void(*g_origUnkBubbleWrap)();
 
 static void UnkBubbleWrap()
@@ -1308,7 +1231,6 @@ static void UnkBubbleWrap()
 		g_origUnkBubbleWrap();
 	}
 }
-#endif
 
 #ifdef GTA_FIVE
 static void* (*g_origNetworkObjectMgrCtor)(void*, void*);
@@ -1401,41 +1323,17 @@ static CScenarioInfo* GetTaskScenarioInfo(void* task)
 
 static constexpr int kPlayerNetIdLength = 16;
 
-namespace rage
-{
-struct CSyncDataBase
-{
-	char m_pad[24];
-};
-
-struct CSyncDataReader : CSyncDataBase
-{
-	datBitBuffer* m_buffer;
-};
-
-struct CSyncDataWriter : CSyncDataBase
-{
-	datBitBuffer* m_buffer;
-};
-
-struct CSyncDataSizeCalculator : CSyncDataBase
-{
-	uint32_t m_size;
-};
-}
-
-static hook::cdecl_stub<void(rage::CSyncDataBase*, uint8_t*, char*)> _syncDataBaseSerializePlayerIndex([]()
+static hook::cdecl_stub<void(rage::CSyncDataBase*, uint8_t*, char*)> _syncDataBase_SerializePlayerIndex([]()
 {
 	return hook::get_call(hook::get_pattern("0F B6 12 48 8B 05 ? ? ? ? 44", 0x1D));
 });
 
-static void (*g_origSyncDataReaderSerializePlayerIndex)(rage::CSyncDataReader*, uint8_t*, char*);
-
-static void SyncDataReaderSerializePlayerIndex(rage::CSyncDataReader* syncData, uint8_t* index, char* prefix)
+static void (*g_origSyncDataReader_SerializePlayerIndex)(rage::CSyncDataReader*, uint8_t*, char*);
+static void SyncDataReader_SerializePlayerIndex(rage::CSyncDataReader* syncData, uint8_t* index, char* prefix) 
 {
 	if (!icgi->OneSyncEnabled)
 	{
-		return g_origSyncDataReaderSerializePlayerIndex(syncData, index, prefix);
+		return g_origSyncDataReader_SerializePlayerIndex(syncData, index, prefix);
 	}
 
 	uint32_t playerNetId = -1;
@@ -1451,16 +1349,15 @@ static void SyncDataReaderSerializePlayerIndex(rage::CSyncDataReader* syncData, 
 
 	*index = playerIndex;
 
-	_syncDataBaseSerializePlayerIndex(syncData, index, prefix);
+	_syncDataBase_SerializePlayerIndex(syncData, index, prefix);
 }
 
-static void (*g_origSyncDataWriterSerializePlayerIndex)(rage::CSyncDataWriter*, uint8_t*, char*);
-
-static void SyncDataWriterSerializePlayerIndex(rage::CSyncDataWriter* syncData, uint8_t* index, char* prefix)
+static void (*g_origSyncDataWriter_SerializePlayerIndex)(rage::CSyncDataWriter*, uint8_t*, char*);
+static void SyncDataWriter_SerializePlayerIndex(rage::CSyncDataWriter * syncData, uint8_t * index, char* prefix)
 {
 	if (!icgi->OneSyncEnabled)
 	{
-		return g_origSyncDataWriterSerializePlayerIndex(syncData, index, prefix);
+		return g_origSyncDataWriter_SerializePlayerIndex(syncData, index, prefix);
 	}
 
 	uint16_t playerNetId = -1;
@@ -1470,23 +1367,96 @@ static void SyncDataWriterSerializePlayerIndex(rage::CSyncDataWriter* syncData, 
 		playerNetId = g_netIdsByPlayer[player];
 	}
 
-	_syncDataBaseSerializePlayerIndex(syncData, index, prefix);
+	_syncDataBase_SerializePlayerIndex(syncData, index, prefix);
 
 	syncData->m_buffer->WriteUns(playerNetId, kPlayerNetIdLength);
 }
 
-static void (*g_origSyncDataSizeCalculatorSerializePlayerIndex)(rage::CSyncDataSizeCalculator*);
-
-static void SyncDataSizeCalculatorSerializePlayerIndex(rage::CSyncDataSizeCalculator* syncData)
+static void (*g_origSyncDataSizeCalculator_SerializePlayerIndex)(rage::CSyncDataSizeCalculator*);
+static void SyncDataSizeCalculator_SerializePlayerIndex(rage::CSyncDataSizeCalculator* syncData)
 {
 	static_assert(offsetof(rage::CSyncDataSizeCalculator, m_size) == 0x18);
 
 	if (!icgi->OneSyncEnabled)
 	{
-		return g_origSyncDataSizeCalculatorSerializePlayerIndex(syncData);
+		return g_origSyncDataSizeCalculator_SerializePlayerIndex(syncData);
 	}
 
 	syncData->m_size += kPlayerNetIdLength;
+}
+
+static void (*g_origSyncDataSizeCalculator_SerializeObjectId)(rage::CSyncDataSizeCalculator*);
+static void SyncDataSizeCalculator_SerializeObjectId(rage::CSyncDataSizeCalculator* syncData)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origSyncDataSizeCalculator_SerializeObjectId(syncData);
+	}
+
+	syncData->m_size += (icgi->OneSyncBigIdEnabled ? 16 : 13);
+}
+
+static hook::cdecl_stub<void(rage::CSyncDataBase*, uint16_t*, char*)> _syncDataBaseSerializeObjectId([]()
+{
+	return hook::get_call(hook::get_pattern("0F B7 03 B9 3F 1F 00 00 66 FF C8 66 3B C1 76 04", -5));
+});
+
+static void (*g_origSyncDataWriter_SerializeObjectIdPrefix)(rage::CSyncDataWriter*, uint16_t*, char*);
+static void SyncDataWriter_SerializeObjectIdPrefix(rage::CSyncDataWriter* syncData, uint16_t* objectId, char* prefix)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origSyncDataWriter_SerializeObjectIdPrefix(syncData, objectId, prefix);
+	}
+
+	_syncDataBaseSerializeObjectId(syncData, objectId, prefix);
+
+	syncData->m_buffer->WriteUns(*objectId, icgi->OneSyncBigIdEnabled ? 16 : 13);
+}
+
+static void (*g_origSyncDataReader_SerializeObjectIdPrefix)(rage::CSyncDataReader*, uint16_t*, char*);
+static void SyncDataReader_SerializeObjectIdPrefix(rage::CSyncDataReader* syncData, uint16_t* objectId, char* prefix)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origSyncDataReader_SerializeObjectIdPrefix(syncData, objectId, prefix);
+	}
+
+	uint32_t netObjectId = 0;
+
+	if (syncData->m_buffer->ReadInteger(&netObjectId, icgi->OneSyncBigIdEnabled ? 16 : 13))
+	{
+		*objectId = netObjectId;
+	}
+
+	_syncDataBaseSerializeObjectId(syncData, objectId, prefix);
+}
+
+static void (*g_origSyncDataWriter_SerializeObjectIdStatic)(rage::CSyncDataWriter*, uint16_t*);
+static void SyncDataWriter_SerializeObjectIdStatic(rage::CSyncDataWriter* syncData, uint16_t* objectId)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origSyncDataWriter_SerializeObjectIdStatic(syncData, objectId);
+	}
+
+	syncData->m_buffer->WriteUns(*objectId, icgi->OneSyncBigIdEnabled ? 16 : 13);
+}
+
+static void (*g_origSyncDataReader_SerializeObjectIdStatic)(rage::CSyncDataReader*, uint16_t*);
+static void SyncDataReader_SerializeObjectIdStatic(rage::CSyncDataReader* syncData, uint16_t* objectId)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origSyncDataReader_SerializeObjectIdStatic(syncData, objectId);
+	}
+
+	uint32_t netObjectId = 0;
+
+	if (syncData->m_buffer->ReadInteger(&netObjectId, icgi->OneSyncBigIdEnabled ? 16 : 13))
+	{
+		*objectId = netObjectId;
+	}
 }
 
 static rlGamerInfo* (*g_origNetGamePlayerGetGamerInfo)(CNetGamePlayer*);
@@ -1696,7 +1666,7 @@ static HookFunction hookFunction([]()
 		hook::put<uint8_t>(hook::get_pattern("48 8D 05 ? ? ? ? BE 1F 00 00 00 48 8B F9", 8), 128);
 	}
 #elif IS_RDR3
-	//hook::put<uint8_t>(hook::get_pattern("48 8D 05 ? ? ? ? BF 20 00 00 00 48 89 01", 8), 128);
+	hook::put<uint8_t>(hook::get_pattern("48 8D 05 ? ? ? ? BF 20 00 00 00 48 89 01", 8), 128);
 #endif
 
 	// 1604 unused, netobjmgr alloc size, temp dbg
@@ -1733,13 +1703,13 @@ static HookFunction hookFunction([]()
 	// 1604 unused, some bubble stuff
 	//hook::return_function(0x14104D148);
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 54 41 56 41 57 48 81 EC ? ? ? ? 48 8D 0D"), UnkBubbleWrap, (void**)&g_origUnkBubbleWrap);;
+	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 54 41 56 41 57 48 81 EC ? ? ? ? 48 8D 0D"), UnkBubbleWrap, (void**)&g_origUnkBubbleWrap);
+#elif IS_RDR3
+	MH_CreateHook(hook::get_pattern("33 FF 4C 8B F8 45 85 F6", -0x7E), UnkBubbleWrap, (void**)&g_origUnkBubbleWrap);
 #endif
 
 #ifdef GTA_FIVE
 	MH_CreateHook(hook::get_pattern("0F 29 70 C8 0F 28 F1 33 DB 45", -0x1C), GetPlayersNearPoint, (void**)&g_origGetPlayersNearPoint);
-#elif IS_RDR3
-	MH_CreateHook(hook::get_pattern("33 DB 0F 29 70 D8 49 8B F9 4D 8B F0", -0x1B), GetPlayersNearPoint, (void**)&g_origGetPlayersNearPoint);
 #endif
 
 	// return to disable breaking hooks
@@ -1816,9 +1786,9 @@ static HookFunction hookFunction([]()
 #elif IS_RDR3
 		auto location = hook::get_pattern("40 0F B6 CF 48 89 44 CB 40 48", -5);
 #endif
-
 		hook::set_call(&g_origJoinBubble, location);
 		hook::call(location, JoinPhysicalPlayerOnHost);
+		
 	}
 
 	{
@@ -1841,6 +1811,9 @@ static HookFunction hookFunction([]()
 		auto match = hook::pattern("80 F9 20 72 2B BA").count(2);
 		MH_CreateHook(match.get(0).get<void>(-19), GetPlayerByIndex, (void**)&g_origGetPlayerByIndex);
 		MH_CreateHook(match.get(1).get<void>(-19), GetPlayerByIndex, nullptr);
+
+		MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8B 3D ? ? ? ? 8A DA"), GetPlayerByIndex, nullptr);
+		MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 8A DA 48 8B F9 E8 ? ? ? ? 84 C0"), GetPlayerByIndexNet, nullptr);
 #endif
 	}
 
@@ -1941,11 +1914,6 @@ static HookFunction hookFunction([]()
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
 #endif
 
-#ifdef IS_RDR3
-	// in RDR3 net player relevance position is cached in array indexed with physical player index, we need to patch it
-	MH_CreateHook(hook::get_pattern("0F A3 D0 0F 92 C0 88 06", -0x76), getNetPlayerRelevancePosition, (void**)&g_origGetNetPlayerRelevancePosition);
-#endif
-
 	// always allow to migrate, even if not cloned on bit test
 #ifdef GTA_FIVE
 	hook::put<uint8_t>(hook::get_pattern("75 29 48 8B 02 48 8B CA FF 50"), 0xEB);
@@ -2014,22 +1982,43 @@ static HookFunction hookFunction([]()
 		hook::call(location, playerPedGetterStub.GetCode());
 	}
 
-	// patch SerializePlayerIndex methods of sync data reader/writer
-	MH_CreateHook(hook::get_pattern("80 3B 20 73 ? 65 4C 8B 0C", -0x2F), SyncDataReaderSerializePlayerIndex, (void**)&g_origSyncDataReaderSerializePlayerIndex);
-	MH_CreateHook(hook::get_pattern("41 B2 3F 48 8D 54 24 30 44 88", -30), SyncDataWriterSerializePlayerIndex, (void**)&g_origSyncDataWriterSerializePlayerIndex);
+	// CSyncedDataWriter/CSyncedDataReader::SerializeObjectID (static).
+	MH_CreateHook(hook::get_pattern("66 3B C1 76 ? 33 C0 EB ? 0F B7 0A", -0xE), SyncDataWriter_SerializeObjectIdStatic, (void**)&g_origSyncDataWriter_SerializeObjectIdStatic);
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 53 0A")), SyncDataReader_SerializeObjectIdStatic, (void**)&g_origSyncDataReader_SerializeObjectIdStatic);
 
-	// also patch sync data size calculator allowing more bits
+	// CSyncedDataWriter/CSyncedDataReader::SerializeObjectID (prefixed).
+	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 0F B7 03 B9", -0x10), SyncDataWriter_SerializeObjectIdPrefix, (void**)&g_origSyncDataWriter_SerializeObjectIdPrefix);
+	MH_CreateHook(hook::get_pattern("B9 ? ? ? ? 49 8B 04 ? 8A 14 01", xbr::IsGameBuildOrGreater<1491>() ? -0x36 : -0x3E), SyncDataReader_SerializeObjectIdPrefix, (void**)&g_origSyncDataReader_SerializeObjectIdPrefix);
+
+	// patch sync data size calculator allowing more bits
 	{
-		auto sizeCalculatorVtable = hook::get_address<uintptr_t*>(hook::get_pattern("B8 BF FF 00 00 48 8B CF 66 21 87", 27));
-		g_origSyncDataSizeCalculatorSerializePlayerIndex = (decltype(g_origSyncDataSizeCalculatorSerializePlayerIndex))sizeCalculatorVtable[25];
-		hook::put(&sizeCalculatorVtable[25], (uintptr_t)SyncDataSizeCalculatorSerializePlayerIndex);
+		static constexpr int kSizeCalculatorSerializePlayerIndex = 25;
+		static constexpr int kSizeCalculatorSerializeObjectId1 = 26;
+		static constexpr int kSizeCalculatorSerializeObjectId2 = 27;
+		static constexpr int kSizeCalculatorSerializeObjectId3 = 28;
+		
+		const auto sizeCalculatorVtable = hook::get_address<uintptr_t*>(hook::get_pattern("B8 BF FF 00 00 48 8B CF 66 21 87", 27));
+		
+		g_origSyncDataSizeCalculator_SerializePlayerIndex = (decltype(g_origSyncDataSizeCalculator_SerializePlayerIndex))sizeCalculatorVtable[kSizeCalculatorSerializePlayerIndex];
+		hook::put(&sizeCalculatorVtable[kSizeCalculatorSerializePlayerIndex], (uintptr_t)SyncDataSizeCalculator_SerializePlayerIndex);
+		
+		g_origSyncDataSizeCalculator_SerializeObjectId = (decltype(g_origSyncDataSizeCalculator_SerializeObjectId))sizeCalculatorVtable[kSizeCalculatorSerializeObjectId1];
+		hook::put(&sizeCalculatorVtable[kSizeCalculatorSerializeObjectId1], (uintptr_t)SyncDataSizeCalculator_SerializeObjectId);
+		hook::put(&sizeCalculatorVtable[kSizeCalculatorSerializeObjectId2], (uintptr_t)SyncDataSizeCalculator_SerializeObjectId);
+		hook::put(&sizeCalculatorVtable[kSizeCalculatorSerializeObjectId3], (uintptr_t)SyncDataSizeCalculator_SerializeObjectId);
 	}
 
+	// patch SerializePlayerIndex methods of sync data reader/writer
+	MH_CreateHook(hook::get_pattern("80 3B 20 73 ? 65 4C 8B 0C", -0x2F), SyncDataReader_SerializePlayerIndex, (void**)&g_origSyncDataReader_SerializePlayerIndex);
+	MH_CreateHook(xbr::IsGameBuildOrGreater<1436>() ? hook::get_pattern("41 B2 3F 48 8D 54 24 30 44 88", -30) : hook::get_pattern("80 3A 20 48 8B D9 C6 44", -6), SyncDataWriter_SerializePlayerIndex, (void**)&g_origSyncDataWriter_SerializePlayerIndex);
+	
 	// attempt to get some information about CNetGamePlayer::GetGamerInfo related crashes
 	{
+		static constexpr int kNetGamePlayerGetGamerInfoIndex = 12;
+
 		auto netGamePlayerVtable = hook::get_address<uintptr_t*>(hook::get_pattern("E8 ? ? ? ? 33 F6 48 8D 05 ? ? ? ? 48 8D 8B", 10));
-		g_origNetGamePlayerGetGamerInfo = (decltype(g_origNetGamePlayerGetGamerInfo))netGamePlayerVtable[12];
-		hook::put(&netGamePlayerVtable[12], (uintptr_t)NetGamePlayerGetGamerInfo);
+		g_origNetGamePlayerGetGamerInfo = (decltype(g_origNetGamePlayerGetGamerInfo))netGamePlayerVtable[kNetGamePlayerGetGamerInfoIndex];
+		hook::put(&netGamePlayerVtable[kNetGamePlayerGetGamerInfoIndex], (uintptr_t)NetGamePlayerGetGamerInfo);
 	}
 
 	// patch CAIConditionIsLocalPlayerVisibleToAnyPlayer behavior to properly handle scoping players
@@ -2412,14 +2401,6 @@ static void SkipCopyIf1s(void* a1, void* a2, void* a3, void* a4, void* a5)
 	}
 }
 
-#ifdef IS_RDR3
-static uint64_t CSyncedVarBase__GetMaxBits(void* self)
-{
-	// object id length + 1 extra bit
-	return ((icgi->OneSyncBigIdEnabled) ? 16 : 13) + 1;
-}
-#endif
-
 static HookFunction hookFunction2([]()
 {
 	// 2 matches, 1st is data, 2nd is parent
@@ -2447,7 +2428,6 @@ static HookFunction hookFunction2([]()
 		auto location = hook::get_pattern<char>("49 89 43 C8 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x3E);
 		hook::set_call(&g_origWriteDataNode, location + 0x42);
 #endif
-
 		hook::jump(location, WriteDataNodeStub);
 #endif
 	}
