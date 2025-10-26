@@ -418,6 +418,7 @@ namespace fx
 		return (uint32_t)size;
 	}
 
+	static ConVar<bool> sv_hideSizeWarnings("sv_hideSizeWarnings", ConVar_ServerInfo, false);
 	void ResourceStreamComponent::ValidateSize(std::string_view name, uint32_t physSize, uint32_t virtSize, int* numWarnings)
 	{
 		auto checkSize = [this, &name, numWarnings](uint32_t size, std::string_view why)
@@ -440,12 +441,15 @@ namespace fx
 
 			if (warnColor != 0)
 			{
-				console::Printf(fmt::sprintf("resources:%s:stream", m_resource->GetName()),
-					"^%dAsset %s/%s uses %s MiB of %s memory.%s^7\n",
-					warnColor, m_resource->GetName(), name, divSize, why,
-					(size > (48 * 1024 * 1024))
-						? " Oversized assets can and WILL lead to streaming issues (such as models not loading/rendering)."
-						: "");
+				if (!sv_hideSizeWarnings.GetValue())
+				{
+					console::Printf(fmt::sprintf("resources:%s:stream", m_resource->GetName()),
+						"^%dAsset %s/%s uses %s MiB of %s memory.%s^7\n",
+						warnColor, m_resource->GetName(), name, divSize, why,
+						(size > (48 * 1024 * 1024))
+							? " Oversized assets can and WILL lead to streaming issues (such as models not loading/rendering)."
+							: "");
+				}
 
 				++*numWarnings;
 			}
