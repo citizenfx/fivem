@@ -8,10 +8,10 @@ apiset: server
 BOOL IS_PLAYER_COMMERCE_INFO_LOADED_EXT(char* playerSrc);
 ```
 
-Requests whether or not the commerce data for the specified player has loaded from Tebex.
+Getter for [LOAD_PLAYER_COMMERCE_DATA_EXT](#_0xA8F63EAB)
 
 ## Parameters
 * **playerSrc**: The player handle
 
 ## Return value
-A boolean.
+Returns `true` if the players commerce data has been loaded from Tebex

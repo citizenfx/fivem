@@ -25,4 +25,4 @@ end
 * **index**: Face feature index
 
 ## Return value
-Returns ped's face feature value, or 0.0 if fails to get.
+Returns ped's face feature value, or 0.0 if the ped doesn't have it set.

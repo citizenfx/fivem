@@ -11,4 +11,4 @@ float GET_VEHICLE_DASHBOARD_RPM();
 
 
 ## Return value
-float 0 to ~1.1 representing the angle of the rpm gauge on the player's vehicle dashboard
+Returns value between 0.0 and ~1.1 representing the angle of the rpm gauge on the player's vehicle dashboard

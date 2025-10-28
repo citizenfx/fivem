@@ -1,8 +1,8 @@
 ---
 ns: CFX
-apiset: shared 
+apiset: shared
 ---
-## GET_PLAYER_FROM_STATE_BAG_NAME 
+## GET_PLAYER_FROM_STATE_BAG_NAME
 
 ```c
 int GET_PLAYER_FROM_STATE_BAG_NAME(char* bagName);
@@ -16,6 +16,15 @@ On the server this will return the players source, on the client it will return 
 The player handle or 0 if the state bag name did not refer to a player, or the player does not exist.
 
 ## Examples
+```lua
+AddStateBagChangeHandler("isDead", nil, function(bagName, key, value)
+    local ply = GetPlayerFromStateBagName(bagName)
+    -- The player doesn't exist!
+    if ply == 0 then return end
+    print("Player: " .. GetPlayerName(ply) .. (value and 'died!' or 'is alive!'))
+end)
+```
+
 ```js
 AddStateBagChangeHandler("isDead", null, async (bagName, key, value /* boolean */) => {
     const ply = GetPlayerFromStateBagName(bagName);
@@ -25,11 +34,3 @@ AddStateBagChangeHandler("isDead", null, async (bagName, key, value /* boolean *
 })
 ```
 
-```lua
-AddStateBagChangeHandler("isDead", nil, function(bagName, key, value) 
-    local ply = GetPlayerFromStateBagName(bagName)
-    -- The player doesn't exist!
-    if ply == 0 then return end
-    print("Player: " .. GetPlayerName(ply) .. value and 'died!' or 'is alive!')
-end)
-```
