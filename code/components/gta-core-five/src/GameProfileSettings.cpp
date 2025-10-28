@@ -183,11 +183,13 @@ struct ProfileConVar
 {
 	ConVar<int> value;
 	int lastValue;
+	bool readOnly;
 
-	ProfileConVar(const std::string& name, int defaultValue)
-		: value(name, ConVar_Archive, defaultValue)
+	ProfileConVar(const std::string& name, int defaultValue, bool readOnly = false)
+		: value(name, ConVar_Archive | (readOnly ? ConVar_ReadOnly : 0), defaultValue)
 	{
 		lastValue = defaultValue;
+		this->readOnly = readOnly;
 	}
 };
 
@@ -231,21 +233,23 @@ void ProfileSettingsInit()
 
 				name = "profile_" + name;
 
+				bool readOnly = false;
+
 				// profile_vidMonitor pointing to an invalid index will crash the game when opening settings, and
 				// the game doesn't use the profile setting as authoritative anyway
 				if (name == "profile_vidMonitor")
 				{
-					continue;
+					readOnly = true;
 				}
 
 				// profile_gfx* is also a pretty bad one
 				if (name.find("profile_gfx") == 0)
 				{
-					continue;
+					readOnly = true;
 				}
 
 				auto setting = g_prefs[field->index];
-				_profileConVars[field->index] = std::make_shared<ProfileConVar>(name, setting);
+				_profileConVars[field->index] = std::make_shared<ProfileConVar>(name, setting, readOnly);
 			}
 		}
 
@@ -263,7 +267,7 @@ void ProfileSettingsInit()
 			// if the convar changed, update pref with convar value
 			if (pair.second->lastValue != val)
 			{
-				if (val != -999)
+				if (!pair.second->readOnly && val != -999)
 				{
 					g_prefs[pair.first] = val;
 					_updatePref(pair.first, 2, -1);
