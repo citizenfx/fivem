@@ -72,21 +72,23 @@ void NUIRenderHandler::OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browse
 	}
 }
 
-void NUIRenderHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle)
+void NUIRenderHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const CefAcceleratedPaintInfo& info)
 {
 	if (m_owner->GetWindowValid())
 	{
-		m_owner->GetWindow()->UpdateSharedResource(shared_handle, -1, dirtyRects, type);
+		trace(__FUNCTION__ ": OnAcceleratedPaint: type=%d, dirtyRects.size=%zu, shared_texture_handle=%p, format=%d\n",
+			type, dirtyRects.size(), info.shared_texture_handle, info.format);
+		m_owner->GetWindow()->UpdateSharedResource(info.shared_texture_handle, -1, dirtyRects, type);
 	}
 }
 
-void NUIRenderHandler::OnAcceleratedPaint2(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, bool new_texture)
-{
-	if (m_owner->GetWindowValid())
-	{
-		m_owner->GetWindow()->UpdateSharedResource(shared_handle, -1, dirtyRects, type);
-	}
-}
+// void NUIRenderHandler::OnAcceleratedPaint2(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, bool new_texture)
+// {
+// 	if (m_owner->GetWindowValid())
+// 	{
+// 		m_owner->GetWindow()->UpdateSharedResource(shared_handle, -1, dirtyRects, type);
+// 	}
+// }
 
 void NUIRenderHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height)
 {
