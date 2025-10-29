@@ -809,6 +809,119 @@ if not isDuplicityVersion then
 	end
 end
 
+-- API Callbacks support 
+
+local registeredCallbacks = {}
+local pendingCallbacks = {}
+local counter = 0
+-- this generates the ID to keep requests unique and avoid race conditions
+local function _generateRequestId(isLocal)
+	local rm = GetCurrentResourceName()
+	counter = counter + 1
+	if isLocal then
+		return "loc:" .. rm .. ":" .. counter
+	elseif isDuplicityVersion then
+	    return "srv:" .. rm .. ":" .. counter
+	else
+		return "cli:" .. rm .. ":" .. counter
+	end
+end
+
+RegisterNetEvent("__cfx_internal:cbrequest", function(infoStruct)
+	local src = isDuplicityVersion and source or ""
+	local requestId = infoStruct[1]
+	local req = requestId:sub(1, 3)
+	if (req == "cli" and not isDuplicityVersion) or (req == "srv" and isDuplicityVersion) then
+		return
+	end
+	local evName = infoStruct[2]
+	local cb = registeredCallbacks[evName]
+	if cb then
+		local result = cb(table.unpack(infoStruct[3] or {}))
+		local payload = msgpack_pack_args(requestId, result)
+		if req == "loc" then
+			return TriggerEventInternal("__cfx_internal:cbresponse", payload, payload:len())
+		else
+			if isDuplicityVersion and req == "cli" then
+				return TriggerClientEventInternal("__cfx_internal:cbresponse", src, payload, payload:len())
+			elseif not isDuplicityVersion and req == "srv" then
+				return TriggerServerEventInternal("__cfx_internal:cbresponse", payload, payload:len())
+			end
+		end
+	end
+end)
+
+-- we handle and return the response
+RegisterNetEvent("__cfx_internal:cbresponse", function(requestId, result)
+	local req = requestId:sub(1, 3)
+	if (req == "cli" and isDuplicityVersion) or (req == "srv" and not isDuplicityVersion) then
+		return
+	end
+    local p = pendingCallbacks[requestId]
+    if p then
+        pendingCallbacks[requestId] = nil
+        p:resolve(result)
+    end
+end)
+
+function RegisterCallback(name, cb)
+	registeredCallbacks[name] = cb
+end
+
+-- this internal function is used to trigger callbacks, 
+-- it will return a promise that resolves with the result of the callback
+-- or fails if exceedes timeout
+local function triggerInternal(type, targetId, callbackName, ...)
+    local requestId = _generateRequestId(type == 0)
+	local payload = msgpack_pack_args({requestId, callbackName, {...}}) -- this is the same as c# CallbackInfoDelegate C# class
+    local p = promise.new()
+    pendingCallbacks[requestId] = p
+
+    local timer = SetTimeout(5000, function()
+        if pendingCallbacks[requestId] then
+            pendingCallbacks[requestId]:reject("Callback '" .. callbackName .. "' timed out after " .. 5000 .. "ms")
+            pendingCallbacks[requestId] = nil
+        end
+    end)
+
+    p:next(function(...)
+        if timer then
+            ClearTimeout(timer)
+            timer = nil
+        end
+        return ...
+    end, function(err)
+        if timer then
+            ClearTimeout(timer)
+            timer = nil
+        end
+        return error(err)
+    end)
+
+    if type == 1 then
+        TriggerClientEventInternal("__cfx_internal:cbrequest", targetId, payload, payload:len())
+	elseif type == 2 then
+        TriggerServerEventInternal("__cfx_internal:cbrequest", payload, payload:len())
+	else
+		TriggerEventInternal("__cfx_internal:cbrequest", payload, payload:len())
+    end
+    return Citizen.Await(p)
+end
+
+if isDuplicityVersion then
+    function TriggerClientCallback(callbackName, playerId, ...)
+        assert(playerId ~= -1, "A player handle must be specified, cannot trigger a callback to all players")
+        return triggerInternal(1, playerId, callbackName, ...)
+    end
+else
+    function TriggerServerCallback(callbackName, ...)
+        return triggerInternal(2, nil, callbackName, ...)
+    end
+end
+
+function TriggerLocalCallback(callbackName, ...)
+    return triggerInternal(0, nil, callbackName, ...)
+end
 -- entity helpers
 local EXT_ENTITY = 41
 local EXT_PLAYER = 42
