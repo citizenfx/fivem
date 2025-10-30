@@ -74,6 +74,15 @@ static void CheckPackFile(const char* headerData, const char* fileName)
 
 static HookFunction hookFunction([] ()
 {
+	// RDO mounts certain RPFs (e.g. catalog_mp.rpf / catalog_awards_mp.rpf)
+	// directly into memory by creating a virtual memory-backed fiDevice. These packfiles are not real
+	// on-disk archives; instead they are generated at runtime and only exist transiently during Online
+	// sessions. Because they are unencrypted, their contents and hashes do not match the encrypted
+	// on-disk originals, which causes pure-mode file validation  to incorrectly flag them as modified.
+	// To prevent these false positives, this call responsible for setting up the memory-backed device
+	// is noped, effectively disabling the mounting of virtual memory-backed packfiles.
+	hook::nop(hook::get_pattern("E8 ? ? ? ? 40 8A E8 48 8B 84 24"), 0x5);
+
 	/*static hook::inject_call<void, int> injectCall(0x7B2E27);
 
 	injectCall.inject([] (int)
