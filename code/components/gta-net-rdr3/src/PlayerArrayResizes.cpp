@@ -1215,12 +1215,12 @@ static HookFunction hookFunction([]()
 				cmp(eax, 0x20);
 				jge("Fail");
 
-				mov(rcx, retnSuccess);
-				jmp(rcx);
+				mov(r11, retnSuccess);
+				jmp(r11);
 
 				L("Fail");
-				mov(rcx, retnFail);
-				jmp(rcx);
+				mov(r11, retnFail);
+				jmp(r11);
 			}
 		} patchStub;
 
@@ -1229,7 +1229,7 @@ static HookFunction hookFunction([]()
 
 		hook::nop(location, 9);
 		patchStub.Init(retnSuccess, retnFail);
-		hook::jump_rcx(location, patchStub.GetCode());
+		hook::jump_reg<5>(location, patchStub.GetCode());
 	}
 
 	// Extend bitshift in order to not lead to crashes 
