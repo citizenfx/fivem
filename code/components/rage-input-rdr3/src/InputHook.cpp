@@ -411,7 +411,7 @@ static HookFunction hookFunction([]()
 
 	// DirectInput patches
 	{
-		g_diMouseDevice = hook::get_address<LPDIRECTINPUTDEVICEW*>(hook::get_pattern("48 8B 0D ? ? ? ? 88 1D ? ? ? ? 48 8B 01", 3), 0x0, 0x7);
+		g_diMouseDevice = hook::get_address<IDirectInputDeviceW**>(hook::get_pattern("48 8B 0D ? ? ? ? 48 8B 01 FF 50 ? 8B D8 3D ? ? ? ? 75 ? E8 ? ? ? ? 83 FB ? 7F ? B1", 3));
 
 		auto location = hook::get_pattern("48 83 EC ? 8B 0D ? ? ? ? 85 C9 74 ? 83 E9", 45);
 		hook::set_call(&recaptureLostDevices, location);
