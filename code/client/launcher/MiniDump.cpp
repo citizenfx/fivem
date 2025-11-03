@@ -493,7 +493,6 @@ static std::wstring UnblameCrash(const std::wstring& hash)
 	return retval;
 }
 
-void SteamInput_Reset();
 void NVSP_ShutdownSafely();
 
 // c/p from ros-patches:five
@@ -1666,7 +1665,6 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	// revert NVSP disablement
 #ifdef LAUNCHER_PERSONALITY_MAIN
 	NVSP_ShutdownSafely();
-	SteamInput_Reset();
 
 	g_session["status"] = "exited";
 	UpdateSession(g_session);
@@ -1674,12 +1672,6 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	_wunlink(MakeRelativeCitPath(L"data\\cache\\error-pickup").c_str());
 	_wunlink(MakeRelativeCitPath(L"data\\cache\\session").c_str());
 #endif
-
-	// delete steam_appid.txt on last process exit to curb paranoia about MTL mod checks
-	// we don't use MakeRelativeGamePath as this'll make a `static` CfxInitState
-	{
-		_wunlink(fmt::format(L"{}\\steam_appid.txt", GetMinidumpGamePath()).c_str());
-	}
 
 	_wunlink(MakeRelativeCitPath(L"data\\cache\\extra_dump_info.bin").c_str());
 	_wunlink(MakeRelativeCitPath(L"data\\cache\\extra_dump_info2.bin").c_str());

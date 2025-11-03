@@ -4,8 +4,6 @@ component 'font-renderer'
 component 'debug-net'
 component 'scrbind-formats'
 component 'scrbind-base'
-component 'nui-profiles'
-component 'profiles'
 component 'pool-sizes-state'
 
 if _OPTIONS['game'] == 'server' then
@@ -33,7 +31,6 @@ if _OPTIONS['game'] == 'server' then
 else
 	component 'citizen-devtools'
 	component 'sticky'
-	component 'steam'
 
 	if _OPTIONS["game"] ~= 'ny' then
 		component 'tool-formats'
