@@ -1541,7 +1541,12 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 			return true;
 		}
 
-		// TODO: objects(?)
+		auto [hasAcn, animalCreationNode] = this->template GetData<CAnimalCreationDataNode>();
+		if (hasAcn)
+		{
+			*popType = animalCreationNode->m_popType;
+			return true;
+		}
 
 		return false;
 	}
