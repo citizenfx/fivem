@@ -10,6 +10,7 @@
 
 #include <Resource.h>
 #include <ResourceManager.h>
+#include <ResourceManagerImpl.h>
 
 #include <msgpack.hpp>
 
@@ -56,6 +57,16 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 	{
 		// on[type]ResourceStart is queued so that clients will only run it during the first tick
 		m_managerComponent->QueueEvent2(fmt::sprintf("on%sResourceStart", IsServer() ? "Server" : "Client"), {}, m_resource->GetName());
+
+		// Notify the resource manager that a resource has started (for resources ready detection)
+		if (IsServer())
+		{
+			auto resourceManager = dynamic_cast<ResourceManagerImpl*>(m_resource->GetManager());
+			if (resourceManager)
+			{
+				resourceManager->OnResourceStarted();
+			}
+		}
 	});
 
 	object->OnStart.Connect([=]()

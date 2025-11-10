@@ -10,6 +10,7 @@
 
 #include <Resource.h>
 #include <ResourceManager.h>
+#include <ResourceManagerImpl.h>
 #include <fxScripting.h>
 
 #include <ScriptSerialization.h>
@@ -248,6 +249,27 @@ static InitFunction initFunction([] ()
 			context.SetResult<const char*>("unknown");
 			break;
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("ARE_ALL_RESOURCES_LOADED", [](fx::ScriptContext& context)
+	{
+#ifdef IS_FXSERVER
+		// Server-only native
+		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
+		auto resourceManagerImpl = dynamic_cast<fx::ResourceManagerImpl*>(resourceManager);
+
+		if (resourceManagerImpl)
+		{
+			context.SetResult(resourceManagerImpl->AreAllResourcesLoaded());
+		}
+		else
+		{
+			context.SetResult(false);
+		}
+#else
+		// Always return false on client (not supported)
+		context.SetResult(false);
+#endif
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_ACE_ALLOWED", [](fx::ScriptContext& context)

@@ -20,6 +20,8 @@ static thread_local fx::ResourceManager* g_currentManager;
 namespace fx
 {
 ResourceManagerImpl::ResourceManagerImpl()
+	: m_allResourcesLoadedEventFired(false)
+	, m_lastResourceStartTime(std::chrono::steady_clock::now())
 {
 	OnInitializeInstance(this);
 
@@ -31,6 +33,9 @@ ResourceManagerImpl::ResourceManagerImpl()
 			CETWScope etwScope(va("%s tick", resource->GetName()));
 			resource->Tick();
 		});
+
+		// Check if we should fire the resources ready event
+		CheckAndFireResourcesReadyEvent();
 	});
 }
 
@@ -275,6 +280,53 @@ std::string ResourceManagerImpl::CallReferenceInternal(const std::string& functi
 void ResourceManager::SetCallRefCallback(const std::function<std::string(const std::string &, const std::string &)>& refCallback)
 {
 	g_callRefCallback = refCallback;
+}
+
+void ResourceManagerImpl::OnResourceStarted()
+{
+	m_lastResourceStartTime = std::chrono::steady_clock::now();
+}
+
+void ResourceManagerImpl::CheckAndFireResourcesReadyEvent()
+{
+	// If event already fired, nothing to do
+	// Note: This event fires only ONCE during server startup, not on resource restarts
+	if (m_allResourcesLoadedEventFired)
+	{
+		return;
+	}
+
+	// Check if we have any resources at all
+	bool hasResources = false;
+	{
+		std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
+		hasResources = !m_resources.empty();
+	}
+
+	if (!hasResources)
+	{
+		return;
+	}
+
+	// Check if enough time has passed since the last resource started
+	auto now = std::chrono::steady_clock::now();
+	auto timeSinceLastStart = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastResourceStartTime).count();
+
+	if (timeSinceLastStart >= STABILITY_DELAY_MS)
+	{
+		// Stability period has passed, fire the event
+		m_allResourcesLoadedEventFired = true;
+
+		trace("All server resources have finished loading!\n");
+
+		// Trigger the onServerResourcesReady event
+		auto evComponent = GetComponent<fx::ResourceEventManagerComponent>();
+		if (evComponent.GetRef())
+		{
+			evComponent->QueueEvent2("onServerResourcesReady", {});
+			evComponent->TriggerEvent2("onServerResourcesReady", {});
+		}
+	}
 }
 
 ResourceManager* CreateResourceManager()
