@@ -1247,7 +1247,10 @@ static InitFunction initFunction([] ()
 							{
 								auto name = group.value<std::string>("name", "");
 
-								if (name == "staff" || name == "patreon_enduser")
+								static constexpr const char* portal_prefix = "ec_";
+								static constexpr size_t portal_prefix_len = 3;
+
+								if (name == "staff" || name == "patreon_enduser" || (name.size() >= portal_prefix_len && std::memcmp(name.data(), portal_prefix, portal_prefix_len) == 0))
 								{
 									hasEndUserPremium = true;
 									break;
