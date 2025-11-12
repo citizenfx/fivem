@@ -3,29 +3,32 @@ using System.Collections.Generic;
 using System.Security;
 using System.Runtime.CompilerServices;
 using CitizenFX.Core.Native;
+using CitizenFX.MsgPack;
 
 namespace CitizenFX.Core
 {
 	public delegate Coroutine<dynamic> ExportFunc(params object[] args);
+	public delegate Coroutine<T> ExportFunc<T>(params object[] args); // strong typed export result
+	internal delegate TResult TypeDeserializer<out TResult>(ref MsgPackDeserializer arg); // used for fast deserialization of types
 
 	internal static class ExportsManager
 	{
 		internal static string ExportPrefix { get; private set; }
 
-		private static Dictionary<string, Tuple<DynFunc, Binding>> s_exports = new Dictionary<string, Tuple<DynFunc, Binding>>();
+		private static Dictionary<string, Tuple<MsgPackFunc, Binding>> s_exports = new Dictionary<string, Tuple<MsgPackFunc, Binding>>();
 
 		internal static void Initialize(string resourceName)
 		{
 			ExportPrefix = CreateExportPrefix(resourceName);
+			MsgPackReferenceRegistrar.CreateFunc = ReferenceFunctionManager.Create;
 		}
 
 		[SecuritySafeCritical]
-		internal static unsafe bool IncomingRequest(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize, ref object[] args)
+		internal static unsafe bool IncomingRequest(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize)
 		{
 			if (s_exports.TryGetValue(eventName, out var export) && (export.Item2 & origin) != 0)
 			{
-				if (args == null)
-					args = MsgPackDeserializer.DeserializeArray(argsSerialized, serializedSize, origin == Binding.Remote ? sourceString : null);
+				object[] args = MsgPackDeserializer.DeserializeAsObjectArray(argsSerialized, serializedSize, origin == Binding.Remote ? sourceString : null);
 
 				if (origin == Binding.Local)
 				{
@@ -33,6 +36,7 @@ namespace CitizenFX.Core
 					if (args[0] is Callback cb)
 						cb.Invoke(export.Item1);
 				}
+#if REMOTE_FUNCTION_ENABLED
 				else // REMOTE export request
 				{
 					if (args.Length > 3
@@ -90,6 +94,7 @@ namespace CitizenFX.Core
 						}
 					}
 				}
+#endif
 
 				return true;
 			}
@@ -139,12 +144,81 @@ namespace CitizenFX.Core
 		{
 			Callback callback = null;
 			Events.TriggerEvent(fullExportName, new Action<Callback>(d => callback = d));
-
+			
 			return callback?.Invoke(args);
 		}
 
+		internal unsafe static Coroutine<T> LocalInvokeTyped<T>(CString fullExportName, params object[] args)
+		{
+			var invoke = LocalInvoke(fullExportName, args);
+
+			byte[] SerializeResult(object res)
+			{
+				if (res is IDictionary<string, object> dict)
+				{
+					var serializer = new MsgPackSerializer();
+					serializer.WriteMapHeader((uint)dict.Count);
+					foreach (KeyValuePair<string, object> entry in dict)
+					{
+						serializer.Serialize(entry.Key);
+						serializer.Serialize(entry.Value);
+					}
+					return serializer.ToArray();
+				}
+				else
+				{
+					return MsgPackSerializer.SerializeToByteArray(res);
+				}
+			}
+
+			T Deserialize(byte[] bytes)
+			{
+				fixed (byte* dataPtr = bytes)
+				{
+					var deserializer = new MsgPackDeserializer(dataPtr, (uint)bytes.Length, null);
+					var deleg = MsgPackRegistry.GetOrCreateDeserializer(typeof(T)).CreateDelegate(typeof(TypeDeserializer<T>));
+					return ((TypeDeserializer<T>)deleg)(ref deserializer);
+				}
+			}
+
+			try
+			{
+				if (invoke.IsCompleted)
+				{
+					object res = invoke.GetResultNonThrowing();
+					var result = Deserialize(SerializeResult(res));
+					return Coroutine<T>.Completed(result);
+				}
+				else
+				{
+					var promise = new Promise<T>();
+					invoke.ContinueWith(result =>
+					{
+						try
+						{
+							object res = result.GetResultNonThrowing();
+							var value = Deserialize(SerializeResult(res));
+							promise.Complete(value);
+						}
+						catch (Exception ex)
+						{
+							promise.Fail(ex);
+						}
+					});
+
+					return promise;
+				}
+			}
+			catch (Exception ex)
+			{
+				// make a WriteException call to ensure the exception is logged
+				Debug.WriteLine(ex.ToString());
+				return default;
+			}
+		}
+
 		[SecuritySafeCritical]
-		internal static bool AddExportHandler(string name, DynFunc method, Binding ports = Binding.Local)
+		internal static bool AddExportHandler(string name, MsgPackFunc method, Binding ports = Binding.Local)
 		{
 #if !REMOTE_FUNCTION_ENABLED
 			if (ports == Binding.Remote)
@@ -157,7 +231,7 @@ namespace CitizenFX.Core
 			string eventName = CreateCurrentResourceFullExportName(name);
 			if (!s_exports.ContainsKey(eventName))
 			{
-				s_exports.Add(eventName, new Tuple<DynFunc, Binding>(method, ports));
+				s_exports.Add(eventName, new Tuple<MsgPackFunc, Binding>(method, ports));
 				CoreNatives.RegisterResourceAsEventHandler(eventName);
 
 				return true;

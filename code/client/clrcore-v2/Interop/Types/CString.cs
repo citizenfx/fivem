@@ -3,6 +3,7 @@ using System.Linq;
 using System.Security;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace CitizenFX.Core
 {
@@ -381,7 +382,7 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		public static unsafe bool CompareASCII(CString left, string right)
 		{
-			if (left == null && right == null)
+			if (CString.IsNullOrEmpty(left) && string.IsNullOrEmpty(right))
 				return true;
 			else
 			{
@@ -394,6 +395,32 @@ namespace CitizenFX.Core
 					{
 						char c1 = *r++;
 						if (c1 > 0x7F || c1 != *l++)
+							return false;
+					}
+				}
+
+				return true;
+			}
+		}
+
+		/// <inheritdoc cref="CompareASCII(CString, string)"/>
+		/// <remarks>Case insensitive variant of <see cref="CompareASCII(CString, string)"/></remarks>
+		[SecuritySafeCritical]
+		public static unsafe bool CompareASCIICaseInsensitive(CString left, string right)
+		{
+			if (CString.IsNullOrEmpty(left) && string.IsNullOrEmpty(right))
+				return true;
+			else
+			{
+				fixed (byte* lPin = left.value)
+				fixed (char* rPin = right)
+				{
+					byte* l = lPin, lEnd = lPin + left.value.Length - 1;
+					char* r = rPin, rEnd = rPin + right.Length;
+					while (l < lEnd && r < rEnd)
+					{
+						char c1 = *r++;
+						if (c1 > 0x7F || !ToLowerEquals((byte)c1, *l++))
 							return false;
 					}
 				}
@@ -429,6 +456,21 @@ namespace CitizenFX.Core
 			return null;
 		}
 
+		[SecuritySafeCritical, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool ToLowerEquals(byte l, byte r)
+		{
+			const uint offset = 'A';
+			const byte toLower = 'a' - 'A';
+
+			if (l - offset < 26)
+				l += toLower;
+
+			if (r - offset < 26)
+				r += toLower;
+
+			return l == r;
+		}
+
 		#endregion
 
 		#region Encoding algorithms
@@ -449,7 +491,7 @@ namespace CitizenFX.Core
 		}
 
 		[SecurityCritical]
-		private static unsafe int UTF8EncodeLength(char* src, int length)
+		internal static unsafe int UTF8EncodeLength(char* src, int length)
 		{
 			char* c = src, end = src + length;
 			length = 0;
@@ -476,7 +518,7 @@ namespace CitizenFX.Core
 		}
 
 		[SecurityCritical]
-		private static unsafe int UTF8Encode(byte* dst, char* src, int length)
+		internal static unsafe int UTF8Encode(byte* dst, char* src, int length)
 		{
 			byte* s = dst;
 			char* c = src, end = src + length;
