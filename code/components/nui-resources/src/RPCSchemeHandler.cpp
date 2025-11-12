@@ -173,7 +173,7 @@ public:
 		return true;
 	}
 
-	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl)
+	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl)
 	{
 		std::unique_lock _(m_mutex);
 
