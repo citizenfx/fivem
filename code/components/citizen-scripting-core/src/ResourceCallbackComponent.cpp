@@ -36,6 +36,11 @@ public:
 		return false;
 	}
 
+	virtual bool ClientReloadFile() override
+	{
+		return false;
+	}
+
 	virtual bool Stop() override
 	{
 		return false;
