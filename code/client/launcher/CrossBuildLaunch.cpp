@@ -77,5 +77,13 @@ void XBR_EarlySelect()
 	{
 		wcscat(state->initCommandLine, va(L" -b%d", retainedBuild));
 	}
+
+	auto retainedPureLevel = GetPrivateProfileInt(L"Game", L"PureLevel", 0, fpath.c_str());
+
+	// Verify if user didn't set any invalid pure level
+	if (retainedPureLevel > 0 && retainedPureLevel < 3)
+	{
+		wcscat(state->initCommandLine, va(L" -pure_%d", retainedPureLevel));
+	}
 }
 #endif
