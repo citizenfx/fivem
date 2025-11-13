@@ -12,4 +12,4 @@ int GET_TRAIN_CARRIAGE_INDEX(Vehicle train);
 * **train**: The entity handle.
 
 ## Return value
-The carriage index. -1 returned if invalid result.
+Returns the carriage index of the current train, or `-1` if used on a regular vehicle.
