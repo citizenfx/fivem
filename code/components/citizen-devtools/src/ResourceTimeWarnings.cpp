@@ -139,8 +139,6 @@ constexpr auto tuple_slice(Cont&& t)
 	std::make_index_sequence<I2 - I1>{});
 }
 
-static std::chrono::microseconds lastHitch;
-
 #ifdef GTA_FIVE
 #include <Hooking.h>
 #include <InputHook.h>
@@ -150,14 +148,12 @@ static decltype(&SetThreadExecutionState) origSetThreadExecutionState;
 static decltype(&PeekMessageW) origPeekMessageW;
 
 static std::chrono::microseconds lastPeekMessage;
-static std::chrono::microseconds currentTotal;
 static bool currentWasFocusEvent = false;
 
 static EXECUTION_STATE WINAPI SetThreadExecutionState_Track(EXECUTION_STATE esFlags)
 {
 	if (esFlags == 3)
 	{
-		currentTotal = std::chrono::microseconds{ 0 };
 		currentWasFocusEvent = false;
 	}
 
@@ -174,21 +170,9 @@ static BOOL WINAPI PeekMessageW_Track(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin
 
 	// track just the PeekMessage call
 	// this will include internal wndproc invocations as well once other events run out
-	auto thisStart = usec();
 	auto rv = origPeekMessageW(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
-	auto thisEnd = usec();
 
-	currentTotal += (thisEnd - thisStart);
-	lastPeekMessage = thisEnd;
-
-	// if we're out of events, and didn't get a focus event generated anyway
-	if (!rv && !currentWasFocusEvent)
-	{
-		if (currentTotal > 30ms)
-		{
-			lastHitch = thisEnd;
-		}
-	}
+	lastPeekMessage = usec();
 
 	return rv;
 }
@@ -530,17 +514,6 @@ static InitFunction initFunction([]()
 				ImGui::Text(resourceTimeWarningText.c_str());
 				ImGui::Separator();
 				ImGui::Text("Please contact the server owner to resolve this issue.");
-			});
-		}
-		else if ((usec() - lastHitch) < 5s)
-		{
-			displayWarningDialog([]
-			{
-				ImGui::Text(va("/!\\ %s", gettext("Slow system performance detected")));
-				ImGui::Separator();
-				ImGui::Text("%s", gettext("A call into the Windows API took too long recently and led to a game stutter.").c_str());
-				ImGui::Separator();
-				ImGui::Text("%s", gettext("Please close any software you have running in the background (including Windows apps such as File Explorer or Task Manager).").c_str());
 			});
 		}
 #endif
@@ -1042,3 +1015,4 @@ static InitFunction initFunction([]()
 	});
 #endif
 });
+
