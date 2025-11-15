@@ -532,17 +532,6 @@ static InitFunction initFunction([]()
 				ImGui::Text("Please contact the server owner to resolve this issue.");
 			});
 		}
-		else if ((usec() - lastHitch) < 5s)
-		{
-			displayWarningDialog([]
-			{
-				ImGui::Text(va("/!\\ %s", gettext("Slow system performance detected")));
-				ImGui::Separator();
-				ImGui::Text("%s", gettext("A call into the Windows API took too long recently and led to a game stutter.").c_str());
-				ImGui::Separator();
-				ImGui::Text("%s", gettext("Please close any software you have running in the background (including Windows apps such as File Explorer or Task Manager).").c_str());
-			});
-		}
 #endif
 
 		std::shared_ptr<fx::ResourceMonitor> resourceMonitor;
@@ -1042,3 +1031,4 @@ static InitFunction initFunction([]()
 	});
 #endif
 });
+
