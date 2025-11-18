@@ -13,4 +13,4 @@ float GET_PLAYER_STAMINA(Player playerId);
 * **playerId**: The player index.
 
 ## Return value
-The value of player stamina.
+Returns the amount of stamina the player has left.

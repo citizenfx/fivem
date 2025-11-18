@@ -11,8 +11,12 @@ int GET_WEAPON_COMPONENT_CLIP_SIZE(Hash componentHash);
 
 A getter for `ClipSize` in a weapon component.
 
+```xml
+<ClipSize value="30" />
+```
+
 ## Parameters
 * **componentHash**: Weapon component name hash.
 
 ## Return value
-A weapon component clip size.
+Returns the weapon components clip size.

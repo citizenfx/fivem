@@ -8,8 +8,8 @@ apiset: server
 char* GET_PLAYER_ENDPOINT(char* playerSrc);
 ```
 
-
 ## Parameters
-* **playerSrc**: 
+* **playerSrc**: The player to get the endpoint of
 
 ## Return value
+Returns the players IP address (i.e. 127.0.0.1)
