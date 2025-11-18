@@ -6,7 +6,7 @@
  */
 
 #include "StdInc.h"
-#include "NativeWrappers.h"
+#include "EntitySystem.h"
 
 #include <ScriptEngine.h>
 #include <ScriptSerialization.h>
