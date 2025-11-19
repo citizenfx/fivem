@@ -218,6 +218,9 @@ local function launcherpersonality_inner(name)
 		filter { "options:game=five" }
 			targetname "FiveM"
 			
+		filter { "options:game=rdr3" }
+			targetname "RedM"
+
 		filter { "options:game=launcher" }
 			targetname "CfxLauncher"
 
