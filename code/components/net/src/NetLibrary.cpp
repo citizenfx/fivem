@@ -1597,27 +1597,11 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						{
 							if (success)
 							{
-								// poke if we aren't blocking *everyone* instead
-								std::default_random_engine generator;
-								std::uniform_int_distribution<int> distribution(1, 224);
-								std::uniform_int_distribution<int> distribution2(1, 254);
-
-								auto rndQ = fmt::sprintf("https://runtime.fivem.net/blocklist/%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
 								auto dStr = std::string(data, length);
 
-								m_httpClient->DoGetRequest(rndQ, [this, continueAfterAllowance, dStr](bool success, const char* data, size_t length)
-								{
-									if (!success)
-									{
-										OnConnectionError(fmt::sprintf("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr).c_str());
+								OnConnectionError(fmt::sprintf("This server has been blocked from the Cfx.re platform. Stated reason: %s", dStr).c_str());
 
-										m_connectionState = CS_IDLE;
-
-										return;
-									}
-
-									continueAfterAllowance();
-								});
+								m_connectionState = CS_IDLE;
 
 								return;
 							}
@@ -1630,7 +1614,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						HttpRequestOptions options;
 						options.timeoutNoResponse = std::chrono::seconds(5);
 
-						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blocklist/%s", address.GetHost()), options, blocklistResultHandler);
+						m_httpClient->DoGetRequest(fmt::sprintf("https://gss.cfx-services.net/v1/blocklist/%s", address.GetHost()), options, blocklistResultHandler);
 
 						if (node.value("netlibVersion", 1) == 2)
 						{

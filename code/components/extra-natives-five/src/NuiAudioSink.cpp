@@ -1511,6 +1511,16 @@ void MumbleAudioEntity<Build>::MInit(float overrideVolume)
 {
 	std::lock_guard _(m_render);
 	m_environmentGroup = naEnvironmentGroup::Create();
+
+	// Some malicious clients can spam ped scenarios, indirectly exhausting
+	// the global audio EnvironmentGroup pool. When the pool is full,
+	// Create() may return nullptr. Previously this caused a crash because
+	// voice setup assumed the pointer was always valid.
+	if (m_environmentGroup == nullptr)
+	{
+		return;
+	}
+	
 	m_environmentGroup->Init(nullptr, 20.0f, 1000, 4000, 0.5f, 1000);
 	m_environmentGroup->SetPosition(m_position);
 
@@ -2953,3 +2963,4 @@ static InitFunction initFunction([]()
 });
 
 rage::audMixerDevice** rage::audDriver::sm_Mixer;
+

@@ -294,6 +294,9 @@ static HookFunction hookFunctionNet([]()
 	// ignore collision-related archetype flag in /CREATE_OBJECT(_NO_OFFSET)?/
 	hook::nop(hook::get_pattern("8B 48 50 48 C1 E9 11 F6 C1 01 0F 84 ? ? 00 00 45", 10), 6);
 
+	// allow the game to ensure static bounds, but don't block on it.
+	hook::nop(hook::get_pattern("E8 ? ? ? ? 66 44 39 65 ? 74 ? 48 8B 4D ? E8 ? ? ? ? 4C 8D 5C 24 ? 49 8B 5B ? 49 8B 73 ? 49 8B 7B ? 4D 8B 63"), 5);
+
 	// Block loading of custom startup.meta file. Completely breaks game loading
 	MH_Initialize();
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 3C ? 75 ? 48 8B 0D")), fiAssetManagerExists, (void**)&g_fiAssetManagerExists);

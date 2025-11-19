@@ -81,14 +81,41 @@ inline rage::Vec3V Unproject(const rage::grcViewport& viewport, const rage::Vec3
 {
 	using namespace DirectX;
 
-	auto composite = XMMatrixMultiply(XMLoadFloat4x4((const XMFLOAT4X4*)&viewport.m_worldView), XMLoadFloat4x4((const XMFLOAT4X4*)&viewport.m_projection));
-	auto invVP = XMMatrixInverse(NULL, composite);
-	auto inVec = XMVectorSet((viewPos.x * 2.0f) - 1.0f, ((1.0 - viewPos.y) * 2.0f) - 1.0f, viewPos.z, 1.0f);
-	auto outCoord = XMVector3TransformCoord(inVec, invVP);
+	// Load view and projection matrices
+	XMMATRIX worldView = XMLoadFloat4x4((const XMFLOAT4X4*)&viewport.m_worldView);
+	XMMATRIX projection = XMLoadFloat4x4((const XMFLOAT4X4*)&viewport.m_projection);
 
-	return {
-		XMVectorGetX(outCoord),
-		XMVectorGetY(outCoord),
-		XMVectorGetZ(outCoord)
+	// Re-orthonormalize the view matrix to reduce accumulated drift
+	worldView.r[0] = XMVector3Normalize(worldView.r[0]);
+	worldView.r[1] = XMVector3Normalize(worldView.r[1]);
+	worldView.r[2] = XMVector3Normalize(worldView.r[2]);
+
+	// Invert the projection and view matrices separately
+	// (doing this is numerically more stable than inverting the combined matrix)
+	XMMATRIX invProj = XMMatrixInverse(nullptr, projection);
+	XMMATRIX invView = XMMatrixInverse(nullptr, worldView);
+
+	// Convert from screen space (0..1) to NDC (-1..1)
+	float ndcX = (viewPos.x * 2.0f) - 1.0f;
+	float ndcY = ((1.0f - viewPos.y) * 2.0f) - 1.0f;
+	float ndcZ = viewPos.z;
+
+	XMVECTOR inVec = XMVectorSet(ndcX, ndcY, ndcZ, 1.0f);
+
+	// Transform from NDC to view space
+	XMVECTOR viewSpace = XMVector4Transform(inVec, invProj);
+	viewSpace = XMVectorScale(viewSpace, 1.0f / XMVectorGetW(viewSpace));
+
+	// Transform from view space to world space
+	XMVECTOR worldSpace = XMVector4Transform(viewSpace, invView);
+	worldSpace = XMVectorScale(worldSpace, 1.0f / XMVectorGetW(worldSpace));
+
+	// Store the final world coordinates
+	rage::Vec3V result = {
+		XMVectorGetX(worldSpace),
+		XMVectorGetY(worldSpace),
+		XMVectorGetZ(worldSpace)
 	};
+
+	return result;
 }
