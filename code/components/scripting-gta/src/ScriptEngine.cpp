@@ -25,6 +25,12 @@
 
 #include <Error.h>
 
+enum NativeIdentifiers : uint64_t
+{
+	GET_CURRENT_RESOURCE_NAME = 0xE5E9EBBB,
+};
+
+
 static LONG ShouldHandleUnwind(PEXCEPTION_POINTERS ep, DWORD exceptionCode, uint64_t identifier)
 {
 	if (IsErrorException(ep))
@@ -100,7 +106,7 @@ static void NullInvocation(uint64_t nativeIdentifier, char** errorMessage)
 {
 	if (nativeIdentifier == 0)
 	{
-		auto resourceName = NativeInvoke::Invoke<HashString("GET_CURRENT_RESOURCE_NAME"), const char*>();
+		auto resourceName = NativeInvoke::Invoke<GET_CURRENT_RESOURCE_NAME, const char*>();
 
 		if (!resourceName)
 		{
