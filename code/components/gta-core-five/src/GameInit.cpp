@@ -92,7 +92,7 @@ bool FiveGameInit::TriggerError(const char* message)
 
 static hook::cdecl_stub<void(rage::InitFunctionType)> gamerInfoMenu_init([]()
 {
-	return (xbr::IsGameBuildOrGreater<2802>()) ? hook::get_pattern("E9 ? ? ? ? 53 48 83  EC 20 48 83 3D") : hook::get_pattern("83 F9 08 75 3F 53 48 83 EC 20 48 83 3D");
+	return (xbr::IsGameBuildOrGreater<2802>()) ? hook::get_pattern("E9 ? ? ? ? 53 48 83 EC ? 48 83 3D ? ? ? 01 00 75 2B B9 50 8A 00 00") : hook::get_pattern("83 F9 08 75 3F 53 48 83 EC 20 48 83 3D");
 });
 
 static hook::cdecl_stub<void(rage::InitFunctionType)> gamerInfoMenu__shutdown([]()
