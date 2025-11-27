@@ -485,7 +485,7 @@ namespace fx
 	{
 		m_resource = object;
 
-		object->OnStart.Connect([=]()
+		auto loadStreamFiles = [=]()
 		{
 			if (ShouldUpdateSet())
 			{
@@ -519,7 +519,18 @@ namespace fx
 					}
 				}
 			}
-		}, 500);
+		};
+
+		object->OnStart.Connect(loadStreamFiles, 500);
+
+		object->OnClientReloadFile.Connect([=]()
+		{
+			m_resourcePairs.clear();
+			m_hashPairs.clear();
+
+			loadStreamFiles();
+		},
+		500);
 
 		object->OnStop.Connect([=]()
 		{
