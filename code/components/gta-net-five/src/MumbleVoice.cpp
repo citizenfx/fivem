@@ -823,7 +823,7 @@ static void _filterVoiceChatConfig(void* engine, char* config)
 		*config = 0;
 	}
 
-	g_origInitVoiceEngine(engine, config);
+	//g_origInitVoiceEngine(engine, config);
 }
 
 #include <LabSound/extended/LabSound.h>
