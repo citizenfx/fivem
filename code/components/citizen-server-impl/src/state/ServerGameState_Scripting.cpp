@@ -1670,6 +1670,31 @@ static void Init()
 					playerEntity->routingBucket = bucket;
 				}
 
+				if (oldBucket != bucket)
+				{
+					auto slotId = client->GetSlotId();
+					
+					std::shared_lock<std::shared_mutex> lock(gameState->m_entityListMutex);
+					for (auto& entity : gameState->m_entityList)
+					{
+						if (!entity || !entity->syncTree)
+						{
+							continue;
+						}
+
+						if (entity->routingBucket == oldBucket)
+						{
+							std::lock_guard<std::shared_mutex> _(entity->guidMutex);
+							entity->relevantTo.reset(slotId);
+
+							auto owner = entity->GetClient();
+							if (owner && owner == client)
+							{
+								entity->wantsReassign = true;
+							}
+						}
+					}
+				}
 				
 				auto eventManager = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
 				/*NETEV onPlayerBucketChange SERVER
