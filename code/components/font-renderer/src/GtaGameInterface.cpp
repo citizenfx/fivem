@@ -547,7 +547,7 @@ static InitFunction initFunction([] ()
 
 		if (!inGame)
 		{
-			color = CRGBA(255, 108, 0, 255);
+			color = CRGBA(255, 255, 255, 100);
 		}
 
 		g_fontRenderer.DrawText(brandingString, drawRect, color, 22.0f * (gameHeightF / 1440.0f), 1.0f, "Segoe UI");

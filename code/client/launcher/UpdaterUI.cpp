@@ -19,9 +19,6 @@
 
 #include <winrt/Windows.Storage.Streams.h>
 
-#include "CitiLaunch/BackdropBrush.g.h"
-#include "winrt/Microsoft.Graphics.Canvas.Effects.h"
-
 #include <DirectXMath.h>
 #include <roapi.h>
 
@@ -46,129 +43,6 @@
 #pragma comment(lib, "shcore.lib")
 
 using namespace ABI::Windows::Graphics::Effects;
-
-struct CompositionEffect : winrt::implements
-	<
-		CompositionEffect,
-		winrt::Windows::Graphics::Effects::IGraphicsEffectSource, 
-		winrt::Windows::Graphics::Effects::IGraphicsEffect,
-		ABI::Windows::Graphics::Effects::IGraphicsEffectD2D1Interop
-	>
-{
-	CompositionEffect(const GUID& effectId)
-	{
-		m_effectId = effectId;
-	}
-
-	winrt::hstring Name()
-	{
-		return m_name;
-	}
-
-	void Name(winrt::hstring const& name)
-	{
-		m_name = name;
-	}
-
-	template<typename T>
-	void SetProperty(const std::string& name, const T& value, GRAPHICS_EFFECT_PROPERTY_MAPPING mapping = GRAPHICS_EFFECT_PROPERTY_MAPPING_DIRECT)
-	{
-		m_properties.emplace_back(name, winrt::box_value(value), mapping);
-	}
-
-	template<int N>
-	void SetProperty(const std::string& name, const float (&value)[N], GRAPHICS_EFFECT_PROPERTY_MAPPING mapping = GRAPHICS_EFFECT_PROPERTY_MAPPING_DIRECT)
-	{
-		const float* valuePointerStart = &value[0];
-		const float* valuePointerEnd = valuePointerStart + N;
-		m_properties.emplace_back(name, winrt::Windows::Foundation::PropertyValue::CreateSingleArray(winrt::array_view<const float>{ valuePointerStart, valuePointerEnd }), mapping);
-	}
-
-	template<>
-	void SetProperty(const std::string& name, const winrt::Windows::UI::Color& color, GRAPHICS_EFFECT_PROPERTY_MAPPING mapping)
-	{
-		float values[] = { color.R / 255.0f, color.G / 255.0f, color.B / 255.0f, color.A / 255.0f };
-		SetProperty(name, values, mapping);
-	}
-
-	template<>
-	void SetProperty(const std::string& name, const winrt::Microsoft::Graphics::Canvas::Effects::Matrix5x4& value, GRAPHICS_EFFECT_PROPERTY_MAPPING mapping)
-	{
-		float mat[5 * 4];
-		memcpy(mat, &value, sizeof(mat));
-		SetProperty(name, mat, mapping);
-	}
-
-	template<>
-	void SetProperty(const std::string& name, const winrt::Windows::Foundation::Numerics::float3x2& value, GRAPHICS_EFFECT_PROPERTY_MAPPING mapping)
-	{
-		float mat[3 * 2];
-		memcpy(mat, &value, sizeof(mat));
-		SetProperty(name, mat, mapping);
-	}
-
-	void AddSource(const winrt::Windows::Graphics::Effects::IGraphicsEffectSource& source)
-	{
-		m_sources.push_back(source);
-	}
-
-	virtual HRESULT __stdcall GetEffectId(GUID* id) override
-	{
-		*id = m_effectId;
-		return S_OK;
-	}
-
-	virtual HRESULT __stdcall GetNamedPropertyMapping(LPCWSTR name, UINT* index, GRAPHICS_EFFECT_PROPERTY_MAPPING* mapping) override
-	{
-		auto nname = ToNarrow(name);
-
-		auto entry = std::find_if(m_properties.begin(), m_properties.end(), [&nname](const auto& property)
-		{
-			return nname == std::get<0>(property);
-		});
-
-		if (entry != m_properties.end())
-		{
-			*index = entry - m_properties.begin();
-			*mapping = std::get<2>(*entry);
-			return S_OK;
-		}
-
-		return HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
-	}
-
-	virtual HRESULT __stdcall GetPropertyCount(UINT* count) override
-	{
-		*count = m_properties.size();
-		return S_OK;
-	}
-
-	virtual HRESULT __stdcall GetProperty(UINT index, ABI::Windows::Foundation::IPropertyValue** value) override
-	{
-		std::get<1>(m_properties[index]).as<ABI::Windows::Foundation::IPropertyValue>().copy_to(value);
-		return S_OK;
-	}
-
-	virtual HRESULT __stdcall GetSource(UINT index, ABI::Windows::Graphics::Effects::IGraphicsEffectSource** source) override
-	{
-		m_sources[index].as<ABI::Windows::Graphics::Effects::IGraphicsEffectSource>().copy_to(source);
-		return S_OK;
-	}
-
-	virtual HRESULT __stdcall GetSourceCount(UINT* count) override
-	{
-		*count = UINT(m_sources.size());
-		return S_OK;
-	}
-
-private:
-	GUID m_effectId;
-
-	winrt::hstring m_name = L"";
-
-	std::vector<std::tuple<std::string, winrt::Windows::Foundation::IInspectable, GRAPHICS_EFFECT_PROPERTY_MAPPING>> m_properties;
-	std::vector<winrt::Windows::Graphics::Effects::IGraphicsEffectSource> m_sources;
-};
 
 static class DPIScaler
 {
@@ -209,7 +83,6 @@ struct TenUI
 {
 	DesktopWindowXamlSource uiSource{ nullptr };
 
-	winrt::Windows::UI::Xaml::UIElement snailContainer{ nullptr };
 	winrt::Windows::UI::Xaml::Controls::TextBlock topStatic{ nullptr };
 	winrt::Windows::UI::Xaml::Controls::TextBlock bottomStatic{ nullptr };
 	winrt::Windows::UI::Xaml::Controls::ProgressBar progressBar{ nullptr };
@@ -277,62 +150,30 @@ static std::wstring g_mainXaml = LR"(
 	xmlns:local="using:CitiLaunch"
     mc:Ignorable="d">
 
-    <Grid Width="525" Height="525">
-        <Grid.Resources>
-            <!--<ThemeShadow x:Name="SharedShadow">
-            </ThemeShadow>-->
-        </Grid.Resources>
+    <Grid
+		Width="525"
+		Height="525")"
+#if defined(GTA_FIVE)
+	R"(
+		Background="#161923")"
+#elif defined(IS_RDR3)
+	R"(
+		Background="#d80d0d")"
+#endif
+	R"(>
         <Grid x:Name="BackdropGrid" />
 		<SwapChainPanel x:Name="Overlay" />
         <StackPanel Orientation="Vertical" VerticalAlignment="Center">)"
 #if defined(GTA_FIVE)
 	R"(
             <Viewbox Height="150" Margin="0,0,0,15" RenderTransformOrigin="0.5,0.5">
-                <Path Data="F1 M 0,0 L 43.57,0 C 44.53,0 47.41,-9.44 52.22,-28.18 68.71,-85.82 78.32,-119.44 80.73,-129.21
-        L 52.54,-156.91 51.74,-156.91 C 48.05,-145.22 30.43,-93.02 -0.8,-0.48 L 0,0 0,0 z
-        M 83.93,-141.06 L 84.41,-141.06 C 84.89,-143.46 85.21,-144.74 85.21,-145.22 L 85.21,-146.02 C 77.04,-154.51 67.91,-163.64 57.82,-173.4
-            56.86,-171.64 56.22,-170.36 56.22,-169.24 L 56.22,-168.76 C 66.47,-158.35 75.6,-149.07 83.93,-141.06 z
-        M 136.94,-109.2 L 137.42,-109.2 C 131.82,-126.97 128.45,-136.1 127.17,-136.58 L 65.99,-197.26 C 65.35,-197.26 63.91,-192.94 61.51,-184.29
-        L 136.94,-109.2 z
-        M 125.57,-142.66 L 125.89,-142.66 C 113.4,-180.61 106.83,-199.82 106.03,-200.14 L 68.39,-200.14 68.39,-199.82
-        C 82.33,-185.57 101.39,-166.68 125.57,-142.66 z
-        M 147.99,-77.01 L 148.47,-77.01 C 147.03,-83.74 143.83,-88.86 138.54,-92.54 122.69,-108.88 106.83,-124.73 90.98,-140.26
-        L 90.5,-140.26 C 91.46,-134.65 93.7,-130.49 97.06,-127.61 L 147.99,-77.01 z
-        M 173.62,0 L 174.58,-0.48 C 162.89,-35.22 156.64,-53.16 155.68,-54.28 L 99.46,-110.16 99.46,-109.68
-        C 101.55,-101.19 112.12,-64.52 130.86,0 L 173.62,0 173.62,0 z" Fill="#f40552" Stretch="Fill">
-                </Path>
-                <Viewbox.RenderTransform>
-                    <ScaleTransform ScaleX="-1" />
-                </Viewbox.RenderTransform>)"
+                <Path Data="M37.97 86.09L108.57 15.84L113.3 30.07L28.37 114.9L37.97 86.09ZM106.1 8.42L103.3 0H71.84C68.74 0 66 1.97 65.03 4.91L42.9 71.31L106.1 8.42ZM18.48 144.56L0 200H40.41L73.07 90.04L18.48 144.56ZM118.25 44.92L91.49 71.65L129.41 200H169.85L118.25 44.92Z" Fill="#F1F1E4" Stretch="Fill">
+                </Path>)"
 #elif defined(IS_RDR3)
 	R"(
 			<Viewbox Height="150" Margin="0,0,0,15">
-				<Grid>
-				<Path Data="F1 M 38.56,38.56 L 779.52,38.56 779.52,1019.52 38.56,1019.52 z"  Fill="#00000000" />
-				<Path Data="F1 M 153.23,78.44 L 154.67,77.16 153.23,75.72 153.23,78.44 153.23,78.44 z"  Fill="#ffffffff" />
-				<Path Data="F1 M 677.12,48.82 L 523.2,98.61 516.32,118.63 673.43,67.71 677.12,48.82 677.12,48.82 z"  Fill="#ffffffff" />
-				<Path Data="F1 M 666.07,105.5 L 668.63,92.37 507.35,144.73 502.7,158.34 666.07,105.5 666.07,105.5 z"  Fill="#ffffffff" />
-				<Path Data="F1 M 0,0 L -13.94,40.99 -32.52,105.83 -42.61,153.07 116.91,176.77 134.69,107.28 166.24,-53.8
-					 0,0 0.16,0 z" RenderTransform="1,0,0,1,496.62,175.63" Fill="#ffffffff" />
-				<Path Data="F1 M 670.55,38.73 L 543.7,38.73 527.85,84.84 670.55,38.73 z"  Fill="#ffffffff" />
-				<Path Data="F1 M 311.47,167.46 L 152.43,218.86 151.95,224.46 151.95,236.79 310.51,185.55 311.47,167.46 z"  Fill="#ffffffff" />
-				<Path Data="F1 M 308.91,221.26 L 309.55,209.09 151.95,260.01 151.95,272.18 308.91,221.26 308.91,221.26 z"  Fill="#ffffffff" />
-				<Path Data="F1 M 0,0 L -9.45,-0.96 19.22,-146.18 -133.89,-168.92 -144.78,-118.16 -164.64,-6.72 -266.82,-6.72
-					 -245.52,-296.05 -245.52,-404.93 -244.72,-425.59 -401.04,-375.15 -401.04,-265.63 -405.2,-256.34 -404.88,-247.7
-					 -409.05,-182.05 -412.09,-168.76 -411.77,-133.06 -411.77,358.34 94.18,358.34 94.18,326.48 116.76,-5.28
-					 34.44,0 0,0 0,0 z
-					M -25.14,211.04 L -272.27,211.04 -264.26,171.33 -264.26,143.31 -272.27,124.73 -25.14,124.73 -27.87,163.16
-					 -25.14,211.04 z" RenderTransform="1,0,0,1,552.99,662.7" Fill="#ffffffff" />
-				<Path Data="F1 M 0,0 L 2.88,-108.56 -156.31,-113.84 -155.83,-101.99 -157.12,-79.41 -157.12,37.47 -158.24,51.08
-					 0,0 0,0 z" RenderTransform="1,0,0,1,311.79,155.13" Fill="#ffffffff" />
-				</Grid>
-)"
-#elif defined(GTA_NY)
-								 R"(
-			<Viewbox Height="150" Margin="0,0,0,15">
-				<Grid>
-				<Path Data="M26,145L54.571,145C54.952,144.905 55.143,144.714 55.143,144.429L55.143,69C43.714,57.286 33.905,47.476 25.714,39.571L25.429,39.571L25.429,144.429C25.524,144.81 25.714,145 26,145ZM54.857,57.857L55.143,57.857L55.143,54.143C43.714,42.429 33.905,32.619 25.714,24.714L25.429,24.714L25.429,28.429C36.857,40.048 46.667,49.857 54.857,57.857ZM54.857,43L55.143,43L55.143,31.571C46.857,23 38,14.143 28.571,5L26,5C25.619,5 25.429,5.19 25.429,5.571L25.429,13.571C36.857,25.19 46.667,35 54.857,43ZM57.714,30.429L124,30.429C124.381,30.333 124.571,30.143 124.571,29.857L124.571,5.571C124.571,5.19 124.381,5 124,5L32.571,5L32.571,5.286C41.714,14.619 50.095,23 57.714,30.429Z"  Fill="#ffffffff" />
-				</Grid>
+				<Path Data="M20.799 12.234L21.192 10.869L22.044 8.367L22.41 7.311L22.695 6.477L23.244 4.881L23.661 3.663L23.943 2.817L24.918 0H33.267L33.06 0.621L32.835 1.77L32.661 3.072L32.388 4.08L32.187 5.085L31.686 7.653C31.266 7.851 29.934 8.406 29.091 8.757C28.308 9.084 26.085 10.032 25.929 10.077C25.896 10.095 23.031 11.313 22.71 11.445C22.56 11.505 20.913 12.189 20.799 12.234ZM28.962 11.322C28.602 11.508 26.142 12.411 25.953 12.528C25.395 12.711 23.034 13.734 22.623 13.839C22.146 14.046 21.534 14.292 21.024 14.475C20.706 14.631 20.376 14.754 20.046 14.874L19.446 17.706L18.864 20.454C19.098 20.403 21.747 19.299 22.272 18.981C22.29 18.963 23.634 18.411 23.769 18.327C24.396 17.991 27.675 16.773 28.209 16.485C28.374 16.377 29.742 15.852 30.105 15.558L30.27 14.91L31.134 10.485C30.765 10.641 29.325 11.193 28.962 11.319V11.322ZM28.329 21.501C28.425 21.48 28.518 21.453 28.611 21.423L26.658 29.184L26.643 29.259L26.577 29.598L25.872 33.177L24.912 38.049L25.482 38.109H27.585L32.616 37.782L31.233 58.053V59.994H0.345L0 44.388L0.129 36.222L0.114 33.513L0.324 30.564L0.507 26.988L0.609 25.368L0.762 22.983L0.741 22.455L0.861 18.396L0.996 15.198V12.096V11.343L1.026 11.007L1.098 10.233L1.158 9.399V2.268L1.239 0.885L1.206 0.165L4.011 0.255L5.859 0.315L10.932 0.48L10.749 7.119L10.728 7.872L10.674 8.97L10.617 10.413L10.578 11.157L10.536 12.123L10.485 13.383V20.031L10.092 25.374L9.819 29.079L9.801 29.316L9.744 30.111L9.732 30.264L9.72 30.411L9.534 32.952L9.183 37.71H15.423L16.275 32.952L16.596 31.161L16.644 30.897L16.836 29.997L16.878 29.796L17.22 28.188L17.304 27.795L17.769 25.602C17.823 25.578 21.855 24.069 22.743 23.634C22.917 23.481 25.206 22.689 25.401 22.608C25.464 22.581 27.801 21.669 28.326 21.501H28.329ZM23.946 51.003L23.784 48.075L23.946 45.726H8.862L9.054 47.604V49.311L8.862 51H23.946V51.003Z" Stretch="Fill" Fill="#F1F1E4">
+				</Path>
 )"
 #endif
 R"(         </Viewbox>
@@ -341,163 +182,10 @@ R"(         </Viewbox>
 				<ProgressBar x:Name="progressBar" Foreground="White" Width="250" />
 			</Grid>
             <TextBlock x:Name="static2" Text=" " TextAlignment="Center" Foreground="#ffeeeeee" FontSize="18" />
-			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" x:Name="snailContainer" Visibility="Collapsed">
-				<TextBlock TextAlignment="Center" Foreground="#ddeeeeee" FontSize="14" Width="430" TextWrapping="Wrap">
-					🐌 RedM game storage downloads are peer-to-peer and may be slower than usual downloads. Please be patient.
-				</TextBlock>
-			</StackPanel>
         </StackPanel>
     </Grid>
 </Grid>
 )";
-
-struct BackdropBrush : winrt::CitiLaunch::implementation::BackdropBrushT<BackdropBrush>
-{
-	BackdropBrush() = default;
-
-	void OnConnected();
-	void OnDisconnected();
-
-	winrt::Windows::UI::Composition::CompositionPropertySet ps{ nullptr };
-};
-
-void BackdropBrush::OnConnected()
-{
-	if (!CompositionBrush())
-	{
-		//
-		// !NOTE! if trying to change the following code (add extra effects, change effects, etc.)
-		// 
-		// CLSIDs and properties are from Win2D:
-		//   https://github.com/microsoft/Win2D/tree/99ce19f243c6a6332f0ea312cd29fc3c785a540b/winrt/lib/effects/generated
-		//
-		// The .h files show the CLSID used, the .cpp files the properties with names, type, mapping and default values.
-		// 
-		// Properties *have* to be set in the original order - initial deserialization (at least in wuceffects.dll 10.0.22000)
-		// will check all properties before checking the name mapping. Also, `Source` properties are mapped to the AddSource
-		// list, instead of being a real property.
-		//
-		auto effect = CompositionEffect(CLSID_D2D1Flood);
-
-#ifdef GTA_FIVE
-		effect.SetProperty("Color", winrt::Windows::UI::ColorHelper::FromArgb(255, 0x16, 0x19, 0x23));
-#elif defined(IS_RDR3)
-		effect.SetProperty("Color", winrt::Windows::UI::ColorHelper::FromArgb(255, 186, 2, 2));
-#elif defined(GTA_NY)
-		effect.SetProperty("Color", winrt::Windows::UI::ColorHelper::FromArgb(255, 0x4D, 0xA6, 0xD3));
-#endif
-
-		winrt::Windows::UI::Composition::CompositionEffectSourceParameter sp{ L"layer" };
-		winrt::Windows::UI::Composition::CompositionEffectSourceParameter sp2{ L"rawImage" };
-
-		auto mat2d = winrt::Windows::Foundation::Numerics::float3x2{};
-
-		using namespace DirectX;
-		auto matrix = XMMatrixTransformation2D(XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f), XMVectorSet(0.5f, 0.5f, 0.0f, 0.0f), 0.2, XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
-		XMStoreFloat3x2(&mat2d, matrix);
-
-		auto layer = CompositionEffect(CLSID_D2D12DAffineTransform);
-		layer.AddSource(sp2);
-		layer.Name(L"xform");
-
-		layer.SetProperty("InterpolationMode", uint32_t(D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_LINEAR));
-		layer.SetProperty("BorderMode", uint32_t(D2D1_BORDER_MODE_SOFT));
-		layer.SetProperty("TransformMatrix", mat2d);
-		layer.SetProperty("Sharpness", 0.0f);
-
-		auto mat = winrt::Microsoft::Graphics::Canvas::Effects::Matrix5x4();
-		memset(&mat, 0, sizeof(mat));
-		mat.M44 = 1.0f;
-
-#ifdef GTA_FIVE
-		mat.M11 = 1.0f;
-		mat.M22 = 1.0f;
-		mat.M33 = 1.0f;
-		mat.M44 = 0.03f;
-#elif defined(IS_RDR3) || defined(GTA_NY)
-		mat.M11 = 1.0f;
-		mat.M22 = 1.0f;
-		mat.M33 = 1.0f;
-		mat.M44 = 0.15f;
-#endif
-
-		auto layerColor = CompositionEffect(CLSID_D2D1ColorMatrix);
-		layerColor.AddSource(layer);
-		layerColor.SetProperty("ColorMatrix", mat);
-		layerColor.SetProperty("AlphaMode", uint32_t(D2D1_COLORMATRIX_ALPHA_MODE_PREMULTIPLIED), GRAPHICS_EFFECT_PROPERTY_MAPPING_COLORMATRIX_ALPHA_MODE);
-		layerColor.SetProperty("ClampOutput", false);
-
-		auto compEffect = CompositionEffect(CLSID_D2D1Composite);
-		compEffect.SetProperty("Mode", uint32_t(D2D1_COMPOSITE_MODE_SOURCE_OVER));
-		compEffect.AddSource(effect);
-		compEffect.AddSource(layerColor);
-
-		auto hRsc = FindResource(GetModuleHandle(NULL), MAKEINTRESOURCE(IDM_BACKDROP), L"MEOW");
-		auto resSize = SizeofResource(GetModuleHandle(NULL), hRsc);
-		auto resData = LoadResource(GetModuleHandle(NULL), hRsc);
-
-		auto resPtr = static_cast<const uint8_t*>(LockResource(resData));
-
-		auto iras = winrt::Windows::Storage::Streams::InMemoryRandomAccessStream();
-		auto dw = winrt::Windows::Storage::Streams::DataWriter{ iras };
-		dw.WriteBytes(winrt::array_view<const uint8_t>{resPtr, resPtr + resSize});
-
-		auto iao = dw.StoreAsync();
-		while (iao.Status() != winrt::Windows::Foundation::AsyncStatus::Completed)
-		{
-			Sleep(0);
-		}
-
-		iras.Seek(0);
-
-		auto surf = winrt::Windows::UI::Xaml::Media::LoadedImageSurface::StartLoadFromStream(iras);
-
-		auto cb = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateSurfaceBrush();
-		cb.Surface(surf);
-		//cb.Stretch(winrt::Windows::UI::Composition::CompositionStretch::UniformToFill);
-		cb.Stretch(winrt::Windows::UI::Composition::CompositionStretch::None);
-
-		auto ef = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateEffectFactory(compEffect, { L"xform.TransformMatrix" });
-		auto eb = ef.CreateBrush();
-		eb.SetSourceParameter(L"rawImage", cb);
-
-		using namespace std::chrono_literals;
-
-		auto kfa = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateVector2KeyFrameAnimation();
-		kfa.InsertKeyFrame(0.0f, { 0.0f, 0.0f });
-		kfa.InsertKeyFrame(0.25f, { 0.0f, -300.0f }, winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateLinearEasingFunction());
-		kfa.InsertKeyFrame(0.5f, { -300.0f, -300.0f }, winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateLinearEasingFunction());
-		kfa.InsertKeyFrame(0.75f, { -300.0f, 0.0f }, winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateLinearEasingFunction());
-		kfa.InsertKeyFrame(1.0f, { 0.0f, 0.0f }, winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateLinearEasingFunction());
-		kfa.Duration(60s);
-		kfa.IterationBehavior(winrt::Windows::UI::Composition::AnimationIterationBehavior::Forever);
-		kfa.Target(L"xlate");
-
-		auto ag = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateAnimationGroup();
-		ag.Add(kfa);
-
-		ps = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreatePropertySet();
-		ps.InsertVector2(L"xlate", { 0.0f, 0.0f });
-		ps.StartAnimationGroup(ag);
-
-		auto ca = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateExpressionAnimation();
-		ca.SetReferenceParameter(L"ps", ps);
-		ca.SetMatrix3x2Parameter(L"rot", mat2d);
-		ca.Expression(L"Matrix3x2.CreateFromTranslation(ps.xlate) * rot");
-
-		eb.StartAnimation(L"xform.TransformMatrix", ca);
-
-		CompositionBrush(eb);
-	}
-}
-
-void BackdropBrush::OnDisconnected()
-{
-	if (CompositionBrush())
-	{
-		CompositionBrush(nullptr);
-	}
-}
 
 #include <wrl.h>
 #include <d3d11.h>
@@ -1383,9 +1071,6 @@ void UI_CreateWindow()
 		auto doc = winrt::Windows::UI::Xaml::Markup::XamlReader::Load(g_mainXaml);
 		auto ui = doc.as<winrt::Windows::UI::Xaml::FrameworkElement>();
 
-		auto bg = ui.FindName(L"BackdropGrid").as<winrt::Windows::UI::Xaml::Controls::Grid>();
-		bg.Background(winrt::make<BackdropBrush>());
-
 		{
 			auto sc = ui.FindName(L"Overlay").as<winrt::Windows::UI::Xaml::Controls::SwapChainPanel>();
 
@@ -1400,13 +1085,9 @@ void UI_CreateWindow()
 			}
 		}
 
-		/*auto shadow = ui.FindName(L"SharedShadow").as<winrt::Windows::UI::Xaml::Media::ThemeShadow>();
-		shadow.Receivers().Append(bg);*/
-
 		ten->topStatic = ui.FindName(L"static1").as<winrt::Windows::UI::Xaml::Controls::TextBlock>();
 		ten->bottomStatic = ui.FindName(L"static2").as<winrt::Windows::UI::Xaml::Controls::TextBlock>();
 		ten->progressBar = ui.FindName(L"progressBar").as<winrt::Windows::UI::Xaml::Controls::ProgressBar>();
-		ten->snailContainer = ui.FindName(L"snailContainer").as<winrt::Windows::UI::Xaml::UIElement>();
 
 		ten->uiSource.Content(ui);
 
@@ -1719,16 +1400,6 @@ void UI_DoDestruction()
 	DestroyWindow(g_uui.rootWindow);
 }
 
-void UI_SetSnailState(bool snail)
-{
-	if (g_uui.ten)
-	{
-		g_uui.ten->snailContainer.Visibility(snail ? winrt::Windows::UI::Xaml::Visibility::Visible : winrt::Windows::UI::Xaml::Visibility::Collapsed);
-
-		return;
-	}
-}
-
 void UI_UpdateText(int textControl, const wchar_t* text)
 {
 	if (g_uui.ten)
@@ -1806,54 +1477,5 @@ void UI_DisplayError(const wchar_t* error)
 	taskDialogConfig.pszContent = error;
 
 	TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
-}
-
-#include <wrl/module.h>
-
-extern "C" HRESULT __stdcall DllCanUnloadNow()
-{
-#ifdef _WRL_MODULE_H_
-	if (!::Microsoft::WRL::Module<::Microsoft::WRL::InProc>::GetModule().Terminate())
-	{
-		return 1; // S_FALSE
-	}
-#endif
-
-	if (winrt::get_module_lock())
-	{
-		return 1; // S_FALSE
-	}
-
-	winrt::clear_factory_cache();
-	return 0; // S_OK
-}
-
-extern "C" DLL_EXPORT HRESULT WINAPI DllGetActivationFactory(HSTRING classId, IActivationFactory** factory)
-{
-	try
-	{
-		*factory = nullptr;
-		uint32_t length{};
-		wchar_t const* const buffer = WindowsGetStringRawBuffer(classId, &length);
-		std::wstring_view const name{ buffer, length };
-
-		auto requal = [](std::wstring_view const& left, std::wstring_view const& right) noexcept
-		{
-			return std::equal(left.rbegin(), left.rend(), right.rbegin(), right.rend());
-		};
-
-		if (requal(name, L"CitiLaunch.BackdropBrush"))
-		{
-			*factory = (IActivationFactory*)winrt::detach_abi(winrt::make<BackdropBrush>());
-			return 0;
-		}
-
-#ifdef _WRL_MODULE_H_
-		return ::Microsoft::WRL::Module<::Microsoft::WRL::InProc>::GetModule().GetActivationFactory(static_cast<HSTRING>(classId), reinterpret_cast<::IActivationFactory * *>(factory));
-#else
-		return winrt::hresult_class_not_available(name).to_abi();
-#endif
-	}
-	catch (...) { return winrt::to_hresult(); }
 }
 #endif
