@@ -668,36 +668,20 @@ bool MumbleClient::DoesChannelExist(const std::string& channelName)
 	return false;
 }
 
-void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
+std::vector<std::string> MumbleClient::GetTalkers()
 {
-	referenceIds->clear();
-
 	std::vector<uint32_t> sessions;
-	m_audioOutput.GetTalkers(&sessions);
+	m_audioOutput.GetTalkers(sessions);
 
-	for (uint32_t session : sessions)
-	{
-		auto user = m_state.GetUser(session);
-
-		if (user)
-		{
-			referenceIds->push_back(user->GetName());
-		}
-	}
+	auto talkers = m_state.GetUserNamesFromSessionIds(sessions);
 
 	// local talker talking?
 	if (m_audioInput.IsTalking())
 	{
-		referenceIds->push_back(m_state.GetUsername());
+		talkers.push_back(m_state.GetUsername());
 	}
-}
 
-bool MumbleClient::IsAnyoneTalking()
-{
-	std::vector<uint32_t> talkers;
-	m_audioOutput.GetTalkers(&talkers);
-
-	return (!talkers.empty());
+	return talkers;
 }
 
 void MumbleClient::SetActorPosition(float position[3])
