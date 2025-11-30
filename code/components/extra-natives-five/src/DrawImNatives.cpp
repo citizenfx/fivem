@@ -7,6 +7,12 @@
 
 #include <Hooking.h>
 
+enum NativeIdentifiers : uint64_t
+{
+	PLAYER_PED_ID = 0xD80958FC74E988A6,
+	GET_ENTITY_COORDS = 0x3FEF770D40960D5A
+};
+
 struct VertexPosition
 {
 	float x;
@@ -883,13 +889,13 @@ static HookFunction shaderHookFunction([]()
 			return;
 		}
 
-		auto pp = *fx::ScriptEngine::GetNativeHandler(0xD80958FC74E988A6);
+		auto pp = *fx::ScriptEngine::GetNativeHandler(PLAYER_PED_ID);
 
 		fx::ScriptContextBuffer cx;
 		pp(cx);
 
 		cx.SetArgument(0, cx.GetResult<int>());
-		auto ec = *fx::ScriptEngine::GetNativeHandler(0x3FEF770D40960D5A);
+		auto ec = *fx::ScriptEngine::GetNativeHandler(GET_ENTITY_COORDS);
 		ec(cx);
 
 		struct scrVector
