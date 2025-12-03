@@ -1181,6 +1181,14 @@ static HookFunction hookFunction([]()
 		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 83 EC ? 83 B9 ? ? ? ? ? 4C 8B FA 48 8B F9", -0x14), {});
 	}
 
+	// Resize stack for pending players
+	{
+		constexpr int ptrsBase = 0x130;
+		constexpr int intSize = 0x20 + (sizeof(void*) * kMaxPlayers + 1);
+		constexpr int stackSize = ptrsBase + (sizeof(void*) * kMaxPlayers);
+
+		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 4C 8D B1"), { { 0x120, intSize } });
+	}
 #if 0
 	// Resize stack for CTheScripts::_getClosestPlayer
 	{
