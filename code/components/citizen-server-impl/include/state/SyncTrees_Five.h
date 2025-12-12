@@ -2903,6 +2903,11 @@ struct CTrainGameStateDataNode : GenericSerializeDataNode<CTrainGameStateDataNod
 		// 0 = Main Line, 3 = Metro line
 		s.Serialize(8, data.trackId);
 
+		if (IsWinterUpdate25())
+		{
+			s.SerializeSigned(8, 30.0f, data.carriageSpeed);
+		}
+
 		s.SerializeSigned(8, 30.0f, data.cruiseSpeed);
 
 		// 0 = Moving, 1 = Slowing down, 2 = Doors opening, 3 = Stopped, 4 = Doors closing, 5 = Before depart
@@ -2929,6 +2934,11 @@ struct CTrainGameStateDataNode : GenericSerializeDataNode<CTrainGameStateDataNod
 		{ 
 			// Set on population trains or with SET_TRAIN_STOP_AT_STATIONS
 			s.Serialize(data.stopAtStations);
+
+			if (IsWinterUpdate25())
+			{
+				s.Serialize(data.isTrackDirectionForwards);
+			}
 
 			// Modified by _NETWORK_USE_HIGH_PRECISION_VEHICLE_BLENDING
 			s.Serialize(data.highPrecisionBlending);
@@ -4876,7 +4886,7 @@ using CTrainSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
 					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>,
-					NodeWrapper<NodeIds<127, 127, 0>, CTrainGameStateDataNode, 16>
+					NodeWrapper<NodeIds<127, 127, 0>, CTrainGameStateDataNode, 17>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,

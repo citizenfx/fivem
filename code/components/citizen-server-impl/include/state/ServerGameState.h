@@ -183,6 +183,16 @@ inline bool IsSummerUpdate25()
 
 	return value;
 }
+
+inline bool IsWinterUpdate25()
+{
+	static bool value = ([]()
+	{
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= xbr::Build::Winter_2025) || fx::GetEnforcedGameBuildNumber() >= xbr::Build::Winter_2025;
+	})();
+
+	return value;
+}
 #elif defined(STATE_RDR3)
 inline bool Is1491()
 {
@@ -604,35 +614,30 @@ struct CTrainGameStateDataNodeData
 	int engineCarriage;
 	int linkedToBackwardId;
 	int linkedToForwardId;
-
 	float distanceFromEngine;
 
 	int trainConfigIndex;
 	int carriageIndex;
-
 	int trackId;
+
+	float carriageSpeed; // 3699
 	float cruiseSpeed;
 
 	int trainState;
 
 	bool isEngine;
+	bool allowRemovalByPopulation; // 2372
 	bool isCaboose;
-
 	bool isMissionTrain;
-
 	bool direction;
-
 	bool hasPassengerCarriages;
-
 	bool renderDerailed;
 
-	// 2372 {
-	bool allowRemovalByPopulation;
-	bool highPrecisionBlending;
-	bool stopAtStations;
-	// }
-
 	bool forceDoorsOpen;
+	bool stopAtStations; // 2372
+	bool isTrackDirectionForwards; // 3699
+
+	bool highPrecisionBlending; // 2372
 };
 
 struct CPlayerGameStateNodeData

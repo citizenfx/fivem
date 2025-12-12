@@ -636,7 +636,7 @@ static HookFunction hookFunction([]()
 	}
 
 	// Hook inside of CTaskMotionPed - Stage 16_1 -- Used for a cooldown on spamming movements+aiming to optionally hinder 'speedboosting'
-	void* shouldAimCall = hook::pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 48 8B CB E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? F3 0F 10 B7").count(4).get(0).get<void>();
+	void* shouldAimCall = hook::get_pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 48 8B CB E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? F3 0F 10 B7 ? ? ? ? 48 8B CF E8 ? ? ? ? 0F 28 C8 F3 0F 5C CE F3 0F 10 35 ? ? ? ? 0F 2F 0D ? ? ? ? 72 ? 0F 28 FE EB ? F3 0F 10 3D ? ? ? ? 0F 28 C7 F3 0F 58 C1 F3 0F 10 0D ? ? ? ? E8 ? ? ? ? F3 0F 5C C7 0F 28 C8 F3 0F 58 CE 0F 57 0D ? ? ? ? 0F 2F 0D ? ? ? ? 73 ? 0F 28 F0 4C 8D 05 ? ? ? ? 0F 28 CE 45 8A CD");
 	hook::set_call(&g_origShouldAim, shouldAimCall);
 	hook::call(shouldAimCall, ShouldAim);
 

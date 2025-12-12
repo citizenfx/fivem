@@ -34,6 +34,8 @@ export function getGameBuildDLCName(gameBuild: string): string {
       return 'Agents of Sabotage';
     case '3570':
       return 'Money Fronts';
+    case '3717':
+      return 'A Safehouse in the Hills';
   }
 
   return '';

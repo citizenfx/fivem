@@ -222,6 +222,16 @@ extern DLL_IMPORT bool IsInRenderQuery();
 
 static HookFunction hookFunctionGameTime([]()
 {
+#ifdef GTA_FIVE
+	// No, we are not a handheld PC.
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Winter_2025>())
+	{
+		auto* addr = hook::get_pattern("FF 15 ? ? ? ? 48 85 C0 74 ? 48 8D 15");
+		hook::nop(addr, 6);
+		hook::put<uint32_t>(addr, 0x90C03148); // xor rax, rax; nop
+	}
+#endif
+
 	InputHook::DeprecatedOnWndProc.Connect([](HWND, UINT uMsg, WPARAM, LPARAM, bool&, LRESULT&)
 	{
 		// we want to ignore both focus-in and focus-out events

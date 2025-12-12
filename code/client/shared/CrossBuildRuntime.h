@@ -19,9 +19,11 @@ namespace xbr
 //
 enum Build : int
 {
+	Winter_2025 = 3717,
+
 	Summer_2025 = 3570,
 
-	Latest = Summer_2025,
+	Latest = Winter_2025,
 };
 
 inline int GetDefaultGTA5Build()

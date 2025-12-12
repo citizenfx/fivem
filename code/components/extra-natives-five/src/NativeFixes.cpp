@@ -778,6 +778,74 @@ static void FixNatives()
 	}
 }
 
+namespace
+{
+
+// Shift action indices on newer builds to keep compatibility with older scripts
+void ShiftActionIndex(uint64_t nativeHash)
+{
+	const auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+	if (!handler)
+	{
+
+#ifdef _DEBUG
+		__debugbreak();
+#endif
+
+		return;
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash,
+	[handler](fx::ScriptContext& ctx)
+	{
+		constexpr int UNSTABLE_CONTROL_INDEX = 257;
+		constexpr int UNSTABLE_CONTROL_SHIFT = 37;
+
+		if (!rage::scrEngine::GetStoryMode())
+		{
+			const int action = ctx.GetArgument<int>(1);
+			if (action >= UNSTABLE_CONTROL_INDEX)
+			{
+				ctx.SetArgument<int>(1, action + UNSTABLE_CONTROL_SHIFT);
+			}
+		}
+
+		handler(ctx);
+	});
+}
+
+void FixupControlNatives()
+{
+	std::vector<uint64_t> kFixups{
+		0x1CEA6BFDF248E5D9, // IS_CONTROL_ENABLED
+		0xF3A21BCD95725A4A, // IS_CONTROL_PRESSED
+		0x648EE3E7F38877DD, // IS_CONTROL_RELEASED
+		0x580417101DDB492F, // IS_CONTROL_JUST_PRESSED
+		0x50F940259D3841E6, // IS_CONTROL_JUST_RELEASED
+		0xD95E79E8686D2C27, // GET_CONTROL_VALUE
+		0xEC3C9B8D5327B563, // GET_CONTROL_NORMAL
+		0x5B84D09CEC5209C5, // GET_CONTROL_UNBOUND_NORMAL
+		0xE8A25867FBA3B05E, // SET_CONTROL_VALUE_NEXT_FRAME
+		0xE2587F8CBBD87B1D, // IS_DISABLED_CONTROL_PRESSED
+		0xFB6C4072E9A32E92, // IS_DISABLED_CONTROL_RELEASED
+		0x91AEF906BCA88877, // IS_DISABLED_CONTROL_JUST_PRESSED
+		0x305C8DCD79DA8B0F, // IS_DISABLED_CONTROL_JUST_RELEASED
+		0x11E65974A982637C, // GET_DISABLED_CONTROL_NORMAL
+		0x4F8A26A890FD62FB, // GET_DISABLED_CONTROL_UNBOUND_NORMAL
+		0x0499D7B09FC9B407, // GET_CONTROL_INSTRUCTIONAL_BUTTONS_STRING
+		0x80C2FD58D720C801, // GET_CONTROL_GROUP_INSTRUCTIONAL_BUTTONS_STRING
+		0xFE99B66D079CF6BC, // DISABLE_CONTROL_ACTION
+		0x351220255D64C155, // ENABLE_CONTROL_ACTION
+	};
+
+	for (const auto& nativeHash : kFixups)
+	{
+		ShiftActionIndex(nativeHash);
+	}
+}
+
+} // namespace
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
@@ -844,6 +912,11 @@ static HookFunction hookFunction([]()
 		{
 			// IS_BIT_SET is missing in b2612+, re-adding for compatibility
 			FixIsBitSet();
+		}
+
+		if (xbr::IsGameBuildOrGreater<xbr::Build::Winter_2025>())
+		{
+			FixupControlNatives();
 		}
 	});
 });

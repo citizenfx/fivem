@@ -106,6 +106,11 @@ static std::unordered_set<std::string> g_badFiles{
 
 	"dlc_mp2025_01_G9EC:/x64/levels/mp2025_01_g9ec/vehiclemods/tampa4hsw_mods.rpf",
 	"dlc_mp2025_01_G9EC:/x64/levels/mp2025_01_g9ec/vehiclemods/woodlanderhsw_mods.rpf",
+
+	"dlc_mp2025_02_G9EC:/x64/levels/mp2025_02_g9ec/vehiclemods/fmj2hsw_mods.rpf",
+	"dlc_mp2025_02_G9EC:/x64/levels/mp2025_02_g9ec/vehiclemods/astralehsw_mods.rpf",
+	"dlc_mp2025_02_G9EC:/x64/levels/gta5/props/Prop_M25_2_Plaques_G9EC.rpf",
+	"dlc_mp2025_02_G9EC:/x64/levels/gta5/props/Prop_M25_2_Trophies_G9EC.rpf"
 };
 
 static void (*_applyChangeSetEntry)(ChangeSetEntry* entry);

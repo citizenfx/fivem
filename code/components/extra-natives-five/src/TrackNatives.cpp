@@ -547,7 +547,7 @@ static HookFunction hookFunction([]()
 	hook::put<uint8_t>(hook::get_pattern("83 BE ? ? ? ? ? 77 ? 44 21 65", 6), 0xF);
 
 	{
-		CTrain::kTrackNodeOffset = *hook::get_pattern<uint32_t>("E8 ? ? ? ? 40 8A F8 84 C0 75 ? 48 8B CB E8", -4);
+		CTrain::kTrackNodeOffset = *hook::get_pattern<uint32_t>("89 83 ? ? ? ? E8 ? ? ? ? 40 8A F8", 2);
 		CTrain::kTrackIndexOffset = *hook::get_pattern<uint32_t>("88 87 ? ? ? ? 48 85 F6 75", 2);
 		CTrain::kTrainFlagsOffset = *hook::get_pattern<uint32_t>("80 8B ? ? ? ? ? 8B 05 ? ? ? ? FF C8", 2);
 		CTrain::kTrainSpeedOffset = *hook::get_pattern<uint32_t>("4C 89 AF ? ? ? ? 44 89 AF ? ? ? ? 4C 89 AF ? ? ? ? 49 8B 0E", 3);
