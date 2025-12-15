@@ -32,6 +32,16 @@ using namespace fx::v8shared;
 
 namespace fx::nodejs
 {
+static uint32_t g_contextId = 0;
+static bool g_isDelegateRegistered = false;
+static std::unordered_map<uint32_t, int64_t> g_memoryInfo{};
+
+enum CfxV8EmbeddedData
+{
+	kEmbeddedScriptRuntime = 16,
+	kEmbeddedContextId = 17,
+};
+
 static NodeParentEnvironment g_nodeEnv;
 static ScopeHandler g_scopeHandler;
 
@@ -73,8 +83,7 @@ static InitFunction initFunction([]()
 });
 
 //NOTE: it still depends on preexisting files from old runtime
-static const char* g_platformScripts[] = 
-{
+static const char* g_platformScripts[] = {
 	"citizen:/scripting/v8/natives_server.js",
 	"citizen:/scripting/v8/console.js",
 	"citizen:/scripting/v8/timer.js",
@@ -156,7 +165,7 @@ static void OnMessage(v8::Local<v8::Message> message, v8::Local<v8::Value> error
 	}
 
 	auto context = isolate->GetEnteredOrMicrotaskContext();
-	auto data = context->GetEmbedderData(16);
+	auto data = context->GetEmbedderData(kEmbeddedScriptRuntime);
 	auto rt = reinterpret_cast<NodeScriptRuntime*>(v8::Local<v8::External>::Cast(data)->Value());
 	ScriptTrace(rt, "%s\n%s\n%s\n", *messageStr, stack.str(), *errorStr);
 }
@@ -246,7 +255,11 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 		global->Set(m_isolate, "global", global);
 
 		// store the ScRT in the context
-		context->SetEmbedderData(16, v8::External::New(m_isolate, this));
+		context->SetEmbedderData(kEmbeddedScriptRuntime, v8::External::New(m_isolate, this));
+
+		// store a unique context id that we can use later for assigning memory info to specific resources 
+		auto contextId = ++g_contextId;
+		context->SetEmbedderData(kEmbeddedContextId, v8::Integer::NewFromUnsigned(m_isolate, contextId));
 
 		// allow "eval" and "new Function" (required by some fivem scripts)
 		context->AllowCodeGenerationFromStrings(true);
@@ -456,6 +469,80 @@ result_t NodeScriptRuntime::RunFileInternal(char* scriptName, std::function<resu
 		}
 	}
 	return FX_S_OK;
+}
+
+static uint32_t GetContextIdFromContext(v8::Local<v8::Context> context)
+{
+	return static_cast<uint32_t>(
+		context->GetEmbedderData(kEmbeddedContextId).As<v8::Integer>()->Value()
+	);
+}
+
+class NodePollingMemoryDelegate : public v8::MeasureMemoryDelegate
+{
+public:
+	bool ShouldMeasure(v8::Local<v8::Context>) override
+	{
+		return true;
+	}
+
+	void MeasurementComplete(Result result) override
+	{
+		for (size_t i = 0; i < result.contexts.size(); ++i)
+		{
+			v8::Local<v8::Context> ctx = result.contexts[i];
+			size_t size = result.sizes_in_bytes[i];
+
+			g_memoryInfo[GetContextIdFromContext(ctx)] = size;
+		}
+		g_isDelegateRegistered = false;
+	}
+};
+
+
+result_t NodeScriptRuntime::RequestMemoryUsage()
+{
+	SharedPushEnvironment pushed(this);
+
+	auto contextId = GetContextIdFromContext(GetContext());
+
+	if (!g_isDelegateRegistered)
+	{
+		g_isDelegateRegistered = true;
+		// we give up better information by using `kDefault` instead of `kEager`, but if server owners or users leave their `resmon` or `svgui` (with resmon) open
+		// it would cause JS scripts to have higher tick times due to constant garbage collections
+		// If the need arises it may be a good idea to let users change this with a convar
+		GetIsolate()->MeasureMemory(
+			std::make_unique<NodePollingMemoryDelegate>(),
+			v8::MeasureMemoryExecution::kDefault
+		);
+	}
+
+	if (auto hasData = g_memoryInfo.find(contextId); hasData != g_memoryInfo.end())
+	{
+		return FX_S_OK;
+	};
+
+
+	return FX_E_WAITING_FOR_DATA;
+}
+
+result_t NodeScriptRuntime::GetMemoryUsage(int64_t* memoryUsage)
+{
+	SharedPushEnvironment pushed(this);
+
+	uint32_t contextId = GetContextIdFromContext(GetContext());
+
+
+	if (auto contextMemoryUsage = g_memoryInfo.find(contextId); contextMemoryUsage != g_memoryInfo.end())
+	{
+		*memoryUsage = contextMemoryUsage->second; 
+		return FX_S_OK;
+	}
+
+
+	// this shouldn't ever get hit
+	return FX_E_WAITING_FOR_DATA;
 }
 
 result_t NodeScriptRuntime::LoadFile(char* scriptName)
