@@ -137,6 +137,7 @@ extern int g_argc;
 extern char** g_argv;
 
 static const char* g_platformScripts[] = {
+	"citizen:/scripting/v8/source-map.js",
 	"citizen:/scripting/v8/console.js",
 	"citizen:/scripting/v8/timer.js",
 	"citizen:/scripting/v8/msgpack.js",
@@ -2572,7 +2573,6 @@ void V8ScriptGlobals::Initialize()
 	}
 #endif
 
-#ifndef V8_NODE
 	m_isolate->SetPromiseRejectCallback([](PromiseRejectMessage message)
 	{
 		Local<Promise> promise = message.GetPromise();
@@ -2595,9 +2595,6 @@ void V8ScriptGlobals::Initialize()
 		scRT->HandlePromiseRejection(message);
 
 	});
-#else
-	m_isolate->SetPromiseRejectCallback(node::PromiseRejectCallback);
-#endif
 
 	Isolate::Initialize(m_isolate, params);
 
