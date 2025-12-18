@@ -1,3 +1,4 @@
+using CitizenFX.MsgPack;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -10,11 +11,11 @@ namespace CitizenFX.Core
 	{
 		internal class Function
 		{
-			public DynFunc m_method;
+			public MsgPackFunc m_method;
 			public readonly byte[] m_refId;
 			public int m_refCount;
 
-			public Function(DynFunc method, byte[] id)
+			public Function(MsgPackFunc method, byte[] id)
 			{
 				m_method = method;
 				m_refId = id;
@@ -31,7 +32,7 @@ namespace CitizenFX.Core
 		/// <returns>( internalReferenceId, externalReferenceId )</returns>
 		/// <remarks>Don't alter the returned value</remarks>
 		[SecuritySafeCritical]
-		internal static KeyValuePair<int, byte[]> Create(DynFunc method)
+		internal static KeyValuePair<int, byte[]> Create(MsgPackFunc method)
 		{
 			// TODO: change return type to `ValueTuple` once clients support those
 
@@ -98,7 +99,7 @@ namespace CitizenFX.Core
 		/// <param name="referenceId">Reference id of the reference to remove</param>
 		/// <param name="newFunc">New delegate/method to set the reference function to</param>
 		/// <returns><see langword="true"/> if found and changed, <see langword="false"/> otherwise</returns>
-		internal static bool SetDelegate(int referenceId, DynFunc newFunc)
+		internal static bool SetDelegate(int referenceId, MsgPackFunc newFunc)
 		{
 			if (s_references.TryGetValue(referenceId, out var refFunc))
 			{
@@ -109,7 +110,7 @@ namespace CitizenFX.Core
 			return false;
 		}
 
-		internal static int CreateCommand(string command, DynFunc method, bool isRestricted)
+		internal static int CreateCommand(string command, MsgPackFunc method, bool isRestricted)
 		{
 			var registration = Create(method);
 			Native.CoreNatives.RegisterCommand(command, new Native.InFunc(registration.Value), isRestricted);
@@ -137,17 +138,20 @@ namespace CitizenFX.Core
 		{
 			if (s_references.TryGetValue(reference, out var funcRef))
 			{
-				var args = MsgPackDeserializer.DeserializeArray(arguments, argsSize);
+				var deserializer = new MsgPackDeserializer(arguments, argsSize, null);
+				var restorePoint = deserializer.CreateRestorePoint();
 
 				object result = null;
 
 				try
 				{
 					// there's no remote invocation support through here
-					result = funcRef.m_method(default, args);
+					result = funcRef.m_method(default, ref deserializer);
 				}
 				catch (Exception ex)
 				{
+					deserializer.Restore(restorePoint);
+					var args = deserializer.DeserializeAsObjectArray();
 					Debug.WriteException(ex, funcRef.m_method, args, "reference function");
 				}
 
@@ -160,7 +164,7 @@ namespace CitizenFX.Core
 							Debug.Write(coroutine.Exception);
 						}
 
-						return MsgPackSerializer.Serialize(new[] { coroutine.GetResultNonThrowing(), coroutine.Exception?.ToString() });
+						return MsgPackSerializer.SerializeToByteArray(new[] { coroutine.GetResultNonThrowing(), coroutine.Exception?.ToString() });
 					}
 					else
 					{
@@ -174,16 +178,17 @@ namespace CitizenFX.Core
 										Debug.Write(coroutine.Exception);
 									}
 
-									asyncResult(coroutine.GetResultNonThrowing(), coroutine.Exception?.ToString());
+									// lua expects a table when returning asynchronously
+									asyncResult(new[] { coroutine.GetResultNonThrowing() }, coroutine.Exception?.ToString());
 								}))
 							}
 						};
 
-						return MsgPackSerializer.Serialize(new object[] { returnDictionary });
+						return MsgPackSerializer.SerializeToByteArray(new object[] { returnDictionary });
 					}
 				}
 
-				return MsgPackSerializer.Serialize(new[] { result });
+				return MsgPackSerializer.SerializeToByteArray(new[] { result });
 			}
 			else
 			{

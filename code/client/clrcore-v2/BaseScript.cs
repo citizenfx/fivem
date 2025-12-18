@@ -1,6 +1,8 @@
+using CitizenFX.MsgPack;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Reflection;
 using System.Security;
 
@@ -33,9 +35,9 @@ namespace CitizenFX.Core
 			remove => UnregisterTick(value);
 		}
 
-		private readonly List<KeyValuePair<int, DynFunc>> m_commands = new List<KeyValuePair<int, DynFunc>>();
+		private readonly List<KeyValuePair<int, MsgPackFunc>> m_commands = new List<KeyValuePair<int, MsgPackFunc>>();
 		
-		private readonly Dictionary<string, DynFunc> m_nuiCallbacks = new Dictionary<string, DynFunc>();
+		private readonly Dictionary<string, MsgPackFunc> m_nuiCallbacks = new Dictionary<string, MsgPackFunc>();
 
 #if REMOTE_FUNCTION_ENABLED
 		private readonly List<RemoteHandler> m_persistentFunctions = new List<RemoteHandler>();
@@ -92,22 +94,34 @@ namespace CitizenFX.Core
 								break;
 
 							case EventHandlerAttribute eventHandler:
-								RegisterEventHandler(eventHandler.Event, Func.Create(this, method), eventHandler.Binding);
+								RegisterEventHandler(eventHandler.Event, MsgPackDeserializer.CreateDelegate(this, method), eventHandler.Binding);
+								break;
+
+							case CallbackHandlerAttribute callbackHandler:
+								RegisterCallback(callbackHandler.Callback, MsgPackDeserializer.CreateDelegate(this, method), callbackHandler.CallbackBinding);
 								break;
 
 							case CommandAttribute command:
-								RegisterCommand(command.Command, Func.CreateCommand(this, method, command.RemapParameters), command.Restricted);
+								{
+									// Automatically remap methods with [Source] parameters
+									bool remap = command.RemapParameters || method.GetParameters().Any(p => Attribute.GetCustomAttribute(p, typeof(SourceAttribute)) != null);
+									RegisterCommand(command.Command, MsgPackDeserializer.CreateCommandDelegate(this, method, remap), command.Restricted);
+								}
 								break;
 #if !IS_FXSERVER
 							case KeyMapAttribute keyMap:
-								RegisterKeyMap(keyMap.Command, keyMap.Description, keyMap.InputMapper, keyMap.InputParameter, Func.CreateCommand(this, method, keyMap.RemapParameters));
+								{
+									// Automatically remap methods with [Source] parameters
+									bool remap = keyMap.RemapParameters || method.GetParameters().Any(p => Attribute.GetCustomAttribute(p, typeof(SourceAttribute)) != null);
+									RegisterKeyMap(keyMap.Command, keyMap.Description, keyMap.InputMapper, keyMap.InputParameter, MsgPackDeserializer.CreateCommandDelegate(this, method, remap));
+								}
 								break;
 							case NuiCallbackAttribute nuiCallback:
 								RegisterNuiCallback(nuiCallback.CallbackName, Func.Create(this, method));
 								break;
 #endif
 							case ExportAttribute export:
-								Exports.Add(export.Export, Func.Create(this, method), export.Binding);
+								Exports.Add(export.Export, MsgPackDeserializer.CreateDelegate(this, method), export.Binding);
 								break;
 						}
 					}
@@ -179,7 +193,7 @@ namespace CitizenFX.Core
 				// commands
 				for (int i = 0; i < m_commands.Count; ++i)
 				{
-					ReferenceFunctionManager.SetDelegate(m_commands[i].Key, (_0, _1) => null);
+					ReferenceFunctionManager.SetDelegate(m_commands[i].Key, delegate(Remote _0, ref MsgPackDeserializer _1) { return null; });
 				}
 				
 				foreach (var nuiCallback in m_nuiCallbacks)
@@ -228,6 +242,10 @@ namespace CitizenFX.Core
 
 		#region Update/Tick Scheduling
 
+		/// <summary>
+		/// A method to be scheduled on every game tick, do note that they'll only be rescheduled for the next frame once the method returns.
+		/// Same as Tick += myTick
+		/// </summary>
 		public void RegisterTick(Func<Coroutine> tick, bool stopOnException = false)
 		{
 			lock (m_tickList)
@@ -238,6 +256,11 @@ namespace CitizenFX.Core
 			}
 		}
 
+		/// <summary>
+		/// Unregister the tick.
+		/// Same as Tick -= myTick
+		/// </summary>
+		/// <param name="tick">The tick.</param>
 		public void UnregisterTick(Func<Coroutine> tick)
 		{
 			lock (m_tickList)
@@ -255,10 +278,26 @@ namespace CitizenFX.Core
 			}
 		}
 
+		/// <summary>
+		/// Suspends execution until the specified time point is reached.
+		/// This method is useful for precise timing operations and delayed execution.
+		/// </summary>
+		/// <param name="msecs">The time point at which to resume execution.</param>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine WaitUntil(TimePoint msecs) => Coroutine.WaitUntil(msecs);
 
+		/// <summary>
+		/// Suspends execution until the next frame, identical to Yield().
+		/// This method is provided as an alias for clarity when the intention is to wait for the next frame.
+		/// </summary>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine WaitUntilNextFrame() => Coroutine.Yield();
 
+		/// <summary>
+		/// Suspends execution until the next frame, allowing other coroutines to run.
+		/// This method is useful for frame-by-frame operations and animations.
+		/// </summary>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine Yield() => Coroutine.Yield();
 
 		/// <summary>
@@ -271,22 +310,47 @@ namespace CitizenFX.Core
 		/// <returns>An awaitable task.</returns>
 		public static Coroutine Delay(uint msecs = 0u) => Coroutine.Delay(msecs);
 
+		/// <summary>
+		/// Alias for Delay that suspends execution for the specified number of milliseconds.
+		/// </summary>
+		/// <example>
+		/// await Wait(500);
+		/// </example>
+		/// <param name="msecs">The number of milliseconds to wait before continuing execution.</param>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine Wait(uint msecs = 0u) => Delay(msecs);
 
+		/// <summary>
+		/// Suspends execution for the specified number of seconds.
+		/// </summary>
+		/// <example>
+		/// await WaitForSeconds(2);
+		/// </example>
+		/// <param name="seconds">The number of seconds to wait before continuing execution.</param>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine WaitForSeconds(uint seconds) => Delay(seconds * 1000u);
 
+		/// <summary>
+		/// Suspends execution for the specified number of minutes.
+		/// </summary>
+		/// <example>
+		/// await WaitForMinutes(1);
+		/// </example>
+		/// <param name="minutes">The number of minutes to wait before continuing execution.</param>
+		/// <returns>An awaitable task.</returns>
 		public static Coroutine WaitForMinutes(uint minutes) => Delay(minutes * 1000u * 60u);
 
 		#endregion
 
 		#region Events & Command registration
-		internal void RegisterEventHandler(string eventName, DynFunc deleg, Binding binding = Binding.Local) => EventHandlers[eventName].Add(deleg, binding);
-		internal void UnregisterEventHandler(string eventName, DynFunc deleg) => EventHandlers[eventName].Remove(deleg);
+		internal void RegisterEventHandler(string eventName, MsgPackFunc deleg, Binding binding = Binding.Local) => EventHandlers[eventName].Add(deleg, binding);
+		internal void RegisterCallback(string callbackName, MsgPackFunc deleg, Binding binding = Binding.Remote) => CallbacksManager.Register(callbackName, binding, deleg);
+		internal void UnregisterEventHandler(string eventName, MsgPackFunc deleg) => EventHandlers[eventName].Remove(deleg);
 
-		internal void RegisterCommand(string command, DynFunc dynFunc, bool isRestricted = true)
-			=> m_commands.Add(new KeyValuePair<int, DynFunc>(ReferenceFunctionManager.CreateCommand(command, dynFunc, isRestricted), dynFunc));
+		internal void RegisterCommand(string command, MsgPackFunc dynFunc, bool isRestricted = true)
+			=> m_commands.Add(new KeyValuePair<int, MsgPackFunc>(ReferenceFunctionManager.CreateCommand(command, dynFunc, isRestricted), dynFunc));
 
-		internal void RegisterKeyMap(string command, string description, string inputMapper, string inputParameter, DynFunc dynFunc)
+		internal void RegisterKeyMap(string command, string description, string inputMapper, string inputParameter, MsgPackFunc dynFunc)
 		{
 #if !GTA_FIVE
 			throw new NotImplementedException();
@@ -295,7 +359,7 @@ namespace CitizenFX.Core
 			{
 				Native.CoreNatives.RegisterKeyMapping(command, description, inputMapper, inputParameter);
 			}
-			m_commands.Add(new KeyValuePair<int, DynFunc>(ReferenceFunctionManager.CreateCommand(command, dynFunc, false), dynFunc));
+			m_commands.Add(new KeyValuePair<int, MsgPackFunc>(ReferenceFunctionManager.CreateCommand(command, dynFunc, false), dynFunc));
 #endif
 		}
 		
@@ -303,7 +367,7 @@ namespace CitizenFX.Core
 		
 		#region NUI Callback registration
 
-		internal void RegisterNuiCallback(string callbackName, DynFunc dynFunc)
+		internal void RegisterNuiCallback(string callbackName, MsgPackFunc dynFunc)
 		{
 #if IS_FXSERVER
 			throw new NotImplementedException();
@@ -326,7 +390,7 @@ namespace CitizenFX.Core
 #if IS_FXSERVER
 			throw new NotImplementedException();
 #endif
-			DynFunc dynFunc = Func.Create(delegateFn);
+			MsgPackFunc dynFunc = MsgPackDeserializer.CreateDelegate(delegateFn);
 			m_nuiCallbacks.Add(callbackName, dynFunc);
 			Native.CoreNatives.RegisterNuiCallback(callbackName, dynFunc);
 		}
