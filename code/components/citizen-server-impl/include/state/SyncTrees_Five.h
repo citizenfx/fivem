@@ -2356,14 +2356,14 @@ struct CPedHealthDataNode
 
 		if (maxHealthChanged)
 		{
-			maxHealth = state.buffer.Read<int>(13);
+			maxHealth = IsWinterUpdate25() ? state.buffer.Read<int>(14) : state.buffer.Read<int>(13);
 		}
 
 		data.maxHealth = maxHealth;
 
 		if (!isFine)
 		{
-			int pedHealth = state.buffer.Read<int>(13);
+			int pedHealth = IsWinterUpdate25() ? state.buffer.Read<int>(14) : state.buffer.Read<int>(13);
 			auto killedWithHeadshot = state.buffer.ReadBit();
 			auto killedWithMelee = state.buffer.ReadBit();
 
