@@ -31,7 +31,7 @@ using namespace fx::invoker;
 
 namespace fx::nodejs
 {
-class NodeScriptRuntime : public OMClass<NodeScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime,
+class NodeScriptRuntime : public OMClass<NodeScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptMemInfoRuntime, IScriptTickRuntime, IScriptEventRuntime,
 	IScriptRefRuntime, IScriptStackWalkingRuntime, IScriptWarningRuntime>
 {
 private:
@@ -175,5 +175,6 @@ public:
 	NS_DECL_ISCRIPTREFRUNTIME;
 	NS_DECL_ISCRIPTSTACKWALKINGRUNTIME;
 	NS_DECL_ISCRIPTWARNINGRUNTIME;
+	NS_DECL_ISCRIPTMEMINFORUNTIME;
 };
 }

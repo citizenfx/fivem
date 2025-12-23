@@ -39,6 +39,19 @@ using namespace fx::invoker;
 #include <rapidjson/writer.h>
 #include <MsgpackJson.h>
 
+enum CfxV8EmbeddedData
+{
+	kEmbeddedScriptRuntime = 16,
+	kEmbeddedContextId = 17,
+};
+
+
+// the context id that gets bumped up every time a script runtime gets registered
+static uint32_t g_contextId = 0;
+static bool g_isDelegateRegistered = false;
+// the key here will be the same context id thats stored in `kEmbeddedContextId`
+static std::unordered_map<uint32_t, int64_t> g_memoryInfo{};
+
 inline static std::chrono::milliseconds msec()
 {
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
@@ -164,7 +177,7 @@ static node::IsolateData* GetNodeIsolate();
 // this is *technically* per-isolate, but we only register the callback for our host isolate
 static std::atomic<int> g_isV8InGc;
 
-class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptStackWalkingRuntime, IScriptWarningRuntime>
+class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptMemInfoRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptStackWalkingRuntime, IScriptWarningRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -339,6 +352,8 @@ public:
 	NS_DECL_ISCRIPTSTACKWALKINGRUNTIME;
 
 	NS_DECL_ISCRIPTWARNINGRUNTIME;
+
+	NS_DECL_ISCRIPTMEMINFORUNTIME;
 };
 
 static Local<Value> GetStackTrace(TryCatch& eh, V8ScriptRuntime* runtime)
@@ -1704,7 +1719,11 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 	m_context.Reset(GetV8Isolate(), context);
 
 	// store the ScRT in the context
-	context->SetEmbedderData(16, External::New(GetV8Isolate(), this));
+	context->SetEmbedderData(kEmbeddedScriptRuntime, External::New(GetV8Isolate(), this));
+
+	// store a unique context id that we can use later for assigning memory info to specific resources 
+	auto contextId = ++g_contextId;
+	context->SetEmbedderData(kEmbeddedContextId, v8::Integer::NewFromUnsigned(GetV8Isolate(), contextId));
 
 	// run the following entries in the context scope
 	Context::Scope scope(context);
@@ -2021,6 +2040,90 @@ result_t V8ScriptRuntime::RunFileInternal(char* scriptName, std::function<result
 	}
 
 	return FX_S_OK;
+}
+
+
+static uint32_t GetContextIdFromContext(v8::Local<v8::Context> context)
+{
+	return static_cast<uint32_t>(
+	context->GetEmbedderData(17).As<v8::Integer>()->Value());
+}
+
+class V8PollingMemoryDelegate : public v8::MeasureMemoryDelegate
+{
+public:
+
+	bool ShouldMeasure(v8::Local<v8::Context>) override
+	{
+		return true;
+	}
+
+#ifdef V8_12_2
+	void MeasurementComplete(Result result) override
+	{
+		for (size_t i = 0; i < result.contexts.size(); ++i)
+		{
+			v8::Local<v8::Context> ctx = result.contexts[i];
+			size_t size = result.sizes_in_bytes[i];
+
+			g_memoryInfo[GetContextIdFromContext(ctx)] = size;
+		}
+		g_isDelegateRegistered = false;
+	}
+#else
+	void MeasurementComplete(
+		const std::vector<std::pair<v8::Local<v8::Context>, size_t>>& contextList,
+		size_t unattributedSize
+	) override
+	{
+		for (const auto& [ctx, size] : contextList)
+		{
+			g_memoryInfo[GetContextIdFromContext(ctx)] = size;
+		}
+		g_isDelegateRegistered = false;
+	}
+#endif
+};
+
+
+result_t V8ScriptRuntime::RequestMemoryUsage()
+{
+	V8PushEnvironment pushed(this);
+
+	auto contextId = GetContextIdFromContext(GetContext());
+
+	if (!g_isDelegateRegistered)
+	{
+		g_isDelegateRegistered = true;
+		GetV8Isolate()->MeasureMemory(
+			std::make_unique<V8PollingMemoryDelegate>(),
+			v8::MeasureMemoryExecution::kDefault
+		);
+	}
+
+	if (auto hasData = g_memoryInfo.find(contextId); hasData != g_memoryInfo.end())
+	{
+		return FX_S_OK;
+	}
+
+	return FX_E_WAITING_FOR_DATA;
+}
+
+result_t V8ScriptRuntime::GetMemoryUsage(int64_t* memoryUsage)
+{
+	V8PushEnvironment pushed(this);
+
+	uint32_t contextId = GetContextIdFromContext(GetContext());
+
+	// Already have data
+	if (auto contextMemoryUsage = g_memoryInfo.find(contextId); contextMemoryUsage != g_memoryInfo.end())
+	{
+		*memoryUsage = contextMemoryUsage->second;
+		return FX_S_OK;
+	}
+
+	// this shouldn't ever get hit
+	return FX_E_WAITING_FOR_DATA;
 }
 
 result_t V8ScriptRuntime::LoadFile(char* scriptName)
@@ -2582,7 +2685,7 @@ void V8ScriptGlobals::Initialize()
 		Local<Context> context = promise->GetCreationContext().ToLocalChecked();
 #endif
 
-		auto embedderData = context->GetEmbedderData(16);
+		auto embedderData = context->GetEmbedderData(kEmbeddedScriptRuntime);
 
 		if (embedderData.IsEmpty())
 		{
