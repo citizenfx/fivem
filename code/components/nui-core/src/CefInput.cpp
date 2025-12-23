@@ -773,10 +773,10 @@ static HookFunction initFunction([] ()
 
 				auto browser = GetFocusBrowser();
 
-				if (browser)
-				{
-					browser->GetHost()->SendMouseWheelEventNative(&m);
-				}
+				// if (browser)
+				// {
+				// 	browser->GetHost()->SendMouseWheelEventNative(&m);
+				// }
 
 				suppressInput();
 				break;
