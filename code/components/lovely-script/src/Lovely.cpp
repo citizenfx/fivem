@@ -27,6 +27,29 @@
 
 #include <SteamComponentAPI.h>
 
+enum NativeIdentifiers : uint64_t
+{
+#ifdef GTA_FIVE
+	ENABLE_DISPATCH_SERVICE = 0xDC0F817884CDD856,
+	ADD_SCENARIO_BLOCKING_AREA = 0x1B5C85C612E5256E,
+	SET_PED_DENSITY_MULTIPLIER_THIS_FRAME = 0x95E3D6257B166CF2,
+	SET_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME = 0x245A6883D966D537,
+	SET_SCENARIO_PED_DENSITY_MULTIPLIER_THIS_FRAME = 0x7A556143A1C03898,
+	SET_AMBIENT_VEHICLE_RANGE_MULTIPLIER_THIS_FRAME = 0x90B6DA738A9A25DA,
+	SET_PARKED_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME = 0xEAE6DCC7EEE3DB1D,
+	SET_RANDOM_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME = 0xB3B3359379FE77D3,
+	REMOVE_SCENARIO_BLOCKING_AREA = 0x31D16B74C6E29D66,
+	PLAYER_PED_ID = 0xD80958FC74E988A6,
+	NETWORK_IS_HOST = 0x8DB296B814EDDA07,
+	NETWORK_SESSION_VALIDATE_JOIN = 0xC19F6C8E7865A6FF,
+#elif IS_RDR3
+	PLAYER_PED_ID = 0x096275889B8E0EE0,
+#endif
+	
+	NETWORK_IS_SESSION_STARTED = 0x9DE624D2FC4B603F,
+	NETWORK_IS_PLAYER_ACTIVE = 0xB8DFD30D6973E135,
+};
+
 inline ISteamComponent* GetSteam()
 {
 	auto steamComponent = Instance<ISteamComponent>::Get();
@@ -90,8 +113,7 @@ public:
 		{
 			for (int i = 1; i <= 15; i++)
 			{
-				// ENABLE_DISPATCH_SERVICE
-				NativeInvoke::Invoke<0xDC0F817884CDD856, int>(i, enable);
+				NativeInvoke::Invoke<ENABLE_DISPATCH_SERVICE, int>(i, enable);
 			}
 		};
 
@@ -101,29 +123,17 @@ public:
 			{
 				setDispatch(false);
 
-				// ADD_SCENARIO_BLOCKING_AREA
-				m_blockingArea = NativeInvoke::Invoke<0x1B5C85C612E5256E, int>(-8192.0, -8192.0, -1024.0, 8192.0f, 8192.0f, 1024.0f, false, true, true, true);
+				m_blockingArea = NativeInvoke::Invoke<ADD_SCENARIO_BLOCKING_AREA, int>(-8192.0, -8192.0, -1024.0, 8192.0f, 8192.0f, 1024.0f, false, true, true, true);
 
 				m_lastOff = true;
 			}
 
-			// SET_PED_DENSITY_MULTIPLIER_THIS_FRAME
-			NativeInvoke::Invoke<0x95E3D6257B166CF2, int>(0.0f);
-
-			// SET_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME
-			NativeInvoke::Invoke<0x245A6883D966D537, int>(0.0f);
-
-			// SET_SCENARIO_PED_DENSITY_MULTIPLIER_THIS_FRAME
-			NativeInvoke::Invoke<0x7A556143A1C03898, int>(0.0f, 0.0f);
-
-			// SET_AMBIENT_VEHICLE_RANGE_MULTIPLIER_THIS_FRAME
-			NativeInvoke::Invoke<0x90B6DA738A9A25DA, int>(0.0f);
-
-			// SET_PARKED_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME
-			NativeInvoke::Invoke<0xEAE6DCC7EEE3DB1D, int>(0.0f);
-
-			// SET_RANDOM_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME
-			NativeInvoke::Invoke<0xB3B3359379FE77D3, int>(0.0f);
+			NativeInvoke::Invoke<SET_PED_DENSITY_MULTIPLIER_THIS_FRAME, int>(0.0f);
+			NativeInvoke::Invoke<SET_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME, int>(0.0f);
+			NativeInvoke::Invoke<SET_SCENARIO_PED_DENSITY_MULTIPLIER_THIS_FRAME, int>(0.0f, 0.0f);
+			NativeInvoke::Invoke<SET_AMBIENT_VEHICLE_RANGE_MULTIPLIER_THIS_FRAME, int>(0.0f);
+			NativeInvoke::Invoke<SET_PARKED_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME, int>(0.0f);
+			NativeInvoke::Invoke<SET_RANDOM_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME, int>(0.0f);
 		}
 		else
 		{
@@ -133,8 +143,7 @@ public:
 
 				if (m_blockingArea != -1)
 				{
-					// REMOVE_SCENARIO_BLOCKING_AREA
-					NativeInvoke::Invoke<0x31D16B74C6E29D66, int>(m_blockingArea, false);
+					NativeInvoke::Invoke<REMOVE_SCENARIO_BLOCKING_AREA, int>(m_blockingArea, false);
 					m_blockingArea = -1;
 				}
 
@@ -147,13 +156,7 @@ public:
 	virtual void DoRun() override
 	{
 		ProcessPopulationToggle();
-
-// PLAYER_PED_ID
-#ifdef GTA_FIVE
-		uint32_t playerPedId = NativeInvoke::Invoke<0xD80958FC74E988A6, uint32_t>();
-#elif defined(IS_RDR3)
-		uint32_t playerPedId = NativeInvoke::Invoke<0x096275889B8E0EE0, uint32_t>();
-#endif
+		uint32_t playerPedId = NativeInvoke::Invoke<PLAYER_PED_ID, uint32_t>();
 
 		auto setPresenceTemplate = [](std::string_view value)
 		{
@@ -200,8 +203,7 @@ public:
 		if (playerPedId != -1 && playerPedId != 0)
 		{
 #ifdef GTA_FIVE
-			// NETWORK_IS_SESSION_STARTED
-			if (!NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>())
+			if (!NativeInvoke::Invoke<NETWORK_IS_SESSION_STARTED, bool>())
 			{
 				CRect rect(0, 0, 22, 22);
 				CRGBA color;
@@ -216,15 +218,14 @@ public:
 			}
 			else
 #elif defined(IS_RDR3)
-			if (NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>())
+			if (NativeInvoke::Invoke<NETWORK_IS_SESSION_STARTED, bool>())
 #endif
 			{
 				int playerCount = 0;
 
 				for (int i = 0; i < 256; i++)
 				{
-					// NETWORK_IS_PLAYER_ACTIVE
-					if (NativeInvoke::Invoke<0xB8DFD30D6973E135, bool>(i))
+					if (NativeInvoke::Invoke<NETWORK_IS_PLAYER_ACTIVE, bool>(i))
 					{
 						++playerCount;
 					}
@@ -239,11 +240,9 @@ public:
 				}
 			}
 #ifdef GTA_FIVE
-			// NETWORK_IS_HOST
-			if (!m_hosted && NativeInvoke::Invoke<0x8DB296B814EDDA07, bool>())
+			if (!m_hosted && NativeInvoke::Invoke<NETWORK_IS_HOST, bool>())
 			{
-				// NETWORK_SESSION_VALIDATE_JOIN
-				NativeInvoke::Invoke<0xC19F6C8E7865A6FF, int>(1);
+				NativeInvoke::Invoke<NETWORK_SESSION_VALIDATE_JOIN, int>(1);
 
 				m_hosted = true;
 			}

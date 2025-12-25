@@ -30,6 +30,11 @@ FiveGameInit g_gameInit;
 fwEvent<const char*> OnKillNetwork;
 fwEvent<> OnKillNetworkDone;
 
+enum NativeIdentifiers : uint64_t
+{
+	SET_WARNING_MESSAGE_WITH_HEADER = 0xDC38CC1E35B6A5D7,
+};
+
 void AddCustomText(const char* key, const char* value);
 
 static hook::cdecl_stub<void(int unk, uint32_t* titleHash, uint32_t* messageHash, uint32_t* subMessageHash, int flags, bool, int8_t, void*, void*, bool, bool)> setWarningMessage([] ()
@@ -315,7 +320,7 @@ static InitFunction initFunction([] ()
 			uint32_t labelHash = HashString("CUST_WARN_LABEL");
 			uint32_t label2Hash = HashString("CUST_WARN_LABEL2");
 
-			NativeInvoke::Invoke<0xDC38CC1E35B6A5D7, uint32_t>("CUST_WARN_HEADING", "CUST_WARN_LABEL", wmButtons, "CUST_WARN_LABEL2", 0, -1, 0, 0, 1);
+			NativeInvoke::Invoke<SET_WARNING_MESSAGE_WITH_HEADER, uint32_t>("CUST_WARN_HEADING", "CUST_WARN_LABEL", wmButtons, "CUST_WARN_LABEL2", 0, -1, 0, 0, 1);
 
 			int result = getWarningResult(true, 0);
 
