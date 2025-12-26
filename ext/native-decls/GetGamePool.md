@@ -21,6 +21,7 @@ follows:
 * `CNetObject`: Networked objects
 * `CVehicle`: Vehicles.
 * `CPickup`: Pickups.
+* `CBlip`: Blips (RDR3 only).
 
 ## Examples
 ```lua
@@ -29,6 +30,15 @@ for i = 1, #vehiclePool do -- loop through each vehicle (entity)
     if GetPedInVehicleSeat(vehiclePool[i], -1) == 0 then
         DeleteEntity(vehiclePool[i]) -- Delete vehicles (entities) that don't have a driver
     end
+end
+
+-- RDR3 only: Get all blips
+local blipPool = GetGamePool('CBlip')
+for i = 1, #blipPool do
+    local sprite = GetBlipSprite(blipPool[i])
+    local rotation = GetBlipRotation(blipPool[i])
+    print(string.format("Blip %d: sprite=0x%X, rotation=%d", 
+          blipPool[i], sprite, rotation))
 end
 ```
 
