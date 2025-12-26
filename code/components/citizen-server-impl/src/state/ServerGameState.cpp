@@ -3545,6 +3545,18 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			std::unique_lock _lock(data->playerEntityMutex);
 			sync::SyncEntityPtr playerEntity = data->playerEntity.lock();
 
+			// Prevent clients from creating multiple CNetObjPlayer entities
+			if (createdHere && playerEntity)
+			{
+				GS_LOG("%s: client %d %s tried to create duplicate player entity %d, but already has player entity %d. Rejecting!\n",
+					__func__,
+					client->GetNetId(),
+					client->GetName(),
+					objectId,
+					playerEntity->handle & 0xFFFF);
+				return false;
+			}
+
 			if (!playerEntity)
 			{
 				SendWorldGrid(nullptr, client);
