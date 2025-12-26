@@ -10,15 +10,20 @@
 
 #include <ScriptEngine.h>
 #include <Hooking.h>
+#include "Hooking.Stubs.h"
 #include <scrEngine.h>
 #include <CrossBuildRuntime.h>
 #include "RageParser.h"
 #include "ScriptWarnings.h"
 #include <EntitySystem.h>
+#include <CoreConsole.h>
 #include <vector>
 
 static bool* g_textCentre;
 static bool* g_textDropshadow;
+
+static bool g_skipScenarioMaleCheck = false;
+static bool g_skipScenarioFemaleCheck = false;
 
 struct netObject
 {
@@ -149,6 +154,44 @@ static void FixPedCombatAttributes()
 	});
 }
 
+static InitFunction initFunction([]()
+{
+	static ConVar<bool> g_skipScenarioMaleCheckConVar("sv_skipScenarioMaleCheck", ConVar_Replicated, false, &g_skipScenarioMaleCheck);
+	static ConVar<bool> g_skipScenarioFemaleCheckConVar("sv_skipScenarioFemaleCheck", ConVar_Replicated, false, &g_skipScenarioFemaleCheck);
+});
+
+static hook::cdecl_stub<bool(CPed* ped)> hasPlayerComponent([]()
+{
+	return hook::get_pattern("0F 95 C0 C3 48 83 EC ? 83 F9", -40);
+}); 
+
+
+static bool (*g_origCAIConditionIsMale)(void* self, void* context);
+static bool CAIConditionIsMale(void* self, void* context)
+{
+	int v3 = *(int*)((char*)self + 16);
+	CPed* ped = *(CPed**)((char*)context + 192 + (8 * v3));
+
+	if (g_skipScenarioMaleCheck && ped && hasPlayerComponent(ped))
+	{
+		return true;
+	}
+	return g_origCAIConditionIsMale(self, context);
+}
+
+static bool (*g_origCAIConditionIsFemale)(void* self, void* context);
+static bool CAIConditionIsFemale(void* self, void* context)
+{
+	int v3 = *(int*)((char*)self + 16);
+	CPed* ped = *(CPed**)((char*)context + 192 + (8 * v3));
+
+	if (g_skipScenarioFemaleCheck && ped && hasPlayerComponent(ped))
+	{
+		return true;
+	}
+	return g_origCAIConditionIsFemale(self, context);
+}
+
 static HookFunction hookFunction([]()
 {
 	{
@@ -215,5 +258,11 @@ static HookFunction hookFunction([]()
 		
 		// mov rax, [r14] (restore rax value from r14)
 		hook::put((char*)location + 10, 0x068B49);
+	}
+
+	{
+		// Allow players to use scenario without checking the gender
+		g_origCAIConditionIsFemale = hook::trampoline(hook::get_pattern("48 F7 DA 48 1B C0 48 23 C1 8A 40 ? C0 E8 ? F6 D0 24 ? EB ? 49 8B C8", -0x30), CAIConditionIsFemale);
+		g_origCAIConditionIsMale = hook::trampoline(hook::get_pattern("48 F7 DA 48 1B C0 48 23 C1 8A 40 ? C0 E8 ? 24 ? EB", -0x4F), CAIConditionIsMale);
 	}
 });
