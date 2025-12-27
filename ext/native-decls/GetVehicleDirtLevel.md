@@ -13,3 +13,4 @@ float GET_VEHICLE_DIRT_LEVEL(Vehicle vehicle);
 * **vehicle**: 
 
 ## Return value
+Returns a number between `0.0` and `15.0` signifying how dirty the vehicle is

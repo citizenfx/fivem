@@ -9,6 +9,11 @@ game: gta5
 void SET_INTERIOR_PORTAL_FLAG(int interiorId, int portalIndex, int flag);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **portalIndex**: Interior portal index.
+* **flag**: New flag value.
+
 ## Examples
 
 ```lua
@@ -23,7 +28,3 @@ if interiorId ~= 0 then
 end
 ```
 
-## Parameters
-* **interiorId**: The target interior.
-* **portalIndex**: Interior portal index.
-* **flag**: New flag value.
