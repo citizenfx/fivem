@@ -88,7 +88,7 @@ export class HomeScreenServerListService implements AppContribution {
       reviveServerListConfig({
         type: ServersListType.RegionalTop,
         locales: {
-          [this.intlService.systemLocale]: true,
+          [this.intlService.locale]: true,
         },
         sortBy: ServersListSortBy.Boosts,
         sortDir: ServerListSortDir.Desc,
