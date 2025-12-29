@@ -16,10 +16,10 @@ Allows drawing advanced light effects, known as coronas, which support flares, v
 * **posY**: The Y position of the corona origin.
 * **posZ**: The Z position of the corona origin.
 * **size**: The size of the corona.
-* **red**: The red component of the marker color, on a scale from 0-255.
-* **green**: The green component of the marker color, on a scale from 0-255.
-* **blue**: The blue component of the marker color, on a scale from 0-255.
-* **alpha**: The alpha component of the marker color, on a scale from 0-255.
+* **alpha**: The red component of the marker color, on a scale from 0-255.
+* **red**: The green component of the marker color, on a scale from 0-255.
+* **green**: The blue component of the marker color, on a scale from 0-255.
+* **blue**: The alpha component of the marker color, on a scale from 0-255.
 * **intensity**: The intensity of the corona.
 * **zBias**: zBias slightly shifts the depth of surfaces to make sure they don’t overlap or cause visual glitches when they are very close together. The zBias value are usually in the range of 0.0 to 1.0.
 * **dirX**: The X direction of the corona.
