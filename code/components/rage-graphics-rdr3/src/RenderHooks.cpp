@@ -1,14 +1,19 @@
 #include "StdInc.h"
 
+#include <d3d12.h>
+#include <wrl/client.h>
 #include <vulkan/vulkan.h>
 
 #include <Hooking.h>
 #include <Error.h>
+#include <dxerr.h>
 
 #include <CoreConsole.h>
 
 #include <VulkanHelper.h>
 #include <CrossBuildRuntime.h>
+#include <DrawCommands.h>
+#include <Hooking.Stubs.h>
 
 #pragma comment(lib, "vulkan-1.lib")
 
@@ -244,6 +249,31 @@ static inline void SetVulkanCrashometry(const VkPhysicalDevice physicalDevice)
 	isInitialized = true;
 }
 
+
+// the game only checks if VK_ERROR_DEVICE_LOST for certain calls. For consistentcy sake we do the same
+// just providing the user with the real error code rather then ERR_GFX_STATE
+static VkResult VulkanDeviceLostCheck(VkResult result)
+{
+	if (result == VK_ERROR_DEVICE_LOST)
+	{
+		FatalError("Vulkan call failed with VK_ERROR_DEVICE_LOST: The logical or physical device has been lost.");
+		return result;
+	}
+
+	return result;
+}
+
+static VkResult VulkanFailed(VkResult result)
+{
+	if (result != VK_SUCCESS)
+	{
+		FatalError("Vulkan Call failed with %s", ResultToString(result));
+		return result;
+	}
+
+	return result;
+}
+
 static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice)
 {
 	// we keep the data here, to ensure the data does not go out of scope
@@ -282,6 +312,49 @@ static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreat
 	return result;
 }
 
+static void __declspec(noinline) DisplayD3DCrashMessageGeneric(const std::string& errorBody)
+{
+	FatalError("DirectX encountered an unrecoverable error: %s", errorBody);
+}
+
+static void D3D12ResultFailed(HRESULT hr)
+{
+	constexpr auto errorBufferCount = 8192;
+	auto errorBuffer = std::unique_ptr<wchar_t[]>(new wchar_t[errorBufferCount]);
+	memset(errorBuffer.get(), 0, errorBufferCount * sizeof(wchar_t));
+	DXGetErrorDescriptionW(hr, errorBuffer.get(), errorBufferCount);
+
+	auto errorString = DXGetErrorStringW(hr);
+
+	if (!errorString)
+	{
+		errorString = va(L"0x%08x", hr);
+	}
+
+	std::string removedError;
+
+	if (hr == DXGI_ERROR_DEVICE_REMOVED)
+	{
+		HRESULT removedReason = ((ID3D12Device*)GetGraphicsDriverHandle())->GetDeviceRemovedReason();
+
+		auto errorBuffer = std::unique_ptr<wchar_t[]>(new wchar_t[errorBufferCount]);
+		memset(errorBuffer.get(), 0, errorBufferCount * sizeof(wchar_t));
+		DXGetErrorDescriptionW(removedReason, errorBuffer.get(), errorBufferCount);
+
+		auto removedString = DXGetErrorStringW(removedReason);
+
+		if (!removedString)
+		{
+			removedString = va(L"0x%08x", hr);
+		}
+
+		removedError = ToNarrow(fmt::sprintf(L"\nGetDeviceRemovedReason returned %s - %s", removedString, errorBuffer.get()));
+	}
+
+	auto errorBody = fmt::sprintf("%s - %s%s", ToNarrow(errorString), ToNarrow(errorBuffer.get()), removedError);
+	DisplayD3DCrashMessageGeneric(errorBody);
+}
+
 static HookFunction hookFunction([]()
 {
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
@@ -299,5 +372,19 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern<char>("FF 15 ? ? ? ? 8B C8 E8 ? ? ? ? 85 C0 0F 85 ? ? ? ? 48 8B 0D");
 		hook::nop(location, 6);
 		hook::call(location, vkCreateDeviceHook);
+	}
+
+	// D3D12: Instead of throwing generic ERR_GFX_STATE properly catch FAILED calls and provide a slightly more useful error.
+	hook::call(hook::get_pattern("E8 ? ? ? ? 8B C3 48 83 C4 ? 5B C3 48 8B C4 48 89 58 ? 88 50"), D3D12ResultFailed);
+
+	// Same for Vulkan, Vulkan has three ERR_GFX_STATE errors, one for VK_ERROR_DEVICE_LOST, one for Swapchain Creation and an unknown one.
+	// VK_ERROR_DEVICE_LOST exclusively, called after most vk functions.
+	hook::trampoline(hook::get_pattern("40 53 48 83 EC ? 8B D9 83 F9 ? 75 ? 48 8B 0D"), VulkanDeviceLostCheck);
+
+	// Vulkan Swapchain creation. (VK_NOT_READY, VK_TIMEOUT, VK_ERROR_SURFACE_LOST_KHR etc falsely reported this as a D3D crash)
+	{
+		auto location = hook::get_pattern<char>("E8 ? ? ? ? 85 C0 0F 85 ? ? ? ? 41 8A 87");
+		hook::nop(location, 6);
+		hook::call(location, VulkanFailed);
 	}
 });

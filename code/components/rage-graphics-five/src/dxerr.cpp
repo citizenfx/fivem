@@ -15,6 +15,9 @@
 #include <ddraw.h>
 #include <d3d10_1.h>
 #include <d3d11.h>
+#ifdef IS_RDR3
+#include <d3d12.h>
+#endif
 #include <wincodec.h>
 #include <d2d1.h>
 #include <dwrite.h>
@@ -3152,6 +3155,14 @@ const WCHAR* WINAPI DXGetErrorStringW( _In_ HRESULT hr )
         CHK_ERRA(D3D11_ERROR_FILE_NOT_FOUND)
         CHK_ERRA(D3D11_ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS)
         CHK_ERRA(D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD)
+
+#ifdef IS_RDR3
+// -------------------------------------------------------------
+// d3d12.h error codes
+// -------------------------------------------------------------
+		CHK_ERR(D3D12_ERROR_ADAPTER_NOT_FOUND, "The specified cached PSO was created on a different adapter and cannot be reused on the current adapter.")
+		CHK_ERR(D3D12_ERROR_DRIVER_VERSION_MISMATCH, "The specified cached PSO was created on a different driver version and cannot be reused on the current adapter.")
+#endif
 
 // -------------------------------------------------------------
 // Direct2D error codes
