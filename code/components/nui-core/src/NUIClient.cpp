@@ -156,6 +156,24 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 	}
 	return oldDefineGetter.call(this, prop, func);
 };
+
+const __cfx_game_view_observer = new MutationObserver(() => {
+	const node = document.querySelector(
+		'[type="application/x-cfx-game-view"]'
+	);
+
+	if (node) {
+	  __cfx_game_view.ReplaceGameView(node, __cfx_game_view.CreateCanvasRenderer);
+	}
+});
+
+__cfx_game_view_observer.observe(document.documentElement, {
+	childList: true,
+	subtree: true
+});
+
+// Replace all legacy canvas's at startup.
+__cfx_game_view.FindLegacyGameView(__cfx_game_view.CreateCanvasRenderer);
 )",
 		"nui://patches", 0);
 	}

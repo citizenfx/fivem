@@ -3,6 +3,8 @@
 #if IS_RDR3
 #include <string_view>
 #include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_win32.h>
+#include <DrawCommands.h>
 
 inline std::string_view ResultToString(VkResult result)
 {
@@ -72,4 +74,108 @@ inline std::string_view ResultToString(VkResult result)
 			return std::to_string(static_cast<uint32_t>(result));
 	}
 }
+
+static uint32_t FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memProperties;
+	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+	{
+		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+		{
+			return i;
+		}
+	}
+
+	return VK_NULL_HANDLE;
+}
+
+static void CreateVKImageFromShareHandle(VkDevice& device, HANDLE handle, unsigned int width, unsigned int height, VkImage& outImage, VkDeviceMemory& outMemory, bool throwFatal = true)
+{
+	VkExternalMemoryImageCreateInfo ExternalMemoryImageCreateInfo = { VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO };
+	ExternalMemoryImageCreateInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT;
+	VkImageCreateInfo ImageCreateInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	ImageCreateInfo.pNext = &ExternalMemoryImageCreateInfo;
+	ImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+	ImageCreateInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
+	ImageCreateInfo.extent = { width, height, 1 };
+	ImageCreateInfo.mipLevels = 1;
+	ImageCreateInfo.arrayLayers = 1;
+	ImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	ImageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+	ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	ImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
+
+	VkResult result = vkCreateImage(device, &ImageCreateInfo, nullptr, &outImage);
+
+	if (result != VK_SUCCESS && throwFatal)
+	{
+		FatalError("Failed to create a Vulkan image. VkResult: %s", ResultToString(result));
+	}
+
+	VkMemoryRequirements MemoryRequirements;
+	vkGetImageMemoryRequirements(device, outImage, &MemoryRequirements);
+
+	VkMemoryDedicatedAllocateInfo MemoryDedicatedAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO };
+	MemoryDedicatedAllocateInfo.image = outImage;
+	VkImportMemoryWin32HandleInfoKHR ImportMemoryWin32HandleInfo = { VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR };
+	ImportMemoryWin32HandleInfo.pNext = &MemoryDedicatedAllocateInfo;
+	ImportMemoryWin32HandleInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT;
+	ImportMemoryWin32HandleInfo.handle = handle;
+	VkMemoryAllocateInfo MemoryAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+	MemoryAllocateInfo.pNext = &ImportMemoryWin32HandleInfo;
+	MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
+
+	MemoryAllocateInfo.memoryTypeIndex = FindMemoryType((VkPhysicalDevice)GetVulkanPhysicalDevice(), MemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	static auto _vkBindImageMemory2 = (PFN_vkBindImageMemory2)vkGetDeviceProcAddr(device, "vkBindImageMemory2");
+
+	if (!_vkBindImageMemory2)
+	{
+		FatalError("Unable to find 'vkBindImageMemory2' in vulkan.");
+	}
+
+	result = vkAllocateMemory(device, &MemoryAllocateInfo, nullptr, &outMemory);
+
+	if (result != VK_SUCCESS && throwFatal)
+	{
+		FatalError("Failed to allocate memory for Vulkan. VkResult: %s", ResultToString(result));
+	}
+
+	VkBindImageMemoryInfo BindImageMemoryInfo = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO };
+	BindImageMemoryInfo.image = outImage;
+	BindImageMemoryInfo.memory = outMemory;
+
+	result = _vkBindImageMemory2(device, 1, &BindImageMemoryInfo);
+
+	if (result != VK_SUCCESS && throwFatal)
+	{
+		FatalError("Failed to bind Vulkan image memory. VkResult: %s", ResultToString(result));
+	}
+}
+
+static void SetupImageBarrier(VkCommandBuffer cmdBuf, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout,
+	VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage)
+{
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = oldLayout;
+	barrier.newLayout = newLayout;
+	barrier.srcAccessMask = srcAccessMask;
+	barrier.dstAccessMask = dstAccessMask;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = image;
+
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+
+	vkCmdPipelineBarrier(cmdBuf, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+}
+
 #endif
