@@ -4,6 +4,8 @@
 #include <ScriptEngine.h>
 #include <Pool.h>
 #include <ScriptSerialization.h>
+#include "ClientConfig.h"
+#include "Hooking.Stubs.h"
 
 static hook::cdecl_stub<uint32_t(fwEntity*)> getScriptGuidForEntity([]()
 {
@@ -21,6 +23,40 @@ constexpr const char* GetPoolNameForEntityType(int entityType)
 	return (entityType >= 1 && entityType <= 3)
 		   ? poolNames[entityType]
 		   : "Object";
+}
+
+static hook::cdecl_stub<hook::FlexStruct* (void*, uint16_t, bool)> getNetworkObject([]()
+{
+	return hook::get_pattern("66 89 54 24 ? 56", -0xA);
+});
+
+static void** g_objectMgr;
+static uint32_t attachmentObjectIdOffset;
+
+static bool (*g_origCanProcessPendingAttachment)(hook::FlexStruct*, void*, int*);
+static bool CanProcessPendingAttachment(hook::FlexStruct* self, void* currentAttachmentEntity, int* failReason)
+{
+	if (IsClientConfigEnabled(ClientConfigFlag::DisableRemoteAttachments))
+	{
+		// Get the entity that the attachment will be attached to
+		hook::FlexStruct* targetEntity = getNetworkObject(g_objectMgr, self->At<uint16_t>(attachmentObjectIdOffset), false);
+		if (targetEntity != nullptr)
+		{
+			int8_t targetEntityOwner = targetEntity->At<int8_t>(0x45);
+			int8_t ownerId = self->At<int8_t>(0x45);
+
+			if (targetEntityOwner != ownerId)
+			{
+				// Clear the attachment object ID to prevent reattachment when the object owner changes
+				self->Set<uint16_t>(attachmentObjectIdOffset, 0);
+				
+				*failReason = 2;
+				return false;
+			}
+		}
+	}
+	
+	return g_origCanProcessPendingAttachment(self, currentAttachmentEntity, failReason);
 }
 
 static HookFunction hookFunction([]()
@@ -84,4 +120,9 @@ static HookFunction hookFunction([]()
 
 		context.SetResult(fx::SerializeObject(entityList));
 	});
+
+	// Allow to disable remote attachments
+	g_origCanProcessPendingAttachment = hook::trampoline(hook::get_call(hook::get_pattern("E8 ? ? ? ? 8A D8 84 C0 0F 84 ? ? ? ? 48 85 ED")), CanProcessPendingAttachment);
+	g_objectMgr = hook::get_address<void**>(hook::get_pattern("45 0F 57 C0 48 8B 35 ? ? ? ? 0F 57 FF", 0x7));
+	attachmentObjectIdOffset = *hook::get_pattern<uint32_t>("0F B7 96 ? ? ? ? 66 85 D2 0F 84", 0x3);
 });
