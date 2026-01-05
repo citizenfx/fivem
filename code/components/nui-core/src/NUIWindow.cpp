@@ -407,12 +407,19 @@ void NUIWindow::InitializeRenderBacking()
 		D3D11_TEXTURE2D_DESC tgtDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_B8G8R8A8_UNORM, m_width, m_height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 
 		auto d3d = g_nuiGi->GetD3D11Device();
-		if (SUCCEEDED(d3d->CreateTexture2D(&tgtDesc, nullptr, &m_swapTexture)))
+		struct
+		{
+			void* vtbl;
+			ID3D11Device* rawDevice;
+		}* deviceStuff = (decltype(deviceStuff))d3d;
+
+		if (SUCCEEDED(deviceStuff->rawDevice->CreateTexture2D(&tgtDesc, nullptr, &m_swapTexture)))
 		{
 			D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(m_swapTexture.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
-			d3d->CreateRenderTargetView(m_swapTexture.Get(), &rtDesc, &m_swapRtv);
+			deviceStuff->rawDevice->CreateRenderTargetView(m_swapTexture.Get(), &rtDesc, &m_swapRtv);
 		}
 	}
+
 }
 
 void NUIWindow::AddDirtyRect(const CefRect& rect)
@@ -479,7 +486,6 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 
 				auto fakeTexRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
 				SetParentTexture(type, fakeTexRef);
-
 				m_swapSrv = nullptr;
 			}
 			else
