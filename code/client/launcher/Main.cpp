@@ -50,7 +50,6 @@ std::map<std::string, std::string> g_redirectionData;
 
 void DoPreLaunchTasks();
 void NVSP_DisableOnStartup();
-void SteamInput_Initialize();
 void XBR_EarlySelect();
 bool ExecutablePreload_Init();
 void InitLogging();
@@ -759,7 +758,6 @@ int RealMain()
 	{
 #ifdef LAUNCHER_PERSONALITY_MAIN
 		NVSP_DisableOnStartup();
-		SteamInput_Initialize();
 #endif
 
 		GetModuleFileNameW(NULL, initState->gameExePath, std::size(initState->gameExePath));

@@ -1326,7 +1326,7 @@ void UI_CreateWindow()
 {
 	g_uui.taskbarMsg = RegisterWindowMessage(L"TaskbarButtonCreated");
 
-	HWND rootWindow = CreateWindowEx(0, L"NotSteamAtAll", PRODUCT_NAME, 13238272 /* lol */, 0x80000000, 0, g_dpi.ScaleX(500), g_dpi.ScaleY(129), NULL, NULL, GetModuleHandle(NULL), 0);
+	HWND rootWindow = CreateWindowEx(0, L"Updater", PRODUCT_NAME, 13238272 /* lol */, 0x80000000, 0, g_dpi.ScaleX(500), g_dpi.ScaleY(129), NULL, NULL, GetModuleHandle(NULL), 0);
 
 	int wwidth = 500;
 	int wheight = 139;
@@ -1553,7 +1553,7 @@ void UI_RegisterClass()
 	wndClass.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(1));
 	wndClass.hCursor = LoadCursor(NULL, (LPCWSTR)0x7F02);
 	wndClass.hbrBackground = (HBRUSH)6;
-	wndClass.lpszClassName = L"NotSteamAtAll";
+	wndClass.lpszClassName = L"Updater";
 	wndClass.hIconSm = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(1));
 
 	RegisterClassEx(&wndClass);

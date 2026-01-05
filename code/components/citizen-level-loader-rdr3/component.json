@@ -8,7 +8,8 @@
 		"gta:core",
 		"gta:streaming:rdr3",
 		"rage:scripting",
-		"citizen:resources:core"
+		"citizen:resources:core",
+		"legitimacy"
 	],
 	"provides": []
 }

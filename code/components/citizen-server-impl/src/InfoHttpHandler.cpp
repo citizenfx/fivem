@@ -113,6 +113,7 @@ struct InfoHttpHandlerComponentLocals : fwRefCountable
 				}
 
 				infoJson["requestSteamTicket"] = requestSteamTicket;
+				// infoJson["useNewSteamAppId"] = true;
 
 				infoJson["version"] = 0;
 

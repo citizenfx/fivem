@@ -11,7 +11,6 @@
 #include "ICoreGameInit.h"
 #include <mutex>
 #include <mmsystem.h>
-#include <SteamComponentAPI.h>
 #include <SharedLegitimacyAPI.h>
 #include <IteratorView.h>
 #include <optional>
@@ -41,6 +40,12 @@
 
 #ifndef POLICY_LIVE_ENDPOINT
 #define POLICY_LIVE_ENDPOINT "https://policy-live.fivem.net/"
+#endif
+
+#ifdef GTA_FIVE
+#define PRODUCT_NAME "FiveM"
+#elif defined(IS_RDR3)
+#define PRODUCT_NAME "RedM"
 #endif
 
 #ifdef FIVEM_INTERNAL_POSTMAP
@@ -116,31 +121,6 @@ static std::string CollectTimeoutInfo()
 		gatherInfo(g_receiveDataTicks),
 		gatherInfo(g_sendDataTicks)
 	);
-}
-
-inline ISteamComponent* GetSteam()
-{
-	auto steamComponent = Instance<ISteamComponent>::Get();
-
-	// if Steam isn't running, return an error
-	if (!steamComponent->IsSteamRunning())
-	{
-		steamComponent->Initialize();
-
-		if (!steamComponent->IsSteamRunning())
-		{
-			return nullptr;
-		}
-	}
-
-	// if private client is unavailable, panic out
-	// (usually caused by inaccurate Steam client DLL emulation/wrappers)
-	if (!steamComponent->GetPrivateClient())
-	{
-		return nullptr;
-	}
-
-	return steamComponent;
 }
 
 void NetLibrary::AddReceiveTick()
@@ -373,8 +353,6 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 			m_infoString = infoString;
 
 			{
-				auto steam = GetSteam();
-
 				static char hostname[8192] = { 0 };
 				strncpy(hostname, Info_ValueForKey(infoString, "hostname"), 8191);
 
@@ -382,34 +360,22 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 
 				StripColors(hostname, cleaned, 8192);
 
-#if defined(GTA_FIVE) || defined(GTA_NY)
 				SetWindowText(CoreGetGameWindow(), va(
 #ifdef GTA_FIVE
 					L"FiveM® by Cfx.re"
-#elif defined(GTA_NY)
-					L"LibertyM™ by Cfx.re"
+#elif defined(IS_RDR3)
+					L"RedM® by Cfx.re"
 #endif
 					L" - %s", ToWide(cleaned)));
-#endif
 
 				auto richPresenceSetTemplate = [&](const auto& tpl)
 				{
 					OnRichPresenceSetTemplate(tpl);
-
-					if (steam)
-					{
-						steam->SetRichPresenceTemplate(tpl);
-					}
 				};
 
 				auto richPresenceSetValue = [&](int idx, const std::string& val)
 				{
 					OnRichPresenceSetValue(idx, val);
-
-					if (steam)
-					{
-						steam->SetRichPresenceValue(idx, val);
-					}
 				};
 
 				richPresenceSetTemplate("{0}\n{1}");
@@ -421,6 +387,18 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 				));
 
 				richPresenceSetValue(1, "Connecting...");
+
+				auto fullPresenceStr = "Playing on: " + std::string(cleaned);
+
+				cfx::legitimacy::SetSteamRichPresenceWrapper("status", fmt::sprintf(
+																	   "%s%s",
+																	   std::string(fullPresenceStr).substr(0, 110),
+																	   (strlen(fullPresenceStr.c_str()) > 110) ? "..." : ""));
+				cfx::legitimacy::SetSteamRichPresenceWrapper("serverName", fmt::sprintf(
+																		   "%s",
+																		   std::string(cleaned).substr(0, 110),
+																		   (strlen(fullPresenceStr.c_str()) > 110) ? "..." : ""));
+				cfx::legitimacy::SetSteamRichPresenceWrapper("steam_display", "#Status_InMultiplayer");
 			}
 
 			// until map reloading is in existence
@@ -740,16 +718,6 @@ static void tohex(unsigned char* in, size_t insz, char* out, size_t outsz)
     pout[0] = 0;
 }
 
-typedef uint32 HAuthTicket;
-const HAuthTicket k_HAuthTicketInvalid = 0;
-
-struct GetAuthSessionTicketResponse_t
-{
-	enum { k_iCallback = 100 + 63 };
-	HAuthTicket m_hAuthTicket;
-	int m_eResult;
-};
-
 static concurrency::task<std::optional<std::string>> ResolveUrl(const std::string& rootUrl)
 {
 	static HostSharedData<CfxState> hostData("CfxInitState");
@@ -953,7 +921,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	static fwMap<fwString, fwString> postMap;
 	postMap["method"] = "initConnect";
-	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
 
 #if defined(IS_RDR3)
@@ -1348,13 +1315,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						m_serverProtocol = node["protocol"].get<uint32_t>();
 
-						auto steam = GetSteam();
-
-						if (steam)
-						{
-							steam->SetConnectValue(fmt::sprintf("+connect %s:%d", m_currentServer.GetAddress(), m_currentServer.GetPort()));
-						}
-
 						auto continueAfterAllowance = [=]()
 						{
 							auto doneCB = [=](const char* data, size_t size)
@@ -1487,6 +1447,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 												catch (std::exception& e)
 												{
 												}
+
+												cfx::legitimacy::SetSteamRichPresenceWrapper("steam_player_group", val);
 
 												m_httpClient->DoGetRequest(fmt::sprintf("%sapi/policy/%s", POLICY_LIVE_ENDPOINT, val), [=](bool success, const char* data, size_t size)
 												{
@@ -1707,71 +1669,63 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	};
 
 	static std::string requestSteamTicket = "on";
+	static bool useNewSteamAppId = false;
+	static bool switchedOnce = false;
 
 	continueRequest = [=]()
 	{
-		auto steamComponent = GetSteam();
-
-		if (steamComponent && requestSteamTicket == "on")
+		if (requestSteamTicket == "on")
 		{
-			static uint32_t ticketLength;
-			static uint8_t ticketBuffer[4096];
-
-			static int lastCallback = -1;
-
-			IClientEngine* steamClient = steamComponent->GetPrivateClient();
-
-			InterfaceMapper steamUtils(steamClient->GetIClientUtils(steamComponent->GetHSteamPipe(), "CLIENTUTILS_INTERFACE_VERSION001"));
-			InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
-
-			if (steamUser.IsValid())
+			bool steamResult;
+			if (useNewSteamAppId)
 			{
-				auto removeCallback = []()
-				{
-					if (lastCallback != -1)
-					{
-						GetSteam()->RemoveSteamCallback(lastCallback);
-						lastCallback = -1;
-					}
-				};
-
-				removeCallback();
-
-				lastCallback = steamComponent->RegisterSteamCallback<GetAuthSessionTicketResponse_t>([=](GetAuthSessionTicketResponse_t* response)
-				{
-					removeCallback();
-
-					if (response->m_eResult != 1) // k_EResultOK
-					{
-						OnConnectionError(va("Failed to obtain Steam ticket, EResult %d.", response->m_eResult));
-					}
-					else
-					{
-						// encode the ticket buffer
-						char outHex[16384];
-						tohex(ticketBuffer, ticketLength, outHex, sizeof(outHex));
-
-						postMap["authTicket"] = outHex;
-
-						performRequest();
-					}
-				});
-
-				int appID = steamUtils.Invoke<int>("GetAppID");
-
-				trace("Getting auth ticket for pipe appID %d - should be 218.\n", appID);
-
-				steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
-
-				OnConnectionProgress("Obtaining Steam ticket...", 0, 100, false);
+				steamResult = cfx::legitimacy::SetSteamAppId(false);
 			}
 			else
 			{
-				performRequest();
+				steamResult = cfx::legitimacy::SetSteamAppId(true);
 			}
+
+			if (steamResult)
+			{
+				if (switchedOnce)
+				{
+					OnConnectionError("Cannot switch Steam App-ID, please restart " PRODUCT_NAME ".");
+					return;
+				}
+				switchedOnce = true;
+
+				OnConnectionProgress("Switching Steam App-ID...", 0, 100, false);
+				cfx::legitimacy::WaitForAppSwitchWrapper();
+			}
+
+			OnConnectionProgress("Obtaining Steam ticket...", 0, 100, false);
+
+			auto authCallback = [=](std::pair<std::string, std::string> authResult)
+			{
+				if (!authResult.first.empty())
+				{
+					OnConnectionError(va("Failed to obtain Steam ticket, %s.", authResult.first));
+				}
+				else if (authResult.second.empty())
+				{
+					OnConnectionError(va("Failed to obtain Steam ticket, ticket response is empty."));
+				}
+				else
+				{
+					postMap["name"] = GetPlayerName();
+					postMap["authTicket"] = authResult.second;
+
+					performRequest();
+				}
+			};
+
+			cfx::legitimacy::GetSteamAuthTicketWrapper(authCallback);
 		}
 		else
 		{
+			postMap["name"] = GetPlayerName();
+
 			performRequest();
 		}
 	};
@@ -1899,6 +1853,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					}
 
 					requestSteamTicket = info.value("requestSteamTicket", "on");
+					useNewSteamAppId = info.value("useNewSteamAppId", false);
 				}
 #endif
 			}
@@ -1999,15 +1954,9 @@ void NetLibrary::Disconnect(const char* reason)
 		m_connectionState = CS_IDLE;
 		m_currentServer = NetAddress();
 
-		// we don't want to tell Steam to launch a new child as we're exiting
 		if (reason != std::string_view{ "Exiting" })
 		{
-			auto steam = GetSteam();
-
-			if (steam)
-			{
-				steam->SetRichPresenceValue(0, "");
-			}
+			cfx::legitimacy::ResetSteamRichPresenceWrapper();
 		}
 	}
 }
@@ -2043,6 +1992,15 @@ bool NetLibrary::IsPendingInGameReconnect()
 	return (m_connectionState == CS_ACTIVE && GetImpl()->IsDisconnected());
 }
 
+static const std::string kNicknameAdjectives[]{"Quick", "Lazy", "Clever", "Quiet", "Loud", "Bold", "Shy",
+											   "Slow", "Sharp", "Pale", "Fuzzy", "Blunt", "Jumpy", "Sleepy",
+											   "Moody", "Breezy", "Chilly", "Dusty", "Icy", "Soggy" };
+static const std::string kNicknameAnimals[]{"Ant", "Bat", "Beetle", "Cat", "Crab", "Deer", "Duck",
+											"Fish", "Frog", "Goose", "Lizard", "Moth", "Mouse", "Newt",
+											"Otter", "Rabbit", "Snaily", "Spider", "Toad", "Turtle" };
+
+static ConVar<std::string>* g_extNicknameVar;
+
 static std::string g_steamPersonaName;
 
 const char* NetLibrary::GetPlayerName()
@@ -2053,36 +2011,49 @@ const char* NetLibrary::GetPlayerName()
 		return m_playerName.c_str();
 	}
 
+	if (g_steamPersonaName.empty())
+	{
+		auto steamUsername = cfx::legitimacy::GetSteamUsernameWrapper(); 
+		if (!steamUsername.empty())
+		{
+			g_steamPersonaName = steamUsername;
+			g_extNicknameVar->GetHelper()->SetRawValue(steamUsername);
+		}
+	}
+
 	// do we have a Steam name?
 	if (!g_steamPersonaName.empty())
 	{
 		return g_steamPersonaName.c_str();
 	}
 
-	static std::wstring returnNameWide;
+	static ConVar<std::string> defaultNicknameVar("cl_nickname", ConVar_Archive | ConVar_UserPref | ConVar_ScriptRestricted, "");
+
+	if (!defaultNicknameVar.GetValue().empty())
+	{
+		return defaultNicknameVar.GetValue().c_str();
+	}
+
+	// Get a random placeholder name
 	static std::string returnName;
 
-	auto envName = _wgetenv(L"USERNAME");
+	std::mt19937 gen{ std::random_device{}() };
 
-	if (envName != nullptr)
-	{
-		returnNameWide = envName;
-	}
+	auto nameAdjIdx = std::uniform_int_distribution<std::size_t>(
+	0, std::size(kNicknameAdjectives) - 1)(gen);
 
-	if (returnNameWide.empty())
-	{
-		static wchar_t computerName[64];
-		DWORD nameSize = _countof(computerName);
-		GetComputerNameW(computerName, &nameSize);
-		returnNameWide = computerName;
-	}
+	auto nameAnimalIdx = std::uniform_int_distribution<std::size_t>(
+	0, std::size(kNicknameAnimals) - 1)(gen);
 
-	if (returnNameWide.empty())
-	{
-		returnNameWide = L"UnknownPlayer";
-	}
+	std::string nameWordAdj = kNicknameAdjectives[nameAdjIdx];
+	std::string nameWordAnimal = kNicknameAnimals[nameAnimalIdx];
 
-	returnName = ToNarrow(returnNameWide);
+	auto randomNumber = std::uniform_int_distribution<unsigned int>(0, 9999)(gen);
+	std::string nameSuffix = fmt::format("{:04}", randomNumber);
+
+	returnName = nameWordAdj + nameWordAnimal + nameSuffix;
+
+	defaultNicknameVar.GetHelper()->SetRawValue(returnName);
 
 	return returnName.c_str();
 }
@@ -2150,6 +2121,8 @@ __declspec(dllexport) fwEvent<> NetLibrary::OnBuildMessage;
 
 NetLibrary* NetLibrary::Create()
 {
+	cfx::legitimacy::InitSteamSDKConnection();
+
 	auto lib = new NetLibrary();
 
 	lib->CreateResources();
@@ -2165,25 +2138,13 @@ NetLibrary* NetLibrary::Create()
 			lib->Disconnect((const char*)reason);
 		}
 	});
-	
-	auto steamComponent = GetSteam();
 
-	if (steamComponent)
+	if (auto steamUsername = cfx::legitimacy::GetSteamUsernameWrapper(); !steamUsername.empty())
 	{
-		IClientEngine* steamClient = steamComponent->GetPrivateClient();
-
-		if (steamClient)
-		{
-			InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
-
-			if (steamFriends.IsValid())
-			{
-				g_steamPersonaName = steamFriends.Invoke<const char*>("GetPersonaName");
-			}
-		}
+		g_steamPersonaName = steamUsername;
 	}
 
-	static ConVar<std::string> extNicknameVar("ui_extNickname", ConVar_ReadOnly, g_steamPersonaName);
+	g_extNicknameVar = new ConVar<std::string>("ui_extNickname", ConVar_ReadOnly, g_steamPersonaName);
 
 	return lib;
 }

@@ -20,7 +20,6 @@
   "net:http-server",
   "nui:core",
   "nui:gsclient",
-  "nui:profiles",
   "nui:resources",
   "ros:patches:ny",
   "rage:allocator:ny",
@@ -41,8 +40,6 @@
   "conhost:v2",
   "devcon",
   "net",
-  "profiles",
-  "steam",
   "glue",
   "scrbind:base",
   "adhesive"
