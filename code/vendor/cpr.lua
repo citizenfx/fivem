@@ -24,5 +24,9 @@ return {
 		files {
 			"../vendor/cpr/cpr/*.cpp",
 		}
+
+		if os.istarget('linux') then
+			buildoptions { "-include", "stdint.h" }
+		end
 	end
 }
