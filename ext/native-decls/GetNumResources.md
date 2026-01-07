@@ -10,3 +10,4 @@ int GET_NUM_RESOURCES();
 
 
 ## Return value
+Returns the number of resources currently active

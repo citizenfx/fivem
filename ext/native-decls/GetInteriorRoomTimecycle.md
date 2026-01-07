@@ -9,6 +9,13 @@ game: gta5
 int GET_INTERIOR_ROOM_TIMECYCLE(int interiorId, int roomIndex);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **roomIndex**: Interior room index.
+
+## Return value
+Room's timecycle hash.
+
 ## Examples
 
 ```lua
@@ -22,10 +29,3 @@ if roomId ~= -1 then
   print("current room timecycle hash is: " .. roomTimecycle)
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **roomIndex**: Interior room index.
-
-## Return value
-Room's timecycle hash.
