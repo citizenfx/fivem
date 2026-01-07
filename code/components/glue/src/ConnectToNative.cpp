@@ -54,6 +54,7 @@
 #include "GameInit.h"
 #include "CnlEndpoint.h"
 #include <SharedLegitimacyAPI.h>
+#include "Error.h"
 
 #include "PacketHandler.h"
 #include "PaymentRequest.h"
@@ -581,7 +582,7 @@ static InitFunction initFunction([] ()
 
 		if (wasSteamRunning && !cfx::legitimacy::IsSteamRunning())
 		{
-			TerminateProcess(GetCurrentProcess(), 0);
+			FatalError("Steam process has exited. The game will now close.");
 		}
 
 		if (cfx::legitimacy::IsSteamRunning())
