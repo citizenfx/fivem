@@ -16,6 +16,7 @@ typedef uint32_t result_t;
 #define FX_S_OK					0x0
 #define FX_E_NOTIMPL			0x80004001
 #define FX_E_NOINTERFACE		0x80004002
+#define FX_E_WAITING_FOR_DATA	0x80004004
 #define FX_E_INVALIDARG			0x80070057
 
 // Success/failure macros
