@@ -326,6 +326,11 @@ const EXT_LOCALFUNCREF = 11;
 			SendNuiMessage(dataJson)
 		}
 
+		global.SendDUIMessage = (duiObject, data) => {
+			const dataJson = JSON.stringify(data)
+			SendDuiMessage(duiObject, dataJson)
+		}
+
 		global.emitNet = (name, ...args) => {
 			const dataSerialized = pack(args);
 
