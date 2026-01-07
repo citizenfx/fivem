@@ -115,6 +115,16 @@ static void SaveGameSettings(const std::wstring& poolIncreases, bool replaceExec
 	}
 }
 
+static void SavePureLevel(int pureLevel)
+{
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		WritePrivateProfileString(L"Game", L"PureLevel", fmt::sprintf(L"%d", pureLevel).c_str(), fpath.c_str());
+	}
+}
+
 void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
@@ -141,6 +151,7 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 	}
 
 	SaveGameSettings(poolSizesIncreaseSetting, replaceExecutable);
+	SavePureLevel(pureLevel);
 
 	trace("Switching from build %d to build %d...\n", xbr::GetRequestedGameBuild(), build);
 
@@ -176,7 +187,7 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 #endif
 }
 
-extern void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable);
+extern bool InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable, bool skip);
 
 void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
@@ -673,10 +684,11 @@ static InitFunction initFunction([] ()
 			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
 		});
 
-		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable)
+		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable, bool skip)
 		{
-			InitializeBuildSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting), replaceExecutable);
-			g_connected = false;
+			bool cancelled = InitializeBuildSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting), replaceExecutable, skip);
+			g_connected = !cancelled;
+			return cancelled;
 		});
 
 		netLibrary->OnConnectionErrorRichEvent.Connect([] (const std::string& errorOrig, const std::string& metaData)
