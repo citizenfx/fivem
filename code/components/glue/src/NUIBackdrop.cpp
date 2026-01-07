@@ -49,7 +49,7 @@ public:
 		return true;
 	}
 
-	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) override
+	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl) override
 	{
 		response->SetMimeType("application/octet-stream");
 
@@ -137,6 +137,7 @@ static InitFunction initfunction([]()
 
 	nui::OnInitialize.Connect([]
 	{
+		trace(__FUNCTION__": Registering nui-backdrop scheme handler...\n");
 		nui::RegisterSchemeHandlerFactory("https", "nui-backdrop", Instance<NUISchemeHandlerFactory>::Get());
 	});
 });
