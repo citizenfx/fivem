@@ -116,6 +116,21 @@ bool ResourceImpl::Start()
 	return true;
 }
 
+bool ResourceImpl::ClientReloadFile()
+{
+	m_manager->MakeCurrent();
+
+	if (m_state != ResourceState::Stopped)
+	{
+		if (!OnClientReloadFile())
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool ResourceImpl::Stop()
 {
 	m_manager->MakeCurrent();
