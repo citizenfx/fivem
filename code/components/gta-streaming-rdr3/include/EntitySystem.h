@@ -1,6 +1,8 @@
 #pragma once
 
 #include <directxmath.h>
+#include <boost/type_index/ctti_type_index.hpp>
+#include "StdInc.h"
 
 #ifdef COMPILING_GTA_STREAMING_RDR3
 #define STREAMING_EXPORT DLL_EXPORT
@@ -99,7 +101,27 @@ class STREAMING_EXPORT fwEntity : public rage::fwRefAwareBase
 public:
 	virtual ~fwEntity() = default;
 
-	virtual bool IsOfType(uint32_t hash) = 0;
+	inline bool IsOfType(uint32_t hash) {
+		return IsOfTypeH(hash);
+	}
+
+	template<typename T>
+	bool IsOfType()
+	{
+		auto typeName = std::string_view{
+			boost::typeindex::ctti_type_index::type_id<T>().raw_name()
+		};
+
+		// Parse mangled name like "class CVehicle>::n(void) noexcept"
+		auto className = typeName.substr(6);
+		size_t endPos = className.find('>');
+		if (endPos != std::string_view::npos) {
+			className = className.substr(0, endPos);
+		}
+		
+		auto typeHash = HashString(className);
+		return this->IsOfType(typeHash);
+	}
 
 private:
 	template<typename TMember>
@@ -128,6 +150,9 @@ public:
 	using TFn = decltype(&fwEntity::name); \
 	void** vtbl = *(void***)(this); \
 	return (this->*(get_member<TFn>(vtbl[(offset / 8)])))(__VA_ARGS__);
+
+private:
+	bool IsOfTypeH(uint32_t hash);
 
 public:
 	inline float GetRadius()
