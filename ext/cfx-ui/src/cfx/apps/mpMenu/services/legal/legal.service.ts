@@ -26,7 +26,7 @@ type LegalAcceptanceData = {
 
 @injectable()
 export class LegalService {
-  readonly CURRENT_TOS_VERSION = 'September 12, 2023';
+  readonly CURRENT_TOS_VERSION = 'January 12, 2026';
 
   readonly TOS_URL = 'https://fivem.net/terms';
 
