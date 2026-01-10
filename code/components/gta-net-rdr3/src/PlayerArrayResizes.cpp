@@ -811,6 +811,9 @@ static HookFunction hookFunction([]()
 	}
 
 	// Extend AnimScene handler array, as we need to support kMaxPlayers instead of just 32
+	// Theres a few finicky bits in AnimScenes that need extra attention. 
+	// It may be best to leave this until its patched in the future to work under onesync. 
+#if 0
 	{
 		const size_t kPlayerEntriesSize = (static_cast<size_t>((kMaxPlayers + 1)) * 0x3200);
 		const size_t kObjectEntriesSize = (static_cast<size_t>(1600) * 0x40);
@@ -856,8 +859,10 @@ static HookFunction hookFunction([]()
 			{ "80 FB ? 0F 82 ? ? ? ? B0", 2, 0x20, kMaxPlayers + 1 }
 		});
 	}
+#endif
 
 	// Extend AnimScene ArrayHandler array
+#if 0
 	{
 		static size_t kPlayerArraySize = sizeof(void*) * (kMaxPlayers + 1);
 		void** playerArrayHandler = (void**)hook::AllocateStubMemory(kPlayerArraySize);
@@ -874,6 +879,7 @@ static HookFunction hookFunction([]()
 			{ "BD ? ? ? ? 48 8D 1D ? ? ? ? 8B F5", 1, 0x20, kMaxPlayers + 1 }
 		});
 	}
+#endif
 
 	// Expand Player Cache data
 	{
@@ -1093,7 +1099,8 @@ static HookFunction hookFunction([]()
 			//{ "48 8B CB E8 77 66 05 00 84 C0 74 41 40 80 FF 20", 15, false }, 
 
 			// player iteration
-			{ "80 FB ? 72 ? B0 ? 48 8B 5C 24 ? 48 83 C4", 2, false },
+			// used for gang/bounty logic. Not worth patching for now.
+			//{ "80 FB ? 72 ? B0 ? 48 8B 5C 24 ? 48 83 C4", 2, false },
 
 			// getPlayer
 			{ "83 F9 ? 73 ? E8 ? ? ? ? 48 83 C4 ? C3 90 23 E0", 2, false },
@@ -1189,6 +1196,7 @@ static HookFunction hookFunction([]()
 
 		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 4C 8D B1"), { { 0x120, intSize } });
 	}
+
 #if 0
 	// Resize stack for CTheScripts::_getClosestPlayer
 	{
@@ -1243,6 +1251,9 @@ static HookFunction hookFunction([]()
 	// Extend bitshift in order to not lead to crashes 
 	//TODO: Resize struct, stack and rewrite logic to handle the new bitset size. But for now this is a good enough temporary solution.
 	hook::put<uint8_t>(hook::get_pattern("48 C1 EA ? 8B 44 94 ? 0F AB C8 48 8B CE", 3), 8);
+
+	// Jump over a 32 sized bitset tied to CNetObjPedBase ownership migration until we can resize it, corrupts a task related pointer which is not great.
+	hook::put<uint8_t>(hook::get_pattern("74 ? 45 33 C0 48 8D 4C 24 ? 48 8B D3 E8 ? ? ? ? 0F 28 44 24"), 0xEB);
 
 	// Skip unused host kick related >32-unsafe arrays in onesync
 	hook::call(hook::get_pattern("E8 ? ? ? ? 84 C0 75 ? 8B 05 ? ? ? ? 33 C9 89 44 24"), Return<true, false>);
