@@ -669,6 +669,17 @@ static void CNetworkObjectMgr__UpdateBitsets(void* networkMgr)
 	}
 }
 
+static uint8_t (*g_origunkNetworkObjectMgr__AccessObjects)();
+static uint8_t unkNetworkObjectMgr__AccessObjects()
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origunkNetworkObjectMgr__AccessObjects();
+	}
+
+	return 0;
+}
+
 static void (*g_unkRemoteBroadcast)(void*, __int64);
 static void unkRemoteBroadcast(void* a1, __int64 a2)
 {
@@ -1280,6 +1291,22 @@ static HookFunction hookFunction([]()
 
 		hook::return_function(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 54 41 56 41 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 8B F0"));
 	}
+
+	// Temporary, CRespawnPlayerPedEvent has a int32 bitset with no >32 check, the event will need to be reworked in the future as it depends on this bitset
+	// otherwise some unexpected behaviour with leftover ped can occur. But good enough for testing.
+	hook::nop(hook::get_pattern("8B 44 86 ? 0F A3 C8 73 ? 0F B7 56"), 7); 
+
+	//TEMPORARY: this has no >32 checks and writes into two bitsets located in CNetObjPlayer with critical data next to it. you can probably imagine what happens...
+	//In onesync this logic is redundant. But still gets called in player respawn events replies.
+	hook::return_function(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 01 49 8B D8 40 8A EA 48 8B F1"));
+
+	// Unsafe >32 out of bound reads to player objects data, which isn't used (or populated) in onesync.
+	{
+		auto location = hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 80 A7 ? ? ? ? ? C0 E0");
+		hook::set_call(&g_origunkNetworkObjectMgr__AccessObjects, location);
+		hook::call(location, unkNetworkObjectMgr__AccessObjects);
+	}
+	
 
 	// NetworkObjectMgr bitset update. Manages several int32 bitsets.
 	// Only some of these bitsets are relevant for OneSync along with the focus position call.
