@@ -452,17 +452,30 @@ void    ImGui_ImplWin32_NewFrame()
     bd->Time = current_time;
 
     // Read keyboard modifiers inputs
-    io.KeyCtrl = (::GetKeyState(VK_CONTROL) & 0x8000) != 0;
-    io.KeyShift = (::GetKeyState(VK_SHIFT) & 0x8000) != 0;
-    io.KeyAlt = (::GetKeyState(VK_MENU) & 0x8000) != 0;
+	// We have to use GetAsyncKeyState since right before this call we can consume another frames key events, invalidating
+	// our keystate.
+    io.KeyCtrl = (::GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+    io.KeyShift = (::GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+    io.KeyAlt = (::GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
     io.KeySuper = false;
     // io.KeysDown[], io.MousePos, io.MouseDown[], io.MouseWheel: filled by the WndProc handler below.
+
 
     // Update OS mouse position
     ImGui_ImplWin32_UpdateMouseData();
 
 	// Process workarounds for known Windows key handling issues
 	ImGui_ImplWin32_ProcessKeyEventsWorkarounds();
+
+	// WORKAROUND:
+	// In our main loop we consume multi-viewport message loop which will somehow cause these keys to be force enabled even when they
+	// shouldn't be, but only on RedM, it seems that FiveM's input hooks inadvertently fixs this
+	if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000))
+		ImGui::GetIO().AddMouseButtonEvent(0, false);
+	if (!(GetAsyncKeyState(VK_RBUTTON) & 0x8000))
+		ImGui::GetIO().AddMouseButtonEvent(1, false);
+	if (!(GetAsyncKeyState(VK_MBUTTON) & 0x8000))
+		ImGui::GetIO().AddMouseButtonEvent(2, false);
 
     // Update OS mouse cursor with the cursor requested by imgui
     ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
