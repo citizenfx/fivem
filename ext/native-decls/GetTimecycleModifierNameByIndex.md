@@ -8,8 +8,14 @@ apiset: client
 char* GET_TIMECYCLE_MODIFIER_NAME_BY_INDEX(int modifierIndex);
 ```
 
-## Examples
 
+## Parameters
+* **modifierIndex**: The timecycle modifier index.
+
+## Return value
+The timecycle modifier name.
+
+## Examples
 ```lua
 local modifierIndex = GetTimecycleModifierIndex()
 
@@ -18,9 +24,3 @@ if modifierIndex ~= -1 then
   print("current timecycle name is " .. modifierName)
 end
 ```
-
-## Parameters
-* **modifierIndex**: The timecycle modifier index.
-
-## Return value
-The timecycle modifier name.

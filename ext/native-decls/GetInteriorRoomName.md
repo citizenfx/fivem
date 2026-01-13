@@ -9,6 +9,14 @@ game: gta5
 char* GET_INTERIOR_ROOM_NAME(int interiorId, int roomIndex);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **roomIndex**: Interior room index.
+
+## Return value
+Room's name.
+
+
 ## Examples
 
 ```lua
@@ -22,10 +30,3 @@ if roomId ~= -1 then
   print("current room name is: " .. roomName)
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **roomIndex**: Interior room index.
-
-## Return value
-Room's name.
