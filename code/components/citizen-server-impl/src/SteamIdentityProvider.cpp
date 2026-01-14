@@ -8,8 +8,8 @@
 #include "StdInc.h"
 #include <ServerIdentityProvider.h>
 
-#define STEAM_APPID 218
-// #define STEAM_APPID 2676230
+#define STEAM_APPID_FIVEM 2676230
+#define STEAM_APPID_REDM 4333400
 
 // this imports pplxtasks somewhere?
 #define _PPLTASK_ASYNC_LOGGING 0
@@ -24,8 +24,12 @@
 
 #include <HttpClient.h>
 
+#include "GameServer.h"
+
 std::shared_ptr<ConVar<std::string>> g_steamApiKey;
 std::shared_ptr<ConVar<std::string>> g_steamApiDomain;
+
+static int steamAppId;
 
 using json = nlohmann::json;
 
@@ -94,7 +98,7 @@ static InitFunction initFunction([]()
 			opts.addErrorBody = true;
 
 			httpClient->DoGetRequest(
-				fmt::format("https://{0}/ISteamUserAuth/AuthenticateUserTicket/v1/?key={1}&appid={2}&ticket={3}", g_steamApiDomain->GetValue(), g_steamApiKey->GetValue(), STEAM_APPID, it->second),
+			fmt::format("https://{0}/ISteamUserAuth/AuthenticateUserTicket/v1/?key={1}&appid={2}&ticket={3}", g_steamApiDomain->GetValue(), g_steamApiKey->GetValue(), steamAppId, it->second),
 				opts,
 				[this, cb, clientPtr](bool success, const char* data, size_t size)
 				{
@@ -139,6 +143,17 @@ static InitFunction initFunction([]()
 	{
 		g_steamApiKey = instance->AddVariable<std::string>("steam_webApiKey", ConVar_None, "");
 		g_steamApiDomain = instance->AddVariable<std::string>("steam_webApiDomain", ConVar_None, "api.steampowered.com");
+
+		const auto gameName = instance->GetComponent<fx::GameServer>()->GetGameName();
+
+		if (gameName == fx::GameName::GTA5)
+		{
+			steamAppId = STEAM_APPID_FIVEM;
+		}
+		else if (gameName == fx::GameName::RDR3)
+		{
+			steamAppId = STEAM_APPID_REDM;
+		}
 
 		serverInstance = instance;
 	});
