@@ -136,8 +136,6 @@ public:
 
 	virtual void SetVoiceTarget(int idx) override;
 
-	virtual bool IsAnyoneTalking() override;
-
 	virtual float GetInputAudioLevel() override;
 
 	virtual void SetChannel(const std::string& channelName) override;
@@ -158,7 +156,7 @@ public:
 
 	virtual std::string GetVoiceChannelFromServerId(uint32_t serverId) override;
 
-	virtual void GetTalkers(std::vector<std::string>* referenceIds) override;
+	virtual std::vector<std::string> GetTalkers() override;
 
 	virtual void SetPositionHook(const TPositionHook& hook) override;
 
