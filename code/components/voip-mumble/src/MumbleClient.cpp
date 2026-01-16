@@ -607,6 +607,32 @@ void MumbleClient::SetClientVolumeOverrideByServerId(uint32_t serverId, float vo
 	});
 }
 
+void MumbleClient::SetPlayerVolumeFromServerId(uint32_t serverId, float volume)
+{
+	m_state.ForAllUsers([this, serverId, volume](const std::shared_ptr<MumbleUser>& user)
+	{
+		if (user->GetServerId() == serverId)
+		{
+			GetOutput().HandlePlayerVolume(*user, volume);
+		}
+	});
+}
+
+float MumbleClient::GetPlayerVolumeFromServerId(uint32_t serverId)
+{
+	float retVolume = 1.0f;
+
+	m_state.ForAllUsers([this, serverId, &retVolume](const std::shared_ptr<MumbleUser>& user)
+	{
+		if (user->GetServerId() == serverId)
+		{
+			retVolume = GetOutput().GetPlayerVolume(*user);
+		}
+	});
+
+	return retVolume;
+}
+
 std::string MumbleClient::GetPlayerNameFromServerId(uint32_t serverId)
 {
 	std::string retName;
