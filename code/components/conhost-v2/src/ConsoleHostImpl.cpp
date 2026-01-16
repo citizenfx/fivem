@@ -438,10 +438,6 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 		}
 	}
 
-	io.KeyCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-	io.KeyShift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-	io.KeyAlt = (GetKeyState(VK_MENU) & 0x8000) != 0;
-	io.KeySuper = false;
 
 	if (ImGui::GetPlatformIO().Viewports.Size > 1)
 	{
