@@ -81,12 +81,12 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 
 			auto languages = CefV8Value::CreateArray(langList.size());
 
-			for (size_t i = 0; i < langList.size(); i++)
-			{
-				languages->SetValue(i, CefV8Value::CreateString(CefString{ langList[i].data(), langList[i].length(), true }));
-			}
-
-			window->SetValue("nuiSystemLanguages", languages, V8_PROPERTY_ATTRIBUTE_READONLY);
+		for (size_t i = 0; i < langList.size(); i++)
+		{
+			CefString langStr;
+			langStr.FromWString(std::wstring(langList[i]));
+			languages->SetValue(i, CefV8Value::CreateString(langStr));
+		}			window->SetValue("nuiSystemLanguages", languages, V8_PROPERTY_ATTRIBUTE_READONLY);
 		}
 	}
 	else
@@ -104,7 +104,9 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 
 		for (size_t i = 0; i < langList.size(); i++)
 		{
-			languages->SetValue(i, CefV8Value::CreateString(CefString{ langList[i].data(), langList[i].length(), true }));
+			CefString langStr;
+			langStr.FromWString(langList[i]);
+			languages->SetValue(i, CefV8Value::CreateString(langStr));
 		}
 
 		window->SetValue("nuiSystemLanguages", languages, V8_PROPERTY_ATTRIBUTE_READONLY);
