@@ -75,6 +75,7 @@ static InitFunction initFunction([]()
 //NOTE: it still depends on preexisting files from old runtime
 static const char* g_platformScripts[] = 
 {
+	"citizen:/scripting/v8/source-map.js",
 	"citizen:/scripting/v8/natives_server.js",
 	"citizen:/scripting/v8/console.js",
 	"citizen:/scripting/v8/timer.js",
