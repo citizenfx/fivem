@@ -1,9 +1,51 @@
 #include <StdInc.h>
 #include <ScriptEngine.h>
+#include <EntitySystem.h>
 
 #include <Hooking.h>
+#include <Pool.h>
 
 #include <GameInit.h>
+
+static fwEntity* getAndCheckVehicle(fx::ScriptContext& context, std::string_view name)
+{
+    auto traceFn = [name](std::string_view msg)
+    {
+        trace("%s: %s\n", name, msg);
+    };
+
+    if (context.GetArgumentCount() < 1)
+    {
+        traceFn("At least one argument must be passed");
+        return nullptr;
+    }
+
+    fwEntity* vehicle = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
+    if (!vehicle)
+    {
+        traceFn("No such entity");
+        return nullptr;
+    }
+
+    if (!vehicle->IsOfType<CVehicle>())
+    {
+        traceFn("Can not read from an entity that is not a vehicle or draft vehicle");
+        return nullptr;
+    }
+
+    return vehicle;
+}
+
+static hook::FlexStruct* getAndCheckVehicleFlexStruct(fx::ScriptContext& context, std::string_view name)
+{
+    fwEntity* vehicle = getAndCheckVehicle(context, name);
+    if (!vehicle)
+    {
+        return nullptr;
+    }
+    return reinterpret_cast<hook::FlexStruct*>(vehicle);
+}
 
 static bool g_ignoreVehicleOwnershipChecksForStowing = false;
 
@@ -15,6 +57,24 @@ static bool IsAllowedToInteractWithHuntingWagon(void* entity, bool ownershipChec
 }
 
 static bool (*origGetPedOfPlayerOwnerOfNetworkObject)(void* pNetObj);
+
+static InitFunction initFunction([]()
+{
+
+    fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_ADDITIONAL_PROP_SET_HASH", [](fx::ScriptContext& context)
+    {
+        if (hook::FlexStruct* flexStruct = getAndCheckVehicleFlexStruct(context, "GET_VEHICLE_ADDITIONAL_PROP_SET_HASH"))
+        {
+            uint32_t propSetHash = flexStruct->Get<uint32_t>(0xD90);
+            context.SetResult(propSetHash);
+        }
+        else
+        {
+            context.SetResult(0);
+        }
+    });
+
+});
 
 static HookFunction hookFunction([]()
 {
