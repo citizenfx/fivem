@@ -5,6 +5,8 @@
 
 #include <shared_mutex>
 #include <unordered_set>
+#include <chrono>
+#include <unordered_map>
 
 //#include <EASTL/fixed_set.h>
 #include <EASTL/fixed_vector.h>
@@ -54,6 +56,34 @@ public:
 	{
 		m_role = role;
 	}
+
+	virtual void ClearOrphanedStateBags() override;
+	virtual void ForceStateBagUpdates() override;
+	virtual size_t GetStateBagCount() override;
+	virtual size_t GetActiveStateBagCount() override;
+	virtual size_t GetExpiredStateBagCount() override;
+	virtual std::vector<std::string> GetStateBagIds() override;
+	virtual size_t GetTargetCount() override;
+	virtual size_t GetPreCreatedStateBagCount() override;
+	virtual size_t GetErasureListCount() override;
+	virtual size_t GetPreCreatePrefixCount() override;
+	virtual bool IsGameInterfaceConnected() override;
+	virtual const char* GetRoleName() override;
+	virtual std::vector<int> GetRegisteredTargets() override;
+	virtual size_t GetStateBagCountForTarget(int target) override;
+	virtual std::vector<std::pair<std::string, bool>> GetPreCreatePrefixes() override;
+	virtual std::vector<StateBagInfo> GetStateBagInfoList() override;
+	virtual bool IsStateBagExpired(const std::string& id) override;
+	virtual std::optional<StateBagDetails> GetStateBagDetails(const std::string& id) override;
+	virtual void SendStateBagQueuedUpdates(const std::string& id) override;
+
+	// Rate limiting methods
+	virtual std::vector<StateBagComponent::RateLimitInfo> GetRateLimitInfo() override;
+	virtual uint32_t GetRateLimitRate() override;
+	virtual uint32_t GetRateLimitBurst() override;
+	virtual void ResetClientRateLimit(int clientId) override;
+	virtual void TrackStateBagUpdate(int clientId, const std::string& stateBagId, bool wasDropped = false) override;
+	virtual void TrackDroppedStateBagUpdate(int clientId, const std::string& stateBagId) override;
 
 	void UnregisterStateBag(std::string_view id);
 
@@ -107,10 +137,29 @@ private:
 	// *owning* pointers for pre-created bags
 	std::set<std::shared_ptr<StateBagImpl>> m_preCreatedStateBags;
 	std::shared_mutex m_preCreatedStateBagsMutex;
+
+	// Rate limiting tracking
+	struct ClientRateLimitData {
+		uint32_t currentRate = 0;
+		uint32_t burstCount = 0;
+		uint32_t droppedUpdates = 0;
+		std::string lastDroppedStateBag;
+		std::chrono::steady_clock::time_point lastDropTime;
+		std::deque<std::string> recentStateBags; // Keep last 10
+		std::chrono::steady_clock::time_point lastRateReset;
+	};
+	
+	std::unordered_map<int, ClientRateLimitData> m_clientRateLimits;
+	std::shared_mutex m_rateLimitMutex;
+	
+	uint32_t m_rateLimitRate = 75;   // Default rate limit
+	uint32_t m_rateLimitBurst = 125; // Default burst limit
 };
 
 class StateBagImpl : public StateBag
 {
+	friend class StateBagComponentImpl;
+	
 public:
 	StateBagImpl(StateBagComponentImpl* parent, std::string_view id, bool useParentTargets = false);
 
@@ -736,6 +785,8 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, s
 		idNameBuffer.data(), idNameBuffer.size()
 	};
 
+	TrackStateBagUpdate(source, std::string(bagName), false);
+
 	auto bag = GetStateBag(bagName);
 
 	if (!bag)
@@ -774,6 +825,8 @@ void StateBagComponentImpl::HandlePacketV2(int source, net::packet::StateBagV2& 
 	{
 		return;
 	}
+
+	TrackStateBagUpdate(source, std::string(message.stateBagName.GetValue()), false);
 
 	auto bag = GetStateBag(message.stateBagName);
 
@@ -827,6 +880,369 @@ void StateBagComponentImpl::Reset()
 		std::unique_lock _(m_preCreatedStateBagsMutex);
 		m_preCreatedStateBags.clear();
 	}
+}
+
+void StateBagComponentImpl::ClearOrphanedStateBags()
+{
+	std::unique_lock lock(m_mapMutex);
+	auto it = m_stateBags.begin();
+	while (it != m_stateBags.end())
+	{
+		if (it->second.expired())
+		{
+			it = m_stateBags.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+void StateBagComponentImpl::ForceStateBagUpdates()
+{
+	std::shared_lock lock(m_mapMutex);
+	for (auto& [id, weakBag] : m_stateBags)
+	{
+		if (auto bag = weakBag.lock())
+		{
+			auto bagImpl = std::static_pointer_cast<StateBagImpl>(bag);
+			bagImpl->SendQueuedUpdates();
+		}
+	}
+}
+
+size_t StateBagComponentImpl::GetStateBagCount()
+{
+	std::shared_lock lock(m_mapMutex);
+	return m_stateBags.size();
+}
+
+size_t StateBagComponentImpl::GetActiveStateBagCount()
+{
+	std::shared_lock lock(m_mapMutex);
+	size_t count = 0;
+	for (const auto& [id, weakBag] : m_stateBags)
+	{
+		if (!weakBag.expired())
+			count++;
+	}
+	return count;
+}
+
+size_t StateBagComponentImpl::GetExpiredStateBagCount()
+{
+	std::shared_lock lock(m_mapMutex);
+	size_t count = 0;
+	for (const auto& [id, weakBag] : m_stateBags)
+	{
+		if (weakBag.expired())
+			count++;
+	}
+	return count;
+}
+
+std::vector<std::string> StateBagComponentImpl::GetStateBagIds()
+{
+	std::shared_lock lock(m_mapMutex);
+	std::vector<std::string> ids;
+	ids.reserve(m_stateBags.size());
+	for (const auto& [id, weakBag] : m_stateBags)
+	{
+		ids.push_back(id);
+	}
+	return ids;
+}
+
+size_t StateBagComponentImpl::GetTargetCount()
+{
+	std::shared_lock lock(m_mapMutex);
+	return m_targets.size();
+}
+
+size_t StateBagComponentImpl::GetPreCreatedStateBagCount()
+{
+	std::shared_lock lock(m_preCreatedStateBagsMutex);
+	return m_preCreatedStateBags.size();
+}
+
+size_t StateBagComponentImpl::GetErasureListCount()
+{
+	std::shared_lock lock(m_erasureMutex);
+	return m_erasureList.size();
+}
+
+size_t StateBagComponentImpl::GetPreCreatePrefixCount()
+{
+	std::shared_lock lock(m_preCreatePrefixMutex);
+	return m_preCreatePrefixes.size();
+}
+
+bool StateBagComponentImpl::IsGameInterfaceConnected()
+{
+	return m_gameInterface != nullptr;
+}
+
+const char* StateBagComponentImpl::GetRoleName()
+{
+	static const char* roleNames[] = { "Client", "ClientV2", "Server" };
+	int roleIndex = static_cast<int>(m_role);
+	if (roleIndex >= 0 && roleIndex < 3)
+	{
+		return roleNames[roleIndex];
+	}
+	return "Unknown";
+}
+
+std::vector<int> StateBagComponentImpl::GetRegisteredTargets()
+{
+	std::shared_lock lock(m_mapMutex);
+	std::vector<int> targets;
+	targets.reserve(m_targets.size());
+	for (int target : m_targets)
+	{
+		targets.push_back(target);
+	}
+	return targets;
+}
+
+size_t StateBagComponentImpl::GetStateBagCountForTarget(int target)
+{
+	std::shared_lock lock(m_mapMutex);
+	size_t count = 0;
+	for (const auto& [id, weakBag] : m_stateBags)
+	{
+		if (auto bag = weakBag.lock())
+		{
+			auto bagImpl = std::static_pointer_cast<StateBagImpl>(bag);
+			std::shared_lock routingLock(bagImpl->m_routingTargetsMutex);
+			if (bagImpl->m_routingTargets.count(target) > 0)
+				count++;
+		}
+	}
+	return count;
+}
+
+std::vector<std::pair<std::string, bool>> StateBagComponentImpl::GetPreCreatePrefixes()
+{
+	std::shared_lock lock(m_preCreatePrefixMutex);
+	return m_preCreatePrefixes;
+}
+
+std::vector<StateBagComponent::StateBagInfo> StateBagComponentImpl::GetStateBagInfoList()
+{
+	std::shared_lock lock(m_mapMutex);
+	std::vector<StateBagComponent::StateBagInfo> infoList;
+	infoList.reserve(m_stateBags.size());
+	
+	for (const auto& [id, weakBag] : m_stateBags)
+	{
+		StateBagComponent::StateBagInfo info;
+		info.id = id;
+		info.isExpired = weakBag.expired();
+		info.isActive = !info.isExpired;
+		
+		if (auto bag = weakBag.lock())
+		{
+			info.keyCount = bag->GetKeys().size();
+		}
+		else
+		{
+			info.keyCount = 0;
+		}
+		
+		infoList.push_back(std::move(info));
+	}
+	
+	return infoList;
+}
+
+bool StateBagComponentImpl::IsStateBagExpired(const std::string& id)
+{
+	std::shared_lock lock(m_mapMutex);
+	auto it = m_stateBags.find(id);
+	if (it != m_stateBags.end())
+	{
+		return it->second.expired();
+	}
+	return true;
+}
+
+std::optional<StateBagComponent::StateBagDetails> StateBagComponentImpl::GetStateBagDetails(const std::string& id)
+{
+	std::shared_lock lock(m_mapMutex);
+	auto it = m_stateBags.find(id);
+	
+	if (it == m_stateBags.end())
+	{
+		return std::nullopt;
+	}
+	
+	auto bag = it->second.lock();
+	if (!bag)
+	{
+		StateBagComponent::StateBagDetails details;
+		details.id = id;
+		details.isExpired = true;
+		details.useParentTargets = false;
+		details.replicationEnabled = false;
+		details.owningPeer = std::nullopt;
+		return details;
+	}
+	
+	auto bagImpl = std::static_pointer_cast<StateBagImpl>(bag);
+	
+	StateBagComponent::StateBagDetails details;
+	details.id = id;
+	details.isExpired = false;
+	details.useParentTargets = bagImpl->m_useParentTargets;
+	details.replicationEnabled = bagImpl->m_replicationEnabled.load();
+	details.owningPeer = bagImpl->GetOwningPeer();
+	
+	{
+		std::shared_lock routingLock(bagImpl->m_routingTargetsMutex);
+		details.routingTargets.reserve(bagImpl->m_routingTargets.size());
+		for (int target : bagImpl->m_routingTargets)
+		{
+			details.routingTargets.push_back(target);
+		}
+	}
+	
+	{
+		std::shared_lock dataLock(bagImpl->m_dataMutex);
+		for (const auto& [key, value] : bagImpl->m_data)
+		{
+			try
+			{
+				msgpack::unpacked up = msgpack::unpack(value.data(), value.size());
+				std::ostringstream oss;
+				oss << up.get();
+				std::string jsonStr = oss.str();
+				if (jsonStr.length() > 500)
+					jsonStr = jsonStr.substr(0, 497) + "...";
+				details.storedData[key] = jsonStr;
+			}
+			catch (...)
+			{
+				details.storedData[key] = "[" + std::to_string(value.size()) + " bytes]";
+			}
+		}
+	}
+	
+	{
+		std::unique_lock replicateLock(bagImpl->m_replicateDataMutex);
+		for (const auto& [key, value] : bagImpl->m_replicateData)
+		{
+			details.queuedData[key] = value.size();
+		}
+	}
+	
+	return details;
+}
+
+void StateBagComponentImpl::SendStateBagQueuedUpdates(const std::string& id)
+{
+	std::shared_lock lock(m_mapMutex);
+	auto it = m_stateBags.find(id);
+	
+	if (it != m_stateBags.end())
+	{
+		if (auto bag = it->second.lock())
+		{
+			auto bagImpl = std::static_pointer_cast<StateBagImpl>(bag);
+			bagImpl->SendQueuedUpdates();
+		}
+	}
+}
+
+std::vector<StateBagComponent::RateLimitInfo> StateBagComponentImpl::GetRateLimitInfo()
+{
+	std::shared_lock lock(m_rateLimitMutex);
+	std::vector<StateBagComponent::RateLimitInfo> result;
+	
+	auto now = std::chrono::steady_clock::now();
+	
+	for (const auto& [clientId, data] : m_clientRateLimits)
+	{
+		StateBagComponent::RateLimitInfo info;
+		info.clientId = clientId;
+		info.currentRate = data.currentRate;
+		info.burstCount = data.burstCount;
+		info.droppedUpdates = data.droppedUpdates;
+		info.lastDroppedStateBag = data.lastDroppedStateBag;
+		info.lastDropTime = data.lastDropTime;
+		
+		// Copy recent StateBags (max 10)
+		info.recentStateBags.reserve(data.recentStateBags.size());
+		for (const auto& bagId : data.recentStateBags)
+		{
+			info.recentStateBags.push_back(bagId);
+		}
+		
+		result.push_back(std::move(info));
+	}
+	
+	return result;
+}
+
+uint32_t StateBagComponentImpl::GetRateLimitRate()
+{
+	return 75; // Match kStateBagRateLimit from StateBagPacketHandler
+}
+
+uint32_t StateBagComponentImpl::GetRateLimitBurst()
+{
+	return 125; // Match kStateBagRateLimitBurst from StateBagPacketHandler
+}
+
+void StateBagComponentImpl::ResetClientRateLimit(int clientId)
+{
+	std::unique_lock lock(m_rateLimitMutex);
+	auto it = m_clientRateLimits.find(clientId);
+	if (it != m_clientRateLimits.end())
+	{
+		it->second.currentRate = 0;
+		it->second.burstCount = 0;
+		it->second.droppedUpdates = 0;
+		it->second.lastDroppedStateBag.clear();
+		it->second.recentStateBags.clear();
+		it->second.lastRateReset = std::chrono::steady_clock::now();
+	}
+}
+
+// Method to track StateBag updates (call this when processing updates)
+void StateBagComponentImpl::TrackStateBagUpdate(int clientId, const std::string& stateBagId, bool wasDropped)
+{
+	std::unique_lock lock(m_rateLimitMutex);
+	auto& data = m_clientRateLimits[clientId];
+	auto now = std::chrono::steady_clock::now();
+	
+	if (std::chrono::duration_cast<std::chrono::seconds>(now - data.lastRateReset).count() >= 1)
+	{
+		data.currentRate = 0;
+		data.lastRateReset = now;
+	}
+	
+	data.currentRate++;
+	data.burstCount++;
+	
+	data.recentStateBags.push_back(stateBagId);
+	if (data.recentStateBags.size() > 10)
+	{
+		data.recentStateBags.pop_front();
+	}
+	
+	if (wasDropped)
+	{
+		data.droppedUpdates++;
+		data.lastDroppedStateBag = stateBagId;
+		data.lastDropTime = now;
+	}
+}
+
+void StateBagComponentImpl::TrackDroppedStateBagUpdate(int clientId, const std::string& stateBagId)
+{
+	TrackStateBagUpdate(clientId, stateBagId, true);
 }
 
 fwRefContainer<StateBagComponent> StateBagComponent::Create(StateBagRole role)

@@ -101,6 +101,7 @@ public:
 devgui_convar "Tools/Performance/Resource Monitor" resmon
 devgui_convar "Tools/Network/State/Network Object Viewer" netobjviewer
 devgui_convar "Tools/Network/State/Player List" svplayerlist
+devgui_convar "Tools/Network/State/State Bags" svstatebags
 )");
 
 		Initialize();
