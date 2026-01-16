@@ -315,8 +315,10 @@ declare function RegisterNetEvent(eventName: string): void;
   * guarantee that more prefixes will not be added in the future, your logic
   * should take that into consideration.
   * @param eventName - the name to listen for the event
+  * @param callback - the callback to call for the raw event
+  * @param [netSafe=false] - If the event is network safe, by default this will be false.
   */
-declare function addRawEventListener(eventName: string, callback: RawEventCallback): void
+declare function addRawEventListener(eventName: string, callback: RawEventCallback, netSafe: boolean = false): void
 
 /**
   * Declares a function that will be called before any msgpack deserialization
@@ -332,6 +334,21 @@ declare function addRawEventListener(eventName: string, callback: RawEventCallba
   * @param eventName - the name to listen for the event
   */
 declare function addRawEventHandler(eventName: string, callback: RawEventCallback): void
+
+/**
+  * Adds a raw event listener for the specified {@link eventName} and automatically
+  * registers the event to be network safe.
+  *
+  * @param eventName - the event name we should listen to
+  * @param callback - the function that should be called whenever an event is triggered
+  */
+declare function onRawNet(eventName: string, callback: RawEventCallback): void;
+
+/**
+  * Removes the event listener with the specified {@link eventName} and {@link callback}
+  */
+declare function removeRawEventListener(eventName: string, callback: EventCallback): void
+
 /**
   * Sets the maximum amount of listeners all raw events can have.
   *
@@ -342,6 +359,39 @@ declare function addRawEventHandler(eventName: string, callback: RawEventCallbac
   * @param [max=10] the maximum amount of raw events that can be registered, by default this is 10.
   */
 declare function setMaxRawEventListeners(max: number): void
+
+/**
+  * Sends an event across the network to the client/server, if the client/server
+  * hasn't registered the event as network safe it will automatically be dropped.
+  *
+  * WARNING: Raw net emits should only be used with raw net events, like {@link onRawNetEvent}.
+  * Using these on a regular event will return without calling any of the regular event emitters
+  *
+  * NOTE: This is a sequential channel internally, this means that packets will be
+  * sent/received in the same order, which also means that if you send large net
+  * events the client will *have* to wait to receive those events.
+  *
+  * Sending too large of events can cause the client to timeout.
+  *
+  * @param eventName - the event name to trigger under
+  * @param source - on the server this defines the player to send the event to, or `-1` for everyone.
+  * @param data - the data to send to the client/server
+  * @throws this will throw if `data` isn't an instance of Uint8Array
+  */
+declare function emitRawNet(eventName: string, data: Uint8Array): void
+declare function emitRawNet(eventName: string, source: number, data: Uint8Array): void
+
+/**
+  * Sends an event across the local event system that other resources can listen
+  * to.
+  *
+  * WARNING: Raw emits should only be used with raw events, like {@link addRawEventHandler}, and {@link addRawEventListener}.
+  * Using these on a regular event will return without calling any of the regular event emitters
+  *
+  * @param eventName - the event name to trigger under
+  * @param [args=undefined] - the arguments to send
+  */
+declare function emitRaw(eventName: string, data: Uint8Array): void;
 
 /**
   * Adds an event listener for the specified {@link eventName}, and optionally
@@ -437,6 +487,8 @@ declare function TriggerEvent(eventName: string, ...args: any[]): void
   */
 declare function emitNet(eventName: string, ...args: any[]): void
 declare function emitNet(eventName: string, source: number, ...args: any[]): void
+
+
 
 /**
   * NOTE: This function is only available on the client, you should generally use
