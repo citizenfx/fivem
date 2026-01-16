@@ -163,7 +163,13 @@ namespace rage
 		class TextureD3D12 : public Texture
 		{
 		public:
-			char pad[64];
+			char pad[5];
+			uint8_t unkFlags1;
+			char pad2[2];
+			uint8_t unkFlags2;
+			char pad3[8];
+			ID3D12Resource* stagingResource;
+			char pad4[32];
 			ID3D12Resource* resource;
 		};
 
@@ -174,10 +180,14 @@ namespace rage
 			{
 				VkDeviceMemory memory;
 				VkImage image;
-				uint32_t pad[24];
+				void* unkPtr;
+				char pad[88];
 			};
 
-			char pad[64];
+			char pad[0x10];
+			uint16_t width;
+			uint16_t height;
+			char pad2[44];
 			ImageData* image;
 		};
 
@@ -215,6 +225,17 @@ namespace rage
 		void GFX_EXPORT Driver_Create_ShaderResourceView(Texture* texture, const TextureViewDesc& desc);
 
 		void GFX_EXPORT Driver_Destroy_Texture(Texture* texture);
+
+		struct BackBufferData
+		{
+			void* vtbl;
+			rage::sga::Texture* m_texture;
+			uint32_t m_flags;
+			uint32_t m_miscState;
+			char pad[32];
+		};
+
+		BackBufferData* Driver_GetBackBuffer();
 	}
 
 	// rage::grcImage, in reality
