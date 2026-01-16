@@ -8,12 +8,14 @@ apiset: server
 int GET_ENTITY_HEALTH(Entity entity);
 ```
 
-Only works for vehicle and peds
-
 ## Parameters
 * **entity**: The entity to check the health of
 
-## Return value
-If the entity is a vehicle it will return 0-1000
-If the entity is a ped it will return 0-200
-If the entity is an object it will return 0
+## Supported Entity Types
+
+| Entity Type | FiveM | RedM  | Returns (FiveM) | Returns (RedM) |
+|-------------|-------|-------|-----------------|----------------|
+| Vehicle     | ✅    | ❌   | 0 - 1000        | 0             |
+| Ped         | ✅    | ✅   | 0 - 200         | 0 - 150       |
+| Object      | ✅    | ❌   | 0               | 0             |
+| (Others)    | ❌    | ❌   | 0               | 0             |
