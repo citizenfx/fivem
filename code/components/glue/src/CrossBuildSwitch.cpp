@@ -3,6 +3,7 @@
 #include <NetLibrary.h>
 #include <Utils.h>
 #include <json.hpp>
+#include <future>
 
 #include <CrossBuildRuntime.h>
 #include <PureModeState.h>
@@ -27,7 +28,7 @@ static bool g_hadError;
 
 void PerformStateSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable);
 
-void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable)
+bool InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable, bool skip)
 {
 	if (nui::HasMainUI())
 	{
@@ -49,19 +50,37 @@ void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncre
 			{ "currentBuild", xbr::GetRequestedGameBuild() },
 			{ "currentPureLevel", fx::client::GetPureLevel() },
 			{ "currentPoolSizesIncrease", std::move(currentPoolSizesIncreaseSetting) },
-			{ "currentReplaceExecutable", xbr::GetReplaceExecutable() }
+			{ "currentReplaceExecutable", xbr::GetReplaceExecutable() },
+			{ "optional", skip }
 		});
 
 		nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectBuildSwitchRequest", "data": %s })", j.dump()));
 
-		g_submitFn = [build, pureLevel, poolSizesIncreaseSetting = std::move(poolSizesIncreaseSetting), replaceExecutable](const std::string& action)
+		std::promise<std::string> responsePromise;
+		g_submitFn = [&responsePromise](const std::string& action)
 		{
-			if (action == "ok")
-			{
-				PerformStateSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting), replaceExecutable);
-			}
+			responsePromise.set_value(action);
 		};
+
+		std::future<std::string> response = responsePromise.get_future();
+		std::string retval = response.get();
+
+		if (retval == "ok")
+		{
+			PerformStateSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting), replaceExecutable);
+			return false;
+		}
+		else if (retval == "skip")
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
+
+	return false;
 }
 
 void PerformStateSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable)
