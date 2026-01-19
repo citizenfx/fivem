@@ -9,6 +9,9 @@ export function useIntlService(): IIntlService {
 export const IIntlService = defineService<IIntlService>('IntlService');
 
 export interface IIntlService {
+  readonly locale: string;
+  readonly localeCountry: string;
+
   readonly systemLocale: string;
   readonly systemLocaleCountry: string;
 
