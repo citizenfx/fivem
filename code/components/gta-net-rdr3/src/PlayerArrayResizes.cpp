@@ -1147,6 +1147,14 @@ static HookFunction hookFunction([]()
 		}
 	}
 
+	// CPedIntelligenceComponent, this has several atArrays that are sized for 32 players (or 1 if not-networked)
+	{
+		// Set maxPlayers networked to 127, as it increments the value by one later on
+		hook::put<uint8_t>(hook::get_pattern("8D 43 ? 0F 45 D8 0F B7 87", 2), 0x7F);
+		// Another atArray, set elsewhere inside of the constructor, Same behaviour as above.
+		hook::put<uint8_t>(hook::get_pattern("83 E2 ? FF C2 E8 ? ? ? ? 66 3B 7B", 2), 0x7F);
+	}
+
 	// Support entity migration for >32 in CNetObjProximityMigrateable::_passOutOfScope & CNetObjPedBase::_passOutOfScope
 	{
 		// 256 * 8: 256 players, ptr size
@@ -1197,6 +1205,15 @@ static HookFunction hookFunction([]()
 		// 16: extra int[4] ontop of present int[1] allocation.
 		constexpr int stackSize = ptrsBase + 16;
 		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 83 EC ? 83 B9 ? ? ? ? ? 4C 8B FA 48 8B F9", -0x14), {});
+	}
+
+	// Resize stack to support new bitset size for CGivePickupRewardsEvent
+	{
+		const int ptrsBase = 0x20;
+		// 0x20: previous stack size, containing an int[1] bitset.
+		// +16 for an extra int[4] to go ontop of the int[1] allocation at the end of the old stack.
+		constexpr int stackSize = ptrsBase + 16;
+		IncreaseFunctionStack<stackSize>(hook::get_pattern("48 83 EC ? 8B 1D ? ? ? ? 4C 8B F1", -0x14), {});
 	}
 
 	// Resize stack for pending players
@@ -1306,7 +1323,6 @@ static HookFunction hookFunction([]()
 		hook::set_call(&g_origunkNetworkObjectMgr__AccessObjects, location);
 		hook::call(location, unkNetworkObjectMgr__AccessObjects);
 	}
-	
 
 	// NetworkObjectMgr bitset update. Manages several int32 bitsets.
 	// Only some of these bitsets are relevant for OneSync along with the focus position call.
