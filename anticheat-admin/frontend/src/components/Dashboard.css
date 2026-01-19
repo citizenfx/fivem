@@ -1,0 +1,123 @@
+/* Dashboard Styles */
+
+.dashboard {
+  max-width: 1400px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.page-header h1 {
+  font-size: 1.75rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+/* Detection & Sanction Lists */
+.detection-list,
+.sanction-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.detection-item,
+.sanction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.detection-item:hover,
+.sanction-item:hover {
+  background: var(--color-bg-elevated);
+}
+
+.detection-info,
+.sanction-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detection-player,
+.sanction-player {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.detection-type {
+  font-size: 0.8125rem;
+  color: var(--color-accent-primary);
+}
+
+.sanction-reason {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detection-meta,
+.sanction-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.detection-time,
+.sanction-time {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--color-text-muted);
+}
+
+/* Ruleset Card */
+.ruleset-card {
+  margin-top: var(--space-lg);
+}
+
+.ruleset-info {
+  font-size: 0.9375rem;
+}
+
+/* Loading & Error */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: var(--color-text-muted);
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--color-error);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  text-align: center;
+}

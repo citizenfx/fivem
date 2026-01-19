@@ -1,0 +1,31 @@
+/* Detections Styles */
+
+.detections-page {
+  max-width: 1400px;
+}
+
+.filters {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.filter-select {
+  width: 160px;
+}
+
+.details-cell {
+  max-width: 200px;
+}
+
+.details-code {
+  font-size: 0.75rem;
+  background: var(--color-bg-secondary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+

@@ -1,0 +1,116 @@
+# Filebeat Configuration for FiveM Anticheat
+# Collects logs from FiveM server and web admin, sends to Logstash
+
+filebeat.inputs:
+  # FiveM Anticheat Resource Logs
+  - type: filestream
+    id: anticheat-fivem
+    enabled: true
+    paths:
+      # Adjust this path to your FiveM server-data directory
+      - /path/to/fivem/server-data/anticheat.log
+    parsers:
+      - ndjson:
+          target: ""
+          add_error_key: true
+    fields:
+      log_source: fivem-anticheat
+      environment: production
+    fields_under_root: true
+
+  # Web Admin Backend Logs
+  - type: filestream
+    id: anticheat-admin
+    enabled: true
+    paths:
+      - /var/log/anticheat/admin.log
+      # Alternative: relative path from anticheat-admin
+      # - /path/to/anticheat-admin/logs/admin.log
+    parsers:
+      - ndjson:
+          target: ""
+          add_error_key: true
+    fields:
+      log_source: anticheat-admin
+      environment: production
+    fields_under_root: true
+
+  # Web Admin Error Logs
+  - type: filestream
+    id: anticheat-admin-errors
+    enabled: true
+    paths:
+      - /var/log/anticheat/error.log
+    parsers:
+      - ndjson:
+          target: ""
+          add_error_key: true
+    fields:
+      log_source: anticheat-admin
+      log_type: error
+      environment: production
+    fields_under_root: true
+
+# ============================================================================
+# Processors
+# ============================================================================
+
+processors:
+  # Add host metadata
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+
+  # Add cloud metadata if running in cloud
+  - add_cloud_metadata: ~
+
+  # Rename fields for ECS compatibility
+  - rename:
+      fields:
+        - from: "level"
+          to: "log.level"
+      ignore_missing: true
+      fail_on_error: false
+
+  # Drop unnecessary fields
+  - drop_fields:
+      fields: ["agent.ephemeral_id", "agent.id", "agent.version"]
+      ignore_missing: true
+
+# ============================================================================
+# Output Configuration
+# ============================================================================
+
+# Output to Logstash (recommended for processing)
+output.logstash:
+  hosts: ["localhost:5044"]
+  # Enable SSL if Logstash is configured with SSL
+  # ssl.enabled: true
+  # ssl.certificate_authorities: ["/etc/pki/ca.crt"]
+
+# Alternative: Direct output to Elasticsearch
+# output.elasticsearch:
+#   hosts: ["localhost:9200"]
+#   index: "anticheat-%{+yyyy.MM.dd}"
+#   # Authentication if required
+#   # username: "elastic"
+#   # password: "changeme"
+
+# ============================================================================
+# Logging Configuration
+# ============================================================================
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+
+# ============================================================================
+# Monitoring (Optional)
+# ============================================================================
+
+# monitoring.enabled: true
+# monitoring.elasticsearch:
+#   hosts: ["localhost:9200"]

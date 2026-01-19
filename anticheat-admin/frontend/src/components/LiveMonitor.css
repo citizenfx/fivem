@@ -1,0 +1,90 @@
+/* Live Monitor Styles */
+
+.live-monitor {
+  max-width: 1000px;
+}
+
+.connection-badge {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+}
+
+.connection-badge.connected {
+  color: var(--color-success);
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.connection-badge.disconnected {
+  color: var(--color-error);
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.monitor-card {
+  min-height: 600px;
+}
+
+.event-count {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.event-feed {
+  max-height: 550px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border-left: 3px solid transparent;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.event-item.event-detection {
+  border-left-color: var(--color-warning);
+}
+
+.event-item.event-sanction {
+  border-left-color: var(--color-error);
+}
+
+.event-item.event-connect {
+  border-left-color: var(--color-success);
+}
+
+.event-item.event-disconnect {
+  border-left-color: var(--color-text-muted);
+}
+
+.event-icon {
+  font-size: 1.25rem;
+}
+
+.event-content {
+  flex: 1;
+}
+
+.event-title {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.event-meta {
+  display: flex;
+  gap: var(--space-md);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.event-player {
+  color: var(--color-accent-primary);
+}

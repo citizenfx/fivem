@@ -1,0 +1,12 @@
+/* Sanctions Styles */
+
+.sanctions-page {
+  max-width: 1400px;
+}
+
+.reason-cell {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

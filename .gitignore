@@ -195,3 +195,8 @@ privates_config.lua
 *.pyc
 
 /vendor/libuv/bin/libuv.*
+
+# Security - Secrets & Local DBs
+*.key
+*.db
+*.sqlite

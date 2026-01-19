@@ -1,0 +1,178 @@
+{
+  "index_patterns": ["anticheat-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "index.lifecycle.name": "anticheat-policy",
+      "index.lifecycle.rollover_alias": "anticheat"
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "timestamp": {
+          "type": "date"
+        },
+        "level": {
+          "type": "keyword"
+        },
+        "log": {
+          "properties": {
+            "level": {
+              "type": "keyword"
+            }
+          }
+        },
+        "module": {
+          "type": "keyword"
+        },
+        "event": {
+          "type": "keyword"
+        },
+        "service": {
+          "type": "keyword"
+        },
+        "application": {
+          "type": "keyword"
+        },
+        "log_source": {
+          "type": "keyword"
+        },
+        "environment": {
+          "type": "keyword"
+        },
+        "player_id": {
+          "type": "keyword"
+        },
+        "player_name": {
+          "type": "keyword",
+          "fields": {
+            "text": {
+              "type": "text"
+            }
+          }
+        },
+        "detection_type": {
+          "type": "keyword"
+        },
+        "severity": {
+          "type": "keyword"
+        },
+        "sanction_type": {
+          "type": "keyword"
+        },
+        "reason": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword"
+            }
+          }
+        },
+        "duration": {
+          "type": "long"
+        },
+        "data": {
+          "type": "object",
+          "dynamic": true,
+          "properties": {
+            "current_speed": {
+              "type": "float"
+            },
+            "max_allowed": {
+              "type": "float"
+            },
+            "distance": {
+              "type": "float"
+            },
+            "current_health": {
+              "type": "integer"
+            },
+            "current_armor": {
+              "type": "integer"
+            },
+            "weapon_hash": {
+              "type": "long"
+            },
+            "entity_type": {
+              "type": "keyword"
+            },
+            "model_hash": {
+              "type": "long"
+            },
+            "events_per_second": {
+              "type": "integer"
+            },
+            "position": {
+              "properties": {
+                "x": { "type": "float" },
+                "y": { "type": "float" },
+                "z": { "type": "float" }
+              }
+            }
+          }
+        },
+        "user": {
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            }
+          }
+        },
+        "source": {
+          "properties": {
+            "geo": {
+              "properties": {
+                "country_name": { "type": "keyword" },
+                "city_name": { "type": "keyword" },
+                "location": { "type": "geo_point" }
+              }
+            }
+          }
+        },
+        "labels": {
+          "type": "object",
+          "dynamic": true
+        },
+        "admin_id": {
+          "type": "keyword"
+        },
+        "admin_name": {
+          "type": "keyword"
+        },
+        "entity_type": {
+          "type": "keyword"
+        },
+        "entity_id": {
+          "type": "keyword"
+        },
+        "ip_address": {
+          "type": "ip"
+        },
+        "method": {
+          "type": "keyword"
+        },
+        "path": {
+          "type": "keyword"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "duration_ms": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "priority": 500,
+  "composed_of": [],
+  "version": 1,
+  "_meta": {
+    "description": "Index template for FiveM Anticheat logs"
+  }
+}
