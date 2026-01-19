@@ -254,6 +254,12 @@ namespace fx
 			return m_useAccurateSendsVar->GetValue();
 		}
 
+		inline std::string GetSentinelError()
+		{
+			std::shared_lock<std::shared_mutex> lock(m_sentinelMutex);
+			return m_sentinelError;
+		}
+
 	private:
 		void InitializeSyncUv();
 
@@ -342,6 +348,10 @@ namespace fx
 		std::unique_ptr<CallbackListBase> m_syncThreadCallbacks;
 
 		detached_mpsc_queue<GameServerPacket> m_netSendList;
+
+		std::string m_sentinelError;
+
+		std::shared_mutex m_sentinelMutex;
 	};
 
 	using TPacketTypeHandler = std::function<void(const fx::ClientSharedPtr& client, net::ByteReader& reader, ENetPacketPtr packet)>;

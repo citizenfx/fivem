@@ -545,6 +545,12 @@ static InitFunction initFunction([]()
 				return;
 			}
 
+			if (auto sentinelError = gameServer->GetSentinelError(); !sentinelError.empty())
+			{
+				sendError(sentinelError);
+				return;
+			}
+
 			auto nameIt = postMap.find("name");
 			auto guidIt = postMap.find("guid");
 			auto gameBuildIt = postMap.find("gameBuild");

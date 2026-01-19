@@ -1031,6 +1031,43 @@ namespace fx
 						}
 
 						firstRun = false;
+
+						std::unique_lock<std::shared_mutex> lock(m_sentinelMutex);
+
+						if (m_sentinelError.empty())
+						{
+							try
+							{
+								auto j = nlohmann::json::parse(d, d + s);
+
+								if (j.is_object() && j.contains("lastError"))
+								{
+									m_sentinelError = j["lastError"].get<std::string>();
+								}
+							}
+							catch (...)
+							{
+							}
+						}
+						else
+						{
+							try
+							{
+								auto j = nlohmann::json::parse(d, d + s);
+
+								if (j.is_object() && !j.contains("lastError"))
+								{
+									m_sentinelError = "";
+								}
+								else if (j.is_object() && j.contains("lastError"))
+								{
+									m_sentinelError = j["lastError"].get<std::string>();
+								}
+							}
+							catch (...)
+							{
+							}
+						}
 					});
 				}
 			};
