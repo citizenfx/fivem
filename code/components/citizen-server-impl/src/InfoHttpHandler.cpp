@@ -35,6 +35,7 @@ inline uint32_t SwapLong(uint32_t x)
 }
 
 extern std::shared_ptr<ConVar<std::string>> g_steamApiKey;
+extern std::shared_ptr<ConVar<bool>> g_enforceSteamAuth;
 
 namespace fx
 {
@@ -113,6 +114,7 @@ struct InfoHttpHandlerComponentLocals : fwRefCountable
 				}
 
 				infoJson["requestSteamTicket"] = requestSteamTicket;
+				infoJson["enforceSteamAuth"] = g_enforceSteamAuth->GetValue();
 				infoJson["useNewSteamAppId"] = true;
 
 				infoJson["version"] = 0;

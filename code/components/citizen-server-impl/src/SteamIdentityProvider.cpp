@@ -28,6 +28,7 @@
 
 std::shared_ptr<ConVar<std::string>> g_steamApiKey;
 std::shared_ptr<ConVar<std::string>> g_steamApiDomain;
+std::shared_ptr<ConVar<bool>> g_enforceSteamAuth;
 
 static int steamAppId;
 
@@ -73,6 +74,12 @@ static InitFunction initFunction([]()
 
 			if (it == postMap.end())
 			{
+				if (g_enforceSteamAuth->GetValue())
+				{
+					cb(boost::optional<std::string>{ "No Steam authentication ticket provided while this server enforces authentication with Steam." });
+					return;
+				}
+
 				cb({});
 				return;
 			}
@@ -143,6 +150,7 @@ static InitFunction initFunction([]()
 	{
 		g_steamApiKey = instance->AddVariable<std::string>("steam_webApiKey", ConVar_None, "");
 		g_steamApiDomain = instance->AddVariable<std::string>("steam_webApiDomain", ConVar_None, "api.steampowered.com");
+		g_enforceSteamAuth = instance->AddVariable<bool>("sv_enforceSteamAuth", ConVar_ServerInfo, false);
 
 		const auto gameName = instance->GetComponent<fx::GameServer>()->GetGameName();
 

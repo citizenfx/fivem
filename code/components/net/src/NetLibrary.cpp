@@ -1673,6 +1673,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	static std::string requestSteamTicket = "on";
 	static bool useNewSteamAppId = false;
+	static bool enforceSteamAuth = false;
 	static bool switchedOnce = false;
 
 	continueRequest = [=]()
@@ -1710,20 +1711,24 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				{
 					OnConnectionError(va("Failed to obtain Steam ticket, %s.", authResult.first));
 				}
-				else if (authResult.second.empty())
+				else if (authResult.second.empty() && enforceSteamAuth)
 				{
 					OnConnectionError(va("Failed to obtain Steam ticket, ticket response is empty."));
 				}
 				else
 				{
 					postMap["name"] = GetPlayerName();
-					postMap["authTicket"] = authResult.second;
+
+					if (!authResult.second.empty())
+					{
+						postMap["authTicket"] = authResult.second;
+					}
 
 					performRequest();
 				}
 			};
 
-			cfx::legitimacy::GetSteamAuthTicketWrapper(authCallback);
+			cfx::legitimacy::GetSteamAuthTicketWrapper(authCallback, enforceSteamAuth);
 		}
 		else
 		{
@@ -1856,6 +1861,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					}
 
 					requestSteamTicket = info.value("requestSteamTicket", "on");
+					enforceSteamAuth = info.value("enforceSteamAuth", false);
 					useNewSteamAppId = info.value("useNewSteamAppId", false);
 				}
 #endif
