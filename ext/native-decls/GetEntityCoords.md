@@ -2,16 +2,15 @@
 ns: CFX
 apiset: server
 ---
-
 ## GET_ENTITY_COORDS
 
 ```c
 Vector3 GET_ENTITY_COORDS(Entity entity);
 ```
 
-Gets the current coordinates for a specified entity. This native is used server side when using OneSync.
+Gets the current coordinates for a specified entity.
 
-See [GET_ENTITY_COORDS](#_0x3FEF770D40960D5A) for client side.
+See [GET_ENTITY_COORDS](#_0x3FEF770D40960D5A) for the client side version.
 
 ## Parameters
 
@@ -38,7 +37,7 @@ AddEventHandler("myCoordinates", ShowCoordinates)
 
 ```js
 onNet('myCoordinates', () => {
-  const player = global.source; // use (global as any).source for Typescript
+  const player = source;
   const ped = GetPlayerPed(player);
   const [playerX, playerY, playerZ] = GetEntityCoords(ped);
 
