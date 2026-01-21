@@ -154,6 +154,10 @@ public:
 
 	virtual void SetClientVolumeOverrideByServerId(uint32_t serverId, float volume) override;
 
+	virtual void SetPlayerVolumeFromServerId(uint32_t serverId, float volume) override;
+
+	virtual float GetPlayerVolumeFromServerId(uint32_t serverId) override;
+
 	virtual std::string GetPlayerNameFromServerId(uint32_t serverId) override;
 
 	virtual std::string GetVoiceChannelFromServerId(uint32_t serverId) override;
