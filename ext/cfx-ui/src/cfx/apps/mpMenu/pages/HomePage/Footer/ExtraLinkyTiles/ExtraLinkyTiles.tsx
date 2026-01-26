@@ -1,7 +1,6 @@
-import { Flex, Text } from '@cfx-dev/ui-components';
+import { Flex, Icon, Icons, Symbols, Text } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { FiServer } from 'react-icons/fi';
 
 import { GameName } from 'cfx/base/game';
 import { CurrentGameBrand, currentGameNameIs } from 'cfx/base/gameRuntime';
@@ -10,40 +9,44 @@ import { EventActionNames, ElementPlacements } from 'cfx/common/services/analyti
 
 import s from './ExtraLinkyTiles.module.scss';
 
+const analyticsCTAText = `Create a server Find out how to setup your own ${CurrentGameBrand} server!`;
+
 export const ExtraLinkyTiles = observer(function ExtraLinkyTiles() {
   const eventHandler = useEventHandler();
 
   const link = currentGameNameIs(GameName.RedM)
     ? 'https://redm.net/server-hosting'
     : 'https://fivem.net/server-hosting';
-  const title = 'Create a server';
-  const description = `Find out how to setup your own ${CurrentGameBrand} server!`;
 
   const handleClick = React.useCallback(() => {
     eventHandler({
       action: EventActionNames.HostCTA,
       properties: {
         element_placement: ElementPlacements.Footer,
-        text: `${title} ${description}`,
+        text: analyticsCTAText,
         link_url: link,
       },
     });
-  }, [eventHandler, link, title, description]);
+  }, [eventHandler, link]);
 
   return (
-    <Flex fullWidth alignToEnd gap="large">
+    <Flex fullWidth fullHeight alignToEnd gap="large">
       <a href={link} className={s.tile} onClick={handleClick}>
         <Flex gap="large">
-          <div className={s.icon}>
-            <FiServer />
-          </div>
+          <Flex>
+            <Flex vertical gap="normal">
+              <Text uppercase size="normal" weight="bold" opacity="75">
+                Create a server
+              </Text>
 
-          <Flex vertical gap="small">
-            <Text size="xlarge" weight="bold" family="secondary" opacity="75">
-              {title}
-            </Text>
+              <Text typographic opacity="50">
+                Find out how to setup your own&nbsp;{CurrentGameBrand}&nbsp;server!
+              </Text>
+            </Flex>
 
-            <Text opacity="50">{description}</Text>
+            <Icon>
+              {Icons.externalLink}
+            </Icon>
           </Flex>
         </Flex>
       </a>

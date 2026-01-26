@@ -314,12 +314,11 @@
     eslint-plugin-react "^7.34.1"
     eslint-plugin-react-hooks "^4.6.2"
 
-"@cfx-dev/ui-components@1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@cfx-dev/ui-components/-/ui-components-1.0.2.tgz#9adb2340dab791c25daa1efbc9f70e33b5a9362a"
-  integrity sha512-XOJbUgChzEFprJinqtTN9aDMLQbnTi6+COVda5mZFIaPba2Nz1Z0PJGH26eih0TRjxsKBsJDZVK4rFgVyL95dg==
+"@cfx-dev/ui-components@1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@cfx-dev/ui-components/-/ui-components-1.1.2.tgz#2f5dc20fb415c717878d7dda21988ccba78af413"
+  integrity sha512-KqGY4k4LBVQpuJ23A+y1GVNcKGdcSW7ABl/Qk6f0AmmKSX1zabuFeFC/Zjdu5Sc/2cuuksxqa94iAjdpSJ6CHA==
   dependencies:
-    "@fontsource/montserrat" "^4.5.12"
     "@fontsource/rubik" "^4.5.11"
     "@radix-ui/react-select" "^1.0.0"
     "@storybook/addon-docs" "^8.1.10"
@@ -330,7 +329,7 @@
     react-dom "^18.2.0"
     react-dropzone "^14.2.3"
     react-focus-lock "^2.9.1"
-    react-icons "^4.4.0"
+    react-icons "5.5.0"
     react-window "^1.8.8"
 
 "@discoveryjs/json-ext@^0.5.0":
@@ -401,11 +400,6 @@
   version "0.2.8"
   resolved "https://registry.yarnpkg.com/@floating-ui/utils/-/utils-0.2.8.tgz#21a907684723bbbaa5f0974cf7730bd797eb8e62"
   integrity sha512-kym7SodPp8/wloecOpcmSnWJsK7M0E5Wg8UcFA+uO4B9s5d0ywXOEro/8HM9x0rW+TljRzul/14UYz3TleT3ig==
-
-"@fontsource/montserrat@^4.5.12":
-  version "4.5.14"
-  resolved "https://registry.yarnpkg.com/@fontsource/montserrat/-/montserrat-4.5.14.tgz#5f4bfc5e7f234a986d94d9e7e7193f852e6971e3"
-  integrity sha512-fTvrteVzuFUePhr4QYBGoK8G/YHLJ3IhF1HhKg0AxcFvZajJT7rM7ULdmKLSd2PkX44R3aaFZq1zDbmjbGGI+w==
 
 "@fontsource/rubik@^4.5.11":
   version "4.5.14"
@@ -5098,6 +5092,11 @@ handle-thing@^2.0.0:
   resolved "https://registry.yarnpkg.com/handle-thing/-/handle-thing-2.0.1.tgz#857f79ce359580c340d43081cc648970d0bb234e"
   integrity sha512-9Qn4yBxelxoh2Ow62nP+Ka/kMnOXRi8BXnRaUwezLNhqelnN49xKz4F/dPP8OYLxLxq6JDtZb2i9XznUQbNPTg==
 
+harmony-reflect@^1.4.6:
+  version "1.6.2"
+  resolved "https://registry.yarnpkg.com/harmony-reflect/-/harmony-reflect-1.6.2.tgz#31ecbd32e648a34d030d86adb67d4d47547fe710"
+  integrity sha512-HIp/n38R9kQjDEziXyDTuW3vvoxxyxjxFzXLrBr18uB47GnSt+G9D29fqrpM5ZkspMcPICud3XsBJQ4Y2URg8g==
+
 has-ansi@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/has-ansi/-/has-ansi-2.0.0.tgz#34f5049ce1ecdf2b0649af3ef24e45ed35416d91"
@@ -5392,6 +5391,13 @@ idb@^7.1.0:
   version "7.1.1"
   resolved "https://registry.yarnpkg.com/idb/-/idb-7.1.1.tgz#d910ded866d32c7ced9befc5bfdf36f572ced72b"
   integrity sha512-gchesWBzyvGHRO9W8tzUWFDycow5gwjvFKfyV9FF32Y7F50yZMp7mP+T2mJIWFx49zicqyC4uefHM17o6xKIVQ==
+
+identity-obj-proxy@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/identity-obj-proxy/-/identity-obj-proxy-3.0.0.tgz#94d2bda96084453ef36fbc5aaec37e0f79f1fc14"
+  integrity sha512-00n6YnVHKrinT9t0d9+5yZC6UBNJANpYEQvL2LlX6Ab9lnmxzIRcEmTPuyGScvl1+jKuCICX1Z0Ab1pPKKdikA==
+  dependencies:
+    harmony-reflect "^1.4.6"
 
 ieee754@^1.1.13:
   version "1.2.1"
@@ -8021,10 +8027,10 @@ react-focus-lock@^2.9.1:
     use-callback-ref "^1.3.2"
     use-sidecar "^1.1.2"
 
-react-icons@^4.4.0:
-  version "4.12.0"
-  resolved "https://registry.yarnpkg.com/react-icons/-/react-icons-4.12.0.tgz#54806159a966961bfd5cdb26e492f4dafd6a8d78"
-  integrity sha512-IBaDuHiShdZqmfc/TwHu6+d6k2ltNCf3AszxNmjJc1KUfXdEeRJOKyNvLmAHaarhzGmTSVygNdyu8/opXv2gaw==
+react-icons@5.5.0:
+  version "5.5.0"
+  resolved "https://registry.yarnpkg.com/react-icons/-/react-icons-5.5.0.tgz#8aa25d3543ff84231685d3331164c00299cdfaf2"
+  integrity sha512-MEFcXdkP3dLo8uumGI5xN3lDFNsRtrjbOEKDLD7yv76v4wpnEq2Lt2qeHaQOr34I/wPN3s3+N08WkQ+CW37Xiw==
 
 react-is@^16.13.1, react-is@^16.7.0:
   version "16.13.1"

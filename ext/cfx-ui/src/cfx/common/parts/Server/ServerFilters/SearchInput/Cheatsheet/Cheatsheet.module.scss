@@ -17,7 +17,7 @@
   @include ui.font-weight('thin');
 
   color: ui.color-token('text-a50');
-  background-color: ui.color-token('backdrop-100');
+  background-color: ui.color('main', 50);
 
   border-bottom-left-radius: ui.border-radius('small');
   border-bottom-right-radius: ui.border-radius('small');

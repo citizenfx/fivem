@@ -1,5 +1,4 @@
 import {
-  Icons,
   Island,
   Box,
   Flex,
@@ -73,7 +72,7 @@ export const ServersPage = observer(function ServersPage(props: ServersPageProps
             initialScrollOffset={initialScrollOffset}
             className={s.list}
             itemCount={list.sequence.length}
-            itemHeight={UiService.quant * 8}
+            itemHeight={UiService.quant * 9}
             renderItem={renderItem}
           />
         )}
@@ -99,8 +98,6 @@ const PinnedServers = observer(function PinnedServers() {
           hideTags
           hideActions
           hideCountryFlag
-          hidePremiumBadge
-          descriptionUnderName
           server={server}
           elementPlacement={ElementPlacements.ServerFeaturedList}
         />
@@ -110,15 +107,14 @@ const PinnedServers = observer(function PinnedServers() {
   return (
     <Island className={s.pinned}>
       <Flex vertical fullHeight gap="none">
-        <Pad>
-          <Flex centered="axis">
-            <Text size="large" opacity="50">
-              {Icons.serversFeatured}
-            </Text>
-            <Text size="large" weight="bold" opacity="50">
-              {$L('#ServerList_FeaturedServers')}
-            </Text>
-          </Flex>
+        <Pad top bottom size="large">
+          <Pad left right size="medium">
+            <Flex centered="axis">
+              <Text uppercase size="normal" weight="bold" opacity="50">
+                {$L('#ServerList_FeaturedServers')}
+              </Text>
+            </Flex>
+          </Pad>
         </Pad>
 
         <FlexRestricter vertical>

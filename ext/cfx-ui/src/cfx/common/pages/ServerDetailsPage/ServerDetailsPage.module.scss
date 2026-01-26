@@ -12,6 +12,10 @@
     line-height: 2.4;
   }
 
+  .description {
+    line-break: loose;
+  }
+
   .decorator {
     @include ui.font-size('large');
   }

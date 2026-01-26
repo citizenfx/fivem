@@ -16,14 +16,12 @@ import { ActivityItem } from 'cfx/ui/ActivityItem/ActivityItem';
 export interface FeedProps {
   items: IActivityItem[];
 
-  icon: React.ReactNode;
-  label: JSX.Element;
+  label: React.ReactNode;
   title: JSX.Element;
 }
 
 export const Feed = observer(function Feed(props: FeedProps) {
   const {
-    icon,
     label,
     title,
     items,
@@ -47,29 +45,25 @@ export const Feed = observer(function Feed(props: FeedProps) {
   return (
     <Island widthQ={75}>
       <Flex fullHeight vertical gap="none">
-        <Pad>
-          <Flex repell>
-            <Flex centered>
-              <Text size="large" weight="bold" opacity="50">
-                {icon}
-              </Text>
-
-              <Text size="large" weight="bold" opacity="50">
+        <Pad top bottom size="large">
+          <Pad left right size="medium">
+            <Flex centered="axis" repell>
+              <Text uppercase size="normal" weight="bold" opacity="50">
                 {label}
               </Text>
-            </Flex>
 
-            <Title fixedOn="left" title={title}>
-              <Text size="large" weight="bold" opacity="25">
-                {Icons.tipInfo}
-              </Text>
-            </Title>
-          </Flex>
+              <Title fixedOn="left" title={title}>
+                <Text size="large" weight="bold" opacity="25">
+                  {Icons.tipInfo}
+                </Text>
+              </Title>
+            </Flex>
+          </Pad>
         </Pad>
 
         <Scrollable>
           {showFeed && (
-            <Pad left right bottom>
+            <Pad left right bottom size="medium">
               <Flex vertical gap="large">
                 {items.map((item) => (
                   <ActivityItem key={item.id} item={item} />

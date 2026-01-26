@@ -2,6 +2,7 @@ module.exports = {
   root: true,
   extends: ['@cfx-dev/eslint-config-ui'],
   rules: {
+    'linebreak-style': 'off',
     '@typescript-eslint/no-invalid-void-type': 'off',
     'default-case': 'off',
     'import/no-cycle': 'off',
@@ -32,5 +33,12 @@ module.exports = {
       },
     ],
     'jsx-a11y/no-autofocus': 'off',
+    camelcase: [
+      'error',
+      {
+        properties: 'never',
+        allow: ['$L_nl2br'],
+      },
+    ],
   },
 };

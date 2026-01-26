@@ -9,6 +9,7 @@ import {
   Loaf,
   Separator,
   Text,
+  Icon,
 } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
@@ -83,11 +84,11 @@ export const LongListSideSection = observer(function LongListSideSection<T>(prop
       <Flex vertical>
         <Flex repell centered>
           <Flex centered gap="small">
-            <Text size="small" opacity="75">
+            <Icon size="normal" opacity="50">
               {icon}
-            </Text>
+            </Icon>
 
-            <Text uppercase size="small" opacity="75">
+            <Text uppercase size="normal" opacity="50" weight="bold">
               {title}
             </Text>
           </Flex>

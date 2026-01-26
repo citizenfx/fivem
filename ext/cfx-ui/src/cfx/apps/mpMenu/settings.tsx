@@ -15,9 +15,7 @@ import { ISetting, ISettings } from 'cfx/common/services/settings/types';
 import { mpMenu } from './mpMenu';
 import { LinkedIdentitiesList } from './parts/LinkedIdentitiesList/LinkedIdentitiesList';
 import { AccountHeader } from './parts/SettingsFlyout/Account/AccountHeader/AccountHeader';
-import { BlurredBackdrop } from './parts/SettingsFlyout/BlurredBackdrop/BlurredBackdrop';
 import { CurrentBoost, isCurrentBoostVisible } from './parts/SettingsFlyout/CurrentBoost/CurrentBoost';
-import { CustomBackdropControl } from './parts/SettingsFlyout/CustomBackdropControl/CustomBackdropControl';
 import { Obliviate } from './parts/SettingsFlyout/Obliviate/Obliviate';
 import { IConvarService, KnownConvars } from './services/convars/convars.service';
 import { IConvar } from './services/convars/types';
@@ -84,30 +82,6 @@ const ACCOUNT_SETTINGS = new Map<string, ISetting.AnySetting>([
 
 const INTERFACE_SETTINGS = new Map<string, ISetting.AnySetting>([
   [
-    'darkTheme',
-    {
-      type: 'checkbox',
-
-      label: $L('#Settings_DarkTheme'),
-      description: $L('#Settings_DarkThemeDesc'),
-
-      ...convarAccessorsBoolean(KnownConvars.preferLightColorScheme, true),
-    },
-  ],
-
-  [
-    'blurredBackdrop',
-    {
-      label: $L('#Settings_BlurredBackdrop'),
-      description: $L('#Settings_BlurredBackdropDesc'),
-
-      render: () => (
-        <BlurredBackdrop />
-      ),
-    },
-  ],
-
-  [
     'streamerMode',
     {
       type: 'checkbox',
@@ -163,20 +137,6 @@ const INTERFACE_SETTINGS = new Map<string, ISetting.AnySetting>([
       description: $L('#Settings_MenuAudioDesc'),
 
       ...convarAccessorsBoolean('ui_disableMusicTheme', true),
-    },
-  ],
-
-  [
-    'customBackdropButton',
-    {
-      type: 'displayNode',
-
-      label: $L('#Settings_CustomBackdrop'),
-      description: $L('#Settings_CustomBackdropSelect'),
-
-      node: () => (
-        <CustomBackdropControl />
-      ),
     },
   ],
 
@@ -336,15 +296,13 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
         ['restricted']: 'Hide status',
         ['disabled']: 'Disabled',
       },
-    }
+    },
   ],
 
   [
     'customEmoji',
     {
-      type: 'switch',
-
-      multiline: true,
+      type: 'selectnative',
 
       label: $L('#Settings_CustomEmoji'),
       description: $L('#Settings_CustomEmojiDesc'),

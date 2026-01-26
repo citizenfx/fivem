@@ -5,8 +5,7 @@
 .list {
   flex-grow: 1;
 
-  @include ui.def('backdrop-color', ui.color-token('island-blur-background'));
-  @include ui.fake-backdrop-blur();
+  background-color: ui.color('main', 50);
 
   box-shadow: 0 0 0 2px ui.color('main', 100, .25) inset;
 

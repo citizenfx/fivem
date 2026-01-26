@@ -1,7 +1,6 @@
 import './bootstrap';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 
-import { ChangelogPage } from 'cfx/apps/mpMenu/pages/ChangelogPage/ChangelogPage';
 import { HomePage } from 'cfx/apps/mpMenu/pages/HomePage/HomePage';
 import { registerMpMenuServersService } from 'cfx/apps/mpMenu/services/servers/servers.mpMenu';
 import { startBrowserApp } from 'cfx/base/createApp';
@@ -27,7 +26,6 @@ import { Handle404 } from './pages/404';
 import { MpMenuServerDetailsPage } from './pages/ServerDetailsPage/ServerDetailsPage';
 import { MpMenuServersPage } from './pages/ServersPage/ServersPage';
 import { IAuthService, registerAuthService } from './services/auth/auth.service';
-import { registerChangelogService } from './services/changelog/changelog.service';
 import { registerConvarService } from './services/convars/convars.service';
 import { registerDiscourseService } from './services/discourse/discourse.service';
 import { registerMpMenuIntlService } from './services/intl/intl.mpMenu';
@@ -46,7 +44,6 @@ import {
 } from './services/servers/localhostServer.mpMenu';
 import { registerMpMenuServersBoostService } from './services/servers/serversBoost.mpMenu';
 import { registerMpMenuServersConnectService } from './services/servers/serversConnect.mpMenu';
-import { registerMpMenuServersReviewsService } from './services/servers/serversReviews.mpMenu';
 import { registerMpMenuServersStorageService } from './services/servers/serversStorage.mpMenu';
 import { registerMpMenuUiService } from './services/ui/ui.mpMenu';
 import { IUiMessageService, registerUiMessageService } from './services/uiMessage/uiMessage.service';
@@ -72,7 +69,6 @@ startBrowserApp({
 
     registerAuthService(container);
     registerConvarService(container);
-    registerChangelogService(container);
     registerDiscourseService(container);
     registerUiMessageService(container);
     registerPlatformStatusService(container);
@@ -84,11 +80,10 @@ startBrowserApp({
     registerMpMenuIntlService(container);
 
     registerMpMenuServersService(container, {
-      listTypes: [ServersListType.All, ServersListType.Supporters, ServersListType.History, ServersListType.Favorites],
+      listTypes: [ServersListType.All, ServersListType.History, ServersListType.Favorites],
     });
     registerMpMenuServersBoostService(container);
     registerMpMenuServersStorageService(container);
-    registerMpMenuServersReviewsService(container);
     registerMpMenuServersConnectService(container);
     registerMpMenuLocalhostServerService(container);
   },
@@ -119,13 +114,10 @@ startBrowserApp({
         <Route path="" element={<MpMenuApp />}>
           <Route index element={<HomePage />} />
 
-          <Route path="changelog" element={<ChangelogPage />} />
-
           <Route path="servers">
             <Route index element={<MpMenuServersPage listType={ServersListType.All} />} />
             <Route path="favorites" element={<MpMenuServersPage listType={ServersListType.Favorites} />} />
             <Route path="history" element={<MpMenuServersPage listType={ServersListType.History} />} />
-            <Route path="premium" element={<MpMenuServersPage listType={ServersListType.Supporters} />} />
 
             <Route path="detail/*" element={<MpMenuServerDetailsPage />} />
           </Route>

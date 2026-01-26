@@ -1,16 +1,12 @@
 .root {
   position: relative;
   flex-shrink: 0;
+  overflow: hidden;
+  @include ui.border-radius('small');
 
   &.type-list {
     height: 100%;
     aspect-ratio: 1;
-
-    // overflow: hidden;
-
-    .icon {
-      border-radius: 2px;
-    }
   }
 
   &.type-details {
@@ -23,10 +19,6 @@
     &.size-small {
       width: ui.q(10);
       height: ui.q(10);
-    }
-
-    .icon {
-      @include ui.border-radius('small');
     }
   }
 
