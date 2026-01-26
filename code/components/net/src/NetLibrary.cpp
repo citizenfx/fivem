@@ -1792,6 +1792,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					if (!poolSizesIncreaseRaw.empty())
 					{
 						poolSizesIncrease = nlohmann::json::parse(poolSizesIncreaseRaw);
+						fx::PoolSizeManager::Sanitize(poolSizesIncrease);
+						poolSizesIncreaseRaw = nlohmann::json(poolSizesIncrease).dump();
 					}
 
 					auto val = info["vars"].value("sv_enforceGameBuild", "");
@@ -1815,18 +1817,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								OnConnectionError(va("Server specified an invalid game build enforcement (%d).", buildRef), json::object({
 									{ "fault", "server" },
 									{ "action", "#ErrorAction_ContactOwner" },
-								})
-								.dump());
-								m_connectionState = CS_IDLE;
-								return;
-							}
-
-							std::optional<std::string> validationError = fx::PoolSizeManager::Validate(poolSizesIncrease);
-							if (validationError.has_value())
-							{
-								OnConnectionError(va("Server requested invalid change to pool sizes: %s.", validationError.value()), json::object({
-									{ "fault", "either" },
-									{ "action", "#ErrorAction_TryAgainContactOwner" },
 								})
 								.dump());
 								m_connectionState = CS_IDLE;

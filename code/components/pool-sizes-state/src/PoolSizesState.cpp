@@ -83,6 +83,21 @@ namespace fx
 		}
 	}
 
+	uint32_t PoolSizeManager::GetLimit(const std::string& poolName)
+	{
+		if (!LimitsLoaded())
+		{
+			return 0;
+		}
+
+		auto it = limits->find(poolName);
+		if (it == limits->end())
+		{
+			return 0;
+		}
+		return it->second;
+	}
+
 	std::optional<std::string> PoolSizeManager::ValidateImpl(const std::string& poolName, uint32_t sizeIncrease)
 	{
 		if (!LimitsLoaded())
@@ -132,18 +147,30 @@ namespace fx
 		return std::nullopt;
 	}
 
-	std::optional<std::string> PoolSizeManager::Validate(const std::unordered_map<std::string, uint32_t>& increaseRequest)
+	void PoolSizeManager::Sanitize(std::unordered_map<std::string, uint32_t>& increaseRequest)
 	{
 		for (const auto& [name, sizeIncrease] : increaseRequest)
 		{
 			std::optional<std::string> validationError = Validate(name, sizeIncrease);
-			if (validationError.has_value())
+			if (!validationError.has_value())
 			{
-				return validationError;
+				continue;
+			}
+
+			uint32_t limit = GetLimit(name);
+			trace(
+				"Pool size increase validation failed: %s. Using maximum allowed increase %d instead.\n",
+				validationError.value(), limit
+			);
+			if (limit == 0)
+			{
+				increaseRequest.erase(name);
+			}
+			else
+			{
+				increaseRequest[name] = limit;
 			}
 		}
-
-		return std::nullopt;
 	}
 }
 
