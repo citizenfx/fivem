@@ -9,11 +9,14 @@
 
 #include <VulkanHelper.h>
 #include <CrossBuildRuntime.h>
+#include <DrawCommands.h>
 
 #pragma comment(lib, "vulkan-1.lib")
 
 static VkInstance g_vkInstance = nullptr;
 static bool g_enableVulkanValidation = false;
+static int g_swapchainWidth = 1920;
+static int g_swapchainHeight = 1080;
 
 // Function to print the output of the validation layers
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
@@ -278,7 +281,55 @@ static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreat
 	{
 		trace("Vulkan device creation returned: %s\n", ResultToString(result));
 	}
+	else
+	{
+		// Find graphics queue family from device create info
+		uint32_t graphicsQueueFamily = 0;
+		bool foundGraphicsQueue = false;
 
+		for (uint32_t i = 0; i < pCreateInfo->queueCreateInfoCount; i++)
+		{
+			graphicsQueueFamily = pCreateInfo->pQueueCreateInfos[i].queueFamilyIndex;
+			foundGraphicsQueue = true;
+			break;
+		}
+
+		if (foundGraphicsQueue)
+		{
+			// Get the graphics queue
+			VkQueue graphicsQueue = VK_NULL_HANDLE;
+			vkGetDeviceQueue(*pDevice, graphicsQueueFamily, 0, &graphicsQueue);
+
+			// Set handles for screenshot capture
+			SetVulkanDeviceHandles(*pDevice, physicalDevice, graphicsQueue, graphicsQueueFamily);
+		}
+	}
+
+	return result;
+}
+
+static VkResult vkCreateSwapchainKHRHook(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain)
+{
+	if (pCreateInfo)
+	{
+		g_swapchainWidth = pCreateInfo->imageExtent.width;
+		g_swapchainHeight = pCreateInfo->imageExtent.height;
+	}
+
+	return vkCreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
+}
+
+static VkResult vkQueuePresentKHRHook(VkQueue queue, const VkPresentInfoKHR* pPresentInfo)
+{
+	if (pPresentInfo && pPresentInfo->swapchainCount > 0 && pPresentInfo->pSwapchains)
+	{
+		uint32_t imageIndex = pPresentInfo->pImageIndices ? pPresentInfo->pImageIndices[0] : 0;
+		VkSwapchainKHR swapchain = pPresentInfo->pSwapchains[0];
+		
+		CaptureVulkanSwapchainImage(swapchain, imageIndex, g_swapchainWidth, g_swapchainHeight);
+	}
+	
+	auto result = vkQueuePresentKHR(queue, pPresentInfo);
 	return result;
 }
 
@@ -299,5 +350,19 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern<char>("FF 15 ? ? ? ? 8B C8 E8 ? ? ? ? 85 C0 0F 85 ? ? ? ? 48 8B 0D");
 		hook::nop(location, 6);
 		hook::call(location, vkCreateDeviceHook);
+	}
+
+	// Vulkan vkCreateSwapchainKHR hook
+	{
+		auto location = hook::get_pattern("FF 15 ? ? ? ? 8B C8 8B F8");
+		hook::nop(location, 6);
+		hook::call(location, vkCreateSwapchainKHRHook);
+	}
+
+	// Vulkan vkQueuePresentKHR hook
+	{
+		auto location = hook::get_pattern("FF 15 ? ? ? ? 41 89 45");
+		hook::nop(location, 6);
+		hook::call(location, vkQueuePresentKHRHook);
 	}
 });
