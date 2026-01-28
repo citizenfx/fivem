@@ -341,7 +341,64 @@ const EXT_LOCALFUNCREF = 11;
 		};
 	}
 
-	let currentStackDumpError = null;
+	const sourceMapCache = new Map();
+	const RESOURCE_PATH_RE = /@([^/]+)\/(.+)/;
+
+	function loadSourceMap(filePath) {
+		const match = filePath.match(RESOURCE_PATH_RE);
+		if (!match) {
+			return null;
+		}
+
+		const [, , resourcePath] = match;
+		
+		if (sourceMapCache.has(filePath)) {
+			return sourceMapCache.get(filePath);
+		}
+
+		let consumer = null;
+
+		// try to load the map file for our resource
+		let mapContent = LoadResourceFile(currentResourceName, resourcePath + '.map');
+
+		if (!mapContent) {
+			// if we don't have a '.map' file then we will have to try and load the data from the .js file that errord
+			const jsContent = LoadResourceFile(currentResourceName, resourcePath);
+			if (jsContent) {
+				const inlineMatch = jsContent.match(/\/\/[#@]\s*sourceMappingURL=data:application\/json;(?:charset=utf-8;)?base64,([A-Za-z0-9+/=]+)\s*$/m);
+				// if we have a match then assign our mapContent
+				if (inlineMatch) {
+					try {
+						mapContent = atob(inlineMatch[1]);
+					} catch (e) {
+						// we don't care if atob errors
+					}
+				}
+			}
+		}
+			
+		try {
+			if (mapContent) {
+				consumer = new sourceMap.SourceMapConsumer(mapContent);
+			}
+		} catch (e) {
+			// if we had any valid mapContent and we error then we should let the script dev know why this error'd so
+			// they can hopefully fix their build system.
+			console.error(`Failed to load source map for ${currentResourceName}/${resourcePath} with error: ${e}`)
+		}
+
+		// we only want to delete our map if we actually have it, it doesn't make sense to clear our source map
+		// if the source map already doesn't exist.
+		if (consumer) {
+		// we don't want to keep our source map around forever, so we'll delete it after a minute.
+			setTimeout(() => {
+				sourceMapCache.delete(filePath)
+			}, 60_000)
+		}
+
+		sourceMapCache.set(filePath, consumer);
+		return consumer;
+	}
 
 	function prepareStackTrace(error, trace) {
 		const frames = [];
@@ -377,30 +434,46 @@ const EXT_LOCALFUNCREF = 11;
 			const fn = frame.file;
 
 			if (fn && !fn.startsWith('citizen:/')) {
-				const isConstruct = false;
-				const isEval = false;
-				const isNative = false;
 				const methodName = functionName;
 				const type = frame.typeName;
 
 				let frameName = '';
 
-				if (isNative) {
-					frameName = 'native';
-				} else if (isEval) {
-					frameName = `eval at ${frame.getEvalOrigin()}`;
-				} else if (isConstruct) {
-					frameName = `new ${functionName}`;
-				} else if (methodName && functionName && methodName !== functionName) {
+				if (methodName && functionName && methodName !== functionName) {
 					frameName = `${type}${functionName} [as ${methodName}]`;
 				} else if (methodName || functionName) {
 					frameName = `${type}${functionName ? functionName : methodName}`;
 				}
 
+				let originalFile = fn;
+				let originalLine = frame.lineNumber | 0;
+				let originalColumn = frame.column | 0;
+				let originalName = frameName;
+
+				const consumer= loadSourceMap(fn);
+				if (consumer) {
+					const orig = consumer.originalPositionFor({
+						line: originalLine,
+						column: originalColumn
+					});
+
+					if (orig && orig.source) {
+						// we should make sure we attribute the file to our resource, during export calls we can
+						// also get other stack frames from another resource appended, making it hard to distingush.
+						originalFile = `@${currentResourceName}/${orig.source}`;
+						originalLine = orig.line;
+						originalColumn = orig.column;
+						if (orig.name) {
+							originalName = orig.name;
+						}
+					}
+				}
+
 				frames.push({
-					file: fn,
-					line: frame.lineNumber | 0,
-					name: frameName
+					file: originalFile,
+					line: originalLine,
+					column: originalColumn,
+					name: originalName,
 				});
 			}
 		}
@@ -418,7 +491,8 @@ const EXT_LOCALFUNCREF = 11;
 	}
 
 	function getError(where, e) {
-		const stackBlob = global.msgpack_pack(prepareStackTrace(e, parseStack(e.stack)));
+		const stack = prepareStackTrace(e, parseStack(e.stack))
+		const stackBlob = global.msgpack_pack(stack);
 		const fst = global.FormatStackTrace(stackBlob, stackBlob.length);
 
 		if (fst !== null && fst !== undefined) {
