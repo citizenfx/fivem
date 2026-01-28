@@ -200,7 +200,8 @@ ModVFSDevice::ModVFSDevice(const std::shared_ptr<ModPackage>& package)
 
 			if (tgtFile == "common/data/gameconfig.xml" ||
 				tgtFile == "common/data/ai/scenarios.meta" ||
-				tgtFile == "common/data/ai/conditionalanims.meta")
+				tgtFile == "common/data/ai/conditionalanims.meta" ||
+				tgtFile == "x64/data/tune/playertargetting.ymt")
 			{
 				continue;
 			}
