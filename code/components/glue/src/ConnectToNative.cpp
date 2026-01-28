@@ -578,16 +578,16 @@ static InitFunction initFunction([] ()
 
 	OnGameFrame.Connect([]()
 	{
-		static bool wasSteamRunning = cfx::legitimacy::IsSteamRunning();
+		static bool wasSteamInitialized = cfx::legitimacy::IsSteamInitializedWrapper();
 
-		if (wasSteamRunning && !cfx::legitimacy::IsSteamRunning())
+		if (wasSteamInitialized && !cfx::legitimacy::IsSteamRunning())
 		{
 			FatalError("Steam process has exited. The game will now close.");
 		}
 
-		if (cfx::legitimacy::IsSteamRunning())
+		if (!wasSteamInitialized && cfx::legitimacy::IsSteamInitializedWrapper())
 		{
-			wasSteamRunning = true;
+			wasSteamInitialized = true;
 		}
 
 		if (disconnect)

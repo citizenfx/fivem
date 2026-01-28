@@ -19,6 +19,7 @@ void DLL_IMPORT ProcessHeaders(char*, char*);
 
 void DLL_IMPORT InitSteamSDKConnection();
 bool DLL_IMPORT IsSteamRunning();
+bool DLL_IMPORT IsSteamInitializedWrapper();
 void DLL_IMPORT GetSteamAuthTicketWrapper(const std::function<void(std::pair<std::string, std::string>)>& callback);
 uint64_t DLL_IMPORT GetSteamIdAsIntWrapper();
 std::string DLL_IMPORT GetSteamUsernameWrapper();
