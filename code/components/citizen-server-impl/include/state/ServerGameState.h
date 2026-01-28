@@ -1336,10 +1336,22 @@ struct GameStateClientData
 	uint32_t routingBucket = 0;
 
 	float playerCullingRadius = 0.0f;
+
+	std::bitset<1000000> playerCullingRelevantPlayers;
 	
 	inline float GetPlayerCullingRadius()
 	{
 		return playerCullingRadius;
+	}
+
+	inline std::vector<uint32_t> GetPlayerCullingRelevantPlayers()
+	{
+		return playerCullingRelevantPlayers;
+	}
+
+	inline bool GetPlayerCullingIsRelevantPlayer(uint32_t playerId)
+	{
+		return playerCullingRelevantPlayers.test(playerId);
 	}
 
 	GameStateClientData()
