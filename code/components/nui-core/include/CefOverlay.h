@@ -13,6 +13,8 @@
 
 #define OVERLAY_DECL COMPONENT_EXPORT(NUI_CORE)
 
+#define WANT_CEF_INTERNALS
+// TODO: Figure out what these variables are because that is what is missing from CEF_INTERNALS.
 #if defined(COMPILING_NUI_CORE) || defined(COMPILING_NUI_RESOURCES) || defined(COMPILING_GLUE)
 #define WANT_CEF_INTERNALS
 #endif
@@ -25,9 +27,9 @@
 #include "CfxRGBA.h"
 #include "CfxRect.h"
 
-#include <include/cef_app.h>
-#include <include/cef_browser.h>
-#include <include/cef_client.h>
+#include <../../../vendor/cef/include/cef_app.h>
+#include <../../../vendor/cef/include/cef_browser.h>
+#include <../../../vendor/cef/include/cef_client.h>
 #endif
 
 #include <SharedInput.h>

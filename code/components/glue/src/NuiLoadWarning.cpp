@@ -16,6 +16,7 @@ static uint64_t g_nuiInitTimestamp;
 
 void MarkNuiLoaded()
 {
+	trace(__FUNCTION__ ": Marking NUI as loaded\n");
 	g_nuiInitTimestamp = GetTickCount64();
 }
 
@@ -25,6 +26,8 @@ static InitFunction initFunction([]
 {
 	nui::OnDrawBackground.Connect([](bool isMainUI)
 	{
+		// trace(__FUNCTION__ ": ui::OnDrawBackground loop\n");
+
 		if (!isMainUI)
 		{
 			// reset the timestamp if we were out of main UI
@@ -37,12 +40,15 @@ static InitFunction initFunction([]
 			return;
 		}
 
-		std::string message = R"(If you see this, the user interface isn't able to show.
+		int diff = GetTickCount64() - g_nuiInitTimestamp;
+
+		std::string message = fmt::sprintf(R"(If you see this, the user interface isn't able to show.
 
 This usually indicates an environment issue breaking DirectX Graphics Infrastructure (DXGI) shared resources, often caused by misconfigured mobile GPU setups, improperly installed graphics mods, or other system configuration.
 
-)";
-
+		g_nuiInitTimestamp = %llu | diff: %llu | isMainUI: %s
+)", g_nuiInitTimestamp, diff, isMainUI);
+		
 		// list GPUs
 		static auto gpuList = ([]
 		{
@@ -96,7 +102,7 @@ This usually indicates an environment issue breaking DirectX Graphics Infrastruc
 
 			return gpuList;
 		})();
-
+		
 		message += gpuList;
 
 		message += "\nVisit https://aka.cfx.re/no-ui for more information and steps to fix this.";

@@ -11,6 +11,11 @@
 #include "NUISchemeHandlerFactory.h"
 #include "NUIWindowManager.h"
 
+#include "include/internal/cef_export.h"
+#include "include/cef_version_info.h"
+// #include "include/cef_version.h"
+// #include "include/cef_base.h"
+
 #include <CL2LaunchMode.h>
 
 #include <CefOverlay.h>
@@ -718,9 +723,14 @@ static HRESULT CreateTexture2DHook(
 	{
 		if ((desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED) || (desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX))
 		{
+			// Chrome 140+ compatibility: log format and conditionally convert
+			trace("CEF texture format: %d (RGBA=%d, BGRA=%d)\n", desc.Format, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_B8G8R8A8_UNORM);
+			
+			// Only convert RGBA to BGRA if not already BGRA (Chrome 140 may produce BGRA directly)
 			if (desc.Format == DXGI_FORMAT_R8G8B8A8_UNORM)
 			{
 				desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+				trace("Converted RGBA to BGRA for compatibility\n");
 			}
 
 			desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
@@ -1307,16 +1317,17 @@ void Component_RunPreInit()
 
 	// verify if the CEF API hash is screwed
 	{
-		const char* apiHash = cef_api_hash(0);
-		const char* apiHashUniversal = cef_api_hash(1);
-		if (strcmp(apiHash, CEF_API_HASH_PLATFORM) != 0 || strcmp(apiHashUniversal, CEF_API_HASH_UNIVERSAL) != 0)
+		// TODO: the first "0" is a placeholder here.
+		const char* apiHash = cef_api_hash(CEF_API_VERSION, 0);
+		const char* apiHashUniversal = cef_api_hash(CEF_API_VERSION, 1);
+		if (strcmp(apiHash, CEF_API_HASH_PLATFORM) != 0 || strcmp(apiHashUniversal, cef_api_hash(CEF_API_VERSION, 1)) != 0)
 		{
 			_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
 			FatalError("CEF API hash mismatch\nA mismatch was detected between `nui-core.dll` and `bin/libcef.dll`. Please restart the game and try again.\n\nPlatform hash:\n%s\n%s\n\nUniversal hash:\n%s\n%s",
 			apiHash,
 			CEF_API_HASH_PLATFORM,
 			apiHashUniversal,
-			CEF_API_HASH_UNIVERSAL);
+			cef_api_hash(CEF_API_VERSION, 1));
 		}
 	}
 
@@ -1464,6 +1475,8 @@ void SwitchContext(const std::string& contextId)
 
 void Initialize(nui::GameInterface* gi)
 {
+	trace(__FUNCTION__": Attempting NUI initialization...\n");
+
 	g_nuiGi = gi;
 
     if (getenv("CitizenFX_ToolMode"))
@@ -1579,10 +1592,15 @@ void Initialize(nui::GameInterface* gi)
 			}
 		}
 
+		trace(__FUNCTION__": Attempting CreateFrame...\n");
 		if (nui::HasMainUI())
 		{
+			trace(__FUNCTION__": Creating MP menu...\n");
 			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
+			trace(__FUNCTION__": Created MP menu!\n");
 		}
+
+		trace(__FUNCTION__": NUI initialized.\n");
 
 		nui::OnInitialize();
 	});

@@ -164,7 +164,7 @@ public:
 		return true;
 	}
 
-	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl)
+	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl)
 	{
 		response->SetMimeType(mimeType_);
 
@@ -259,7 +259,7 @@ public:
 		return true;
 	}
 
-	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) override
+	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl) override
 	{
 		response->SetStatus(403);
 		response_length = 0;

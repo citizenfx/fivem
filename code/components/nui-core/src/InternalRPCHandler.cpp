@@ -65,7 +65,7 @@ public:
 
 	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override;
 
-	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) override;
+	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl) override;
 
 	virtual void Cancel() override;
 
@@ -170,7 +170,7 @@ bool InternalRPCHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr
 	return true;
 }
 
-void InternalRPCHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl)
+void InternalRPCHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl)
 {
 	response->SetMimeType("application/json");
 

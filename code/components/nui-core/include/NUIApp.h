@@ -53,7 +53,7 @@ private:
 
 	std::map<std::string, TV8Handler> m_v8Handlers;
 
-	std::map<int64, CefRefPtr<CefV8Value>> m_origEventListeners;
+	std::map<int64_t, CefRefPtr<CefV8Value>> m_origEventListeners;
 
 	std::vector<TContextReleaseHandler> m_v8ReleaseHandlers;
 

@@ -1017,6 +1017,8 @@ static InitFunction initFunction([] ()
 	{
 		static std::string lastHostName;
 
+		trace(__FUNCTION__ ": nui::OnInvokeNative.Connect! \n");
+
 		if (!_wcsicmp(type, L"getFavorites"))
 		{
 			UpdatePendingAuthPayload();
@@ -1053,7 +1055,9 @@ static InitFunction initFunction([] ()
 				.detach();
 #endif
 
+				trace(__FUNCTION__ ": Calling MarkNuiLoaded! \n");
 				MarkNuiLoaded();
+				trace(__FUNCTION__ ": Called MarkNuiLoaded! \n");
 
 				return true;
 			})();

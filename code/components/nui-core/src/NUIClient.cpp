@@ -27,6 +27,14 @@
 #include <sstream>
 #include <regex>
 
+// #include "include/base/cef_basictypes.h"
+// TODO: Check which of these is actually needed.
+#include "include/internal/cef_string.h"
+#include "include/internal/cef_string_list.h"
+#include "include/internal/cef_time.h"
+#include "include/internal/cef_types_geometry.h"
+#include "include/internal/cef_types_win.h"
+
 extern nui::GameInterface* g_nuiGi;
 bool shouldHaveRootWindow;
 
@@ -312,6 +320,7 @@ bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity
 
 auto NUIClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 	CefRefPtr<CefFrame> frame,
+	int popup_id,
 	const CefString& target_url,
 	const CefString& target_frame_name,
 	CefLifeSpanHandler::WindowOpenDisposition target_disposition,
@@ -323,7 +332,7 @@ auto NUIClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 	CefRefPtr<CefDictionaryValue>& extra_info,
 	bool* no_javascript_access) -> bool
 {
-	if (target_disposition == WOD_NEW_FOREGROUND_TAB || target_disposition == WOD_NEW_BACKGROUND_TAB || target_disposition == WOD_NEW_POPUP || target_disposition == WOD_NEW_WINDOW )
+	if (target_disposition == CEF_WOD_NEW_FOREGROUND_TAB || target_disposition == CEF_WOD_NEW_BACKGROUND_TAB || target_disposition == CEF_WOD_NEW_POPUP || target_disposition == CEF_WOD_NEW_WINDOW )
 	{
 		return true;
 	}
@@ -567,7 +576,7 @@ void NUIClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 
 extern bool g_shouldCreateRootWindow;
 
-void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status)
+void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status, int error_code, const CefString& error_string)
 {
 	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html" || (m_windowValid && m_window && m_window->GetName() == "nui_mpMenu"))
 	{
@@ -581,7 +590,7 @@ bool NUIClient::OnOpenURLFromTab(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFra
 {
 	// Discards middle mouse clicks / ctrl-clicks of links
 	// Default behavior is to open them in a new tab and switch to it, with no back button the player had no way to go back to CfxUI
-	if (target_disposition == CefRequestHandler::WindowOpenDisposition::WOD_NEW_BACKGROUND_TAB && user_gesture)
+	if (target_disposition == CefRequestHandler::WindowOpenDisposition::CEF_WOD_NEW_BACKGROUND_TAB && user_gesture)
 	{
 		return true;
 	}
