@@ -195,8 +195,6 @@
     "#ServerDetail_SupportWarning2_Message": "A szerver artifact verziója elavult",
     "#ServerDetail_SupportWarning2_ForOwner_1": "Az általad használt szerver artifact elérte a támogatási státusza végét, ami azt jelenti, hogy a Cfx.re csapata nem ad ki többé frissítést hozzá.",
     "#ServerDetail_SupportWarning2_ForOwner_2": "Kérlek, frissítsd a lehető leghamarabb!",
-    "#ServerDetail_SupportWarning2_ForPlayer_1": "Továbbra is csatlakozhatsz a szerverhez, de a szerver tulajdonosának frissítenie kell azt.",
-    "#ServerDetail_SupportWarning2_ForPlayer_2": "Nincs semmi gond a játékoddal, ne aggódj!",
     "#ServerDetail_SupportWarning2_Link": "További információért lásd {{link}}",
     "#ServerDetail_EOLWarning2_Message": "A szerver artifact verziója elavult",
     "#ServerDetail_EOLWarning2_ForOwner_1": "Az szervered artifact verziója elérte az támogatási időszakának a végét, kérjük, frissítse minél hamarabb!",

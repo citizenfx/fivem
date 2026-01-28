@@ -325,32 +325,10 @@ const Warning = observer(function Warning({
     );
   }
 
-  if (isServerEOS(server)) {
-    const descriptionNode = currentUserIsOwner
-      ? (
-        <Text typographic>
-          {$L('#ServerDetail_SupportWarning2_ForOwner_1')}
-          <br />
-          <br />
-          <Text weight="bold">{$L('#ServerDetail_SupportWarning2_ForOwner_2')}</Text>
-        </Text>
-        )
-      : (
-        <Text typographic>
-          {$L('#ServerDetail_SupportWarning2_ForPlayer_1')}
-          <br />
-          <br />
-          {$L('#ServerDetail_SupportWarning2_ForPlayer_2')}
-        </Text>
-        );
-
-    const type: React.ComponentProps<typeof InfoPanel>['type'] = currentUserIsOwner
-      ? 'warning'
-      : 'default';
-
+  if (isServerEOS(server) && currentUserIsOwner) {
     return (
       <Flex vertical>
-        <InfoPanel type={type}>
+        <InfoPanel type="warning">
           <Pad size="small">
             <Flex vertical gap="normal">
               <Icon size="xlarge" opacity="50">
@@ -363,7 +341,12 @@ const Warning = observer(function Warning({
 
               <Separator thin />
 
-              {descriptionNode}
+              <Text typographic>
+                {$L('#ServerDetail_SupportWarning2_ForOwner_1')}
+                <br />
+                <br />
+                <Text weight="bold">{$L('#ServerDetail_SupportWarning2_ForOwner_2')}</Text>
+              </Text>
 
               <Separator thin />
 
