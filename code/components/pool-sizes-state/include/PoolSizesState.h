@@ -21,6 +21,8 @@ namespace fx
 
 		static std::unordered_map<std::string, uint32_t> sizeIncrease;
 
+		static uint32_t GetLimit(const std::string& poolName);
+
 		static std::optional<std::string> ValidateImpl(const std::string& poolName, uint32_t sizeIncrease);
 
 	public:
@@ -36,6 +38,6 @@ namespace fx
 
 		COMPONENT_EXPORT(POOL_SIZES_STATE) static std::optional<std::string> Validate(const std::string& poolName, uint32_t sizeIncrease);
 
-		COMPONENT_EXPORT(POOL_SIZES_STATE) static std::optional<std::string> Validate(const std::unordered_map<std::string, uint32_t>& increaseRequest);
+		COMPONENT_EXPORT(POOL_SIZES_STATE) static void Sanitize(std::unordered_map<std::string, uint32_t>& increaseRequest);
 	};
 }
