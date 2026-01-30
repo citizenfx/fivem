@@ -1811,6 +1811,13 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						buildRef = std::stoi(val);
 
+						// remap old build numbers
+						if (buildRef == 3717)
+						{
+							buildRef = xbr::Build::Winter_2025;
+							postMap["gameBuild"] = fmt::sprintf("%d", 3717);
+						}
+
 						if ((buildRef != 0 && buildRef != xbr::GetRequestedGameBuild()) ||
 							(pureLevel != fx::client::GetPureLevel()) ||
 							(poolSizesIncrease != fx::PoolSizeManager::GetIncreaseRequest()) ||

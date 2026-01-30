@@ -734,9 +734,12 @@ Sha256Result updateSafeHashesInit[] = {
     ShaUnpack("83618b631c87b299f2a337918e548d4909a86fcdaa952c209e3828fdd495b5ca"), // update2.rpf/x64/data/lang/russian_rel.rpf
     ShaUnpack("2ec82e579cf3c2a2928663c414c507ce83090442989a8abb3bb6bd597a519707"), // update2.rpf/x64/data/lang/spanish_rel.rpf
     ShaUnpack("2828bb490c39d56f20ef27ffc91d148536b3d183f4acb5dadfa202d77cb0f85a"), // update2.rpf/x64/levels/gta5/script/script_rel.rpf
-    // 3717/update.rpf
-    ShaUnpack("a6f63f20a076d3affb91b3fd1e544bac8a7808c37ab770a6a44bc50e869b4b28"), // update.rpf
-    ShaUnpack("da3162aed287110c295577ece61ffaf79f13961736e1445cd522309928411bda"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/ch2_04.rpf
+    // 3751/update.rpf
+    ShaUnpack("8a36d08f5092d1a813a84776c0afea0a837b32080bfbe73fa4368b112db4d05e"), // update.rpf
+    ShaUnpack("782b1d50fd6fd514ceff34d815369e0270b0ca4d0057eb0d248c312533e64e6f"), // update.rpf/dlc_patch/mp2025_02/x64/anim/ingame/clip_anim@.rpf
+    ShaUnpack("b44666aaada229c18a407b2f46bdcb6db1344311dce38b0f7f646ece575fb839"), // update.rpf/dlc_patch/mp2025_02/x64/levels/gta5/lodlights.rpf
+    ShaUnpack("ca180e1d61a0dd076e96702fb1e9f243ad65a1ffaf8033ad149d6172be54c68c"), // update.rpf/dlc_patch/mp2025_02/x64/levels/gta5/vehicles/mp2025_02.rpf
+    ShaUnpack("64a5471d8145a8371decfb08412244f5e611934dad2ec92037ce59323ddbcef9"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/ch2_04.rpf
     ShaUnpack("de6e8521bfedaf7c99f56c3d8226325d4ff22d9a4f8486334c0b2ee9a90c4da3"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/ch2_05c.rpf
     ShaUnpack("951cd1749e81e793a79dede588545973aedaffc0c2d426501bfb075409a9d2fe"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/ch2_05e.rpf
     ShaUnpack("6da7f2abe0c3f003aa2d7e30aa5d99d6ad62a70084dbf198b924eebadb62512d"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/ch2_07b.rpf
@@ -750,11 +753,11 @@ Sha256Result updateSafeHashesInit[] = {
     ShaUnpack("3bb58f300120b6b36c5392330585ad886c3c13373dce832247778f48318337c8"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/ch2_occl.rpf
     ShaUnpack("513e83c825939c5fd6f96fabac325e152a0f46d9065d6df9af0acbcf0f4b06d6"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/ch2_roads.rpf
     ShaUnpack("cfde6afc660b5341a9851a11904064a8ba69ad3e746d00f7ad0e741cb04037ab"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/ch2_roadsb.rpf
-    ShaUnpack("afcc74f57fc848dbec41c44260794689132de222b40be2f109d3a65fb1d304f9"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/cityhills_02.rpf
-    ShaUnpack("5a0582fbd0cf01b6a5f5878624c9e8bc1ccc25b9e4252f8039dcf302b0668e35"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/cityhills_02_metadata.rpf
+    ShaUnpack("4de04c0543332d316915f8429ca9ee9d88a1be8d2f6a18af1937312b3a4f4276"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/cityhills_02.rpf
+    ShaUnpack("5dad1f5ceee2804b5c2cc21f4561d0bc5fd6c5d0233263ba1f757cc59d81bab7"), // update.rpf/dlc_patch/mpapartment/x64/levels/gta5/_hills/cityhills_02/cityhills_02_metadata.rpf
     ShaUnpack("1319bcf6784f0e507e7c328a75d005e19b4310efd26385cdcf553cee05796981"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/ch1_01.rpf
     ShaUnpack("fde137c33b3537e3488d7520b1a8984d47968c3166866d163a2e6b59844429bb"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/ch1_02.rpf
-    ShaUnpack("e4aa0fba2ecc24f5c8fd3f9077adaaece84195977e29729a01b158adc064e61e"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/ch1_06e.rpf
+    ShaUnpack("91ef3c67488342c1e96cc049f764a26a8c7bdfe0f58f2448b4cd9ed60541582b"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/ch1_06e.rpf
     ShaUnpack("2bd04fcd2d39f890bbdc0acba04276c6799a4bb8cf229ecf2f54542d7a873148"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/ch1_06f.rpf
     ShaUnpack("3922e918cf0285af1c106a234f1c7889816b9bd2027607fa5d9af30adae03cf0"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/ch1_07.rpf
     ShaUnpack("9ef3aabf540858b52e74fd3dfc578e0561b9b2c4c838899ed90bd93f963ddf9f"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/ch1_09.rpf
@@ -762,7 +765,7 @@ Sha256Result updateSafeHashesInit[] = {
     ShaUnpack("15d7bfe987a825561b54727facea6bb8abb64e4742648a48a8b443684b4af45a"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/ch1_instance_placement.rpf
     ShaUnpack("10d43cc872f1a65ab704c4f2be522121b3146417e568eb10c65dba9d26ed290a"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/ch1_occl.rpf
     ShaUnpack("a2f7c9d03635a14b0ef0b9336dc914e2eacce218c49ffc7459ee37307e8d1d93"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/ch1_roads.rpf
-    ShaUnpack("9b81be02ad379b49d2766b506f0dfc5b233e493d13f8968754db8fd2c96a0686"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/cityhills_01.rpf
+    ShaUnpack("e5d0506fa63efb1ad1f0f3803ca07453350f2a9af7a5299777c4cb1adbefede3"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/cityhills_01.rpf
     ShaUnpack("fabcaa3cc8f857aebaee9640e13d0bc7c05e5313ebbb3e1303f2814c7df51bf0"), // update.rpf/dlc_patch/mpheist/x64/levels/gta5/_hills/cityhills_01/cityhills_01_metadata.rpf
     ShaUnpack("e63196e27756f48a8cd5442c06ff7f4cf3f2b1367d72f8a357dfa856ec8d0fd3"), // update.rpf/x64/data/cdimages/carrec.rpf
     ShaUnpack("d6dc896e27f9fb2f2597d8059059288b0b7ca07db92eeece63e7d0e684116d46"), // update.rpf/x64/data/cdimages/scaleform_frontend.rpf
@@ -788,9 +791,9 @@ Sha256Result updateSafeHashesInit[] = {
     ShaUnpack("dcc381952182d4a62b544ff8ec31a470c2e26f6e8a8ad235e24ddefa2c765db9"), // update.rpf/x64/patch/data/lang/russian_rel.rpf
     ShaUnpack("4f0b8753adcac370e1bbcc3ccc3bc6e83695d48033aa4024ffe11041823b0feb"), // update.rpf/x64/patch/data/lang/spanish_rel.rpf
     ShaUnpack("7de5de6e18331b7bad58a50eef82319dac1c083c1c970fee36c4cea29a4b9292"), // update.rpf/x64/textures/script_txds.rpf
-    // 3717/update2.rpf
-    ShaUnpack("5aa290c683efa9ce481fb4ccd6eb744414da9870ec226aee261050966661382f"), // update2.rpf
-    ShaUnpack("8b09f7cd67e7fd92125096c05998eb0adacaecfedda42b5dac21d75b79711af8"), // update2.rpf/x64/data/lang/american_rel.rpf
+    // 3751/update2.rpf
+    ShaUnpack("6d2aef7cb6dce5c277beafa42dcf718416acbcba3e8df5ab50f483ccfeff1e37"), // update2.rpf
+    ShaUnpack("775e20438c45e8421258eaeffd00083a84941b4361f962d866798679177f3856"), // update2.rpf/x64/data/lang/american_rel.rpf
     ShaUnpack("397ee4e0912cb9b8495b9bf2911f6ccff4ad4a5af1ddb27fdadb21e8a95fd7c1"), // update2.rpf/x64/data/lang/chinese_rel.rpf
     ShaUnpack("f9db607294ad201b8dfbd56bf99219c469344759b1123ac399ccb8fdc0523d9c"), // update2.rpf/x64/data/lang/chinesesimp_rel.rpf
     ShaUnpack("615fe0b843fa1cbc89686fcdc661fe3b8102bffd8230376854c2e07261e09d1e"), // update2.rpf/x64/data/lang/french_rel.rpf
@@ -803,7 +806,7 @@ Sha256Result updateSafeHashesInit[] = {
     ShaUnpack("17eaf34223b027f3ead162fefcb1b1438c2577677fc09dd67c1ef30e1dfbf439"), // update2.rpf/x64/data/lang/portuguese_rel.rpf
     ShaUnpack("61259709848913f6294f0beac32b501f473d22d14b0bde33a7a9917ba52fef8d"), // update2.rpf/x64/data/lang/russian_rel.rpf
     ShaUnpack("717334d42760e81d991dd5c1e8ceee4be907503f556238f67649c8f8c2ee31de"), // update2.rpf/x64/data/lang/spanish_rel.rpf
-    ShaUnpack("6437872882b44e0abcdf4635efc72f6a755905ac512b733b87e3b54bb864e5f9"), // update2.rpf/x64/levels/gta5/script/script_rel.rpf
+    ShaUnpack("e44544decd7a73ebf7fbbc394b2293b7f2e42bc9281e60fb4b15311e8f83da9e"), // update2.rpf/x64/levels/gta5/script/script_rel.rpf
 };
 
 }}
