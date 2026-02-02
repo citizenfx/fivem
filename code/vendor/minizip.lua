@@ -17,7 +17,7 @@ return {
 		
 		defines { "HAVE_ZLIB" }
 
-		flags "NoRuntimeChecks"
+		runtimechecks "Off"
 		
 		if a then
 			staticruntime 'On'
