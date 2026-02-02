@@ -14,7 +14,10 @@ function Invoke-CfxSetupVS {
 
     $VSFullVersion = [System.Version]::Parse($VSVersionString)
     
-    if ($VSFullVersion -ge [System.Version]::Parse("17.0")) {
+    if ($VSFullVersion -ge [System.Version]::Parse("18.0")) {
+        $Context.PremakeVSVersion = "vs2026"
+    }
+    elseif ($VSFullVersion -ge [System.Version]::Parse("17.0")) {
         $Context.PremakeVSVersion = "vs2022"
     }
     elseif ($VSFullVersion -ge [System.Version]::Parse("16.0")) {

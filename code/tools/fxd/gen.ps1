@@ -23,7 +23,9 @@ param(
 )
 
 $VSVersion = [System.Version]::Parse((& "$PSScriptRoot\..\ci\vswhere.exe" -prerelease -latest -property catalog_buildVersion -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64))
-if ($VSVersion -ge [System.Version]::Parse("17.0")) {
+if ($VSVersion -ge [System.Version]::Parse("18.0")) {
+	$VSLine = "vs2026"
+} elseif ($VSVersion -ge [System.Version]::Parse("17.0")) {
 	$VSLine = "vs2022"
 } elseif ($VSVersion -ge [System.Version]::Parse("16.0")) {
 	$VSLine = "vs2019"
