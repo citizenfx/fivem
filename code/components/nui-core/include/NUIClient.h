@@ -75,6 +75,23 @@ public:
 		return m_loadedMainFrame;
 	}
 
+	inline bool IsUrlBlocked(std::string const& url)
+	{
+		std::shared_lock _(m_requestBlocklistLock);
+
+		return std::any_of(m_requestBlocklist.begin(), m_requestBlocklist.end(), [&](auto& reg)
+		{
+			try
+			{
+				return std::regex_search(url, reg);
+			}
+			catch (std::exception& e)
+			{
+				return false;
+			}
+		});
+	}
+
 public:
 	static fwEvent<NUIClient*> OnClientCreated;
 
