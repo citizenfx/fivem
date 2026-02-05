@@ -13,9 +13,16 @@
 #include <json.hpp>
 #include "memdbgon.h"
 
-#include <shellapi.h>
+#include "UrlConfirmationExport.h"
 
 void NuiConsole_SetConvars();
+
+namespace nui
+{
+std::atomic<bool> nui::g_showUrlConfirmModal{ false };
+std::string g_pendingUrl;
+std::mutex g_urlModalMutex;
+}
 
 static InitFunction initFunction([] ()
 {
@@ -42,7 +49,7 @@ static InitFunction initFunction([] ()
 
 	NUIClient::OnClientCreated.Connect([] (NUIClient* client)
 	{
-		client->AddProcessMessageHandler("invokeNative", [] (CefRefPtr<CefBrowser> browser, CefRefPtr<CefProcessMessage> message)
+		client->AddProcessMessageHandler("invokeNative", [client] (CefRefPtr<CefBrowser> browser, CefRefPtr<CefProcessMessage> message)
 		{
 			auto args = message->GetArgumentList();
 			auto nativeType = args->GetString(0);
@@ -54,13 +61,23 @@ static InitFunction initFunction([] ()
 				// TODO: CEF shutdown and native stuff related to it (set a shutdown flag)
 				ExitProcess(0);
 			}
-			else if (nativeType == "openUrl")
+			else if (nativeType == "openUrl" && !nui::g_showUrlConfirmModal.load())
 			{
 				std::string arg = args->GetString(1).ToString();
 
 				if (arg.find("http://") == 0 || arg.find("https://") == 0)
 				{
-					ShellExecute(nullptr, L"open", ToWide(arg).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+					if (client->IsUrlBlocked(arg))
+					{
+						trace("Blocked opening of URL: %s\n", arg);
+						return true;
+					}
+
+					{
+						std::lock_guard<std::mutex> lock(nui::g_urlModalMutex);
+						nui::g_pendingUrl = arg;
+						nui::g_showUrlConfirmModal.store(true);
+					}
 				}
 			}
 			else if (nativeType == "setConvar" || nativeType == "setArchivedConvar")

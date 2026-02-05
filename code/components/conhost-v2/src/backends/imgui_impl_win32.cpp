@@ -26,6 +26,8 @@
 #include <tchar.h>
 #include <dwmapi.h>
 
+#include <UrlConfirmationExport.h>
+
 #pragma comment(lib, "dwmapi")
 
 // Configuration flags to add in your imconfig.h file:
@@ -310,7 +312,7 @@ static void ImGui_ImplWin32_UpdateMouseData()
 	{
 		auto& g = *ImGui::GetCurrentContext();
 
-		if (!g_consoleFlag && !g_cursorFlag && !g.MovingWindow)
+		if (!g_consoleFlag && !g_cursorFlag && !g.MovingWindow && !nui::g_showUrlConfirmModal.load())
 		{
 			return;
 		}
