@@ -9,6 +9,12 @@
 
 #include <UrlConfirmationExport.h>
 
+#if defined(GTA_FIVE)
+#define PRODUCT_NAME "FiveM"
+#elif defined(IS_RDR3)
+#define PRODUCT_NAME "RedM"
+#endif
+
 void DrawUrlConfirmationModal()
 {
 	if (!nui::g_showUrlConfirmModal.load())
@@ -63,7 +69,7 @@ void DrawUrlConfirmationModal()
 
 		// Warning text
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.55f, 0.57f, 1.0f));
-		ImGui::TextWrapped("You are now leaving FiveM and visiting an unaffiliated external site.");
+		ImGui::TextWrapped("You are now leaving " PRODUCT_NAME " and visiting an unaffiliated external site.");
 		ImGui::TextWrapped("This link may not be secure. Only click on links from trusted senders.");
 		ImGui::PopStyleColor();
 

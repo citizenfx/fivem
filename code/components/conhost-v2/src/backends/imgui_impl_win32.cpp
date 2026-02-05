@@ -26,7 +26,14 @@
 #include <tchar.h>
 #include <dwmapi.h>
 
+#ifndef IS_FXSERVER
 #include <UrlConfirmationExport.h>
+#else
+namespace nui
+{
+	inline std::atomic<bool> g_showUrlConfirmModal{ false };
+}
+#endif
 
 #pragma comment(lib, "dwmapi")
 
