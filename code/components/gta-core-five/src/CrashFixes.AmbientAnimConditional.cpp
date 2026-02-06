@@ -48,10 +48,30 @@ void* CTaskAmbientClipsCtor(void* memAllocated, uintptr_t unk1, CConditionalAnim
 		g_quitCritical(HashString("ERR_MEM_POOLALLOC_ALLOC_2"));
 		return nullptr;
 	}
-	
+
 	return g_CTaskAmbientClipsCtor(allocatedMemory, unk1, condGroup, condAnimChosen, unk3);
 }
 
+static hook::cdecl_stub<void*(uint32_t*)> fwClipSetManager_GetClipSet([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 54 24 ? 48 8B C8 E8 ? ? ? ? 8B 10"));
+});
+
+void (*g_CAmbientClipRequestHelper_SetClipAndProp)(void* thisPtr, uint32_t* clipSetId, uint32_t propHash);
+
+void CAmbientClipRequestHelper_SetClipAndProp(void* thisPtr, uint32_t* clipSetId, const uint32_t propHash)
+{
+	if (!thisPtr)
+		return;
+
+	if (!clipSetId)
+		return;
+
+    if (const auto clipSet = fwClipSetManager_GetClipSet(clipSetId); !clipSet)
+		return;
+
+	g_CAmbientClipRequestHelper_SetClipAndProp(thisPtr, clipSetId, propHash);
+}
 
 static HookFunction hookFunction([]
 {
@@ -89,4 +109,13 @@ static HookFunction hookFunction([]
 		g_CTaskAmbientClipsCtor = (decltype(g_CTaskAmbientClipsCtor))hook::get_call(createCloneFsmAlloc + 58);
 		hook::call(createCloneFsmAlloc + 58, &CTaskAmbientClipsCtor);
 	}
+
+	// Ambient clip info is serialized via cloned task data (e.g., CTaskWander).
+	// A specific flag (1 << 20) overwrites the clip set ID with 0.
+
+	// The game then immediately uses this invalid clip set ID in CAmbientClipRequestHelper::SetClipAndProp without validation.
+	// fwClipSetManager::GetClipSet returns an invalid pointer, which is dereferenced when resolving the clip dictionary index,
+	// causing an out-of-bounds access and client crash.
+
+	g_CAmbientClipRequestHelper_SetClipAndProp = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 20 41 8B F0 48 8B DA 48 8B F9 E8 ? ? ? ? 8B 03"), CAmbientClipRequestHelper_SetClipAndProp);
 });
