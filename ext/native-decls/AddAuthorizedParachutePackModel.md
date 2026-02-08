@@ -1,4 +1,4 @@
----
+tipe:rp---
 ns: CFX
 apiset: client
 game: gta5
