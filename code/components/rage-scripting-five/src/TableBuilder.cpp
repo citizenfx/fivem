@@ -73,7 +73,7 @@ static void DoMapping()
 	char* buildString = (char*)(location + *(int32_t*)location + 4);
 
 	int versionIdx = -1;
-	if (strncmp(buildString, "Dec  8 2025", 11) == 0)
+	if (strncmp(buildString, "Jan 22 2026", 11) == 0)
 	{
 		versionIdx = xbr::Build::Winter_2025;
 	}

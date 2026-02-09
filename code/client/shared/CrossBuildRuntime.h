@@ -19,7 +19,7 @@ namespace xbr
 //
 enum Build : int
 {
-	Winter_2025 = 3717,
+	Winter_2025 = 3751,
 
 	Summer_2025 = 3570,
 

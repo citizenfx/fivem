@@ -188,7 +188,7 @@ inline bool IsWinterUpdate25()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= xbr::Build::Winter_2025) || fx::GetEnforcedGameBuildNumber() >= xbr::Build::Winter_2025;
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3717) || fx::GetEnforcedGameBuildNumber() >= 3717;
 	})();
 
 	return value;

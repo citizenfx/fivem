@@ -3492,7 +3492,7 @@
 			</Config>
 		</Item>
 		<Item>
-			<Build>b3717</Build>
+			<Build>b3751</Build>
 			<Platforms>any</Platforms>
 			<Config type="CGameConfig">
 				<ConfigScriptStackSizes>

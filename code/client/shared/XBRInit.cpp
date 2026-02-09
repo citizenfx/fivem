@@ -21,6 +21,10 @@ int GetRequestedGameBuildInit()
 #undef EXPAND
 	};
 
+	constexpr const std::pair<const wchar_t*, int> deprecatedBuildMappings[] = {
+		{ L"-b3717", xbr::Build::Winter_2025 }
+	};
+
 	auto sharedData = CfxState::Get();
 	std::wstring_view cli = (sharedData->initCommandLine[0]) ? sharedData->initCommandLine : GetCommandLineW();
 	auto buildNumber = GetDefaultGameBuild();
@@ -29,6 +33,11 @@ int GetRequestedGameBuildInit()
 	wchar_t** wargv = CommandLineToArgvW(cli.data(), &argc);
 	for (int i = 1; i < argc; i++)
 	{
+		if (buildNumber != GetDefaultGameBuild())
+		{
+			break;
+		}
+
 		std::wstring_view arg = wargv[i];
 
 		for (auto [build, number] : buildNumbers)
@@ -36,6 +45,15 @@ int GetRequestedGameBuildInit()
 			if (arg == build)
 			{
 				buildNumber = number;
+				break;
+			}
+		}
+
+		for (const auto& [deprecatedBuild, mappedBuild] : deprecatedBuildMappings)
+		{
+			if (arg == deprecatedBuild)
+			{
+				buildNumber = mappedBuild;
 				break;
 			}
 		}
