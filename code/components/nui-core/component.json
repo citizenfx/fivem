@@ -6,7 +6,8 @@
 		"net:base",
 		"vfs:core",
 		"vendor:minhook",
-		"legitimacy"
+		"legitimacy",
+		"vendor:cpp-url"
 	],
 	"provides": []
 }
