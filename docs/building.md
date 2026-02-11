@@ -11,7 +11,7 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
     - Windows application development
   - Individual components
     - .NET Framework 4.6 targeting pack
-    - Windows 11 SDK (10.0.22000.0)
+    - Windows 11 SDK (10.0.26100.0)
   
   You can install these workloads by going to "Tools" -> "Get Tools and Features..." -> Check the checkboxes -> Click "Modify" in the bottom right corner.
   
