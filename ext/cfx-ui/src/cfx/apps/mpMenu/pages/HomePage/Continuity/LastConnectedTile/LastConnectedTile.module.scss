@@ -1,5 +1,6 @@
 .root {
   position: relative;
+  height: 100%;
 
   .warning {
     position: absolute;
@@ -17,8 +18,7 @@
 
     @include ui.font-color('text-a75');
 
-    @include ui.def('backdrop-color', ui.color('main', $alpha: .5));
-    @include ui.fake-backdrop-blur();
+    background-color: ui.color('main', 50);
 
     cursor: pointer;
 

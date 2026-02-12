@@ -1,7 +1,6 @@
-import { Interactive, Flex, Text, clsx } from '@cfx-dev/ui-components';
+import { Flex, Icons, Interactive, Text, clsx } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { BsPlayFill } from 'react-icons/bs';
 import { FaServer } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
@@ -43,7 +42,6 @@ export const Continuity = observer(function Continuity() {
         </div>
       )}
 
-      <ListTile serversListType={ServersListType.Supporters} />
       <ListTile serversListType={ServersListType.Favorites} />
       <ListTile serversListType={ServersListType.History} />
     </div>
@@ -68,7 +66,10 @@ const ListTile = observer(function ListTile({
 
   const descriptor = SERVER_LIST_DESCRIPTORS[serversListType];
 
-  const tileClassName = clsx(s.tile, s.tileSupporters);
+  const tileClassName = clsx(s.tile, {
+    [s.tileFavorites]: serversListType === ServersListType.Favorites,
+    [s.tileHistory]: serversListType === ServersListType.History,
+  });
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const handleClick = React.useCallback(() => {
@@ -90,18 +91,6 @@ const ListTile = observer(function ListTile({
     </Link>
   );
 });
-
-function formatServersCount(count: number): string {
-  if (count < 1000) {
-    return count.toString(10);
-  }
-
-  // eslint-disable-next-line no-bitwise
-  const thousands = (count / 1000) | 0;
-  const hundreds = count - (thousands * 1000);
-
-  return `${thousands},${hundreds.toString().padStart(3, '0')}`;
-}
 
 const PlayTile = observer(function PlayTile() {
   const ServersService = useServersService();
@@ -131,17 +120,13 @@ const PlayTile = observer(function PlayTile() {
 
   return (
     <Link to={descriptor.to} className={tileClassName} onClickCapture={handlePlayClick}>
-      <div className={s.icon}>
-        <BsPlayFill />
-      </div>
-
-      <Flex vertical>
-        <div className={s.title}>
-          <span>{$L('#BottomNav_Play')}</span>
+      <Flex centered="axis" gap="large">
+        <div className={s.icon}>
+          {Icons.play}
         </div>
 
-        <div className={s.subtitle}>
-          {$L('#Home_AllList_Link', { count: formatServersCount(ServersService.totalServersCount) })}
+        <div className={s.title}>
+          <span>{$L('#BottomNav_BrowseServers')}</span>
         </div>
       </Flex>
     </Link>

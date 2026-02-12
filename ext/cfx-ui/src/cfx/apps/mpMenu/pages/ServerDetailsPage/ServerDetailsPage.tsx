@@ -21,11 +21,10 @@ import { useService } from 'cfx/base/servicesContainer';
 import { ServerDetailsPage } from 'cfx/common/pages/ServerDetailsPage/ServerDetailsPage';
 import { ServerBackdropBanner } from 'cfx/common/parts/Server/ServerBackdropBanner/ServerBackdropBanner';
 import { ServerConnectButton } from 'cfx/common/parts/Server/ServerConnectButton/ServerConnectButton';
-import { ServerReviewFormContext } from 'cfx/common/parts/Server/ServerReviews/ServerReviewForm/ServerReviewForm';
 import { ServerTitle } from 'cfx/common/parts/Server/ServerTitle/ServerTitle';
 import { ElementPlacements } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { IServersService, useServersService } from 'cfx/common/services/servers/servers.service';
+import { IServersService } from 'cfx/common/services/servers/servers.service';
 import { IServerView } from 'cfx/common/services/servers/types';
 import { LinkButton } from 'cfx/ui/Button/LinkButton';
 import { useTimeoutFlag } from 'cfx/utils/hooks';
@@ -33,7 +32,6 @@ import { useTimeoutFlag } from 'cfx/utils/hooks';
 import { usePageScrollSync } from './usePageScrollSync';
 import { InsideNavBar } from '../../parts/NavBar/InsideNavBar';
 import { useForceTransparentNav } from '../../parts/NavBar/NavBarState';
-import { useStreamerMode } from '../../services/convars/convars.service';
 
 export const MpMenuServerDetailsPage = observer(function MpMenuServerDetailsPage() {
   const {
@@ -115,8 +113,6 @@ function NotFound() {
 const DetailsWrapper = observer(function DetailsWrapper({
   server,
 }: { server: IServerView }) {
-  const ServersService = useServersService();
-
   useForceTransparentNav();
 
   const navigate = useNavigate();
@@ -125,9 +121,7 @@ const DetailsWrapper = observer(function DetailsWrapper({
   const {
     handleScroll,
     navBarTranslateY,
-  } = usePageScrollSync(connectButtonRef); // backdropTranslateY
-
-  const streamerMode = useStreamerMode();
+  } = usePageScrollSync(connectButtonRef);
 
   return (
     <>
@@ -154,17 +148,13 @@ const DetailsWrapper = observer(function DetailsWrapper({
       <ServerBackdropBanner
         animated
         server={server}
-        // offsetY={backdropTranslateY}
       />
 
-      <ServerReviewFormContext.Provider value={{ censorUser: streamerMode }}>
-        <ServerDetailsPage
-          server={server}
-          onScroll={handleScroll}
-          scrollTrackingRef={connectButtonRef}
-          forceReviewsAvailable={ServersService.isServerPinned(server.id)}
-        />
-      </ServerReviewFormContext.Provider>
+      <ServerDetailsPage
+        server={server}
+        onScroll={handleScroll}
+        scrollTrackingRef={connectButtonRef}
+      />
     </>
   );
 });

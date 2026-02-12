@@ -3,6 +3,7 @@ import {
   Badge,
   Button,
   Flex,
+  Icons,
   Loaf,
   Symbols,
   Text,
@@ -13,10 +14,7 @@ import {
 } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { AiFillCrown } from 'react-icons/ai';
-import { BiCopy } from 'react-icons/bi';
-import { BsLockFill, BsMap } from 'react-icons/bs';
-import { IoGameController } from 'react-icons/io5';
+import { BsLockFill } from 'react-icons/bs';
 
 import { getGameBuildDLCName } from 'cfx/base/game';
 import { AnalyticsLinkButton } from 'cfx/common/parts/AnalyticsLinkButton/AnalyticsLinkButton';
@@ -26,8 +24,6 @@ import { IServerView, ServerPureLevel } from 'cfx/common/services/servers/types'
 import { useOpenFlag } from 'cfx/utils/hooks';
 
 import { ServerBoostButton } from '../ServerBoostButton/ServerBoostButton';
-
-import s from './ServerCoreLoafs.module.scss';
 
 interface IExtraLoafDescriptor {
   key: keyof IServerView;
@@ -40,12 +36,12 @@ const EXTRA_DETAIL_BITS: IExtraLoafDescriptor[] = [
   {
     key: 'mapname',
     title: $L('#ServerDetail_Info_Mapname'),
-    icon: <BsMap />,
+    icon: Icons.map,
   },
   {
     key: 'gametype',
     title: $L('#ServerDetail_Info_Gametype'),
-    icon: <IoGameController />,
+    icon: Icons.controller,
   },
   {
     key: 'enforceGameBuild',
@@ -136,7 +132,7 @@ export const ServerCoreLoafs = observer(function ServerCoreLoafs(props: ServerCo
         <AnalyticsLinkButton
           to={ownerProfile}
           size="small"
-          icon={<AiFillCrown />}
+          icon={Icons.crown}
           text={ownerName}
           elementPlacement={elementPlacement}
         />
@@ -148,22 +144,6 @@ export const ServerCoreLoafs = observer(function ServerCoreLoafs(props: ServerCo
     nodes.push(<Copier key="copy-join-id" text={`cfx.re/join/${server.joinId}`} />);
 
     nodes.push(<ServerBoostButton key="boost-button" server={server} />);
-  }
-
-  if (server.onesyncEnabled) {
-    nodes.push(
-      <Title key="onesync" title="OneSync enabled">
-        <Loaf className={s.onesync} bright size="small">
-          <span className={s.plz}>
-            <span>O</span>
-            <span>n</span>
-            <span>e</span>
-            <span>S</span>
-            ync
-          </span>
-        </Loaf>
-      </Title>,
-    );
   }
 
   for (const extraLoaf of EXTRA_DETAIL_BITS) {
@@ -236,7 +216,7 @@ function Copier({
 
   return (
     <Title key="join-link-copier" title={title}>
-      <Button size="small" icon={<BiCopy />} text={text} onClick={handleClick} />
+      <Button size="small" icon={Icons.copy} text={text} onClick={handleClick} />
     </Title>
   );
 }

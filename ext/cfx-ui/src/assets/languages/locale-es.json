@@ -7,7 +7,6 @@
     "#ServerList_Browse": "Buscar",
     "#ServerList_Favorites": "Favoritos",
     "#ServerList_History": "Historial",
-    "#ServerList_Premium": "Donadores",
     "#ServerList_DirectConnect": "Conexión directa",
     "#ServerList_Tags": "Etiquetas",
     "#BottomNav_Home": "Inicio",
@@ -15,7 +14,6 @@
     "#BottomNav_Settings": "Opciones",
     "#ServerList_HideFull": "Ocultar llenos",
     "#ServerList_HideEmpty": "Ocultar vacios",
-    "#ServerList_MaxPing": "Ping Máximo",
     "#Servers_Connecting": "Conectando al servidor...",
     "#Servers_ConnectingTo": "Conectando a {{ serverName }}...",
     "#Servers_ConnectFailed": "Conexión fallida",
@@ -29,8 +27,6 @@
     "#ServerList_RemoveFavorite": "Eliminar Favorito",
     "#Settings_Nickname": "Nombre",
     "#Settings_LocalhostPort": "Puerto personalizado",
-    "#Settings_DarkTheme": "\"Tema\" \"Oscuro\"",
-    "#Settings_DarkThemeDesc": "Usar un \"tema\" \"oscuro\"",
     "#Settings_DevMode": "Modo Dev",
     "#Settings_DevModeDesc": "Habilita la opción \"localhost\" del menú",
     "#Settings_Account": "Cuenta de Cfx.re conectada",
@@ -68,8 +64,5 @@
     "#ServerList_Locales": "Lenguajes",
     "#Servers_Retry": "Probar de nuevo",
     "#BottomNav_ReplayEditor": "Editor de replay",
-    "#BottomNav_Create": "Crear",
-    "#BottomNav_Mods": "Moderador",
-    "#BottomNav_Story": "Historia",
-    "#BottomNav_Play": "Jugar"
+    "#BottomNav_Story": "Historia"
 }

@@ -28,15 +28,9 @@ interface ServerListDescriptor {
 export const SERVER_LIST_DESCRIPTORS: Record<string, ServerListDescriptor> = {
   [ServersListType.All]: {
     titleKey: '#ServerList_Browse',
-    icon: Icons.serversListAll,
+    icon: Icons.menu,
     color: 'inherit',
     to: '/servers',
-  },
-  [ServersListType.Supporters]: {
-    titleKey: '#ServerList_Premium',
-    icon: Icons.serversListSupporters,
-    color: 'warning',
-    to: '/servers/premium',
   },
   [ServersListType.History]: {
     titleKey: '#ServerList_History',

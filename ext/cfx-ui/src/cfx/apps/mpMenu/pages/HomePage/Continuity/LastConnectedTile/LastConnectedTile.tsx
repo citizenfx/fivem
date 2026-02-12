@@ -1,4 +1,4 @@
-import { Interactive, Text } from '@cfx-dev/ui-components';
+import { Interactive, Pad, Text } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 
 import { useStreamerMode } from 'cfx/apps/mpMenu/services/convars/convars.service';
@@ -23,9 +23,11 @@ export const LastConnectedTile = observer(function LastConnectedTile() {
   }
 
   const label = (
-    <Text size="normal" opacity="50" weight="thin">
-      {$L('#Home_LastConnectedServer')}
-    </Text>
+    <Pad top size="medium">
+      <Text uppercase size="normal" opacity="50" weight="bold">
+        {$L('#Home_LastConnectedServer')}
+      </Text>
+    </Pad>
   );
 
   return (

@@ -2,6 +2,7 @@
  * Core domain-bound logic for different servers-related tasks
  */
 
+import { splitByIndices } from '@cfx-dev/ui-components';
 import emojiRegex from 'emoji-regex';
 
 import { IServerListConfig, ServersListType } from 'cfx/common/services/servers/lists/types';
@@ -19,8 +20,11 @@ export const DEFAULT_SERVER_PORT = DEFAULT_SERVER_PORT_INT.toString(10);
 export const DEFAULT_SERVER_LOCALE = 'root-AQ';
 export const DEFAULT_SERVER_LOCALE_COUNTRY = 'AQ';
 
+const MAX_LENGTH_PROJECT_NAME = 40;
+const MAX_LENGTH_HOSTNAME = 120;
+const MAX_LENGTH_PROJECT_DESC = 250;
+
 const ere = `(?:${emojiRegex().source})`;
-const emojiPreRe = new RegExp(`^${ere}`, '');
 
 // 'kush' is a quick hack to prevent non-sentence descriptions
 const SPLIT_RE = new RegExp(
@@ -29,6 +33,8 @@ const SPLIT_RE = new RegExp(
   'u',
 );
 const COMMA_SPLIT_RE = /(?:(?<!(?:\d+|Q))\+|,\s*|\.\s+)/u;
+
+const EMOJI_RE = emojiRegex();
 
 function filterSplit(a: string) {
   const bits = a
@@ -50,14 +56,17 @@ function filterCommas(a: string) {
   return bits.slice(0, 3).join(', ');
 }
 
-function equalReplace(aRaw: string, ...res: [any, any][]) {
+type Replacer = [RegExp, string];
+
+// Removes chars from aRaw based on regexps in res repeatedly until no more replacements can be made
+function equalReplace(aRaw: string, regexps: Replacer[]) {
   let lastA: string;
   let a = aRaw;
 
   do {
     lastA = a;
 
-    for (const re of res) {
+    for (const re of regexps) {
       a = a.replace(re[0], re[1]);
     }
   } while (a !== lastA);
@@ -67,87 +76,82 @@ function equalReplace(aRaw: string, ...res: [any, any][]) {
 
 const COUNTRY_PREFIX_RE = /^[[{(][a-zA-Z]{2,}(?:\/...?)*(?:\s.+?)?[\]})]/;
 
-const projectNameReplaces: [RegExp, string | Function][] = [
+const projectNameReplaces: Replacer[] = [
+  [EMOJI_RE, ''],
   [/^[\sㅤ]+/, ''],
   [/(?<=(?!(\d|#))\p{Emoji})(?!(\d|#))\p{Emoji}/u, ''],
   [/^\p{So}/u, ''],
   [/(\s|\u2800)+/gu, ' '],
   [/(?:[0-9]+\+|\+[0-9]+)\s*FPS/g, '+'], // FPS in name
-  [/\^[0-9]/, ''], // any non-prefixed color codes
   [/[\])]\s*[[(].*$/, ']'], // suffixes after a tag
   [/,.*$/, ''], // a name usually doesn't contain a comma
   [COUNTRY_PREFIX_RE, ''], // country prefixes
-  [emojiPreRe, ''], // emoji prefixes
-];
-const projectNamesReplacesExtra: [RegExp, string | Function][] = [
   [/[\p{Pe}】]/gu, ''],
   [/(?<!\d)[\p{Ps}【]/gu, ''],
 ];
+
+const projectDescriptionReplaces: Replacer[] = [
+  [EMOJI_RE, ''],
+  [/^[\sㅤ]+/, ''],
+  [COUNTRY_PREFIX_RE, ''],
+];
+
+const COLOR_CODES_RE = /\^[0-9]/gu;
+
+function removeColorCodes(input: string): string {
+  return input.replace(COLOR_CODES_RE, '');
+}
+
+function unicodeLimitLength(input: string, length: number): string {
+  return splitByIndices(input, [length], true).get(0) || '';
+}
 
 /**
  * Returns normalized server name, typically from `sv_projectName` var
  */
 export function filterServerProjectName(nameRaw: string | undefined | null): string {
-  let name = nameRaw;
-
-  if (!name) {
+  if (!nameRaw) {
     return '';
   }
 
-  if (name.length >= 50) {
-    name = name.substring(0, 50);
+  let name = nameRaw;
+
+  name = removeColorCodes(name);
+  name = unicodeLimitLength(name, MAX_LENGTH_PROJECT_NAME);
+  name = equalReplace(name, projectNameReplaces);
+  name = filterSplit(name);
+
+  return name;
+}
+
+export function filterServerHostname(hostnameRaw: string | undefined | null): string {
+  if (!hostnameRaw) {
+    return '';
   }
 
-  let colorPrefix = '';
+  let hostname = hostnameRaw;
 
-  const filteredName = filterSplit(
-    equalReplace(
-      equalReplace(
-        name,
-        [
-          /^\^[0-9]/,
-          (regs) => {
-            colorPrefix = regs;
+  hostname = removeColorCodes(hostname);
+  hostname = unicodeLimitLength(hostname, MAX_LENGTH_HOSTNAME);
 
-            return '';
-          },
-        ],
-        ...projectNameReplaces,
-      ),
-      ...projectNamesReplacesExtra,
-    ),
-  );
-
-  return colorPrefix + filteredName.normalize('NFKD');
+  return hostname;
 }
 
 /**
  * Returns normalized server description, typically from `sv_projectDesc` var
  */
-export function filterServerProjectDesc(aRaw: string | undefined | null): string {
-  let a = aRaw;
-
-  if (!a) {
+export function filterServerProjectDesc(descriptionRaw: string | undefined | null): string {
+  if (!descriptionRaw) {
     return '';
   }
 
-  if (a.length >= 125) {
-    a = a.substring(0, 125);
-  }
+  let description = descriptionRaw;
 
-  return filterCommas(
-    filterSplit(
-      equalReplace(
-        a,
-        [/\^[0-9]/g, ''],
-        [/^[\sㅤ]+/, ''],
-        [COUNTRY_PREFIX_RE, ''],
-        [emojiPreRe, ''], // emoji prefixes
-      ),
-    ),
-  )
-    .replace(/(\s|\u2800)+/gu, ' ')
-    .normalize('NFKD');
+  description = removeColorCodes(description);
+  description = unicodeLimitLength(description, MAX_LENGTH_PROJECT_DESC);
+  description = equalReplace(description, projectDescriptionReplaces);
+
+  return description;
 }
 
 export function normalizeSearchString(input: string): string {
@@ -169,7 +173,7 @@ export function filterServerTag(tag: string) {
 }
 
 /**
- * Whether or not should gived servers list config prioritize pinned servers when sorting
+ * Whether or not should given servers list config prioritize pinned servers when sorting
  */
 export function shouldPrioritizePinnedServers(config: IServerListConfig): boolean {
   if (config.prioritizePinned) {
@@ -184,7 +188,7 @@ export function shouldPrioritizePinnedServers(config: IServerListConfig): boolea
     return Boolean(config.searchText);
   }
 
-  return config.type === ServersListType.Supporters;
+  return false;
 }
 
 /**

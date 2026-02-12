@@ -70,7 +70,7 @@ goto :eof
 
 :UpdateToLatest
 echo Updating %~1
-%systemroot%\system32\curl -fz %~1 -Lo %~1.new %~2
+%systemroot%\system32\curl --ssl-no-revoke -fz %~1 -Lo %~1.new %~2
 
 if not errorlevel 0 (
 	echo 	cURL exited with error code %errorlevel%.

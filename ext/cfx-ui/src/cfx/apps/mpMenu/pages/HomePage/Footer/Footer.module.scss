@@ -1,0 +1,28 @@
+.root {
+  flex-grow: 1;
+
+  display: grid;
+  place-content: end;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: auto, ui.control-height('large');
+
+  grid-template-areas:
+//   1    2    3    4    5    6    7    8    9    10   11   12
+    "feat feat feat feat feat .... .... .... .... host host host"
+    "stor stor stor stor stor .... .... .... .... .... .... ....";
+
+  row-gap: ui.offset('large');
+  column-gap: ui.offset();
+
+  .featured {
+    grid-area: feat;
+  }
+
+  .storyreplay {
+    grid-area: stor;
+  }
+
+  .host {
+    grid-area: host;
+  }
+}

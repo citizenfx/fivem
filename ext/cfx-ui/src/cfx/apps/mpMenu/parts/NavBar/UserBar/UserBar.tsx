@@ -26,17 +26,11 @@ import { ISettingsUIService } from 'cfx/common/services/settings/settings.servic
 
 import { NavBarState } from '../NavBarState';
 
-type ButtonTheme = React.ComponentProps<typeof Button>['theme'];
-
 export const UserBar = observer(function UserBar() {
   const AuthService = useAuthService();
   const AccountService = useAccountService();
   const SettingsUIService = useService(ISettingsUIService);
   const eventHandler = useEventHandler();
-
-  const buttonTheme: ButtonTheme = NavBarState.forceTransparentNav
-    ? 'default'
-    : 'default-blurred';
 
   const streamerMode = useStreamerMode();
 
@@ -79,14 +73,14 @@ export const UserBar = observer(function UserBar() {
 
   if (!AccountService.accountLoadComplete) {
     return (
-      <Button size="large" theme={buttonTheme} icon={<Indicator />} />
+      <Button size="large" icon={<Indicator />} />
     );
   }
 
   if (AccountService.account) {
     if (streamerMode) {
       return (
-        <Button size="large" theme={buttonTheme} icon={Icons.accountLoaded} onClick={handleStreamerClick} />
+        <Button size="large" icon={Icons.account} onClick={handleStreamerClick} />
       );
     }
 
@@ -113,7 +107,7 @@ export const UserBar = observer(function UserBar() {
 
     return (
       <Title title={title}>
-        <Button size="large" theme={buttonTheme} icon={<BsExclamationCircleFill />} />
+        <Button size="large" icon={<BsExclamationCircleFill />} />
       </Title>
     );
   }

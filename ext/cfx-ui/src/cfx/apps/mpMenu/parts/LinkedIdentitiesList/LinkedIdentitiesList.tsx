@@ -5,14 +5,14 @@ import {
 } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { FaDiscord, FaRoad, FaSteam, FaXbox } from 'react-icons/fa';
+import { FaDiscord, FaSteam, FaXbox } from 'react-icons/fa';
 
 import { useService } from 'cfx/base/servicesContainer';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { ILinkedIdentitiesService } from 'cfx/common/services/linkedIdentities/linkedIdentities.service';
+import { ILinkedIdentity, LinkedIdentityProvider } from 'cfx/common/services/linkedIdentities/types';
 
 import { IConvarService, KnownConvars } from '../../services/convars/convars.service';
-import { ILinkedIdentity, LinkedIdentityProvider } from '../../services/linkedIdentities/types';
 
 export const LinkedIdentitiesList = observer(function LinkedIdentitiesList() {
   const ConvarService = useService(IConvarService);
@@ -77,12 +77,6 @@ function getProviderIcon(provider: LinkedIdentityProvider): React.ReactNode {
 
     case LinkedIdentityProvider.ROS: {
       return BrandIcon.ROS;
-    }
-
-    case LinkedIdentityProvider.Cfxre: {
-      return (
-        <FaRoad />
-      );
     }
   }
 
