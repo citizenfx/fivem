@@ -72,7 +72,7 @@ export const ServersPage = observer(function ServersPage(props: ServersPageProps
             initialScrollOffset={initialScrollOffset}
             className={s.list}
             itemCount={list.sequence.length}
-            itemHeight={UiService.quant * 9}
+            itemHeight={Math.ceil(UiService.quant * 9)} // Ceil to avoid gaps between rows
             renderItem={renderItem}
           />
         )}

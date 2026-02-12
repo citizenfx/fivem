@@ -48,14 +48,20 @@ class MpMenuUiService implements IUiService {
     const meterNode = document.createElement('div');
     meterNode.style.width = 'var(--width)';
     meterNode.style.height = 'var(--height)';
+    meterNode.style.position = 'fixed';
+    meterNode.style.top = '0';
+    meterNode.style.left = '0';
+    meterNode.style.pointerEvents = 'none';
+    meterNode.style.opacity = '0';
+    meterNode.style.transform = 'translate(-100%, -100%)';
+    document.body.appendChild(meterNode);
 
     function calculateDimensions(bodyRect: DOMRect) {
       const style = getComputedStyle(meterNode);
 
       const viewportWidth = parseFloat(style.getPropertyValue('width')) || bodyRect.width;
       const viewportHeight = parseFloat(style.getPropertyValue('height')) || bodyRect.height;
-      // eslint-disable-next-line no-bitwise
-      const quant = viewportHeight * 0.0055 | 0; // prevent subpixeling
+      const quant = viewportHeight * 0.0055;
 
       return {
         viewportWidth,
