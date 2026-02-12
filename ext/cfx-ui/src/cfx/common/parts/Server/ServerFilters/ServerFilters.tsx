@@ -196,7 +196,7 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
 
             <VirtualScrollable
               itemCount={localesList.length}
-              itemHeight={UiService.quant * 6}
+              itemHeight={Math.ceil(UiService.quant * 6)}
               renderItem={(index) => (
                 <LocaleFaucet config={config} locale={locales[localesList[index]]} />
               )}
@@ -222,7 +222,7 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
 
             <VirtualScrollable
               itemCount={tagsList.length}
-              itemHeight={UiService.quant * 6}
+              itemHeight={Math.ceil(UiService.quant * 6)}
               renderItem={(index) => (
                 <TagFaucet config={config} tag={tagsList[index]} count={tags[tagsList[index]].count} />
               )}
