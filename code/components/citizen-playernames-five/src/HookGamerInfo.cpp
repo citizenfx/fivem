@@ -377,7 +377,7 @@ static HookFunction hookFunction([]()
 	hook::put<uint32_t>(hook::get_pattern("E8 ? ? ? ? 66 41 03 DE 0F BF D3 3B 95", 28), 0xB0 + (8 * GAMER_TAG_LIMIT));
 
 	// GAMER_INFO::createGamerTagForPed
-	hook::put<uint32_t>(hook::get_pattern("BB ? ? ? ? 41 B8 ? ? ? ? 75", 1), GAMER_TAG_FOR_NET_PLAYER_LIMIT);
+	hook::put<uint32_t>(hook::get_pattern("BB ? ? ? ? 41 B8 ? ? ? ? 75 ? 8B CB", 1), GAMER_TAG_FOR_NET_PLAYER_LIMIT);
 	LimitPatch(hook::get_pattern("48 83 FA ? 7C ? 48 8B CB"));
 	LimitPatch(hook::get_pattern("48 83 F9 ? 7C ? 83 C8 ? 48 8B 5C 24"));
 
