@@ -688,13 +688,7 @@ static InitFunction initFunction([]()
 		auto topLevelStackBlob = context.GetArgument<char*>(0);
 		auto topLevelStackSize = context.GetArgument<uint32_t>(1);
 
-		if (fx::g_suppressErrors && topLevelStackBlob != nullptr)
-		{
-			context.SetResult(nullptr);
-			return;
-		}
-
-		fx::g_suppressErrors = true;
+		static std::string stackTraceBuffer;
 
 		auto vis = fx::MakeNew<StringifyingStackVisitor>();
 
@@ -718,6 +712,20 @@ static InitFunction initFunction([]()
 			}
 		}
 
+		// If we have a topLevelStackBlob instead of suppressing (which will eat any error that happens in the same tick), we print
+		// out the current topLevelStackBlob, this is a really hacky fix, and only really fixes errors being eaten for the JS/C# ScRT
+		//
+		// This shouldn't break any existing behavior since g_suppressErrors gets re-enabled on a ScRT environment pop, and we can't
+		// really traverse the stack safely due to thread safety issues with C# possibly not being on the main thread.
+		if (fx::g_suppressErrors && topLevelStackBlob != nullptr)
+		{
+			stackTraceBuffer = vis->stringTrace.str();
+			context.SetResult(stackTraceBuffer.c_str());
+			return;
+		}
+
+		fx::g_suppressErrors = true;
+
 		for (int i = 0; i < fx::ms_runtimeStack.size(); i++)
 		{
 			auto rit = fx::ms_runtimeStack.begin() + i;
@@ -735,7 +743,6 @@ static InitFunction initFunction([]()
 			}
 		}
 
-		static std::string stackTraceBuffer;
 		stackTraceBuffer = vis->stringTrace.str();
 
 		context.SetResult(stackTraceBuffer.c_str());
