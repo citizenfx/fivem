@@ -8043,7 +8043,12 @@ static InitFunction initFunction([]()
 		// start sessionmanager
 		if (gameServer->GetGameName() == fx::GameName::RDR3)
 		{
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+			// Race
+			instance->OnInitialConfiguration.Connect([consoleCtx]()
+			{
+				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+			},
+			INT32_MAX);
 		}
 		else if (!g_oneSyncEnabledVar->GetValue() && g_oneSyncVar->GetValue() == fx::OneSyncState::Off)
 		{
