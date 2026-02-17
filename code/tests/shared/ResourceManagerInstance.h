@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "ResourceManager.h"
 #include "EventCore.h"
@@ -58,15 +58,6 @@ public:
 	}
 
 	void MakeCurrent() override
-	{
-	}
-
-	bool IsMonitor() override
-	{
-		return false;
-	}
-
-	void SetMonitor(bool monitor) override
 	{
 	}
 

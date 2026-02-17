@@ -25,28 +25,12 @@ Device::THandle LocalDevice::Open(const std::string& fileName, bool readOnly, bo
 	}
 
 	HANDLE hFile = CreateFileW(wideName.c_str(),
-	dwDesiredAccess,
-	FILE_SHARE_READ | FILE_SHARE_WRITE,
-	nullptr,
-	OPEN_EXISTING,
-	FILE_ATTRIBUTE_NORMAL,
-	nullptr);
-
-	if (hFile != INVALID_HANDLE_VALUE)
-	{
-		FILE_BASIC_INFO basicInfo;
-		if (!GetFileInformationByHandleEx(hFile, FileBasicInfo, &basicInfo, sizeof(basicInfo)))
-		{
-			CloseHandle(hFile);
-			return InvalidHandle;
-		}
-
-		if (basicInfo.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
-		{
-			CloseHandle(hFile);
-			return InvalidHandle;
-		}
-	}
+	    dwDesiredAccess,
+	    FILE_SHARE_READ | FILE_SHARE_WRITE,
+	    nullptr,
+	    OPEN_EXISTING,
+	    FILE_ATTRIBUTE_NORMAL,
+	    nullptr);
 
 	return reinterpret_cast<THandle>(hFile);
 }
@@ -54,31 +38,15 @@ Device::THandle LocalDevice::Open(const std::string& fileName, bool readOnly, bo
 Device::THandle LocalDevice::OpenBulk(const std::string& fileName, uint64_t* ptr)
 {
 	std::wstring wideName = ToWide(fileName);
-	*ptr = 0;
+	*ptr                  = 0;
 
 	HANDLE hFile = CreateFileW(wideName.c_str(),
-	GENERIC_READ,
-	FILE_SHARE_READ,
-	nullptr,
-	OPEN_EXISTING,
-	FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
-	nullptr);
-	
-	if (hFile != INVALID_HANDLE_VALUE)
-	{
-		FILE_BASIC_INFO basicInfo;
-		if (!GetFileInformationByHandleEx(hFile, FileBasicInfo, &basicInfo, sizeof(basicInfo)))
-		{
-			CloseHandle(hFile);
-			return InvalidHandle;
-		}
-
-		if (basicInfo.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
-		{
-			CloseHandle(hFile);
-			return InvalidHandle;
-		}
-	}
+	    GENERIC_READ,
+	    FILE_SHARE_READ,
+	    nullptr,
+	    OPEN_EXISTING,
+	    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
+	    nullptr);
 
 	return reinterpret_cast<THandle>(hFile);
 }
@@ -86,7 +54,7 @@ Device::THandle LocalDevice::OpenBulk(const std::string& fileName, uint64_t* ptr
 Device::THandle LocalDevice::Create(const std::string& filename, bool createIfExists, bool append)
 {
 	std::wstring wideName = ToWide(filename);
-
+	
 	DWORD dwDesiredAccess = GENERIC_READ;
 	if (append)
 	{
@@ -98,28 +66,12 @@ Device::THandle LocalDevice::Create(const std::string& filename, bool createIfEx
 	}
 
 	HANDLE hFile = CreateFileW(wideName.c_str(),
-	dwDesiredAccess,
-	FILE_SHARE_READ,
-	nullptr,
-	createIfExists ? CREATE_ALWAYS : CREATE_NEW,
-	FILE_ATTRIBUTE_NORMAL,
-	nullptr);
-	
-	if (hFile != INVALID_HANDLE_VALUE)
-	{
-		FILE_BASIC_INFO basicInfo;
-		if (!GetFileInformationByHandleEx(hFile, FileBasicInfo, &basicInfo, sizeof(basicInfo)))
-		{
-			CloseHandle(hFile);
-			return InvalidHandle;
-		}
-
-		if (basicInfo.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
-		{
-			CloseHandle(hFile);
-			return InvalidHandle;
-		}
-	}
+	    dwDesiredAccess,
+	    FILE_SHARE_READ,
+	    nullptr,
+	    createIfExists ? CREATE_ALWAYS : CREATE_NEW,
+	    FILE_ATTRIBUTE_NORMAL,
+	    nullptr);
 
 	return reinterpret_cast<THandle>(hFile);
 }
@@ -139,10 +91,10 @@ size_t LocalDevice::ReadBulk(THandle handle, uint64_t ptr, void* outBuffer, size
 	assert(handle != Device::InvalidHandle);
 
 	OVERLAPPED overlapped = {};
-	overlapped.Offset = (ptr & 0xFFFFFFFF);
+	overlapped.Offset     = (ptr & 0xFFFFFFFF);
 	overlapped.OffsetHigh = ptr >> 32;
 
-	BOOL result = ReadFile(reinterpret_cast<HANDLE>(handle), outBuffer, static_cast<DWORD>(size), nullptr, &overlapped);
+	BOOL result    = ReadFile(reinterpret_cast<HANDLE>(handle), outBuffer, static_cast<DWORD>(size), nullptr, &overlapped);
 	bool ioPending = false;
 
 	if (!result)
@@ -239,7 +191,7 @@ bool LocalDevice::RemoveFile(const std::string& filename)
 bool LocalDevice::RenameFile(const std::string& from, const std::string& to)
 {
 	std::wstring fromName = ToWide(from);
-	std::wstring toName = ToWide(to);
+	std::wstring toName   = ToWide(to);
 
 	return MoveFile(fromName.c_str(), toName.c_str()) != FALSE;
 }
@@ -261,7 +213,7 @@ bool LocalDevice::RemoveDirectory(const std::string& name)
 std::time_t LocalDevice::GetModifiedTime(const std::string& fileName)
 {
 	THandle handle = Open(fileName, true);
-
+	
 	if (handle != InvalidHandle)
 	{
 		FILETIME lastWriteTime;
@@ -300,8 +252,8 @@ Device::THandle LocalDevice::FindFirst(const std::string& folder, FindData* find
 	}
 
 	findData->attributes = winFindData.dwFileAttributes;
-	findData->length = winFindData.nFileSizeLow;
-	findData->name = ToNarrow(winFindData.cFileName);
+	findData->length     = winFindData.nFileSizeLow;
+	findData->name       = ToNarrow(winFindData.cFileName);
 
 	return reinterpret_cast<THandle>(hFind);
 }
@@ -314,8 +266,8 @@ bool LocalDevice::FindNext(THandle handle, FindData* findData)
 	if (result)
 	{
 		findData->attributes = winFindData.dwFileAttributes;
-		findData->length = winFindData.nFileSizeLow;
-		findData->name = ToNarrow(winFindData.cFileName);
+		findData->length     = winFindData.nFileSizeLow;
+		findData->name       = ToNarrow(winFindData.cFileName);
 	}
 
 	return result != FALSE;
@@ -421,7 +373,7 @@ bool LocalDevice::Flush(THandle handle)
 	return FlushFileBuffers(reinterpret_cast<HANDLE>(handle));
 }
 
-bool LocalDevice::Truncate(THandle handle, uint64_t length)
+bool LocalDevice::Truncate(THandle handle,  uint64_t length)
 {
 	auto h = reinterpret_cast<HANDLE>(handle);
 

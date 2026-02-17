@@ -28,8 +28,6 @@ private:
 
 	std::vector<fwRefContainer<ResourceMounter>> m_mounters;
 
-	bool m_isMonitorMode = false;
-
 public:
 	ResourceManagerImpl();
 
@@ -58,9 +56,5 @@ public:
 	virtual void Tick() override;
 
 	virtual std::string CallReferenceInternal(const std::string& functionReference, const std::string& argsSerialized) override;
-
-	virtual bool IsMonitor() override;
-
-	virtual void SetMonitor(bool monitor) override;
 };
 }

@@ -63,28 +63,9 @@ xcopy /y /e resources\chat\html\vendor %SRRoot%\chat\html\vendor || goto :error
 popd
 
 echo Done adding chat
+goto :success
 :: /chat
 
-:: yarn
-:yarn
-echo Adding yarn
-pushd resources\yarn
-if not exist "%SRRoot%\yarn" mkdir "%SRRoot%\yarn"
-xcopy . "%SRRoot%\yarn" /e /y || goto :error
-popd
-echo Done adding yarn
-:: /yarn
-
-:: webpack
-:webpack
-echo Adding webpack
-pushd resources\webpack
-if not exist "%SRRoot%\webpack" mkdir "%SRRoot%\webpack"
-xcopy . "%SRRoot%\webpack" /e /y || goto :error
-popd
-echo Done adding webpack
-goto :success
-:: /webpack
 
 :error
 echo Failed to build system resources

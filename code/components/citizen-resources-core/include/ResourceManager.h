@@ -125,17 +125,6 @@ public:
 	//
 	virtual void MakeCurrent() = 0;
 
-	//
-	// Gets is in monitor mode for permission manager
-	//
-	virtual bool IsMonitor() = 0;
-
-	//
-	// Sets monitor mode for permission manager
-	//
-	virtual void SetMonitor(bool monitor) = 0;
-
-
 public:
 	//
 	// Calls a formatted function reference.

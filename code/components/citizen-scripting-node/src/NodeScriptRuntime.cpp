@@ -16,8 +16,7 @@
 #include <console/Console.h>
 #include <ServerInstanceBase.h>
 
-// NOTE: these can be reused by old node and v8 runtime and will be used by future v8 runtime too
-#include "FilesystemPermissions.h"
+//NOTE: these can be reused by old node and v8 runtime and will be used by future v8 runtime too
 #include "shared/BoundaryFunctions.h"
 #include "shared/GenericFunctions.h"
 #include "shared/GlobalFunctions.h"
@@ -28,12 +27,6 @@
 
 #include "JavaScriptEnvironmentCode.h"
 #include "NodeScopeHandler.h"
-#include "VFSDevice.h"
-#include "VFSManager.h"
-
-#include "permission/permission_base.h"
-#include "path.h"
-#include <ServerInstanceBaseRef.h>
 
 using namespace fx::v8shared;
 
@@ -43,160 +36,6 @@ static NodeParentEnvironment g_nodeEnv;
 static ScopeHandler g_scopeHandler;
 
 std::unordered_map<v8::Isolate*, NodeScriptRuntime*> runtimeMap;
-
-namespace permission
-{
-
-#define FILESYSTEM_PERMISSIONS(V)            \
-	V(FileSystem, "fs", PermissionsRoot)     \
-	V(FileSystemRead, "fs.read", FileSystem) \
-	V(FileSystemWrite, "fs.write", FileSystem)
-
-#define CHILD_PROCESS_PERMISSIONS(V) V(ChildProcess, "child", PermissionsRoot)
-
-#define WASI_PERMISSIONS(V) V(WASI, "wasi", PermissionsRoot)
-
-#define WORKER_THREADS_PERMISSIONS(V) \
-	V(WorkerThreads, "worker", PermissionsRoot)
-
-#define INSPECTOR_PERMISSIONS(V) V(Inspector, "inspector", PermissionsRoot)
-
-#define PERMISSIONS(V)            \
-	FILESYSTEM_PERMISSIONS(V)     \
-	CHILD_PROCESS_PERMISSIONS(V)  \
-	WASI_PERMISSIONS(V)           \
-	WORKER_THREADS_PERMISSIONS(V) \
-	INSPECTOR_PERMISSIONS(V)
-
-#define V(name, _, __) k##name,
-	enum class PermissionScope
-	{
-		kPermissionsRoot = -1,
-		PERMISSIONS(V) kPermissionsCount
-	};
-#undef V
-
-	// Enum to string conversion function for PermissionScope
-	inline const char* ToString(PermissionScope scope)
-	{
-		switch (scope)
-		{
-			case PermissionScope::kPermissionsRoot:
-				return "PermissionsRoot";
-#define V(name, str, __)           \
-	case PermissionScope::k##name: \
-		return str;
-				PERMISSIONS(V)
-#undef V
-			case PermissionScope::kPermissionsCount:
-				return "PermissionsCount";
-			default:
-				return "Unknown";
-		}
-	}
-} // namespace permission
-
-bool NodeScriptRuntime::NodePermissionCallback(node::Environment* env,
-node::permission::PermissionScope permission_,
-const std::string_view& resource)
-{
-	fx::OMPtr<IScriptRuntime> runtime{};
-	const permission::PermissionScope perm = static_cast<permission::PermissionScope>(permission_);
-	const std::string permName = permission::ToString(perm);
-
-	if (m_isMonitorRuntime)
-	{
-		return true;
-	}
-
-	if (m_resourceName == "yarn" || m_resourceName == "webpack")
-	{
-		return true;
-	}
-
-	std::string res = std::string(resource);
-	if (perm == permission::PermissionScope::kFileSystem || perm == permission::PermissionScope::kFileSystemRead || perm == permission::PermissionScope::kFileSystemWrite)
-	{
-#ifdef _WIN32
-		// Remove leading "\\?\" from UNC path
-		if (res.size() > 3 && res.substr(0, 4) == R"(\\?\)")
-		{
-			res.erase(0, 4);
-		}
-
-		// Remove leading "UNC\" from UNC path
-		if (res.size() > 3 && res.substr(0, 4) == "UNC\\")
-		{
-			res.erase(0, 4);
-		}
-		// Remove leading "//" from UNC path
-		if (res.size() > 1 && res.substr(0, 2) == "//")
-		{
-			res.erase(0, 2);
-		}
-#endif
-
-		for (const auto& part : std::filesystem::path(res))
-		{
-			if (part == "..")
-			{
-				trace("Filesystem permission check from '%s' for permission %s on resource '%s' - path traversal detected\n", m_resourceName.c_str(), permName.c_str(), res.c_str());
-				return false;
-			}
-		}
-
-		fwRefContainer<vfs::Device> device = !res.empty() && res[0] == '@' ? vfs::GetDevice(res) : nullptr;
-		std::string path = res;
-		if (!device.GetRef())
-		{
-			std::string absolutePath = std::filesystem::absolute(std::filesystem::path(path)).string();
-			device = vfs::FindDevice(absolutePath, path);
-			if (!device.GetRef())
-			{
-				trace("Filesystem permission check from '%s' for permission %s on resource '%s' - no device found\n", m_resourceName.c_str(), permName.c_str(), res.c_str());
-				return false;
-			}
-		}
-
-		if (perm == permission::PermissionScope::kFileSystemWrite && !fx::ScriptingFilesystemAllowWrite(path, m_parentObject))
-		{
-			trace("Filesystem write permission check from '%s' for permission %s on resource '%s' - write not allowed\n", m_resourceName.c_str(), permName.c_str(), res.c_str());
-			return false;
-		}
-	}
-	else if (perm == permission::PermissionScope::kChildProcess)
-	{
-		if (!fx::ScriptingChildProcessAllowSpawn(m_parentObject))
-		{
-			trace("Child process permission check from '%s' for permission %s on resource '%s' - child spawn not allowed\n", m_resourceName.c_str(), permName.c_str(), res.c_str());
-			return false;
-		}
-
-		return true;
-	}
-	else if (perm == permission::PermissionScope::kWASI)
-	{
-		// No WASI for security
-		trace("WASI permission check from '%s' for permission %s on resource '%s'\n", m_resourceName.c_str(), permName.c_str(), res.c_str());
-		return false;
-	}
-	else if (perm == permission::PermissionScope::kWorkerThreads)
-	{
-		if (!fx::ScriptingWorkerAllowSpawn(m_parentObject))
-		{
-			trace("Worker threads permission check from '%s' for permission %s on resource '%s' - worker spawn not allowed\n", m_resourceName.c_str(), permName.c_str(), res.c_str());
-			return false;
-		}
-
-		return true;
-	}
-	// Leaving here for future if new permissions are added
-	/*else
-	{
-		trace("Permission check for permission %s on resource '%s'\n", permName.c_str(), res.c_str());
-	}*/
-	return true;
-}
 
 static InitFunction initFunction([]()
 {
@@ -233,8 +72,9 @@ static InitFunction initFunction([]()
 	}
 });
 
-// NOTE: it still depends on preexisting files from old runtime
-static const char* g_platformScripts[] = {
+//NOTE: it still depends on preexisting files from old runtime
+static const char* g_platformScripts[] = 
+{
 	"citizen:/scripting/v8/natives_server.js",
 	"citizen:/scripting/v8/console.js",
 	"citizen:/scripting/v8/timer.js",
@@ -243,7 +83,8 @@ static const char* g_platformScripts[] = {
 	"citizen:/scripting/v8/main.js"
 };
 
-static std::pair<std::string, v8::FunctionCallback> g_citizenFunctions[] = {
+static std::pair<std::string, v8::FunctionCallback> g_citizenFunctions[] =
+{
 	// generic
 	{ "trace", V8_Trace<NodeScriptRuntime, SharedPushEnvironmentNoContext> },
 	{ "setTickFunction", V8_SetTickFunction<NodeScriptRuntime> },
@@ -288,7 +129,8 @@ static std::pair<std::string, v8::FunctionCallback> g_citizenFunctions[] = {
 	{ "resultAsObject2", V8_GetMetaField<MetaField::ResultAsObject> },
 };
 
-static std::pair<std::string, v8::FunctionCallback> g_globalFunctions[] = {
+static std::pair<std::string, v8::FunctionCallback> g_globalFunctions[] =
+{
 	{ "read", V8_Read<NodeScriptRuntime, SharedPushEnvironment<NodeScriptRuntime>> },
 	{ "readbuffer", V8_ReadBuffer<NodeScriptRuntime, SharedPushEnvironment<NodeScriptRuntime>> },
 };
@@ -323,7 +165,7 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 {
 	// assign the script host
 	m_scriptHost = host;
-
+	
 	{
 		fx::OMPtr<IScriptHost> ptr(host);
 
@@ -346,15 +188,13 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 		console::PrintError(_CFX_NAME_STRING(_CFX_COMPONENT_NAME), "Can't create resource %s. Node is not initialized.\n", m_resourceName);
 		return FX_E_INVALIDARG;
 	}
-
+	
 	fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
 	const fwRefContainer<fx::Resource> resource = resourceManager->GetResource(resourceName);
 
-	m_isMonitorRuntime = resourceManager->IsMonitor();
-
 	// create our UV loop
 	m_uvLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop();
-	// uv_loop_init(m_uvLoop);
+	//uv_loop_init(m_uvLoop);
 
 	// create our isolate from parent platform
 	const auto allocator = node::CreateArrayBufferAllocator();
@@ -364,27 +204,13 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 	m_isolate->SetCaptureStackTraceForUncaughtExceptions(true);
 	m_isolate->AddMessageListener(OnMessage);
 
-	m_isolate->AddGCPrologueCallback([](v8::Isolate* isolate, v8::GCType type,
-									 v8::GCCallbackFlags flags, void* data)
-	{
-		auto* runtime = static_cast<NodeScriptRuntime*>(data);
-		runtime->m_isInGc.fetch_add(1, std::memory_order_release);
-	}, this);
-
-	m_isolate->AddGCEpilogueCallback([](v8::Isolate* isolate, v8::GCType type,
-									 v8::GCCallbackFlags flags, void* data)
-	{
-		auto* runtime = static_cast<NodeScriptRuntime*>(data);
-		runtime->m_isInGc.fetch_sub(1, std::memory_order_release);
-	}, this);
-
 	runtimeMap[m_isolate] = this;
 
 	{
 		// create a scope to hold handles we use here
 		SharedPushEnvironmentNoContext pushed(m_isolate);
 		fx::PushEnvironment fxenv(this);
-
+		
 		// create global state
 		v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_isolate);
 
@@ -404,7 +230,7 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 		}
 
 		// add a global 'print' function as alias for Citizen.trace for testing
-		global->Set(m_isolate, "print", v8::FunctionTemplate::New(m_isolate, V8_Trace<NodeScriptRuntime, SharedPushEnvironmentNoContext>));
+		global->Set(m_isolate, "print",	v8::FunctionTemplate::New(m_isolate, V8_Trace<NodeScriptRuntime, SharedPushEnvironmentNoContext>));
 
 		// set the Citizen object
 		global->Set(m_isolate, "Citizen", citizenObject);
@@ -412,9 +238,8 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 		// create a cfx alias too for the Citizen object
 		// global->Set(m_isolate, "cfx", citizenObject);
 
-		// create a V8 context with explicit microtask queue and store it
-		m_taskQueue = v8::MicrotaskQueue::New(m_isolate, v8::MicrotasksPolicy::kExplicit);
-		const auto context = v8::Context::New(m_isolate, nullptr, global, {}, {}, m_taskQueue.get());
+		// create a V8 context and store it
+		const auto context = node::NewContext(m_isolate, global);
 		m_context.Reset(m_isolate, context);
 
 		// set the 'global' variable to the global itself (?) (NOTE: only works after context creation, maybe it shouldn't be done?)
@@ -428,7 +253,6 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 
 		// context scope is required for environment creation
 		v8::Context::Scope scope(context);
-		node::InitializeContext(context);
 
 		// create and load our child node environment
 
@@ -441,7 +265,6 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 		// pass our own executable name and start-node parameters for process forking compatibility
 		// todo: add optional permissions for node
 		m_nodeEnvironment = node::CreateEnvironment(m_isolateData, context, { selfPath }, { "--start-node", "--fork-node22" }, node::EnvironmentFlags::kNoCreateInspector);
-		node::SetPermissionHandler(m_nodeEnvironment, std::bind(&NodeScriptRuntime::NodePermissionCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 		node::LoadEnvironment(m_nodeEnvironment, g_envCode);
 	}
 
@@ -458,7 +281,7 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 
 	return FX_S_OK;
 }
-
+	
 result_t NodeScriptRuntime::Destroy()
 {
 	// seems like creating and destroying an isolate in the same tick causes a crash in some cases
@@ -469,7 +292,7 @@ result_t NodeScriptRuntime::Destroy()
 	m_callRefRoutine = TCallRefRoutine();
 	m_deleteRefRoutine = TDeleteRefRoutine();
 	m_duplicateRefRoutine = TDuplicateRefRoutine();
-
+	
 	SharedPushEnvironment pushed(this);
 
 	node::EmitProcessBeforeExit(m_nodeEnvironment);
@@ -478,8 +301,8 @@ result_t NodeScriptRuntime::Destroy()
 	node::FreeEnvironment(m_nodeEnvironment);
 	node::FreeIsolateData(m_isolateData);
 
-	// uv_loop_close(m_uvLoop);
-	// delete m_uvLoop;
+	//uv_loop_close(m_uvLoop);
+	//delete m_uvLoop;
 
 	m_context.Reset();
 	return FX_S_OK;
@@ -532,11 +355,14 @@ int NodeScriptRuntime::GetInstanceId()
 
 int NodeScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* metadata)
 {
-	if (strstr(filename, ".js"))
+	if(strstr(filename, ".js"))
 	{
-		return true;
+		char* versionStr = "16";
+		metadata->GetResourceMetaData("node_version", 0, &versionStr);
+
+		return !strcmp("22", versionStr);
 	}
-	return false;
+    return false;
 }
 
 result_t NodeScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile, v8::Local<v8::Script>* outScript)
@@ -601,7 +427,7 @@ result_t NodeScriptRuntime::LoadHostFileInternal(char* scriptFile, v8::Local<v8:
 
 	return LoadFileInternal(stream, (scriptFile[0] != '@') ? const_cast<char*>(fmt::sprintf("@%s/%s", resourceName, scriptFile).c_str()) : scriptFile, outScript);
 }
-
+	
 result_t NodeScriptRuntime::RunFileInternal(char* scriptName, std::function<result_t(char*, v8::Local<v8::Script>*)> loadFunction)
 {
 	SharedPushEnvironment pushed(this);
@@ -713,8 +539,6 @@ result_t NodeScriptRuntime::EmitWarning(char* channel, char* message)
 {
 	if (!m_context.IsEmpty())
 	{
-		SharedPushEnvironment pushed(this);
-
 		auto context = GetContext();
 		auto consoleMaybe = context->Global()->Get(context, v8::String::NewFromUtf8(m_isolate, "console").ToLocalChecked());
 		v8::Local<v8::Value> console;

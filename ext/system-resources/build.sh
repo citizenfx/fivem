@@ -32,6 +32,3 @@ rm -rf data/chat/package.json data/chat/yarn.lock
 rm -rf data/chat/html/
 mkdir data/chat/html/
 cp -a resources/chat/html/vendor data/chat/html/vendor
-
-cp -a resources/yarn data/yarn
-cp -a resources/webpack data/webpack

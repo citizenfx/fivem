@@ -91,15 +91,6 @@ void ServerResourceList::ScanResources(const std::string& resourceRoot, ScanResu
 					}
 				}
 
-				// these are now in "system_resources"
-				if (findData.name == "yarn" || findData.name == "webpack")
-				{
-					if (!isSystemResourceRoot)
-					{
-						continue;
-					}
-				}
-
 				if (findData.attributes & FILE_ATTRIBUTE_DIRECTORY)
 				{
 					std::string resPath(thisPath + "/" + findData.name);
