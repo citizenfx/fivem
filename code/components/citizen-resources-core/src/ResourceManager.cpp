@@ -282,6 +282,16 @@ void ResourceManager::SetCallRefCallback(const std::function<std::string(const s
 	g_callRefCallback = refCallback;
 }
 
+bool ResourceManagerImpl::IsMonitor()
+{
+	return m_isMonitorMode;
+}
+
+void ResourceManagerImpl::SetMonitor(bool monitor)
+{
+	m_isMonitorMode = monitor;
+}
+
 ResourceManager* CreateResourceManager()
 {
 	return new ResourceManagerImpl();

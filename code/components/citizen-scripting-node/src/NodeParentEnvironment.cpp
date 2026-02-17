@@ -10,7 +10,7 @@
 #include <NodeParentEnvironment.h>
 #include <console/Console.h>
 
-#include <node/deps/v8/include/libplatform/libplatform.h>
+#include <libplatform/libplatform.h>
 #include "shared/RuntimeHelpers.h"
 #include "UvLoopManager.h"
 
@@ -28,7 +28,8 @@ namespace fx::nodejs
 		}
 
 		// initialize node process
-		const std::vector<std::string> args = {
+		const static std::vector<std::string> args = {
+			"FXServer.exe",
 			"--trace-warnings",
 			"--unhandled-rejections=warn",
 			"--experimental-sqlite"
