@@ -72,6 +72,7 @@ namespace fx
 		v8::Local<v8::Context> m_ctx;
 		v8::Context::Scope m_contextScope;
 		fx::PushEnvironment m_fxenv;
+		C* m_runtime;
 
 	public:
 		SharedPushEnvironment(C* runtime)
@@ -80,12 +81,14 @@ namespace fx
 			  m_handleScope(runtime->GetIsolate()),
 			  m_ctx(runtime->GetContext()),
 			  m_contextScope(m_ctx),
-			  m_fxenv(runtime)
+			  m_fxenv(runtime),
+			  m_runtime(runtime)
 		{
 		}
 
 		~SharedPushEnvironment()
 		{
+			m_runtime->RunMicrotasks();
 		}
 	};
 
@@ -97,18 +100,21 @@ namespace fx
 		v8::Local<v8::Context> m_ctx;
 		v8::Context::Scope m_contextScope;
 		fx::PushEnvironment m_fxenv;
+		C* m_runtime;
 
 	public:
 		SharedPushEnvironmentNoIsolate(C* runtime)
 			: m_handleScope(runtime->GetIsolate()),
 			  m_ctx(runtime->GetContext()),
 			  m_contextScope(m_ctx),
-			  m_fxenv(runtime)
+			  m_fxenv(runtime),
+			  m_runtime(runtime)
 		{
 		}
 
 		~SharedPushEnvironmentNoIsolate()
 		{
+			m_runtime->RunMicrotasks();
 		}
 	};
 

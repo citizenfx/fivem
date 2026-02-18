@@ -1,5 +1,5 @@
 local majorVersion = '22'
-local minorVersion = '11'
+local minorVersion = '22'
 local patch = '0'
 local baseVersion = ('%s.%s.%s'):format(majorVersion, minorVersion, patch)
 local dllName = ('libnode%s.dll'):format(majorVersion)
@@ -10,12 +10,11 @@ local linuxShortName = ('node%s'):format(majorVersion)
 
 return {
 	include = function()
-		includedirs { '../vendor/libnode/' }
-		includedirs { '../vendor/libnode/node/' }
-		includedirs { '../vendor/libnode/node/src/' }
-		includedirs { '../vendor/libnode/node/deps/uv/include/' }
-		includedirs { '../vendor/libnode/node/deps/v8/include/' }
-		includedirs { '../vendor/libnode/node/deps/openssl/' }
+		includedirs { '../vendor/libnode/include/' }
+		includedirs { '../vendor/libnode/include/node/' }
+		includedirs { '../vendor/libnode/include/node/uv/include/' }
+		includedirs { '../vendor/libnode/include/node/v8/include/' }
+		includedirs { '../vendor/libnode/include/node/openssl/' }
 
         libdirs { '../vendor/libnode/bin/' }
         if os.istarget('windows') then
@@ -33,7 +32,7 @@ return {
 			('../vendor/libnode/tag.txt'):format(baseVersion)
 		}
 
-        local baseURL = ('https://content.cfx.re/mirrors/vendor/node/v%s/libnode'):format(baseVersion)
+        local baseURL = ('https://github.com/citizenfx/libnode/releases/download/v%s'):format(baseVersion)
         local nodeBinDir = path.getabsolute('../') .. '/vendor/libnode/bin'
 
 		if os.istarget('windows') then
@@ -46,9 +45,9 @@ return {
 
                 buildcommands {
                     -- download files, redownload only if outdated
-                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s?t=%s"'):format(nodeBinDir, dllName, nodeBinDir, dllName, baseURL, dllName, os.time()),
-                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s?t=%s"'):format(nodeBinDir, pdbName, nodeBinDir, pdbName, baseURL, pdbName, os.time()),
-                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s?t=%s"'):format(nodeBinDir, libName, nodeBinDir, libName, baseURL, libName, os.time()),
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, dllName, nodeBinDir, dllName, baseURL, dllName),
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, pdbName, nodeBinDir, pdbName, baseURL, pdbName),
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, libName, nodeBinDir, libName, baseURL, libName),
 					'if %errorlevel% neq 0 (exit /b 1)',
 					('{COPY} %s/%s %%{cfg.targetdir}'):format(nodeBinDir, dllName),
                     -- copy pdb manually to the server files
@@ -64,7 +63,7 @@ return {
                 }
 
                 buildcommands {
-                    ('curl "-z%s/%s" -L "-o%s/%s" "%s/%s?t=%s"'):format(nodeBinDir, soName, nodeBinDir, soName, baseURL, soName, os.time()),
+                    ('curl "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, soName, nodeBinDir, soName, baseURL, soName),
 					('{COPY} %s/%s %%{cfg.targetdir}'):format(nodeBinDir, soName),
                 }
 		end

@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 
 #include "FilesystemPermissions.h"
 
@@ -17,7 +17,7 @@
 
 namespace fx
 {
-enum class FilesystemPermission: uint8_t
+enum class FilesystemPermission : uint8_t
 {
 	None,
 	Read,
@@ -43,23 +43,26 @@ struct ResourceTupleEqual
 	}
 };
 
-static bool g_permissionModifyAllowed{true};
+static bool g_permissionModifyAllowed{ true };
 
 static std::unordered_map<std::tuple<Source, Target>, FilesystemPermission, ResourceTupleHash, ResourceTupleEqual>
 g_permissions{};
+
+static std::unordered_set<std::string> g_workerPermissions{};
+static std::unordered_set<std::string> g_childProcessPermissions{};
 
 static std::tuple<std::string, std::filesystem::path> GetResourcePath(const std::filesystem::path& path)
 {
 	auto it = path.begin();
 	if (it == path.end())
 	{
-		return {"", ""};
+		return { "", "" };
 	}
 
 	std::string resourceName = it->string();
 	if (resourceName.empty() || resourceName[0] != '@')
 	{
-		return {"", ""};
+		return { "", "" };
 	}
 
 	// remove '@'
@@ -75,10 +78,10 @@ static std::tuple<std::string, std::filesystem::path> GetResourcePath(const std:
 		remainingPath /= *it;
 	}
 
-	return {resourceName, remainingPath};
+	return { resourceName, remainingPath };
 }
 
-bool ScriptingFilesystemAllowWrite(const std::string& path)
+bool ScriptingFilesystemAllowWrite(const std::string& path, fx::Resource* resourceOverride)
 {
 	std::filesystem::path filePath = path;
 	auto [resourceName, resourceFilePath] = GetResourcePath(path);
@@ -88,34 +91,33 @@ bool ScriptingFilesystemAllowWrite(const std::string& path)
 		return false;
 	}
 
-	static std::unordered_set<std::string> readonlyExtensions = {
-		".lua", ".dll", ".ts", ".js", ".mjs", ".cjs", ".cs"
-	};
-
-	const std::filesystem::path extension = std::filesystem::path(path).extension();
-	const bool restrictedModify = readonlyExtensions.count(extension.string());
-
-	if (!restrictedModify)
+	std::string currentResourceName{};
+	fx::Resource* currentResource = nullptr;
+	if (resourceOverride != nullptr)
 	{
-		// for now any file that isn't listed in readonlyExtensions is allowed to be modified
-		return true;
+		currentResource = resourceOverride;
+		currentResourceName = resourceOverride->GetName();
 	}
-
-	fx::OMPtr<IScriptRuntime> runtime;
-	if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+	else
 	{
-		return false;
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			return false;
+		}
+
+		currentResource = static_cast<fx::Resource*>(runtime->GetParentObject());
+		currentResourceName = (currentResource) ? currentResource->GetName() : "";
 	}
+	
 
-	fx::Resource* currentResource = static_cast<fx::Resource*>(runtime->GetParentObject());
-
-	if (currentResource->GetName() == resourceName)
+	if (currentResourceName == resourceName)
 	{
 		// return true if the file is inside the same resource
 		return true;
 	}
 
-	auto permission = g_permissions.find({currentResource->GetName(), resourceName});
+	auto permission = g_permissions.find({ currentResourceName, resourceName });
 	if (permission != g_permissions.end() && permission->second == FilesystemPermission::Write)
 	{
 		auto manager = ResourceManager::GetCurrent();
@@ -132,9 +134,9 @@ bool ScriptingFilesystemAllowWrite(const std::string& path)
 		}
 
 		fwRefContainer<ResourceMetaDataComponent> resourceMetaDataComponent = resource->GetComponent<
-			ResourceMetaDataComponent>();
+		ResourceMetaDataComponent>();
 		fwRefContainer<ResourceMetaDataComponent> currentResourceMetaDataComponent = currentResource->GetComponent<
-			ResourceMetaDataComponent>();
+		ResourceMetaDataComponent>();
 		if (!resourceMetaDataComponent.GetRef() || !currentResourceMetaDataComponent.GetRef())
 		{
 			// should always be present
@@ -143,8 +145,7 @@ bool ScriptingFilesystemAllowWrite(const std::string& path)
 
 		auto resourceAuthor = resourceMetaDataComponent->GetEntries("author");
 		auto currentResourceAuthor = currentResourceMetaDataComponent->GetEntries("author");
-		if (resourceAuthor.begin() == resourceAuthor.end() || currentResourceAuthor.begin() == currentResourceAuthor.
-			end())
+		if (resourceAuthor.begin() == resourceAuthor.end() || currentResourceAuthor.begin() == currentResourceAuthor.end())
 		{
 			// author should be set when write is required to be done
 			return false;
@@ -161,6 +162,49 @@ bool ScriptingFilesystemAllowWrite(const std::string& path)
 	}
 
 	return false;
+}
+
+bool ScriptingWorkerAllowSpawn(fx::Resource* resourceOverride)
+{
+	fx::OMPtr<IScriptRuntime> runtime;
+	fx::Resource* currentResource = nullptr;
+	if (resourceOverride != nullptr)
+	{
+		currentResource = resourceOverride;
+	}
+	else
+	{
+		if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			return false;
+		}
+
+		currentResource = static_cast<fx::Resource*>(runtime->GetParentObject());
+	}
+	
+	auto permission = g_workerPermissions.find(currentResource->GetName());
+	return permission != g_workerPermissions.end();
+}
+
+bool ScriptingChildProcessAllowSpawn(fx::Resource* resourceOverride)
+{
+	fx::OMPtr<IScriptRuntime> runtime;
+	fx::Resource* currentResource = nullptr;
+	if (resourceOverride != nullptr)
+	{
+		currentResource = resourceOverride;
+	}
+	else
+	{
+		if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			return false;
+		}
+
+		currentResource = static_cast<fx::Resource*>(runtime->GetParentObject());
+	}
+	auto permission = g_childProcessPermissions.find(currentResource->GetName());
+	return permission != g_childProcessPermissions.end();
 }
 }
 
@@ -191,7 +235,31 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			fx::g_permissions[{sourceResource, targetResource}] = filesystemPermission;
+			fx::g_permissions[{ sourceResource, targetResource }] = filesystemPermission;
+		});
+
+		static ConsoleCommand addWorkerPermCmd("add_unsafe_worker_permission", [](const std::string& sourceResource)
+		{
+			if (!fx::g_permissionModifyAllowed)
+			{
+				console::PrintWarning(_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
+				"add_unsafe_worker_permission is only executable before the server finished execution.\n");
+				return;
+			}
+
+			fx::g_workerPermissions.insert(sourceResource);
+		});
+
+		static ConsoleCommand addChildProcessPermCmd("add_unsafe_child_process_permission", [](const std::string& sourceResource)
+		{
+			if (!fx::g_permissionModifyAllowed)
+			{
+				console::PrintWarning(_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
+				"add_unsafe_child_process_permission is only executable before the server finished execution.\n");
+				return;
+			}
+
+			fx::g_childProcessPermissions.insert(sourceResource);
 		});
 
 		instance->OnInitialConfiguration.Connect([]()
