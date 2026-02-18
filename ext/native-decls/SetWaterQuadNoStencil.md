@@ -8,15 +8,16 @@ game: gta5
 ```c
 BOOL SET_WATER_QUAD_NO_STENCIL(int waterQuad, bool noStencil);
 ```
-## Examples
-
-```lua
-local success = SetWaterQuadNoStencil(0, true)
-```
 
 ## Parameters
 * **waterQuad**: The water quad index
 * **noStencil**: Unknown effect
 
 ## Return value
-Returns true on success.
+Returns `true` if the `waveQuad` was valid, `false` otherwise.
+
+## Examples
+
+```lua
+local success = SetWaterQuadNoStencil(0, true)
+```

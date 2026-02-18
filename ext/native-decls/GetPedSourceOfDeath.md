@@ -14,4 +14,4 @@ Get the entity that killed the ped. This native is used server side when using O
 * **ped**: The target ped
 
 ## Return value
-The entity id. Returns 0 if the ped has no killer.
+Returns the last entity id to damage the player, or `0` if the ped hasn't been killed since it respawned.

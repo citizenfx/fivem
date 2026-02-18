@@ -10,12 +10,25 @@ void GET_WORLD_COORD_FROM_SCREEN_COORD(float screenX, float screenY, Vector3* wo
 
 Converts a screen coordinate into its relative world coordinate.
 
+
+## Parameters
+
+- **screenX**: A screen horizontal axis coordinate (0.0 - 1.0).
+- **screenY**: A screen vertical axis coordinate (0.0 - 1.0).
+- **worldVector**: The world coord vector pointer.
+- **normalVector**: The screen normal vector pointer.
+
+## Return value
+A Vector3 representing the world coordinates relative to the specified screen coordinates and a screen plane normal Vector3 (normalised).
+
 ## Examples
 
 ```lua
 CreateThread(function()
   while true do
+    -- INPUT_CURSOR_X
     local screenX = GetDisabledControlNormal(0, 239)
+    -- INPUT_CURSOR_Y
     local screenY = GetDisabledControlNormal(0, 240)
 
     local world, normal = GetWorldCoordFromScreenCoord(screenX, screenY)
@@ -30,14 +43,3 @@ CreateThread(function()
   end
 end)
 ```
-
-## Parameters
-
-- **screenX**: A screen horizontal axis coordinate (0.0 - 1.0).
-- **screenY**: A screen vertical axis coordinate (0.0 - 1.0).
-- **worldVector**: The world coord vector pointer.
-- **normalVector**: The screen normal vector pointer.
-
-## Return value
-
-A Vector3 representing the world coordinates relative to the specified screen coordinates and a screen plane normal Vector3 (normalised).

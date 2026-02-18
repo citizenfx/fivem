@@ -8,12 +8,12 @@ apiset: client
 int GET_TIMECYCLE_MODIFIER_COUNT();
 ```
 
+## Return value
+Returns the amount of timecycle modifiers loaded.
+
 ## Examples
 
 ```lua
 local count = GetTimecycleModifierCount()
 print("we have  " .. count .. "timecycle modifiers loaded")
 ```
-
-## Return value
-Returns the amount of timecycle modifiers loaded.

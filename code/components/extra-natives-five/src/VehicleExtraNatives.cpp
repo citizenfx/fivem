@@ -1491,7 +1491,7 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_PREVIOUSLY_OWNED_BY_PLAYER", std::bind(readVehicleMemoryBit<&PreviouslyOwnedByPlayerOffset, 1>, _1, "IS_VEHICLE_PREVIOUSLY_OWNED_BY_PLAYER"));
 
-	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_NEEDS_TO_BE_HOTWIRED", std::bind(readVehicleMemoryBit<&NeedsToBeHotwiredOffset, 2>, _1, "IS_VEHICLE_NEEDS_TO_BE_HOTWIRED"));
+	fx::ScriptEngine::RegisterNativeHandler("DOES_VEHICLE_NEED_TO_BE_HOTWIRED", std::bind(readVehicleMemoryBit<&NeedsToBeHotwiredOffset, 2>, _1, "DOES_VEHICLE_NEED_TO_BE_HOTWIRED"));
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_INTERIOR_LIGHT_ON", std::bind(readVehicleMemoryBit<&IsInteriorLightOnOffset, 6>, _1, "IS_VEHICLE_INTERIOR_LIGHT_ON"));
 

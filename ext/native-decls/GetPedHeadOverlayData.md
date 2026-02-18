@@ -32,4 +32,4 @@ end
 * **overlayOpacity**: Opacity pointer
 
 ## Return value
-Returns ped's head overlay data.
+Returns `true` if the ped has head blend data, `false` otherwise.

@@ -9,8 +9,10 @@ game: gta5
 float GET_PLAYER_MAX_STAMINA(Player playerId);
 ```
 
+This is a getter for [SET_PLAYER_MAX_STAMINA](#_0x35594F67)
+
 ## Parameters
 * **playerId**: The player index.
 
 ## Return value
-The value of player max stamina.
+Returns the maximum stamina the player can have

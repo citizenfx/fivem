@@ -9,25 +9,28 @@ game: gta5
 void GET_INTERIOR_PORTAL_CORNER_POSITION(int interiorId, int portalIndex, int cornerIndex, float* posX, float* posY, float* posZ);
 ```
 
-## Examples
+## Parameters
+* **interiorId**: The target interior.
+* **portalIndex**: Interior portal index.
+* **cornerIndex**: Portal's corner index, each portal will always have `4` corner indexs.
+* **posX**: The X position of the specified corner
+* **posY**: The Y position of the specified corner
+* **posZ**: The Z position of the specified corner
 
+## Return value
+Returns the position of the specified `cornerIndex`
+
+## Examples
 ```lua
 local playerPed = PlayerPedId()
 local interiorId = GetInteriorFromEntity(playerPed)
 
 if interiorId ~= 0 then
   local portalIndex = 0
-  local cornerIndex = 0
 
-  local x, y, z = GetInteriorPortalCornerPosition(interiorId, portalIndex, cornerIndex)
-  print("position of portal " .. portalIndex .. "corner index " .. cornerIndex .. " is: " .. vec(x, y, z))
+  for i = 0, 3 do
+    local x, y, z = GetInteriorPortalCornerPosition(interiorId, portalIndex, i)
+    print("position of portal " .. portalIndex .. "corner index " .. i .. " is: " .. vec(x, y, z))
+  end
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **portalIndex**: Interior portal index.
-* **cornerIndex**: Portal's corner index.
-
-## Return value
-Portal corner position.

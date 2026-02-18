@@ -9,5 +9,7 @@ game: gta5
 float GET_FUEL_CONSUMPTION_RATE_MULTIPLIER();
 ```
 
+This is a getter for [SET_FUEL_CONSUMPTION_RATE_MULTIPLIER](#_0x845F3E5C)
+
 ## Return value
-Current fuel consumption rate multiplier. 0 means that fuel is not consumed.
+Returns the current fuel consumption rate multiplier, 0 means that no fuel will be consumed.

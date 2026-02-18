@@ -12,7 +12,7 @@ Gets a player's token. Tokens can be used to enhance banning logic, however are 
 
 ## Parameters
 * **playerSrc**: A player.
-* **index**: Index between 0 and GET_NUM_PLAYER_TOKENS.
+* **index**: Index between 0 and [GET_NUM_PLAYER_TOKENS](#_0x619E4A3D).
 
 ## Return value
 A token value.

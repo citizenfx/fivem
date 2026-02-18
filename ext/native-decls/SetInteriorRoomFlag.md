@@ -9,6 +9,11 @@ game: gta5
 void SET_INTERIOR_ROOM_FLAG(int interiorId, int roomIndex, int flag);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **roomIndex**: Interior room index.
+* **flag**: New flag value.
+
 ## Examples
 
 ```lua
@@ -23,7 +28,3 @@ if roomId ~= -1 then
 end
 ```
 
-## Parameters
-* **interiorId**: The target interior.
-* **roomIndex**: Interior room index.
-* **flag**: New flag value.

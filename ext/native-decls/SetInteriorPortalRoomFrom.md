@@ -9,6 +9,11 @@ game: gta5
 void SET_INTERIOR_PORTAL_ROOM_FROM(int interiorId, int portalIndex, int roomFrom);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **portalIndex**: Interior portal index.
+* **roomFrom**: New value.
+
 ## Examples
 
 ```lua
@@ -22,8 +27,3 @@ if interiorId ~= 0 then
   RefreshInterior(interiorId)
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **portalIndex**: Interior portal index.
-* **roomFrom**: New value.

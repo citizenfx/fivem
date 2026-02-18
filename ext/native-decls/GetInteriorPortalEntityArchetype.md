@@ -9,6 +9,14 @@ game: gta5
 int GET_INTERIOR_PORTAL_ENTITY_ARCHETYPE(int interiorId, int portalIndex, int entityIndex);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **portalIndex**: Interior portal index.
+* **entityIndex**: Portal entity index.
+
+## Return value
+Returns the hashed version of the entities archetype.
+
 ## Examples
 
 ```lua
@@ -24,11 +32,3 @@ if interiorId ~= 0 then
   end
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **portalIndex**: Interior portal index.
-* **entityIndex**: Portal entity index.
-
-## Return value
-Portal entity archetype.

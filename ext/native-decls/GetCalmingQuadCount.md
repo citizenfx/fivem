@@ -8,11 +8,12 @@ game: gta5
 ```c
 int GET_CALMING_QUAD_COUNT();
 ```
+
+## Return value
+Returns the amount of calming quads loaded.
+
 ## Examples
 
 ```lua
 local calmingQuadCount = GetCalmingQuadCount()
 ```
-
-## Return value
-Returns the amount of calming quads loaded.

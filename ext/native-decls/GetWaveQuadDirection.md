@@ -21,4 +21,4 @@ local success, directionX, directionY = GetWaveQuadDirection(1)
 * **directionY**: The wave quad Y direction
 
 ## Return value
-Returns true on success. Direction values are undefined on failure
+Returns `true` on success, `false` otherwise, `direction[X|Y]` will be `0.0` on failure

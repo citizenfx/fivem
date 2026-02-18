@@ -9,19 +9,18 @@ game: gta5
 int GET_PED_EYE_COLOR(Ped ped);
 ```
 
-A getter for [_SET_PED_EYE_COLOR](#_0x50B56988B170AFDF). Returns -1 if fails to get.
+A getter for [_SET_PED_EYE_COLOR](#_0x50B56988B170AFDF).
+
+## Parameters
+* **ped**: The target ped
+
+## Return value
+Returns ped's eye colour, or -1 if the ped doesn't have one set.
 
 ## Examples
-
 ```lua
 local pedEyeColour = GetPedEyeColor(PlayerPedId())
 if pedEyeColour == 7 then
   print("Gray eyes!")
 end
 ```
-
-## Parameters
-* **ped**: The target ped
-
-## Return value
-Returns ped's eye colour, or -1 if fails to get.

@@ -12,4 +12,4 @@ Disables the game's world horizon lods rendering (see `farlods.#dd`).
 Using the island hopper natives might also affect this state.
 
 ## Parameters
-* **state**: On/Off
+* **state**: `true` to disable world horizion, `false` to enable

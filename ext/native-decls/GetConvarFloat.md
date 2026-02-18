@@ -15,4 +15,4 @@ This will have floating point inaccuracy.
 * **defaultValue**:  The default value to set, if none are found.
 
 ## Return value
-Returns the value set in varName, or `default` if none are specified
+Returns the value set in varName, or `defaultValue` if none are specified

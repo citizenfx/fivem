@@ -11,8 +11,12 @@ float GET_WEAPON_RECOIL_SHAKE_AMPLITUDE(Hash weaponHash);
 
 A getter for the recoil shake amplitude of a weapon.
 
+```xml
+<RecoilShakeAmplitude value="0.333000" />
+```
+
 ## Parameters
 * **weaponHash**: Weapon name hash.
 
 ## Return value
-The recoil shake amplitude of a weapon.
+Returns the recoil shake amplitude set for the specified weapon.

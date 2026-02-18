@@ -13,9 +13,9 @@ int GET_ROPE_FLAGS(int rope);
 enum eRopeFlags
 {
     DrawShadowEnabled = 2,
-	Breakable = 4,
-	RopeUnwindingFront = 8,
-	RopeWinding = 32
+    Breakable = 4,
+    RopeUnwindingFront = 8,
+    RopeWinding = 32
 }
 ```
 
@@ -23,4 +23,4 @@ enum eRopeFlags
 * **rope**: The rope to get the flags for.
 
 ## Return value
-The rope's flags.
+The rope's flags as defined in `eRopeFlags`.

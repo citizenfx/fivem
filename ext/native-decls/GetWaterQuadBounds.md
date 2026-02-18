@@ -9,12 +9,6 @@ game: gta5
 BOOL GET_WATER_QUAD_BOUNDS(int waterQuad, int* minX, int* minY, int* maxX, int* maxY);
 ```
 
-## Examples
-
-```lua
-local success, minX, minY, maxX, maxY = GetWaterQuadBounds(1)
-```
-
 ## Parameters
 * **waterQuad**: The water quad index
 * **minX**: The minX coordinate
@@ -23,4 +17,9 @@ local success, minX, minY, maxX, maxY = GetWaterQuadBounds(1)
 * **maxY**: The maxY coordinate
 
 ## Return value
-Returns true on success. Bounds are undefined on failure
+Returns `true` if the operation was successful, `false` otherwise, the bounds will be set to `0` on failure.
+
+## Examples
+```lua
+local success, minX, minY, maxX, maxY = GetWaterQuadBounds(1)
+```

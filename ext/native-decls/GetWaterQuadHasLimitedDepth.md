@@ -8,14 +8,16 @@ game: gta5
 ```c
 BOOL GET_WATER_QUAD_HAS_LIMITED_DEPTH(int waterQuad, int* hasLimitedDepth);
 ```
+
+## Parameters
+* **waterQuad**: The water quad index
+* **hasLimitedDepth**: Will be set to `1` if the quad has limited depth, `0` otherwise.
+
+## Return value
+Returns `true` if the operation was successful, `false` otherwise, `hasLimitedDepth` will be set to `0` on failure.
+
 ## Examples
 
 ```lua
 local success, hasLimitedDepth = GetWaterQuadHasLimitedDepth(0)
 ```
-
-## Parameters
-* **waterQuad**: The water quad index
-
-## Return value
-Returns if the given water quad has a limited depth.

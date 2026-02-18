@@ -14,4 +14,4 @@ Gets the script task command currently assigned to the ped.
 * **ped**: The target ped.
 
 ## Return value
-The script task command currently assigned to the ped. A value of 0x811E343C denotes no script task is assigned.
+The script task command currently assigned to the ped. A value of `0x811E343C` denotes no script task is assigned.

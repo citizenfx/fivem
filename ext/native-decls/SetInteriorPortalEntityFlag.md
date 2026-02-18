@@ -9,6 +9,12 @@ game: gta5
 void SET_INTERIOR_PORTAL_ENTITY_FLAG(int interiorId, int portalIndex, int entityIndex, int flag);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **portalIndex**: Interior portal index.
+* **entityIndex**: Portal entity index.
+* **flag**: New flag value.
+
 ## Examples
 
 ```lua
@@ -24,9 +30,3 @@ if interiorId ~= 0 then
   RefreshInterior(interiorId)
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **portalIndex**: Interior portal index.
-* **entityIndex**: Portal entity index.
-* **flag**: New flag value.

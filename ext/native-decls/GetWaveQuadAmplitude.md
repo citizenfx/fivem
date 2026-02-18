@@ -17,6 +17,7 @@ local success, amplitude = GetWaveQuadAmplitude(1)
 
 ## Parameters
 * **waveQuad**: The wave quad index
+* **waveQuadAmplitude**: The current amplitude of the waves
 
 ## Return value
-Returns true on success. Amplitude is undefined on failure
+Returns `true` on success, `false` otherwise, `waveQuadAmplitude` will be `-1.0` on failure

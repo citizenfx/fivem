@@ -9,8 +9,19 @@ game: gta5
 void GET_INTERIOR_PORTAL_ENTITY_ROTATION(int interiorId, int portalIndex, int entityIndex, float* rotX, float* rotY, float* rotZ, float* rotW);
 ```
 
-## Examples
+## Parameters
+* **interiorId**: The target interior.
+* **portalIndex**: Interior portal index.
+* **entityIndex**: Portal entity index.
+* **rotX**: The interior entitys X rotation
+* **rotY**: The interior entitys Y rotation
+* **rotZ**: The interior entitys Z rotation
+* **rotW**: The interior entitys W rotation
 
+## Return value
+Portal entity rotation.
+
+## Examples
 ```lua
 local playerPed = PlayerPedId()
 local interiorId = GetInteriorFromEntity(playerPed)
@@ -24,11 +35,3 @@ if interiorId ~= 0 then
   end
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **portalIndex**: Interior portal index.
-* **entityIndex**: Portal entity index.
-
-## Return value
-Portal entity rotation.

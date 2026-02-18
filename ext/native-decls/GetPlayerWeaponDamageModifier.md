@@ -15,4 +15,4 @@ A getter for [SET_PLAYER_WEAPON_DAMAGE_MODIFIER](#_0xCE07B9F7817AADA3).
 * **playerId**: The player index.
 
 ## Return value
-The value of player weapon damage modifier.
+Returns the players weapon damage modifier/multiplier

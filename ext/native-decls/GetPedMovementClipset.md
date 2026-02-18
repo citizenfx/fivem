@@ -13,4 +13,4 @@ int GET_PED_MOVEMENT_CLIPSET(Ped ped);
 * **ped**: The target ped.
 
 ## Return value
-The current movement clipset hash.
+The peds current movement clipset hash.

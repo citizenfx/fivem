@@ -9,8 +9,16 @@ game: gta5
 void GET_INTERIOR_POSITION(int interiorId, float* posX, float* posY, float* posZ);
 ```
 
-## Examples
+## Parameters
+* **interiorId**: The target interior.
+* **posX**: The X position of the current interior
+* **posY**: The Y position of the current interior
+* **posZ**: The Z position of the current interior
 
+## Return value
+Returns the position of the specified interior.
+
+## Examples
 ```lua
 local playerPed = PlayerPedId()
 local interiorId = GetInteriorFromEntity(playerPed)
@@ -20,9 +28,3 @@ if interiorId ~= 0 then
   print("current interior " .. interiorId .. " position is: " .. vec(x, y, z))
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-
-## Return value
-Interior position.

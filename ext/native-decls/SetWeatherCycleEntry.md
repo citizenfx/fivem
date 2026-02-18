@@ -8,8 +8,6 @@ apiset: client
 BOOL SET_WEATHER_CYCLE_ENTRY(int index, char* typeName, int timeMult);
 ```
 
-## Examples
-
 Sets the name and duration of a weather cycle. Changes are not applied until ['APPLY_WEATHER_CYCLES'](#_0x3422291C) is called.
 
 Valid weather types are:
@@ -38,3 +36,6 @@ Valid weather types are:
 
 ## Return value
 Returns true if all parameters were valid, otherwise false.
+
+## Examples
+Refer to [APPLY_WEATHER_CYCLES](#_0x3422291C) for usage of this native

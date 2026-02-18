@@ -9,4 +9,3 @@ void CANCEL_EVENT();
 ```
 
 Cancels the currently executing event.
-

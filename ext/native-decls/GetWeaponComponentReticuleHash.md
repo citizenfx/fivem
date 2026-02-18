@@ -11,8 +11,13 @@ int GET_WEAPON_COMPONENT_RETICULE_HASH(Hash componentHash);
 
 A getter for `ReticuleHash` in a weapon scope component.
 
+
+```xml
+<ReticuleHash>SNIPER_LARGE</ReticuleHash>
+```
+
 ## Parameters
 * **componentHash**: Weapon component name hash.
 
 ## Return value
-The hash of the reticule camera.
+Returns the hash of the reticule that will be used

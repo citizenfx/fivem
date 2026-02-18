@@ -8,8 +8,15 @@ apiset: client
 BOOL GET_TIMECYCLE_MODIFIER_VAR(char* modifierName, char* varName, float* value1, float* value2);
 ```
 
-## Examples
 
+## Parameters
+* **modifierName**: The name of timecycle modifier.
+* **varName**: The name of timecycle variable.
+
+## Return value
+Whether or not variable by name was found on the specified timecycle modifier.
+
+## Examples
 ```lua
 local modifierName = "superDARK"
 local varName = "postfx_noise"
@@ -26,10 +33,3 @@ else
     print(string.format("[%s] created var %s", modifierName, varName))
 end
 ```
-
-## Parameters
-* **modifierName**: The name of timecycle modifier.
-* **varName**: The name of timecycle variable.
-
-## Return value
-Whether or not variable by name was found on the specified timecycle modifier.

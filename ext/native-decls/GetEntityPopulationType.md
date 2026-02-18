@@ -10,14 +10,7 @@ int GET_ENTITY_POPULATION_TYPE(Entity entity);
 
 This native gets an entity's population type.
 
-## Parameters
-* **entity**: the entity to obtain the population type from
-
-## Return value
-
-Returns the population type ID, defined by the below enumeration:
-
-```cpp
+```c
 enum ePopulationType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -33,3 +26,9 @@ enum ePopulationType
 	POPTYPE_TOOL
 };
 ```
+
+## Parameters
+* **entity**: the entity to obtain the population type from
+
+## Return value
+Returns the entities population type as defined by `ePopulationType` above.
