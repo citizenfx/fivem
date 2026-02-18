@@ -271,7 +271,7 @@ static InitFunction initFunction([]()
 #else
 namespace fx
 {
-bool ScriptingFilesystemAllowWrite(const std::string& path)
+bool ScriptingFilesystemAllowWrite(const std::string& path, fx::Resource* resourceOverride)
 {
 	return true;
 }
