@@ -42,7 +42,7 @@ const UiMessageModal = observer(function UiMessageModal(props: { message: IUiMes
   const renderedMessage = useRenderedFormattedMessage(message);
 
   return (
-    <Modal>
+    <Modal onClose={UiMessageService.closeMessage}>
       <Modal.Header>{title}</Modal.Header>
 
       <Pad size="large">
