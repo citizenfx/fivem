@@ -138,7 +138,7 @@ if (!$IsServer) {
     Push-Location $WorkDir\ext\system-resources
 
     Push-Location $WorkDir
-    $SRCommit = (git rev-list -1 HEAD ext/txAdmin ext/system-resources/)
+    $SRCommit = (git rev-list -1 HEAD ext/system-resources/)
     Pop-Location
 
     if (!(Test-Path .commit) -or $SRCommit -ne (Get-Content .commit)) {
