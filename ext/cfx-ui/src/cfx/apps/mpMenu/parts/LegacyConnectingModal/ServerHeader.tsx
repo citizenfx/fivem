@@ -13,9 +13,10 @@ import { IServerView } from 'cfx/common/services/servers/types';
 export interface ServerHeaderProps {
   server: IServerView;
 }
-
 export const ServerHeader = observer(function ServerHeader(props: ServerHeaderProps) {
-  const { server } = props;
+  const {
+    server,
+  } = props;
 
   return (
     <Flex vertical>
@@ -28,10 +29,7 @@ export const ServerHeader = observer(function ServerHeader(props: ServerHeaderPr
               <ServerIcon type="details" size="small" server={server} />
 
               <Flex vertical>
-                <ServerTitle
-                  size="xxlarge"
-                  title={server.projectName || server.hostname}
-                />
+                <ServerTitle size="xxlarge" title={server.projectName || server.hostname} />
               </Flex>
             </Flex>
           </Flex>
@@ -46,12 +44,10 @@ function getStyle(server: IServerView): React.CSSProperties {
   const clr2 = ui.color('main', 'pure', 0.9);
   const clr3 = ui.color('main');
 
-  const images = [
-    `linear-gradient(${clr}, ${clr2} 75%, ${clr3})`,
-    `url(${server.bannerConnecting})`,
-  ];
+  const images = [`linear-gradient(${clr}, ${clr2} 75%, ${clr3})`, `url(${server.bannerConnecting})`];
 
   return {
+    // margin: '2px 2px 0 2px',
     backgroundImage: images.join(','),
     backgroundSize: 'cover',
     backgroundPosition: 'center center',
