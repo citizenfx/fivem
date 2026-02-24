@@ -33,7 +33,7 @@ import { useAccountService } from 'cfx/common/services/account/account.service';
 import { ElementPlacements } from 'cfx/common/services/analytics/types';
 import { useIntlService } from 'cfx/common/services/intl/intl.service';
 import { $L, useL10n } from 'cfx/common/services/intl/l10n';
-import { getServerLegalRatingImageURL, isServerOffline } from 'cfx/common/services/servers/helpers';
+import { isServerOffline } from 'cfx/common/services/servers/helpers';
 import { IServersService } from 'cfx/common/services/servers/servers.service';
 import { IServerView, ServerViewDetailsLevel } from 'cfx/common/services/servers/types';
 import { useServerCountryTitle, useTimeoutFlag } from 'cfx/utils/hooks';
@@ -88,8 +88,6 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
     : {};
 
   const countryTitle = useServerCountryTitle(server.locale, server.localeCountry);
-
-  const ratingImageURL = getServerLegalRatingImageURL(server);
 
   return (
     <Page showLoader={isCompleteServerLoading}>
@@ -173,9 +171,6 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
               >
                 <Pad top right bottom size="xlarge">
                   <Flex vertical gap="large">
-                    {ratingImageURL && (
-                      <img src={ratingImageURL} alt="Server Legal Rating" />
-                    )}
 
                     <Warning server={server} />
 
