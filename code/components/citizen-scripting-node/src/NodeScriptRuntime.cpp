@@ -35,6 +35,8 @@
 #include "path.h"
 #include <ServerInstanceBaseRef.h>
 
+#include <boost/algorithm/string.hpp>
+
 using namespace fx::v8shared;
 
 namespace fx::nodejs
@@ -436,11 +438,30 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 		std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));
 #else
 		std::string selfPath = MakeRelativeCitPath(_P("FXServer"));
+
+		std::string rootPath = selfPath;
+		boost::algorithm::replace_all(rootPath, "/opt/cfx-server/FXServer", "");
+
+		auto libPath = fmt::sprintf("%s/usr/lib/v8/:%s/lib/:%s/usr/lib/",
+		rootPath,
+		rootPath,
+		rootPath);
 #endif
+
+		const std::vector<std::string> execArgv = {
+#ifndef _WIN32
+			"--library-path",
+			libPath.c_str(),
+			"--",
+			selfPath.c_str(),
+#endif
+			"--start-node",
+			"--fork-node22"
+		};
 
 		// pass our own executable name and start-node parameters for process forking compatibility
 		// todo: add optional permissions for node
-		m_nodeEnvironment = node::CreateEnvironment(m_isolateData, context, { selfPath }, { "--start-node", "--fork-node22" }, node::EnvironmentFlags::kNoCreateInspector);
+		m_nodeEnvironment = node::CreateEnvironment(m_isolateData, context, { selfPath }, execArgv, node::EnvironmentFlags::kNoCreateInspector);
 		node::SetPermissionHandler(m_nodeEnvironment, std::bind(&NodeScriptRuntime::NodePermissionCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 		node::LoadEnvironment(m_nodeEnvironment, g_envCode);
 	}
