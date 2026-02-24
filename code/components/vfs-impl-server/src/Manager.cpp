@@ -20,6 +20,17 @@ fwRefContainer<Device> ManagerServer::FindDevice(const std::string& absolutePath
 	std::string absoluteGenericString = std::filesystem::absolute(absolute).generic_string();
 	std::lock_guard<std::recursive_mutex> lock(m_mountMutex);
 
+	// ensure directories have a / suffix
+	// e.g. /usr/local should be matched for /usr/local/
+	if (!absoluteGenericString.empty() && absoluteGenericString.back() != '/')
+	{
+		std::error_code ec;
+		if (std::filesystem::is_directory(absoluteGenericString, ec) && !ec)
+		{
+			absoluteGenericString += '/';
+		}
+	}
+
 	size_t longestPrefixLength = 0;
 	fwRefContainer<Device> foundDevice {nullptr};
 	for (const auto& mount : m_mounts)
