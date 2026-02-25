@@ -1655,7 +1655,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							{
 								constexpr const int kSlotIdStart = 
 #ifdef STATE_RDR3
-									30
+									127
 #else
 									127
 #endif
@@ -7878,7 +7878,7 @@ static InitFunction initFunction([]()
 
 		constexpr bool canLengthHack =
 #ifdef STATE_RDR3
-		false
+		true
 #else
 		true
 #endif
