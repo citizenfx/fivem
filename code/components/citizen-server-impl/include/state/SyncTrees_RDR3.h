@@ -649,12 +649,255 @@ struct CPedComponentReservationDataNode { };
 struct CPedScriptGameStateDataNode { };
 struct CPedAttachDataNode { };
 
-struct CPedHealthDataNode
+template<typename Serializer>
+void CSyncedPedAttribute::Serialize(Serializer& s)
+{
+	bool hasCoreEnergy = m_coreEnergy != 0;
+
+	bool hasByte38 = byte38 != 0;
+
+	s.Serialize(hasCoreEnergy);
+	s.Serialize(byte39);
+	s.Serialize(m_byte3B);
+	s.Serialize(m_hasEnergyReserves);
+	s.Serialize(m_hasOverPowerEnergy);
+	s.Serialize(m_hasGoldCoreEnergy);
+	s.Serialize(hasByte38);
+
+	s.Serialize(12, m_defaultEnergy);
+
+	if (hasCoreEnergy)
+	{
+		s.Serialize(10, m_coreEnergy);
+	}
+	else
+	{
+		m_coreEnergy = 0;
+	}
+
+	if (hasByte38)
+	{
+		s.SerializeCapped(4, 8, byte38);
+
+		if (byte38)
+		{
+			for (int i = 0; i < byte38; ++i)
+			{
+				s.Serialize(10, dword0[i]);
+			}
+		}
+	}
+	else
+	{
+		byte38 = 0;
+	}
+
+	if (m_hasEnergyReserves)
+	{
+		s.Serialize(11, m_energyReservesEnergy);
+		s.Serialize(byte3E);
+		s.Serialize(byte3F);
+	}
+	else
+	{
+		byte3E = 0;
+		m_energyReservesEnergy = 0;
+	}
+
+	if (m_byte3B)
+	{
+		s.Serialize(10, dword28);
+	}
+	else
+	{
+		dword28 = 0;
+	}
+
+	if (m_hasOverPowerEnergy)
+	{
+		s.Serialize(10, m_overPowerEnergy);
+	}
+	else
+	{
+		m_overPowerEnergy = 0;
+	}
+
+	if (m_hasGoldCoreEnergy)
+	{
+		s.Serialize(10, m_goldCoreEnergy);
+	}
+	else
+	{
+		m_goldCoreEnergy = 0;
+	}
+}
+
+template<typename Serializer>
+void CSyncedPedAttributeExtra::Serialize(Serializer& s)
+{
+	CSyncedPedAttribute::Serialize(s);
+
+	auto goldCoreEnergyDurationScaled = 0;
+
+	if (m_byte3B)
+	{
+		s.Serialize(m_hasGoldCoreEnergyDuration);
+
+		if (m_hasGoldCoreEnergyDuration)
+		{
+			goldCoreEnergyDurationScaled = m_goldCoreEnergyDuration / 1000;
+
+			s.Serialize(12, goldCoreEnergyDurationScaled);
+		}
+	}
+	else
+	{
+		m_hasGoldCoreEnergyDuration = 0;
+	}
+
+	m_goldCoreEnergyDuration = goldCoreEnergyDurationScaled * 1000;
+
+	auto overPowerEnergyDurationScaled = 0;
+
+	if (m_hasOverPowerEnergy)
+	{
+		s.Serialize(m_hasOverPowerEnergyDuration);
+
+		if (m_hasOverPowerEnergyDuration)
+		{
+			overPowerEnergyDurationScaled = m_overPowerEnergyDuration / 1000;
+
+			s.Serialize(12, overPowerEnergyDurationScaled);
+		}
+	}
+	else
+	{
+		m_hasOverPowerEnergyDuration = 0;
+	}
+
+	m_overPowerEnergyDuration = overPowerEnergyDurationScaled * 1000;
+
+	if (!m_hasGoldCoreEnergy)
+	{
+		byte4E = 0;
+		dword48 = 0;
+
+		return;
+	}
+
+	s.Serialize(byte4E);
+
+	if (!byte4E)
+	{
+		dword48 = 0;
+	}
+
+	auto dword48_scaled = dword48 / 1000;
+
+	s.Serialize(12, dword48_scaled);
+
+	dword48 = dword48_scaled * 1000;
+}
+
+struct CPedHealthDataNode : GenericSerializeDataNode<CPedHealthDataNode>
 {
 	CPedHealthNodeData data;
 
-	bool Parse(SyncParseState& state)
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
 	{
+		s.Serialize(data.m_hasMaxHealth);
+		s.Serialize(data.byte72);
+		s.Serialize(data.m_hasEnergyRecharges);
+		s.Serialize(data.byte75);
+		s.Serialize(data.byte73);
+
+		if (!data.m_hasMaxHealth)
+		{
+			auto isDead = data.m_health <= 0;
+
+			s.Serialize(isDead);
+
+			if (!isDead)
+			{
+				s.Serialize(data.byte71);
+
+				if (!data.byte71 && data.byte75)
+				{
+					data.m_healthAttribute.Serialize(s);
+
+					/*
+					* This computation is part of the client's serialise code
+					* unlike the one done for maxHealth computation.
+					*/
+					data.m_health  = 0;
+					data.m_health += data.m_healthAttribute.m_defaultEnergy;
+					data.m_health += data.m_healthAttribute.m_coreEnergy;
+					data.m_health += data.m_healthAttribute.dword28;
+					data.m_health += data.m_healthAttribute.m_energyReservesEnergy;
+					data.m_health += data.m_healthAttribute.m_overPowerEnergy;
+					data.m_health += data.m_healthAttribute.m_goldCoreEnergy;
+
+					for (int i = 7; i >= 0; i--)
+					{
+						data.m_health += data.m_healthAttribute.dword0[i];
+					}
+				}
+				else
+				{
+					data.m_healthAttribute.Reset();
+				}
+			}
+			else
+			{
+				data.m_healthAttribute.Reset();
+
+				data.m_health = 0;
+				data.byte71 = 1;
+			}
+		}
+		else
+		{
+			if (data.byte75)
+			{
+				data.m_healthAttribute.Serialize(s);
+			}
+			else
+			{
+				data.m_healthAttribute.Reset();
+			}
+
+			data.byte71 = 0;
+		}
+
+		if (!data.byte72)
+		{
+			s.Serialize(12, data.gap54);
+		}
+
+		if (data.m_hasEnergyRecharges)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				auto hasRechargeAmount = data.m_energyRecharge[i] != 0;
+
+				s.Serialize(hasRechargeAmount);
+
+				if (hasRechargeAmount)
+				{
+					s.Serialize(11, data.m_energyRecharge[i]);
+				}
+				else
+				{
+					data.m_energyRecharge[i] = 0;
+				}
+			}
+		}
+		else
+		{
+			memset(data.m_energyRecharge, 0, sizeof(data.m_energyRecharge));
+		}
+
 		return true;
 	}
 };
@@ -1170,9 +1413,58 @@ struct DataNode_1435992d0 { };
 struct DataNode_14359e920 { };
 struct DataNode_14359e790 { };
 struct DataNode_143599dc0 { };
-struct DataNode_1435995f0 { };
+struct DataNode_1435995f0 : GenericSerializeDataNode<DataNode_1435995f0>
+{
+	DataNode_1435995f0NodeData data;
+
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
+	{
+		bool hasFloat40 = (data.m_float40 - 1.0) > 0.001;
+
+		s.Serialize(data.m_byte44);
+		s.Serialize(hasFloat40);
+
+		if (data.m_byte44)
+		{
+			data.m_maxHealthAttribute.Serialize(s);
+
+			/*
+			* Compute maxHealth ourselves so it's easier to access it
+			*/
+			data.m_maxHealth  = 0;
+			data.m_maxHealth += data.m_maxHealthAttribute.m_defaultEnergy;
+			data.m_maxHealth += data.m_maxHealthAttribute.m_coreEnergy;
+			data.m_maxHealth += data.m_maxHealthAttribute.dword28;
+			data.m_maxHealth += data.m_maxHealthAttribute.m_energyReservesEnergy;
+			data.m_maxHealth += data.m_maxHealthAttribute.m_overPowerEnergy;
+			data.m_maxHealth += data.m_maxHealthAttribute.m_goldCoreEnergy;
+
+			for (int i = 7; i >= 0; i--)
+			{
+				data.m_maxHealth += data.m_maxHealthAttribute.dword0[i];
+			}
+		}
+		else
+		{
+			data.m_maxHealthAttribute.Reset();
+
+			data.m_maxHealth = 0;
+		}
+
+		if (hasFloat40)
+		{
+			s.SerializeSigned(9, 5.0f, data.m_float40);
+		}
+		else
+		{
+			data.m_float40 = 1.0f;
+		}
+
+		return true;
+	}
+};
 struct DataNode_143599780 { };
-struct DataNode_143599910 { };
 struct DataNode_143599aa0 { };
 struct DataNode_143599c30 { };
 struct DataNode_143599f50 { };
@@ -1398,9 +1690,18 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 		return nullptr;
 	}
 
+	virtual DataNode_1435995f0NodeData* Get1435995f0() override
+	{
+		auto [hasNode, node] = this->template GetData<DataNode_1435995f0>();
+
+		return (hasNode) ? &node->data : nullptr;
+	}
+
 	virtual CPedHealthNodeData* GetPedHealth() override
 	{
-		return nullptr;
+		auto [hasNode, node] = this->template GetData<CPedHealthDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CVehicleHealthNodeData* GetVehicleHealth() override
@@ -1663,7 +1964,7 @@ using CAnimalSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0>,
 				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910>
+				NodeWrapper<NodeIds<127, 127, 0>, CPedHealthDataNode>
 			>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
@@ -2056,7 +2357,7 @@ using CPedSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0>,
 				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910>
+				NodeWrapper<NodeIds<127, 127, 0>, CPedHealthDataNode>
 			>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
@@ -2314,7 +2615,7 @@ using CPlayerSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0>,
 				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910>
+				NodeWrapper<NodeIds<127, 127, 0>, CPedHealthDataNode>
 			>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
@@ -2674,7 +2975,7 @@ using CHorseSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0>,
 				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910>
+				NodeWrapper<NodeIds<127, 127, 0>, CPedHealthDataNode>
 			>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
