@@ -29,13 +29,13 @@ apk add --no-cache curl ca-certificates
 
 # add fivem repositories
 curl --http1.1 -sLo /etc/apk/keys/peachypies@protonmail.ch-5adb3818.rsa.pub https://runtime.fivem.net/client/alpine/peachypies@protonmail.ch-5adb3818.rsa.pub
-curl -sLo /etc/apk/keys/hydrogen@fivem.net-614370b9.rsa.pub https://mirrors.fivem.net/build/linux/hydrogen@fivem.net-614370b9.rsa.pub
+curl -sLo /etc/apk/keys/hydrogen@fivem.net-614370b9.rsa.pub https://content.cfx.re/mirrors/build/linux/hydrogen@fivem.net-614370b9.rsa.pub
 
 echo https://runtime.fivem.net/client/alpine/builds >>/etc/apk/repositories
 echo https://runtime.fivem.net/client/alpine/main >>/etc/apk/repositories
 echo https://runtime.fivem.net/client/alpine/testing >>/etc/apk/repositories
 echo https://runtime.fivem.net/client/alpine/community >>/etc/apk/repositories
-echo https://mirrors.fivem.net/build/linux/packages/cfx >>/etc/apk/repositories
+echo https://content.cfx.re/mirrors/build/linux/packages/cfx >>/etc/apk/repositories
 apk --no-cache update
 
 # uninstall old curl
