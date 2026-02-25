@@ -1,5 +1,6 @@
 // CFX JS runtime
 /// <reference path="./natives_server.d.ts" />
+/// <reference path="./index.d.ts" />
 
 const EXT_FUNCREF = 10;
 const EXT_LOCALFUNCREF = 11;
@@ -232,22 +233,33 @@ const EXT_LOCALFUNCREF = 11;
 	const rawEmitter = new EventEmitter2();
 	const netSafeEventNames = new Set();
 
-	// Raw events
-	global.addRawEventListener = rawEmitter.on.bind(rawEmitter);
-	global.addRawEventHandler = global.addRawEventListener;
+	// reuse the same logic for raw and regular emitters to keep behavior consistent
+	const registerForHandler = (internalEmitter, name, callback, netSafe) => {
+		RegisterResourceAsEventHandler(name);
 
-	// Raw events configuration
-	global.setMaxRawEventListeners = rawEmitter.setMaxListeners.bind(rawEmitter);
-
-	// Client events
-	global.addEventListener = (name, callback, netSafe = false) => {
 		if (netSafe) {
 			netSafeEventNames.add(name);
 		}
 
-		RegisterResourceAsEventHandler(name);
+		internalEmitter.on(name, callback);
+	}
 
-		emitter.on(name, callback);
+	global.addRawEventListener = (name, callback, netSafe = false) => {
+		registerForHandler(rawEmitter, name, callback, netSafe);
+	}
+
+	// Raw events
+	global.addRawEventHandler = global.addRawEventListener;
+	global.onRawNet = (eventName, callback) => global.addRawEventListener(eventName, callback, true);
+
+	// Raw events configuration
+	global.setMaxRawEventListeners = rawEmitter.setMaxListeners.bind(rawEmitter);
+
+	global.removeRawEventListener = rawEmitter.off.bind(emitter);
+
+	// Client events
+	global.addEventListener = (name, callback, netSafe = false) => {
+		registerForHandler(emitter, name, callback, netSafe);
 	};
 	global.on = global.addEventListener;
 
@@ -275,6 +287,15 @@ const EXT_LOCALFUNCREF = 11;
 		});
 	};
 
+	global.emitRaw = (eventName, data) => {
+		if (!(data instanceof Uint8Array)) {
+			throw new TypeError(`Error emitting event ${name} to ${source}, "data" was not a Uint8Array.`);
+		}
+
+		// @ts-expect-error: `Uint8Array` is treated like a string internally so this is fine.
+		TriggerEventInternal(eventName, data, data.byteLength);
+	}
+
 	global.TriggerEvent = global.emit;
 
 	if (isDuplicityVersion) {
@@ -283,6 +304,15 @@ const EXT_LOCALFUNCREF = 11;
 
 			TriggerClientEventInternal(name, source, dataSerialized, dataSerialized.length);
 		};
+
+		global.emitRawNet = (name, source, data) => {
+			if (!(data instanceof Uint8Array)) {
+				throw new TypeError(`Error emitting event ${name} to ${source}, "data" was not a Uint8Array.`);
+			}
+
+			// @ts-expect-error: `Uint8Array` is treated like a string internally so this is fine.
+			TriggerClientEventInternal(name, source, data, data.byteLength);
+		}
 
 		global.TriggerClientEvent = global.emitNet;
 
@@ -331,6 +361,15 @@ const EXT_LOCALFUNCREF = 11;
 
 			TriggerServerEventInternal(name, dataSerialized, dataSerialized.length);
 		};
+
+		global.emitRawNet = (name, data) => {
+			if (!(data instanceof Uint8Array)) {
+				throw new TypeError(`Error emitting event ${name} to ${source}, "data" was not a Uint8Array.`);
+			}
+
+			// @ts-expect-error: `Uint8Array` is treated like a string internally so this is fine.
+			TriggerServerEventInternal(name, data, data.byteLength);
+		}
 
 		global.TriggerServerEvent = global.emitNet;
 
@@ -486,8 +525,11 @@ const EXT_LOCALFUNCREF = 11;
 			global.source = source;
 
 			if (source.startsWith('net')) {
-				if (emitter.listeners(name).length > 0 && !netSafeEventNames.has(name)) {
-					console.error(`Event ${name} was not safe for net`);
+				if (!netSafeEventNames.has(name)) {
+					// we should only log if we have a listener for this event
+					if (emitter.listeners(name).length !== 0 || rawEmitter.listeners(name).length !== 0) {
+						console.error(`Event ${name} was not safe for net`);
+					}
 
 					global.source = null;
 					return;
@@ -506,7 +548,7 @@ const EXT_LOCALFUNCREF = 11;
 			}
 
 			const listeners = emitter.listeners(name);
-			if (listeners.length == 0) {
+			if (listeners.length === 0) {
 				global.source = null;
 				return;
 			}
