@@ -123,7 +123,7 @@ static HookFunction initFunction([] ()
 		}
 
 		// are we in any situation where we need a cursor?
-		bool needsNuiCursor = (nui::HasCursor()) && !g_shouldHideCursor;
+		bool needsNuiCursor = (nui::HasCursor()) && !(nui::IsCursorHidden()) && !g_shouldHideCursor;
 		g_nuiGi->SetHostCursorEnabled(needsNuiCursor);
 
 		// we set the host cursor above unconditionally- this is for cases where the host cursor isn't sufficient
