@@ -64,9 +64,11 @@ workspace "CitizenMP"
 	symbols "Full"
 	characterset "Unicode"
 
-	flags { "No64BitChecks" }
+	enable64bitchecks "Off"
 
-	flags { "NoIncrementalLink", "NoMinimalRebuild" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
+	-- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
+	incrementallink "Off"
+	minimalrebuild "Off"
 
 	editandcontinue 'Off'
 	justmycode 'Off'
@@ -729,7 +731,8 @@ if _OPTIONS['game'] ~= 'server' then
 
 		defines { "USING_CEF_SHARED", "NOMINMAX", "WIN32", "WRAPPING_CEF_SHARED", "DCHECK_ALWAYS_ON" }
 
-		flags { "NoIncrementalLink", "NoMinimalRebuild" }
+		incrementallink "Off"
+		minimalrebuild "Off"
 
 		local cefRoot = "../vendor/cef/"
 
