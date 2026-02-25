@@ -554,6 +554,7 @@ GraphicsAPI GetCurrentGraphicsAPI()
 
 void** g_d3d12Device;
 VkDevice* g_vkHandle;
+VkPhysicalDevice** g_vkPhysicalDevice;
 
 void* GetGraphicsDriverHandle()
 {
@@ -568,6 +569,16 @@ void* GetGraphicsDriverHandle()
 	}
 }
 
+void* GetVulkanPhysicalDevice()
+{
+	if (GetCurrentGraphicsAPI() == GraphicsAPI::Vulkan)
+	{
+		return *g_vkPhysicalDevice;
+	}
+
+	return nullptr;
+}
+
 namespace rage::sga
 {
 	void Driver_Create_ShaderResourceView(rage::sga::Texture* texture, const rage::sga::TextureViewDesc& desc)
@@ -578,6 +589,11 @@ namespace rage::sga
 	void Driver_Destroy_Texture(rage::sga::Texture* texture)
 	{
 		(*(void(__fastcall**)(__int64, void*))(**(uint64_t**)sgaDriver + 440i64))(*(uint64_t*)sgaDriver, texture);
+	}
+
+	BackBufferData* Driver_GetBackBuffer()
+	{
+		return (*(BackBufferData*(__fastcall**)(__int64))(**(uint64_t**)sgaDriver + g_swapchainBackbufferOffset))(*(uint64_t*)sgaDriver);
 	}
 
 	GraphicsContext* GraphicsContext::GetCurrent()
@@ -722,6 +738,7 @@ static HookFunction hookFunction([]()
 
 	g_d3d12Device = hook::get_address<decltype(g_d3d12Device)>(hook::get_pattern("48 8B 01 FF 50 78 48 8B 0B 48 8D", -7));
 	g_vkHandle = hook::get_address<decltype(g_vkHandle)>(hook::get_pattern("8D 50 41 8B CA 44 8B C2 F3 48 AB 48 8B 0D", 14));
+	g_vkPhysicalDevice = hook::get_address<decltype(g_vkPhysicalDevice)>(hook::get_pattern("48 8B 0D ? ? ? ? 45 33 C9 83 65", 3));
 
 	{
 		auto location = hook::get_pattern<char>("83 25 ? ? ? ? 00 83 25 ? ? ? ? 00 D1 F8 89 05", -0x26);

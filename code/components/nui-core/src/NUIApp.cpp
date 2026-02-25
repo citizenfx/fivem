@@ -14,6 +14,7 @@
 #include <PureModeState.h>
 
 #include <include/cef_parser.h>
+#include <EpoxyScript.h>
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.System.UserProfile.h>
@@ -128,6 +129,10 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 	window->SetValue("nuiTargetGameBuild", CefV8Value::CreateInt(xbr::GetRequestedGameBuild()), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("nuiTargetGamePureLevel", CefV8Value::CreateInt(fx::client::GetPureLevel()), V8_PROPERTY_ATTRIBUTE_READONLY);
 
+	if (auto parent = frame->GetParent(); parent && parent->IsMain())
+	{
+		frame->ExecuteJavaScript(g_epoxyScript, "nui://epoxy", 0);
+	}
 
 	// FxDK API
 	{
@@ -224,7 +229,7 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 
 	// register the CitizenFX game view plugin
 #if !GTA_NY
-	command_line->AppendSwitchWithValue("register-pepper-plugins", fmt::sprintf("%s;application/x-cfx-game-view", ToNarrow(MakeRelativeCitPath(L"bin\\d3d_rendering.dll"))));
+	//command_line->AppendSwitchWithValue("register-pepper-plugins", fmt::sprintf("%s;application/x-cfx-game-view", ToNarrow(MakeRelativeCitPath(L"bin\\d3d_rendering.dll"))));
 #endif
 }
 

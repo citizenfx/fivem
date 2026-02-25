@@ -810,188 +810,186 @@ bool WrapVideoModeChange(VideoModeInfo* info)
 }
 
 #pragma region shaders
-const BYTE quadPS[] =
-{
-	 68,  88,  66,  67, 189,  87,
-	  5, 130, 168, 148, 229, 231,
-	171,  37, 224,   4, 165,  41,
-	 28,  80,   1,   0,   0,   0,
-	 84,   1,   0,   0,   3,   0,
-	  0,   0,  44,   0,   0,   0,
-	132,   0,   0,   0, 184,   0,
-	  0,   0,  73,  83,  71,  78,
-	 80,   0,   0,   0,   2,   0,
-	  0,   0,   8,   0,   0,   0,
-	 56,   0,   0,   0,   0,   0,
-	  0,   0,   1,   0,   0,   0,
-	  3,   0,   0,   0,   0,   0,
-	  0,   0,  15,   0,   0,   0,
-	 68,   0,   0,   0,   0,   0,
-	  0,   0,   0,   0,   0,   0,
-	  3,   0,   0,   0,   1,   0,
-	  0,   0,   3,   3,   0,   0,
-	 83,  86,  95,  80,  79,  83,
-	 73,  84,  73,  79,  78,   0,
-	 84,  69,  88,  67,  79,  79,
-	 82,  68,   0, 171, 171, 171,
-	 79,  83,  71,  78,  44,   0,
-	  0,   0,   1,   0,   0,   0,
-	  8,   0,   0,   0,  32,   0,
-	  0,   0,   0,   0,   0,   0,
-	  0,   0,   0,   0,   3,   0,
-	  0,   0,   0,   0,   0,   0,
-	 15,   0,   0,   0,  83,  86,
-	 95,  84,  65,  82,  71,  69,
-	 84,   0, 171, 171,  83,  72,
-	 68,  82, 148,   0,   0,   0,
-	 64,   0,   0,   0,  37,   0,
-	  0,   0,  90,   0,   0,   3,
-	  0,  96,  16,   0,   0,   0,
-	  0,   0,  88,  24,   0,   4,
-	  0, 112,  16,   0,   0,   0,
-	  0,   0,  85,  85,   0,   0,
-	 98,  16,   0,   3,  50,  16,
-	 16,   0,   1,   0,   0,   0,
-	101,   0,   0,   3, 242,  32,
-	 16,   0,   0,   0,   0,   0,
-	104,   0,   0,   2,   1,   0,
-	  0,   0,  69,   0,   0,   9,
-	242,   0,  16,   0,   0,   0,
-	  0,   0,  70,  16,  16,   0,
-	  1,   0,   0,   0,  70, 126,
-	 16,   0,   0,   0,   0,   0,
-	  0,  96,  16,   0,   0,   0,
-	  0,   0,  54,   0,   0,   5,
-	114,  32,  16,   0,   0,   0,
-	  0,   0,  70,   2,  16,   0,
-	  0,   0,   0,   0,  54,   0,
-	  0,   5, 130,  32,  16,   0,
-	  0,   0,   0,   0,   1,  64,
-	  0,   0,   0,   0, 128,  63,
-	 62,   0,   0,   1
+const BYTE quadPS[] = {
+	68, 88, 66, 67, 189, 87,
+	5, 130, 168, 148, 229, 231,
+	171, 37, 224, 4, 165, 41,
+	28, 80, 1, 0, 0, 0,
+	84, 1, 0, 0, 3, 0,
+	0, 0, 44, 0, 0, 0,
+	132, 0, 0, 0, 184, 0,
+	0, 0, 73, 83, 71, 78,
+	80, 0, 0, 0, 2, 0,
+	0, 0, 8, 0, 0, 0,
+	56, 0, 0, 0, 0, 0,
+	0, 0, 1, 0, 0, 0,
+	3, 0, 0, 0, 0, 0,
+	0, 0, 15, 0, 0, 0,
+	68, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	3, 0, 0, 0, 1, 0,
+	0, 0, 3, 3, 0, 0,
+	83, 86, 95, 80, 79, 83,
+	73, 84, 73, 79, 78, 0,
+	84, 69, 88, 67, 79, 79,
+	82, 68, 0, 171, 171, 171,
+	79, 83, 71, 78, 44, 0,
+	0, 0, 1, 0, 0, 0,
+	8, 0, 0, 0, 32, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 3, 0,
+	0, 0, 0, 0, 0, 0,
+	15, 0, 0, 0, 83, 86,
+	95, 84, 65, 82, 71, 69,
+	84, 0, 171, 171, 83, 72,
+	68, 82, 148, 0, 0, 0,
+	64, 0, 0, 0, 37, 0,
+	0, 0, 90, 0, 0, 3,
+	0, 96, 16, 0, 0, 0,
+	0, 0, 88, 24, 0, 4,
+	0, 112, 16, 0, 0, 0,
+	0, 0, 85, 85, 0, 0,
+	98, 16, 0, 3, 50, 16,
+	16, 0, 1, 0, 0, 0,
+	101, 0, 0, 3, 242, 32,
+	16, 0, 0, 0, 0, 0,
+	104, 0, 0, 2, 1, 0,
+	0, 0, 69, 0, 0, 9,
+	242, 0, 16, 0, 0, 0,
+	0, 0, 70, 16, 16, 0,
+	1, 0, 0, 0, 70, 126,
+	16, 0, 0, 0, 0, 0,
+	0, 96, 16, 0, 0, 0,
+	0, 0, 54, 0, 0, 5,
+	114, 32, 16, 0, 0, 0,
+	0, 0, 70, 2, 16, 0,
+	0, 0, 0, 0, 54, 0,
+	0, 5, 130, 32, 16, 0,
+	0, 0, 0, 0, 1, 64,
+	0, 0, 0, 0, 128, 63,
+	62, 0, 0, 1
 };
-const BYTE quadVS[] =
-{
-	68,  88,  66,  67, 203, 141,
-	78, 146,   5, 246, 239, 246,
-	166,  36, 242, 232,  80,   1,
-	231, 115,   1,   0,   0,   0,
-	208,   2,   0,   0,   5,   0,
-	0,   0,  52,   0,   0,   0,
-	128,   0,   0,   0, 180,   0,
-	0,   0,  12,   1,   0,   0,
-	84,   2,   0,   0,  82,  68,
-	69,  70,  68,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	28,   0,   0,   0,   0,   4,
-	254, 255,   0,   1,   0,   0,
-	28,   0,   0,   0,  77, 105,
+const BYTE quadVS[] = {
+	68, 88, 66, 67, 203, 141,
+	78, 146, 5, 246, 239, 246,
+	166, 36, 242, 232, 80, 1,
+	231, 115, 1, 0, 0, 0,
+	208, 2, 0, 0, 5, 0,
+	0, 0, 52, 0, 0, 0,
+	128, 0, 0, 0, 180, 0,
+	0, 0, 12, 1, 0, 0,
+	84, 2, 0, 0, 82, 68,
+	69, 70, 68, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	28, 0, 0, 0, 0, 4,
+	254, 255, 0, 1, 0, 0,
+	28, 0, 0, 0, 77, 105,
 	99, 114, 111, 115, 111, 102,
-	116,  32,  40,  82,  41,  32,
-	72,  76,  83,  76,  32,  83,
-	104,  97, 100, 101, 114,  32,
+	116, 32, 40, 82, 41, 32,
+	72, 76, 83, 76, 32, 83,
+	104, 97, 100, 101, 114, 32,
 	67, 111, 109, 112, 105, 108,
-	101, 114,  32,  49,  48,  46,
-	49,   0,  73,  83,  71,  78,
-	44,   0,   0,   0,   1,   0,
-	0,   0,   8,   0,   0,   0,
-	32,   0,   0,   0,   0,   0,
-	0,   0,   6,   0,   0,   0,
-	1,   0,   0,   0,   0,   0,
-	0,   0,   1,   1,   0,   0,
-	83,  86,  95,  86,  69,  82,
-	84,  69,  88,  73,  68,   0,
-	79,  83,  71,  78,  80,   0,
-	0,   0,   2,   0,   0,   0,
-	8,   0,   0,   0,  56,   0,
-	0,   0,   0,   0,   0,   0,
-	1,   0,   0,   0,   3,   0,
-	0,   0,   0,   0,   0,   0,
-	15,   0,   0,   0,  68,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   3,   0,
-	0,   0,   1,   0,   0,   0,
-	3,  12,   0,   0,  83,  86,
-	95,  80,  79,  83,  73,  84,
-	73,  79,  78,   0,  84,  69,
-	88,  67,  79,  79,  82,  68,
-	0, 171, 171, 171,  83,  72,
-	68,  82,  64,   1,   0,   0,
-	64,   0,   1,   0,  80,   0,
-	0,   0,  96,   0,   0,   4,
-	18,  16,  16,   0,   0,   0,
-	0,   0,   6,   0,   0,   0,
-	103,   0,   0,   4, 242,  32,
-	16,   0,   0,   0,   0,   0,
-	1,   0,   0,   0, 101,   0,
-	0,   3,  50,  32,  16,   0,
-	1,   0,   0,   0, 104,   0,
-	0,   2,   2,   0,   0,   0,
-	54,   0,   0,   8, 194,  32,
-	16,   0,   0,   0,   0,   0,
-	2,  64,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	128,  63,   1,   0,   0,   7,
-	18,   0,  16,   0,   0,   0,
-	0,   0,  10,  16,  16,   0,
-	0,   0,   0,   0,   1,  64,
-	0,   0,   1,   0,   0,   0,
-	85,   0,   0,   7, 130,   0,
-	16,   0,   0,   0,   0,   0,
-	10,  16,  16,   0,   0,   0,
-	0,   0,   1,  64,   0,   0,
-	1,   0,   0,   0,  86,   0,
-	0,   5,  50,   0,  16,   0,
-	0,   0,   0,   0, 198,   0,
-	16,   0,   0,   0,   0,   0,
-	0,   0,   0,  10,  50,   0,
-	16,   0,   1,   0,   0,   0,
-	70,   0,  16,   0,   0,   0,
-	0,   0,   2,  64,   0,   0,
-	0,   0,   0, 191,   0,   0,
-	0, 191,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   8,  66,   0,  16,   0,
-	0,   0,   0,   0,  26,   0,
-	16, 128,  65,   0,   0,   0,
-	0,   0,   0,   0,   1,  64,
-	0,   0,   0,   0, 128,  63,
-	54,   0,   0,   5,  50,  32,
-	16,   0,   1,   0,   0,   0,
-	134,   0,  16,   0,   0,   0,
-	0,   0,   0,   0,   0,   7,
-	18,  32,  16,   0,   0,   0,
-	0,   0,  10,   0,  16,   0,
-	1,   0,   0,   0,  10,   0,
-	16,   0,   1,   0,   0,   0,
-	56,   0,   0,   7,  34,  32,
-	16,   0,   0,   0,   0,   0,
-	26,   0,  16,   0,   1,   0,
-	0,   0,   1,  64,   0,   0,
-	0,   0,   0, 192,  62,   0,
-	0,   1,  83,  84,  65,  84,
-	116,   0,   0,   0,  10,   0,
-	0,   0,   2,   0,   0,   0,
-	0,   0,   0,   0,   3,   0,
-	0,   0,   4,   0,   0,   0,
-	0,   0,   0,   0,   2,   0,
-	0,   0,   1,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   2,   0,   0,   0,
-	0,   0,   0,   0,   1,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0
+	101, 114, 32, 49, 48, 46,
+	49, 0, 73, 83, 71, 78,
+	44, 0, 0, 0, 1, 0,
+	0, 0, 8, 0, 0, 0,
+	32, 0, 0, 0, 0, 0,
+	0, 0, 6, 0, 0, 0,
+	1, 0, 0, 0, 0, 0,
+	0, 0, 1, 1, 0, 0,
+	83, 86, 95, 86, 69, 82,
+	84, 69, 88, 73, 68, 0,
+	79, 83, 71, 78, 80, 0,
+	0, 0, 2, 0, 0, 0,
+	8, 0, 0, 0, 56, 0,
+	0, 0, 0, 0, 0, 0,
+	1, 0, 0, 0, 3, 0,
+	0, 0, 0, 0, 0, 0,
+	15, 0, 0, 0, 68, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 3, 0,
+	0, 0, 1, 0, 0, 0,
+	3, 12, 0, 0, 83, 86,
+	95, 80, 79, 83, 73, 84,
+	73, 79, 78, 0, 84, 69,
+	88, 67, 79, 79, 82, 68,
+	0, 171, 171, 171, 83, 72,
+	68, 82, 64, 1, 0, 0,
+	64, 0, 1, 0, 80, 0,
+	0, 0, 96, 0, 0, 4,
+	18, 16, 16, 0, 0, 0,
+	0, 0, 6, 0, 0, 0,
+	103, 0, 0, 4, 242, 32,
+	16, 0, 0, 0, 0, 0,
+	1, 0, 0, 0, 101, 0,
+	0, 3, 50, 32, 16, 0,
+	1, 0, 0, 0, 104, 0,
+	0, 2, 2, 0, 0, 0,
+	54, 0, 0, 8, 194, 32,
+	16, 0, 0, 0, 0, 0,
+	2, 64, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	128, 63, 1, 0, 0, 7,
+	18, 0, 16, 0, 0, 0,
+	0, 0, 10, 16, 16, 0,
+	0, 0, 0, 0, 1, 64,
+	0, 0, 1, 0, 0, 0,
+	85, 0, 0, 7, 130, 0,
+	16, 0, 0, 0, 0, 0,
+	10, 16, 16, 0, 0, 0,
+	0, 0, 1, 64, 0, 0,
+	1, 0, 0, 0, 86, 0,
+	0, 5, 50, 0, 16, 0,
+	0, 0, 0, 0, 198, 0,
+	16, 0, 0, 0, 0, 0,
+	0, 0, 0, 10, 50, 0,
+	16, 0, 1, 0, 0, 0,
+	70, 0, 16, 0, 0, 0,
+	0, 0, 2, 64, 0, 0,
+	0, 0, 0, 191, 0, 0,
+	0, 191, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 8, 66, 0, 16, 0,
+	0, 0, 0, 0, 26, 0,
+	16, 128, 65, 0, 0, 0,
+	0, 0, 0, 0, 1, 64,
+	0, 0, 0, 0, 128, 63,
+	54, 0, 0, 5, 50, 32,
+	16, 0, 1, 0, 0, 0,
+	134, 0, 16, 0, 0, 0,
+	0, 0, 0, 0, 0, 7,
+	18, 32, 16, 0, 0, 0,
+	0, 0, 10, 0, 16, 0,
+	1, 0, 0, 0, 10, 0,
+	16, 0, 1, 0, 0, 0,
+	56, 0, 0, 7, 34, 32,
+	16, 0, 0, 0, 0, 0,
+	26, 0, 16, 0, 1, 0,
+	0, 0, 1, 64, 0, 0,
+	0, 0, 0, 192, 62, 0,
+	0, 1, 83, 84, 65, 84,
+	116, 0, 0, 0, 10, 0,
+	0, 0, 2, 0, 0, 0,
+	0, 0, 0, 0, 3, 0,
+	0, 0, 4, 0, 0, 0,
+	0, 0, 0, 0, 2, 0,
+	0, 0, 1, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 2, 0, 0, 0,
+	0, 0, 0, 0, 1, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0
 };
 #pragma endregion
 
@@ -1035,7 +1033,9 @@ static auto GetInvariantD3D11DeviceContext()
 	return realDeviceContext;
 }
 
-void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height = 0)
+// For the profiler, the RTV it gets copied to is 1/4th of the game's resolution
+// on top of this the texture does need to be flipped here rather then in CEF.
+static void RenderBufferToBufferScreenshot(ID3D11RenderTargetView* rtv, int width = 0, int height = 0)
 {
 	static auto didCallCrashometry = ([]()
 	{
@@ -1055,7 +1055,148 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 		}
 	}
 
-	// guess what we can't just CopyResource, so time for copy/pasted D3D11 garbage
+	if (!backBuf)
+	{
+		return;
+	}
+
+	WRL::ComPtr<IUnknown> realSrvUnk;
+	WRL::ComPtr<ID3D11ShaderResourceView> realSrv;
+
+	backBuf->m_srv2->QueryInterface(IID_PPV_ARGS(&realSrvUnk));
+	realSrvUnk.As(&realSrv);
+
+	auto realDevice = GetInvariantD3D11Device();
+	auto realDeviceContext = GetInvariantD3D11DeviceContext();
+	if (!realDevice)
+	{
+		return;
+	}
+
+	auto m_width = resDesc.Width;
+	auto m_height = resDesc.Height;
+
+	static ID3D11BlendState* bs;
+	static ID3D11SamplerState* ss;
+	static ID3D11VertexShader* vs;
+	static ID3D11PixelShader* ps;
+
+	static std::once_flag of;
+	std::call_once(of, [&realDevice]()
+	{
+		D3D11_SAMPLER_DESC sd = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
+		realDevice->CreateSamplerState(&sd, &ss);
+
+		D3D11_BLEND_DESC bd = CD3D11_BLEND_DESC(CD3D11_DEFAULT());
+		bd.RenderTarget[0].BlendEnable = FALSE;
+
+		realDevice->CreateBlendState(&bd, &bs);
+
+		realDevice->CreateVertexShader(quadVS, sizeof(quadVS), nullptr, &vs);
+		realDevice->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
+	});
+
+	WRL::ComPtr<ID3DUserDefinedAnnotation> pPerf = NULL;
+	realDeviceContext->QueryInterface(IID_PPV_ARGS(&pPerf));
+
+	if (pPerf)
+	{
+		pPerf->BeginEvent(L"DrawRenderTexture");
+	}
+
+	auto deviceContext = realDeviceContext;
+
+	WRL::ComPtr<ID3D11RenderTargetView> oldRtv;
+	WRL::ComPtr<ID3D11DepthStencilView> oldDsv;
+	deviceContext->OMGetRenderTargets(1, &oldRtv, &oldDsv);
+
+	WRL::ComPtr<ID3D11SamplerState> oldSs;
+	WRL::ComPtr<ID3D11BlendState> oldBs;
+	WRL::ComPtr<ID3D11PixelShader> oldPs;
+	WRL::ComPtr<ID3D11VertexShader> oldVs;
+	WRL::ComPtr<ID3D11ShaderResourceView> oldSrv;
+
+	D3D11_VIEWPORT oldVp;
+	UINT numVPs = 1;
+
+	deviceContext->RSGetViewports(&numVPs, &oldVp);
+
+	CD3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, width ? width : m_width, height ? height : m_height);
+	deviceContext->RSSetViewports(1, &vp);
+
+	deviceContext->OMGetBlendState(&oldBs, nullptr, nullptr);
+
+	deviceContext->PSGetShader(&oldPs, nullptr, nullptr);
+	deviceContext->PSGetSamplers(0, 1, &oldSs);
+	deviceContext->PSGetShaderResources(0, 1, &oldSrv);
+
+	deviceContext->VSGetShader(&oldVs, nullptr, nullptr);
+
+	deviceContext->OMSetRenderTargets(1, &rtv, nullptr);
+	deviceContext->OMSetBlendState(bs, nullptr, 0xffffffff);
+
+	ID3D11ShaderResourceView* srvs[] = {
+		realSrv.Get()
+	};
+
+	deviceContext->PSSetShader(ps, nullptr, 0);
+	deviceContext->PSSetSamplers(0, 1, &ss);
+	deviceContext->PSSetShaderResources(0, 1, srvs);
+
+	deviceContext->VSSetShader(vs, nullptr, 0);
+
+	D3D11_PRIMITIVE_TOPOLOGY oldTopo;
+	deviceContext->IAGetPrimitiveTopology(&oldTopo);
+
+	ID3D11InputLayout* oldLayout;
+	deviceContext->IAGetInputLayout(&oldLayout);
+
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	deviceContext->IASetInputLayout(nullptr);
+
+	FLOAT blank[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	deviceContext->ClearRenderTargetView(rtv, blank);
+
+	deviceContext->Draw(4, 0);
+
+	deviceContext->OMSetRenderTargets(1, oldRtv.GetAddressOf(), oldDsv.Get());
+
+	deviceContext->IASetPrimitiveTopology(oldTopo);
+	deviceContext->IASetInputLayout(oldLayout);
+
+	deviceContext->VSSetShader(oldVs.Get(), nullptr, 0);
+	deviceContext->PSSetShader(oldPs.Get(), nullptr, 0);
+	deviceContext->PSSetSamplers(0, 1, oldSs.GetAddressOf());
+	deviceContext->PSSetShaderResources(0, 1, oldSrv.GetAddressOf());
+	deviceContext->OMSetBlendState(oldBs.Get(), nullptr, 0xffffffff);
+	deviceContext->RSSetViewports(1, &oldVp);
+
+	if (pPerf)
+	{
+		pPerf->EndEvent();
+	}
+}
+
+void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height = 0)
+{
+	static auto didCallCrashometry = ([]()
+		{
+			AddCrashometry("did_render_backbuf", "true");
+
+			return true;
+		})();
+
+	D3D11_TEXTURE2D_DESC resDesc = { 0 };
+	auto backBuf = GetBackbuf();
+
+	if (backBuf)
+	{
+		if (backBuf->texture)
+		{
+			((ID3D11Texture2D*)backBuf->texture)->GetDesc(&resDesc);
+		}
+	}
+
 	if (backBuf)
 	{
 		WRL::ComPtr<IUnknown> realSrvUnk;
@@ -1074,29 +1215,6 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 		auto m_width = resDesc.Width;
 		auto m_height = resDesc.Height;
 
-		//
-		// LOTS of D3D11 garbage to flip a texture...
-		//
-		static ID3D11BlendState* bs;
-		static ID3D11SamplerState* ss;
-		static ID3D11VertexShader* vs;
-		static ID3D11PixelShader* ps;
-
-		static std::once_flag of;
-		std::call_once(of, [&realDevice]()
-		{
-			D3D11_SAMPLER_DESC sd = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
-			realDevice->CreateSamplerState(&sd, &ss);
-
-			D3D11_BLEND_DESC bd = CD3D11_BLEND_DESC(CD3D11_DEFAULT());
-			bd.RenderTarget[0].BlendEnable = FALSE;
-
-			realDevice->CreateBlendState(&bd, &bs);
-
-			realDevice->CreateVertexShader(quadVS, sizeof(quadVS), nullptr, &vs);
-			realDevice->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
-		});
-
 		WRL::ComPtr<ID3DUserDefinedAnnotation> pPerf = NULL;
 		realDeviceContext->QueryInterface(IID_PPV_ARGS(&pPerf));
 
@@ -1105,73 +1223,60 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 			pPerf->BeginEvent(L"DrawRenderTexture");
 		}
 
-		auto deviceContext = realDeviceContext;
-		
-		WRL::ComPtr<ID3D11RenderTargetView> oldRtv;
-		WRL::ComPtr<ID3D11DepthStencilView> oldDsv;
-		deviceContext->OMGetRenderTargets(1, &oldRtv, &oldDsv);
-
-		WRL::ComPtr<ID3D11SamplerState> oldSs;
-		WRL::ComPtr<ID3D11BlendState> oldBs;
-		WRL::ComPtr<ID3D11PixelShader> oldPs;
-		WRL::ComPtr<ID3D11VertexShader> oldVs;
-		WRL::ComPtr<ID3D11ShaderResourceView> oldSrv;
-
-		D3D11_VIEWPORT oldVp;
-		UINT numVPs = 1;
-
-		deviceContext->RSGetViewports(&numVPs, &oldVp);
-
-		CD3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, width ? width : m_width, height ? height : m_height);
-		deviceContext->RSSetViewports(1, &vp);
-
-		deviceContext->OMGetBlendState(&oldBs, nullptr, nullptr);
-
-		deviceContext->PSGetShader(&oldPs, nullptr, nullptr);
-		deviceContext->PSGetSamplers(0, 1, &oldSs);
-		deviceContext->PSGetShaderResources(0, 1, &oldSrv);
-
-		deviceContext->VSGetShader(&oldVs, nullptr, nullptr);
-
-		deviceContext->OMSetRenderTargets(1, &rtv, nullptr);
-		deviceContext->OMSetBlendState(bs, nullptr, 0xffffffff);
-
-		ID3D11ShaderResourceView* srvs[] =
+		WRL::ComPtr<ID3D11Resource> srcRes;
+		backBuf->m_srv2->GetResource(srcRes.GetAddressOf());
+		if (!srcRes)
 		{
-			realSrv.Get()
-		};
+			return;
+		}
 
-		deviceContext->PSSetShader(ps, nullptr, 0);
-		deviceContext->PSSetSamplers(0, 1, &ss);
-		deviceContext->PSSetShaderResources(0, 1, srvs);
+		WRL::ComPtr<ID3D11Texture2D> srcTex;
+		if (FAILED(srcRes.As(&srcTex)))
+		{
+			return;
+		}
 
-		deviceContext->VSSetShader(vs, nullptr, 0);
+		WRL::ComPtr<ID3D11Resource> dstRes;
+		rtv->GetResource(&dstRes);
+		if (!dstRes)
+		{
+			return;
+		}
 
-		D3D11_PRIMITIVE_TOPOLOGY oldTopo;
-		deviceContext->IAGetPrimitiveTopology(&oldTopo);
+		WRL::ComPtr<ID3D11Texture2D> dstTex;
+		if (FAILED(dstRes.As(&dstTex)))
+		{
+			return;
+		}
 
-		ID3D11InputLayout* oldLayout;
-		deviceContext->IAGetInputLayout(&oldLayout);
+		D3D11_TEXTURE2D_DESC srcDesc, dstDesc;
+		srcTex->GetDesc(&srcDesc);
+		dstTex->GetDesc(&dstDesc);
 
-		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		deviceContext->IASetInputLayout(nullptr);
+		if (srcDesc.Format != dstDesc.Format)
+		{
+			return;
+		}
 
-		FLOAT blank[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		deviceContext->ClearRenderTargetView(rtv, blank);
+		if (srcDesc.Width != dstDesc.Width || srcDesc.Height != dstDesc.Height || srcDesc.Format != dstDesc.Format)
+		{
+			return;
+		}
 
-		deviceContext->Draw(4, 0);
+		realDeviceContext->CopyResource(dstTex.Get(), srcTex.Get());
 
-		deviceContext->OMSetRenderTargets(1, oldRtv.GetAddressOf(), oldDsv.Get());
+		static ID3D11Query* copyQuery = nullptr;
+		if (!copyQuery)
+		{
+			D3D11_QUERY_DESC qd{};
+			qd.Query = D3D11_QUERY_EVENT;
+			realDevice->CreateQuery(&qd, &copyQuery);
+		}
 
-		deviceContext->IASetPrimitiveTopology(oldTopo);
-		deviceContext->IASetInputLayout(oldLayout);
-
-		deviceContext->VSSetShader(oldVs.Get(), nullptr, 0);
-		deviceContext->PSSetShader(oldPs.Get(), nullptr, 0);
-		deviceContext->PSSetSamplers(0, 1, oldSs.GetAddressOf());
-		deviceContext->PSSetShaderResources(0, 1, oldSrv.GetAddressOf());
-		deviceContext->OMSetBlendState(oldBs.Get(), nullptr, 0xffffffff);
-		deviceContext->RSSetViewports(1, &oldVp);
+		if (copyQuery)
+		{
+			realDeviceContext->End(copyQuery);
+		}
 
 		if (pPerf)
 		{
@@ -1276,7 +1381,7 @@ void CaptureInternalScreenshot()
 		return;
 	}
 
-	RenderBufferToBuffer(rtv, resDesc.Width / 4, resDesc.Height / 4);
+	RenderBufferToBufferScreenshot(rtv, resDesc.Width / 4, resDesc.Height / 4);
 
 	GetInvariantD3D11DeviceContext()->CopyResource(myStagingTexture, myTexture);
 
