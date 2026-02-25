@@ -593,6 +593,10 @@ return {
 			'src/inspector/worker_inspector.h',
 		}
 
+		if os.istarget('linux') then
+			buildoptions { "-include", "stdint.h" }
+		end
+
 		project 'icu-base'
 			language 'C++'
 			kind 'StaticLib'
