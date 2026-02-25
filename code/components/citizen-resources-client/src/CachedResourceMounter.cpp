@@ -308,7 +308,10 @@ void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, co
 
 	auto refUrl = remoteUrl;
 	
-	refUrl += "?hash=" + referenceHash;
+	if (refUrl.find("?hash=") == std::string::npos)
+	{
+		refUrl += "?hash=" + referenceHash;
+	}
 
 	m_resourceEntries.insert({ resourceName, ResourceFileEntry{basename, referenceHash, refUrl, size, extData} });
 }
@@ -405,3 +408,4 @@ static InitFunction initFunction([]()
 		resource->SetComponent(new ResourceCacheEntryList());
 	});
 });
+
