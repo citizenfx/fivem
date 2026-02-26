@@ -37,5 +37,5 @@ local KEY_E = 69
 local canBeDisabled = false
 
 
-RegisterRawKeymap("our_keymap", on_key_up, on_key_down, KEY_E, canBeDisabled)
+RegisterRawKeymap("our_keymap", on_key_down, on_key_up, KEY_E, canBeDisabled)
 ```
