@@ -1,19 +1,97 @@
 #include "StdInc.h"
 
 #include <vulkan/vulkan.h>
+#include <d3dcommon.h>
+#include <d3d12.h>
+
+#include <dxgi1_4.h>
+#include <dxgi1_5.h>
+#include <dxgi1_6.h>
+#include <wrl.h>
+
+#include <CL2LaunchMode.h>
+#include <ICoreGameInit.h>
+#include <HostSharedData.h>
 
 #include <Hooking.h>
+#include <Hooking.Stubs.h>
+#include <dxerr.h>
 #include <Error.h>
 
 #include <CoreConsole.h>
 
 #include <VulkanHelper.h>
 #include <CrossBuildRuntime.h>
+#include <CfxState.h>
+#include <DrawCommands.h>
 
 #pragma comment(lib, "vulkan-1.lib")
 
 static VkInstance g_vkInstance = nullptr;
 static bool g_enableVulkanValidation = false;
+
+static bool g_canUseVulkan = true;
+
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "dxguid.lib")
+
+namespace WRL = Microsoft::WRL;
+static void DXGIGetHighPerfAdapter(IDXGIAdapter** ppAdapter)
+{
+	{
+		WRL::ComPtr<IDXGIFactory1> dxgiFactory;
+		CreateDXGIFactory1(IID_IDXGIFactory1, &dxgiFactory);
+
+		WRL::ComPtr<IDXGIAdapter1> adapter;
+		WRL::ComPtr<IDXGIFactory6> factory6;
+		HRESULT hr = dxgiFactory.As(&factory6);
+		if (SUCCEEDED(hr))
+		{
+			for (UINT adapterIndex = 0;
+			DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
+			adapterIndex++)
+			{
+				DXGI_ADAPTER_DESC1 desc;
+				adapter->GetDesc1(&desc);
+
+				if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+				{
+					// Don't select the Basic Render Driver adapter.
+					continue;
+				}
+
+				AddCrashometry("gpu_name", "%s", ToNarrow(desc.Description));
+				AddCrashometry("gpu_id", "%04x:%04x", desc.VendorId, desc.DeviceId);
+
+				adapter.CopyTo(ppAdapter);
+				break;
+			}
+		}
+	}
+}
+
+static HANDLE g_gameWindowEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+void DLL_EXPORT UiDone()
+{
+	static HostSharedData<CfxState> initState("CfxInitState");
+	WaitForSingleObject(g_gameWindowEvent, INFINITE);
+
+	auto uiExitEvent = CreateEventW(NULL, TRUE, FALSE, va(L"CitizenFX_PreUIExit%s", IsCL2() ? L"CL2" : L""));
+	auto uiDoneEvent = CreateEventW(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIDone%s", IsCL2() ? L"CL2" : L""));
+
+	if (uiExitEvent)
+	{
+		SetEvent(uiExitEvent);
+	}
+
+	if (uiDoneEvent)
+	{
+		WaitForSingleObject(uiDoneEvent, INFINITE);
+	}
+}
+
 
 // Function to print the output of the validation layers
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
@@ -155,7 +233,6 @@ static VkResult __stdcall vkCreateInstanceHook(VkInstanceCreateInfo* pCreateInfo
 
 	if (g_enableVulkanValidation)
 	{
-
 		for (size_t i = 0; i < originalLayers.size(); i++)
 		{
 			originalLayers[i] = pCreateInfo->ppEnabledLayerNames[i];
@@ -197,7 +274,7 @@ static VkResult __stdcall vkCreateInstanceHook(VkInstanceCreateInfo* pCreateInfo
 
 	g_vkInstance = *pInstance;
 
-	// we let rage handle the error (probably defaults back to dx12)
+	// if the vkInstance fails to create the game will try to fallback to D3D12.
 	return result;
 }
 
@@ -206,7 +283,9 @@ static inline void SetVulkanCrashometry(const VkPhysicalDevice physicalDevice)
 	static bool isInitialized = false;
 
 	if (isInitialized)
+	{
 		return;
+	}
 
 	VkPhysicalDeviceProperties props = {};
 
@@ -252,7 +331,6 @@ static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreat
 	if (g_enableVulkanValidation)
 	{
 		// force validation layers for vulkan, but dont replace the original layers
-
 		for (size_t i = 0; i < originalLayers.size(); i++)
 		{
 			originalLayers[i] = pCreateInfo->ppEnabledLayerNames[i];
@@ -264,6 +342,7 @@ static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreat
 		pCreateInfo->enabledLayerCount = static_cast<uint32_t>(originalLayers.size());
 		pCreateInfo->ppEnabledLayerNames = originalLayers.data();
 	}
+	SetEvent(g_gameWindowEvent);
 
 	if (!IsDedicatedGPU(physicalDevice))
 	{
@@ -280,6 +359,115 @@ static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreat
 	}
 
 	return result;
+}
+
+static HRESULT D3D12CreateDeviceWrap(IDXGIAdapter* pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid, void** ppDevice)
+{
+	DXGIGetHighPerfAdapter(&pAdapter);
+
+	HRESULT hr = D3D12CreateDevice(pAdapter, MinimumFeatureLevel, riid, ppDevice);
+	if (SUCCEEDED(hr))
+	{
+		SetEvent(g_gameWindowEvent);
+	}
+
+	return hr;
+}
+
+static void SetCrashometryData(const char* type, const char* details, int unk)
+{
+	if (!strcmp(type,"d3d12_error") || !strcmp(type, "vulkan_last_error") || !strcmp(type, "pc_last_error"))
+	{
+		AddCrashometry(type, details);
+	}
+}
+
+static bool WaitForSingleObjectRender(HANDLE handle)
+{
+	return WaitForSingleObject(handle, 500) == WAIT_OBJECT_0;
+}
+
+static bool (*g_initalizeVulkanLibrary)();
+static bool InitalizeVulkanLibrary()
+{
+	if (g_canUseVulkan)
+	{
+		return g_initalizeVulkanLibrary();
+	}
+
+	return false;
+}
+
+// Creates a temp file to communicate to RedM on next restart to invalidate pipeline cache
+// Helps resolves issues where bad pipeline cache data causes an infinite loop of D3D12/Vulkan Crashes.
+static void InvalidatePipelineCache()
+{
+	FILE* f = _wfopen(MakeRelativeCitPath("data/cache/clearPipelineCache").c_str(), L"ab");
+	if (f)
+	{
+		fclose(f);
+	}
+}
+
+// the game only checks if VK_ERROR_DEVICE_LOST for certain calls. For consistentcy sake we do the same
+// just providing the user with the real error code rather then ERR_GFX_STATE
+static VkResult VulkanDeviceLostCheck(VkResult result)
+{
+	if (result == VK_ERROR_DEVICE_LOST)
+	{
+		InvalidatePipelineCache();
+		FatalError("Vulkan call failed with VK_ERROR_DEVICE_LOST: The logical or physical device has been lost.");
+		return result;
+	}
+
+	return result;
+}
+
+static VkResult VulkanFailed(VkResult result)
+{
+	if (result != VK_SUCCESS)
+	{
+		InvalidatePipelineCache();
+		FatalError("Vulkan Call failed with %s", ResultToString(result));
+		return result;
+	}
+
+	return result;
+}
+
+static void D3D12ResultFailed(HRESULT hr)
+{
+	constexpr auto errorBufferCount = 4096;
+	std::wstring errorDescription(errorBufferCount, L'\0');
+	DXGetErrorDescriptionW(hr, errorDescription.data(), errorBufferCount);
+
+	std::wstring errorString = DXGetErrorStringW(hr);
+	if (errorString.empty())
+	{
+		errorString = va(L"0x%08x", hr);
+	}
+
+	std::string removedError;
+	if (hr == DXGI_ERROR_DEVICE_REMOVED)
+	{
+		HRESULT removedReason = static_cast<ID3D12Device*>(GetGraphicsDriverHandle())->GetDeviceRemovedReason();
+
+		std::wstring removedDescription(2048, L'\0');
+		DXGetErrorDescriptionW(removedReason, removedDescription.data(), 2048);
+		removedDescription.resize(wcslen(removedDescription.c_str()));
+
+		std::wstring removedString = DXGetErrorStringW(removedReason);
+
+		if (removedString.empty())
+		{
+			removedString = va(L"0x%08x", removedReason);
+		}
+
+		removedError = ToNarrow(fmt::sprintf(L"\nGetDeviceRemovedReason returned %s - %s", removedString, removedDescription));
+	}
+
+	InvalidatePipelineCache();
+	FatalError("DirectX encountered an unrecoverable error: %s - %s%s", ToNarrow(errorString), ToNarrow(errorDescription), removedError);
 }
 
 static HookFunction hookFunction([]()
@@ -300,4 +488,251 @@ static HookFunction hookFunction([]()
 		hook::nop(location, 6);
 		hook::call(location, vkCreateDeviceHook);
 	}
+
+	// D3D12 CreateDevice Hook
+	// 1491.50 calls D3D12CreateDevice up to 4 times when creating the real D3D12Device
+	{
+		auto p = hook::pattern("48 8B CB FF 15 ? ? ? ? 8B C8").count(4);
+
+		for (int i = 0; i < p.size(); i++)
+		{
+			auto location = p.get(i).get<char>(3);
+			hook::nop(location, 6);
+			hook::call(location, D3D12CreateDeviceWrap);
+		}
+	}
+
+	// Replace render sleep and WaitForSingleObject call with just WaitForSingleObject 
+	{
+		auto location = hook::get_pattern<char>("E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B 4E ? E8");
+		// nop Sleep Call
+		hook::nop(location, 5);
+		// replace Wait call
+		hook::call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 ? 88 9E"), WaitForSingleObjectRender);
+	}
+
+	// no ShowWindow early
+	{
+		auto location = hook::get_pattern<char>("48 85 C0 0F 45 D1", 9);
+		// ShowWindow
+		hook::nop(location, 6);
+		// UpdateWindow
+		hook::nop(location + 9, 6);
+		// SetFocus
+		hook::nop(location + 18, 6);
+	}
+	
+	// Hook crashometry call that has useful information passed to it related to graphics
+	{
+		auto location = hook::get_pattern("48 89 54 24 ? 48 89 4C 24 ? 55 56 57 41 54 41 56");
+		hook::jump(location, SetCrashometryData);
+	}
+
+	// D3D12: Instead of throwing generic ERR_GFX_STATE properly catch FAILED calls and provide a slightly more useful error.
+	hook::call(hook::get_pattern("E8 ? ? ? ? 8B C3 48 83 C4 ? 5B C3 48 8B C4 48 89 58 ? 88 50"), D3D12ResultFailed);
+
+	// Same for Vulkan, Vulkan has three ERR_GFX_STATE errors, one for VK_ERROR_DEVICE_LOST, one for Swapchain Creation and an unknown one.
+	// VK_ERROR_DEVICE_LOST exclusively, called after most vk functions.
+	hook::trampoline(hook::get_pattern("40 53 48 83 EC ? 8B D9 83 F9 ? 75 ? 48 8B 0D"), VulkanDeviceLostCheck);
+
+	// Vulkan Swapchain creation. (VK_NOT_READY, VK_TIMEOUT, VK_ERROR_SURFACE_LOST_KHR etc falsely reported this as a D3D crash)
+	{
+		auto location = hook::get_pattern<char>("E8 ? ? ? ? 85 C0 0F 85 ? ? ? ? 41 8A 87");
+		hook::nop(location, 5);
+		hook::call(location, VulkanFailed);
+	}
+	
+	// Don't attempt to use vulkan if the system doesn't properly support it.
+	g_initalizeVulkanLibrary = hook::trampoline(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 75 ? 33 C0 EB ? 41 B8")), InitalizeVulkanLibrary);
+});
+
+// Create a dummy Vulkan and D3D12 device to load the UMD for both early.
+// We also use this as an opportunity to catch if either graphics API wouldn't be suitable.
+static InitFunction initFunction([]()
+{
+	{
+		auto state = CfxState::Get();
+		if (!state->IsGameProcess())
+		{
+			return;
+		}
+	}
+
+	std::thread([]()
+	{
+		IDXGIAdapter* adapter = nullptr;
+		DXGIGetHighPerfAdapter(&adapter);
+
+		WRL::ComPtr<ID3D12Device> device;
+		HRESULT hr = D3D12CreateDevice(
+		adapter,
+		D3D_FEATURE_LEVEL_11_0,
+		IID_PPV_ARGS(&device));
+
+		if (adapter)
+		{
+			adapter->Release();
+		}
+
+		Sleep(20000);
+	}).detach();
+
+	std::thread([]()
+	{
+		struct VulkanHandle
+		{
+			VkInstance instance = VK_NULL_HANDLE;
+			VkDevice device = VK_NULL_HANDLE;
+
+			VulkanHandle(VkInstance instance)
+				: instance(instance)
+			{
+			}
+
+			~VulkanHandle()
+			{
+				if (device)
+				{
+					vkDestroyDevice(device, nullptr);
+					device = VK_NULL_HANDLE;
+				}
+
+				if (instance)
+				{
+					vkDestroyInstance(instance, nullptr);
+					instance = VK_NULL_HANDLE;
+				}
+			}
+		};
+
+		VkInstance instance;
+		VkInstanceCreateInfo instanceCreateInfo = {};
+		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+
+		VkResult result;
+		if (result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance); result != VK_SUCCESS)
+		{
+			trace("Unable to use vulkan driver: Unable to create vulkan instance, VkResult: %s\n", ResultToString(result));
+			g_canUseVulkan = false;
+			return;
+		}
+
+		VulkanHandle handle(instance);
+		uint32_t physicalDeviceCount = 0;
+		if (result = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr); result != VK_SUCCESS || physicalDeviceCount == 0)
+		{
+			trace("Unable to use vulkan driver: Unable to enumerate physical devices, VkResult: %s\n", ResultToString(result));
+			g_canUseVulkan = false;
+			return;
+		}
+
+		std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
+		vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data());
+
+		VkPhysicalDevice physicalDevice = physicalDevices[0];
+
+		uint32_t queueFamilyCount = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+
+		if (queueFamilyCount == 0)
+		{
+			trace("Unable to use vulkan driver: Unable to find any deviceQueueFamily\n");
+			g_canUseVulkan = false;
+			return;
+		}
+
+		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+		uint32_t selectedQueueFamily = UINT32_MAX;
+		for (uint32_t i = 0; i < queueFamilyCount; ++i)
+		{
+			if (queueFamilies[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+			{
+				selectedQueueFamily = i;
+				break;
+			}
+		}
+
+		if (selectedQueueFamily == UINT32_MAX)
+		{
+			trace("Unable to use vulkan driver: Unable to find supported deviceQueueFamily\n");
+			g_canUseVulkan = false;
+			return;
+		}
+
+		float queuePriority = 1.0f;
+		VkDeviceQueueCreateInfo queueCreateInfo = {};
+		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueCreateInfo.queueFamilyIndex = 0;
+		queueCreateInfo.queueCount = 1;
+		queueCreateInfo.pQueuePriorities = &queuePriority;
+
+		VkDeviceCreateInfo deviceCreateInfo = {};
+		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		deviceCreateInfo.queueCreateInfoCount = 1;
+		deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+
+		if (!IsDedicatedGPU(physicalDevice))
+		{
+			ForceDedicatedGPU(g_vkInstance, &deviceCreateInfo, physicalDevice);
+		}
+
+		VkDevice vkDevice;
+		if (result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &vkDevice); result != VK_SUCCESS)
+		{
+			trace("Unable to use vulkan driver: Failed to create vkDevice, VkResult: %s\n", ResultToString(result));
+			g_canUseVulkan = false;
+			return;
+		}
+
+		handle.device = vkDevice;
+
+		// RedM requires extra vulkan support, ensure that the GPU used can support the added functionality required.
+		// Otherwise this can lead to various hard to debug issues usually some form of "Failed to allocate memory for Vulkan..."	
+		static auto _vkGetPhysicalDeviceImageFormatProperties2 = (PFN_vkGetPhysicalDeviceImageFormatProperties2)vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceImageFormatProperties2");
+
+		if (!_vkGetPhysicalDeviceImageFormatProperties2)
+		{
+			trace("Unable to use vulkan driver: Vulkan driver does not include 'vkGetPhysicalDeviceImageFormatProperties2'\n");
+			g_canUseVulkan = false;
+			return;
+		}
+
+        VkPhysicalDeviceExternalImageFormatInfo externalImageInfo{};
+		externalImageInfo.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO;
+		externalImageInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT;
+
+		VkPhysicalDeviceImageFormatInfo2 formatInfo2{};
+		formatInfo2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2;
+		formatInfo2.pNext = &externalImageInfo;
+		formatInfo2.format = VK_FORMAT_B8G8R8A8_UNORM;
+		formatInfo2.type = VK_IMAGE_TYPE_2D;
+		formatInfo2.tiling = VK_IMAGE_TILING_OPTIMAL;
+		formatInfo2.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+
+		VkExternalImageFormatProperties externalProps{};
+		externalProps.sType = VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES;
+		VkImageFormatProperties2 formatProperties2{};
+		formatProperties2.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2;
+		formatProperties2.pNext = &externalProps;
+
+		if (result = _vkGetPhysicalDeviceImageFormatProperties2(physicalDevice, &formatInfo2, &formatProperties2); result != VK_SUCCESS)
+		{
+			trace("Unable to use vulkan driver: 'vkGetPhysicalDeviceImageFormatProperties2' returned VkResult: %s\n", ResultToString(result));
+			g_canUseVulkan = false;
+			return;
+		}
+
+		// 'VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT' is required by NUI to import D3D11 textures from CEF.
+		if (!(externalProps.externalMemoryProperties.externalMemoryFeatures & VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT))
+		{
+			trace("Unable to use vulkan driver: GPU does not support 'VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT' which is required by NUI");
+			g_canUseVulkan = false;
+			return;
+		}
+
+		vkDeviceWaitIdle(vkDevice);
+		Sleep(5000);
+	}).detach();
 });
