@@ -2692,7 +2692,53 @@ struct CPedSectorPosMapNode : GenericSerializeDataNode<CPedSectorPosMapNode>
 struct CPedSectorPosNavMeshNode { };
 struct CPedInventoryDataNode { };
 struct CPedTaskSequenceDataNode { };
-struct CPickupCreationDataNode { };
+
+struct CPickupCreationDataNode
+{
+	bool hasPlacement;
+	uint32_t pickupHash;
+	uint32_t amount;
+	uint32_t customModelHash;
+
+	bool Parse(SyncParseState& state)
+	{
+		hasPlacement = state.buffer.ReadBit();
+		if (hasPlacement)
+		{
+			// CGameScriptObjInfo
+			const uint32_t scriptObjectId = state.buffer.Read<uint32_t>(32);
+			const int hostTokenLength = state.buffer.ReadBit() ? 16 : 3;
+			const uint32_t hostToken = state.buffer.Read<uint32_t>(hostTokenLength);
+		}
+		else
+		{
+			pickupHash = state.buffer.Read<uint32_t>(32);
+		}
+
+		if(state.buffer.ReadBit())
+		{
+			amount = state.buffer.Read<uint32_t>(32);
+		}
+		else
+		{
+			amount = 0;
+		}
+
+		if (state.buffer.ReadBit())
+		{
+			customModelHash = state.buffer.Read<uint32_t>(32);
+		}
+		else
+		{
+			customModelHash = 0;
+		}
+
+		// Node is incomplete, additional data is present in the buffer
+
+		return true;
+	}
+};
+
 struct CPickupScriptGameStateNode { };
 struct CPickupSectorPosNode { };
 
@@ -4184,6 +4230,14 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 		if (hasOcn)
 		{
 			*modelHash = objectCreationNode->m_model;
+			return true;
+		}
+
+		auto [hasPicn, pickupCreationNode] = this->template GetData<CPickupCreationDataNode>();
+
+		if (hasPicn)
+		{
+			*modelHash = pickupCreationNode->customModelHash;
 			return true;
 		}
 
