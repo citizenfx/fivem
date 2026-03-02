@@ -1021,8 +1021,6 @@ extern std::unordered_map<int, std::string> g_handlesToTag;
 
 fwEvent<> OnReloadMapStore;
 
-#ifdef GTA_FIVE
-extern uint32_t GetCurrentMapGroup();
 
 static hook::cdecl_stub<void()> _reloadMapIfNeeded([]()
 {
@@ -1030,6 +1028,9 @@ static hook::cdecl_stub<void()> _reloadMapIfNeeded([]()
 });
 
 static char* loadChangeSet = nullptr;
+
+#ifdef GTA_FIVE
+extern uint32_t GetCurrentMapGroup();
 static void ReloadMapStoreNative()
 {
 	uint8_t origCode[0x4F3];
@@ -1073,6 +1074,49 @@ static void ReloadMapStoreNative()
 	// reload map stuff
 	_reloadMapIfNeeded();
 }
+#else
+static void ReloadMapStoreNative()
+{
+	trace("reload map\n");
+	uint8_t origCode[0x4CC];
+	memcpy(origCode, loadChangeSet, sizeof(origCode));
+
+	// nop a call before the r13d load
+	hook::nop(loadChangeSet + 0x28, 5);
+
+	// jump straight into the right block
+	hook::put<uint8_t>(loadChangeSet + 0x3B, 0xE9);
+	hook::put<int32_t>(loadChangeSet + 0x3C, 0x11B);
+
+	// _executeChangeSet
+	hook::nop(loadChangeSet + 0x33C, 5);
+	// _unkCheckChangeSet
+	hook::nop(loadChangeSet + 0x29C, 5);
+
+	// and the array fill/clear for this fake array
+	hook::nop(loadChangeSet + 0x3EB, 5);
+	hook::nop(loadChangeSet + 0x462, 5);
+	hook::nop(loadChangeSet + 0x46E, 5);
+
+	// ignore trailer
+	hook::nop(loadChangeSet + 0x48F, 22);
+
+	// call
+	uint32_t hash = 0xDEADBDEF;
+	uint8_t csBuf[2048] = { 0 };
+	uint32_t groupHash = 0;
+
+	((void (*)(void*, uint32_t*, uint32_t*))loadChangeSet)(csBuf, &groupHash, &hash);
+
+	DWORD oldProtect;
+	VirtualProtect(loadChangeSet, sizeof(origCode), PAGE_EXECUTE_READWRITE, &oldProtect);
+	memcpy(loadChangeSet, origCode, sizeof(origCode));
+	VirtualProtect(loadChangeSet, sizeof(origCode), oldProtect, &oldProtect);
+
+	// reload map stuff
+	_reloadMapIfNeeded();
+}
+
 #endif
 
 static void ReloadMapStore()
@@ -1116,7 +1160,7 @@ static void ReloadMapStore()
 #endif
 		   )
 		{
-			// currently, Reloading custom collision causes it to break in RDR3
+
 #ifndef IS_RDR3
 			collisionFiles.push_back(std::make_pair(file, obj));
 #endif
@@ -1158,14 +1202,12 @@ static void ReloadMapStore()
 
 	OnReloadMapStore();
 
-#ifdef GTA_FIVE
 	// needs verification for newer builds
 	if (!xbr::IsGameBuildOrGreater<xbr::Build::Latest + 1>())
 	{
 		ReloadMapStoreNative();
 	}
 	else
-#endif
 	{
 		uint32_t mapGroup =
 #ifdef GTA_FIVE
@@ -1239,9 +1281,7 @@ public:
 
 static CfxPseudoMounter g_staticPseudoMounter;
 
-#ifdef GTA_FIVE
 void LoadCache(const char* tagName);
-#endif
 void LoadManifest(const char* tagName);
 
 class CfxCacheMounter : public CDataFileMountInterface
@@ -1250,9 +1290,7 @@ public:
 	virtual bool LoadDataFile(CDataFileMgr::DataFile* entry) override
 	{
 		LoadManifest(entry->name);
-#ifdef GTA_FIVE
 		LoadCache(entry->name);
-#endif
 
 		return true;
 	}
@@ -2043,6 +2081,10 @@ static void LoadStreamingFiles(LoadType loadType)
 }
 
 static std::multimap<std::string, std::string, std::less<>> g_manifestNames;
+#ifdef IS_RDR3
+static std::multimap<std::string, std::string, std::less<>> g_cacheNames;
+#endif
+
 
 #include <fiCustomDevice.h>
 
@@ -2214,9 +2256,50 @@ static hook::cdecl_stub<void(void*, void* packfile, const char*, bool)> loadMani
 {
 	return hook::get_pattern("83 A5 ? ? ? ? 00 E8 ? ? ? ? 48 8B C8 4C", -0x38);
 });
+
+static hook::cdecl_stub<bool(void*, void* packfile, const char*)> loadCache([]()
+{
+	return hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 55 57 41 56 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 41 8A F1");
+});
 #endif
 
 static std::unordered_multimap<uint32_t, uint32_t> g_itypToMapDataDeps;
+
+#ifdef IS_RDR3
+void LoadCache(const char* tagName)
+{
+	auto range = g_cacheNames.equal_range(tagName);
+
+	for (auto& namePair : fx::GetIteratorView(range))
+	{
+		auto name = namePair.second;
+		auto rel = new ForcedDevice(rage::fiDevice::GetDevice(name.c_str(), true), name);
+
+	    // see if we can even read the file
+		{
+			auto handle = rel->Open(name.c_str(), true);
+
+			if (handle == uint64_t(-1))
+			{
+				return;
+			}
+
+			char buf[16];
+			if (rel->Read(handle, buf, 16) != 16)
+			{
+				return;
+			}
+
+			rel->Close(handle);
+		}
+
+	    trace("Mounting cache file %s\n", tagName);
+		rage::fiDevice::MountGlobal("localPack:/", rel, true);
+		loadCache(manifestChunkPtr, (void*)1, tagName);
+		rage::fiDevice::Unmount("localPack:/");
+	}
+}
+#endif
 
 void LoadManifest(const char* tagName)
 {
@@ -2367,8 +2450,8 @@ void LoadManifest(const char* tagName)
 	}
 }
 
-#ifdef GTA_FIVE
 #include <EntitySystem.h>
+#ifdef GTA_FIVE
 #include <RageParser.h>
 
 struct CPedModelInfo
@@ -2536,6 +2619,13 @@ void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, cons
 	{
 		g_manifestNames.emplace(tag, fileName);
 	}
+
+#ifdef IS_RDR3
+	if (baseName.find(".ych") == baseName.length() - 4)
+	{
+		g_cacheNames.emplace(tag, fileName);
+	}
+#endif
 
 	g_customStreamingFilesByTag[tag].push_back(fileName);
 	g_customStreamingFiles.insert({ fileName, tag });
@@ -3507,10 +3597,9 @@ static HookFunction hookFunction([]()
 	g_chunkyArrayAppend = hook::trampoline(chunkyArrayAppendLoc, &chunkyArrayAppend);
 #endif
 
+	loadChangeSet = hook::get_pattern<char>("48 81 EC ? 03 00 00 49 8B F0 4C", -0x18);
+
 #ifdef GTA_FIVE
-
-	loadChangeSet = hook::get_pattern<char>("48 81 EC 50 03 00 00 49 8B F0 4C", -0x18);
-
 	PreSetupLoadingScreens.Connect([]()
 	{
 		FlushCustomAssets();
