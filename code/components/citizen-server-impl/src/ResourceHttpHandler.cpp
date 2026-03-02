@@ -36,6 +36,20 @@ static auto GetHttpHandler(fx::Resource* resource)
 	};
 }
 
+static void PrintNucleusDeprecationWarning(const std::string& resourceName)
+{
+	static std::chrono::steady_clock::time_point lastWarningTime{};
+
+	auto now = std::chrono::steady_clock::now();
+
+	// Print warning at most once every 5 minutes
+	if (now - lastWarningTime > std::chrono::minutes(5))
+	{
+		lastWarningTime = now;
+		console::PrintWarning("deprecation-warning", "Resource '%s' is using the Cfx.re Nucleus service which will be deprecated in the future. You can find more information at https://forum.cfx.re/t/5387399.\n", resourceName.c_str());
+	}
+}
+
 class ResourceHttpComponent : public fwRefCountable, public fx::IAttached<fx::Resource>
 {
 private:
@@ -76,6 +90,11 @@ public:
 			response->End("Rate limit exceeded.");
 
 			return;
+		}
+
+		if (!request->GetHeader("X-Cfx-Source-Ip").empty())
+		{
+			PrintNucleusDeprecationWarning(m_resource->GetName());
 		}
 
 		// get the local path for the request
