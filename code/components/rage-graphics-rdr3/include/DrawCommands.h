@@ -75,6 +75,9 @@ extern GFX_EXPORT GraphicsAPI GetCurrentGraphicsAPI();
 // VK context or D3D12 device
 extern GFX_EXPORT void* GetGraphicsDriverHandle();
 
+// VK physicalDevice
+extern GFX_EXPORT VkPhysicalDevice GetVulkanPhysicalHandle();
+
 namespace rage::sga
 {
 class GFX_EXPORT GraphicsContext
