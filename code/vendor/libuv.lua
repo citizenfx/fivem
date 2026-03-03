@@ -12,7 +12,7 @@ return {
 	include = function()
 		includedirs { '../vendor/libnode/include/node/uv/include/' }
 
-        libdirs { '../vendor/libuv/bin/' }
+        libdirs { '../vendor/libnode/bin/' }
         if os.istarget('windows') then
             links { libName }
         else
@@ -25,11 +25,10 @@ return {
 
         files {
             -- dummy file to generate a project, so build commands are executed
-			'../vendor/libuv/tag.txt'
+			'../vendor/libnode/tag.txt'
 		}
 
-        local baseURL = ('https://github.com/citizenfx/libnode/releases/download/v%s'):format(baseVersion)
-        local uvBinDir = path.getabsolute('../') .. '/vendor/libuv/bin'
+        local uvBinDir = path.getabsolute('../') .. '/vendor/libnode/bin'
 
 		if os.istarget('windows') then
 			filter 'files:**/tag.txt'
@@ -40,12 +39,6 @@ return {
                 }
 
                 buildcommands {
-                    -- download files, redownload only if outdated
-                    ('echo "%s/%s"'):format(baseURL, dllName),
-                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(uvBinDir, dllName, uvBinDir, dllName, baseURL, dllName),
-                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(uvBinDir, pdbName, uvBinDir, pdbName, baseURL, pdbName),
-                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(uvBinDir, libName, uvBinDir, libName, baseURL, libName),
-					'if %errorlevel% neq 0 (exit /b 1)',
 					('{COPY} %s/%s %%{cfg.targetdir}'):format(uvBinDir, dllName),
                     -- copy pdb manually to the server files
 					'{MKDIR} %{cfg.targetdir}/dbg/',
@@ -60,7 +53,6 @@ return {
                 }
 
                 buildcommands {
-                    ('curl "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(uvBinDir, soName, uvBinDir, soName, baseURL, soName),
 					('{COPY} %s/%s %%{cfg.targetdir}'):format(uvBinDir, soName),
                 }
 		end
