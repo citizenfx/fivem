@@ -9,7 +9,7 @@ game: gta5
 int GET_PED_HAIR_COLOR(Ped ped);
 ```
 
-A getter for [_SET_PED_HAIR_COLOR](#_0x4CFFC65454C93A49). Returns -1 if fails to get.
+A getter for [_SET_PED_HAIR_COLOR](#_0x4CFFC65454C93A49). 
 
 ## Examples
 
@@ -24,4 +24,4 @@ end
 * **ped**: The target ped
 
 ## Return value
-Returns ped's primary hair colour.
+Returns ped's primary hair colour, or -1 if the ped doesn't have it set.

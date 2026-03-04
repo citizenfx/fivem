@@ -16,3 +16,4 @@ This is similar to the PushScaleformMovieFunction natives, except it calls in th
 * **fnName**: A function in the overlay's TIMELINE.
 
 ## Return value
+Returns `true` if it was able to setup a `gtx` call, `false` otherwise

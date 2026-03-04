@@ -23,4 +23,4 @@ local success, minX, minY, maxX, maxY = GetCalmingQuadBounds(1)
 * **maxY**: The maxY coordinate
 
 ## Return value
-Returns true on success. Bounds are undefined on failure
+Returns `true` on success, `false` otherwise. The min/max bounds are all set to 0 on failure.
