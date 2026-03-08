@@ -318,16 +318,8 @@ namespace nui
 			else
 			{
 				// TriggerLoadEnd flushes queued events by frame name, not by event type.
-				std::string queueName = "__root";
-
-				if (type == "frameCall" && argumentList->GetSize() > 1)
-				{
-					queueName = argumentList->GetString(1);
-				}
-				else if (type != "rootCall")
-				{
-					queueName = argumentList->GetString(0);
-				}
+				auto queueName = (type == "frameCall" && argumentList->GetSize() > 1) ? argumentList->GetString(1)
+				               : (type != "rootCall") ? argumentList->GetString(0) : std::string("__root");
 
 				std::unique_lock _(g_processMessageQueueMutex);
 				g_processMessageQueue[queueName].push_back(processMessage);
