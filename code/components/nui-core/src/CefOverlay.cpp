@@ -317,8 +317,20 @@ namespace nui
 			}
 			else
 			{
+				// TriggerLoadEnd flushes queued events by frame name, not by event type.
+				std::string queueName = "__root";
+
+				if (type == "frameCall" && argumentList->GetSize() > 1)
+				{
+					queueName = argumentList->GetString(1);
+				}
+				else if (type != "rootCall")
+				{
+					queueName = argumentList->GetString(0);
+				}
+
 				std::unique_lock _(g_processMessageQueueMutex);
-				g_processMessageQueue[(type != "rootCall") ? processMessage->GetArgumentList()->GetString(0) : "__root"].push_back(processMessage);
+				g_processMessageQueue[queueName].push_back(processMessage);
 			}
 		});
 
