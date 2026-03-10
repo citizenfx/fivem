@@ -28,6 +28,7 @@
 
 #include "JavaScriptEnvironmentCode.h"
 #include "NodeScopeHandler.h"
+#include "UvLoopTimer.h"
 #include "VFSDevice.h"
 #include "VFSManager.h"
 
@@ -42,7 +43,8 @@ using namespace fx::v8shared;
 namespace fx::nodejs
 {
 static NodeParentEnvironment g_nodeEnv;
-static ScopeHandler g_scopeHandler;
+static UvLoopTimer g_loopTimer;
+static bool g_shutdown = false;
 
 std::unordered_map<v8::Isolate*, NodeScriptRuntime*> runtimeMap;
 
@@ -202,26 +204,6 @@ const std::string_view& resource)
 
 static InitFunction initFunction([]()
 {
-	// set up the environment scope handler
-	if (!g_nodeEnv.IsStartNode())
-	{
-		g_scopeHandler.Initialize();
-	}
-
-	// trigger removing funcrefs on the *resource manager* so that it'll still happen when a runtime is destroyed
-	ResourceManager::OnInitializeInstance.Connect([](ResourceManager* manager)
-	{
-		manager->OnTick.Connect([]()
-		{
-			RefAndPersistent<NodeScriptRuntime>* deleteRef;
-
-			while (g_cleanUpFuncRefs.try_pop(reinterpret_cast<void*&>(deleteRef)))
-			{
-				delete deleteRef;
-			}
-		});
-	});
-
 	// initialize the parent node environment, should be done one time per process
 	result_t hr = g_nodeEnv.Initialize();
 	if (FX_FAILED(hr) || g_nodeEnv.IsStartNode())
@@ -233,6 +215,36 @@ static InitFunction initFunction([]()
 #endif
 		return;
 	}
+
+	// set up a tick for the parent node environment on startup
+	ResourceManager::OnInitializeInstance.Connect([](ResourceManager* manager)
+	{
+		manager->OnTick.Connect([]()
+		{
+			// trigger removing funcrefs on the *resource manager* so that it'll still happen when a runtime is destroyed
+			RefAndPersistent<NodeScriptRuntime>* deleteRef;
+
+			while (g_cleanUpFuncRefs.try_pop(reinterpret_cast<void*&>(deleteRef)))
+			{
+				delete deleteRef;
+			}
+
+			g_nodeEnv.Tick();
+		},
+		INT32_MIN);
+
+		g_loopTimer.Initialize();
+	});
+
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	{
+		instance->OnRequestQuit.Connect([](const std::string&)
+		{
+			// shutdown our timer and pass the tick handling over to the interface one
+			g_shutdown = true;
+			g_loopTimer.Shutdown();
+		});
+	});
 });
 
 // NOTE: it still depends on preexisting files from old runtime
@@ -305,20 +317,41 @@ static void OnMessage(v8::Local<v8::Message> message, v8::Local<v8::Value> error
 	std::stringstream stack;
 	auto stackTrace = message->GetStackTrace();
 
-	for (int i = 0; i < stackTrace->GetFrameCount(); i++)
+	if (!stackTrace.IsEmpty())
 	{
-		auto frame = stackTrace->GetFrame(isolate, i);
+		for (int i = 0; i < stackTrace->GetFrameCount(); i++)
+		{
+			auto frame = stackTrace->GetFrame(isolate, i);
 
-		v8::String::Utf8Value sourceStr(isolate, frame->GetScriptNameOrSourceURL());
-		v8::String::Utf8Value functionStr(isolate, frame->GetFunctionName());
+			v8::String::Utf8Value sourceStr(isolate, frame->GetScriptNameOrSourceURL());
+			v8::String::Utf8Value functionStr(isolate, frame->GetFunctionName());
 
-		stack << (*sourceStr ? *sourceStr : "(unknown)") << "(" << frame->GetLineNumber() << "," << frame->GetColumn() << "): " << (*functionStr ? *functionStr : "") << "\n";
+			stack << (*sourceStr ? *sourceStr : "(unknown)")
+				  << "(" << frame->GetLineNumber() << "," << frame->GetColumn() << "): "
+				  << (*functionStr ? *functionStr : "")
+				  << "\n";
+		}
 	}
 
+	NodeScriptRuntime* rt = nullptr;
 	auto context = isolate->GetEnteredOrMicrotaskContext();
-	auto data = context->GetEmbedderData(16);
-	auto rt = reinterpret_cast<NodeScriptRuntime*>(v8::Local<v8::External>::Cast(data)->Value());
-	ScriptTrace(rt, "%s\n%s\n%s\n", *messageStr, stack.str(), *errorStr);
+	if (!context.IsEmpty())
+	{
+		auto data = context->GetEmbedderData(16);
+		if (!data.IsEmpty() && data->IsExternal())
+		{
+			rt = reinterpret_cast<NodeScriptRuntime*>(v8::Local<v8::External>::Cast(data)->Value());
+		}
+	}
+
+	if (rt)
+	{
+		ScriptTrace(rt, "%s\n%s\n%s\n", *messageStr ? *messageStr : "", stack.str().c_str(), *errorStr ? *errorStr : "");
+	}
+	else
+	{
+		trace("Unhandled JS message: %s\n%s\n%s\n", *messageStr ? *messageStr : "", stack.str().c_str(), *errorStr ? *errorStr : "");
+	}
 }
 
 result_t NodeScriptRuntime::Create(IScriptHost* host)
@@ -354,9 +387,9 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 
 	m_isMonitorRuntime = resourceManager->IsMonitor();
 
-	// create our UV loop
-	m_uvLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop();
-	// uv_loop_init(m_uvLoop);
+	// create our UV loo
+	m_uvLoop = new uv_loop_t;
+	uv_loop_init(m_uvLoop);
 
 	// create our isolate from parent platform
 	const auto allocator = node::CreateArrayBufferAllocator();
@@ -365,20 +398,6 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 
 	m_isolate->SetCaptureStackTraceForUncaughtExceptions(true);
 	m_isolate->AddMessageListener(OnMessage);
-
-	m_isolate->AddGCPrologueCallback([](v8::Isolate* isolate, v8::GCType type,
-									 v8::GCCallbackFlags flags, void* data)
-	{
-		auto* runtime = static_cast<NodeScriptRuntime*>(data);
-		runtime->m_isInGc.fetch_add(1, std::memory_order_release);
-	}, this);
-
-	m_isolate->AddGCEpilogueCallback([](v8::Isolate* isolate, v8::GCType type,
-									 v8::GCCallbackFlags flags, void* data)
-	{
-		auto* runtime = static_cast<NodeScriptRuntime*>(data);
-		runtime->m_isInGc.fetch_sub(1, std::memory_order_release);
-	}, this);
 
 	runtimeMap[m_isolate] = this;
 
@@ -477,21 +496,23 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 		}
 	}
 
+	g_loopTimer.AddRuntime(this);
+
 	return FX_S_OK;
 }
 
 result_t NodeScriptRuntime::Destroy()
 {
-	// seems like creating and destroying an isolate in the same tick causes a crash in some cases
-	uv_run(m_uvLoop, UV_RUN_NOWAIT);
-
 	m_eventRoutine = TEventRoutine();
 	m_tickRoutine = std::function<void()>();
 	m_callRefRoutine = TCallRefRoutine();
 	m_deleteRefRoutine = TDeleteRefRoutine();
 	m_duplicateRefRoutine = TDuplicateRefRoutine();
 
+	g_loopTimer.RemoveRuntime(this);
 	SharedPushEnvironment pushed(this);
+	// seems like creating and destroying an isolate in the same tick causes a crash in some cases
+	uv_run(m_uvLoop, UV_RUN_NOWAIT);
 
 	node::EmitProcessBeforeExit(m_nodeEnvironment);
 	node::EmitProcessExit(m_nodeEnvironment);
@@ -499,30 +520,36 @@ result_t NodeScriptRuntime::Destroy()
 	node::FreeEnvironment(m_nodeEnvironment);
 	node::FreeIsolateData(m_isolateData);
 
-	// uv_loop_close(m_uvLoop);
-	// delete m_uvLoop;
+	uv_loop_close(m_uvLoop);
+	delete m_uvLoop;
 
 	m_context.Reset();
 	return FX_S_OK;
 }
 
+void NodeScriptRuntime::TickFast() const
+{
+	SharedPushEnvironmentNoContext _(m_isolate);
+	// SharedPushEnvironment pushed(this);
+	uv_run(m_uvLoop, UV_RUN_NOWAIT);
+	g_nodeEnv.GetPlatform()->DrainTasks(m_isolate);
+}
+
 result_t NodeScriptRuntime::Tick()
 {
+	// run tick manually after shutting down the uv timer
+	if (g_shutdown)
+	{
+		TickFast();
+	}
+
 	if (!m_tickRoutine)
 	{
 		return FX_S_OK;
 	}
 
-	if (!v8::Locker::IsLocked(GetIsolate()))
-	{
-		SharedPushEnvironment pushed(this);
-		m_tickRoutine();
-	}
-	else
-	{
-		SharedPushEnvironmentNoIsolate pushed(this);
-		m_tickRoutine();
-	}
+	SharedPushEnvironment pushed(this);
+	m_tickRoutine();
 	return FX_S_OK;
 }
 
