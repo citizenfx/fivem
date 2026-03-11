@@ -278,7 +278,7 @@ static HookFunction hookFunction([]()
 		hook::put<uint16_t>(hook::get_pattern("8B 45 30 48 8B 4F 20 41 BE FF FF 00 00", -6), 0xE990);
 
 		// population zone selection for network games
-		hook::put<uint8_t>(hook::pattern("74 63 45 8D 47 02 E8").count(1).get(0).get<void>(0), 0xEB);
+		hook::put<uint8_t>(hook::pattern("74 ? 45 8D 47 ? E8").count(1).get(0).get<void>(0), 0xEB);
 
 		// it seems in b2944 R* added a flag that ignore some netgame checks (scenarios, population, etc)
 

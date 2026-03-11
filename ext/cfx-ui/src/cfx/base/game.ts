@@ -36,6 +36,7 @@ export function getGameBuildDLCName(gameBuild: string): string {
       return 'Money Fronts';
     case '3717':
     case '3751':
+    case '3788':
       return 'A Safehouse in the Hills';
   }
 

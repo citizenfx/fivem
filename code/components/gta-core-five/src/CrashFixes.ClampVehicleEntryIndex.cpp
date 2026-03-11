@@ -55,7 +55,7 @@ static HookFunction hookFunction([]()
 	g_syncedVehicleOffset = *hook::get_pattern<uint8_t>("48 8D 4B ? E8 ? ? ? ? 48 8D 54 24 ? 48 8B CE 44 0F B7 00 48 8B 06 66 44 89 44 24 ? 45 33 C0 FF 90 ? ? ? ? 48 8B 06 45 33 C9 45 8D 41 ? 48 8D 53 ? 48 8B CE FF 50 ? 48 8D 53", 3);
 
 	g_modelInfoDataOffset = *hook::get_pattern<uint32_t>("48 8B 88 ? ? ? ? 38 99 ? ? ? ? 76", 3);
-	g_numEntryExitPointsOffset = *hook::get_pattern<uint32_t>("38 99 ? ? ? ? 76 ? 8D 6B", 2);
+	g_numEntryExitPointsOffset = *hook::get_pattern<uint32_t>("48 8B 47 ? 48 8B 88 ? ? ? ? 38 99", 11 + 2);
 
 	g_CClonedVehicleFSMInfo_Serialise = hook::trampoline(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 4F ? E8 ? ? ? ? 48 8D 54 24 ? 48 8D 4F")), CClonedVehicleFSMInfo_Serialise);
 });

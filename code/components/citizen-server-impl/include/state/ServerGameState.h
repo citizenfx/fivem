@@ -193,6 +193,16 @@ inline bool IsWinterUpdate25()
 
 	return value;
 }
+
+inline bool IsPatch2026_1()
+{
+	static bool value = ([]()
+	{
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= xbr::Build::Patch_2026_1) || fx::GetEnforcedGameBuildNumber() >= xbr::Build::Patch_2026_1;
+	})();
+
+	return value;
+}
 #elif defined(STATE_RDR3)
 inline bool Is1491()
 {

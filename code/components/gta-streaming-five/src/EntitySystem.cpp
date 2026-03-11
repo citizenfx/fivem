@@ -13,7 +13,7 @@
 
 static hook::cdecl_stub<fwEntity* (int handle)> getScriptEntity([]()
 {
-	return hook::pattern("44 8B C1 49 8B 41 08 41 C1 F8 08 41 38 0C 00").count(1).get(0).get<void>(-12);
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B F8 48 85 C0 0F 84 ? ? ? ? 44 38 60"));
 });
 
 static hook::cdecl_stub<uint32_t(fwEntity*)> getScriptGuidForEntity([]()

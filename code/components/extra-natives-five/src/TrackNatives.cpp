@@ -553,7 +553,7 @@ static HookFunction hookFunction([]()
 		CTrain::kTrainSpeedOffset = *hook::get_pattern<uint32_t>("4C 89 AF ? ? ? ? 44 89 AF ? ? ? ? 4C 89 AF ? ? ? ? 49 8B 0E", 3);
 	}
 
-	g_CTrain__Update = hook::trampoline(hook::get_call(hook::get_pattern("E8 ? ? ? ? 44 8A B5 ? ? ? ? 48 85 F6")), CTrain__Update);
+	g_CTrain__Update = hook::trampoline(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 78 ? 55 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 0F 28 81 ? ? ? ? 0F 29 70"), CTrain__Update);
 
 	OnKillNetworkDone.Connect([]()
 	{
