@@ -1318,268 +1318,248 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						m_serverProtocol = node["protocol"].get<uint32_t>();
 
-						auto continueAfterAllowance = [=]()
+						OnConnectionProgress("Requesting server permissions...", 0, 100, false);
+
+						auto doneCB = [=](const char* data, size_t size)
 						{
-							auto doneCB = [=](const char* data, size_t size)
 							{
+								try
 								{
-									try
+									json info = json::parse(data, data + size);
+
+									if (info.is_object() && info["server"].is_string())
 									{
-										json info = json::parse(data, data + size);
+										auto serverData = info["server"].get<std::string>();
+										boost::algorithm::replace_all(serverData, " win32", "");
+										boost::algorithm::replace_all(serverData, " linux", "");
+										boost::algorithm::replace_all(serverData, " SERVER", "");
+										boost::algorithm::replace_all(serverData, "FXServer-", "");
 
-										if (info.is_object() && info["server"].is_string())
+										try
 										{
-											auto serverData = info["server"].get<std::string>();
-											boost::algorithm::replace_all(serverData, " win32", "");
-											boost::algorithm::replace_all(serverData, " linux", "");
-											boost::algorithm::replace_all(serverData, " SERVER", "");
-											boost::algorithm::replace_all(serverData, "FXServer-", "");
+											g_serverVersion = std::stoi(serverData.substr(serverData.find_last_of('.') + 1));
+										}
+										catch (std::exception& e)
+										{
+											g_serverVersion = 0;
+										}
 
+										AddCrashometry("last_server_ver", serverData);
+									}
+
+									static std::set<std::string> policies;
+
+									auto oneSyncPolicyFailure = [this, onesyncType, maxClients, big1s]()
+									{
+										int maxSlots = 48;
+										std::string extraText;
+
+										if (policies.find("onesync") != policies.end())
+										{
+											maxSlots = 64;
+										}
+
+										if (!big1s)
+										{
+											if (policies.find("onesync_plus") != policies.end())
+											{
+												maxSlots = 128;
+											}
+											else if (maxSlots >= 64 && maxClients > 64)
+											{
+												extraText = "\nUsing 128 slots with 'Element Club Aurum' requires you to enable OneSync 'on' (formerly named 'Infinity'), not 'legacy'. Check your server configuration.";
+											}
+										}
+										else
+										{
+											if (policies.find("onesync_medium") != policies.end())
+											{
+												maxSlots = 128;
+											}
+										}
+
+										if (policies.find("onesync_big") != policies.end())
+										{
+											maxSlots = 2048;
+										}
+
+										OnConnectionError(fmt::sprintf("This server uses more slots than allowed by the current subscription. The allowed slot count is %d, but the server has a maximum slot count of %d.%s",
+														  maxSlots,
+														  maxClients,
+														  extraText),
+										json::object({
+													 { "fault", "server" },
+													 { "status", true },
+													 { "action", "#ErrorAction_TryAgainContactOwner" },
+													 })
+										.dump());
+
+										m_connectionState = CS_IDLE;
+									};
+
+									auto policySuccess = [this, maxClients]()
+									{
+										// add forced policies
+										if (maxClients <= 10)
+										{
+											// development/testing servers (<= 10 clients max - see ZAP defaults) get subdir_file_mapping granted
+											policies.insert("subdir_file_mapping");
+										}
+
+										// dev server
+										if (maxClients <= 8)
+										{
+											policies.insert("local_evaluation");
+										}
+
+										// format policy string and store it
+										std::stringstream policyStr;
+
+										for (const auto& line : policies)
+										{
+											policyStr << "[" << line << "]";
+										}
+
+										std::string policy = policyStr.str();
+
+										if (!policy.empty())
+										{
+											trace("Server feature policy is %s\n", policy);
+										}
+
+										Instance<ICoreGameInit>::Get()->SetData("policy", policy);
+
+										// continue connection
+										m_connectionState = CS_INITRECEIVED;
+									};
+
+									policies.clear();
+
+									OnConnectionProgress("Requesting server feature policy...", 0, 100, false);
+
+									if (info.is_object() && info["vars"].is_object())
+									{
+										auto val = info["vars"].value("sv_licenseKeyToken", "");
+
+										if (!val.empty())
+										{
 											try
 											{
-												g_serverVersion = std::stoi(serverData.substr(serverData.find_last_of('.') + 1));
+												auto targetContext = val.substr(val.find_first_of('_') + 1);
+												m_targetContext = targetContext.substr(0, targetContext.find_first_of(':'));
 											}
 											catch (std::exception& e)
 											{
-												g_serverVersion = 0;
 											}
 
-											AddCrashometry("last_server_ver", serverData);
-										}
+											cfx::legitimacy::SetSteamRichPresenceWrapper("steam_player_group", val);
 
-										static std::set<std::string> policies;
-
-										auto oneSyncPolicyFailure = [this, onesyncType, maxClients, big1s]()
-										{
-											int maxSlots = 48;
-											std::string extraText;
-
-											if (policies.find("onesync") != policies.end())
+											m_httpClient->DoGetRequest(fmt::sprintf("%sapi/policy/%s", POLICY_LIVE_ENDPOINT, val), [=](bool success, const char* data, size_t size)
 											{
-												maxSlots = 64;
-											}
+												std::string fact;
 
-											if (!big1s)
-											{
-												if (policies.find("onesync_plus") != policies.end())
+												// process policy response
+												if (success)
 												{
-													maxSlots = 128;
-												}
-												else if (maxSlots >= 64 && maxClients > 64)
-												{
-													extraText = "\nUsing 128 slots with 'Element Club Aurum' requires you to enable OneSync 'on' (formerly named 'Infinity'), not 'legacy'. Check your server configuration.";
-												}
-											}
-											else
-											{
-												if (policies.find("onesync_medium") != policies.end())
-												{
-													maxSlots = 128;
-												}
-											}
-
-											if (policies.find("onesync_big") != policies.end())
-											{
-												maxSlots = 2048;
-											}
-
-											OnConnectionError(fmt::sprintf("This server uses more slots than allowed by the current subscription. The allowed slot count is %d, but the server has a maximum slot count of %d.%s",
-												maxSlots,
-												maxClients,
-												extraText),
-												json::object({
-													{ "fault", "server" },
-													{ "status", true },
-													{ "action", "#ErrorAction_TryAgainContactOwner" },
-												}).dump());
-
-											m_connectionState = CS_IDLE;
-										};
-
-										auto policySuccess = [this, maxClients]()
-										{
-											// add forced policies
-											if (maxClients <= 10)
-											{
-												// development/testing servers (<= 10 clients max - see ZAP defaults) get subdir_file_mapping granted
-												policies.insert("subdir_file_mapping");
-											}
-
-											// dev server
-											if (maxClients <= 8)
-											{
-												policies.insert("local_evaluation");
-											}
-
-											// format policy string and store it
-											std::stringstream policyStr;
-
-											for (const auto& line : policies)
-											{
-												policyStr << "[" << line << "]";
-											}
-
-											std::string policy = policyStr.str();
-
-											if (!policy.empty())
-											{
-												trace("Server feature policy is %s\n", policy);
-											}
-
-											Instance<ICoreGameInit>::Get()->SetData("policy", policy);
-
-											// continue connection
-											m_connectionState = CS_INITRECEIVED;
-										};
-
-										policies.clear();
-
-										OnConnectionProgress("Requesting server feature policy...", 0, 100, false);
-
-										if (info.is_object() && info["vars"].is_object())
-										{
-											auto val = info["vars"].value("sv_licenseKeyToken", "");
-
-											if (!val.empty())
-											{
-												try
-												{
-													auto targetContext = val.substr(val.find_first_of('_') + 1);
-													m_targetContext = targetContext.substr(0, targetContext.find_first_of(':'));
-												}
-												catch (std::exception& e)
-												{
-												}
-
-												cfx::legitimacy::SetSteamRichPresenceWrapper("steam_player_group", val);
-
-												m_httpClient->DoGetRequest(fmt::sprintf("%sapi/policy/%s", POLICY_LIVE_ENDPOINT, val), [=](bool success, const char* data, size_t size)
-												{
-													std::string fact;
-
-													// process policy response
-													if (success)
+													try
 													{
-														try
-														{
-															json doc = json::parse(data, data + size);
+														json doc = json::parse(data, data + size);
 
-															if (doc.is_array())
+														if (doc.is_array())
+														{
+															for (auto& entry : doc)
 															{
-																for (auto& entry : doc)
+																if (entry.is_string())
 																{
-																	if (entry.is_string())
-																	{
-																		policies.insert(entry.get<std::string>());
-																	}
+																	policies.insert(entry.get<std::string>());
 																}
 															}
-															else
-															{
-																fact = "Parsing policy failed (2).";
-															}
 														}
-														catch (const std::exception& e)
+														else
 														{
-															trace("Policy parsing failed. %s\n", e.what());
-															fact = "Parsing policy failed.";
+															fact = "Parsing policy failed (2).";
 														}
 													}
-													else
+													catch (const std::exception& e)
 													{
-														trace("Policy request failed. %s\n", std::string{ data, size });
-														fact = "Requesting policy failed.";
+														trace("Policy parsing failed. %s\n", e.what());
+														fact = "Parsing policy failed.";
 													}
+												}
+												else
+												{
+													trace("Policy request failed. %s\n", std::string{ data, size });
+													fact = "Requesting policy failed.";
+												}
 
-													// check 1s policy
-													if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
+												// check 1s policy
+												if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
+												{
+													if (policies.find(onesyncType) == policies.end())
 													{
-														if (policies.find(onesyncType) == policies.end())
+														if (!fact.empty())
 														{
-															if (!fact.empty())
-															{
-																OnConnectionError(fmt::sprintf("Could not check server feature policy. %s", fact), json::object({
-																	{ "fault", "cfx" },
-																	{ "status", true },
-																	{ "action", "#ErrorAction_TryAgainCheckStatus" },
-																}).dump());
+															OnConnectionError(fmt::sprintf("Could not check server feature policy. %s", fact), json::object({
+																																							{ "fault", "cfx" },
+																																							{ "status", true },
+																																							{ "action", "#ErrorAction_TryAgainCheckStatus" },
+																																							})
+																																			   .dump());
 
-																m_connectionState = CS_IDLE;
+															m_connectionState = CS_IDLE;
 
-																return;
-															}
-
-															oneSyncPolicyFailure();
 															return;
 														}
+
+														oneSyncPolicyFailure();
+														return;
 													}
+												}
 
-													policySuccess();
-												});
+												policySuccess();
+											});
 
-												return;
-											}
+											return;
 										}
-
-										policySuccess();
 									}
-									catch (std::exception& e)
-									{
-										OnConnectionError(fmt::sprintf("Info get failed for %s\n", e.what()), json::object({
-											{ "fault", "server" },
-											{ "action", "#ErrorAction_TryAgainContactOwner" },
-										}).dump());
 
-										m_connectionState = CS_IDLE;
-									}
+									policySuccess();
 								}
-							};
-
-							m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
-							{
-								if (success)
+								catch (std::exception& e)
 								{
-									std::string blobStr(data, size);
-
-									OnInfoBlobReceived(blobStr, [blobStr, doneCB]()
-									{
-										doneCB(blobStr.data(), blobStr.size());
-									});
-								}
-								else
-								{
-									OnConnectionError("Failed to fetch /info.json to obtain policy metadata.", json::object({
-												{ "fault", "server" },
-												{ "action", "#ErrorAction_TryAgainContactOwner" },
-									}).dump());
+									OnConnectionError(fmt::sprintf("Info get failed for %s\n", e.what()), json::object({
+																													   { "fault", "server" },
+																													   { "action", "#ErrorAction_TryAgainContactOwner" },
+																													   })
+																										  .dump());
 
 									m_connectionState = CS_IDLE;
 								}
-							});
+							}
 						};
 
-						auto blocklistResultHandler = [this, continueAfterAllowance](bool success, const char* data, size_t length)
+						m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
 						{
 							if (success)
 							{
-								auto dStr = std::string(data, length);
+								std::string blobStr(data, size);
 
-								OnConnectionError(fmt::sprintf("This server has been blocked from the Cfx.re platform. Stated reason: %s", dStr).c_str());
+								OnInfoBlobReceived(blobStr, [blobStr, doneCB]()
+								{
+									doneCB(blobStr.data(), blobStr.size());
+								});
+							}
+							else
+							{
+								OnConnectionError("Failed to fetch /info.json to obtain policy metadata.", json::object({
+																														{ "fault", "server" },
+																														{ "action", "#ErrorAction_TryAgainContactOwner" },
+																														})
+																										   .dump());
 
 								m_connectionState = CS_IDLE;
-
-								return;
 							}
-
-							continueAfterAllowance();
-						};
-
-						OnConnectionProgress("Requesting server permissions...", 0, 100, false);
-
-						HttpRequestOptions options;
-						options.timeoutNoResponse = std::chrono::seconds(5);
-
-						m_httpClient->DoGetRequest(fmt::sprintf("https://gss.cfx-services.net/v1/blocklist/%s", address.GetHost()), options, blocklistResultHandler);
+						});
 
 						if (node.value("netlibVersion", 1) == 2)
 						{
