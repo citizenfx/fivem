@@ -147,6 +147,38 @@ const std::string_view& resource)
 			}
 		}
 
+		// Allow access to the OS temp directory (needed for HTTP multipart file uploads, e.g. koa-body/formidable)
+		{
+			static const std::string tempDir = []() -> std::string
+			{
+				std::error_code ec;
+				auto p = std::filesystem::temp_directory_path(ec);
+				if (ec)
+				{
+					return "";
+				}
+				auto abs = std::filesystem::absolute(p).string();
+				if (!abs.empty() && abs.back() != '\\' && abs.back() != '/')
+				{
+					abs += std::filesystem::path::preferred_separator;
+				}
+				return abs;
+			}();
+
+			if (!tempDir.empty())
+			{
+				std::string absolutePath = std::filesystem::absolute(std::filesystem::path(res)).string();
+#ifdef _WIN32
+				if (_strnicmp(absolutePath.c_str(), tempDir.c_str(), tempDir.size()) == 0)
+#else
+				if (absolutePath.compare(0, tempDir.size(), tempDir) == 0)
+#endif
+				{
+					return true;
+				}
+			}
+		}
+
 		fwRefContainer<vfs::Device> device = !res.empty() && res[0] == '@' ? vfs::GetDevice(res) : nullptr;
 		std::string path = res;
 		if (!device.GetRef())
