@@ -73,9 +73,9 @@ static void FillDefaultScriptInitSlotData(ScriptInitSlotStorage& slot)
 
 	slot.data.state.Int = 0;
 	slot.data.filter.Int = 0;
-	slot.data.blendInDuration.Float = 0.125f;
-	slot.data.blendOutDuration.Float = 0.125f;
-	slot.data.timeToPlay.Int = -1;
+	slot.data.blendInDuration.Float = 0.0f;
+	slot.data.blendOutDuration.Float = 0.0f;
+	slot.data.timeToPlay.Int = 0;
 	slot.data.flags.Int = 0;
 	slot.data.ikFlags.Int = 0;
 
