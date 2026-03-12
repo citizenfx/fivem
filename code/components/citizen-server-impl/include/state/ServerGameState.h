@@ -957,21 +957,20 @@ public:
 		stateBag = std::move(newStateBag);
 	}
 
-	inline float GetDistanceCullingRadius(float playerCullingRadius)
+	// returns squared radius: per-entity override > per-player override > server-wide default
+	inline float GetDistanceCullingRadius(float playerCullingRadius, float defaultCullingRadius)
 	{
-		//Use priority ordering
-		if (overrideCullingRadius != 0.0f) 
+		if (overrideCullingRadius != 0.0f)
 		{
 			return overrideCullingRadius;
 		}
-		else if (playerCullingRadius != 0.0f) 
+		else if (playerCullingRadius != 0.0f)
 		{
 			return playerCullingRadius;
 		}
 		else
 		{
-			// #TODO1S: figure out a good value for this
-			return (424.0f * 424.0f);
+			return defaultCullingRadius * defaultCullingRadius;
 		}
 	}
 

@@ -95,6 +95,11 @@ std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
 std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
 
+static std::shared_ptr<ConVar<float>> g_oneSyncCullRadius;
+static std::shared_ptr<ConVar<float>> g_oneSyncNearSyncDistance;
+static std::shared_ptr<ConVar<float>> g_oneSyncMidSyncDistance;
+static std::shared_ptr<ConVar<float>> g_oneSyncFarSyncDistance;
+
 static std::shared_ptr<ConVar<bool>> g_networkedSoundsEnabledVar;
 static bool g_networkedSoundsEnabled;
 
@@ -1084,7 +1089,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						float diffY = entityPos.y - playerPos.y;
 
 						float distSquared = (diffX * diffX) + (diffY * diffY);
-						if (distSquared < entity->GetDistanceCullingRadius(clientDataUnlocked->GetPlayerCullingRadius()))
+						if (distSquared < entity->GetDistanceCullingRadius(clientDataUnlocked->GetPlayerCullingRadius(), g_oneSyncCullRadius->GetValue()))
 						{
 							return true;
 						}
@@ -1308,15 +1313,19 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							dist = std::min(thisDist, dist);
 						}
 
-						if (dist > 500.0f * 500.0f)
+						float nearDist = g_oneSyncNearSyncDistance->GetValue();
+						float midDist = g_oneSyncMidSyncDistance->GetValue();
+						float farDist = g_oneSyncFarSyncDistance->GetValue();
+
+						if (dist > farDist * farDist)
 						{
 							syncDelay = 500ms;
 						}
-						else if (dist > 250.0f * 250.0f)
+						else if (dist > midDist * midDist)
 						{
 							syncDelay = 250ms;
 						}
-						else if (dist < 35.0f * 35.0f)
+						else if (dist < nearDist * nearDist)
 						{
 							syncDelay /= 4;
 						}
@@ -1335,7 +1344,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						dist = std::min(thisDist, dist);
 					}
 
-					if (dist < 35.0f * 35.0f)
+					float nearDist = g_oneSyncNearSyncDistance->GetValue();
+					if (dist < nearDist * nearDist)
 					{
 						syncDelay /= 4;
 					}
@@ -7935,6 +7945,11 @@ static InitFunction initFunction([]()
 		g_oneSyncRadiusFrequency = instance->AddVariable<bool>("onesync_radiusFrequency", ConVar_None, true);
 		g_oneSyncLogVar = instance->AddVariable<std::string>("onesync_logFile", ConVar_None, "");
 		g_oneSyncWorkaround763185 = instance->AddVariable<bool>("onesync_workaround763185", ConVar_None, false);
+
+		g_oneSyncCullRadius = instance->AddVariable<float>("onesync_cullRadius", ConVar_None, 424.0f);
+		g_oneSyncNearSyncDistance = instance->AddVariable<float>("onesync_nearSyncDistance", ConVar_None, 35.0f);
+		g_oneSyncMidSyncDistance = instance->AddVariable<float>("onesync_midSyncDistance", ConVar_None, 250.0f);
+		g_oneSyncFarSyncDistance = instance->AddVariable<float>("onesync_farSyncDistance", ConVar_None, 500.0f);
 
 		fwRefContainer<fx::ServerGameState> sgs = new fx::ServerGameState();
 		instance->SetComponent(sgs);
