@@ -147,35 +147,17 @@ const std::string_view& resource)
 			}
 		}
 
-		// Allow access to the OS temp directory (needed for HTTP multipart file uploads, e.g. koa-body/formidable)
+		// Allow access to the resource's own sandboxed temp directory (e.g. HTTP multipart file uploads via koa-body/formidable)
+		if (!m_tempDir.empty())
 		{
-			static const std::string tempDir = []() -> std::string
-			{
-				std::error_code ec;
-				auto p = std::filesystem::temp_directory_path(ec);
-				if (ec)
-				{
-					return "";
-				}
-				auto abs = std::filesystem::absolute(p).string();
-				if (!abs.empty() && abs.back() != '\\' && abs.back() != '/')
-				{
-					abs += std::filesystem::path::preferred_separator;
-				}
-				return abs;
-			}();
-
-			if (!tempDir.empty())
-			{
-				std::string absolutePath = std::filesystem::absolute(std::filesystem::path(res)).string();
+			std::string absolutePath = std::filesystem::absolute(std::filesystem::path(res)).string();
 #ifdef _WIN32
-				if (_strnicmp(absolutePath.c_str(), tempDir.c_str(), tempDir.size()) == 0)
+			if (_strnicmp(absolutePath.c_str(), m_tempDir.c_str(), m_tempDir.size()) == 0)
 #else
-				if (absolutePath.compare(0, tempDir.size(), tempDir) == 0)
+			if (absolutePath.compare(0, m_tempDir.size(), m_tempDir) == 0)
 #endif
-				{
-					return true;
-				}
+			{
+				return true;
 			}
 		}
 
@@ -286,6 +268,7 @@ static std::pair<std::string, v8::FunctionCallback> g_citizenFunctions[] = {
 	{ "setUnhandledPromiseRejectionFunction", V8_SetUnhandledPromiseRejectionRoutine<NodeScriptRuntime> },
 	{ "getTickCount", V8_GetTickCount },
 	{ "getResourcePath", V8_GetResourcePath<NodeScriptRuntime> },
+	{ "getResourceTempPath", V8_GetResourceTempPath<NodeScriptRuntime> },
 
 	// ref stuff
 	{ "setCallRefFunction", V8_SetCallRefFunction<NodeScriptRuntime> },
@@ -385,6 +368,25 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 	const fwRefContainer<fx::Resource> resource = resourceManager->GetResource(resourceName);
 
 	m_isMonitorRuntime = resourceManager->IsMonitor();
+
+	// create a per-resource temp directory for sandboxed filesystem access (e.g. HTTP multipart uploads)
+	{
+		std::error_code ec;
+		auto sysTempDir = std::filesystem::temp_directory_path(ec);
+		if (!ec)
+		{
+			auto resourceTempDir = sysTempDir / ("cfx-" + m_resourceName);
+			std::filesystem::create_directories(resourceTempDir, ec);
+			if (!ec)
+			{
+				m_tempDir = std::filesystem::absolute(resourceTempDir).string();
+				if (!m_tempDir.empty() && m_tempDir.back() != '\\' && m_tempDir.back() != '/')
+				{
+					m_tempDir += std::filesystem::path::preferred_separator;
+				}
+			}
+		}
+	}
 
 	// create our UV loop
 	m_uvLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop();
@@ -535,6 +537,14 @@ result_t NodeScriptRuntime::Destroy()
 	// delete m_uvLoop;
 
 	m_context.Reset();
+
+	// clean up the per-resource temp directory
+	if (!m_tempDir.empty())
+	{
+		std::error_code ec;
+		std::filesystem::remove_all(m_tempDir, ec);
+	}
+
 	return FX_S_OK;
 }
 

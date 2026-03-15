@@ -52,6 +52,7 @@ private:
 	int m_instanceId;
 	std::string m_name;
 	std::string m_resourceName;
+	std::string m_tempDir;
 	bool m_isMonitorRuntime = false;
 
 	// direct host access
@@ -120,6 +121,11 @@ public:
 		m_resourceHost->GetResourceName(&resourceName);
 
 		return resourceName;
+	}
+
+	const std::string& GetTempPath() const
+	{
+		return m_tempDir;
 	}
 
 	void SetTickRoutine(const TTickRoutine& tickRoutine)

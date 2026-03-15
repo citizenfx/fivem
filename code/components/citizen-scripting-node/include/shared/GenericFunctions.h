@@ -256,4 +256,13 @@ namespace fx::v8shared
 
 		args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), path.c_str(), v8::NewStringType::kNormal, path.size()).ToLocalChecked());
 	}
+
+	template<class RuntimeType>
+	static void V8_GetResourceTempPath(const v8::FunctionCallbackInfo<v8::Value>& args)
+	{
+		auto runtime = GetScriptRuntimeFromArgs<RuntimeType>(args);
+		const auto& tempPath = runtime->GetTempPath();
+
+		args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), tempPath.c_str(), v8::NewStringType::kNormal, tempPath.size()).ToLocalChecked());
+	}
 }
