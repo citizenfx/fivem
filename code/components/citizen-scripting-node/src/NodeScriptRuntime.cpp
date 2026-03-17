@@ -147,20 +147,6 @@ const std::string_view& resource)
 			}
 		}
 
-		// Allow access to the resource's own sandboxed temp directory (e.g. HTTP multipart file uploads via koa-body/formidable)
-		if (!m_tempDir.empty())
-		{
-			std::string absolutePath = std::filesystem::absolute(std::filesystem::path(res)).string();
-#ifdef _WIN32
-			if (_strnicmp(absolutePath.c_str(), m_tempDir.c_str(), m_tempDir.size()) == 0)
-#else
-			if (absolutePath.compare(0, m_tempDir.size(), m_tempDir) == 0)
-#endif
-			{
-				return true;
-			}
-		}
-
 		fwRefContainer<vfs::Device> device = !res.empty() && res[0] == '@' ? vfs::GetDevice(res) : nullptr;
 		std::string path = res;
 		if (!device.GetRef())
@@ -369,22 +355,14 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 
 	m_isMonitorRuntime = resourceManager->IsMonitor();
 
-	// create a per-resource temp directory for sandboxed filesystem access (e.g. HTTP multipart uploads)
+	// create a per-resource temp directory inside the resource folder for sandboxed filesystem access (e.g. HTTP multipart uploads)
 	{
 		std::error_code ec;
-		auto sysTempDir = std::filesystem::temp_directory_path(ec);
+		auto resourceTempDir = std::filesystem::path(resource->GetPath()) / "tmp";
+		std::filesystem::create_directories(resourceTempDir, ec);
 		if (!ec)
 		{
-			auto resourceTempDir = sysTempDir / ("cfx-" + m_resourceName);
-			std::filesystem::create_directories(resourceTempDir, ec);
-			if (!ec)
-			{
-				m_tempDir = std::filesystem::absolute(resourceTempDir).string();
-				if (!m_tempDir.empty() && m_tempDir.back() != '\\' && m_tempDir.back() != '/')
-				{
-					m_tempDir += std::filesystem::path::preferred_separator;
-				}
-			}
+			m_tempDir = std::filesystem::absolute(resourceTempDir).string();
 		}
 	}
 
