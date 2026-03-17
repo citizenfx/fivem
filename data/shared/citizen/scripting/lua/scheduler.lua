@@ -945,3 +945,291 @@ end
 if not isDuplicityVersion then
 	LocalPlayer = Player(-1)
 end
+
+-- Callback system
+
+local cbNetRegistered = {}
+local cbLocalRegistered = {}
+local cbPending = {}
+local cbRequestId = 0
+local cbResourceName = GetCurrentResourceName()
+local CB_TIMEOUT_MS = GetConvarInt('cb_timeout', 10000)
+
+local function nextCbRequestId()
+	cbRequestId = cbRequestId + 1
+	return ('%s:%d'):format(cbResourceName, cbRequestId)
+end
+
+local function cbQualifyName(name)
+	if name:find(':', 1, true) then
+		return name
+	end
+	return cbResourceName .. ':' .. name
+end
+
+local function cbGetResourceFromName(qualifiedName)
+	local colon = qualifiedName:find(':', 1, true)
+	if colon then
+		return qualifiedName:sub(1, colon - 1)
+	end
+	return nil
+end
+
+local function cbGetResourceFromRequestId(requestId)
+	local colon = requestId:find(':', 1, true)
+	if colon then
+		return requestId:sub(1, colon - 1)
+	end
+	return nil
+end
+
+local function cbRegister(registry, name, handler, opts)
+	local qualifiedName = cbQualifyName(name)
+	opts = opts or {}
+	registry[qualifiedName] = {
+		handler = handler,
+		restricted = opts.restricted or false,
+		delay = opts.delay or false,
+		lastCallTime = nil
+	}
+end
+
+local function cbHandleRequest(registry, name, requestId, respondFn, source, ...)
+	if cbGetResourceFromName(name) ~= cbResourceName then
+		return
+	end
+
+	local entry = registry[name]
+
+	if not entry then
+		respondFn(requestId, false, 'No callback registered: ' .. name)
+		return
+	end
+
+	-- check restriction
+	if entry.restricted then
+		local callerResource = cbGetResourceFromRequestId(requestId)
+		if callerResource ~= cbResourceName then
+			Citizen.Trace(("^1CALLBACK ERROR: Callback '%s' is restricted to resource '%s'^7\n"):format(name, cbResourceName))
+			respondFn(requestId, false, ("Callback '%s' is restricted to resource '%s'"):format(name, cbResourceName))
+			return
+		end
+	end
+
+	-- check delay/throttle
+	if entry.delay then
+		local now = GetGameTimer()
+		if entry.lastCallTime and (now - entry.lastCallTime) < entry.delay then
+			respondFn(requestId, false, ("Callback '%s' is throttled (delay: %dms)"):format(name, entry.delay))
+			return
+		end
+		entry.lastCallTime = now
+	end
+
+	local handler = entry.handler
+	local args = table_pack(...)
+
+	Citizen.CreateThreadNow(function()
+		local ok, result = xpcall(function()
+			if source ~= nil then
+				return table_pack(handler(source, table_unpack(args)))
+			else
+				return table_pack(handler(table_unpack(args)))
+			end
+		end, doStackFormat)
+
+		if ok then
+			respondFn(requestId, true, table_unpack(result))
+		else
+			respondFn(requestId, false, tostring(result))
+		end
+	end, ('callback %s'):format(name))
+end
+
+-- await: yields current coroutine until response
+local function cbCallAwait(triggerFn, name, ...)
+	local qualifiedName = cbQualifyName(name)
+	local requestId = nextCbRequestId()
+	local p = promise.new()
+
+	cbPending[requestId] = {
+		promise = p,
+		timeout = SetTimeout(CB_TIMEOUT_MS, function()
+			if cbPending[requestId] then
+				cbPending[requestId] = nil
+				p:reject('Callback timed out: ' .. qualifiedName)
+			end
+		end)
+	}
+
+	triggerFn(requestId, qualifiedName, ...)
+	return table_unpack(Citizen.Await(p))
+end
+
+-- non-await: response handled in separate coroutine
+local function cbCall(triggerFn, name, cb, ...)
+	local qualifiedName = cbQualifyName(name)
+	local requestId = nextCbRequestId()
+	local p = promise.new()
+
+	cbPending[requestId] = {
+		promise = p,
+		timeout = SetTimeout(CB_TIMEOUT_MS, function()
+			if cbPending[requestId] then
+				cbPending[requestId] = nil
+				p:reject('Callback timed out: ' .. qualifiedName)
+			end
+		end)
+	}
+
+	triggerFn(requestId, qualifiedName, ...)
+
+	p:next(function(val)
+		cb(table_unpack(val))
+	end, function(err)
+		Citizen.Trace('^1CALLBACK ERROR: ' .. tostring(err) .. '^7\n')
+	end)
+end
+
+local function cbHandleResponse(requestId, success, ...)
+	local pending = cbPending[requestId]
+	if not pending then return end
+
+	cbPending[requestId] = nil
+	ClearTimeout(pending.timeout)
+
+	if success then
+		pending.promise:resolve(table_pack(...))
+	else
+		pending.promise:reject(...)
+	end
+end
+
+-- local callback handlers (same-side, cross-resource)
+AddEventHandler('__cfx_lcb:resp', cbHandleResponse)
+
+AddEventHandler('__cfx_lcb:req', function(name, requestId, ...)
+	cbHandleRequest(cbLocalRegistered, name, requestId, function(rid, ...)
+		TriggerEvent('__cfx_lcb:resp', rid, ...)
+	end, nil, ...)
+end)
+
+function RegisterLocalCallback(name, handler, opts)
+	cbRegister(cbLocalRegistered, name, handler, opts)
+end
+
+-- non-await: response in separate coroutine
+function LocalCallback(name, cb, ...)
+	return cbCall(function(requestId, cbName, ...)
+		TriggerEvent('__cfx_lcb:req', cbName, requestId, ...)
+	end, name, cb, ...)
+end
+
+-- await: yields current coroutine
+function LocalCallbackAwait(name, ...)
+	return cbCallAwait(function(requestId, cbName, ...)
+		TriggerEvent('__cfx_lcb:req', cbName, requestId, ...)
+	end, name, ...)
+end
+
+-- net callback response handler (client<->server)
+RegisterNetEvent('__cfx_cb:resp')
+AddEventHandler('__cfx_cb:resp', function(requestId, success, ...)
+	local pending = cbPending[requestId]
+	if not pending then return end
+
+	if pending.expectedSource and _G.source ~= pending.expectedSource then
+		return
+	end
+
+	cbHandleResponse(requestId, success, ...)
+end)
+
+if isDuplicityVersion then
+	RegisterNetEvent('__cfx_cb:req')
+	AddEventHandler('__cfx_cb:req', function(name, requestId, ...)
+		local src = _G.source
+
+		cbHandleRequest(cbNetRegistered, name, requestId, function(rid, ...)
+			TriggerClientEvent('__cfx_cb:resp', src, rid, ...)
+		end, src, ...)
+	end)
+
+	function RegisterServerCallback(name, handler, opts)
+		cbRegister(cbNetRegistered, name, handler, opts)
+	end
+
+	-- non-await: response in separate coroutine
+	function ClientCallback(playerId, name, cb, ...)
+		assert(DoesPlayerExist(tostring(playerId)), ("target playerId '%s' does not exist"):format(playerId))
+		local qualifiedName = cbQualifyName(name)
+		local requestId = nextCbRequestId()
+		local p = promise.new()
+
+		cbPending[requestId] = {
+			promise = p,
+			expectedSource = playerId,
+			timeout = SetTimeout(CB_TIMEOUT_MS, function()
+				if cbPending[requestId] then
+					cbPending[requestId] = nil
+					p:reject('Callback timed out: ' .. qualifiedName)
+				end
+			end)
+		}
+
+		TriggerClientEvent('__cfx_cb:req', playerId, qualifiedName, requestId, ...)
+
+		p:next(function(val)
+			cb(table_unpack(val))
+		end, function(err)
+			Citizen.Trace('^1CALLBACK ERROR: ' .. tostring(err) .. '^7\n')
+		end)
+	end
+
+	-- await: yields current coroutine
+	function ClientCallbackAwait(playerId, name, ...)
+		assert(DoesPlayerExist(tostring(playerId)), ("target playerId '%s' does not exist"):format(playerId))
+		local qualifiedName = cbQualifyName(name)
+		local requestId = nextCbRequestId()
+		local p = promise.new()
+
+		cbPending[requestId] = {
+			promise = p,
+			expectedSource = playerId,
+			timeout = SetTimeout(CB_TIMEOUT_MS, function()
+				if cbPending[requestId] then
+					cbPending[requestId] = nil
+					p:reject('Callback timed out: ' .. qualifiedName)
+				end
+			end)
+		}
+
+		TriggerClientEvent('__cfx_cb:req', playerId, qualifiedName, requestId, ...)
+		return table_unpack(Citizen.Await(p))
+	end
+else
+	RegisterNetEvent('__cfx_cb:req')
+	AddEventHandler('__cfx_cb:req', function(name, requestId, ...)
+		cbHandleRequest(cbNetRegistered, name, requestId, function(rid, ...)
+			TriggerServerEvent('__cfx_cb:resp', rid, ...)
+		end, nil, ...)
+	end)
+
+	function RegisterClientCallback(name, handler, opts)
+		cbRegister(cbNetRegistered, name, handler, opts)
+	end
+
+	-- non-await: response in separate coroutine
+	function ServerCallback(name, cb, ...)
+		return cbCall(function(requestId, cbName, ...)
+			TriggerServerEvent('__cfx_cb:req', cbName, requestId, ...)
+		end, name, cb, ...)
+	end
+
+	-- await: yields current coroutine
+	function ServerCallbackAwait(name, ...)
+		return cbCallAwait(function(requestId, cbName, ...)
+			TriggerServerEvent('__cfx_cb:req', cbName, requestId, ...)
+		end, name, ...)
+	end
+end

@@ -918,5 +918,216 @@ const EXT_LOCALFUNCREF = 11;
 			column: parts[4] ? +parts[4] : null,
 		};
 	}
-	// END	
+	// Callback system
+	const cbNetRegistered = new Map();
+	const cbLocalRegistered = new Map();
+	const cbPending = new Map();
+	let cbRequestId = 0;
+	const CB_TIMEOUT_MS = GetConvarInt('cb_timeout', 10000);
+
+	function nextCbRequestId() {
+		return `${currentResourceName}:${++cbRequestId}`;
+	}
+
+	function cbQualifyName(name) {
+		return name.includes(':') ? name : `${currentResourceName}:${name}`;
+	}
+
+	function cbGetResourceFromName(qualifiedName) {
+		const idx = qualifiedName.indexOf(':');
+		return idx !== -1 ? qualifiedName.substring(0, idx) : null;
+	}
+
+	function cbGetResourceFromRequestId(requestId) {
+		const idx = requestId.indexOf(':');
+		return idx !== -1 ? requestId.substring(0, idx) : null;
+	}
+
+	function cbRegister(registry, name, handler, opts) {
+		opts = opts || {};
+		registry.set(cbQualifyName(name), {
+			handler,
+			restricted: opts.restricted || false,
+			delay: opts.delay || false,
+			lastCallTime: null
+		});
+	}
+
+	function cbHandleResponse(requestId, success, ...results) {
+		const pending = cbPending.get(requestId);
+		if (!pending) return;
+
+		cbPending.delete(requestId);
+		if (pending.timer) clearTimeout(pending.timer);
+
+		if (success) {
+			pending.resolve(results);
+		} else {
+			pending.reject(new Error(results[0] || 'Callback failed'));
+		}
+	}
+
+	// returns a Promise (use with await for blocking, .then() for non-blocking)
+	function cbCall(triggerFn, name, ...args) {
+		const qualifiedName = cbQualifyName(name);
+		const requestId = nextCbRequestId();
+
+		return new Promise((resolve, reject) => {
+			const timer = setTimeout(() => {
+				if (cbPending.has(requestId)) {
+					cbPending.delete(requestId);
+					reject(new Error('Callback timed out: ' + qualifiedName));
+				}
+			}, CB_TIMEOUT_MS);
+
+			cbPending.set(requestId, { resolve, reject, timer });
+			triggerFn(requestId, qualifiedName, ...args);
+		});
+	}
+
+	async function cbHandleRequest(registry, name, requestId, respondFn, source, ...args) {
+		if (cbGetResourceFromName(name) !== currentResourceName) return;
+
+		const entry = registry.get(name);
+
+		if (!entry) {
+			respondFn(requestId, false, 'No callback registered: ' + name);
+			return;
+		}
+
+		// check restriction
+		if (entry.restricted) {
+			const callerResource = cbGetResourceFromRequestId(requestId);
+			if (callerResource !== currentResourceName) {
+				console.error(`CALLBACK ERROR: Callback '${name}' is restricted to resource '${currentResourceName}'`);
+				respondFn(requestId, false, `Callback '${name}' is restricted to resource '${currentResourceName}'`);
+				return;
+			}
+		}
+
+		// check delay/throttle
+		if (entry.delay) {
+			const now = GetGameTimer();
+			if (entry.lastCallTime !== null && (now - entry.lastCallTime) < entry.delay) {
+				respondFn(requestId, false, `Callback '${name}' is throttled (delay: ${entry.delay}ms)`);
+				return;
+			}
+			entry.lastCallTime = now;
+		}
+
+		try {
+			const result = source !== null
+				? await entry.handler(source, ...args)
+				: await entry.handler(...args);
+			respondFn(requestId, true, result);
+		} catch (e) {
+			respondFn(requestId, false, e?.message || String(e));
+		}
+	}
+
+	// local callback handlers (same-side, cross-resource)
+	global.on('__cfx_lcb:resp', cbHandleResponse);
+
+	global.on('__cfx_lcb:req', (name, requestId, ...args) => {
+		cbHandleRequest(cbLocalRegistered, name, requestId, (rid, ...r) => {
+			global.emit('__cfx_lcb:resp', rid, ...r);
+		}, null, ...args);
+	});
+
+	global.RegisterLocalCallback = (name, handler, opts) => { cbRegister(cbLocalRegistered, name, handler, opts); };
+
+	// non-await: response via .then() callback
+	global.LocalCallback = (name, cb, ...args) => {
+		cbCall((rid, n, ...a) => global.emit('__cfx_lcb:req', n, rid, ...a), name, ...args)
+			.then(r => cb(...r)).catch(e => console.error('CALLBACK ERROR:', e));
+	};
+
+	// await: returns Promise, use with await
+	global.LocalCallbackAwait = (name, ...args) => cbCall((rid, n, ...a) => global.emit('__cfx_lcb:req', n, rid, ...a), name, ...args);
+
+	// net callback response handler (client<->server)
+	netSafeEventNames.add('__cfx_cb:resp');
+	global.on('__cfx_cb:resp', (requestId, success, ...results) => {
+		const pending = cbPending.get(requestId);
+		if (!pending) return;
+
+		if (pending.expectedSource !== undefined && global.source !== pending.expectedSource) {
+			return;
+		}
+
+		cbHandleResponse(requestId, success, ...results);
+	});
+
+	if (isDuplicityVersion) {
+		netSafeEventNames.add('__cfx_cb:req');
+		global.on('__cfx_cb:req', (name, requestId, ...args) => {
+			const src = global.source;
+
+			cbHandleRequest(cbNetRegistered, name, requestId, (rid, ...r) => {
+				global.emitNet('__cfx_cb:resp', src, rid, ...r);
+			}, src, ...args);
+		});
+
+		global.RegisterServerCallback = (name, handler, opts) => { cbRegister(cbNetRegistered, name, handler, opts); };
+
+		// non-await: response via .then() callback
+		global.ClientCallback = (playerId, name, cb, ...args) => {
+			if (!DoesPlayerExist(String(playerId))) throw new Error(`target playerId '${playerId}' does not exist`);
+			const qualifiedName = cbQualifyName(name);
+			const requestId = nextCbRequestId();
+
+			const p = new Promise((resolve, reject) => {
+				const timer = setTimeout(() => {
+					if (cbPending.has(requestId)) {
+						cbPending.delete(requestId);
+						reject(new Error('Callback timed out: ' + qualifiedName));
+					}
+				}, CB_TIMEOUT_MS);
+
+				cbPending.set(requestId, { resolve, reject, timer, expectedSource: playerId });
+				global.emitNet('__cfx_cb:req', playerId, qualifiedName, requestId, ...args);
+			});
+
+			p.then(r => cb(...r)).catch(e => console.error('CALLBACK ERROR:', e));
+		};
+
+		// await: returns Promise
+		global.ClientCallbackAwait = (playerId, name, ...args) => {
+			if (!DoesPlayerExist(String(playerId))) throw new Error(`target playerId '${playerId}' does not exist`);
+			const qualifiedName = cbQualifyName(name);
+			const requestId = nextCbRequestId();
+
+			return new Promise((resolve, reject) => {
+				const timer = setTimeout(() => {
+					if (cbPending.has(requestId)) {
+						cbPending.delete(requestId);
+						reject(new Error('Callback timed out: ' + qualifiedName));
+					}
+				}, CB_TIMEOUT_MS);
+
+				cbPending.set(requestId, { resolve, reject, timer, expectedSource: playerId });
+				global.emitNet('__cfx_cb:req', playerId, qualifiedName, requestId, ...args);
+			});
+		};
+	} else {
+		netSafeEventNames.add('__cfx_cb:req');
+		global.on('__cfx_cb:req', (name, requestId, ...args) => {
+			cbHandleRequest(cbNetRegistered, name, requestId, (rid, ...r) => {
+				global.emitNet('__cfx_cb:resp', rid, ...r);
+			}, null, ...args);
+		});
+
+		global.RegisterClientCallback = (name, handler, opts) => { cbRegister(cbNetRegistered, name, handler, opts); };
+
+		// non-await: response via .then() callback
+		global.ServerCallback = (name, cb, ...args) => {
+			cbCall((rid, n, ...a) => global.emitNet('__cfx_cb:req', n, rid, ...a), name, ...args)
+				.then(r => cb(...r)).catch(e => console.error('CALLBACK ERROR:', e));
+		};
+
+		// await: returns Promise
+		global.ServerCallbackAwait = (name, ...args) => cbCall((rid, n, ...a) => global.emitNet('__cfx_cb:req', n, rid, ...a), name, ...args);
+	}
+
+	// END
 })(this || globalThis);
