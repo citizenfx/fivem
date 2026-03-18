@@ -263,6 +263,10 @@ namespace fx::v8shared
 		auto runtime = GetScriptRuntimeFromArgs<RuntimeType>(args);
 		const auto& tempPath = runtime->GetTempPath();
 
+		// lazily create the directory on first call
+		std::error_code ec;
+		std::filesystem::create_directories(tempPath, ec);
+
 		args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), tempPath.c_str(), v8::NewStringType::kNormal, tempPath.size()).ToLocalChecked());
 	}
 }

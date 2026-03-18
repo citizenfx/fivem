@@ -355,16 +355,8 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 
 	m_isMonitorRuntime = resourceManager->IsMonitor();
 
-	// create a per-resource temp directory inside the resource folder for sandboxed filesystem access (e.g. HTTP multipart uploads)
-	{
-		std::error_code ec;
-		auto resourceTempDir = std::filesystem::path(resource->GetPath()) / "tmp";
-		std::filesystem::create_directories(resourceTempDir, ec);
-		if (!ec)
-		{
-			m_tempDir = std::filesystem::absolute(resourceTempDir).string();
-		}
-	}
+	// per-resource temp directory path (created lazily when os.tmpdir() is called)
+	m_tempDir = std::filesystem::absolute(std::filesystem::path(resource->GetPath()) / "tmp").string();
 
 	// create our UV loop
 	m_uvLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop();
