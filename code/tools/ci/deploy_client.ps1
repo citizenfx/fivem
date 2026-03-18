@@ -2,6 +2,7 @@ using module .\psm1\cfxBuildTools.psm1
 using module .\psm1\cfxBuildContext.psm1
 using module .\psm1\cfxBuildCacheMeta.psm1
 using module .\psm1\cfxCacheVersions.psm1
+using module .\psm1\cfxSetupBuildToolkit.psm1
 using module .\psm1\cfxGitlabSections.psm1
 using module .\psm1\cfxSentry.psm1
 
@@ -31,6 +32,8 @@ try {
     Write-Output "Client versions:", $clientVersions, "`n"
 
     $ctx.startBuild()
+
+    Invoke-CfxSetupBuildToolkit -Context $ctx
 
     Invoke-LogSection ("Deploying {0}" -f $ctx.ProductName) {
         $cacheDir = [IO.Path]::Combine($ctx.CachesRoot, $clientCacheName)
