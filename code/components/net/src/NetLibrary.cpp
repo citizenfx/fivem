@@ -869,6 +869,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 		Disconnect("Connecting to another server.");
 	}
 
+	Instance<ICoreGameInit>::Get()->SetData("serverId", "");
+
 	// late-initialize error state in ICoreGameInit
 	// this happens here so it only tries capturing if connection was attempted
 	static struct ErrorState 
@@ -1447,6 +1449,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 											{
 												auto targetContext = val.substr(val.find_first_of('_') + 1);
 												m_targetContext = targetContext.substr(0, targetContext.find_first_of(':'));
+											
+												Instance<ICoreGameInit>::Get()->SetData("serverId", val.substr(0, val.find_first_of('x')));
 											}
 											catch (std::exception& e)
 											{
