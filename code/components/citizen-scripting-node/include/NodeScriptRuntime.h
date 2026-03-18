@@ -38,7 +38,7 @@ enum class PermissionScope;
 namespace fx::nodejs
 {
 class NodeScriptRuntime : public OMClass<NodeScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime,
-	IScriptRefRuntime, IScriptStackWalkingRuntime, IScriptWarningRuntime>
+						  IScriptRefRuntime, IScriptStackWalkingRuntime, IScriptWarningRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -69,8 +69,6 @@ private:
 	node::IsolateData* m_isolateData = nullptr;
 	node::Environment* m_nodeEnvironment = nullptr;
 
-	std::atomic<int> m_isInGc{0};
-
 	// string values, which need to be persisted across calls as well
 	std::unique_ptr<v8::String::Utf8Value> m_stringValues[50];
 	int m_curStringValue;
@@ -98,6 +96,7 @@ public:
 	result_t LoadSystemFile(char* scriptFile);
 	const char* AssignStringValue(const v8::Local<v8::Value>& value, size_t* length);
 	bool NodePermissionCallback(node::Environment* env, node::permission::PermissionScope permission_, const std::string_view& resource);
+	void TickFast() const;
 
 	v8::Isolate* GetIsolate() const
 	{
@@ -180,15 +179,7 @@ public:
 
 	void RunMicrotasks()
 	{
-		if (m_isInGc.load(std::memory_order_acquire) == 0 && m_isolate && m_taskQueue)
-		{
-			m_taskQueue->PerformCheckpoint(m_isolate);
-		}
-	}
-
-	bool IsInGc() const
-	{
-		return m_isInGc.load(std::memory_order_acquire) != 0;
+		m_taskQueue->PerformCheckpoint(m_isolate);
 	}
 
 public:

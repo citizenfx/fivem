@@ -71,52 +71,18 @@ namespace fx
 		v8::HandleScope m_handleScope;
 		v8::Local<v8::Context> m_ctx;
 		v8::Context::Scope m_contextScope;
-		fx::PushEnvironment m_fxenv;
-		C* m_runtime;
 
 	public:
-		SharedPushEnvironment(C* runtime)
-			: m_locker(runtime->GetIsolate()),
-			  m_isolateScope(runtime->GetIsolate()),
-			  m_handleScope(runtime->GetIsolate()),
-			  m_ctx(runtime->GetContext()),
-			  m_contextScope(m_ctx),
-			  m_fxenv(runtime),
-			  m_runtime(runtime)
-		{
-		}
+		SharedPushEnvironment(const C* runtime) :
+			m_locker(runtime->GetIsolate()),
+			m_isolateScope(runtime->GetIsolate()),
+			m_handleScope(runtime->GetIsolate()),
+			m_ctx(runtime->GetContext()),
+			m_contextScope(m_ctx) {}
 
-		~SharedPushEnvironment()
-		{
-			m_runtime->RunMicrotasks();
-		}
+		~SharedPushEnvironment() {}
 	};
 
-	template<class C>
-	class SharedPushEnvironmentNoIsolate
-	{
-	private:
-		v8::HandleScope m_handleScope;
-		v8::Local<v8::Context> m_ctx;
-		v8::Context::Scope m_contextScope;
-		fx::PushEnvironment m_fxenv;
-		C* m_runtime;
-
-	public:
-		SharedPushEnvironmentNoIsolate(C* runtime)
-			: m_handleScope(runtime->GetIsolate()),
-			  m_ctx(runtime->GetContext()),
-			  m_contextScope(m_ctx),
-			  m_fxenv(runtime),
-			  m_runtime(runtime)
-		{
-		}
-
-		~SharedPushEnvironmentNoIsolate()
-		{
-			m_runtime->RunMicrotasks();
-		}
-	};
 
 	// scope aware nodejs environment setup without context, from isolate
 	class SharedPushEnvironmentNoContext
