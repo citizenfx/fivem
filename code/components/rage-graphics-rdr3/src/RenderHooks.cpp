@@ -37,15 +37,16 @@ static bool g_canUseVulkan = true;
 #pragma comment(lib, "dxguid.lib")
 
 namespace WRL = Microsoft::WRL;
+static WRL::ComPtr<IDXGIFactory1> g_dxgiFactory;
+
 static void DXGIGetHighPerfAdapter(IDXGIAdapter** ppAdapter)
 {
 	{
-		WRL::ComPtr<IDXGIFactory1> dxgiFactory;
-		CreateDXGIFactory1(IID_IDXGIFactory1, &dxgiFactory);
+		CreateDXGIFactory1(IID_IDXGIFactory1, &g_dxgiFactory);
 
 		WRL::ComPtr<IDXGIAdapter1> adapter;
 		WRL::ComPtr<IDXGIFactory6> factory6;
-		HRESULT hr = dxgiFactory.As(&factory6);
+		HRESULT hr = g_dxgiFactory.As(&factory6);
 		if (SUCCEEDED(hr))
 		{
 			for (UINT adapterIndex = 0;
@@ -470,6 +471,43 @@ static void D3D12ResultFailed(HRESULT hr)
 	FatalError("DirectX encountered an unrecoverable error: %s - %s%s", ToNarrow(errorString), ToNarrow(errorDescription), removedError);
 }
 
+struct fwuiSystemSettingsCollection
+{
+	char pad[292];
+	uint32_t m_adapterIndex;
+	uint32_t m_outputIndex;
+};
+
+static fwuiSystemSettingsCollection* g_systemSettings;
+
+bool (*g_filterResolution)(uint32_t, uint32_t, float);
+static bool _filterResolutions(uint32_t width, uint32_t height, float refreshRate)
+{
+	IDXGIAdapter1* pAdapter = nullptr;
+	g_dxgiFactory->EnumAdapters1(g_systemSettings->m_adapterIndex, &pAdapter);
+	IDXGIOutput* pOutput = nullptr;
+	pAdapter->EnumOutputs(g_systemSettings->m_outputIndex, &pOutput);
+
+	DXGI_OUTPUT_DESC desc;
+	pOutput->GetDesc(&desc);
+
+	MONITORINFOEX mix{};
+	mix.cbSize = sizeof(mix);
+	GetMonitorInfo(desc.Monitor, (LPMONITORINFO)&mix);
+
+	DEVMODEW current{};
+	current.dmSize = sizeof(current);
+	EnumDisplaySettingsW(mix.szDevice, ENUM_CURRENT_SETTINGS, &current);
+
+	// Don't allow the game to pick a resolution higher then what the monitor is set to.
+	if (width > current.dmPelsWidth || height > current.dmPelsHeight)
+	{ 
+		return false;
+	}
+
+	return g_filterResolution(width, height, refreshRate);
+}
+
 static HookFunction hookFunction([]()
 {
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
@@ -521,7 +559,7 @@ static HookFunction hookFunction([]()
 		// SetFocus
 		hook::nop(location + 18, 6);
 	}
-	
+
 	// Hook crashometry call that has useful information passed to it related to graphics
 	{
 		auto location = hook::get_pattern("48 89 54 24 ? 48 89 4C 24 ? 55 56 57 41 54 41 56");
@@ -540,6 +578,14 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern<char>("E8 ? ? ? ? 85 C0 0F 85 ? ? ? ? 41 8A 87");
 		hook::nop(location, 5);
 		hook::call(location, VulkanFailed);
+	}
+
+	// Game window setup, filter out resolutions that are greater then what the monitor natively supports.
+	// Fixes cases where resolutions from NVIDIA DSR (Dynamic Super Resolution) would be used and treated as the monitors native resolution.
+	{
+		g_systemSettings = hook::get_address<fwuiSystemSettingsCollection*>(hook::get_pattern("48 8D 0D ? ? ? ? 48 8B F8 E8 ? ? ? ? 45 33 ED", 3));
+
+		g_filterResolution = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 8B DA 8B F9 81 FA"), _filterResolutions);
 	}
 	
 	// Don't attempt to use vulkan if the system doesn't properly support it.
