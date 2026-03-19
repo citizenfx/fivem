@@ -19,6 +19,11 @@
 #include <CoreConsole.h>
 #include <CrossBuildRuntime.h>
 #include <CustomRtti.h>
+#include <RageParser.h>
+
+#include <algorithm>
+#include <cctype>
+#include <unordered_set>
 
 static volatile void* g_dummyState;
 
@@ -150,8 +155,94 @@ static int ReturnClassification()
 
 static bool(*g_origLoadFromStructureChar)(void* parManager, const char* fileName, const char* extension, void* structure, void** outStruct, void* unk);
 
+static bool ContainsInsensitive(std::string_view haystack, std::string_view needle)
+{
+	auto it = std::search(
+		haystack.begin(),
+		haystack.end(),
+		needle.begin(),
+		needle.end(),
+		[](char ch1, char ch2)
+		{
+			return std::tolower(static_cast<unsigned char>(ch1)) == std::tolower(static_cast<unsigned char>(ch2));
+		});
+
+	return (it != haystack.end());
+}
+
+static void PatchSirenSettingMemberTypes(rage::parStructure* structure, bool inSirenSettings, std::unordered_set<rage::parStructure*>& visited)
+{
+	if (!structure || !visited.insert(structure).second)
+	{
+		return;
+	}
+
+	if (structure->m_baseClass)
+	{
+		PatchSirenSettingMemberTypes(structure->m_baseClass, inSirenSettings, visited);
+	}
+
+	static const auto kHashSirenSettings = HashRageString("sirenSettings");
+	static const auto kHashSirenSetting = HashRageString("sirenSetting");
+	static const auto kHashId = HashRageString("id");
+
+	for (auto& memberBase : structure->m_members)
+	{
+		auto member = memberBase->m_definition;
+
+		if (!member)
+		{
+			continue;
+		}
+
+		const bool isSirenSettingsMember = (member->hash == kHashSirenSettings || member->hash == kHashSirenSetting);
+
+		if (member->type == rage::parMemberType::UInt8)
+		{
+			if (isSirenSettingsMember || (inSirenSettings && member->hash == kHashId))
+			{
+				member->type = rage::parMemberType::UInt16;
+			}
+		}
+
+		if (member->type == rage::parMemberType::Struct)
+		{
+			PatchSirenSettingMemberTypes(member->structure, inSirenSettings || isSirenSettingsMember, visited);
+		}
+		else if (member->type == rage::parMemberType::Array && memberBase->m_arrayDefinition)
+		{
+			auto elemDef = memberBase->m_arrayDefinition->m_definition;
+
+			if (elemDef && elemDef->type == rage::parMemberType::Struct)
+			{
+				PatchSirenSettingMemberTypes(elemDef->structure, inSirenSettings || isSirenSettingsMember, visited);
+			}
+		}
+	}
+}
+
+static void PatchVehicleMetaParserSchema(const char* fileName, void* structure)
+{
+	if (!fileName || !structure)
+	{
+		return;
+	}
+
+	std::string_view fileNameView(fileName);
+	if (!ContainsInsensitive(fileNameView, "carcols") &&
+		!ContainsInsensitive(fileNameView, "carvariations") &&
+		!ContainsInsensitive(fileNameView, "vehicles.meta"))
+	{
+		return;
+	}
+
+	std::unordered_set<rage::parStructure*> visited;
+	PatchSirenSettingMemberTypes(reinterpret_cast<rage::parStructure*>(structure), false, visited);
+}
+
 static bool LoadFromStructureCharHook(void* parManager, const char* fileName, const char* extension, void* structure, void** outStruct, void* unk)
 {
+	PatchVehicleMetaParserSchema(fileName, structure);
 	bool result = g_origLoadFromStructureChar(parManager, fileName, extension, structure, outStruct, unk);
 
 	if (result && !*outStruct)

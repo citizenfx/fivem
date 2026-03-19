@@ -2689,7 +2689,6 @@ struct CPedSectorPosMapNode : GenericSerializeDataNode<CPedSectorPosMapNode>
 	}
 };
 
-struct CPedSectorPosNavMeshNode { };
 struct CPedInventoryDataNode { };
 struct CPedTaskSequenceDataNode { };
 struct CPickupCreationDataNode { };
@@ -3586,6 +3585,1650 @@ struct CPlayerAppearanceDataNode
 	}
 };
 
+struct CPlayerCreationDataNode { };
+
+struct CPlayerGameStateDataNode
+{
+	CPlayerGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		int playerState = state.buffer.Read<int>(3);
+		auto controlsDisabledByScript = state.buffer.ReadBit(); // SET_PLAYER_CONTROL
+		int playerTeam = state.buffer.Read<int>(6);
+		data.playerTeam = playerTeam;
+
+		if (Is2699())
+		{
+			auto hasMobileRingState = state.buffer.ReadBit();
+
+			if (hasMobileRingState)
+			{
+				int mobileRingState = state.buffer.Read<int>(8);
+			}
+		}
+		else
+		{
+			int mobileRingState = state.buffer.Read<int>(8);
+		}
+
+		auto isAirDragMultiplierDefault = state.buffer.ReadBit();
+
+		if (!isAirDragMultiplierDefault)
+		{
+			float airDragMultiplier = state.buffer.ReadFloat(7, 50.0f);
+			data.airDragMultiplier = airDragMultiplier;
+		}
+		else
+		{
+			data.airDragMultiplier = 1.0f;
+		}
+
+		auto isMaxHealthAndMaxArmourDefault = state.buffer.ReadBit();
+
+		if (isMaxHealthAndMaxArmourDefault)
+		{
+			int maxHealth = state.buffer.Read<int>(13);
+			int maxArmour = state.buffer.Read<int>(12);
+
+			data.maxHealth = maxHealth;
+			data.maxArmour = maxArmour;
+		}
+		else
+		{
+			data.maxHealth = 100;
+			data.maxArmour = 100;
+		}
+
+		auto unk9 = state.buffer.ReadBit();
+		auto unk10 = state.buffer.ReadBit();
+		int unk11 = state.buffer.Read<int>(2);
+		auto unk12 = state.buffer.ReadBit();
+		auto unk13 = state.buffer.ReadBit();
+		auto bulletProof = state.buffer.ReadBit();
+		auto fireProof = state.buffer.ReadBit();
+		auto explosionProof = state.buffer.ReadBit();
+		auto collisionProof = state.buffer.ReadBit();
+		auto meleeProof = state.buffer.ReadBit();
+		auto drownProof = state.buffer.ReadBit();
+		auto steamProof = state.buffer.ReadBit();
+		auto unk21 = state.buffer.ReadBit();
+		auto unk22 = state.buffer.ReadBit();
+
+		if (unk12)
+		{
+			int unk23 = state.buffer.Read<int>(7);
+		}
+
+		auto neverTarget = state.buffer.ReadBit();
+		data.neverTarget = neverTarget;
+		auto useKinematicPhysics = state.buffer.ReadBit();
+		auto isOverridingReceiveChat = state.buffer.ReadBit();
+
+		if (isOverridingReceiveChat) // v45
+		{
+			int overrideReceiveChat = state.buffer.Read<int>(32);
+		}
+
+		auto isOverridingSendChat = state.buffer.ReadBit();
+
+		if (isOverridingSendChat) // v46
+		{
+			int overrideSendChat = state.buffer.Read<int>(32);
+		}
+
+		auto unk29 = state.buffer.ReadBit();
+		auto unk30 = state.buffer.ReadBit();
+		auto isSpectating = state.buffer.ReadBit();
+
+		if (isSpectating)
+		{
+			auto spectatorId = state.buffer.ReadBit();
+			data.spectatorId = spectatorId;
+		}
+		else
+		{
+			data.spectatorId = 0;
+		}
+
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+		}
+
+		auto isAntagonisticToAnotherPlayer = state.buffer.ReadBit();
+
+		if (isAntagonisticToAnotherPlayer)
+		{
+			int antagonisticPlayerIndex = state.buffer.Read<int>(5);
+		}
+
+		auto unk35 = state.buffer.ReadBit();
+		auto pendingTutorialChange = state.buffer.ReadBit();
+
+		if (unk35)
+		{
+			int tutorialIndex = state.buffer.Read<int>(3);
+			int tutorialInstanceId = state.buffer.Read<int>(Is2060() ? 7 : 6);
+		}
+
+		auto unk39 = state.buffer.ReadBit();
+		auto unk40 = state.buffer.ReadBit();
+		auto unk41 = state.buffer.ReadBit();
+		auto unk42 = state.buffer.ReadBit();
+		auto unk43 = state.buffer.ReadBit();
+
+		auto randomPedsFlee = state.buffer.ReadBit();
+		data.randomPedsFlee = randomPedsFlee;
+		auto everybodyBackOff = state.buffer.ReadBit();
+		data.everybodyBackOff = everybodyBackOff;
+
+		auto unk46 = state.buffer.ReadBit();
+		auto unk47 = state.buffer.ReadBit();
+		auto unk48 = state.buffer.ReadBit();
+		auto unk49 = state.buffer.ReadBit();
+		auto unk50 = state.buffer.ReadBit();
+		auto unk51 = state.buffer.ReadBit();
+		auto unk52 = state.buffer.ReadBit();
+		auto unk53 = state.buffer.ReadBit();
+		auto unk54 = state.buffer.ReadBit();
+		auto unk55 = state.buffer.ReadBit();
+		auto unk56 = state.buffer.ReadBit();
+		auto unk57 = state.buffer.ReadBit();
+		auto unk58 = state.buffer.ReadBit();
+		auto unk59 = state.buffer.ReadBit();
+		auto unk60 = state.buffer.ReadBit();
+		auto unk61 = state.buffer.ReadBit();
+		auto unk62 = state.buffer.ReadBit();
+		auto unk63 = state.buffer.ReadBit();
+		auto unk64 = state.buffer.ReadBit();
+		auto unk65 = state.buffer.ReadBit();
+		auto unk66 = state.buffer.ReadBit();
+		auto unk67 = state.buffer.ReadBit();
+		auto unk68 = state.buffer.ReadBit();
+		auto unk69 = state.buffer.ReadBit();
+
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+		}
+
+		if (Is2189())
+		{
+			state.buffer.ReadBit();
+		}
+
+		if (Is3095())
+		{
+			state.buffer.ReadBit();
+		}
+
+		auto unk70 = state.buffer.ReadBit();
+
+		if (unk70)
+		{
+			int unk71 = state.buffer.Read<int>(16);
+		}
+
+		auto unk72 = state.buffer.ReadBit();
+
+		if (unk72)
+		{
+			int unk73 = state.buffer.Read<int>(5);
+		}
+
+		auto unk74 = state.buffer.ReadBit();
+
+		if (unk74)
+		{
+			int unk75 = state.buffer.Read<int>(32);
+		}
+
+		auto isOverridingVoiceProximity = state.buffer.ReadBit();
+
+		if (isOverridingVoiceProximity)
+		{
+			float voiceProximityOverrideX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float voiceProximityOverrideY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float voiceProximityOverrideZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+			data.voiceProximityOverrideX = voiceProximityOverrideX;
+			data.voiceProximityOverrideY = voiceProximityOverrideY;
+			data.voiceProximityOverrideZ = voiceProximityOverrideZ;
+		}
+		else
+		{
+			data.voiceProximityOverrideX = 0.0f;
+			data.voiceProximityOverrideY = 0.0f;
+			data.voiceProximityOverrideZ = 0.0f;
+		}
+
+		int unk78 = state.buffer.Read<int>(19);
+		auto isInvincible = state.buffer.ReadBit();
+		data.isInvincible = isInvincible;
+
+		auto unk80 = state.buffer.ReadBit();
+
+		if (unk80)
+		{
+			int unk81 = state.buffer.Read<int>(3);
+		}
+
+		auto hasDecor = state.buffer.ReadBit();
+
+		if (hasDecor)
+		{
+			uint8_t decoratorCount = state.buffer.Read<int>(2);
+
+			for (int i = 0; i < decoratorCount; i++)
+			{
+				uint8_t decorType = state.buffer.Read<int>(3);
+				int decorValue = state.buffer.Read<int>(32);
+				int decorName = state.buffer.Read<int>(32);
+			}
+		}
+
+		auto isFriendlyFireAllowed = state.buffer.ReadBit();
+		data.isFriendlyFireAllowed = isFriendlyFireAllowed;
+
+		auto unk88 = state.buffer.ReadBit();
+
+		auto isInGarage = state.buffer.ReadBit();
+
+		if (isInGarage)
+		{
+			int garageInstanceIndex = state.buffer.Read<int>(5);
+		}
+
+		auto isInProperty = state.buffer.ReadBit();
+
+		if (isInProperty)
+		{
+			int propertyId = state.buffer.Read<int>(8);
+		}
+
+		auto unk93 = state.buffer.Read<int>(3);
+		int unk94 = state.buffer.Read<int>(4);
+		auto unk95 = state.buffer.ReadBit();
+		auto unk96 = state.buffer.ReadBit();
+
+		float weaponDefenseModifier = state.buffer.ReadFloat(8, 2.0f);
+		float weaponDefenseModifier2 = state.buffer.ReadFloat(8, 2.0f);
+
+		data.weaponDefenseModifier = weaponDefenseModifier;
+		data.weaponDefenseModifier2 = weaponDefenseModifier2;
+
+		auto isOverridingPopulationControlSphere = state.buffer.ReadBit();
+
+		if (isOverridingPopulationControlSphere)
+		{
+			float populationSphereX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float populationSphereY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float populationSphereZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		}
+
+		int unk101 = state.buffer.Read<int>(13);
+		
+		if (Is3095())
+		{
+			state.buffer.Read<int>(8);
+			state.buffer.Read<int>(8);
+		}
+
+		auto unk102 = state.buffer.ReadBit();
+		auto noCollision = state.buffer.ReadBit();
+		auto unk104 = state.buffer.ReadBit();
+		auto unk105 = state.buffer.ReadBit();
+		auto unk106 = state.buffer.ReadBit();
+
+		if (unk106)
+		{
+			auto unk107 = state.buffer.ReadBit();
+			int unk108 = state.buffer.Read<int>(2);
+		}
+
+		float unk109 = state.buffer.ReadFloat(8, 10.0f);
+		auto isWeaponDamageModifierSet = state.buffer.ReadBit();
+
+		if (isWeaponDamageModifierSet)
+		{
+			float weaponDamageModifier = state.buffer.ReadFloat(10, 10.0f);
+			data.weaponDamageModifier = weaponDamageModifier;
+		}
+		else
+		{
+			data.weaponDamageModifier = 1.0f;
+		}
+
+		auto isMeleeWeaponDamageModifierSet = state.buffer.ReadBit();
+
+		if (isMeleeWeaponDamageModifierSet)
+		{
+			float meleeWeaponDamageModifier = state.buffer.ReadFloat(10, 100.0f);
+			data.meleeWeaponDamageModifier = meleeWeaponDamageModifier;
+		}
+		else
+		{
+			data.meleeWeaponDamageModifier = 1.0f;
+		}
+
+		auto isSomethingModifierSet = state.buffer.ReadBit();
+
+		if (isSomethingModifierSet)
+		{
+			float somethingModifier = state.buffer.ReadFloat(10, 100.0f);
+		}
+		else
+		{
+			// 1.0f
+		}
+
+		auto isSuperJumpEnabled = state.buffer.ReadBit();
+		data.isSuperJumpEnabled = isSuperJumpEnabled;
+
+		auto unk117 = state.buffer.ReadBit();
+		auto unk118 = state.buffer.ReadBit();
+		auto unk119 = state.buffer.ReadBit();
+
+		if (unk119)
+		{
+			float unk120X = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float unk120Y = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float unk120Z = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		}
+
+		if (Is2060()) // Added in trailing bits in 2060
+		{
+			auto v47 = state.buffer.ReadBit();
+			if (v47)
+			{
+				auto unk496 = state.buffer.Read<uint8_t>(2);
+				auto unk497 = state.buffer.Read<uint8_t>(3);
+				auto unk498 = state.buffer.ReadBit();
+				auto unk499 = state.buffer.Read<uint8_t>(6);
+			}
+		}
+
+		return true;
+	}
+};
+
+struct CPlayerAppearanceDataNode
+{
+	uint32_t model;
+
+	bool Parse(SyncParseState& state)
+	{
+		model = state.buffer.Read<uint32_t>(32);
+
+#if 0
+		uint32_t voiceGroup = state.buffer.Read<uint32_t>(32);
+		int phoneMode = state.buffer.Read<int>(2);
+
+		bool isTakingOffVehicleHelmet = state.buffer.ReadBit();
+		bool isPuttingOnVehicleHelmet = state.buffer.ReadBit();
+		bool hasVehicleHelmet = state.buffer.ReadBit();
+		bool isHelmetVisorUp = state.buffer.ReadBit();
+		bool hasHelmetVisorPropIndices = state.buffer.ReadBit();
+		bool isSwitchingHelmetVisor = state.buffer.ReadBit();
+
+		int unk_0x1E1 = state.buffer.Read<int>(8); // 0x98 of CTaskTakeOffHelmet (b2545)
+		uint32_t badgeTextureDict = state.buffer.Read<uint32_t>(32);
+		uint32_t badgeTextureName = state.buffer.Read<uint32_t>(32);
+
+		if (isPuttingOnVehicleHelmet || hasVehicleHelmet || isSwitchingHelmetVisor)
+		{
+			int vehicleHelmetTextureId = state.buffer.Read<int>(8);
+			int vehicleHelmetPropId = state.buffer.Read<int>(10);
+			int helmetVisorDownPropId = state.buffer.Read<int>(10);
+			int helmetVisorUpPropId = state.buffer.Read<int>(10);
+		}
+
+		bool hasParachuteTintIndex = state.buffer.ReadBit();
+		if (hasParachuteTintIndex)
+		{
+			int parachuteTintIndex = state.buffer.Read<int>(4);
+			int parachutePackTintIndex = state.buffer.Read<int>(4);
+		}
+
+		bool hasRespawnObjectId = state.buffer.ReadBit();
+		if (hasRespawnObjectId)
+		{
+			int respawnObjectId = state.buffer.Read<int>(13);
+		}
+
+		CPedAppearanceDataNode::DeserializePedProps(state);
+
+		CPedAppearanceDataNode::DeserializePedComponents(state);
+
+		bool hasHeadBlend = state.buffer.ReadBit();
+		if (hasHeadBlend)
+		{
+			DeserializeHeadBlend(state);
+		}
+
+		bool hasDecorations = state.buffer.ReadBit();
+		if (hasDecorations)
+		{
+			int numDecorations = Is2699() ? 56 : Is2060() ? 52 : 44;
+			for (int i = 0; i < numDecorations; i++)
+			{
+				int packedDecoration = state.buffer.Read<int>(32);
+			}
+
+			if (state.buffer.ReadBit())
+			{
+				state.buffer.Read<int>(32); // 0x340 of CNetObj* (b2545, damage / emblem related?)
+			}
+		}
+
+		DeserializePedSecondaryTask(state);
+
+		bool hasFacialClipset = state.buffer.ReadBit();
+		if (hasFacialClipset)
+		{
+			uint32_t facialClipsetName = state.buffer.Read<uint32_t>(32);
+			uint32_t facialClipsetDict = state.buffer.Read<uint32_t>(32);
+		}
+
+		bool hasFacialIdleAnim = state.buffer.ReadBit();
+		if (hasFacialIdleAnim)
+		{
+			uint32_t facialIdleAnim = state.buffer.Read<uint32_t>(32);
+		}
+
+		bool hasFacialIdleAnimDict = state.buffer.ReadBit();
+		if (hasFacialIdleAnimDict)
+		{
+			uint32_t facialIdleAnimDict = state.buffer.Read<uint32_t>(32); 
+		}
+
+		bool hasDamagePack = state.buffer.ReadBit();
+		if (hasDamagePack)
+		{
+			uint32_t damagePackName = state.buffer.Read<uint32_t>(32);
+		}
+#endif
+
+		return true;
+	}
+
+	static void DeserializeHeadBlend(SyncParseState& state)
+	{
+		float headBlend = state.buffer.ReadFloat(8, 1.05f);
+		float textureBlend = state.buffer.ReadFloat(8, 1.05f);
+		float variationBlend = state.buffer.ReadFloat(8, 1.05f);
+
+		int eyeColourIndex = state.buffer.ReadSigned<int>(9);
+		int hairFirstTint = state.buffer.Read<int>(8);
+		int hairSecondTint = state.buffer.Read<int>(8);
+
+		bool hasHeadGeometry = state.buffer.ReadBit();
+		if (hasHeadGeometry)
+		{
+			int headGeometryFlags = state.buffer.Read<int>(3);
+			for (int i = 0; i < 3; i++)
+			{
+				if ((headGeometryFlags >> i) & 1)
+				{
+					int headGeometry = state.buffer.Read<int>(8);
+				}
+			}
+		}
+
+		bool hasHeadTextures = state.buffer.ReadBit();
+		if (hasHeadTextures)
+		{
+			int headTextureFlags = state.buffer.Read<int>(3);
+			for (int i = 0; i < 3; i++)
+			{
+				if ((headTextureFlags >> i) & 1)
+				{
+					int headTexture = state.buffer.Read<int>(8);
+				}
+			}
+		}
+
+		bool hasOverlayTextures = state.buffer.ReadBit();
+		if (hasOverlayTextures)
+		{
+			int overlayTextureFlags = state.buffer.Read<int>(13);
+			for (int i = 0; i < 13; i++)
+			{
+				if ((overlayTextureFlags >> i) & 1)
+				{
+					int overlayTexture = state.buffer.Read<int>(8);
+					float overlayAlpha = state.buffer.ReadFloat(8, 1.0f);
+					float overlayNormal = state.buffer.ReadFloat(8, 1.0f);
+
+					bool hasOverlayTint = state.buffer.ReadBit();
+					if (hasOverlayTint)
+					{
+						int overlayFirstTint = state.buffer.Read<int>(8);
+						int overlaySecondTint = state.buffer.Read<int>(8);
+						int overlayRampType = state.buffer.Read<int>(2);
+					}
+				}
+			}
+		}
+
+		bool hasMicroMorph = state.buffer.ReadBit();
+		if (hasMicroMorph)
+		{
+			int microMorphFlags = state.buffer.Read<int>(20);
+			for (int i = 0; i < 20; i++)
+			{
+				if ((microMorphFlags >> i) & 1)
+				{
+					if (i >= 18)
+					{
+						float morphBlend = state.buffer.ReadFloat(8, 1.0f);
+					}
+					else
+					{
+						float morphBlend = state.buffer.ReadSignedFloat(8, 1.0f);
+					}
+				}
+			}
+		}
+
+		bool usePaletteRgb = state.buffer.ReadBit();
+		if (usePaletteRgb)
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				int paletteRed = state.buffer.Read<int>(8);
+				int paletteGreen = state.buffer.Read<int>(8);
+				int paletteBlue = state.buffer.Read<int>(8);
+			}
+		}
+
+		bool hasParents = state.buffer.ReadBit();
+		if (hasParents)
+		{
+			int firstParentHead = state.buffer.Read<int>(8);
+			int secondParentHead = state.buffer.Read<int>(8);
+			float firstParentBlend = state.buffer.ReadFloat(8, 1.0f);
+			float secondParentBlend = state.buffer.ReadFloat(8, 1.0f);
+		}
+	}
+
+	static void DeserializePedSecondaryTask(SyncParseState& state)
+	{
+		bool hasSecondaryTask = state.buffer.ReadBit();
+		if (hasSecondaryTask)
+		{
+			uint32_t animDictHash = state.buffer.Read<uint32_t>(32);
+			bool isTaskMove = state.buffer.ReadBit();
+			bool isTaskMoveBlendDefault = state.buffer.ReadBit();
+
+			if (isTaskMove)
+			{
+				bool isTaskMoveBlocked = state.buffer.ReadBit();
+				bool hasFirstFloatSignal = state.buffer.ReadBit();
+				bool hasSecondFloatSignal = state.buffer.ReadBit();
+				bool hasThirdFloatSignal = state.buffer.ReadBit();
+
+				if (hasFirstFloatSignal)
+				{
+					uint32_t signalName = state.buffer.Read<uint32_t>(32);
+					float signalValue = state.buffer.ReadSignedFloat(9, 2.0f);
+				}
+
+				if (hasSecondFloatSignal)
+				{
+					uint32_t signalName = state.buffer.Read<uint32_t>(32);
+					float signalValue = state.buffer.ReadSignedFloat(9, 2.0f);
+				}
+
+				if (hasThirdFloatSignal)
+				{
+					uint32_t signalName = state.buffer.Read<uint32_t>(32);
+					float signalValue = state.buffer.ReadSignedFloat(9, 2.0f);
+				}
+
+				uint32_t animName = state.buffer.Read<uint32_t>(32);
+				uint32_t stateName = state.buffer.Read<uint32_t>(32);
+			}
+			else
+			{
+				bool hasPhoneTask = state.buffer.ReadBit();
+				if (hasPhoneTask)
+				{
+					bool hasPhoneGesture = state.buffer.ReadBit();
+					if (hasPhoneGesture)
+					{
+						uint32_t animName = state.buffer.Read<uint32_t>(32);
+						uint32_t boneMask = state.buffer.Read<uint32_t>(32);
+						float blendInDuration = state.buffer.ReadSignedFloat(9, 1.0f);
+						float blendOutDuration = state.buffer.ReadSignedFloat(9, 1.0f);
+						int animFlags = state.buffer.Read<int>(8);
+					}
+				}
+				else
+				{
+					bool usingDefaultBoneMask = state.buffer.ReadBit();
+					int animId = state.buffer.Read<int>(5);
+
+					if (!usingDefaultBoneMask)
+					{
+						uint32_t boneMask = state.buffer.Read<uint32_t>(32);
+					}
+
+					uint32_t animName = state.buffer.Read<uint32_t>(32);
+					int animFlags = state.buffer.Read<int>(32);
+				}
+			}
+		}
+	}
+};
+
+struct CPlayerCreationDataNode { };
+
+struct CPlayerGameStateDataNode
+{
+	CPlayerGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		int playerState = state.buffer.Read<int>(3);
+		auto controlsDisabledByScript = state.buffer.ReadBit(); // SET_PLAYER_CONTROL
+		int playerTeam = state.buffer.Read<int>(6);
+		data.playerTeam = playerTeam;
+
+		if (Is2699())
+		{
+			auto hasMobileRingState = state.buffer.ReadBit();
+
+			if (hasMobileRingState)
+			{
+				int mobileRingState = state.buffer.Read<int>(8);
+			}
+		}
+		else
+		{
+			int mobileRingState = state.buffer.Read<int>(8);
+		}
+
+		auto isAirDragMultiplierDefault = state.buffer.ReadBit();
+
+		if (!isAirDragMultiplierDefault)
+		{
+			float airDragMultiplier = state.buffer.ReadFloat(7, 50.0f);
+			data.airDragMultiplier = airDragMultiplier;
+		}
+		else
+		{
+			data.airDragMultiplier = 1.0f;
+		}
+
+		auto isMaxHealthAndMaxArmourDefault = state.buffer.ReadBit();
+
+		if (isMaxHealthAndMaxArmourDefault)
+		{
+			int maxHealth = state.buffer.Read<int>(13);
+			int maxArmour = state.buffer.Read<int>(12);
+
+			data.maxHealth = maxHealth;
+			data.maxArmour = maxArmour;
+		}
+		else
+		{
+			data.maxHealth = 100;
+			data.maxArmour = 100;
+		}
+
+		auto unk9 = state.buffer.ReadBit();
+		auto unk10 = state.buffer.ReadBit();
+		int unk11 = state.buffer.Read<int>(2);
+		auto unk12 = state.buffer.ReadBit();
+		auto unk13 = state.buffer.ReadBit();
+		auto bulletProof = state.buffer.ReadBit();
+		auto fireProof = state.buffer.ReadBit();
+		auto explosionProof = state.buffer.ReadBit();
+		auto collisionProof = state.buffer.ReadBit();
+		auto meleeProof = state.buffer.ReadBit();
+		auto drownProof = state.buffer.ReadBit();
+		auto steamProof = state.buffer.ReadBit();
+		auto unk21 = state.buffer.ReadBit();
+		auto unk22 = state.buffer.ReadBit();
+
+		if (unk12)
+		{
+			int unk23 = state.buffer.Read<int>(7);
+		}
+
+		auto neverTarget = state.buffer.ReadBit();
+		data.neverTarget = neverTarget;
+		auto useKinematicPhysics = state.buffer.ReadBit();
+		auto isOverridingReceiveChat = state.buffer.ReadBit();
+
+		if (isOverridingReceiveChat) // v45
+		{
+			int overrideReceiveChat = state.buffer.Read<int>(32);
+		}
+
+		auto isOverridingSendChat = state.buffer.ReadBit();
+
+		if (isOverridingSendChat) // v46
+		{
+			int overrideSendChat = state.buffer.Read<int>(32);
+		}
+
+		auto unk29 = state.buffer.ReadBit();
+		auto unk30 = state.buffer.ReadBit();
+		auto isSpectating = state.buffer.ReadBit();
+
+		if (isSpectating)
+		{
+			auto spectatorId = state.buffer.ReadBit();
+			data.spectatorId = spectatorId;
+		}
+		else
+		{
+			data.spectatorId = 0;
+		}
+
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+		}
+
+		auto isAntagonisticToAnotherPlayer = state.buffer.ReadBit();
+
+		if (isAntagonisticToAnotherPlayer)
+		{
+			int antagonisticPlayerIndex = state.buffer.Read<int>(5);
+		}
+
+		auto unk35 = state.buffer.ReadBit();
+		auto pendingTutorialChange = state.buffer.ReadBit();
+
+		if (unk35)
+		{
+			int tutorialIndex = state.buffer.Read<int>(3);
+			int tutorialInstanceId = state.buffer.Read<int>(Is2060() ? 7 : 6);
+		}
+
+		auto unk39 = state.buffer.ReadBit();
+		auto unk40 = state.buffer.ReadBit();
+		auto unk41 = state.buffer.ReadBit();
+		auto unk42 = state.buffer.ReadBit();
+		auto unk43 = state.buffer.ReadBit();
+
+		auto randomPedsFlee = state.buffer.ReadBit();
+		data.randomPedsFlee = randomPedsFlee;
+		auto everybodyBackOff = state.buffer.ReadBit();
+		data.everybodyBackOff = everybodyBackOff;
+
+		auto unk46 = state.buffer.ReadBit();
+		auto unk47 = state.buffer.ReadBit();
+		auto unk48 = state.buffer.ReadBit();
+		auto unk49 = state.buffer.ReadBit();
+		auto unk50 = state.buffer.ReadBit();
+		auto unk51 = state.buffer.ReadBit();
+		auto unk52 = state.buffer.ReadBit();
+		auto unk53 = state.buffer.ReadBit();
+		auto unk54 = state.buffer.ReadBit();
+		auto unk55 = state.buffer.ReadBit();
+		auto unk56 = state.buffer.ReadBit();
+		auto unk57 = state.buffer.ReadBit();
+		auto unk58 = state.buffer.ReadBit();
+		auto unk59 = state.buffer.ReadBit();
+		auto unk60 = state.buffer.ReadBit();
+		auto unk61 = state.buffer.ReadBit();
+		auto unk62 = state.buffer.ReadBit();
+		auto unk63 = state.buffer.ReadBit();
+		auto unk64 = state.buffer.ReadBit();
+		auto unk65 = state.buffer.ReadBit();
+		auto unk66 = state.buffer.ReadBit();
+		auto unk67 = state.buffer.ReadBit();
+		auto unk68 = state.buffer.ReadBit();
+		auto unk69 = state.buffer.ReadBit();
+
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+		}
+
+		if (Is2189())
+		{
+			state.buffer.ReadBit();
+		}
+
+		if (Is3095())
+		{
+			state.buffer.ReadBit();
+		}
+
+		auto unk70 = state.buffer.ReadBit();
+
+		if (unk70)
+		{
+			int unk71 = state.buffer.Read<int>(16);
+		}
+
+		auto unk72 = state.buffer.ReadBit();
+
+		if (unk72)
+		{
+			int unk73 = state.buffer.Read<int>(5);
+		}
+
+		auto unk74 = state.buffer.ReadBit();
+
+		if (unk74)
+		{
+			int unk75 = state.buffer.Read<int>(32);
+		}
+
+		auto isOverridingVoiceProximity = state.buffer.ReadBit();
+
+		if (isOverridingVoiceProximity)
+		{
+			float voiceProximityOverrideX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float voiceProximityOverrideY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float voiceProximityOverrideZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+			data.voiceProximityOverrideX = voiceProximityOverrideX;
+			data.voiceProximityOverrideY = voiceProximityOverrideY;
+			data.voiceProximityOverrideZ = voiceProximityOverrideZ;
+		}
+		else
+		{
+			data.voiceProximityOverrideX = 0.0f;
+			data.voiceProximityOverrideY = 0.0f;
+			data.voiceProximityOverrideZ = 0.0f;
+		}
+
+		int unk78 = state.buffer.Read<int>(19);
+		auto isInvincible = state.buffer.ReadBit();
+		data.isInvincible = isInvincible;
+
+		auto unk80 = state.buffer.ReadBit();
+
+		if (unk80)
+		{
+			int unk81 = state.buffer.Read<int>(3);
+		}
+
+		auto hasDecor = state.buffer.ReadBit();
+
+		if (hasDecor)
+		{
+			uint8_t decoratorCount = state.buffer.Read<int>(2);
+
+			for (int i = 0; i < decoratorCount; i++)
+			{
+				uint8_t decorType = state.buffer.Read<int>(3);
+				int decorValue = state.buffer.Read<int>(32);
+				int decorName = state.buffer.Read<int>(32);
+			}
+		}
+
+		auto isFriendlyFireAllowed = state.buffer.ReadBit();
+		data.isFriendlyFireAllowed = isFriendlyFireAllowed;
+
+		auto unk88 = state.buffer.ReadBit();
+
+		auto isInGarage = state.buffer.ReadBit();
+
+		if (isInGarage)
+		{
+			int garageInstanceIndex = state.buffer.Read<int>(5);
+		}
+
+		auto isInProperty = state.buffer.ReadBit();
+
+		if (isInProperty)
+		{
+			int propertyId = state.buffer.Read<int>(8);
+		}
+
+		auto unk93 = state.buffer.Read<int>(3);
+		int unk94 = state.buffer.Read<int>(4);
+		auto unk95 = state.buffer.ReadBit();
+		auto unk96 = state.buffer.ReadBit();
+
+		float weaponDefenseModifier = state.buffer.ReadFloat(8, 2.0f);
+		float weaponDefenseModifier2 = state.buffer.ReadFloat(8, 2.0f);
+
+		data.weaponDefenseModifier = weaponDefenseModifier;
+		data.weaponDefenseModifier2 = weaponDefenseModifier2;
+
+		auto isOverridingPopulationControlSphere = state.buffer.ReadBit();
+
+		if (isOverridingPopulationControlSphere)
+		{
+			float populationSphereX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float populationSphereY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float populationSphereZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		}
+
+		int unk101 = state.buffer.Read<int>(13);
+		
+		if (Is3095())
+		{
+			state.buffer.Read<int>(8);
+			state.buffer.Read<int>(8);
+		}
+
+		auto unk102 = state.buffer.ReadBit();
+		auto noCollision = state.buffer.ReadBit();
+		auto unk104 = state.buffer.ReadBit();
+		auto unk105 = state.buffer.ReadBit();
+		auto unk106 = state.buffer.ReadBit();
+
+		if (unk106)
+		{
+			auto unk107 = state.buffer.ReadBit();
+			int unk108 = state.buffer.Read<int>(2);
+		}
+
+		float unk109 = state.buffer.ReadFloat(8, 10.0f);
+		auto isWeaponDamageModifierSet = state.buffer.ReadBit();
+
+		if (isWeaponDamageModifierSet)
+		{
+			float weaponDamageModifier = state.buffer.ReadFloat(10, 10.0f);
+			data.weaponDamageModifier = weaponDamageModifier;
+		}
+		else
+		{
+			data.weaponDamageModifier = 1.0f;
+		}
+
+		auto isMeleeWeaponDamageModifierSet = state.buffer.ReadBit();
+
+		if (isMeleeWeaponDamageModifierSet)
+		{
+			float meleeWeaponDamageModifier = state.buffer.ReadFloat(10, 100.0f);
+			data.meleeWeaponDamageModifier = meleeWeaponDamageModifier;
+		}
+		else
+		{
+			data.meleeWeaponDamageModifier = 1.0f;
+		}
+
+		auto isSomethingModifierSet = state.buffer.ReadBit();
+
+		if (isSomethingModifierSet)
+		{
+			float somethingModifier = state.buffer.ReadFloat(10, 100.0f);
+		}
+		else
+		{
+			// 1.0f
+		}
+
+		auto isSuperJumpEnabled = state.buffer.ReadBit();
+		data.isSuperJumpEnabled = isSuperJumpEnabled;
+
+		auto unk117 = state.buffer.ReadBit();
+		auto unk118 = state.buffer.ReadBit();
+		auto unk119 = state.buffer.ReadBit();
+
+		if (unk119)
+		{
+			float unk120X = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float unk120Y = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float unk120Z = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		}
+
+		if (Is2060()) // Added in trailing bits in 2060
+		{
+			auto v47 = state.buffer.ReadBit();
+			if (v47)
+			{
+				auto unk496 = state.buffer.Read<uint8_t>(2);
+				auto unk497 = state.buffer.Read<uint8_t>(3);
+				auto unk498 = state.buffer.ReadBit();
+				auto unk499 = state.buffer.Read<uint8_t>(6);
+			}
+		}
+
+		return true;
+	}
+};
+
+struct CPlayerAppearanceDataNode
+{
+	uint32_t model;
+
+	bool Parse(SyncParseState& state)
+	{
+		model = state.buffer.Read<uint32_t>(32);
+
+#if 0
+		uint32_t voiceGroup = state.buffer.Read<uint32_t>(32);
+		int phoneMode = state.buffer.Read<int>(2);
+
+		bool isTakingOffVehicleHelmet = state.buffer.ReadBit();
+		bool isPuttingOnVehicleHelmet = state.buffer.ReadBit();
+		bool hasVehicleHelmet = state.buffer.ReadBit();
+		bool isHelmetVisorUp = state.buffer.ReadBit();
+		bool hasHelmetVisorPropIndices = state.buffer.ReadBit();
+		bool isSwitchingHelmetVisor = state.buffer.ReadBit();
+
+		int unk_0x1E1 = state.buffer.Read<int>(8); // 0x98 of CTaskTakeOffHelmet (b2545)
+		uint32_t badgeTextureDict = state.buffer.Read<uint32_t>(32);
+		uint32_t badgeTextureName = state.buffer.Read<uint32_t>(32);
+
+		if (isPuttingOnVehicleHelmet || hasVehicleHelmet || isSwitchingHelmetVisor)
+		{
+			int vehicleHelmetTextureId = state.buffer.Read<int>(8);
+			int vehicleHelmetPropId = state.buffer.Read<int>(10);
+			int helmetVisorDownPropId = state.buffer.Read<int>(10);
+			int helmetVisorUpPropId = state.buffer.Read<int>(10);
+		}
+
+		bool hasParachuteTintIndex = state.buffer.ReadBit();
+		if (hasParachuteTintIndex)
+		{
+			int parachuteTintIndex = state.buffer.Read<int>(4);
+			int parachutePackTintIndex = state.buffer.Read<int>(4);
+		}
+
+		bool hasRespawnObjectId = state.buffer.ReadBit();
+		if (hasRespawnObjectId)
+		{
+			int respawnObjectId = state.buffer.Read<int>(13);
+		}
+
+		CPedAppearanceDataNode::DeserializePedProps(state);
+
+		CPedAppearanceDataNode::DeserializePedComponents(state);
+
+		bool hasHeadBlend = state.buffer.ReadBit();
+		if (hasHeadBlend)
+		{
+			DeserializeHeadBlend(state);
+		}
+
+		bool hasDecorations = state.buffer.ReadBit();
+		if (hasDecorations)
+		{
+			int numDecorations = Is2699() ? 56 : Is2060() ? 52 : 44;
+			for (int i = 0; i < numDecorations; i++)
+			{
+				int packedDecoration = state.buffer.Read<int>(32);
+			}
+
+			if (state.buffer.ReadBit())
+			{
+				state.buffer.Read<int>(32); // 0x340 of CNetObj* (b2545, damage / emblem related?)
+			}
+		}
+
+		DeserializePedSecondaryTask(state);
+
+		bool hasFacialClipset = state.buffer.ReadBit();
+		if (hasFacialClipset)
+		{
+			uint32_t facialClipsetName = state.buffer.Read<uint32_t>(32);
+			uint32_t facialClipsetDict = state.buffer.Read<uint32_t>(32);
+		}
+
+		bool hasFacialIdleAnim = state.buffer.ReadBit();
+		if (hasFacialIdleAnim)
+		{
+			uint32_t facialIdleAnim = state.buffer.Read<uint32_t>(32);
+		}
+
+		bool hasFacialIdleAnimDict = state.buffer.ReadBit();
+		if (hasFacialIdleAnimDict)
+		{
+			uint32_t facialIdleAnimDict = state.buffer.Read<uint32_t>(32); 
+		}
+
+		bool hasDamagePack = state.buffer.ReadBit();
+		if (hasDamagePack)
+		{
+			uint32_t damagePackName = state.buffer.Read<uint32_t>(32);
+		}
+#endif
+
+		return true;
+	}
+
+	static void DeserializeHeadBlend(SyncParseState& state)
+	{
+		float headBlend = state.buffer.ReadFloat(8, 1.05f);
+		float textureBlend = state.buffer.ReadFloat(8, 1.05f);
+		float variationBlend = state.buffer.ReadFloat(8, 1.05f);
+
+		int eyeColourIndex = state.buffer.ReadSigned<int>(9);
+		int hairFirstTint = state.buffer.Read<int>(8);
+		int hairSecondTint = state.buffer.Read<int>(8);
+
+		bool hasHeadGeometry = state.buffer.ReadBit();
+		if (hasHeadGeometry)
+		{
+			int headGeometryFlags = state.buffer.Read<int>(3);
+			for (int i = 0; i < 3; i++)
+			{
+				if ((headGeometryFlags >> i) & 1)
+				{
+					int headGeometry = state.buffer.Read<int>(8);
+				}
+			}
+		}
+
+		bool hasHeadTextures = state.buffer.ReadBit();
+		if (hasHeadTextures)
+		{
+			int headTextureFlags = state.buffer.Read<int>(3);
+			for (int i = 0; i < 3; i++)
+			{
+				if ((headTextureFlags >> i) & 1)
+				{
+					int headTexture = state.buffer.Read<int>(8);
+				}
+			}
+		}
+
+		bool hasOverlayTextures = state.buffer.ReadBit();
+		if (hasOverlayTextures)
+		{
+			int overlayTextureFlags = state.buffer.Read<int>(13);
+			for (int i = 0; i < 13; i++)
+			{
+				if ((overlayTextureFlags >> i) & 1)
+				{
+					int overlayTexture = state.buffer.Read<int>(8);
+					float overlayAlpha = state.buffer.ReadFloat(8, 1.0f);
+					float overlayNormal = state.buffer.ReadFloat(8, 1.0f);
+
+					bool hasOverlayTint = state.buffer.ReadBit();
+					if (hasOverlayTint)
+					{
+						int overlayFirstTint = state.buffer.Read<int>(8);
+						int overlaySecondTint = state.buffer.Read<int>(8);
+						int overlayRampType = state.buffer.Read<int>(2);
+					}
+				}
+			}
+		}
+
+		bool hasMicroMorph = state.buffer.ReadBit();
+		if (hasMicroMorph)
+		{
+			int microMorphFlags = state.buffer.Read<int>(20);
+			for (int i = 0; i < 20; i++)
+			{
+				if ((microMorphFlags >> i) & 1)
+				{
+					if (i >= 18)
+					{
+						float morphBlend = state.buffer.ReadFloat(8, 1.0f);
+					}
+					else
+					{
+						float morphBlend = state.buffer.ReadSignedFloat(8, 1.0f);
+					}
+				}
+			}
+		}
+
+		bool usePaletteRgb = state.buffer.ReadBit();
+		if (usePaletteRgb)
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				int paletteRed = state.buffer.Read<int>(8);
+				int paletteGreen = state.buffer.Read<int>(8);
+				int paletteBlue = state.buffer.Read<int>(8);
+			}
+		}
+
+		bool hasParents = state.buffer.ReadBit();
+		if (hasParents)
+		{
+			int firstParentHead = state.buffer.Read<int>(8);
+			int secondParentHead = state.buffer.Read<int>(8);
+			float firstParentBlend = state.buffer.ReadFloat(8, 1.0f);
+			float secondParentBlend = state.buffer.ReadFloat(8, 1.0f);
+		}
+	}
+
+	static void DeserializePedSecondaryTask(SyncParseState& state)
+	{
+		bool hasSecondaryTask = state.buffer.ReadBit();
+		if (hasSecondaryTask)
+		{
+			uint32_t animDictHash = state.buffer.Read<uint32_t>(32);
+			bool isTaskMove = state.buffer.ReadBit();
+			bool isTaskMoveBlendDefault = state.buffer.ReadBit();
+
+			if (isTaskMove)
+			{
+				bool isTaskMoveBlocked = state.buffer.ReadBit();
+				bool hasFirstFloatSignal = state.buffer.ReadBit();
+				bool hasSecondFloatSignal = state.buffer.ReadBit();
+				bool hasThirdFloatSignal = state.buffer.ReadBit();
+
+				if (hasFirstFloatSignal)
+				{
+					uint32_t signalName = state.buffer.Read<uint32_t>(32);
+					float signalValue = state.buffer.ReadSignedFloat(9, 2.0f);
+				}
+
+				if (hasSecondFloatSignal)
+				{
+					uint32_t signalName = state.buffer.Read<uint32_t>(32);
+					float signalValue = state.buffer.ReadSignedFloat(9, 2.0f);
+				}
+
+				if (hasThirdFloatSignal)
+				{
+					uint32_t signalName = state.buffer.Read<uint32_t>(32);
+					float signalValue = state.buffer.ReadSignedFloat(9, 2.0f);
+				}
+
+				uint32_t animName = state.buffer.Read<uint32_t>(32);
+				uint32_t stateName = state.buffer.Read<uint32_t>(32);
+			}
+			else
+			{
+				bool hasPhoneTask = state.buffer.ReadBit();
+				if (hasPhoneTask)
+				{
+					bool hasPhoneGesture = state.buffer.ReadBit();
+					if (hasPhoneGesture)
+					{
+						uint32_t animName = state.buffer.Read<uint32_t>(32);
+						uint32_t boneMask = state.buffer.Read<uint32_t>(32);
+						float blendInDuration = state.buffer.ReadSignedFloat(9, 1.0f);
+						float blendOutDuration = state.buffer.ReadSignedFloat(9, 1.0f);
+						int animFlags = state.buffer.Read<int>(8);
+					}
+				}
+				else
+				{
+					bool usingDefaultBoneMask = state.buffer.ReadBit();
+					int animId = state.buffer.Read<int>(5);
+
+					if (!usingDefaultBoneMask)
+					{
+						uint32_t boneMask = state.buffer.Read<uint32_t>(32);
+					}
+
+					uint32_t animName = state.buffer.Read<uint32_t>(32);
+					int animFlags = state.buffer.Read<int>(32);
+				}
+			}
+		}
+	}
+};
+
+struct CPlayerCreationDataNode { };
+
+struct CPlayerGameStateDataNode
+{
+	CPlayerGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		int playerState = state.buffer.Read<int>(3);
+		auto controlsDisabledByScript = state.buffer.ReadBit(); // SET_PLAYER_CONTROL
+		int playerTeam = state.buffer.Read<int>(6);
+		data.playerTeam = playerTeam;
+
+		if (Is2699())
+		{
+			auto hasMobileRingState = state.buffer.ReadBit();
+
+			if (hasMobileRingState)
+			{
+				int mobileRingState = state.buffer.Read<int>(8);
+			}
+		}
+		else
+		{
+			int mobileRingState = state.buffer.Read<int>(8);
+		}
+
+		auto isAirDragMultiplierDefault = state.buffer.ReadBit();
+
+		if (!isAirDragMultiplierDefault)
+		{
+			float airDragMultiplier = state.buffer.ReadFloat(7, 50.0f);
+			data.airDragMultiplier = airDragMultiplier;
+		}
+		else
+		{
+			data.airDragMultiplier = 1.0f;
+		}
+
+		auto isMaxHealthAndMaxArmourDefault = state.buffer.ReadBit();
+
+		if (isMaxHealthAndMaxArmourDefault)
+		{
+			int maxHealth = state.buffer.Read<int>(13);
+			int maxArmour = state.buffer.Read<int>(12);
+
+			data.maxHealth = maxHealth;
+			data.maxArmour = maxArmour;
+		}
+		else
+		{
+			data.maxHealth = 100;
+			data.maxArmour = 100;
+		}
+
+		auto unk9 = state.buffer.ReadBit();
+		auto unk10 = state.buffer.ReadBit();
+		int unk11 = state.buffer.Read<int>(2);
+		auto unk12 = state.buffer.ReadBit();
+		auto unk13 = state.buffer.ReadBit();
+		auto bulletProof = state.buffer.ReadBit();
+		auto fireProof = state.buffer.ReadBit();
+		auto explosionProof = state.buffer.ReadBit();
+		auto collisionProof = state.buffer.ReadBit();
+		auto meleeProof = state.buffer.ReadBit();
+		auto drownProof = state.buffer.ReadBit();
+		auto steamProof = state.buffer.ReadBit();
+		auto unk21 = state.buffer.ReadBit();
+		auto unk22 = state.buffer.ReadBit();
+
+		if (unk12)
+		{
+			int unk23 = state.buffer.Read<int>(7);
+		}
+
+		auto neverTarget = state.buffer.ReadBit();
+		data.neverTarget = neverTarget;
+		auto useKinematicPhysics = state.buffer.ReadBit();
+		auto isOverridingReceiveChat = state.buffer.ReadBit();
+
+		if (isOverridingReceiveChat) // v45
+		{
+			int overrideReceiveChat = state.buffer.Read<int>(32);
+		}
+
+		auto isOverridingSendChat = state.buffer.ReadBit();
+
+		if (isOverridingSendChat) // v46
+		{
+			int overrideSendChat = state.buffer.Read<int>(32);
+		}
+
+		auto unk29 = state.buffer.ReadBit();
+		auto unk30 = state.buffer.ReadBit();
+		auto isSpectating = state.buffer.ReadBit();
+
+		if (isSpectating)
+		{
+			auto spectatorId = state.buffer.ReadBit();
+			data.spectatorId = spectatorId;
+		}
+		else
+		{
+			data.spectatorId = 0;
+		}
+
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+		}
+
+		auto isAntagonisticToAnotherPlayer = state.buffer.ReadBit();
+
+		if (isAntagonisticToAnotherPlayer)
+		{
+			int antagonisticPlayerIndex = state.buffer.Read<int>(5);
+		}
+
+		auto unk35 = state.buffer.ReadBit();
+		auto pendingTutorialChange = state.buffer.ReadBit();
+
+		if (unk35)
+		{
+			int tutorialIndex = state.buffer.Read<int>(3);
+			int tutorialInstanceId = state.buffer.Read<int>(Is2060() ? 7 : 6);
+		}
+
+		auto unk39 = state.buffer.ReadBit();
+		auto unk40 = state.buffer.ReadBit();
+		auto unk41 = state.buffer.ReadBit();
+		auto unk42 = state.buffer.ReadBit();
+		auto unk43 = state.buffer.ReadBit();
+
+		auto randomPedsFlee = state.buffer.ReadBit();
+		data.randomPedsFlee = randomPedsFlee;
+		auto everybodyBackOff = state.buffer.ReadBit();
+		data.everybodyBackOff = everybodyBackOff;
+
+		auto unk46 = state.buffer.ReadBit();
+		auto unk47 = state.buffer.ReadBit();
+		auto unk48 = state.buffer.ReadBit();
+		auto unk49 = state.buffer.ReadBit();
+		auto unk50 = state.buffer.ReadBit();
+		auto unk51 = state.buffer.ReadBit();
+		auto unk52 = state.buffer.ReadBit();
+		auto unk53 = state.buffer.ReadBit();
+		auto unk54 = state.buffer.ReadBit();
+		auto unk55 = state.buffer.ReadBit();
+		auto unk56 = state.buffer.ReadBit();
+		auto unk57 = state.buffer.ReadBit();
+		auto unk58 = state.buffer.ReadBit();
+		auto unk59 = state.buffer.ReadBit();
+		auto unk60 = state.buffer.ReadBit();
+		auto unk61 = state.buffer.ReadBit();
+		auto unk62 = state.buffer.ReadBit();
+		auto unk63 = state.buffer.ReadBit();
+		auto unk64 = state.buffer.ReadBit();
+		auto unk65 = state.buffer.ReadBit();
+		auto unk66 = state.buffer.ReadBit();
+		auto unk67 = state.buffer.ReadBit();
+		auto unk68 = state.buffer.ReadBit();
+		auto unk69 = state.buffer.ReadBit();
+
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+		}
+
+		if (Is2189())
+		{
+			state.buffer.ReadBit();
+		}
+
+		if (Is3095())
+		{
+			state.buffer.ReadBit();
+		}
+
+		auto unk70 = state.buffer.ReadBit();
+
+		if (unk70)
+		{
+			int unk71 = state.buffer.Read<int>(16);
+		}
+
+		auto unk72 = state.buffer.ReadBit();
+
+		if (unk72)
+		{
+			int unk73 = state.buffer.Read<int>(5);
+		}
+
+		auto unk74 = state.buffer.ReadBit();
+
+		if (unk74)
+		{
+			int unk75 = state.buffer.Read<int>(32);
+		}
+
+		auto isOverridingVoiceProximity = state.buffer.ReadBit();
+
+		if (isOverridingVoiceProximity)
+		{
+			float voiceProximityOverrideX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float voiceProximityOverrideY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float voiceProximityOverrideZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+			data.voiceProximityOverrideX = voiceProximityOverrideX;
+			data.voiceProximityOverrideY = voiceProximityOverrideY;
+			data.voiceProximityOverrideZ = voiceProximityOverrideZ;
+		}
+		else
+		{
+			data.voiceProximityOverrideX = 0.0f;
+			data.voiceProximityOverrideY = 0.0f;
+			data.voiceProximityOverrideZ = 0.0f;
+		}
+
+		int unk78 = state.buffer.Read<int>(19);
+		auto isInvincible = state.buffer.ReadBit();
+		data.isInvincible = isInvincible;
+
+		auto unk80 = state.buffer.ReadBit();
+
+		if (unk80)
+		{
+			int unk81 = state.buffer.Read<int>(3);
+		}
+
+		auto hasDecor = state.buffer.ReadBit();
+
+		if (hasDecor)
+		{
+			uint8_t decoratorCount = state.buffer.Read<int>(2);
+
+			for (int i = 0; i < decoratorCount; i++)
+			{
+				uint8_t decorType = state.buffer.Read<int>(3);
+				int decorValue = state.buffer.Read<int>(32);
+				int decorName = state.buffer.Read<int>(32);
+			}
+		}
+
+		auto isFriendlyFireAllowed = state.buffer.ReadBit();
+		data.isFriendlyFireAllowed = isFriendlyFireAllowed;
+
+		auto unk88 = state.buffer.ReadBit();
+
+		auto isInGarage = state.buffer.ReadBit();
+
+		if (isInGarage)
+		{
+			int garageInstanceIndex = state.buffer.Read<int>(5);
+		}
+
+		auto isInProperty = state.buffer.ReadBit();
+
+		if (isInProperty)
+		{
+			int propertyId = state.buffer.Read<int>(8);
+		}
+
+		auto unk93 = state.buffer.Read<int>(3);
+		int unk94 = state.buffer.Read<int>(4);
+		auto unk95 = state.buffer.ReadBit();
+		auto unk96 = state.buffer.ReadBit();
+
+		float weaponDefenseModifier = state.buffer.ReadFloat(8, 2.0f);
+		float weaponDefenseModifier2 = state.buffer.ReadFloat(8, 2.0f);
+
+		data.weaponDefenseModifier = weaponDefenseModifier;
+		data.weaponDefenseModifier2 = weaponDefenseModifier2;
+
+		auto isOverridingPopulationControlSphere = state.buffer.ReadBit();
+
+		if (isOverridingPopulationControlSphere)
+		{
+			float populationSphereX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float populationSphereY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float populationSphereZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		}
+
+		int unk101 = state.buffer.Read<int>(13);
+		
+		if (Is3095())
+		{
+			state.buffer.Read<int>(8);
+			state.buffer.Read<int>(8);
+		}
+
+		auto unk102 = state.buffer.ReadBit();
+		auto noCollision = state.buffer.ReadBit();
+		auto unk104 = state.buffer.ReadBit();
+		auto unk105 = state.buffer.ReadBit();
+		auto unk106 = state.buffer.ReadBit();
+
+		if (unk106)
+		{
+			auto unk107 = state.buffer.ReadBit();
+			int unk108 = state.buffer.Read<int>(2);
+		}
+
+		float unk109 = state.buffer.ReadFloat(8, 10.0f);
+		auto isWeaponDamageModifierSet = state.buffer.ReadBit();
+
+		if (isWeaponDamageModifierSet)
+		{
+			float weaponDamageModifier = state.buffer.ReadFloat(10, 10.0f);
+			data.weaponDamageModifier = weaponDamageModifier;
+		}
+		else
+		{
+			data.weaponDamageModifier = 1.0f;
+		}
+
+		auto isMeleeWeaponDamageModifierSet = state.buffer.ReadBit();
+
+		if (isMeleeWeaponDamageModifierSet)
+		{
+			float meleeWeaponDamageModifier = state.buffer.ReadFloat(10, 100.0f);
+			data.meleeWeaponDamageModifier = meleeWeaponDamageModifier;
+		}
+		else
+		{
+			data.meleeWeaponDamageModifier = 1.0f;
+		}
+
+		auto isSomethingModifierSet = state.buffer.ReadBit();
+
+		if (isSomethingModifierSet)
+		{
+			float somethingModifier = state.buffer.ReadFloat(10, 100.0f);
+		}
+		else
+		{
+			// 1.0f
+		}
+
+		auto isSuperJumpEnabled = state.buffer.ReadBit();
+		data.isSuperJumpEnabled = isSuperJumpEnabled;
+
+		auto unk117 = state.buffer.ReadBit();
+		auto unk118 = state.buffer.ReadBit();
+		auto unk119 = state.buffer.ReadBit();
+
+		if (unk119)
+		{
+			float unk120X = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float unk120Y = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float unk120Z = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		}
+
+		if (Is2060()) // Added in trailing bits in 2060
+		{
+			auto v47 = state.buffer.ReadBit();
+			if (v47)
+			{
+				auto unk496 = state.buffer.Read<uint8_t>(2);
+				auto unk497 = state.buffer.Read<uint8_t>(3);
+				auto unk498 = state.buffer.ReadBit();
+				auto unk499 = state.buffer.Read<uint8_t>(6);
+			}
+		}
+
+		return true;
+	}
+};
+
 struct CPlayerPedGroupDataNode { };
 struct CPlayerAmbientModelStreamingNode { };
 struct CPlayerGamerDataNode { };
@@ -3819,8 +5462,8 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 		if (hasPickupPlacement)
 		{
 			posOut[0] = pickupPlacementCreationDataNode->posX;
-			posOut[1] = pickupPlacementCreationDataNode->posY;
-			posOut[2] = pickupPlacementCreationDataNode->posZ;
+			posOut[1] = pickupPlacementCreationNode->posY;
+			posOut[2] = pickupPlacementCreationNode->posZ;
 		}
 
 		if (hasPspdn)
@@ -4274,8 +5917,7 @@ using CAutomobileSyncTree = SyncTree<
 			NodeIds<4, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
 			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 36>
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>
 		>
 	>
 >;
@@ -4296,7 +5938,7 @@ using CBikeSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
 					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>,
-					NodeWrapper<NodeIds<127, 127, 0>, CBikeGameStateDataNode, 1>
+					NodeWrapper<NodeIds<87, 87, 0>, CBikeGameStateDataNode, 1>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
@@ -4331,8 +5973,7 @@ using CBikeSyncTree = SyncTree<
 			NodeIds<4, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
 			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 36>
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>
 		>
 	>
 >;
@@ -4388,8 +6029,7 @@ using CBoatSyncTree = SyncTree<
 			NodeIds<4, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
 			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 36>
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>
 		>
 	>
 >;
@@ -4402,14 +6042,38 @@ using CDoorSyncTree = SyncTree<
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
-			NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
-			NodeWrapper<NodeIds<127, 127, 1>, CDoorScriptInfoDataNode, 28>,
-			NodeWrapper<NodeIds<127, 127, 1>, CDoorScriptGameStateDataNode, 8>
+			ParentNode<
+				NodeIds<127, 127, 0>,
+				ParentNode<
+					NodeIds<127, 127, 0>,
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>
+				>,
+				ParentNode<
+					NodeIds<127, 127, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 50>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
+				>
+			>,
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 28>,
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalHealthDataNode, 19>
 		>,
-		NodeWrapper<NodeIds<86, 86, 0>, CDoorMovementDataNode, 2>,
+		ParentNode<
+			NodeIds<87, 87, 0>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CObjectSectorPosNode, 8>,
+			NodeWrapper<NodeIds<87, 87, 0>, CObjectOrientationDataNode, 8>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalAngVelocityDataNode, 4>
+		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
 			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>
 		>
 	>
@@ -4431,7 +6095,8 @@ using CHeliSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>,
+					NodeWrapper<NodeIds<87, 87, 0>, CHeliHealthDataNode, 16>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
@@ -4446,8 +6111,7 @@ using CHeliSyncTree = SyncTree<
 			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode, 34>,
 			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode, 65>,
 			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode, 57>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleTaskDataNode, 34>,
-			NodeWrapper<NodeIds<87, 87, 0>, CHeliHealthDataNode, 16>
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleTaskDataNode, 34>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
@@ -4460,16 +6124,14 @@ using CHeliSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>,
-				NodeWrapper<NodeIds<86, 86, 0>, CHeliControlDataNode, 8>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
 			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 36>
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>
 		>
 	>
 >;
@@ -4539,18 +6201,20 @@ using CPedSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CPedComponentReservationDataNode, 65>
 				>,
 				ParentNode<
-					NodeIds<127, 127, 1>,
+					NodeIds<127, 87, 0>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 115>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
+					NodeWrapper<NodeIds<87, 87, 0>, CPlayerGameStateDataNode, 104>
 				>
 			>,
 			NodeWrapper<NodeIds<127, 127, 1>, CPedAttachDataNode, 22>,
 			NodeWrapper<NodeIds<127, 127, 0>, CPedHealthDataNode, 17>,
 			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementGroupDataNode, 26>,
 			NodeWrapper<NodeIds<127, 127, 1>, CPedAIDataNode, 9>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedAppearanceDataNode, 141>
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode, 560>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerPedGroupDataNode, 19>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerAmbientModelStreamingNode, 5>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode, 370>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerExtendedGameStateNode, 20>
 		>,
 		ParentNode<
 			NodeIds<127, 87, 0>,
@@ -4569,16 +6233,15 @@ using CPedSyncTree = SyncTree<
 				NodeWrapper<NodeIds<87, 87, 0>, CPedTaskSpecificDataNode, 77>
 			>,
 			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosMapNode, 12>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosNavMeshNode, 4>
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerSectorPosNode, 13>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerCameraDataNode, 24>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerWantedAndLOSDataNode, 30>
 		>,
 		ParentNode<
-			NodeIds<87, 0, 0>,
+			NodeIds<4, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
 			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<87, 0, 0>, CPedInventoryDataNode, 321>, // Changed from 5 to 87 in CloneManager.cpp
-			NodeWrapper<NodeIds<4, 4, 1>, CPedTaskSequenceDataNode, 1>
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>
 		>
 	>
 >;
@@ -4618,7 +6281,7 @@ using CPickupSyncTree = SyncTree<
 		ParentNode<
 			NodeIds<4, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
 			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>
 		>
 	>
@@ -4677,16 +6340,14 @@ using CPlaneSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>,
-				NodeWrapper<NodeIds<86, 86, 0>, CPlaneControlDataNode, 7>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
 			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 36>
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>
 		>
 	>
 >;
@@ -4706,8 +6367,7 @@ using CSubmarineSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>,
-					NodeWrapper<NodeIds<87, 87, 0>, CSubmarineGameStateDataNode, 1>
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
@@ -4735,16 +6395,14 @@ using CSubmarineSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>,
-				NodeWrapper<NodeIds<86, 86, 0>, CSubmarineControlDataNode, 4>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
 			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 36>
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>
 		>
 	>
 >;
@@ -4784,7 +6442,7 @@ using CPlayerSyncTree = SyncTree<
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerExtendedGameStateNode, 20>
 		>,
 		ParentNode<
-			NodeIds<127, 86, 0>,
+			NodeIds<127, 87, 0>,
 			NodeWrapper<NodeIds<87, 87, 0>, CPedOrientationDataNode, 3>,
 			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementDataNode, 5>,
 			ParentNode<
@@ -4817,8 +6475,7 @@ using CTrailerSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode, 14>,
-			NodeWrapper<NodeIds<1, 0, 0>, CAutomobileCreationDataNode, 2>
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode, 14>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
@@ -4864,8 +6521,7 @@ using CTrailerSyncTree = SyncTree<
 			NodeIds<4, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
 			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 36>
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>
 		>
 	>
 >;
@@ -4885,8 +6541,7 @@ using CTrainSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>,
-					NodeWrapper<NodeIds<127, 127, 0>, CTrainGameStateDataNode, 17>
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
@@ -4921,9 +6576,7 @@ using CTrainSyncTree = SyncTree<
 			NodeIds<4, 0, 0>,
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 13>,
 			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 36>
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 1>
 		>
 	>
 >;
-}
