@@ -184,6 +184,40 @@ static std::map<std::string, std::string> load_crashometry()
 	return rv;
 }
 
+static std::string SlugifyString(const std::string& text)
+{
+	std::string result;
+	result.reserve(text.size());
+
+	bool lastWasDelimiter = false;
+	for (char ch : text)
+	{
+		if (ch >= 'A' && ch <= 'Z')
+		{
+			result += (ch + ('a' - 'A'));
+			lastWasDelimiter = false;
+		}
+		else if ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9'))
+		{
+			result += ch;
+			lastWasDelimiter = false;
+		}
+		else
+		{
+			if (!lastWasDelimiter)
+			{
+				result += '-';
+				lastWasDelimiter = true;
+			}
+		}
+	}
+
+	size_t start = result.find_first_not_of('-');
+	if (start == std::string::npos) return "";
+	size_t end = result.find_last_not_of('-');
+	return result.substr(start, end - start + 1);
+}
+
 static void OnStartSession()
 {
 	auto oldSession = load_json_file(L"data\\cache\\session");
@@ -231,7 +265,7 @@ static void OnStartSession()
 
 	std::time_t t = std::time(nullptr);
 
-	static std::string curChannel = GetUpdateChannel();
+	static std::string curChannel = SlugifyString(GetUpdateChannel());
 
 	auto session = json::object({
 		{ "sid", sid },
@@ -1103,7 +1137,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 				parameters[L"GameBuild"] = ToWide(xbr::GetCurrentGameBuildString());
 
-				parameters[L"ReleaseChannel"] = ToWide(GetUpdateChannel());
+				parameters[L"ReleaseChannel"] = ToWide(SlugifyString(GetUpdateChannel()));
 
 				parameters[L"AdditionalData"] = GetAdditionalData();
 

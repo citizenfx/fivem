@@ -97,8 +97,12 @@ Function ConvertTo-Slug
     }
 
     $rx = [System.Text.RegularExpressions.Regex]
-    $result = $rx::Replace($result, "[^a-zA-Z0-9\s-]", "")
-    $result = $rx::Replace($result, "\s+", " ").Trim(); 
-    $result = $rx::Replace($result, "\s", $Delimiter);
+
+    $escaped = $rx::Escape($Delimiter)
+
+    $result = $rx::Replace($result, "[^a-zA-Z0-9]+", $Delimiter)
+    $result = $rx::Replace($result, "$escaped{2,}", $Delimiter)
+    $result = $result.Trim($Delimiter)
+
     Write-Output $result
 }

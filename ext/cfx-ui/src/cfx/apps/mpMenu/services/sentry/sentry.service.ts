@@ -18,6 +18,7 @@ const ENABLE_SENTRY = !__CFXUI_DEV__ && __CFXUI_SENTRY_RELEASE__ && __CFXUI_SENT
 if (ENABLE_SENTRY) {
   Sentry.init({
     dsn: __CFXUI_SENTRY_DSN__,
+    sampleRate: 0.01,
 
     integrations: [
       new BrowserTracing({
@@ -25,7 +26,7 @@ if (ENABLE_SENTRY) {
       }),
     ],
 
-    tracesSampleRate: 0.05,
+    tracesSampleRate: 0.01,
 
     release: __CFXUI_SENTRY_RELEASE__,
 
