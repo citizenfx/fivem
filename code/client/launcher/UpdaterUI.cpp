@@ -141,7 +141,37 @@ HFONT UI_CreateScaledFont(int cHeight, int cWidth, int cEscapement, int cOrienta
 	return CreateFontIndirect(&logFont);
 }
 
-static std::wstring g_mainXaml = LR"(
+auto theme_Bg = 0x202020;
+auto theme_TitleFg = 0xABABAB;
+auto theme_SubtitleFg = 0xABABAB;
+auto theme_ProgressBg = 0x090A09;
+#if defined(GTA_FIVE)
+auto theme_ProgressFg = 0x66AD43;
+auto theme_Icon = LR"(
+<Viewbox Height="150" Margin="0,0,0,60" VerticalAlignment="Center" HorizontalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+	<Path
+		Data="M37.97 86.09L108.57 15.84L113.3 30.07L28.37 114.9L37.97 86.09ZM106.1 8.42L103.3 0H71.84C68.74 0 66 1.97 65.03 4.91L42.9 71.31L106.1 8.42ZM18.48 144.56L0 200H40.41L73.07 90.04L18.48 144.56ZM118.25 44.92L91.49 71.65L129.41 200H169.85L118.25 44.92Z" Stretch="Fill"
+		Fill="#66AD43"
+	>
+	</Path>
+</Viewbox>
+)";
+#else
+auto theme_ProgressFg = 0xD80D0D;
+auto theme_Icon = LR"(
+<Viewbox Height="150" Margin="0,0,0,60" VerticalAlignment="Center" HorizontalAlignment="Center">
+	<Path
+		Data="M20.799 12.234L21.192 10.869L22.044 8.367L22.41 7.311L22.695 6.477L23.244 4.881L23.661 3.663L23.943 2.817L24.918 0H33.267L33.06 0.621L32.835 1.77L32.661 3.072L32.388 4.08L32.187 5.085L31.686 7.653C31.266 7.851 29.934 8.406 29.091 8.757C28.308 9.084 26.085 10.032 25.929 10.077C25.896 10.095 23.031 11.313 22.71 11.445C22.56 11.505 20.913 12.189 20.799 12.234ZM28.962 11.322C28.602 11.508 26.142 12.411 25.953 12.528C25.395 12.711 23.034 13.734 22.623 13.839C22.146 14.046 21.534 14.292 21.024 14.475C20.706 14.631 20.376 14.754 20.046 14.874L19.446 17.706L18.864 20.454C19.098 20.403 21.747 19.299 22.272 18.981C22.29 18.963 23.634 18.411 23.769 18.327C24.396 17.991 27.675 16.773 28.209 16.485C28.374 16.377 29.742 15.852 30.105 15.558L30.27 14.91L31.134 10.485C30.765 10.641 29.325 11.193 28.962 11.319V11.322ZM28.329 21.501C28.425 21.48 28.518 21.453 28.611 21.423L26.658 29.184L26.643 29.259L26.577 29.598L25.872 33.177L24.912 38.049L25.482 38.109H27.585L32.616 37.782L31.233 58.053V59.994H0.345L0 44.388L0.129 36.222L0.114 33.513L0.324 30.564L0.507 26.988L0.609 25.368L0.762 22.983L0.741 22.455L0.861 18.396L0.996 15.198V12.096V11.343L1.026 11.007L1.098 10.233L1.158 9.399V2.268L1.239 0.885L1.206 0.165L4.011 0.255L5.859 0.315L10.932 0.48L10.749 7.119L10.728 7.872L10.674 8.97L10.617 10.413L10.578 11.157L10.536 12.123L10.485 13.383V20.031L10.092 25.374L9.819 29.079L9.801 29.316L9.744 30.111L9.732 30.264L9.72 30.411L9.534 32.952L9.183 37.71H15.423L16.275 32.952L16.596 31.161L16.644 30.897L16.836 29.997L16.878 29.796L17.22 28.188L17.304 27.795L17.769 25.602C17.823 25.578 21.855 24.069 22.743 23.634C22.917 23.481 25.206 22.689 25.401 22.608C25.464 22.581 27.801 21.669 28.326 21.501H28.329ZM23.946 51.003L23.784 48.075L23.946 45.726H8.862L9.054 47.604V49.311L8.862 51H23.946V51.003Z" Stretch="Fill"
+		Fill="#D80D0D"
+		>
+	</Path>
+</Viewbox>
+)";
+#endif
+
+
+static std::wstring g_mainXaml = fmt::format(
+LR"(
 <Grid
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -150,42 +180,30 @@ static std::wstring g_mainXaml = LR"(
 	xmlns:local="using:CitiLaunch"
     mc:Ignorable="d">
 
-    <Grid
-		Width="525"
-		Height="525")"
-#if defined(GTA_FIVE)
-	R"(
-		Background="#161923")"
-#elif defined(IS_RDR3)
-	R"(
-		Background="#d80d0d")"
-#endif
-	R"(>
+    <Grid Width="525" Height="525" Background="#{:06x}">
         <Grid x:Name="BackdropGrid" />
 		<SwapChainPanel x:Name="Overlay" />
-        <StackPanel Orientation="Vertical" VerticalAlignment="Center">)"
-#if defined(GTA_FIVE)
-	R"(
-            <Viewbox Height="150" Margin="0,0,0,15" RenderTransformOrigin="0.5,0.5">
-                <Path Data="M37.97 86.09L108.57 15.84L113.3 30.07L28.37 114.9L37.97 86.09ZM106.1 8.42L103.3 0H71.84C68.74 0 66 1.97 65.03 4.91L42.9 71.31L106.1 8.42ZM18.48 144.56L0 200H40.41L73.07 90.04L18.48 144.56ZM118.25 44.92L91.49 71.65L129.41 200H169.85L118.25 44.92Z" Fill="#F1F1E4" Stretch="Fill">
-                </Path>)"
-#elif defined(IS_RDR3)
-	R"(
-			<Viewbox Height="150" Margin="0,0,0,15">
-				<Path Data="M20.799 12.234L21.192 10.869L22.044 8.367L22.41 7.311L22.695 6.477L23.244 4.881L23.661 3.663L23.943 2.817L24.918 0H33.267L33.06 0.621L32.835 1.77L32.661 3.072L32.388 4.08L32.187 5.085L31.686 7.653C31.266 7.851 29.934 8.406 29.091 8.757C28.308 9.084 26.085 10.032 25.929 10.077C25.896 10.095 23.031 11.313 22.71 11.445C22.56 11.505 20.913 12.189 20.799 12.234ZM28.962 11.322C28.602 11.508 26.142 12.411 25.953 12.528C25.395 12.711 23.034 13.734 22.623 13.839C22.146 14.046 21.534 14.292 21.024 14.475C20.706 14.631 20.376 14.754 20.046 14.874L19.446 17.706L18.864 20.454C19.098 20.403 21.747 19.299 22.272 18.981C22.29 18.963 23.634 18.411 23.769 18.327C24.396 17.991 27.675 16.773 28.209 16.485C28.374 16.377 29.742 15.852 30.105 15.558L30.27 14.91L31.134 10.485C30.765 10.641 29.325 11.193 28.962 11.319V11.322ZM28.329 21.501C28.425 21.48 28.518 21.453 28.611 21.423L26.658 29.184L26.643 29.259L26.577 29.598L25.872 33.177L24.912 38.049L25.482 38.109H27.585L32.616 37.782L31.233 58.053V59.994H0.345L0 44.388L0.129 36.222L0.114 33.513L0.324 30.564L0.507 26.988L0.609 25.368L0.762 22.983L0.741 22.455L0.861 18.396L0.996 15.198V12.096V11.343L1.026 11.007L1.098 10.233L1.158 9.399V2.268L1.239 0.885L1.206 0.165L4.011 0.255L5.859 0.315L10.932 0.48L10.749 7.119L10.728 7.872L10.674 8.97L10.617 10.413L10.578 11.157L10.536 12.123L10.485 13.383V20.031L10.092 25.374L9.819 29.079L9.801 29.316L9.744 30.111L9.732 30.264L9.72 30.411L9.534 32.952L9.183 37.71H15.423L16.275 32.952L16.596 31.161L16.644 30.897L16.836 29.997L16.878 29.796L17.22 28.188L17.304 27.795L17.769 25.602C17.823 25.578 21.855 24.069 22.743 23.634C22.917 23.481 25.206 22.689 25.401 22.608C25.464 22.581 27.801 21.669 28.326 21.501H28.329ZM23.946 51.003L23.784 48.075L23.946 45.726H8.862L9.054 47.604V49.311L8.862 51H23.946V51.003Z" Stretch="Fill" Fill="#F1F1E4">
-				</Path>
-)"
-#endif
-R"(         </Viewbox>
-            <TextBlock x:Name="static1" Text=" " TextAlignment="Center" Foreground="#ffffffff" FontSize="24" />
-			<Grid Margin="0,15,0,15">
-				<ProgressBar x:Name="progressBar" Foreground="White" Width="250" />
+
+		<!-- Icon -->
+		{}
+
+		<StackPanel Orientation="Vertical" VerticalAlignment="Bottom" Margin="40,0,40,40">
+            <TextBlock x:Name="static2" Text=" " TextAlignment="Left" Foreground="#{:06x}" FontSize="12" FontWeight="Bold" />
+			<Grid Margin="0,8,0,8">
+				<ProgressBar x:Name="progressBar" Foreground="#{:06x}" Background="#{:06x}" HorizontalAlignment="Stretch" MinHeight="6" CornerRadius="3" />
 			</Grid>
-            <TextBlock x:Name="static2" Text=" " TextAlignment="Center" Foreground="#ffeeeeee" FontSize="18" />
+            <TextBlock x:Name="static1" Text=" " TextAlignment="Left" Foreground="#{:06x}" FontSize="10" FontWeight="Bold" />
         </StackPanel>
     </Grid>
 </Grid>
-)";
+)",
+theme_Bg,
+theme_Icon,
+theme_TitleFg,
+theme_ProgressFg,
+theme_ProgressBg,
+theme_SubtitleFg
+);
 
 #include <wrl.h>
 #include <d3d11.h>
@@ -1115,6 +1133,12 @@ void UI_CreateWindow()
 
 	MoveWindow(rootWindow, (width - g_dpi.ScaleX(wwidth)) / 2, (height - g_dpi.ScaleY(wheight)) / 2, wndRect.right - wndRect.left, wndRect.bottom - wndRect.top, TRUE);
 
+	{
+		int cornerRadius = g_dpi.ScaleX(10);
+		HRGN hRgn = CreateRoundRectRgn(0, 0, wndRect.right - wndRect.left + 1, wndRect.bottom - wndRect.top + 1, cornerRadius, cornerRadius);
+		SetWindowRgn(rootWindow, hRgn, TRUE);
+	}
+
 	ShowWindow(rootWindow, TRUE);
 }
 
@@ -1187,6 +1211,12 @@ LRESULT CALLBACK UI_WndProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
 				// Resize the window
 				LPRECT newScale = (LPRECT)lparam;
 				SetWindowPos(hWnd, HWND_TOP, newScale->left, newScale->top, newScale->right - newScale->left, newScale->bottom - newScale->top, SWP_NOZORDER | SWP_NOACTIVATE);
+
+				{
+					int cornerRadius = g_dpi.ScaleX(10);
+					HRGN hRgn = CreateRoundRectRgn(0, 0, newScale->right - newScale->left + 1, newScale->bottom - newScale->top + 1, cornerRadius, cornerRadius);
+					SetWindowRgn(hWnd, hRgn, TRUE);
+				}
 
 				// Recreate the font
 				HFONT newFont = UI_CreateScaledFont(-12, 0, 0, 0, 0, 0, 0, 0, 1, 8, 0, 5, 2, L"Tahoma");
@@ -1412,6 +1442,7 @@ void UI_UpdateText(int textControl, const wchar_t* text)
 		}
 		else
 		{
+			std::transform(tstr.begin(), tstr.end(), tstr.begin(), ::towupper);
 			g_uui.ten->bottomStatic.Text(tstr);
 		}
 
@@ -1424,7 +1455,9 @@ void UI_UpdateText(int textControl, const wchar_t* text)
 	}
 	else
 	{
-		wcscpy(g_uui.bottomText, text);
+		std::wstring upper = text;
+		std::transform(upper.begin(), upper.end(), upper.begin(), ::towupper);
+		wcscpy(g_uui.bottomText, upper.c_str());
 	}
 }
 
