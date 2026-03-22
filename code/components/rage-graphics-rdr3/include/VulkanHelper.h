@@ -7,7 +7,7 @@
 
 #include <DrawCommands.h>
 
-inline std::string_view ResultToString(VkResult result)
+inline std::string ResultToString(VkResult result)
 {
 	switch (result)
 	{
@@ -72,7 +72,7 @@ inline std::string_view ResultToString(VkResult result)
 		case VK_ERROR_INVALID_DEVICE_ADDRESS_EXT:
 			return "VK_ERROR_INVALID_DEVICE_ADDRESS_EXT A buffer creation failed because the requested address is not available.";
 		default:
-			return std::to_string(static_cast<uint32_t>(result));
+			return std::to_string(static_cast<int32_t>(result));
 	}
 }
 
@@ -94,6 +94,8 @@ static uint32_t FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFil
 
 static void CreateVKImageFromShareHandle(VkDevice& device, HANDLE handle, unsigned int width, unsigned int height, VkImage& outImage, VkDeviceMemory& outMemory)
 {
+	assert(handle != NULL && handle != INVALID_HANDLE_VALUE);
+
 	VkExternalMemoryImageCreateInfo ExternalMemoryImageCreateInfo = { VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO };
 	ExternalMemoryImageCreateInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT;
 	VkImageCreateInfo ImageCreateInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -120,21 +122,31 @@ static void CreateVKImageFromShareHandle(VkDevice& device, HANDLE handle, unsign
 
 	VkMemoryDedicatedAllocateInfo MemoryDedicatedAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO };
 	MemoryDedicatedAllocateInfo.image = outImage;
+
 	VkImportMemoryWin32HandleInfoKHR ImportMemoryWin32HandleInfo = { VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR };
 	ImportMemoryWin32HandleInfo.pNext = &MemoryDedicatedAllocateInfo;
 	ImportMemoryWin32HandleInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT;
 	ImportMemoryWin32HandleInfo.handle = handle;
+
 	VkMemoryAllocateInfo MemoryAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	MemoryAllocateInfo.pNext = &ImportMemoryWin32HandleInfo;
-	MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
+	
+	static auto _vkGetMemoryWin32HandlePropertiesKHR = (PFN_vkGetMemoryWin32HandlePropertiesKHR)vkGetDeviceProcAddr(device, "vkGetMemoryWin32HandlePropertiesKHR");
+	if (_vkGetMemoryWin32HandlePropertiesKHR == nullptr)
+	{
+		FatalError("Unable to retrieve 'vkGetMemoryWin32HandlePropertiesKHR'");
+	}
 
-	VkPhysicalDeviceMemoryProperties memProps;
-	vkGetPhysicalDeviceMemoryProperties(GetVulkanPhysicalHandle(), &memProps);
+	VkMemoryWin32HandlePropertiesKHR handleProps = { VK_STRUCTURE_TYPE_MEMORY_WIN32_HANDLE_PROPERTIES_KHR };
+	if (result = _vkGetMemoryWin32HandlePropertiesKHR(device, VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT, handle, &handleProps); result != VK_SUCCESS)
+	{
+		FatalError("Failed to query Win32 handle properties. VkResult: %s", ResultToString(result));
+	}
 
-	MemoryAllocateInfo.memoryTypeIndex = FindMemoryType(GetVulkanPhysicalHandle(), MemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	MemoryAllocateInfo.memoryTypeIndex = FindMemoryType(GetVulkanPhysicalHandle(), MemoryRequirements.memoryTypeBits & handleProps.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	if (MemoryAllocateInfo.memoryTypeIndex == INT32_MAX)
 	{
-		FatalError("Failed to compatible memory type for NUI. This system may not be equipped to run RedM under Vulkan.\n");
+		FatalError("Failed to compatible memory type for NUI. This system may not be equipped to run RedM under Vulkan.");
 	}
 
 	if (result = vkAllocateMemory(device, &MemoryAllocateInfo, nullptr, &outMemory); result != VK_SUCCESS)

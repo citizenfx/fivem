@@ -625,38 +625,26 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 	}
 	else if (GetCurrentGraphicsAPI() == GraphicsAPI::Vulkan)
 	{
-		// meanwhile in Vulkan, this is infinitely annoying
 		return new GtaNuiTexture([shareHandle, width, height](GtaNuiTexture* texture)
 		{
-			std::vector<uint8_t> pixelData(size_t(width) * size_t(height) * 4);
+			rage::grcManualTextureDef textureDef;
+			memset(&textureDef, 0, sizeof(textureDef));
+			textureDef.isStaging = 0;
+			textureDef.arraySize = 1;
 
-			rage::grcTextureReference reference;
-			memset(&reference, 0, sizeof(reference));
-			reference.width = width;
-			reference.height = height;
-			reference.depth = 1;
-			reference.stride = width * 4;
-			reference.format = 11;
-			reference.pixelData = (uint8_t*)pixelData.data();
-
-			auto texRef = (rage::sga::TextureVK*)rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
-
+			auto texRef = (rage::sga::TextureVK*)rage::grcTextureFactory::getInstance()->createManualTexture(width, height, 2, nullptr, true, &textureDef);
 			if (texRef)
 			{
 				rage::sga::Driver_Destroy_Texture(texRef);
 
 				VkDevice device = (VkDevice)GetGraphicsDriverHandle();
-				VkPhysicalDevice physicalDevice = GetVulkanPhysicalHandle();
 
 				VkImage Image;
 				VkDeviceMemory DeviceMemory;
 				CreateVKImageFromShareHandle(device, shareHandle, width, height, Image, DeviceMemory);
 
 				auto newImage = new rage::sga::TextureVK::ImageData;
-				//memcpy(newImage, texRef->image, sizeof(*newImage));
 				memset(newImage, 0, sizeof(*newImage));
-				// these come from a fast allocator(?)
-				//delete texRef->image;
 				texRef->image = newImage;
 
 				texRef->image->image = Image;
