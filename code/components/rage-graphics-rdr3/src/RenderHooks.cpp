@@ -467,7 +467,7 @@ static void D3D12ResultFailed(HRESULT hr)
 	}
 
 	InvalidatePipelineCache();
-	FatalError("DirectX encountered an unrecoverable error: %s - %s%s", ToNarrow(errorString), ToNarrow(errorDescription), removedError);
+	FatalError("DirectX encountered an unrecoverable error: %s - %s%s", ToNarrow(errorString).c_str(), ToNarrow(errorDescription).c_str(), removedError.c_str());
 }
 
 static HookFunction hookFunction([]()
@@ -528,8 +528,13 @@ static HookFunction hookFunction([]()
 		hook::jump(location, SetCrashometryData);
 	}
 
-	// D3D12: Instead of throwing generic ERR_GFX_STATE properly catch FAILED calls and provide a slightly more useful error.
-	hook::call(hook::get_pattern("E8 ? ? ? ? 8B C3 48 83 C4 ? 5B C3 48 8B C4 48 89 58 ? 88 50"), D3D12ResultFailed);
+	// D3D12: Catch FAILED calls and provide an error from DXErr instead of a generic ERR_GFX_STATE error
+	{
+		auto location = hook::get_pattern("C1 FB ? BA");
+		hook::nop(location, 0x1c);
+		hook::put<uint32_t>(location, 0xCB8B48); // mov rcx, rbx
+		hook::call((uintptr_t)location + 3, D3D12ResultFailed);
+	}
 
 	// Same for Vulkan, Vulkan has three ERR_GFX_STATE errors, one for VK_ERROR_DEVICE_LOST, one for Swapchain Creation and an unknown one.
 	// VK_ERROR_DEVICE_LOST exclusively, called after most vk functions.
