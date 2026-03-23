@@ -206,7 +206,7 @@ std::map<int, uint32_t> g_objectIdToCreationTokenRPC;
 static hook::cdecl_stub<void*(int handle)> getScriptEntity([]()
 {
 #if GTA_FIVE
-	return hook::pattern("44 8B C1 49 8B 41 08 41 C1 F8 08 41 38 0C 00").count(1).get(0).get<void>(-12);
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B F8 48 85 C0 0F 84 ? ? ? ? 44 38 60"));
 #elif IS_RDR3
 	return hook::pattern("45 8B C1 41 C1 F8 08 45 38 0C 00 75 ? 8B 42 ? 41 0F AF C0").count(1).get(0).get<void>(-81);
 #endif

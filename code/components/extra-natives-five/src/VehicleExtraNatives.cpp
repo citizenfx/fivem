@@ -637,7 +637,7 @@ static HookFunction initFunction([]()
 		VehicleCheatPowerIncreaseOffset = *hook::get_pattern<uint32_t>("E8 ? ? ? ? 8B 83 ? ? ? ? C7 83", 23);
 		WheelSurfaceMaterialOffset = *hook::get_pattern<uint32_t>("48 8B 4A 10 0F 28 CF F3 0F 59 05", -4);
 		WheelHealthOffset = *hook::get_pattern<uint32_t>("75 24 F3 0F 10 ? ? ? 00 00 F3 0F", 6);
-		LightMultiplierGetOffset = *hook::get_pattern<uint32_t>("00 00 48 8B CE F3 0F 59 ? ? ? 00 00 F3 41", 9);
+		LightMultiplierGetOffset = *hook::get_pattern<uint32_t>("00 00 48 8B ? F3 0F 59 ? ? ? 00 00 F3 41", 9);
 		VehicleRepairMethodVtableOffset = *hook::get_pattern<uint32_t>("C1 E8 19 A8 01 74 ? 48 8B 81", -14);
 		TrainFlagOffset = *hook::get_pattern<uint32_t>("80 8B ? ? ? ? ? 8B 05 ? ? ? ? FF C8", 2);
 		TrainStateOffset = *hook::get_pattern<uint32_t>("89 91 ? ? ? ? 80 3D ? ? ? ? ? 0F 84", 2);
@@ -1907,7 +1907,7 @@ static HookFunction initFunction([]()
 		} vehicleHighbeamsColorStub;
 
 		{
-			auto location = hook::get_pattern("F3 0F 11 55 80 0F C6 CA AA", 13);
+			auto location = hook::get_pattern("F3 0F 11 55 ? 0F C6 CA ? 0F C6 D2", 13);
 			hook::nop(location, 10);
 			hook::call(location, vehicleHighbeamsColorStub.GetCode());
 		}
