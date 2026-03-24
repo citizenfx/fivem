@@ -949,7 +949,6 @@ end
 -- Callback system
 
 local cbNetRegistered = {}
-local cbLocalRegistered = {}
 local cbPending = {}
 local cbRequestId = 0
 local cbResourceName = GetCurrentResourceName()
@@ -1103,33 +1102,6 @@ local function cbHandleResponse(requestId, success, ...)
 	else
 		pending.promise:reject(...)
 	end
-end
-
--- local callback handlers (same-side, cross-resource)
-AddEventHandler('__cfx_lcb:resp', cbHandleResponse)
-
-AddEventHandler('__cfx_lcb:req', function(name, requestId, ...)
-	cbHandleRequest(cbLocalRegistered, name, requestId, function(rid, ...)
-		TriggerEvent('__cfx_lcb:resp', rid, ...)
-	end, nil, ...)
-end)
-
-function RegisterLocalCallback(name, handler, opts)
-	cbRegister(cbLocalRegistered, name, handler, opts)
-end
-
--- non-await: response in separate coroutine
-function LocalCallback(name, cb, ...)
-	return cbCall(function(requestId, cbName, ...)
-		TriggerEvent('__cfx_lcb:req', cbName, requestId, ...)
-	end, name, cb, ...)
-end
-
--- await: yields current coroutine
-function LocalCallbackAwait(name, ...)
-	return cbCallAwait(function(requestId, cbName, ...)
-		TriggerEvent('__cfx_lcb:req', cbName, requestId, ...)
-	end, name, ...)
 end
 
 -- net callback response handler (client<->server)
