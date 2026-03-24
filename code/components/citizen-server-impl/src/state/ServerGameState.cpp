@@ -5046,7 +5046,7 @@ struct CWeaponDamageEvent
 	}
 
 	uint8_t damageType;
-	uint32_t weaponType; // weaponHash
+	int32_t weaponType; // weaponHash
 
 	bool overrideDefaultDamage;
 	bool hitEntityWeapon;
@@ -6308,7 +6308,7 @@ struct CWeaponDamageEvent
 	}
 
 	uint8_t damageType;
-	uint32_t weaponType; // weaponHash
+	int32_t weaponType; // weaponHash
 	uint32_t f92;
 
 	bool overrideDefaultDamage;
