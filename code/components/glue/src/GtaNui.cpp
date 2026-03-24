@@ -628,18 +628,12 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 		// meanwhile in Vulkan, this is infinitely annoying
 		return new GtaNuiTexture([shareHandle, width, height](GtaNuiTexture* texture)
 		{
-			std::vector<uint8_t> pixelData(size_t(width) * size_t(height) * 4);
+			rage::grcManualTextureDef textureDef;
+			memset(&textureDef, 0, sizeof(textureDef));
+			textureDef.isStaging = 0;
+			textureDef.arraySize = 1;
 
-			rage::grcTextureReference reference;
-			memset(&reference, 0, sizeof(reference));
-			reference.width = width;
-			reference.height = height;
-			reference.depth = 1;
-			reference.stride = width * 4;
-			reference.format = 11;
-			reference.pixelData = (uint8_t*)pixelData.data();
-
-			auto texRef = (rage::sga::TextureVK*)rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
+			auto texRef = (rage::sga::TextureVK*)rage::grcTextureFactory::getInstance()->createManualTexture(width, height, 2, nullptr, true, &textureDef);
 
 			if (texRef)
 			{
@@ -647,79 +641,20 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 
 				// Vulkan API magic time (copy/pasted from samples on GH)
 				VkDevice device = (VkDevice)GetGraphicsDriverHandle();
-				
-				VkExtent3D Extent = { width, height, 1 };
-
-				VkExternalMemoryImageCreateInfo ExternalMemoryImageCreateInfo = { VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO };
-				ExternalMemoryImageCreateInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT;
-				VkImageCreateInfo ImageCreateInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-				ImageCreateInfo.pNext = &ExternalMemoryImageCreateInfo;
-				ImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-				ImageCreateInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
-				ImageCreateInfo.extent = Extent;
-				ImageCreateInfo.mipLevels = 1;
-				ImageCreateInfo.arrayLayers = 1;
-				ImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-				ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-				ImageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
-				ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-				ImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				VkPhysicalDevice physicalDevice = GetVulkanPhysicalHandle();
 
 				VkImage Image;
-				VkResult result = vkCreateImage(device, &ImageCreateInfo, nullptr, &Image);
-
-				if (result != VK_SUCCESS)
-				{
-					FatalError("Failed to create a Vulkan image. VkResult: %s", ResultToString(result));
-				}
-
-				VkMemoryRequirements MemoryRequirements;
-				vkGetImageMemoryRequirements(device, Image, &MemoryRequirements);
-
-				VkMemoryDedicatedAllocateInfo MemoryDedicatedAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO };
-				MemoryDedicatedAllocateInfo.image = Image;
-				VkImportMemoryWin32HandleInfoKHR ImportMemoryWin32HandleInfo = { VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR };
-				ImportMemoryWin32HandleInfo.pNext = &MemoryDedicatedAllocateInfo;
-				ImportMemoryWin32HandleInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT;
-				ImportMemoryWin32HandleInfo.handle = shareHandle;
-				VkMemoryAllocateInfo MemoryAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-				MemoryAllocateInfo.pNext = &ImportMemoryWin32HandleInfo;
-				MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
-
-				unsigned long typeIndex;
-				_BitScanForward(&typeIndex, MemoryRequirements.memoryTypeBits);
-				MemoryAllocateInfo.memoryTypeIndex = typeIndex;
-
-				static auto _vkBindImageMemory2 = (PFN_vkBindImageMemory2)vkGetDeviceProcAddr(device, "vkBindImageMemory2");
-
-				VkDeviceMemory ImageMemory;
-				result = vkAllocateMemory(device, &MemoryAllocateInfo, nullptr, &ImageMemory);
-
-				if (result != VK_SUCCESS)
-				{
-					FatalErrorNoReport("Failed to allocate memory for Vulkan. VkResult: %s", ResultToString(result));
-				}
-
-				VkBindImageMemoryInfo BindImageMemoryInfo = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO };
-				BindImageMemoryInfo.image = Image;
-				BindImageMemoryInfo.memory = ImageMemory;
-
-				result = _vkBindImageMemory2(device, 1, &BindImageMemoryInfo);
-
-				if (result != VK_SUCCESS)
-				{
-					FatalErrorNoReport("Failed to bind Vulkan image memory. VkResult: %s", ResultToString(result));
-				}
+				VkDeviceMemory DeviceMemory;
+				CreateVKImageFromShareHandle(device, shareHandle, width, height, Image, DeviceMemory);
 
 				auto newImage = new rage::sga::TextureVK::ImageData;
-				//memcpy(newImage, texRef->image, sizeof(*newImage));
 				memset(newImage, 0, sizeof(*newImage));
-				// these come from a fast allocator(?)
-				//delete texRef->image;
 				texRef->image = newImage;
 
 				texRef->image->image = Image;
-				texRef->image->memory = ImageMemory;
+				texRef->image->memory = DeviceMemory;
+				texRef->width = width;
+				texRef->height = height;
 
 				rage::sga::TextureViewDesc srvDesc;
 				srvDesc.mipLevels = 1;
