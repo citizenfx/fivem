@@ -920,7 +920,6 @@ const EXT_LOCALFUNCREF = 11;
 	}
 	// Callback system
 	const cbNetRegistered = new Map();
-	const cbLocalRegistered = new Map();
 	const cbPending = new Map();
 	let cbRequestId = 0;
 	const CB_TIMEOUT_MS = GetConvarInt('cb_timeout', 10000);
@@ -1024,26 +1023,6 @@ const EXT_LOCALFUNCREF = 11;
 			respondFn(requestId, false, e?.message || String(e));
 		}
 	}
-
-	// local callback handlers (same-side, cross-resource)
-	global.on('__cfx_lcb:resp', cbHandleResponse);
-
-	global.on('__cfx_lcb:req', (name, requestId, ...args) => {
-		cbHandleRequest(cbLocalRegistered, name, requestId, (rid, ...r) => {
-			global.emit('__cfx_lcb:resp', rid, ...r);
-		}, null, ...args);
-	});
-
-	global.RegisterLocalCallback = (name, handler, opts) => { cbRegister(cbLocalRegistered, name, handler, opts); };
-
-	// non-await: response via .then() callback
-	global.LocalCallback = (name, cb, ...args) => {
-		cbCall((rid, n, ...a) => global.emit('__cfx_lcb:req', n, rid, ...a), name, ...args)
-			.then(r => cb(...r)).catch(e => console.error('CALLBACK ERROR:', e));
-	};
-
-	// await: returns Promise, use with await
-	global.LocalCallbackAwait = (name, ...args) => cbCall((rid, n, ...a) => global.emit('__cfx_lcb:req', n, rid, ...a), name, ...args);
 
 	// net callback response handler (client<->server)
 	netSafeEventNames.add('__cfx_cb:resp');
