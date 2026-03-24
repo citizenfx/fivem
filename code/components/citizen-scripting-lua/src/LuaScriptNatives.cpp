@@ -25,11 +25,9 @@ extern LUA_INTERNAL_LINKAGE
 {
 #include <lobject.h>
 #include <lapi.h>
-#if LUA_VERSION_NUM == 504
 #include <lstate.h>
 #include <lglm.hpp>
 #include <lglmlib.hpp>
-#endif
 }
 
 using namespace fx::invoker;
@@ -39,17 +37,10 @@ extern bool g_hadProfiler;
 // Get the pointer to a value local to the current lua function (idx must be > 0)
 static CSCRC_INLINE const TValue* LuaGetLocal(lua_State* L, int idx)
 {
-#if LUA_VERSION_NUM == 504
 	const CallInfo* ci = L->ci;
-	const StkId o = ci->func + idx;
+	const StkId o = ci->func.p + idx;
 	api_check(L, idx <= ci->top - (ci->func + 1), "unacceptable index");
-	return (o >= L->top) ? &G(L)->nilvalue : s2v(o);
-#else
-	const CallInfo* ci = L->ci;
-	const TValue* o = ci->func + idx;
-	api_check(L, idx <= ci->top - (ci->func + 1), "unacceptable index");
-	return (o >= L->top) ? luaO_nilobject : o;
-#endif
+	return (o >= L->top.p) ? &G(L)->nilvalue : s2v(o);
 }
 
 struct LuaScriptNativeContext final : ScriptNativeContext
@@ -75,7 +66,6 @@ CSCRC_INLINE void LuaScriptNativeContext::PushArgument(int idx)
 	const TValue* value = LuaGetLocal(L, idx);
 	size_t slot = ReserveArgs(1); // Check we can push at least 1 argument
 
-#if LUA_VERSION_NUM == 504
 	switch (ttypetag(value))
 	{
 		case LUA_VNIL:
@@ -100,8 +90,11 @@ CSCRC_INLINE void LuaScriptNativeContext::PushArgument(int idx)
 		case LUA_VBLOBSTR:
 #endif
 		case LUA_VLNGSTR:
-			PushAt(slot, svalue(value), vslen(value));
+		{
+			const TString* str = tsvalue(value);
+			PushAt(slot, getstr(str), tsslen(str));
 			break;
+		}
 
 		case LUA_VVECTOR2:
 		{
@@ -157,86 +150,6 @@ CSCRC_INLINE void LuaScriptNativeContext::PushArgument(int idx)
 			ScriptErrorf("invalid lua type: %s", lua_typename(L, ttype(value)));
 		}
 	}
-#else
-	switch (ttype(value))
-	{
-		case LUA_TNIL:
-			PushAt(slot, 0);
-			break;
-
-		case LUA_TBOOLEAN:
-			PushAt(slot, bvalue(value));
-			break;
-
-		case LUA_TNUMINT:
-			PushAt(slot, ivalue(value));
-			break;
-
-		case LUA_TNUMFLT:
-			PushAt(slot, fltvalue(value));
-			break;
-
-		case LUA_TSHRSTR:
-			PushAt(slot, svalue(value), tsvalue(value)->shrlen);
-			break;
-
-		case LUA_TLNGSTR:
-			PushAt(slot, svalue(value), tsvalue(value)->u.lnglen);
-			break;
-
-		case LUA_TVECTOR2:
-		{
-			slot = ReserveArgs(2);
-			const auto& v = v2value(value);
-			PushAt(slot + 0, v.x);
-			PushAt(slot + 1, v.y);
-			break;
-		}
-
-		case LUA_TVECTOR3:
-		{
-			slot = ReserveArgs(3);
-			const auto& v = v3value(value);
-			PushAt(slot + 0, v.x);
-			PushAt(slot + 1, v.y);
-			PushAt(slot + 2, v.z);
-			break;
-		}
-
-		case LUA_TVECTOR4:
-		{
-			slot = ReserveArgs(4);
-			const auto& v = v4value(value);
-			PushAt(slot + 0, v.x);
-			PushAt(slot + 1, v.y);
-			PushAt(slot + 2, v.z);
-			PushAt(slot + 3, v.w);
-			break;
-		}
-
-		case LUA_TQUAT:
-		{
-			slot = ReserveArgs(4);
-			const auto& v = qvalue(value);
-			PushAt(slot + 0, v.x);
-			PushAt(slot + 1, v.y);
-			PushAt(slot + 2, v.z);
-			PushAt(slot + 3, v.w);
-			break;
-		}
-
-		case LUA_TTABLE: // table (high-level class with __data field)
-			PushTableArgument(idx);
-			break;
-
-		case LUA_TLIGHTUSERDATA:
-			PushMetaPointer(static_cast<uint8_t*>(pvalue(value)));
-			break;
-
-		default:
-			ScriptErrorf("invalid lua type: %s", lua_typename(L, ttnov(value)));
-	}
-#endif
 }
 
 // table parsing implementation
@@ -249,11 +162,7 @@ void LuaScriptNativeContext::PushTableArgument(int idx)
 	// get the type and decide what to do based on it
 	auto validType = [](int t)
 	{
-#if LUA_VERSION_NUM == 504
 		return t == LUA_TBOOLEAN || t == LUA_TNUMBER || t == LUA_TSTRING || t == LUA_TVECTOR;
-#else
-		return t == LUA_TBOOLEAN || t == LUA_TNUMBER || t == LUA_TSTRING || t == LUA_TVECTOR2 || t == LUA_TVECTOR3 || t == LUA_TVECTOR4 || t == LUA_TQUAT;
-#endif
 	};
 
 	if (validType(lua_rawget(L, t_idx))) // Account for pushstring if idx < 0
@@ -306,11 +215,7 @@ CSCRC_INLINE void LuaScriptNativeContext::ProcessResult(T value)
 	}
 	else if constexpr (std::is_same_v<T, ScrVector>)
 	{
-#if LUA_VERSION_NUM == 504
 		glm_pushvec3(L, glm::vec<3, glm_Float>(value.x, value.y, value.z));
-#else
-		lua_pushvector3(L, value.x, value.y, value.z);
-#endif
 	}
 	else if constexpr (std::is_same_v<T, const char*>)
 	{
@@ -671,20 +576,11 @@ template<>
 LUA_INLINE uint32_t LuaArgumentParser::ParseArgument<uint32_t>(lua_State* L, int idx)
 {
 	const TValue* o = LuaGetLocal(L, idx);
-#if LUA_VERSION_NUM == 504
 	if (ttisstring(o))
-		return HashString(svalue(o));
+		return HashString(getstr(tsvalue(o)));
 	else if (ttisinteger(o))
 		return ivalue(o);
 	return 0;
-#else
-	if (lua_valuetype(L, o) == LUA_TSTRING)
-	{
-		return HashString(lua_valuetostring(L, o));
-	}
-
-	return lua_valuetointeger(L, o);
-#endif
 }
 
 /// <summary>
@@ -702,7 +598,7 @@ LUA_INLINE const char* LuaArgumentParser::ParseArgument<const char*>(lua_State* 
 		case LUA_TNIL:
 			return NULL;
 		case LUA_TSTRING:
-			return svalue(value);
+			return getstr(tsvalue(value));
 		case LUA_TNUMBER:
 		{
 			if ((ttisinteger(value) && ivalue(value) == 0)
@@ -722,7 +618,6 @@ template<>
 LUA_INLINE scrVectorLua LuaArgumentParser::ParseArgument<scrVectorLua>(lua_State* L, int idx)
 {
 	const TValue* o = LuaGetLocal(L, idx);
-#if LUA_VERSION_NUM == 504
 	if (ttisvector(o))
 	{
 		const glmVector& v = vvalue(o);
@@ -732,10 +627,6 @@ LUA_INLINE scrVectorLua LuaArgumentParser::ParseArgument<scrVectorLua>(lua_State
 			return scrVectorLua{ v.v4.x, v.v4.y, v.v4.z };
 	}
 	return scrVectorLua{ 0.f, 0.f, 0.f };
-#else
-	auto f4 = lua_valuetofloat4(L, o);
-	return scrVectorLua{ f4.x, f4.y, f4.z };
-#endif
 }
 
 template<>
@@ -797,11 +688,7 @@ LUA_INLINE void LuaArgumentParser::PushObject<const char*>(lua_State* L, const c
 template<>
 LUA_INLINE void LuaArgumentParser::PushObject<const scrVectorLua&>(lua_State* L, const scrVectorLua& val)
 {
-#if LUA_VERSION_NUM == 504
 	glm_pushvec3(L, glm::vec<3, glm_Float>(val.x, val.y, val.z));
-#else
-	lua_pushvector3(L, val.x, val.y, val.z);
-#endif
 }
 
 template<>
@@ -1026,11 +913,7 @@ struct LuaNativeContext
 };
 #endif
 
-#if LUA_VERSION_NUM == 504
 #define INCLUDE_FXV2_NATIVES 1
-#else
-#define INCLUDE_FXV2_NATIVES 0
-#endif
 
 #if INCLUDE_FXV2_NATIVES
 #if defined(GTA_FIVE)

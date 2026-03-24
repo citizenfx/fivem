@@ -7,7 +7,6 @@
     "#ServerList_Browse": "Przeglądaj",
     "#ServerList_Favorites": "Ulubione",
     "#ServerList_History": "Historia",
-    "#ServerList_Premium": "Wspierający",
     "#ServerList_DirectConnect": "Połączenie bezpośrednie",
     "#ServerList_Tags": "Tagi",
     "#BottomNav_Home": "Strona główna",
@@ -15,7 +14,6 @@
     "#BottomNav_Settings": "Ustawienia",
     "#ServerList_HideFull": "Ukryj pełne",
     "#ServerList_HideEmpty": "Ukryj puste",
-    "#ServerList_MaxPing": "Maksymalny ping",
     "#Servers_Connecting": "Łączenie",
     "#Servers_ConnectingTo": "Łączenie z {{ serverName }}...",
     "#Servers_ConnectFailed": "Połączenie nieudane",
@@ -31,8 +29,6 @@
     "#ServerList_Locales": "Języki",
     "#Settings_Nickname": "Nazwa gracza",
     "#Settings_LocalhostPort": "Niestandardowy port",
-    "#Settings_DarkTheme": "\"Ciemny\" \"styl\"",
-    "#Settings_DarkThemeDesc": "Sprawia, że interefejs używa \"ciemnego\" \"stylu\"",
     "#Settings_DevMode": "Tryb developerski",
     "#Settings_DevModeDesc": "Włącza menu \"localhost\"",
     "#Settings_Account": "Powiązane konto Cfx.re",
@@ -73,7 +69,6 @@
     "#ServerDetail_OneSync": "OneSync",
     "#ServerDetail_Updates": "Wiadomości",
     "#ServerDetail_Premium": "Poziom wsparcia FiveM",
-    "#Changelogs": "Dziennik zmian",
     "#Yes": "Tak",
     "#No": "Nie",
     "#SettingsCat_Account": "Konto",
@@ -81,8 +76,5 @@
     "#SettingsCat_Interface": "Interfejs",
     "#SettingsCat_Connection": "Połączenie",
     "#BottomNav_ReplayEditor": "Edytor powtórek",
-    "#BottomNav_Create": "Utwórz",
-    "#BottomNav_Mods": "Modyfikacje",
-    "#BottomNav_Story": "Fabuła",
-    "#BottomNav_Play": "Graj"
+    "#BottomNav_Story": "Fabuła"
 }

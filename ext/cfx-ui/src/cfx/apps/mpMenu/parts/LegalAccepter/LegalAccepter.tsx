@@ -60,7 +60,7 @@ export const LegalAccepter = observer(function TOSAccepter() {
 
         <Pad size="large">
           <Flex vertical gap="large">
-            <TextBlock family="secondary" weight="bolder" size="xxlarge">
+            <TextBlock weight="bolder" size="xxlarge">
               Terms of Service
             </TextBlock>
 

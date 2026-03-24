@@ -21,7 +21,7 @@ export const FeaturedServerTile = observer(function FeaturedServerTile() {
   }
 
   const label = (
-    <Text opacity="50">{$L('#Server_FeaturedServer_Title')}</Text>
+    <Text opacity="50" weight="bold" uppercase>{$L('#Server_FeaturedServer_Title')}</Text>
   );
 
   if (featuredServer.type === 'collection') {

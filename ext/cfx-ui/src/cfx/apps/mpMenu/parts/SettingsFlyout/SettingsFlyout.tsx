@@ -32,6 +32,7 @@ export const SettingsFlyout = observer(function SettingsFlyout() {
   useCloseOnLocationChange(SettingsUIService);
 
   const category = SettingsUIService.category!;
+  const categoryID = SettingsUIService.categoryID!;
 
   const handleOnActivate = React.useCallback(
     (activateCategory: string) => {
@@ -68,7 +69,14 @@ export const SettingsFlyout = observer(function SettingsFlyout() {
               <FlexRestricter>
                 <Scrollable>
                   <Flex vertical gap="xlarge">
-                    <Controls category={category} />
+                    <Controls
+                      // Need to use the key prop to remount Controls when category changes,
+                      // because rendering a category involves iterating over visibility functions,
+                      // which in turn, in some cases, do use hooks.
+                      // Not using key leads to "hooks order" errors.
+                      key={categoryID}
+                      category={category}
+                    />
                   </Flex>
                 </Scrollable>
               </FlexRestricter>

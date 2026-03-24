@@ -9,6 +9,8 @@ import { historyServer2ServerView } from '../transformers';
 import { IHistoryServer, IServerView } from '../types';
 
 export class HistoryServersList implements IServersList {
+  private _historyResolveRequested = false;
+
   private get historyServers(): IHistoryServer[] {
     return this.serversStorageService.getLastServers();
   }
@@ -16,6 +18,11 @@ export class HistoryServersList implements IServersList {
   private _serversLastConnectedAt: Record<string, Date> = {};
 
   get sequence(): string[] {
+    if (!this._historyResolveRequested) {
+      this._historyResolveRequested = true;
+      this.resolveAllButFirstHistoryServers();
+    }
+
     return this.historyServers.map(({
       address,
     }) => address);
@@ -25,7 +32,10 @@ export class HistoryServersList implements IServersList {
     protected readonly serversStorageService: IServersStorageService,
     private readonly resolveServer: IServersService['loadServerLiveData'],
   ) {
-    makeAutoObservable(this);
+    makeAutoObservable(this, {
+      // @ts-expect-error private
+      _historyResolveRequested: false,
+    });
 
     this.init();
   }
@@ -33,10 +43,27 @@ export class HistoryServersList implements IServersList {
   private async init() {
     await this.serversStorageService.lastServersPopulated;
 
-    // Resolve all history entries
+    // Populate "last connected at" data for already known servers
     for (const historyServer of this.historyServers) {
       this._serversLastConnectedAt[historyServer.address] = historyServer.time;
-      this.resolveHistoryServer(historyServer);
+    }
+
+    // Resolve first server immediately to let home screen show it, the rest will be resolved when needed
+    const firstHistoryServer = this.historyServers[0];
+
+    if (firstHistoryServer) {
+      this.resolveHistoryServer(firstHistoryServer);
+    }
+  }
+
+  private async resolveAllButFirstHistoryServers() {
+    // Nothing to resolve if just one history server, it was already resolved in the init
+    if (this.historyServers.length <= 1) {
+      return;
+    }
+
+    for (let i = 1; i < this.historyServers.length; i++) {
+      this.resolveHistoryServer(this.historyServers[i]);
     }
   }
 

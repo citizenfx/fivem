@@ -1,6 +1,5 @@
 import { Flex, FlexRestricter, Page } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
-import { FiTwitter } from 'react-icons/fi';
 
 import { InsideNavBar } from 'cfx/apps/mpMenu/parts/NavBar/InsideNavBar';
 import { useActivityService } from 'cfx/common/services/activity/activity.service';
@@ -11,8 +10,8 @@ import { Feed } from './Feed/Feed';
 import { Footer } from './Footer/Footer';
 import { HomePageNavBarLinks } from './HomePage.links';
 import { PlatformStats } from './PlatformStats/PlatformStats';
-import { PlatformStatus } from './PlatformStatus/PlatformStatus';
 import { TopServersBlock } from './TopServers/TopServers';
+import { PlatformStatus } from '../../parts/PlatformStatus/PlatformStatus';
 
 export const HomePage = observer(function HomePage() {
   const ActivityService = useActivityService();
@@ -40,13 +39,12 @@ export const HomePage = observer(function HomePage() {
           </Flex>
         </FlexRestricter>
 
-        <Flex vertical fullHeight gap="large">
+        <Flex vertical fullHeight gap="xlarge">
           <FlexRestricter vertical>
             <Flex fullHeight>
               <Feed
-                icon={<FiTwitter />}
                 items={ActivityService.officialItems}
-                label={$L('#Home_Feed_Official')}
+                label="X.com Feed"
                 title={$L('#Home_Feed_Official_Desc')}
               />
             </Flex>

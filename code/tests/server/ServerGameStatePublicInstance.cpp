@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 
 #include "ServerGameStatePublicInstance.h"
 
@@ -98,6 +98,11 @@ public:
 	}
 
 	bool GetStateBagStrictMode() const override
+	{
+		return false;
+	}
+
+	bool IsNetGameEventBlocked(uint32_t eventNameHash) override
 	{
 		return false;
 	}

@@ -6,12 +6,6 @@ import { IServerView, ServerViewDetailsLevel } from './types';
 const southKoreaGRACFiveM = new URL('assets/images/GRAC-GTAV.png', import.meta.url).toString();
 const southKoreaGRACRedM = new URL('assets/images/GRAC-RDR2.png', import.meta.url).toString();
 
-export function showServerPremiumBadge(
-  premium: IServerView['premium'],
-): premium is NonNullable<IServerView['premium']> {
-  return !!premium;
-}
-
 export function showServerCountryFlag(
   localeCountry: IServerView['localeCountry'],
 ): localeCountry is NonNullable<IServerView['localeCountry']> {
@@ -25,7 +19,7 @@ export function getServerLegalRatingImageURL(server: IServerView): string | null
     if (currentGameNameIs(GameName.RedM)) {
       return southKoreaGRACRedM;
     }
-  
+
     return southKoreaGRACFiveM;
   }
 

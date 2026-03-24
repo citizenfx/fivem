@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 
 #include <ServerInstanceBase.h>
 
@@ -64,6 +64,11 @@ bool NetGameEventPacketHandlerV2::ProcessNetEvent(fx::ServerInstanceBase* instan
 		serverNetEvent.eventId = clientNetEvent.eventId;
 		serverNetEvent.isReply = clientNetEvent.isReply;
 		serverNetEvent.data = clientNetEvent.data;
+
+		if (sgs->IsNetGameEventBlocked(serverNetEvent.eventNameHash))
+		{
+			return;
+		}
 
 		net::Buffer routingBuffer(kServerMaxReplySize);
 		net::ByteWriter routingWriter{ const_cast<uint8_t*>(routingBuffer.GetBuffer()), kServerMaxReplySize };

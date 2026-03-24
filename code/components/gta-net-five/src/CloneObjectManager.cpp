@@ -186,7 +186,7 @@ static HookFunction hookFunction([]()
 
 #if GTA_FIVE
 	//Taken from extra-natives-five/VehicleExtraNatives.cpp
-	g_trainTrackNodeIndexOffset = *hook::get_pattern<uint32_t>("E8 ? ? ? ? 40 8A F8 84 C0 75 ? 48 8B CB E8", -4);
+	g_trainTrackNodeIndexOffset = *hook::get_pattern<uint32_t>("89 83 ? ? ? ? E8 ? ? ? ? 40 8A F8", 2);
 	
 	MH_CreateHook(hook::get_pattern("48 8B F2 0F B7 52 0A 41 B0 01", -0x19), netObjectMgrBase__RegisterNetworkObject, (void**)&g_orig_netObjectMgrBase__RegisterNetworkObject); //
 	MH_CreateHook(hook::get_pattern("8A 42 4C 45 33 FF 48 8B DA C0 E8 02", -0x21), netObjectMgrBase__DestroyNetworkObject, (void**)&g_orig_netObjectMgrBase__DestroyNetworkObject); //

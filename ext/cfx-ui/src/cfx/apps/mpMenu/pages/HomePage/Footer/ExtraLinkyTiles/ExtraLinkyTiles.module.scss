@@ -3,45 +3,18 @@
   align-items: center;
   justify-content: space-between;
 
+  height: 100%;
+
   text-decoration: none;
 
   padding: ui.offset('large') ui.offset('xlarge');
 
   @include ui.border-radius();
 
-  @include ui.def('backdrop-color', ui.color-token('backdrop-300'));
-  @include ui.fake-backdrop-blur();
+  background-color: ui.color('main', 50);
 
   box-shadow: 0 0 0 2px transparent inset;
   &:hover {
     box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
-  }
-
-  .icon {
-    flex-shrink: 0;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    width: ui.q(8);
-    height: ui.q(8);
-
-    @include ui.font-size('xlarge');
-
-    @include ui.border-radius('small');
-
-    background-color: ui.color('main', 500, .1);
-
-    overflow: hidden;
-
-    img {
-      width: 100%;
-      height: 100%;
-    }
-  }
-
-  &.small {
-    padding: ui.offset('normal') ui.offset('large');
   }
 }

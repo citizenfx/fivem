@@ -4,6 +4,10 @@
 #include <Hooking.h>
 
 #include <Error.h>
+#include <MinHook.h>
+
+#include "Hooking.Stubs.h"
+#include "PureModeState.h"
 
 static void(*originalMount)();
 
@@ -13,6 +17,16 @@ static void CallInitialMount()
 	originalMount();
 
 	rage::fiDevice::OnInitialMount();
+}
+
+static bool (*g_validationRoutine)(const char* path, const uint8_t* data, size_t size);
+
+DLL_EXPORT void SetPackfileValidationRoutine(bool (*routine)(const char*, const uint8_t*, size_t))
+{
+	if (!g_validationRoutine)
+	{
+		g_validationRoutine = routine;
+	}
 }
 
 #if 0
@@ -44,8 +58,31 @@ static void PackfileEncryptionError()
 }
 #endif
 
+static void CheckPackFile(const char* headerData, const char* fileName)
+{
+	auto entries = headerData + 0x110;
+	size_t numEntries = *reinterpret_cast<const uint32_t*>(headerData + 4);
+
+	if(g_validationRoutine)
+	{
+		if(!g_validationRoutine(fileName, (const uint8_t*)entries, numEntries * 24))
+		{
+			FatalError("Invalid modified game files (%s)\nThe server you are trying to join has enabled 'pure mode', but you have modified game files. Please verify your RDR installation (see http://rsg.ms/verify) and try again. Alternately, ask the server owner for help.", fileName);
+		}
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
+	// RDO mounts certain RPFs (e.g. catalog_mp.rpf / catalog_awards_mp.rpf)
+	// directly into memory by creating a virtual memory-backed fiDevice. These packfiles are not real
+	// on-disk archives; instead they are generated at runtime and only exist transiently during Online
+	// sessions. Because they are unencrypted, their contents and hashes do not match the encrypted
+	// on-disk originals, which causes pure-mode file validation  to incorrectly flag them as modified.
+	// To prevent these false positives, this call responsible for setting up the memory-backed device
+	// is noped, effectively disabling the mounting of virtual memory-backed packfiles.
+	hook::nop(hook::get_pattern("E8 ? ? ? ? 40 8A E8 48 8B 84 24"), 0x5);
+
 	/*static hook::inject_call<void, int> injectCall(0x7B2E27);
 
 	injectCall.inject([] (int)
@@ -84,4 +121,45 @@ static HookFunction hookFunction([] ()
 	// wrap err_gen_invalid failures
 	hook::call(hook::get_pattern("B9 EA 0A 0E BE E8", 5), PackfileEncryptionError);
 #endif
+
+	if (fx::client::GetPureLevel() == 0)
+	{
+		return;
+	}
+	
+	{
+        auto location = hook::get_pattern<char>("49 8D B1 ? ? ? ? 48 8B CD"); // fiPackfile::ReInit
+            
+        static struct : jitasm::Frontend
+        {
+            uintptr_t returnAddress;
+            
+            virtual void InternalMain() override
+            {
+            	jitasm::Reg regs[] = { rbx, rsi, rdi, r12, r13, r14, r15, rax, rcx, rdx, r8, r9, r10, r11 };
+            	
+                lea(rsi, qword_ptr[r9+0x110]);
+                
+            	for (auto& reg : regs) push(reg);
+
+                sub(rsp, 32);
+
+                mov(rcx, r9);      // headerData
+                mov(rdx, r15);     // fileName
+                mov(rax, reinterpret_cast<uintptr_t>(&CheckPackFile));
+                call(rax);
+
+                add(rsp, 32);
+
+            	for (int i = std::size(regs) - 1; i >= 0; --i)
+            		pop(regs[i]);
+
+                mov(rax, returnAddress);
+                jmp(rax);
+            }
+        } stub;
+        stub.returnAddress = (uintptr_t)location + 7;
+        hook::nop(location, 7);
+        hook::jump(location, stub.GetCode());
+    }
 });

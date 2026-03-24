@@ -99,6 +99,7 @@ namespace fx
 		uint32_t rscVersion;
 		uint32_t rscPagesPhysical;
 		uint32_t rscPagesVirtual;
+		bool e;
 	};
 
 	extern RESCLIENT_EXPORT fwEvent<const StreamingEntryData&> OnAddStreamingResource;

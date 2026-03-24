@@ -1,9 +1,0 @@
-.preview {
-  width: 75%;
-
-  background-color: ui.color-token('backdrop');
-  background-size: cover;
-  background-position: center center;
-
-  @include ui.border-radius('small');
-}

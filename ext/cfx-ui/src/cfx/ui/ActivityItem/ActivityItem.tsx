@@ -143,7 +143,7 @@ export function ActivityItem(props: ActivityItemProps) {
   const formattedDate = format(item.date, 'MM/dd/yyyy @ h:mma');
 
   return (
-    <Flex gap="small">
+    <Flex gap="normal">
       <Avatar size="small" url={item.userAvatarUrl} />
 
       <Box grow>

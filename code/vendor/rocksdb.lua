@@ -371,5 +371,9 @@ return {
 		files {
 			'vendor/rocksdb/build_version.cc'
 		}
+
+		if os.istarget('linux') then
+			buildoptions { "-include", "stdint.h" }
+		end
 	end
 }

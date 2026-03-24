@@ -142,114 +142,116 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
       <div className={s.banner} />
 
       <div className={s.content}>
-        <Flex vertical fullHeight>
+        <Flex vertical fullHeight repell>
           {label}
 
-          <Flex fullWidth>
-            {!hideIcon && (
-              <Box height={10}>
-                <ServerIcon type="list" server={server} loading={isLoading} />
-              </Box>
-            )}
+          <Flex vertical fullWidth>
+            <Flex fullWidth>
+              {!hideIcon && (
+                <Box height={10}>
+                  <ServerIcon type="list" server={server} loading={isLoading} />
+                </Box>
+              )}
 
-            <FlexRestricter>
-              <Flex vertical fullHeight fullWidth centered="cross-axis" gap="small">
-                <ServerTitle truncated size="xlarge" title={server.projectName || server.hostname} />
+              <FlexRestricter>
+                <Flex vertical fullHeight fullWidth centered="cross-axis" gap="small">
+                  <ServerTitle truncated size="xlarge" title={server.projectName || server.hostname} />
 
-                {!hideDescription && !!server.projectDescription && (
-                  <Title delay={500} fixedOn="bottom-left" title={server.projectDescription}>
-                    <Text truncated opacity="50">
-                      {server.projectDescription}
-                    </Text>
-                  </Title>
-                )}
-              </Flex>
-            </FlexRestricter>
+                  {!hideDescription && !!server.projectDescription && (
+                    <Title delay={500} fixedOn="bottom-left" title={server.projectDescription}>
+                      <Text truncated opacity="50">
+                        {server.projectDescription}
+                      </Text>
+                    </Title>
+                  )}
+                </Flex>
+              </FlexRestricter>
 
-            {!placeControlsBelow && (
-              <Flex vertical alignToEndAxis>
-                {(showPowers || showCountryFlag) && (
-                  <Flex centered>
-                    {showPowers && (
-                      <ServerPower server={server} />
-                    )}
+              {!placeControlsBelow && (
+                <Flex vertical alignToEndAxis alignToEnd>
+                  {(showPowers || showCountryFlag) && (
+                    <Flex centered>
+                      {showPowers && (
+                        <ServerPower server={server} />
+                      )}
 
-                    {showCountryFlag && (
-                      <CountryFlag title={countryTitle} country={server.localeCountry} />
-                    )}
-                  </Flex>
-                )}
+                      {showCountryFlag && (
+                        <CountryFlag title={countryTitle} country={server.localeCountry} />
+                      )}
+                    </Flex>
+                  )}
 
-                <ControlBox size="small" className={clsx({ [s.hideOnHover]: hidePlayersCountOnHover })}>
-                  <Flex centered fullHeight fullWidth gap="small">
-                    <Icon opacity="50">{Icons.playersCount}</Icon>
-                    <Text opacity="75">
-                      <ServerPlayersCount server={server} />
-                    </Text>
-                  </Flex>
-                </ControlBox>
+                  <ControlBox size="small" className={clsx({ [s.hideOnHover]: hidePlayersCountOnHover })}>
+                    <Flex centered fullHeight fullWidth gap="small">
+                      <Icon opacity="50">{Icons.playersCount}</Icon>
+                      <Text opacity="75">
+                        <ServerPlayersCount server={server} />
+                      </Text>
+                    </Flex>
+                  </ControlBox>
 
-                <ControlBox size="small" className={s.showOnHover}>
-                  <Flex>
-                    {!hideBoost && (
-                      <Flex gap="none">
-                        <ServerBoostButton
-                          className={clsx(s.serverboostbutton, { [s['serverboostbutton-active']]: isBoostedByUser })}
-                          server={server}
-                        />
-                        {isBoostedByUser && (
-                          <ServerPowerTotalButton className={s.serverpowerbutton} server={server} />
-                        )}
-                      </Flex>
-                    )}
+                  <ControlBox size="small" className={s.showOnHover}>
+                    <Flex>
+                      {!hideBoost && (
+                        <Flex gap="none">
+                          <ServerBoostButton
+                            className={clsx(s.serverboostbutton, { [s['serverboostbutton-active']]: isBoostedByUser })}
+                            server={server}
+                          />
+                          {isBoostedByUser && (
+                            <ServerPowerTotalButton className={s.serverpowerbutton} server={server} />
+                          )}
+                        </Flex>
+                      )}
 
-                    <ServerFavoriteButton size="small" server={server} />
+                      <ServerFavoriteButton size="small" server={server} />
 
-                    <ServerConnectButton size="small" server={server} elementPlacement={elementPlacement} />
-                  </Flex>
-                </ControlBox>
+                      <ServerConnectButton size="small" server={server} elementPlacement={elementPlacement} />
+                    </Flex>
+                  </ControlBox>
+                </Flex>
+              )}
+            </Flex>
+
+            {placeControlsBelow && (
+              <Flex repell centered="axis">
+                <Flex centered="axis">
+                  {showCountryFlag && (
+                    <CountryFlag title={countryTitle} country={server.localeCountry} />
+                  )}
+
+                  <ControlBox size="small">
+                    <Flex centered="axis" fullHeight fullWidth gap="small">
+                      <Icon opacity="50">{Icons.playersCount}</Icon>
+                      <Text opacity="75">
+                        <ServerPlayersCount server={server} />
+                      </Text>
+                    </Flex>
+                  </ControlBox>
+
+                  {showPowers && (
+                    <ServerPower server={server} />
+                  )}
+
+                  {!hideBoost && (
+                    <ServerBoostButton
+                      size="small"
+                      server={server}
+                      theme="transparent"
+                      className={clsx(s.visibleOnHover, { [s['serverboostbutton-active']]: isBoostedByUser })}
+                      elementPlacement={elementPlacement}
+                    />
+                  )}
+                </Flex>
+
+                <Flex alignToEndAxis alignToEnd>
+                  <ServerFavoriteButton size="normal" server={server} />
+
+                  {connectButtonNode}
+                </Flex>
               </Flex>
             )}
           </Flex>
-
-          {placeControlsBelow && (
-            <Flex repell centered="axis">
-              <Flex centered="axis">
-                {showCountryFlag && (
-                  <CountryFlag title={countryTitle} country={server.localeCountry} />
-                )}
-
-                <ControlBox size="small">
-                  <Flex centered="axis" fullHeight fullWidth gap="small">
-                    <Icon opacity="50">{Icons.playersCount}</Icon>
-                    <Text opacity="75">
-                      <ServerPlayersCount server={server} />
-                    </Text>
-                  </Flex>
-                </ControlBox>
-
-                {showPowers && (
-                  <ServerPower server={server} />
-                )}
-
-                {!hideBoost && (
-                  <ServerBoostButton
-                    size="small"
-                    server={server}
-                    theme="transparent"
-                    className={clsx(s.visibleOnHover, { [s['serverboostbutton-active']]: isBoostedByUser })}
-                    elementPlacement={elementPlacement}
-                  />
-                )}
-              </Flex>
-
-              <Flex alignToEndAxis>
-                <ServerFavoriteButton size="normal" server={server} />
-
-                {connectButtonNode}
-              </Flex>
-            </Flex>
-          )}
         </Flex>
       </div>
     </Interactive>

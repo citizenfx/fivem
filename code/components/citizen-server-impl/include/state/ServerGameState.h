@@ -183,6 +183,26 @@ inline bool IsSummerUpdate25()
 
 	return value;
 }
+
+inline bool IsWinterUpdate25()
+{
+	static bool value = ([]()
+	{
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3717) || fx::GetEnforcedGameBuildNumber() >= 3717;
+	})();
+
+	return value;
+}
+
+inline bool IsPatch2026_1()
+{
+	static bool value = ([]()
+	{
+		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= xbr::Build::Patch_2026_1) || fx::GetEnforcedGameBuildNumber() >= xbr::Build::Patch_2026_1;
+	})();
+
+	return value;
+}
 #elif defined(STATE_RDR3)
 inline bool Is1491()
 {
@@ -500,6 +520,7 @@ struct CVehicleGameStateNodeData
 struct CEntityOrientationNodeData
 {
 	compressed_quaternion<11> quat;
+	float rotX, rotY, rotZ;
 };
 
 struct CDummyObjectCreationNodeData
@@ -603,35 +624,30 @@ struct CTrainGameStateDataNodeData
 	int engineCarriage;
 	int linkedToBackwardId;
 	int linkedToForwardId;
-
 	float distanceFromEngine;
 
 	int trainConfigIndex;
 	int carriageIndex;
-
 	int trackId;
+
+	float carriageSpeed; // 3699
 	float cruiseSpeed;
 
 	int trainState;
 
 	bool isEngine;
+	bool allowRemovalByPopulation; // 2372
 	bool isCaboose;
-
 	bool isMissionTrain;
-
 	bool direction;
-
 	bool hasPassengerCarriages;
-
 	bool renderDerailed;
 
-	// 2372 {
-	bool allowRemovalByPopulation;
-	bool highPrecisionBlending;
-	bool stopAtStations;
-	// }
-
 	bool forceDoorsOpen;
+	bool stopAtStations; // 2372
+	bool isTrackDirectionForwards; // 3699
+
+	bool highPrecisionBlending; // 2372
 };
 
 struct CPlayerGameStateNodeData
@@ -743,6 +759,19 @@ struct CPedAINodeData
 	int decisionMaker;
 };
 
+struct CPedVehicleNodeData
+{
+	bool inVehicle;
+	int curVehicle;
+	int lastVehiclePedWasIn;
+
+	bool onHorse;
+	int curHorse;
+	int lastHorsePedWasOn;
+
+	int curSeat;
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -848,6 +877,8 @@ public:
 	virtual bool GetScriptHash(uint32_t* scriptHash) = 0;
 
 	virtual bool IsEntityVisible(bool* visible) = 0;
+
+	virtual CPedVehicleNodeData* GetPedVehicleData() = 0;
 };
 
 enum EntityOrphanMode : uint8_t
@@ -1267,6 +1298,7 @@ struct SyncedEntityData
 	sync::SyncEntityPtr entity;
 	bool forceUpdate;
 	bool hasCreated;
+	bool hasRoutedStateBag = false;
 	bool hasNAckedCreate = false;
 };
 
@@ -1486,6 +1518,9 @@ private:
 	bool ValidateEntity(EntityLockdownMode entityLockdownMode, const fx::sync::SyncEntityPtr& entity);
 
 public:
+	std::unordered_set<uint32_t> blockedEvents;
+	std::shared_mutex blockedEventsMutex;
+	bool IsNetGameEventBlocked(uint32_t eventNameHash);
 	std::function<bool()> GetGameEventHandler(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::Buffer&& buffer);
 
 private:

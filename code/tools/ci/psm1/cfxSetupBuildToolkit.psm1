@@ -45,7 +45,7 @@ function Invoke-CfxSetupBuildToolkit {
             New-Item -ItemType Directory -Force $parentPath | Out-Null
 
             Push-Location $parentPath
-                git clone -b $toolkitBranch $toolkitUri $cloneToPath | Out-Null
+                git clone --filter=tree:0 -b $toolkitBranch $toolkitUri $cloneToPath | Out-Null
                 Test-LastExitCode "Failed to clone the toolkit"
             Pop-Location
         }

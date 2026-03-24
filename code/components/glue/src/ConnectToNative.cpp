@@ -48,14 +48,13 @@
 
 #include <CrossBuildRuntime.h>
 
-#include <SteamComponentAPI.h>
-
 #include <MinMode.h>
 
 #include "CfxState.h"
 #include "GameInit.h"
 #include "CnlEndpoint.h"
 #include <SharedLegitimacyAPI.h>
+#include "Error.h"
 
 #include "PacketHandler.h"
 #include "PaymentRequest.h"
@@ -229,24 +228,6 @@ void loadSettings() {
 		
 		CoTaskMemFree(appDataPath);
 	}
-}
-
-inline ISteamComponent* GetSteam()
-{
-	auto steamComponent = Instance<ISteamComponent>::Get();
-
-	// if Steam isn't running, return an error
-	if (!steamComponent->IsSteamRunning())
-	{
-		steamComponent->Initialize();
-
-		if (!steamComponent->IsSteamRunning())
-		{
-			return nullptr;
-		}
-	}
-
-	return steamComponent;
 }
 
 NetLibrary* netLibrary;
@@ -608,6 +589,18 @@ static InitFunction initFunction([] ()
 
 	OnGameFrame.Connect([]()
 	{
+		static bool wasSteamInitialized = cfx::legitimacy::IsSteamInitializedWrapper();
+
+		if (wasSteamInitialized && !cfx::legitimacy::IsSteamRunning())
+		{
+			FatalError("Steam process has exited. The game will now close.");
+		}
+
+		if (!wasSteamInitialized && cfx::legitimacy::IsSteamInitializedWrapper())
+		{
+			wasSteamInitialized = true;
+		}
+
 		if (disconnect)
 		{
 			DisconnectCmd();
@@ -704,26 +697,11 @@ static InitFunction initFunction([] ()
 
 			if ((strstr(error.c_str(), "steam") || strstr(error.c_str(), "Steam")) && !strstr(error.c_str(), ".ms/verify"))
 			{
-				if (auto steam = GetSteam())
+				auto steamID = cfx::legitimacy::GetSteamIdAsIntWrapper();
+
+				if ((steamID & 0xFFFFFFFF00000000) != 0)
 				{
-					if (steam->IsSteamRunning())
-					{
-						if (IClientEngine* steamClient = steam->GetPrivateClient())
-						{
-							InterfaceMapper steamUser(steamClient->GetIClientUser(steam->GetHSteamUser(), steam->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
-
-							if (steamUser.IsValid())
-							{
-								uint64_t steamID = 0;
-								steamUser.Invoke<void>("GetSteamID", &steamID);
-
-								if ((steamID & 0xFFFFFFFF00000000) != 0)
-								{
-									error += "\nThis is a Steam authentication failure, but you are running Steam and it is signed in. The server owner can find more information in their server console.";
-								}
-							}
-						}
-					}
+					error += "\nThis is a Steam authentication failure, but you are running Steam and it is signed in. The server owner can find more information in their server console.";
 				}
 			}
 
@@ -1072,7 +1050,6 @@ static InitFunction initFunction([] ()
 		{
 			static bool done = ([]
 			{
-#ifdef GTA_FIVE
 				std::thread([]
 				{
 					UiDone();
@@ -1085,7 +1062,6 @@ static InitFunction initFunction([] ()
 					SetForegroundWindow(hWnd);
 				})
 				.detach();
-#endif
 
 				MarkNuiLoaded();
 
@@ -1259,7 +1235,10 @@ static InitFunction initFunction([] ()
 							{
 								auto name = group.value<std::string>("name", "");
 
-								if (name == "staff" || name == "patreon_enduser")
+								static constexpr const char* portal_prefix = "ec_";
+								static constexpr size_t portal_prefix_len = 3;
+
+								if (name == "staff" || name == "patreon_enduser" || (name.size() >= portal_prefix_len && std::memcmp(name.data(), portal_prefix, portal_prefix_len) == 0))
 								{
 									hasEndUserPremium = true;
 									break;

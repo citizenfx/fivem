@@ -48,6 +48,11 @@ static hook::cdecl_stub<void(void*, int, float, float, float, bool, bool)> break
 	return hook::get_call(hook::get_pattern("F3 44 0F 11 4C 24 ? E8 ? ? ? ? EB 7A", 7));
 });
 
+static hook::cdecl_stub<bool(void*, int)> getWheelBroken([]
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B CD 41 88 84 1F"));
+});
+
 static hook::cdecl_stub<void(void*, bool)> switchEngineOff([]
 {
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B 8B ? ? ? ? 0F 2F FE"));
@@ -341,6 +346,10 @@ static std::unordered_set<void*> g_deletionTraces2;
 static bool g_isFuelConsumptionOn = false;
 static float g_globalFuelConsumptionMultiplier = 1.f;
 
+static bool g_disableReactToSirens = false;
+static bool g_disableReactToSirensBySwerving = false;
+static uint32_t g_overrideReactionToSiren = 2;
+
 static void(*g_origDeleteVehicle)(void* vehicle);
 
 static void SetCanPedStandOnVehicle(fwEntity* vehicle, int flag);
@@ -581,6 +590,26 @@ void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 	SetVehicleFuelLevel(vehicle, std::max(newPetrolTankLevel, 0.f));
 }
 
+static void (*g_origReactToSirens)(CVehicle*);
+void ReactToSirens(CVehicle* vehicle)
+{
+	if (g_disableReactToSirens)
+	{
+		return;
+	}
+	g_origReactToSirens(vehicle);
+}
+
+static uintptr_t (*g_origCTaskVehicleReactToCopSiren_ctor)(void*, uint32_t, uint32_t);
+uintptr_t CTaskVehicleReactToCopSiren_ctor(void* thisPtr, uint32_t reaction, uint32_t time)
+{
+	if (g_disableReactToSirensBySwerving)
+	{
+		reaction = g_overrideReactionToSiren;
+	}
+	return g_origCTaskVehicleReactToCopSiren_ctor(thisPtr, reaction, time);
+}
+
 static HookFunction initFunction([]()
 {
 	{
@@ -601,14 +630,14 @@ static HookFunction initFunction([]()
 		EngineTempOffset = *hook::get_pattern<uint32_t>("48 8D 8F ? ? ? ? 45 32 FF", -4);
 		SteeringScaleOffset = *hook::get_pattern<uint32_t>("41 8B 80 ? ? ? ? C1 E8 ? 40 84 C5 74", 18);
 		WheelieStateOffset = *hook::get_pattern<uint32_t>("8B 87 ? ? ? ? 48 8B 57 ? 89 87", 39);
-		TrainTrackNodeIndexOffset = *hook::get_pattern<uint32_t>("E8 ? ? ? ? 40 8A F8 84 C0 75 ? 48 8B CB E8", -4);
+		TrainTrackNodeIndexOffset = *hook::get_pattern<uint32_t>("89 83 ? ? ? ? E8 ? ? ? ? 40 8A F8", 2);
 		StreamRenderGfxPtrOffset = *hook::get_pattern<uint32_t>("4C 8D 48 ? 80 E1 01", -4);
 		DrawnWheelAngleMultOffset = *hook::get_pattern<uint32_t>("48 8B C8 E8 ? ? ? ? 84 C0 74 ? F3 0F 10 83", 33);
 		VehicleTopSpeedModifierPtr = hook::get_pattern<char>("48 8B D9 48 81 C1 ? ? ? ? 48 89 5C 24 28 44 0F 29 40 C8");
 		VehicleCheatPowerIncreaseOffset = *hook::get_pattern<uint32_t>("E8 ? ? ? ? 8B 83 ? ? ? ? C7 83", 23);
 		WheelSurfaceMaterialOffset = *hook::get_pattern<uint32_t>("48 8B 4A 10 0F 28 CF F3 0F 59 05", -4);
 		WheelHealthOffset = *hook::get_pattern<uint32_t>("75 24 F3 0F 10 ? ? ? 00 00 F3 0F", 6);
-		LightMultiplierGetOffset = *hook::get_pattern<uint32_t>("00 00 48 8B CE F3 0F 59 ? ? ? 00 00 F3 41", 9);
+		LightMultiplierGetOffset = *hook::get_pattern<uint32_t>("00 00 48 8B ? F3 0F 59 ? ? ? 00 00 F3 41", 9);
 		VehicleRepairMethodVtableOffset = *hook::get_pattern<uint32_t>("C1 E8 19 A8 01 74 ? 48 8B 81", -14);
 		TrainFlagOffset = *hook::get_pattern<uint32_t>("80 8B ? ? ? ? ? 8B 05 ? ? ? ? FF C8", 2);
 		TrainStateOffset = *hook::get_pattern<uint32_t>("89 91 ? ? ? ? 80 3D ? ? ? ? ? 0F 84", 2);
@@ -751,7 +780,7 @@ static HookFunction initFunction([]()
 		g_trainsForceDoorsOpen = (bool*)hook::AllocateStubMemory(1);
 		*g_trainsForceDoorsOpen = true;
 
-		auto location = hook::get_pattern<uint32_t>("74 56 40 38 BB ? ? ? ? 74 49 48 8B CB E8", -8);
+		auto location = hook::get_pattern<uint32_t>("40 38 3D ? ? ? ? 40 88 75", 3);
 		hook::put<int32_t>(location, (intptr_t)g_trainsForceDoorsOpen - (intptr_t)location - 4);
 	}
 
@@ -1737,6 +1766,10 @@ static HookFunction initFunction([]()
 
 		*PassengerMassPtr = 0.05f;
 		SnowGripFactor.Reset();
+
+		g_disableReactToSirens = false;
+		g_disableReactToSirensBySwerving = false;
+		g_overrideReactionToSiren = 2;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context)
@@ -1874,7 +1907,7 @@ static HookFunction initFunction([]()
 		} vehicleHighbeamsColorStub;
 
 		{
-			auto location = hook::get_pattern("F3 0F 11 55 80 0F C6 CA AA", 13);
+			auto location = hook::get_pattern("F3 0F 11 55 ? 0F C6 CA ? 0F C6 D2", 13);
 			hook::nop(location, 10);
 			hook::call(location, vehicleHighbeamsColorStub.GetCode());
 		}
@@ -1958,6 +1991,22 @@ static HookFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_WHEEL_BROKEN_OFF", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "IS_VEHICLE_WHEEL_BROKEN_OFF"))
+		{
+			auto wheelIndex = context.GetArgument<uint32_t>(1);
+			auto numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
+
+			if (wheelIndex >= numWheels)
+			{
+				return;
+			}
+
+			context.SetResult<bool>(getWheelBroken(vehicle, wheelIndex));
+		}
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_FUEL_CONSUMPTION_STATE", [](fx::ScriptContext& context)
 	{
 		g_isFuelConsumptionOn = context.GetArgument<bool>(0);
@@ -1994,9 +2043,32 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("ADD_AUTHORIZED_PARACHUTE_PACK_MODEL", [](fx::ScriptContext& context)
 	{
-	uint32_t modelHash = context.GetArgument<uint32_t>(0);
+		uint32_t modelHash = context.GetArgument<uint32_t>(0);
 		AddAuthorizedParachutePackModel(modelHash);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_REACTION_TO_VEHICLE_SIREN_DISABLED", [](fx::ScriptContext& context)
+	{
+		g_disableReactToSirens = context.GetArgument<bool>(0);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("OVERRIDE_REACTION_TO_VEHICLE_SIREN", [](fx::ScriptContext& context)
+	{
+		uint32_t reaction = context.GetArgument<uint32_t>(1);
+
+		if (g_overrideReactionToSiren < 0 || g_overrideReactionToSiren > 2)
+		{
+			return;
+		}
+
+		g_disableReactToSirensBySwerving = context.GetArgument<bool>(0);
+		g_overrideReactionToSiren = reaction;
+	});
+
+	{
+		g_origReactToSirens = hook::trampoline(hook::get_call(hook::get_pattern("E8 ? ? ? ? 8B 8E ? ? ? ? 8D 41 F8 83 F8 01")), ReactToSirens);
+		g_origCTaskVehicleReactToCopSiren_ctor = hook::trampoline(hook::get_call(hook::get_pattern("8B D3 48 8B C8 E8 ? ? ? ? 48 8B 9F ? ? ? ? 45 33 C9", 5)), CTaskVehicleReactToCopSiren_ctor);
+	}
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 8A 83 DA 00 00 00 24 0F 3C 02", -0x32), DeleteVehicleWrap, (void**)&g_origDeleteVehicle);

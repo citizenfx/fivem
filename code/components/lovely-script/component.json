@@ -6,7 +6,6 @@
 		"rage:scripting",
 		"gta:mission-cleanup",
 		"font-renderer",
-		"steam",
 		"net"
 	],
 	"provides": []

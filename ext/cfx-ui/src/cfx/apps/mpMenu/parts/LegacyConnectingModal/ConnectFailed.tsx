@@ -31,8 +31,6 @@ import { html2react } from 'cfx/utils/html2react';
 import { nl2br } from 'cfx/utils/nl2br';
 
 import { useStreamerMode } from '../../services/convars/convars.service';
-import { usePlatformStatusService } from '../../services/platformStatus/platformStatus.service';
-import { StatusLevel } from '../../services/platformStatus/types';
 import { replaceCfxRePlaceholders, useRenderedFormattedMessage } from '../../utils/messageFormatting';
 
 type IconColor = React.ComponentProps<typeof Icon>['color'];
@@ -54,11 +52,6 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
   } = state;
 
   const stateMessage = useRenderedFormattedMessage(state, server);
-  const serviceStatus = useServiceStatus(extra?.status);
-  const bodyLocalized = serviceStatus
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    ? useL10n(serviceStatus?.body)
-    : '';
 
   return (
     <>
@@ -71,18 +64,6 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
           <Text size="xlarge" color="error">
             {$L(title)}
           </Text>
-
-          {!!serviceStatus && (
-            <Flex vertical>
-              <Text userSelectable size="large">
-                {$L(serviceStatus.title)}
-              </Text>
-
-              <TextBlock typographic userSelectable>
-                {html2react(linkify(nl2br(bodyLocalized)))}
-              </TextBlock>
-            </Flex>
-          )}
 
           {!!extra?.action && (
             <Flex vertical>
@@ -124,35 +105,6 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
     </>
   );
 });
-
-function useServiceStatus(showStatusAnyway: boolean | undefined | null): { title: string; body: string } | null {
-  const PlatformStatusService = usePlatformStatusService();
-
-  const {
-    level,
-  } = PlatformStatusService;
-
-  // Refresh platform status
-  React.useEffect(() => {
-    PlatformStatusService.fetchStatus();
-  }, []);
-
-  if (showStatusAnyway && level < StatusLevel.MinorOutage) {
-    return {
-      title: '#ErrorNoOutage',
-      body: '#NoOutage',
-    };
-  }
-
-  if (level >= StatusLevel.MajorOutage) {
-    return {
-      title: '#ErrorOutage',
-      body: '#ServiceAlert',
-    };
-  }
-
-  return null;
-}
 
 const StateExtraAction = observer(function StateExtraAction(props: { action: string; server: IServerView }) {
   const {

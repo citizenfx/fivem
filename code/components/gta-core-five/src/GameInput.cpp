@@ -1498,13 +1498,13 @@ static HookFunction hookFunction([]()
 	}
 
 	{
-		auto location = hook::get_pattern("8A 9C 33 ? 1F 00 00 48 8D");
+		auto location = hook::get_pattern("8A 9C 33 ? ? 00 00 48 8D");
 		hook::nop(location, 7);
 		hook::put<uint16_t>(location, 0x01B3);
 	}
 
 	{
-		auto location = hook::get_pattern<char>("80 BC 33 ? 1F 00 00 00 74 05");
+		auto location = hook::get_pattern<char>("80 BC 33 ? ? 00 00 00 74 05");
 		hook::nop(location, 10);
 		//hook::put<uint8_t>(location + 8, 0xEB);
 	}
@@ -1547,7 +1547,7 @@ static HookFunction hookFunction([]()
 	{
 		CControlMgr::Controls = hook::get_address<void*>(hook::get_pattern("74 09 48 8D 05 ? ? ? ? EB 07 48 8D 05", 5));
 		CControlMgr::kControlSize = *hook::get_pattern<int>("E8 ? ? ? ? 48 81 C3 ? ? ? ? 48 FF CF 75 EA", 8);
-		CControl::kMapperOffset = *hook::get_pattern<uint32_t>("48 63 04 B0 4C 8D 89 ? ? 00 00 B9 BF", 7);
+		CControl::kMapperOffset = *hook::get_pattern<uint32_t>("48 63 04 B0 4C 8D 89", 7);
 		CControl::kInputOffset = *hook::get_pattern<int>("0F 28 CA 48 8D 14 C0 4C 8D 44 24 ? C7 44 24", 0x1B);
 	}
 });

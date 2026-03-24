@@ -19,6 +19,7 @@ namespace fx
 			uint32_t rscVersion;
 			uint32_t size;
 			bool isResource;
+			bool e;
 
 			std::string GetCacheString();
 		};

@@ -151,6 +151,21 @@ public:
 		return -1;
 	}
 
+	HandleDataType* GetHandle(THandle inHandle)
+	{
+		auto lock = AcquireMutex();
+
+		if (inHandle >= 0 && inHandle < m_handles.size())
+		{
+			if (m_handles[inHandle].valid)
+			{
+				return &m_handles[inHandle];
+			}
+		}
+
+		return nullptr;
+	}
+
 private:
 	template<bool value>
 	struct SeekImpl
@@ -262,21 +277,6 @@ protected:
 		m_handles.push_back(hd);
 
 		return &m_handles.back();
-	}
-
-	HandleDataType* GetHandle(THandle inHandle)
-	{
-		auto lock = AcquireMutex();
-
-		if (inHandle >= 0 && inHandle < m_handles.size())
-		{
-			if (m_handles[inHandle].valid)
-			{
-				return &m_handles[inHandle];
-			}
-		}
-
-		return nullptr;
 	}
 
 protected:

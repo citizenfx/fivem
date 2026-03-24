@@ -71,6 +71,7 @@ void ResourceConfigurationCacheComponent::GetConfiguration(rapidjson::Value& val
 		{
 			obj.AddMember("rscPagesVirtual", rapidjson::Value{ entry.second.rscPagesVirtual }, m_configuration.GetAllocator());
 			obj.AddMember("rscPagesPhysical", rapidjson::Value{ entry.second.rscPagesPhysical }, m_configuration.GetAllocator());
+			obj.AddMember("e", rapidjson::Value{ entry.second.e }, m_configuration.GetAllocator());
 		}
 
 		auto key = rapidjson::Value{

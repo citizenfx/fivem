@@ -1800,15 +1800,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, syncData.hasCreated };
 
-			if (syncData.hasCreated)
+			if (syncData.hasCreated && !syncData.hasRoutedStateBag)
 			{
-				// Add this player as a routing target to this entity's statebag, if present.
-				// notes:
-				// * this will try to add it every frame, but the statebag will only add it once (std::set).
-				// * will occur on the next update/tick when syncData.hasCreated is true, this'll ensure that it's sent after the client knows about this entity.
-				// TODO: PERF: remove this every-frame call by giving this system a nice and fresh design
 				if (auto stateBag = entity->GetStateBag())
 				{
+					syncData.hasRoutedStateBag = true;
 					stateBag->AddRoutingTarget(slotId);
 				}
 			}
@@ -3549,6 +3545,18 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			std::unique_lock _lock(data->playerEntityMutex);
 			sync::SyncEntityPtr playerEntity = data->playerEntity.lock();
 
+			// Prevent clients from creating multiple CNetObjPlayer entities
+			if (createdHere && playerEntity)
+			{
+				GS_LOG("%s: client %d %s tried to create duplicate player entity %d, but already has player entity %d. Rejecting!\n",
+					__func__,
+					client->GetNetId(),
+					client->GetName(),
+					objectId,
+					playerEntity->handle & 0xFFFF);
+				return false;
+			}
+
 			if (!playerEntity)
 			{
 				SendWorldGrid(nullptr, client);
@@ -4644,6 +4652,58 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 
 		console::Printf("net", "---------------- END OBJECT ID DUMP ----------------\n");
 	});
+
+	static auto blockNetGameEvent = instance->AddCommand("block_net_game_event", [this](std::string& eventName)
+	{
+		if (eventName.empty())
+		{
+			trace("^3You must specify an event name to block.^7\n");
+			return;
+		}
+		if (!g_experimentalNetGameEventHandler->GetValue())
+		{
+			trace("^3You must enable sv_experimentalNetGameEventHandler convar before using this command.^7\n");
+			return;
+		}
+
+		std::transform(eventName.begin(), eventName.end(), eventName.begin(),
+		[](unsigned char c)
+		{
+			return std::toupper(c);
+		});
+
+		std::unique_lock lock(this->blockedEventsMutex);
+		this->blockedEvents.insert(HashRageString(eventName));
+	});
+
+	static auto unblockNetGameEvent = instance->AddCommand("unblock_net_game_event", [this](std::string& eventName)
+	{
+		if (eventName.empty())
+		{
+			trace("^3You must specify an event name to unblock.^7\n");
+			return;
+		}
+		if (!g_experimentalNetGameEventHandler->GetValue())
+		{
+			trace("^3You must enable sv_experimentalNetGameEventHandler convar before using this command.^7\n");
+			return;
+		}
+
+		std::transform(eventName.begin(), eventName.end(), eventName.begin(),
+		[](unsigned char c)
+		{
+			return std::toupper(c);
+		});
+
+		std::unique_lock lock(this->blockedEventsMutex);
+		this->blockedEvents.erase(HashRageString(eventName));
+	});
+}
+
+bool ServerGameState::IsNetGameEventBlocked(uint32_t eventNameHash)
+{
+	std::shared_lock lock(this->blockedEventsMutex);
+	return blockedEvents.find(eventNameHash) != blockedEvents.end();
 }
 }
 
@@ -7814,7 +7874,7 @@ static InitFunction initFunction([]()
 		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_ReadOnly, false);
 
 		g_experimentalOneSyncPopulation = instance->AddVariable<bool>("sv_experimentalOneSyncPopulation", ConVar_None, true);
-		g_experimentalNetGameEventHandler = instance->AddVariable<bool>("sv_experimentalNetGameEventHandler", ConVar_None, false);
+		g_experimentalNetGameEventHandler = instance->AddVariable<bool>("sv_experimentalNetGameEventHandler", ConVar_None, true);
 
 		constexpr bool canLengthHack =
 #ifdef STATE_RDR3
@@ -7894,6 +7954,10 @@ static InitFunction initFunction([]()
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgNetGameEvent"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::ByteReader& reader, fx::ENetPacketPtr packet)
 		{
+			if (g_experimentalNetGameEventHandler->GetValue())
+			{
+				return;
+			}
 			// this should match up with SendGameEventRaw on client builds
 			// 1024 bytes is from the rlBuffer
 			// 512 is from the max amount of players (2 * 256)
@@ -7979,7 +8043,12 @@ static InitFunction initFunction([]()
 		// start sessionmanager
 		if (gameServer->GetGameName() == fx::GameName::RDR3)
 		{
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+			// Race
+			instance->OnInitialConfiguration.Connect([consoleCtx]()
+			{
+				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+			},
+			INT32_MAX);
 		}
 		else if (!g_oneSyncEnabledVar->GetValue() && g_oneSyncVar->GetValue() == fx::OneSyncState::Off)
 		{

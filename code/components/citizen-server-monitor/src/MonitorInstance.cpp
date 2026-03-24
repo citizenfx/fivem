@@ -265,6 +265,7 @@ namespace fx
 		fwRefContainer<fx::ResourceManager> resourceManager = fx::CreateResourceManager();
 		resourceManager->SetComponent(new fx::ServerInstanceBaseRef(this));
 		resourceManager->SetComponent(GetComponent<console::Context>());
+		resourceManager->SetMonitor(true);
 
 		resourceManager->AddMounter(new LocalResourceMounter(resourceManager.GetRef()));
 

@@ -282,6 +282,14 @@ int LuaIOOpen(lua_State* L)
 	{
 		write = true;
 	}
+	
+	for (const auto& part : std::filesystem::path(fileName))
+	{
+		if (part == "..")
+		{
+			return LuaIOFileResultError(L, ENOENT, file);
+		}
+	}
 
 	fwRefContainer<vfs::Device> device = !fileName.empty() && fileName[0] == '@' ? vfs::GetDevice(fileName) : nullptr;
 	std::string path = fileName;

@@ -68,7 +68,7 @@ static void OnDiscordAuthenticateWithoutCode(bool success, const char* data, siz
 		json::object({ { "cmd", "AUTHORIZE" },
 		{ "args", json::object({
 				  { "scopes", json::array({ "identify", "guilds.join" }) },
-				  { "client_id", "382624125287399424" },
+				  { "client_id", "1473308775258525930" },
 				  { "redirect_url", "https://cfx.re" },
 				  { "prompt", "none" },
 				  }) },
@@ -155,7 +155,7 @@ static void StartDiscordIPCThread()
 		}
 	}
 
-	WritePipe(0, json::object({ { "v", 1 }, { "client_id", "382624125287399424" } }));
+	WritePipe(0, json::object({ { "v", 1 }, { "client_id", "1473308775258525930" } }));
 	while (true)
 	{
 		if (g_hPipe == NULL || g_hPipe == INVALID_HANDLE_VALUE)

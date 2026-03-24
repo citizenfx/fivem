@@ -246,6 +246,15 @@ struct ControlClass3095
 	uint32_t numKeys;
 };
 
+struct ControlClassWinter25 // Winter TU 2025
+{
+	// >3620 (+208)
+	uint8_t pad[2544 + 208];
+
+	KeyLayoutMap keys[255];
+	uint32_t numKeys;
+};
+
 static void(*g_origLoadLayout)(void*);
 
 static void* g_controlData;
@@ -293,7 +302,11 @@ static void OnInputLanguageChange()
 
 	if (g_controlData)
 	{
-		if (xbr::IsGameBuildOrGreater<3095>())
+		if (xbr::IsGameBuildOrGreater<xbr::Build::Winter_2025>())
+		{
+			UpdateControlData((ControlClassWinter25*)g_controlData);
+		}
+		else if (xbr::IsGameBuildOrGreater<3095>())
 		{
 			UpdateControlData((ControlClass3095*)g_controlData);
 		}
@@ -328,7 +341,11 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? 48 8D 45 88 48 3B D8 74 1E");
 		hook::set_call(&g_origLoadLayout, location);
-		hook::call(location, (xbr::IsGameBuildOrGreater<3095>() ? (void*)&LoadKeyboardLayoutWrap<ControlClass3095> : xbr::IsGameBuildOrGreater<2699>() ? (void*)&LoadKeyboardLayoutWrap<ControlClass2699> : xbr::IsGameBuildOrGreater<2060>() ? (void*)&LoadKeyboardLayoutWrap<ControlClass2060> : (void*)&LoadKeyboardLayoutWrap<ControlClass1604>));
+		hook::call(location, (xbr::IsGameBuildOrGreater<xbr::Build::Winter_2025>() ? (void*)&LoadKeyboardLayoutWrap<ControlClassWinter25>
+							  : xbr::IsGameBuildOrGreater<3095>()                  ? (void*)&LoadKeyboardLayoutWrap<ControlClass3095>
+								: xbr::IsGameBuildOrGreater<2699>()                ? (void*)&LoadKeyboardLayoutWrap<ControlClass2699>
+								  : xbr::IsGameBuildOrGreater<2060>()              ? (void*)&LoadKeyboardLayoutWrap<ControlClass2060>
+																				   : (void*)&LoadKeyboardLayoutWrap<ControlClass1604>));
 	}
 
 	{

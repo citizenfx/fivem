@@ -336,29 +336,9 @@ static HookFunction hookFunction([]()
 	if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		void** cNetObjPhys_vtable = hook::get_address<void**>(hook::get_pattern<unsigned char>("88 44 24 20 E8 ? ? ? ? 33 C9 48 8D 05", 14));
-		int vtableIdx = 0;
-
-		if (xbr::IsGameBuildOrGreater<3258>())
-		{
-			vtableIdx = 137;
-		}
-		else if (xbr::IsGameBuildOrGreater<2802>())
-		{
-			vtableIdx = 136;
-		}
-		else if (xbr::IsGameBuildOrGreater<2545>())
-		{
-			vtableIdx = 130;
-		}
-		else if (xbr::IsGameBuildOrGreater<2189>())
-		{
-			vtableIdx = 128;
-		}
-		else if (xbr::IsGameBuildOrGreater<2060>())
-		{
-			vtableIdx = 127;
-		}
-
+		int vtableIdx = *hook::get_pattern<int>("FF 90 ? ? ? ? B8 ? ? ? ? 84 87", 2) / 8;
+		// sane assertion to make sure the pattern isn't pointing at a different location.
+		assert(vtableIdx > 0 && vtableIdx < 200); 
 		MH_CreateHook(cNetObjPhys_vtable[vtableIdx], OnEntityTakeDmg, (void**)&origOnEntityTakeDmg);
 	}
 

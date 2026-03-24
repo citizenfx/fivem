@@ -10,6 +10,7 @@
 #include "StdInc.h"
 
 #include <deque>
+#include <atomic>
 
 #include <fxScripting.h>
 #include <Resource.h>
@@ -17,11 +18,11 @@
 
 #include <om/OMComponent.h>
 
-#include <node/deps/v8/include/v8config.h>
-#include <node/deps/v8/include/v8.h>
-#include <node/deps/v8/include/v8-profiler.h>
-#include <node/src/node.h>
-#include <node/deps/uv/include/uv.h>
+#include <v8config.h>
+#include <v8.h>
+#include <v8-profiler.h>
+#include <node.h>
+#include <uv.h>
 
 #include "shared/RuntimeHelpers.h"
 #include "fxScriptBuffer.h"
@@ -29,10 +30,15 @@
 #include <ScriptInvoker.h>
 using namespace fx::invoker;
 
+namespace node::permission
+{
+enum class PermissionScope;
+};
+
 namespace fx::nodejs
 {
 class NodeScriptRuntime : public OMClass<NodeScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime,
-	IScriptRefRuntime, IScriptStackWalkingRuntime, IScriptWarningRuntime>
+						  IScriptRefRuntime, IScriptStackWalkingRuntime, IScriptWarningRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -46,6 +52,7 @@ private:
 	int m_instanceId;
 	std::string m_name;
 	std::string m_resourceName;
+	bool m_isMonitorRuntime = false;
 
 	// direct host access
 	IScriptHost* m_scriptHost = nullptr;
@@ -54,10 +61,11 @@ private:
 	fx::Resource* m_parentObject = nullptr;
 	fx::OMPtr<IScriptRuntimeHandler> m_handler;
 
-	// v8 ande nodejs related
+	// v8 and nodejs related
 	uv_loop_t* m_uvLoop = nullptr;
 	v8::Isolate* m_isolate = nullptr;
 	v8::UniquePersistent<v8::Context> m_context;
+	std::unique_ptr<v8::MicrotaskQueue> m_taskQueue;
 	node::IsolateData* m_isolateData = nullptr;
 	node::Environment* m_nodeEnvironment = nullptr;
 
@@ -87,6 +95,8 @@ public:
 	result_t RunFileInternal(char* scriptName, std::function<result_t(char*, v8::Local<v8::Script>*)> loadFunction);
 	result_t LoadSystemFile(char* scriptFile);
 	const char* AssignStringValue(const v8::Local<v8::Value>& value, size_t* length);
+	bool NodePermissionCallback(node::Environment* env, node::permission::PermissionScope permission_, const std::string_view& resource);
+	void TickFast() const;
 
 	v8::Isolate* GetIsolate() const
 	{
@@ -165,6 +175,11 @@ public:
 		{
 			m_unhandledPromiseRejectionRoutine = routine;
 		}
+	}
+
+	void RunMicrotasks()
+	{
+		m_taskQueue->PerformCheckpoint(m_isolate);
 	}
 
 public:

@@ -22,5 +22,5 @@ npm config set git-tag-version false
 cp -a $ROOT/out/server/citizen/scripting/v8/index.d.ts $ROOT/out/server/citizen/scripting/v8/natives_server.d.ts .
 sed -i 's/natives_universal\.d\.ts/natives_server.d.ts/g' index.d.ts
 npm version "2.0.${CI_PIPELINE_ID}-1"
-npm publish
+npm publish --tag latest
 fi

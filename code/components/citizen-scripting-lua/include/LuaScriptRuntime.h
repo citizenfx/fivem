@@ -32,11 +32,7 @@
 // Linkage specified in lua.hpp to include/link-against internal structure
 // definitions. Note, for ELF builds LUAI_FUNC will mark the function as hidden.
 // Lua5.4 is compiled as a C++ library.
-#if LUA_VERSION_NUM == 504
 #define LUA_INTERNAL_LINKAGE "C++"
-#else
-#define LUA_INTERNAL_LINKAGE "C"
-#endif
 
 // Utility macro for the constexpr if statement
 #define LUA_IF_CONSTEXPR if constexpr
@@ -71,7 +67,7 @@ enum class LuaProfilingMode : uint8_t
 /// </summary>
 namespace fx
 {
-#if LUA_VERSION_NUM >= 504 && defined(_WIN32)
+#if defined(_WIN32)
 #define LUA_USE_RPMALLOC
 #endif
 
@@ -106,9 +102,7 @@ public:
 #else
 		m_state = luaL_newstate();
 #endif
-#if LUA_VERSION_NUM >= 504
 		lua_gc(m_state, LUA_GCGEN, 0, 0);  /* GC in generational mode */
-#endif
 	}
 
 	~LuaStateHolder()
@@ -350,15 +344,9 @@ public:
 	/// </summary>
 	bool IScriptProfiler_Tick(bool begin);
 
-#if LUA_VERSION_NUM == 503
 	// visible for testing
 	static COMPONENT_EXPORT(CITIZEN_SCRIPTING_LUA) const luaL_Reg* GetCitizenLibs();
 	static COMPONENT_EXPORT(CITIZEN_SCRIPTING_LUA) const luaL_Reg* GetLuaLibs();
-#else
-	// visible for testing
-	static COMPONENT_EXPORT(CITIZEN_SCRIPTING_LUA54) const luaL_Reg* GetCitizenLibs();
-	static COMPONENT_EXPORT(CITIZEN_SCRIPTING_LUA54) const luaL_Reg* GetLuaLibs();
-#endif
 
 private:
 	result_t LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile);

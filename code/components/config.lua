@@ -4,8 +4,6 @@ component 'font-renderer'
 component 'debug-net'
 component 'scrbind-formats'
 component 'scrbind-base'
-component 'nui-profiles'
-component 'profiles'
 component 'pool-sizes-state'
 
 if _OPTIONS['game'] == 'server' then
@@ -17,7 +15,6 @@ if _OPTIONS['game'] == 'server' then
 		component 'citizen-devtools'
 		component 'citizen-server-fxdk'
 	end
-	component 'citizen-scripting-v8node'
 	component 'citizen-scripting-mono'
 	component 'citizen-scripting-mono-v2'
 	component 'citizen-scripting-node'
@@ -33,7 +30,6 @@ if _OPTIONS['game'] == 'server' then
 else
 	component 'citizen-devtools'
 	component 'sticky'
-	component 'steam'
 
 	if _OPTIONS["game"] ~= 'ny' then
 		component 'tool-formats'
@@ -106,7 +102,6 @@ component 'citizen-level-loader-five'
 component 'citizen-resources-metadata-lua'
 component 'citizen-scripting-core'
 component 'citizen-scripting-lua'
-component 'citizen-scripting-lua54'
 component 'citizen-playernames-five'
 component 'scripting-gta'
 component 'gta-game-five'

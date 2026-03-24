@@ -240,8 +240,3 @@ void UI_DisplayError(const wchar_t* error)
 	g_hadError = true;
 	netLibrary->OnConnectionError(fmt::sprintf("Changing game build failed: %s", ToNarrow(error)).c_str());
 }
-
-void UI_SetSnailState(bool)
-{
-
-}

@@ -3,6 +3,7 @@ import { isFalseString } from '@cfx-dev/ui-components';
 import {
   DEFAULT_SERVER_LOCALE,
   DEFAULT_SERVER_LOCALE_COUNTRY,
+  filterServerHostname,
   filterServerProjectDesc,
   filterServerProjectName,
   filterServerTag,
@@ -24,9 +25,10 @@ import {
 
 // Add new convars to hide here. All sv_* convars filtered out by default.
 const convarsToHide = new Set([
-  'mapname', 
-  'onesync', 
-  'gametype', 
+  'mapname',
+  'onesync',
+  'gametype',
+  'game_sanitizeRagdollEvents',
 ]);
 
 export function serverAddress2ServerView(address: string): IServerView {
@@ -53,7 +55,7 @@ export function masterListServerData2ServerView(joinId: string, data: master.ISe
       gametype: data.gametype,
       mapname: data.mapname,
       server: data.server,
-      hostname: data.hostname || '',
+      hostname: filterServerHostname(data.hostname || ''),
       playersMax: data.svMaxclients || 0,
       playersCurrent: data.clients || 0,
       burstPower: data.burstPower || 0,
@@ -86,7 +88,7 @@ export function masterListFullServerData2ServerView(joinId: string, data: IFullS
       gametype: data.gametype,
       mapname: data.mapname,
       server: data.server,
-      hostname: data.hostname || '',
+      hostname: filterServerHostname(data.hostname || ''),
       playersMax: data.svMaxclients || 0,
       playersCurrent: data.clients || 0,
       burstPower: data.burstPower || 0,
@@ -131,7 +133,7 @@ export function historyServer2ServerView(historyServer: IHistoryServer): IServer
     detailsLevel: ServerViewDetailsLevel.Historical,
     locale: DEFAULT_SERVER_LOCALE,
     localeCountry: DEFAULT_SERVER_LOCALE_COUNTRY,
-    hostname: historyServer.hostname,
+    hostname: filterServerHostname(historyServer.hostname),
     projectName: historyServer.hostname,
     rawVariables: historyServer.vars,
     historicalIconURL: historyServer.rawIcon,
@@ -184,13 +186,12 @@ function getSearchableName(server: IServerView): string {
     ? `${server.projectName} ${server.projectDescription}`
     : server.projectName;
 
-  return normalizeSearchString(name.replace(/\^[0-9]/g, ''));
+  return normalizeSearchString(name);
 }
 
 function getSortableName(searchableName: string): string {
   return searchableName
     .replace(/[^a-zA-Z0-9]/g, '')
-    .replace(/^[0-9]+/g, '')
     .toLowerCase();
 }
 

@@ -124,7 +124,7 @@ export function rawTweetToActivityDataItem(rawTweet: IRawTweet): IActivityItemDa
 
     const activity: IActivityItemData = {
       id: actualTweet.id_str,
-      url: `https://twitter.com/FiveM/status/${actualTweet.id_str}`,
+      url: `https://x.com/FiveM/status/${actualTweet.id_str}`,
       date: new Date(actualTweet.created_at),
       content,
       media,

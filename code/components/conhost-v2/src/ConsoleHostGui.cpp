@@ -149,6 +149,27 @@ struct FiveMConsoleBase
 	static int Stricmp(const char* str1, const char* str2) { int d; while ((d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; } return d; }
 	static int Strnicmp(const char* str1, const char* str2, int n) { int d = 0; while (n > 0 && (d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; n--; } return d; }
 	static char* Strdup(const char* str) { size_t len = strlen(str) + 1; void* buff = malloc(len); return (char*)memcpy(buff, (const void*)str, len); }
+	static bool Stristr(const char* haystack, const char* needle)
+	{
+		if (!needle || !needle[0])
+			return true;
+
+		for (const char* h = haystack; *h; h++)
+		{
+			const char* h1 = h;
+			const char* n1 = needle;
+
+			while (*h1 && *n1 && toupper(*h1) == toupper(*n1))
+			{
+				h1++; n1++;
+			}
+
+			if (!*n1)
+				return true;
+		}
+
+		return false;
+	}
 
 	virtual void AddLog(const char* key, const char* fmt, ...)
 	{
@@ -293,12 +314,17 @@ struct CfxBigConsole : FiveMConsoleBase
 	ImVector<const char*> Commands;
 	ImVec2 PreviousWindowSize;
 
+	char FilterBuf[128];
+	std::vector<int> filteredIndices;
+	std::string previousFilter;
+
 	concurrency::concurrent_queue<std::string> CommandQueue;
 
 	CfxBigConsole()
 	{
 		ClearLog();
 		memset(InputBuf, 0, sizeof(InputBuf));
+		memset(FilterBuf, 0, sizeof(FilterBuf));
 		HistoryPos = -1;
 		Commands.push_back("HELP");
 		Commands.push_back("HISTORY");
@@ -309,6 +335,13 @@ struct CfxBigConsole : FiveMConsoleBase
 		Commands.push_back("NETGRAPH");
 		Commands.push_back("STRDBG");
 		PreviousWindowSize = { 0, 0 };
+
+		// Update textSelect to work with filtered indices
+		textSelect = TextSelect(
+			[this](const size_t idx) { return GetFilteredLineAtIdx(idx); },
+			[this]() { return GetFilteredNumLines(); },
+			[this](const size_t idx) { return GetFilteredTextOffset(idx); }
+		);
 
 #ifndef IS_FXSERVER
 		AutoScrollEnabled = g_conAutoScroll->GetValue();
@@ -324,9 +357,32 @@ struct CfxBigConsole : FiveMConsoleBase
 			free(History[i]);
 	}
 
+	// Helper functions for filtered text selection
+	std::string_view GetFilteredLineAtIdx(const size_t idx)
+	{
+		if (idx >= filteredIndices.size()) return "";
+		const size_t originalIdx = filteredIndices[idx];
+		return GetLineAtIdx(originalIdx);
+	}
+
+	size_t GetFilteredNumLines()
+	{
+		return filteredIndices.size();
+	}
+
+	float GetFilteredTextOffset(const size_t idx)
+	{
+		if (idx >= filteredIndices.size()) return 0.0f;
+		const size_t originalIdx = filteredIndices[idx];
+		return GetTextOffset(originalIdx);
+	}
+
 	virtual void ClearLog() override
 	{
 		FiveMConsoleBase::ClearLog();
+
+		// Clear filtered indices
+		filteredIndices.clear();
 
 		ScrollToBottom = true;
 	}
@@ -407,12 +463,37 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing() - 8.0f), false);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1)); // Tighten spacing
-		ImGuiListClipper clipper(Items.size());
+		// Check if filter has changed
+		std::string currentFilter(FilterBuf);
+		bool filterChanged = (currentFilter != previousFilter);
+
+		// Update filtered indices
+		filteredIndices.clear();
+		for (size_t i = 0; i < Items.size(); i++)
+		{
+			if (FilterBuf[0] == '\0' ||
+				Stristr(Items[i].c_str(), FilterBuf) ||
+				Stristr(ItemKeys[i].c_str(), FilterBuf))
+			{
+				filteredIndices.push_back(static_cast<int>(i));
+			}
+		}
+
+		// If filter changed and auto scroll is enabled, scroll to bottom
+		if (filterChanged && AutoScrollEnabled)
+		{
+			ScrollToBottom = true;
+		}
+
+		// Update previous filter for next frame
+		previousFilter = currentFilter;
+
+		ImGuiListClipper clipper(filteredIndices.size());
 		while (clipper.Step())
 		{
 			for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
 			{
-				DrawItem(i);
+				DrawItem(filteredIndices[i]);
 			}
 		}
 
@@ -482,9 +563,14 @@ struct CfxBigConsole : FiveMConsoleBase
 				ImGui::SetKeyboardFocusHere(-1);
 			}
 
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(ImGui::GetMainViewport()->Size.x * 0.15f);
+			ImGui::InputTextWithHint("##LogFilter", "Filter", FilterBuf, sizeof(FilterBuf));
+
 			bool preAutoScrollValue = AutoScrollEnabled;
 
 			// Controls in the second column
+			ImGui::SameLine();
 			ImGui::Checkbox("Auto scroll", &AutoScrollEnabled);
 
 			if (preAutoScrollValue != AutoScrollEnabled)

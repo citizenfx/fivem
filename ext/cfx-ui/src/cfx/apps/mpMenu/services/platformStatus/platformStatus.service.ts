@@ -8,10 +8,6 @@ import { defineService, ServicesContainer, useService } from 'cfx/base/servicesC
 import { fetcher } from 'cfx/utils/fetcher';
 import { html2react } from 'cfx/utils/html2react';
 
-import { StatusLevel } from './types';
-
-const AUTO_REFRESH_INTERVAL = 20 * 1000;
-
 const PLAYER_STATS_FIVEM = 'https://static.cfx.re/runtime/counts.json';
 const PLAYER_STATS_REDM = 'https://static.cfx.re/runtime/counts_rdr3.json';
 
@@ -28,22 +24,6 @@ export function usePlatformStatusService() {
 
 @injectable()
 export class PlatformStatusService {
-  private _level: StatusLevel = StatusLevel.Unavailable;
-  public get level(): StatusLevel {
-    return this._level;
-  }
-  private set level(level: StatusLevel) {
-    this._level = level;
-  }
-
-  private _levelLoaded: boolean = false;
-  public get levelLoaded(): boolean {
-    return this._levelLoaded;
-  }
-  private set levelLoaded(levelLoaded: boolean) {
-    this._levelLoaded = levelLoaded;
-  }
-
   private _message: string = '';
   public get message(): string {
     return this._message;
@@ -78,44 +58,9 @@ export class PlatformStatusService {
       _serviceNotice: observable.ref,
     });
 
-    // Initial status fetch
-    this.fetchStatus();
-
-    setInterval(this.fetchStatus, AUTO_REFRESH_INTERVAL);
-
     this.fetchServiceNotice();
     this.fetchStats();
   }
-
-  is(level: StatusLevel): boolean {
-    return this.level === level;
-  }
-
-  readonly fetchStatus = async () => {
-    try {
-      const status = await fetcher.json('https://status.cfx.re/api/v2/status.json');
-
-      const message = status?.status?.description || '';
-
-      switch (message) {
-        case 'All Systems Operational':
-          this.level = StatusLevel.AllSystemsOperational;
-          break;
-        case 'Partially Degraded Service':
-        case 'Partial System Outage':
-        case 'Minor Service Outage':
-          this.level = StatusLevel.MinorOutage;
-          break;
-        case 'Major Service Outage':
-          this.level = StatusLevel.MajorOutage;
-          break;
-      }
-
-      this.message = message;
-    } catch (e) {
-      // noop
-    }
-  };
 
   private async fetchServiceNotice() {
     try {
@@ -152,7 +97,17 @@ export class PlatformStatusService {
   }
 
   private setServiceNotice(notice: string) {
-    this._serviceNotice = html2react(notice, { removeRelativeLinks: true });
+    const reactified = html2react(notice, { removeRelativeLinks: true });
+
+    if (reactified === null) {
+      return;
+    }
+
+    if (typeof reactified === 'string' && reactified.trim() === '') {
+      return;
+    }
+
+    this._serviceNotice = reactified;
   }
 
   private setStats(current: string, last24h: string) {

@@ -1,5 +1,5 @@
 return function()
 	filter {}
 	
-	add_dependencies { "vendor:lua54-noglm" }
+	add_dependencies { "vendor:lua-noglm" }
 end

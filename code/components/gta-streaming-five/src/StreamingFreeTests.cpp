@@ -154,7 +154,7 @@ static int (*g_origGetFileTypeIdFromExtension)(const char*, const char*);
 static int GetFileTypeIdFromExtension(const char* extension, const char* fileName)
 {
 	// set the name for the later hook to use
-	g_lastStreamingName = extension;
+	g_lastStreamingName = fileName;
 
 	return g_origGetFileTypeIdFromExtension(extension, fileName);
 }

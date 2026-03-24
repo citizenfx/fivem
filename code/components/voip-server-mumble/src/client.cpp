@@ -112,6 +112,8 @@ bool Client_is_player_muted(const char *namePrefix, size_t len)
 			return c->mute;
 		}
 	}
+
+	return false;
 }
 
 void Client_set_player_muted(const char *namePrefix, size_t len, bool muted)

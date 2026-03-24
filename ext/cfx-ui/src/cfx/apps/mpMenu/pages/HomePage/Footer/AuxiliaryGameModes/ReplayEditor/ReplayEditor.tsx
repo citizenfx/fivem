@@ -20,8 +20,8 @@ export function ReplayEditor() {
     <>
       <Button
         size="large"
-        theme="default-blurred"
-        icon={Icons.replayEditor}
+        theme="default"
+        icon={Icons.refresh}
         text={$L('#BottomNav_ReplayEditor')}
         onClick={openModal}
       />

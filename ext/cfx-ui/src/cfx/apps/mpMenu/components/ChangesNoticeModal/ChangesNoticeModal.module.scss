@@ -1,0 +1,10 @@
+.icon {
+  font-size: ui.q(12);
+  color: ui.color-token('text-a50');
+}
+
+.title {
+  letter-spacing: -1px;
+  font-size: ui.q(6);
+  @include ui.font-weight('bolder');
+}

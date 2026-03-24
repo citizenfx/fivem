@@ -747,6 +747,11 @@ HttpRequestPtr HttpClient::DoPostRequest(const std::string& url, const std::map<
 	return DoPostRequest(url, BuildPostString(fields), callback);
 }
 
+HttpRequestPtr HttpClient::DoPostRequest(const std::string& url, const std::map<std::string, std::string>& fields, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback)
+{
+	return DoPostRequest(url, BuildPostString(fields), options, callback);
+}
+
 HttpRequestPtr HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const std::function<void(bool, const char*, size_t)>& callback)
 {
 	return DoPostRequest(url, postData, HttpRequestOptions{}, callback);
