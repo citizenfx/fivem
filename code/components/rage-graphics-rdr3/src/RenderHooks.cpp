@@ -402,7 +402,7 @@ static bool InitalizeVulkanLibrary()
 // Helps resolves issues where bad pipeline cache data causes an infinite loop of D3D12/Vulkan Crashes.
 static void InvalidatePipelineCache()
 {
-	FILE* f = _wfopen(MakeRelativeCitPath("data\\cache\\clearPipelineCache").c_str(), L"wb");
+	FILE* f = _wfopen(MakeRelativeCitPath("data/cache/clearPipelineCache").c_str(), L"ab");
 	if (f)
 	{
 		fclose(f);

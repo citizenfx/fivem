@@ -677,14 +677,16 @@ void DynamicTexture2::UnmapInternal(GraphicsContext* context, const MapData& map
 
 static bool ShouldUsePipelineCache(const char* pipelineCachePrefix)
 {
-	std::wstring path = MakeRelativeCitPath("data\\cache\\clearPipelineCache");
-	if (_waccess(path.c_str(), 0))
+	// This file is created on any hooked graphics related crashes (currently ERR_GFX_STATE)
+	FILE* f = _wfopen(MakeRelativeCitPath("data/cache/clearPipelineCache").c_str(), L"r");
+	if (!f)
 	{
-		_wunlink(path.c_str());
-		return false;
+		fclose(f);
+		return true;
 	}
 
-	return true;
+	_wunlink(MakeRelativeCitPath("data/cache/clearPipelineCache").c_str());
+	return false;
 }
 
 static HookFunction hookFunction([]()
