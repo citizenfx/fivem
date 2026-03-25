@@ -4029,7 +4029,7 @@ void ServerGameState::GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_
 	{
 		bool hadId = false;
 
-		for (; id < m_objectIdsSent.size(); id++)
+		for (; id < static_cast<uint16_t>(MaxObjectId); id++)
 		{
 			if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
 			{
