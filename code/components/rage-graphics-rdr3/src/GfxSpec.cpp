@@ -522,6 +522,19 @@ static void WrapEndDraw(void* cxt)
 	origEndDraw(cxt);
 }
 
+static LPWSTR GetCommandLineWHook()
+{
+	static wchar_t str[8192];
+	wcscpy(str, GetCommandLineW());
+
+	if (!wcsstr(str, L"sgadriver"))
+	{
+		wcscat(str, L" -sgadriver=d3d12");
+	}
+
+	return str;
+}
+
 static void* g_d3d12Driver;
 static void* g_vkDriver;
 
@@ -542,8 +555,6 @@ GraphicsAPI GetCurrentGraphicsAPI()
 void** g_d3d12Device;
 VkDevice* g_vkHandle;
 
-VkPhysicalDevice* g_vkPhysicalHandle;
-
 void* GetGraphicsDriverHandle()
 {
 	switch (GetCurrentGraphicsAPI())
@@ -554,14 +565,6 @@ void* GetGraphicsDriverHandle()
 		return *g_vkHandle;
 	default:
 		return nullptr;
-	}
-}
-
-GFX_EXPORT VkPhysicalDevice GetVulkanPhysicalHandle()
-{
-	if (GetCurrentGraphicsAPI() == GraphicsAPI::Vulkan)
-	{
-		return *g_vkPhysicalHandle;
 	}
 }
 
@@ -677,16 +680,8 @@ void DynamicTexture2::UnmapInternal(GraphicsContext* context, const MapData& map
 
 static bool ShouldUsePipelineCache(const char* pipelineCachePrefix)
 {
-	// This file is created on any hooked graphics related crashes (currently ERR_GFX_STATE)
-	FILE* f = _wfopen(MakeRelativeCitPath("data/cache/clearPipelineCache").c_str(), L"r");
-	if (!f)
-	{
-		fclose(f);
-		return true;
-	}
-
-	_wunlink(MakeRelativeCitPath("data/cache/clearPipelineCache").c_str());
-	return false;
+	// #TODO: check for ERR_GFX_STATE or similar failures last launch?
+	return true;
 }
 
 static HookFunction hookFunction([]()
@@ -727,13 +722,15 @@ static HookFunction hookFunction([]()
 
 	g_d3d12Device = hook::get_address<decltype(g_d3d12Device)>(hook::get_pattern("48 8B 01 FF 50 78 48 8B 0B 48 8D", -7));
 	g_vkHandle = hook::get_address<decltype(g_vkHandle)>(hook::get_pattern("8D 50 41 8B CA 44 8B C2 F3 48 AB 48 8B 0D", 14));
-	g_vkPhysicalHandle = hook::get_address<decltype(g_vkPhysicalHandle)>(hook::get_pattern("FF 15 ? ? ? ? 33 D2 48 8D 4C 24 ? 41 B8", 27));
 
 	{
 		auto location = hook::get_pattern<char>("83 25 ? ? ? ? 00 83 25 ? ? ? ? 00 D1 F8 89 05", -0x26);
 		rage::g_WindowWidth = hook::get_address<int*>(location + 6);
 		rage::g_WindowHeight = hook::get_address<int*>(location + 0x3E);
 	}
+
+	// #TODORDR: badly force d3d12 sga driver (vulkan crashes on older Windows 10?)
+	hook::iat("kernel32.dll", GetCommandLineWHook, "GetCommandLineW");
 
 	MH_EnableHook(MH_ALL_HOOKS);
 });
