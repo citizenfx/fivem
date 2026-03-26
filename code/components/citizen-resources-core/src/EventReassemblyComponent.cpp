@@ -697,8 +697,8 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 	{
 		// received a ack packet to indicate the remote side received a payload packet
 		std::unique_lock lock(m_listMutex);
-		auto entryIt = m_sendListV2.find(packet.eventId);
-		if (entryIt != m_sendListV2.end())
+		auto entryIt = m_sendList.find(packet.eventId);
+		if (entryIt != m_sendList.end())
 		{
 			std::shared_ptr<SendEvent> sendData = entryIt->second;
 
@@ -890,8 +890,7 @@ void EventReassemblyComponentImpl::HandlePacketV2(int source, const net::packet:
 		// received a ack packet to indicate the remote side received a payload packet
 		std::unique_lock lock(m_listMutex);
 		auto entryIt = m_sendListV2.find(packet.eventId);
-
-		if (entryIt != m_sendList.end())
+		if (entryIt != m_sendListV2.end())
 		{
 			std::shared_ptr<SendEvent> sendData = entryIt->second;
 
