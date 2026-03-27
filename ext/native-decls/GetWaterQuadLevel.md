@@ -11,15 +11,14 @@ BOOL GET_WATER_QUAD_LEVEL(int waterQuad, float* waterQuadLevel);
 
 *level is defined as "z" in water.xml*
 
-## Examples
+## Parameters
+* **waterQuad**: The water quad index
+* **waterQuadLevel**: The returned water quad level
 
+## Return value
+Returns `true` on success, `false` otherwise, `waterQuadLevel` will be set to `0.0` on failure.
+
+## Examples
 ```lua
 local success, waterQuadLevel = GetWaterQuadLevel(0)
 ```
-
-## Parameters
-* **waterQuad**: The water quad index
-* **waterQuad**: The returned water quad level
-  
-## Return value
-Returns true on success. Level is undefined on failure
