@@ -75,6 +75,12 @@ extern GFX_EXPORT GraphicsAPI GetCurrentGraphicsAPI();
 // VK context or D3D12 device
 extern GFX_EXPORT void* GetGraphicsDriverHandle();
 
+// Set Vulkan device handles for frame capture
+extern GFX_EXPORT void SetVulkanDeviceHandles(void* device, void* physicalDevice, void* queue, uint32_t queueFamily);
+
+// Capture Vulkan swapchain image from vkQueuePresentKHR hook
+extern GFX_EXPORT void CaptureVulkanSwapchainImage(void* swapchain, uint32_t imageIndex, int width, int height);
+
 namespace rage::sga
 {
 class GFX_EXPORT GraphicsContext
