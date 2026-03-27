@@ -30,6 +30,8 @@
 DEFINE_GUID(DEVINTERFACE_AUDIO_RENDER, 0xe6327cad, 0xdcec, 0x4949, 0xae, 0x8a, 0x99, 0x1e, 0x97, 0x6a, 0x79, 0xd2);
 #undef INITGUID
 
+constexpr int kFrameSize = 48000 / 100; 
+
 #pragma comment(lib, "xaudio2.lib")
 
 // XA2 Win7 API
@@ -234,9 +236,9 @@ MumbleAudioOutput::BaseAudioState::~BaseAudioState()
 MumbleAudioOutput::ClientAudioStateBase::ClientAudioStateBase()
 	: sequence(0), opus(nullptr), isTalking(false)
 {
-	jitter = jitter_buffer_init(48000 / 100);
+	jitter = jitter_buffer_init(kFrameSize);
 
-	int margin = 2 * (48000 / 100);
+	int margin = 2 * kFrameSize;
 	jitter_buffer_ctl(jitter, JITTER_BUFFER_SET_MARGIN, &margin);
 
 	pfBuffer = new float[iBufferSize];
@@ -802,11 +804,23 @@ void MumbleAudioOutput::BaseAudioState::HandleVoiceData(uint64_t sequence, const
 
 	int numSamples = opus_decoder_get_nb_samples(is->opus, data, size);
 
+	if (numSamples < 0)
+	{
+		trace("opus error: %d", numSamples);
+		return;
+	}
+
+	// our samples have to be a multiple of our frame size, otherwise we'll cause our jitter buffer to drift and cause audible glitches.
+	if (numSamples % kFrameSize != 0)
+	{
+		return;
+	}
+
 	JitterBufferPacket jbp;
 	jbp.data = const_cast<char*>(reinterpret_cast<const char*>(data));
 	jbp.len = size;
 	jbp.span = numSamples;
-	jbp.timestamp = (48000 / 100) * sequence;
+	jbp.timestamp = kFrameSize * sequence;
 
 	{
 		std::unique_lock _(is->jitterLock);
@@ -890,7 +904,7 @@ bool MumbleAudioOutput::ClientAudioStateBase::PollAudio(int frameCount, BaseAudi
 
 	// 20ms
 	int iOutputSize = 100 * 48;
-	int iFrameSize = 48000 / 100; // 10ms
+	int iFrameSize = kFrameSize; // 10ms
 
 	while (iBufferFilled < sampleCount)
 	{
