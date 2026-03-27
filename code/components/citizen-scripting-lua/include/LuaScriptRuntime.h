@@ -366,6 +366,8 @@ public:
 
 	void ScheduleBookmarkSoon(uint64_t bookmark, int timeout);
 
+	bool RemoveBookmark(uint64_t bookmark);
+
 	void SchedulePendingBookmarks();
 
 public:
