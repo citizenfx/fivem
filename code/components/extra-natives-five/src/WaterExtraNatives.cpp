@@ -361,9 +361,23 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("CREATE_DRY_VOLUME", [=](fx::ScriptContext& context)
 	{
+		float minX = context.GetArgument<float>(0);
+		float minY = context.GetArgument<float>(1);
+		float minZ = context.GetArgument<float>(2);
+		float maxX = context.GetArgument<float>(3);
+		float maxY = context.GetArgument<float>(4);
+		float maxZ = context.GetArgument<float>(5);
+
+		if (maxX < minX || maxY < minY || maxZ < minZ)
+		{
+			trace("Inverted bounding box for dry volume, min coordinates must be less than or equal to max coordinates.\n");
+			context.SetResult<int>(-1);
+			return;
+		}
+
 		auto newVolume = sDepthBound(
-		{ context.GetArgument<float>(0), context.GetArgument<float>(1), context.GetArgument<float>(2), 0.f },
-		{ context.GetArgument<float>(3), context.GetArgument<float>(4), context.GetArgument<float>(5), 0.f });
+			{ minX, minY, minZ, 0.f },
+			{ maxX, maxY, maxZ, 0.f });
 
 		std::vector<sDepthBound>::iterator v = std::find(g_dryAreas.begin(), g_dryAreas.end(), newVolume);
 		if (v != g_dryAreas.end())
