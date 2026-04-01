@@ -192,18 +192,12 @@ class CfxBuildTools {
     [boolean] hidden $_sentryCLIVerified = $false
     [string] getSentryCLI() {
         if (!$this._sentryCLIVerified) {
-            $sentryDir = $this.ctx.getPathInBuildCache("sentry")
-            $sentryCLIPath = "$sentryDir\sentry-cli-1.67.2.exe"
-            $sentryCLIURL = "https://content.cfx.re/mirrors/vendor/sentry/sentry-cli-1.67.2.exe"
-
-            if (!(Test-Path $sentryCLIPath)) {
-                New-Item -ItemType Directory -Force $sentryDir
-
-                curl.exe -Lo $sentryCLIPath $sentryCLIURL
-                Test-LastExitCode "Failed to fetch sentry-cli"
+            $cmd = Get-Command -ErrorAction Ignore sentry-cli
+            if ($null -eq $cmd) {
+                throw "sentry-cli not found, make sure it is installed and available in the PATH env var"
             }
 
-            $this._sentryCLI = $sentryCLIPath
+            $this._sentryCLI = $cmd.Source
             $this._sentryCLIVerified = $true
         }
 

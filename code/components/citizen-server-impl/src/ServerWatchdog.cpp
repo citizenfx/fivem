@@ -7,6 +7,8 @@
 
 #include <StdInc.h>
 
+#include <random>
+
 #include <CoreConsole.h>
 #include <DebugAlias.h>
 
@@ -26,6 +28,8 @@
 #include <StructuredTrace.h>
 
 #include <GameServer.h>
+
+#include <cfx_version.h>
 
 namespace watchdog
 {
@@ -129,19 +133,26 @@ void PlatformBark(const std::string& loopName)
 	if (success)
 	{
 #ifdef CFX_SENTRY_SERVER_HANGS_UPLOAD_URL
-		std::map<std::wstring, std::wstring> parameters;
-
-		std::wstring responseBody;
-		int responseCode;
-
-		std::map<std::wstring, std::wstring> files;
-		files[L"upload_file_minidump"] = dumpPath;
-
-		if (google_breakpad::HTTPUpload::SendMultipartPostRequest(ToWide(CFX_SENTRY_SERVER_HANGS_UPLOAD_URL), parameters, files, nullptr, &responseBody, &responseCode))
+		// 20% client-side sampling
+		std::random_device rd;
+		if (rd() % 5 == 0)
 		{
-			if (responseCode >= 200 && responseCode < 399)
+			std::map<std::wstring, std::wstring> parameters;
+
+			parameters[L"sentry[release]"] = ToWide(BUILD_ID);
+
+			std::wstring responseBody;
+			int responseCode;
+
+			std::map<std::wstring, std::wstring> files;
+			files[L"upload_file_minidump"] = dumpPath;
+
+			if (google_breakpad::HTTPUpload::SendMultipartPostRequest(ToWide(CFX_SENTRY_SERVER_HANGS_UPLOAD_URL), parameters, files, nullptr, &responseBody, &responseCode))
 			{
-				console::Printf("server", "Uploaded a live hang dump to the CitizenFX crash reporting service. The report ID is %s.\n", ToNarrow(responseBody));
+				if (responseCode >= 200 && responseCode < 399)
+				{
+					console::Printf("server", "Uploaded a live hang dump to the CitizenFX crash reporting service. The report ID is %s.\n", ToNarrow(responseBody));
+				}
 			}
 		}
 #else

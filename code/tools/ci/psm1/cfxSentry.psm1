@@ -1,14 +1,21 @@
 using module .\cfxBuildContext.psm1
 using module .\cfxBuildTools.psm1
+using module .\cfxGitlabSections.psm1
 
 function Invoke-SentryCreateRelease {
     param(
         [CfxBuildContext] $Context,
-        [string] $Version
+        [CfxBuildTools] $Tools,
+        [string] $Version,
+        [string] $ProjectName
     )
 
-    if (!$env:SENTRY_TOKEN) {
-        $Context.addBuildWarning("Skipping creating sentry release as SENTRY_TOKEN env var is missing")
+    if (!$ProjectName) {
+        $ProjectName = $Context.SentryProjectName
+    }
+
+    if (!$env:SENTRY_AUTH_TOKEN) {
+        $Context.addBuildWarning("Skipping creating sentry release as SENTRY_AUTH_TOKEN env var is missing")
         return
     }
 
@@ -17,109 +24,108 @@ function Invoke-SentryCreateRelease {
 		return
 	}
 
-    $sentryOrgName = $Context.SentryOrgName
+    $sentryCLI = $Tools.getSentryCLI()
 
-    $request = @{
-        Uri         = "https://sentry.fivem.net/api/0/organizations/$sentryOrgName/releases/"
-        Method      = "Post"
-        Headers     = @{
-            Authorization = "Bearer $env:SENTRY_TOKEN"
-        }
-        ContentType = "application/json"
-        Body        = ConvertTo-Json @{
-            version  = $Version
-            refs     = @(
-                @{
-                    repository = $env:CFX_SENTRY_FIVEM_REPOSITORY
-                    commit     = $Context.GitCommitSHA
-                }
-            )
-            projects = @(
-                $Context.SentryProjectName
-            )
-        }
-    }
-    
     if ($Context.IsDryRun) {
-        Write-Output "DRY RUN: Would create sentry release:", $request, "`n"
+        Write-Output "DRY RUN: Would create sentry release $Version for project $ProjectName"
     } else {
-        try {
-            Invoke-RestMethod @request
-        }
-        catch {
-            Write-Host $_
+        & $sentryCLI @(
+            "releases", "new", $Version
+            "--org", $Context.SentryOrgName
+            "--project", $ProjectName
+            "--finalize"
+        )
+        if ($LASTEXITCODE -ne 0) {
             $Context.addBuildWarning("Failed to create release in sentry")
+            return
         }
+
+        # Temporarily disabled until GitHub integration in Sentry is enabled again
+        <#& $sentryCLI @(
+            "releases", "set-commits", $Version
+            "--org", $Context.SentryOrgName
+            "--project", $ProjectName
+            "--commit", "$($env:CFX_SENTRY_FIVEM_REPOSITORY)@$($Context.GitCommitSHA)"
+        )
+        if ($LASTEXITCODE -ne 0) {
+            $Context.addBuildWarning("Failed to set commits for sentry release")
+        }#>
     }
 }
 
 function Invoke-SentryCreateDeploy {
     param(
         [CfxBuildContext] $Context,
-        [string] $Environment,
-        [string] $Version
-    )
-
-    if (!$env:SENTRY_TOKEN) {
-        $Context.addBuildWarning("Skipping creating sentry deploy as SENTRY_TOKEN env var is missing")
-        return
-    }
-
-    $sentryOrgName = $Context.SentryOrgName
-
-    $request = @{
-        Uri         = "https://sentry.fivem.net/api/0/organizations/$sentryOrgName/releases/$Version/deploys/"
-        Method      = "Post"
-        Headers     = @{
-            Authorization = "Bearer $env:SENTRY_TOKEN"
-        }
-        ContentType = "application/json"
-        Body        = ConvertTo-Json @{
-            environment = $Environment
-            projects    = @($Context.SentryProjectName)
-        }
-    }
-
-    if ($Context.IsDryRun) {
-        Write-Output "DRY RUN: Would create sentry deploy:", $request, "`n"
-    } else {
-        try {
-            Invoke-RestMethod @request
-        }
-        catch {
-            Write-Host $_
-            $Context.addBuildWarning("Failed to create release in sentry")
-        }
-    }
-}
-
-function Invoke-SentryUploadDif {
-    param(
-        [CfxBuildContext] $Context,
         [CfxBuildTools] $Tools,
-        [string] $Path
+        [string] $Environment,
+        [string] $Version,
+        [string] $ProjectName
     )
+
+    if (!$ProjectName) {
+        $ProjectName = $Context.SentryProjectName
+    }
 
     if (!$env:SENTRY_AUTH_TOKEN) {
         $Context.addBuildWarning("Skipping creating sentry deploy as SENTRY_AUTH_TOKEN env var is missing")
         return
     }
 
+    $sentryCLI = $Tools.getSentryCLI()
+
+    if ($Context.IsDryRun) {
+        Write-Output "DRY RUN: Would create sentry deploy for $Version in $Environment for project $ProjectName"
+    } else {
+        $Environment = ConvertTo-Slug $Environment
+
+        & $sentryCLI @(
+            "releases", "deploys", "new"
+            "--release", $Version
+            "--org", $Context.SentryOrgName
+            "--project", $ProjectName
+            "-e", $Environment
+        )
+        if ($LASTEXITCODE -ne 0) {
+            $Context.addBuildWarning("Failed to create deploy in sentry")
+        }
+    }
+}
+
+function Invoke-SentryUploadDebugFiles {
+    param(
+        [CfxBuildContext] $Context,
+        [CfxBuildTools] $Tools,
+        [string] $Path,
+        [string] $ProjectName
+    )
+
+    if (!$ProjectName) {
+        $ProjectName = $Context.SentryProjectName
+    }
+
+    if (!$env:SENTRY_AUTH_TOKEN) {
+        $Context.addBuildWarning("Skipping uploading debug files to Sentry as SENTRY_AUTH_TOKEN env var is missing")
+        return
+    }
+
     if (!(Test-Path $Path)) {
-        throw "Specified path for upload-dif does not exist"
+        throw "Specified path for debug files does not exist"
     }
 
     $sentryCLI = $Tools.getSentryCLI()
 
     if ($Context.IsDryRun) {
-        Write-Output "DRY RUN: Would upload diff to sentry:`n$sentryCLI upload-dif --org ${$Context.SentryOrgName} --project ${$Context.SentryProjectName} $Path\"
+        Write-Output "DRY RUN: Would upload debug files to Sentry from $Path for project $ProjectName"
     } else {
         & $sentryCLI @(
-            "upload-dif"
-            "--org", $Context.SentryOrgName
-            "--project", $Context.SentryProjectName
+            "debug-files"
+            "upload"
+            "-o", $Context.SentryOrgName
+            "-p", $ProjectName
+            "--include-sources"
             "$Path\"
         )
+
         if ($LASTEXITCODE -ne 0) {
             $Context.addBuildWarning("Failed to upload debug information files to sentry")
         }

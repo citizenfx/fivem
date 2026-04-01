@@ -76,6 +76,7 @@ if [ ! -z "$CI_BRANCH" ] && [ ! -z "$CI_BUILD_NUMBER" ]; then
 
 	echo '#define GIT_DESCRIPTION "'$gitDescription'"' >>/src/code/shared/cfx_version.h
 	echo '#define GIT_TAG "'$CI_BUILD_NUMBER'"' >>/src/code/shared/cfx_version.h
+	echo '#define BUILD_ID "cfx-'$CI_PIPELINE_ID'"' >>/src/code/shared/cfx_version.h
 fi
 
 make clean

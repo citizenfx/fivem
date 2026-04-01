@@ -1,5 +1,7 @@
 #include <StdInc.h>
 
+#include <random>
+
 #if _WIN32
 #include <dbghelp.h>
 #include <client/windows/handler/exception_handler.h>
@@ -173,7 +175,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 #ifdef CFX_SENTRY_SERVER_CRASH_UPLOAD_URL
 		std::map<std::wstring, std::wstring> parameters;
-		parameters[L"sentry[release]"] = ToWide(GIT_TAG);
+		parameters[L"sentry[release]"] = ToWide(BUILD_ID);
 
 		std::wstring responseBody;
 		int responseCode;
@@ -181,7 +183,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = dumpPath;
 
-		bool uploadCrashes = true;
+		// 20% client-side sampling
+		std::random_device rd;
+		bool uploadCrashes = (rd() % 5 == 0);
 
 		if (uploadCrashes && HTTPUpload::SendMultipartPostRequest(ToWide(CFX_SENTRY_SERVER_CRASH_UPLOAD_URL), parameters, files, nullptr, &responseBody, &responseCode))
 		{
@@ -352,7 +356,7 @@ void InitializeDumpServer(int serverFd, int pipeFd)
 
 #ifdef CFX_SENTRY_SERVER_CRASH_UPLOAD_URL
 		std::map<std::string, std::string> parameters;
-		parameters["sentry[release]"] = GIT_TAG;
+		parameters["sentry[release]"] = BUILD_ID;
 
 		std::string responseBody;
 		long responseCode;
@@ -360,7 +364,9 @@ void InitializeDumpServer(int serverFd, int pipeFd)
 		std::map<std::string, std::string> files;
 		files["upload_file_minidump"] = *dumpPath;
 
-		bool uploadCrashes = true;
+		// 20% client-side sampling
+		std::random_device rd;
+		bool uploadCrashes = (rd() % 5 == 0);
 		std::string ed;
 
 		if (uploadCrashes && HTTPUpload::SendRequest(CFX_SENTRY_SERVER_CRASH_UPLOAD_URL, parameters, files, "", "", "", &responseBody, &responseCode, &ed))
