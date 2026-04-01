@@ -516,7 +516,9 @@ result_t NodeScriptRuntime::Destroy()
 
 	node::EmitProcessBeforeExit(m_nodeEnvironment);
 	node::EmitProcessExit(m_nodeEnvironment);
-	node::Stop(m_nodeEnvironment);
+	// FreeEnvironment() stops and joins sub-workers as part of shutdown.
+	// Calling Stop() first can terminate the main isolate while worker threads
+	// are still entered, which trips V8 during worker teardown.
 	node::FreeEnvironment(m_nodeEnvironment);
 	node::FreeIsolateData(m_isolateData);
 
