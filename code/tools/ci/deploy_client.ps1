@@ -62,7 +62,7 @@ try {
 
     # notify services as soon as possible
     Invoke-LogSection "Services notification" {
-        if ($Context.IsDryRun) {
+        if ($ctx.IsDryRun) {
             Write-Output "DRY RUN: Would notify services about new deployment"
         } else {
             $oldSecurityProtocol = [Net.ServicePointManager]::SecurityProtocol
@@ -92,7 +92,7 @@ try {
     
             if (!$succeeded) {
                 Write-Host "Failed to notify services"
-                $Context.addBuildWarning("Failed to notify services")
+                $ctx.addBuildWarning("Failed to notify services")
             }
         }
     }.GetNewClosure()
@@ -124,12 +124,15 @@ try {
         }.GetNewClosure()
     }
 
-    if ($Context.IsPublicBuild) {
+    if ($ctx.IsPublicBuild) {
         Invoke-LogSection "Creating sentry deploy" {
+            $sentryVersion = "cfx-{0}" -f $clientVersions.BuildID
+
             $params = @{
                 Context = $ctx
-                Version = $clientVersions.BuildID
+                Tools = $tools
                 Environment = $updateChannelName
+                Version = $sentryVersion
             }
 
             Invoke-SentryCreateDeploy @params

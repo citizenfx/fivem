@@ -2512,7 +2512,8 @@ void V8ScriptGlobals::Initialize()
 
 	V8::SetFlagsFromCommandLine(&argc, (char**)argv, false);
 #endif
-	const char* flags = "--turbo-inline-js-wasm-calls --expose_gc --harmony-top-level-await";
+	// increase external pointer table size to avoid OOM crashes (see #3893)
+	const char* flags = "--turbo-inline-js-wasm-calls --expose_gc --harmony-top-level-await --max-external-pointer-table-size=16777216";
 	V8::SetFlagsFromString(flags, strlen(flags));
 
 //icudtl.dat also embedded in our V8 12.2

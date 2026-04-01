@@ -15,43 +15,59 @@ jobs:
           - [ RedM,   rdr3,   windows ]
           - [ Server, server, windows ]
           - [ Server, server, linux   ]
+
     name: ${{ matrix.builds[0] }}${{ matrix.builds[2] == 'linux' && ' (Linux)' || '' }}
+
     runs-on: ${{ matrix.builds[2] == 'windows' && 'windows-latest' || 'ubuntu-24.04' }}
+
     env:
       PROGRAM: ${{ matrix.builds[1] }}
-      PLATFORM: ${{ matrix.builds[2] }}      
+      PLATFORM: ${{ matrix.builds[2] }}
+
     steps:
       - name: Checkout
         shell: bash
-        run: |          
-          # Settings
-          #  - Windows: D is too small, C is big enough, checkout action doesn't allow this.
+        run: |
           [[ $PLATFORM = windows ]] && ROOT="C:\b" || ROOT=~/b
           ROOT_REPO="$ROOT/$PROGRAM"
           ROOT_DEP="$ROOT/dep"
           JOB_SLOTS=$(nproc --all);
-          #JOB_SLOTS=$((JOB_SLOTS * 2)) # can cause heap allocation issues on Windows
-          
-          # Share with other steps
+
           echo "ROOT_REPO=$ROOT_REPO" >> "$GITHUB_ENV"
           echo "ROOT_DEP=$ROOT_DEP" >> "$GITHUB_ENV"
           echo "JOB_SLOTS=$JOB_SLOTS" >> "$GITHUB_ENV"
-          
-          # Checkout all repos
+
           mkdir -p "$ROOT_REPO" && cd "$_" || exit 1
-          
-          # Call each git command individually, preventing unnecessary checkouts
+
           git init .
           git config core.symlinks true
           git remote add origin ${{github.event.pull_request.head.repo.clone_url}}
           git pull origin ${{github.event.pull_request.head.ref}} --depth=1
           git submodule update --jobs=$JOB_SLOTS --init --depth=1
-        
+
       - name: Dependencies
         shell: bash
         run: |
           mkdir -p "$ROOT_DEP" && cd "$_" || exit 1
-      
+
+      # ✅ FIX BLOCK (Windows only) - Addressing Python 3.12 compatibility issues
+      - name: Fix Windows environment
+        if: ${{ matrix.builds[2] == 'windows' }}
+        shell: powershell
+        run: |
+          Write-Host "Installing Python 3.11 (fix node-gyp distutils issue)"
+          choco install python --version=3.11.0 -y
+
+          Write-Host "Installing Windows SDK (fix MSBuild error)"
+          choco install windows-sdk-10-version-22000-all -y
+
+      # 🔶 OPTIONAL but recommended (prevents future issues)
+      - name: Setup Node
+        if: ${{ matrix.builds[2] == 'windows' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
       - name: Log in to the Container registry
         if: ${{ matrix.builds[2] == 'linux' }}
         uses: docker/login-action@v3
@@ -64,10 +80,9 @@ jobs:
         shell: bash
         run: |
           cd "$ROOT_REPO"
-          
-          # messes with current build tools, so clear it
+
           BUILD_SCRIPT=".github/workflows/ci/build_$PLATFORM.sh"
-          PLATFORM= # clear out, some other scripts consider this variable
-          
+          PLATFORM=
+
           chmod +x "$BUILD_SCRIPT"
           $BUILD_SCRIPT "$ROOT_DEP" $JOB_SLOTS

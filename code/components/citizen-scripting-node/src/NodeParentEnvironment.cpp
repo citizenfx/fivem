@@ -83,6 +83,8 @@ bool NodeParentEnvironment::IsStartNode() const
 
 result_t NodeParentEnvironment::StartNode()
 {
-	return node::Start(g_argc, g_argv);
+	int ec = node::Start(g_argc, g_argv);
+
+	_exit(ec);
 }
 }
