@@ -904,6 +904,11 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
 		profiler->EnterScope(std::string{ name });
 	}
+	
+	// Save thread ref from gc
+	lua_pushthread(thread);
+	lua_xmove(thread, L, 1);
+	int threadRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	// --- submit boundary start
 	{
@@ -993,6 +998,10 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 
 		luaL_unref(L, LUA_REGISTRYINDEX, bookmark);
 	}
+
+	// Boundary and registry cleaned after resume of script
+	m_scriptHost->SubmitBoundaryStart(nullptr, 0);
+	luaL_unref(L, LUA_REGISTRYINDEX, threadRef);
 
 	m_runningThreads.pop_front();
 
