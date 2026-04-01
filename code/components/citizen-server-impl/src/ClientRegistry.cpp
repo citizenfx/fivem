@@ -135,7 +135,10 @@ namespace fx
 
 		client->OnAssignTcpEndPoint.Connect([this, weakClient]()
 		{
-			m_clientsByTcpEndPoint[weakClient.lock()->GetTcpEndPoint()] = weakClient;
+			if (auto client = weakClient.lock())
+			{
+				m_clientsByTcpEndPoint[client->GetTcpEndPoint()] = weakClient;
+			}
 		});
 
 		client->OnAssignConnectionToken.Connect([this, weakClient]()
