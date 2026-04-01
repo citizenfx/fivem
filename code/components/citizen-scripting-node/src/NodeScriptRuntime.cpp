@@ -211,7 +211,7 @@ static InitFunction initFunction([]()
 #ifdef _WIN32
 		TerminateProcess(GetCurrentProcess(), hr);
 #else
-		exit(hr);
+		_exit(hr);
 #endif
 		return;
 	}

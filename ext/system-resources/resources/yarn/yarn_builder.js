@@ -51,10 +51,32 @@ const yarnBuildTask = {
 					cwd: path.resolve(GetResourcePath(resourceName)),
 					stdio: 'pipe',
 				});
+			let stderrHadErrors = false;
 			proc.stdout.on('data', (data) => console.log(trimOutput(data)));
-			proc.stderr.on('data', (data) => console.error(trimOutput(data)));
+			proc.stderr.on('data', (data) => {
+				const text = data.toString();
+				if (text.includes('error ') || text.includes('Error:')) {
+					stderrHadErrors = true;
+				}
+				console.error(trimOutput(data));
+			});
 			proc.on('exit', (code, signal) => {
 				setImmediate(() => {
+					if (signal === 'SIGABRT' && !stderrHadErrors) {
+						const resourcePath = GetResourcePath(resourceName);
+						const nodeModules = path.resolve(resourcePath, 'node_modules');
+						if (fs.existsSync(nodeModules)) {
+							console.log('[yarn] Child process exited with SIGABRT during cleanup, but installation appears successful');
+							const yarnLock = path.resolve(resourcePath, '.yarn.installed');
+							fs.writeFileSync(yarnLock, '');
+
+							buildingInProgress = false;
+							currentBuildingModule = '';
+							cb(true);
+							return;
+						}
+					}
+
 					if (code != 0 || signal) {
 						buildingInProgress = false;
 						currentBuildingModule = '';
