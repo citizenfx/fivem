@@ -2,39 +2,47 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
+// From: https://github.com/chromiumembedded/cef/blob/master/tests/cefclient/browser/bytes_write_handler.h
 #pragma once
 
 #include "include/cef_stream.h"
 
-#include <mutex>
-
-class BytesWriteHandler : public CefWriteHandler {
+class BytesWriteHandler : public CefWriteHandler
+{
 public:
 	explicit BytesWriteHandler(size_t grow);
-	~BytesWriteHandler();
+	~BytesWriteHandler() override;
+
+	BytesWriteHandler(const BytesWriteHandler&) = delete;
+	BytesWriteHandler& operator=(const BytesWriteHandler&) = delete;
 
 	size_t Write(const void* ptr, size_t size, size_t n) override;
-	int Seek(int64 offset, int whence) override;
-	int64 Tell() override;
+	int Seek(int64_t offset, int whence) override;
+	int64_t Tell() override;
 	int Flush() override;
 	bool MayBlock() override
 	{
 		return false;
 	}
 
-	void* GetData() { return data_; }
-	int64 GetDataSize() { return offset_; }
+	void* GetData()
+	{
+		return data_;
+	}
+	int64_t GetDataSize()
+	{
+		return offset_;
+	}
 
 private:
 	size_t Grow(size_t size);
 
 	size_t grow_;
 	void* data_;
-	int64 datasize_;
-	int64 offset_;
+	int64_t datasize_;
+	int64_t offset_ = 0;
 
-	std::recursive_mutex lock_;
+	base::Lock lock_;
 
 	IMPLEMENT_REFCOUNTING(BytesWriteHandler);
-	DISALLOW_COPY_AND_ASSIGN(BytesWriteHandler);
 };

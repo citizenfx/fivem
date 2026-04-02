@@ -232,6 +232,11 @@ public:
 
 	CefSize GetMinimumSize(CefRefPtr<CefView> view) override;
 
+	cef_runtime_style_t GetWindowRuntimeStyle() override
+	{
+		return CEF_RUNTIME_STYLE_CHROME;
+	}
+
 private:
 	void LoadPlacement(CefRefPtr<CefWindow> window);
 	void SavePlacement(CefRefPtr<CefWindow> window);
@@ -245,7 +250,7 @@ private:
 	DISALLOW_COPY_AND_ASSIGN(SDKWindowDelegate);
 };
 
-class SDKSubViewDelegate : public CefBrowserViewDelegate
+class SDKSubViewDelegate : public CefBrowserViewDelegate	
 {
 public:
 	SDKSubViewDelegate();
@@ -253,6 +258,11 @@ public:
 	virtual CefRefPtr<CefBrowserViewDelegate> GetDelegateForPopupBrowserView(CefRefPtr<CefBrowserView> browser_view, const CefBrowserSettings& settings, CefRefPtr<CefClient> client, bool is_devtools);
 
 	virtual bool OnPopupBrowserViewCreated(CefRefPtr<CefBrowserView> browser_view, CefRefPtr<CefBrowserView> popup_browser_view, bool is_devtools);
+	
+	cef_runtime_style_t GetBrowserRuntimeStyle() override
+	{
+		return CEF_RUNTIME_STYLE_CHROME;
+	}
 
 private:
 	IMPLEMENT_REFCOUNTING(SDKSubViewDelegate);

@@ -48,7 +48,7 @@ private:
 	{
 		std::string m_result;
 
-		uint32_t m_cursor = 0;
+		size_t m_cursor = 0;
 
 		bool m_cancelled = false;
 	};
@@ -65,7 +65,7 @@ public:
 
 	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override;
 
-	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) override;
+	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl) override;
 
 	virtual void Cancel() override;
 
@@ -88,7 +88,7 @@ bool InternalRPCHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr
 	path = path.substr(1);
 
 	// find the endpoint
-	int endpointPos = path.find_first_of('/');
+	size_t endpointPos = path.find_first_of('/');
 	std::string endpoint = path.substr(0, endpointPos);
 
 	auto& endpointHandlers = InternalHandlerMap::GetInstance();
@@ -121,7 +121,7 @@ bool InternalRPCHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr
 	}
 
 	// find the function name
-	int funcEnd = path.find_first_of('/', endpointPos + 1);
+	size_t funcEnd = path.find_first_of('/', endpointPos + 1);
 	std::string funcName = path.substr(endpointPos + 1, funcEnd - (endpointPos + 1));
 
 	// add additional arguments
@@ -170,7 +170,7 @@ bool InternalRPCHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr
 	return true;
 }
 
-void InternalRPCHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl)
+void InternalRPCHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl)
 {
 	response->SetMimeType("application/json");
 
@@ -214,13 +214,18 @@ bool InternalRPCHandler::ReadResponse(void* data_out, int bytes_to_read, int& by
 	{
 		auto& m_result = m_response->m_result;
 		auto& m_cursor = m_response->m_cursor;
-		int toRead = fwMin(m_result.size() - m_cursor, (size_t)bytes_to_read);
+		size_t toRead = fwMin(m_result.size() - m_cursor, (size_t)bytes_to_read);
 
 		memcpy(data_out, &m_result.c_str()[m_cursor], toRead);
 
 		m_cursor += toRead;
 
-		bytes_read = toRead;
+		if (toRead > static_cast<size_t>(std::numeric_limits<int>::max()))
+		{
+			bytes_read = 0;
+			return false;
+		}
+		bytes_read = static_cast<int>(toRead);
 
 		return (bytes_read > 0);
 	}

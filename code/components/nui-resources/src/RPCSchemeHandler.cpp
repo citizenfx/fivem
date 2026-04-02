@@ -22,7 +22,7 @@ class RPCResourceHandler : public CefResourceHandler
 private:
 	bool m_found;
 
-	fwString m_result;
+	std::string m_result;
 	std::multimap<std::string, std::string> m_headers;
 	int m_statusCode = 200;
 
@@ -38,7 +38,7 @@ public:
 	{
 	}
 
-	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback)
+	virtual bool Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback)
 	{
 		std::string url = request->GetURL();
 		std::string hostname;
@@ -46,13 +46,17 @@ public:
 		std::string query;
 
 		CefURLParts parts;
-		CefParseURL(url, parts);
+		if (!CefParseURL(url, parts))
+		{
+			handle_request = true;
+			return false;
+		}
 
 		hostname = CefString(&parts.host);
 		path = CefString(&parts.path);
 		query = CefString(&parts.query);
 
-		fwString host(hostname.begin(), hostname.end());
+		std::string host(hostname.begin(), hostname.end());
 
 		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
 		fwRefContainer<fx::Resource> resource;
@@ -68,9 +72,7 @@ public:
 		if (!resource.GetRef())
 		{
 			m_found = false;
-
-			callback->Continue();
-
+			handle_request = true;
 			return true;
 		}
 
@@ -129,7 +131,7 @@ public:
 						curPos += thisSize;
 					}
 				}
-				
+
 				// assign post data string
 				postDataString = std::string(tempBytes.data(), tempBytes.size());
 			}
@@ -147,7 +149,7 @@ public:
 
 		CefRefPtr<RPCResourceHandler> self = this;
 
-		auto result = ui->InvokeCallback(path.substr(1), query, headers, postDataString, [self, callback] (int statusCode, const std::multimap<std::string, std::string>& headers, const std::string& callResult)
+		auto result = ui->InvokeCallback(path.substr(1), query, headers, postDataString, [self, callback](int statusCode, const std::multimap<std::string, std::string>& headers, const std::string& callResult)
 		{
 			{
 				std::unique_lock _(self->m_mutex);
@@ -162,18 +164,36 @@ public:
 		if (!result)
 		{
 			m_found = false;
-
-			callback->Continue();
-
+			handle_request = true;
 			return true;
 		}
 
 		m_found = true;
-
 		return true;
+
 	}
 
-	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl)
+	virtual bool Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback)
+	{
+		bytes_read = 0;
+
+		std::unique_lock _(m_mutex);
+
+		if (!m_found || m_cursor >= m_result.size())
+		{
+			return false;
+		}
+
+		int toRead = std::min(static_cast<size_t>(bytes_to_read), m_result.size() - m_cursor);
+		memcpy(data_out, m_result.data() + m_cursor, toRead);
+
+		m_cursor += toRead;
+		bytes_read = toRead;
+
+		return (bytes_read > 0);
+	}
+
+	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl)
 	{
 		std::unique_lock _(m_mutex);
 
@@ -237,26 +257,6 @@ public:
 
 private:
 	uint32_t m_cursor = 0;
-
-public:
-	virtual bool ReadResponse(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefCallback> callback)
-	{
-		if (m_found)
-		{
-			std::unique_lock _(m_mutex);
-
-			int toRead = std::min((unsigned int)m_result.size() - m_cursor, (unsigned int)bytes_to_read);
-
-			memcpy(data_out, &m_result.c_str()[m_cursor], toRead);
-
-			m_cursor += toRead;
-			bytes_read = toRead;
-
-			return (bytes_read > 0);
-		}
-
-		return false;
-	}
 
 	IMPLEMENT_REFCOUNTING(RPCResourceHandler);
 };

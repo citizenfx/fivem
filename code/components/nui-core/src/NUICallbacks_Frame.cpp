@@ -12,33 +12,32 @@
 class FrameCallbacks
 {
 private:
-	typedef std::map<int, std::pair<CefRefPtr<CefV8Context>, CefRefPtr<CefV8Value>>> TCallbackList;
+	using TCallbackList = std::unordered_map<int, std::pair<CefRefPtr<CefV8Context>, CefRefPtr<CefV8Value>>>;
 
 	TCallbackList m_frameCallbacks;
-
 public:
 	void Initialize()
 	{
-		auto frameCB = [=] (CefRefPtr<CefBrowser> browser, CefRefPtr<CefProcessMessage> message)
+		auto frameCB = [&](CefRefPtr<CefBrowser> browser, CefRefPtr<CefProcessMessage> message)
 		{
 			auto it = m_frameCallbacks.find(browser->GetIdentifier());
-
-			if (it != m_frameCallbacks.end())
+			if (it == m_frameCallbacks.end())
 			{
-				auto context = it->second.first;
-				auto callback = it->second.second;
-
-				CefV8ValueList arguments;
-				arguments.push_back(CefV8Value::CreateString(message->GetName()));
-				arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(0)));
-
-				if (message->GetName() == "createFrame")
-				{
-					arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(1)));
-				}
-
-				callback->ExecuteFunctionWithContext(context, nullptr, arguments);
+				return true;
 			}
+			auto& [context, callback] = it->second;
+
+			const auto& name = message->GetName();
+			CefV8ValueList arguments;
+			arguments.push_back(CefV8Value::CreateString(name));
+			arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(0)));
+
+			if (name == "createFrame")
+			{
+				arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(1)));
+			}
+
+			callback->ExecuteFunctionWithContext(context, nullptr, arguments);
 
 			return true;
 		};
@@ -52,7 +51,7 @@ public:
 			if (arguments.size() == 1 && arguments[0]->IsFunction())
 			{
 				auto context = CefV8Context::GetCurrentContext();
-				m_frameCallbacks.emplace(context->GetBrowser()->GetIdentifier(), std::make_pair(context, arguments[0]));
+				m_frameCallbacks.try_emplace(context->GetBrowser()->GetIdentifier(), context, arguments[0]);
 			}
 
 			return CefV8Value::CreateNull();

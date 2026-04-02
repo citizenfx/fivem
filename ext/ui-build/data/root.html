@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -40,6 +40,9 @@ let focusStack = [];
 let handoverBlob = {};
 let serverAddress = '';
 let frameEscapeFunctions = {};
+
+const SendEpoxyMessage = sendEpoxyMessage;
+sendEpoxyMessage = null;
 
 registerPushFunction(function(type, ...args) {
 	switch (type) {
@@ -85,7 +88,15 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 		const frame = document.createElement('iframe');
 		frame.name = frameName;
 		frame.style.visibility = 'hidden';
-		frame.allow = 'microphone *; camera *;';
+		if (frameName == "loadingscreen") 
+		{
+			frame.allow = "autoplay"
+		}
+		else
+		{
+			frame.allow = "microphone; camera; autoplay; payment 'none'; geolocation 'none';";
+		}
+		frame.sandbox = 'allow-forms allow-scripts allow-same-origin';
 		frame.src = frameUrl;
 		frame.tabIndex = -1;
 
@@ -101,11 +112,6 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 			frame.blur();
 			curElement.focus();
 		}
-
-		frame.contentWindow.addEventListener('DOMContentLoaded', function()
-		{
-			frame.style.visibility = 'visible';
-		}, true);
 		
 		frameEscapeFunctions[frameName] = () => {
 			setTimeout(() => {
@@ -115,17 +121,14 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 				}
 			}, 32);
 		}
-
-		frame.contentWindow.GetParentResourceName = function()
-		{
-			return frameName;
-		}
-		
-		if (frameName === 'loadingScreen')
-		{
-			frame.contentWindow.nuiHandoverData = handoverBlob || {};
-			frame.contentWindow.nuiHandoverData.serverAddress = serverAddress;
-		}
+                
+		frame.addEventListener('load', function() {
+			if (frameName === 'loadingScreen') {
+				frame.contentWindow.nuiHandoverData = handoverBlob || {};
+				frame.contentWindow.nuiHandoverData.serverAddress = serverAddress;
+			}
+		    frame.style.visibility = 'visible';
+        });
 	}
 	else if (msg == "destroyFrame")
 	{
@@ -201,6 +204,7 @@ blurFrame = function(frameName)
 		focusFrame(focusStack[0]);
 	}
 };
+
 </script>
 </head>
 <body>

@@ -12,10 +12,9 @@
 class PollCallbacks
 {
 private:
-	typedef std::map<int, std::pair<CefV8Context*, CefV8Value*>> TCallbackList;
+	using TCallbackList = std::unordered_map<int, std::pair<CefRefPtr<CefV8Context>, CefRefPtr<CefV8Value>>>;
 
 	TCallbackList m_callbacks;
-
 public:
 	void Initialize()
 	{
@@ -30,14 +29,10 @@ public:
 				auto context = it->second.first;
 				auto callback = it->second.second;
 
-				context->Enter();
-
 				CefV8ValueList arguments;
 				arguments.push_back(CefV8Value::CreateString(message->GetArgumentList()->GetString(0)));
 
-				callback->ExecuteFunction(nullptr, arguments);
-
-				context->Exit();
+                callback->ExecuteFunctionWithContext(context, nullptr, arguments);
 			}
 
 			return true;
@@ -48,15 +43,25 @@ public:
 			if (arguments.size() == 1 && arguments[0]->IsFunction())
 			{
 				auto context = CefV8Context::GetCurrentContext();
-
-				// manually add a reference so we don't release the CEF handle (workaround for process exit crash)
-				context->AddRef();
-				arguments[0]->AddRef();
-
-				m_callbacks[context->GetBrowser()->GetIdentifier()] = std::make_pair(context.get(), arguments[0].get());
+				m_callbacks.try_emplace(context->GetBrowser()->GetIdentifier(), std::make_pair(context, arguments[0]));
 			}
 
 			return CefV8Value::CreateNull();
+		});
+
+		nuiApp->AddContextReleaseHandler([&](CefRefPtr<CefV8Context> context)
+		{
+			for (auto it = m_callbacks.begin(); it != m_callbacks.end();)
+			{
+				if (it->second.first.get() == context.get())
+				{
+					it = m_callbacks.erase(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
 		});
 	}
 };

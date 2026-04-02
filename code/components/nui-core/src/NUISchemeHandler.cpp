@@ -18,7 +18,7 @@
 
 static nui::TResourceLookupFn g_resourceLookupFunc;
 
-extern const std::map<std::string_view, std::string_view, std::less<>> g_mimeTypeMap;
+extern const std::unordered_map<std::string_view, std::string_view> g_mimeTypeMap;
 
 namespace nui
 {
@@ -47,7 +47,7 @@ public:
 		Close();
 	}
 
-	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback)
+	virtual bool Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback)
 	{
 		std::wstring path;
 		std::vector<std::string> tryFiles;
@@ -159,12 +159,11 @@ public:
 			}
 		}
 
-		callback->Continue();
-
+		handle_request = true;
 		return true;
 	}
 
-	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl)
+	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl)
 	{
 		response->SetMimeType(mimeType_);
 
@@ -226,7 +225,7 @@ public:
 		Close();
 	}
 
-	virtual bool ReadResponse(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefCallback> callback)
+	virtual bool Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback)
 	{
 		if (file_ != vfs::Device::InvalidHandle)
 		{
@@ -242,6 +241,7 @@ public:
 			return readMore;
 		}
 
+        bytes_read = 0;
 		return false;
 	}
 
@@ -253,22 +253,21 @@ class ForbiddenResourceHandler : public CefResourceHandler
 public:
 	IMPLEMENT_REFCOUNTING(ForbiddenResourceHandler);
 
-	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override
+	virtual bool Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) override
 	{
-		callback->Continue();
+		handle_request = true;
 		return true;
 	}
 
-	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) override
+	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl) override
 	{
 		response->SetStatus(403);
 		response_length = 0;
 	}
 
-	virtual bool ReadResponse(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefCallback> callback) override
+	virtual bool Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback) override
 	{
 		bytes_read = 0;
-
 		return true;
 	}
 
@@ -299,11 +298,7 @@ CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrows
 		{
 			CefString hostString = &urlParts.host;
 
-			if (hostString == "nui-game-internal")
-			{
-				return new NUIResourceHandler();
-			}
-			else if (hostString.ToString().find("cfx-nui-") == 0)
+			if (hostString == "nui-game-internal" || hostString.ToString().find("cfx-nui-") == 0)
 			{
 				return new NUIResourceHandler();
 			}
@@ -338,7 +333,7 @@ OVERLAY_DECL fwEvent<const char*, CefRefPtr<CefRequest>, CefRefPtr<CefResourceHa
 
 OVERLAY_DECL fwEvent<CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, CefRefPtr<CefRequest>, CefRefPtr<CefResourceHandler>&> OnGetResourceHandler;
 
-const std::map<std::string_view, std::string_view, std::less<>> g_mimeTypeMap{
+const std::unordered_map<std::string_view, std::string_view> g_mimeTypeMap{
 	{ "*3gpp", "audio/3gpp" },
 	{ "*jpm", "video/jpm" },
 	{ "*mp3", "audio/mp3" },

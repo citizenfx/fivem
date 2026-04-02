@@ -184,6 +184,8 @@ void GFXSPEC_EXPORT SetWorldMatrix(const float* matrix);
 
 extern GFXSPEC_EXPORT fwEvent<> OnGrcCreateDevice;
 
+extern GFXSPEC_EXPORT fwEvent<> OnBackbufferCreation;
+
 extern GFXSPEC_EXPORT fwEvent<> OnPostFrontendRender;
 
 extern GFXSPEC_EXPORT fwEvent<> OnTempDrawEntityList;

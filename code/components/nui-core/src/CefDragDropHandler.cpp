@@ -258,7 +258,7 @@ int GetCefMouseModifiers(WPARAM wparam);
 				CefRefPtr<CefStreamWriter> writer =
 					CefStreamWriter::CreateForHandler(handler.get());
 				drag_data->GetFileContents(writer);
-				DCHECK_EQ(handler->GetDataSize(), static_cast<int64>(bufferSize));
+				DCHECK_EQ(handler->GetDataSize(), static_cast<int64_t>(bufferSize));
 				CefString fileName = drag_data->GetFileName();
 				GetStorageForFileDescriptor(&stgmeds[curr_index], fileName.ToWString());
 				fmtetc.cfFormat = file_desc_format;

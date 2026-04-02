@@ -3,6 +3,7 @@
 #include "NUIApp.h"
 #include "NUIClient.h"
 
+#ifdef NUI_WITH_AUDIO_SINKS
 class AudioCallbacks
 {
 public:
@@ -64,3 +65,4 @@ static InitFunction initFunction([]()
 {
 	g_AudioCallbacks.Initialize();
 }, 1);
+#endif
