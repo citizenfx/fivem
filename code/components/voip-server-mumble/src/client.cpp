@@ -435,6 +435,7 @@ void Client_free(client_t *client)
 	Client_codec_free(client);
 	Voicetarget_free_all(client);
 	Client_token_free(client);
+	ChannelListener::removeAllListenersForUser(client->sessionId);
 
 	list_del(&client->node);
 	/*if (client->ssl)
