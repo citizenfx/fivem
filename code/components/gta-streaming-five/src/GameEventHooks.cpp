@@ -298,17 +298,18 @@ bool DamageProcess(Damage* damage, rage::fwEntity* victim, uintptr_t a3, uintptr
 }
 #endif
 
-static void (*origEntityLogDamage)(void* victim, void* culprit, uint32_t weapon, uint32_t time, bool a5);
+static void (*origEntityLogDamage)(void* victim, void* culprit, uint32_t weapon, uint32_t time, bool isMelee);
 
-static void EntityLogDamage(rage::fwEntity* victim, rage::fwEntity* culprit, uint32_t weapon, uint32_t time, bool a5)
+static void EntityLogDamage(rage::fwEntity* victim, rage::fwEntity* culprit, uint32_t weapon, uint32_t time, bool isMelee)
 {
-	origEntityLogDamage(victim, culprit, weapon, time, a5);
+	origEntityLogDamage(victim, culprit, weapon, time, isMelee);
 
 	DamageEventMetaData md;
 	md.baseDamage = 0.0f;
 	md.victim = victim;
 	md.culprit = culprit;
 	md.weapon = weapon;
+	md.isMelee = isMelee;
 
 	OnEntityDamaged(md);
 }
