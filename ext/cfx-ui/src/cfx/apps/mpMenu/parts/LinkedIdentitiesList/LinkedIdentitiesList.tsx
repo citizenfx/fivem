@@ -5,7 +5,7 @@ import {
 } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { FaDiscord, FaSteam, FaXbox } from 'react-icons/fa';
+import { FaDiscord, FaSteam } from 'react-icons/fa';
 
 import { useService } from 'cfx/base/servicesContainer';
 import { $L } from 'cfx/common/services/intl/l10n';
@@ -69,12 +69,6 @@ function getProviderIcon(provider: LinkedIdentityProvider): React.ReactNode {
       );
     }
 
-    case LinkedIdentityProvider.XboxLive: {
-      return (
-        <FaXbox />
-      );
-    }
-
     case LinkedIdentityProvider.ROS: {
       return BrandIcon.ROS;
     }
@@ -94,12 +88,6 @@ function getLinkedIdentityTitle(identity: ILinkedIdentity): React.ReactNode {
     case LinkedIdentityProvider.Steam: {
       return (
         <>Steam - {$L('#Settings_LinkedIdentity_DetectedAutomatically')} 🎉</>
-      );
-    }
-
-    case LinkedIdentityProvider.XboxLive: {
-      return (
-        <>Xbox Live - {$L('#Settings_LinkedIdentity_DetectedAutomatically')} 🎉</>
       );
     }
 
