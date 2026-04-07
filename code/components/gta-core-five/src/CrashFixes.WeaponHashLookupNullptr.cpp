@@ -3,6 +3,8 @@
 #include "Hooking.Patterns.h"
 #include "Hooking.Stubs.h"
 
+#include <MinHook.h>
+
 //
 // Fix crash at GTA5_b3258.exe+63A9CE / +63A9E2 ("quiet-avocado-fourteen")
 //
@@ -15,52 +17,59 @@
 //   [RCX+0x18] = uint16_t count
 //
 // The crash occurs because RCX points to freed/uninitialized memory (use-after-free).
-// At +63A9CE: `cmp word ptr [rcx+0x18], dx` reads from invalid address.
-// At +63A9E2: `cmp dword ptr [rax], r8d` where rax = [rcx] = NULL.
+// This is reached via MULTIPLE call paths:
 //
-// Disassembly of the original function:
-//   +63A9CC: xor     edx, edx
-//   +63A9CE: cmp     word ptr [rcx+18h], dx   ; <-- crash: rcx invalid
-//   +63A9D2: jbe     short return_false
-//   +63A9D4: movzx   eax, word ptr [rcx+8]
-//   +63A9D8: mov     r9d, eax
-//   +63A9DB: test    eax, eax
-//   +63A9DD: jle     short return_false
-//   +63A9DF: mov     rax, qword ptr [rcx]     ; load hash array pointer
-//   +63A9E2: cmp     dword ptr [rax], r8d     ; <-- crash: rax = NULL
-//   +63A9E5: je      short return_true
-//   +63A9E7: inc     rdx
-//   +63A9EA: add     rax, 4
-//   +63A9EE: cmp     rdx, r9
-//   +63A9F1: jl      short loop
-//   return_false:
-//   +63A9F3: xor     al, al
-//   +63A9F5: ret
-//   return_true:
-//   +63A9F6: mov     al, 1
-//   +63A9F8: ret
+//   Path 1: +6A019B → +6AA96C → +7C67E2 (via CWeaponInfo_GetClipsetForWeaponSwap)
+//   Path 2: +61B10A → +7CCE59 → +11AC318 → +11AC89E → +94CC5E → +95D0F4
 //
-// Fix: hook the function and validate RCX before accessing it.
-// If RCX is null or the data pointer at [RCX] is null, return false.
+// Because the same vulnerable function is called from many places, patching
+// individual callers is insufficient. Instead, we hook the function itself
+// and use SEH to safely probe the hash table pointer before accessing it.
 //
-// Evidence: 10+ crash dumps from a production FiveM server, all showing
-// ACCESS_VIOLATION READ at 0xFFFFFFFFFFFFFFFF with R8 = 0xA2719263
-// (WEAPON_UNARMED joaat hash). Verified across multiple clients with
-// different hardware (RTX 5090, RTX 4070 SUPER, etc.)
+// Observed RCX values from crash dumps (all freed/invalid, all non-null):
+//   0x000003BC00010001, 0x00000000BDC99C23, 0x0000000000060004
+//
+// Evidence: 20+ crash dumps from production FiveM servers, R8 typically
+// contains 0xA2719263 (WEAPON_UNARMED). Crash persists on Canary after
+// 7c57040 because that fix only covers Path 1.
 //
 
 static bool (*g_origWeaponHashLookup)(void* hashTable, uint32_t hash);
 
-static bool WeaponHashLookup_NullCheck(void* hashTable, uint32_t hash)
+static bool WeaponHashLookup_SafeCheck(void* hashTable, uint32_t hash)
 {
 	if (!hashTable)
 	{
 		return false;
 	}
 
-	// Check if the data pointer (first field) is null
-	void* dataPtr = *(void**)hashTable;
-	if (!dataPtr)
+	// The hash table pointer is often freed memory that passes the null check.
+	// Use SEH to safely probe the memory before calling the original function.
+	// We need to verify that [rcx+0x18] (count) and [rcx] (data pointer) are
+	// readable, as these are the two dereferences that cause the crash.
+	__try
+	{
+		// Probe the count field at [hashTable+0x18]
+		volatile uint16_t count = *(volatile uint16_t*)((char*)hashTable + 0x18);
+
+		if (count == 0)
+		{
+			return false;
+		}
+
+		// Probe the data pointer at [hashTable+0x00]
+		volatile void* dataPtr = *(volatile void**)hashTable;
+
+		if (!dataPtr)
+		{
+			return false;
+		}
+
+		// Probe the first element of the data array
+		volatile uint32_t firstHash = *(volatile uint32_t*)dataPtr;
+		(void)firstHash;
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 		return false;
 	}
@@ -76,7 +85,7 @@ static HookFunction hookFunction([]()
 
 	if (location)
 	{
-		MH_CreateHook(location, WeaponHashLookup_NullCheck, (void**)&g_origWeaponHashLookup);
+		MH_CreateHook(location, WeaponHashLookup_SafeCheck, (void**)&g_origWeaponHashLookup);
 		MH_EnableHook(location);
 	}
 });
