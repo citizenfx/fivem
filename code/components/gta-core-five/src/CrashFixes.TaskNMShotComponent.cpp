@@ -3,36 +3,46 @@
 #include <Hooking.h>
 #include <Hooking.Stubs.h>
 
-namespace rage 
+enum eRagdollComponent
 {
-	class phBoundComposite
-	{
-	public:
-		char m_Padding[0xA0];
-		uint16_t m_MaxNumBounds;
-		uint16_t m_NumBounds;
-	};
+	RAGDOLL_BUTT = 0,
 
-	static_assert(sizeof(phBoundComposite) == 0xA4, "rage::phBoundComposite has wrong size!");
-}
+	RAGDOLL_UPPER_LEG_LEFT,
+	RAGDOLL_LOWER_LEG_LEFT,
+	RAGDOLL_LEFT_FOOT,
+	RAGDOLL_UPPER_LEG_RIGHT,
+	RAGDOLL_LOWER_LEG_RIGHT,
+	RAGDOLL_RIGHT_FOOT,
+	RAGDOLL_LOWER_BACK,
+	RAGDOLL_MID_BACK,
+	RAGDOLL_UPPER_BACK,
+	RAGDOLL_UPPER_CHEST,
+	RAGDOLL_LEFT_SHOULDER,
+	RAGDOLL_LEFT_UPPER_ARM,
+	RAGDOLL_LEFT_LOWER_ARM,
+	RAGDOLL_LEFT_HAND,
+	RAGDOLL_RIGHT_SHOULDER,
+	RAGDOLL_RIGHT_UPPER_ARM,
+	RAGDOLL_RIGHT_LOWER_ARM,
+	RAGDOLL_RIGHT_HAND,
+	RAGDOLL_NECK,
+	RAGDOLL_HEAD,
 
-static uint32_t g_RagdollInstanceOffset = 0x0;
+	RAGDOLL_MAX_COMPONENTS
+};
 
-static void (*g_CTaskNMShot_ClampHitToSurfaceOfBound)(hook::FlexStruct*, hook::FlexStruct*, hook::FlexStruct*, uint32_t);
+static void (*g_CClonedNMShotInfo_Serialise)(hook::FlexStruct*, hook::FlexStruct*);
 
-static void CTaskNMShot_ClampHitToSurfaceOfBound(hook::FlexStruct* thisPtr, hook::FlexStruct* ped, hook::FlexStruct* localPos, uint32_t component)
+static void CClonedNMShotInfo_Serialise(hook::FlexStruct* thisPtr, hook::FlexStruct* serialiser)
 {
-	// NOTE: already checked in all builds, offsets dont need a signature
-	auto* compositeBound = ped->Get<hook::FlexStruct*>(g_RagdollInstanceOffset)
-		->Get<hook::FlexStruct*>(0x68)
-		->Get<rage::phBoundComposite*>(0x108);
+	g_CClonedNMShotInfo_Serialise(thisPtr, serialiser);
 
-	if (component > compositeBound->m_NumBounds)
+	uint8_t& component = thisPtr->At<uint8_t>(0x68);
+
+	if (component >= RAGDOLL_MAX_COMPONENTS)
 	{
-		component = compositeBound->m_NumBounds;
+		component = RAGDOLL_HEAD;
 	}
-
-	g_CTaskNMShot_ClampHitToSurfaceOfBound(thisPtr, ped, localPos, component);
 }
 
 static HookFunction hookFunction([]()
@@ -45,7 +55,5 @@ static HookFunction hookFunction([]()
 	//
 	// This hook clamps the component index to the valid range preventing out-of-bounds access and avoiding the crash.
 
-	g_RagdollInstanceOffset = *hook::get_pattern<uint32_t>("48 8B 82 ? ? ? ? 49 8B D8 4C 8B DA", 3);
-
-	g_CTaskNMShot_ClampHitToSurfaceOfBound = hook::trampoline(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 78 ? 55 48 8D 68 ? 48 81 EC ? ? ? ? 0F 29 70 ? 0F 29 78 ? 44 0F 29 40 ? 48 8B 82"), CTaskNMShot_ClampHitToSurfaceOfBound);
+	g_CClonedNMShotInfo_Serialise = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B FA 48 8B F1 E8 ? ? ? ? ? ? ? 48 8D 56 ? 45 33 C0 48 8B CF FF 50 ? 80 7E ? 00 75 ? ? ? ? 48 8B CF FF 90 ? ? ? ? 84 C0 74 ? ? ? ? 48 8D 56"), CClonedNMShotInfo_Serialise);
 });
