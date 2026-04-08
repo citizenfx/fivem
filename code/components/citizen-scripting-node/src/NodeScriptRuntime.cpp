@@ -266,6 +266,7 @@ static std::pair<std::string, v8::FunctionCallback> g_citizenFunctions[] = {
 	{ "setUnhandledPromiseRejectionFunction", V8_SetUnhandledPromiseRejectionRoutine<NodeScriptRuntime> },
 	{ "getTickCount", V8_GetTickCount },
 	{ "getResourcePath", V8_GetResourcePath<NodeScriptRuntime> },
+	{ "getResourceTempPath", V8_GetResourceTempPath<NodeScriptRuntime> },
 
 	// ref stuff
 	{ "setCallRefFunction", V8_SetCallRefFunction<NodeScriptRuntime> },
@@ -387,7 +388,10 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 
 	m_isMonitorRuntime = resourceManager->IsMonitor();
 
-	// create our UV loo
+	// per-resource temp directory path (created lazily when os.tmpdir() is called)
+	m_tempDir = std::filesystem::absolute(std::filesystem::path(resource->GetPath()) / ".tmp").string();
+
+	// create our UV loop
 	m_uvLoop = new uv_loop_t;
 	uv_loop_init(m_uvLoop);
 
@@ -524,6 +528,14 @@ result_t NodeScriptRuntime::Destroy()
 	delete m_uvLoop;
 
 	m_context.Reset();
+
+	// clean up the per-resource temp directory
+	if (!m_tempDir.empty())
+	{
+		std::error_code ec;
+		std::filesystem::remove_all(m_tempDir, ec);
+	}
+
 	return FX_S_OK;
 }
 
