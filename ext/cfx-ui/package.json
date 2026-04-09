@@ -11,7 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@cfx-dev/ui-components": "1.0.2",
+    "@cfx-dev/ui-components": "1.1.2",
     "@sentry/react": "^7.14.0",
     "@sentry/tracing": "^7.14.0",
     "adaptivecards": "^2.10.0",
@@ -38,7 +38,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-focus-lock": "^2.9.1",
-    "react-icons": "^4.4.0",
+    "react-icons": "5.5.0",
     "react-router-dom": "^6.4.3",
     "reflect-metadata": "^0.1.13",
     "swiper": "^8.2.6",
@@ -68,6 +68,7 @@
     "file-loader": "^6.2.0",
     "fork-ts-checker-webpack-plugin": "^7.2.13",
     "html-webpack-plugin": "^5.5.0",
+    "identity-obj-proxy": "^3.0.0",
     "image-minimizer-webpack-plugin": "^3.3.0",
     "imagemin-gifsicle": "^7.0.0",
     "img-optimize-loader": "^1.0.7",

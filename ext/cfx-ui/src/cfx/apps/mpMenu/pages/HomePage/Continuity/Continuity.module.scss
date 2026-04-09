@@ -2,57 +2,71 @@
   display: grid;
 
   grid-template-columns: repeat(12, 1fr);
-  grid-template-rows: repeat(3, 1fr);
+  grid-template-rows: repeat(6, ui.q(4));
   grid-auto-flow: column;
 
-  gap: ui.offset('small');
+  grid-template-areas:
+//   1    2    3    4    5    6    7    8    9    10   11   12
+    "play play play play play play play play play favr favr favr"
+    "play play play play play play play play play favr favr favr"
+    "play play play play play play play play play favr favr favr"
+    "play play play play play play play play play hist hist hist"
+    "play play play play play play play play play hist hist hist"
+    "play play play play play play play play play hist hist hist"
+    ;
 
-  .tilePlay {
-    grid-column: span 9;
-    grid-row: span 3;
-  }
-
-  .tileSupporters,
-  .tileFavorites,
-  .tileHistory {
-    grid-column: span 3;
-  }
+  gap: ui.offset('normal');
 
   &.withLocalhost {
-    .tilePlay {
-      grid-row: 1 / span 2;
-    }
-
-    .tileLocalhost {
-      grid-column: span 9;
-      grid-row: 3 span 1;
-    }
+    grid-template-areas:
+  //   1    2    3    4    5    6    7    8    9    10   11   12
+      "play play play play play play play play play favr favr favr"
+      "play play play play play play play play play favr favr favr"
+      "play play play play play play play play play favr favr favr"
+      "play play play play play play play play play hist hist hist"
+      "locl locl locl locl locl locl locl locl locl hist hist hist"
+      "locl locl locl locl locl locl locl locl locl hist hist hist"
+      ;
   }
 
   &.withLast {
-    .tilePlay {
-      grid-column: span 5;
-    }
-
-    .tileLocalhost {
-      grid-column: span 5;
-      grid-row: 3 span 1;
-    }
-
-    .tileSupporters,
-    .tileFavorites,
-    .tileHistory {
-      grid-column: span 3;
-    }
-
-    .slotLast {
-      grid-column: span 4;
-      grid-row: span 3;
-    }
+    grid-template-areas:
+  //   1    2    3    4    5    6    7    8    9    10   11   12
+      "play play play play play last last last last favr favr favr"
+      "play play play play play last last last last favr favr favr"
+      "play play play play play last last last last favr favr favr"
+      "play play play play play last last last last hist hist hist"
+      "play play play play play last last last last hist hist hist"
+      "play play play play play last last last last hist hist hist"
+      ;
   }
 
+  &.withLast.withLocalhost {
+    grid-template-areas:
+  //   1    2    3    4    5    6    7    8    9    10   11   12
+      "play play play play play last last last last favr favr favr"
+      "play play play play play last last last last favr favr favr"
+      "play play play play play last last last last favr favr favr"
+      "play play play play play last last last last hist hist hist"
+      "locl locl locl locl locl last last last last hist hist hist"
+      "locl locl locl locl locl last last last last hist hist hist"
+      ;
+  }
+
+  .tilePlay {
+    grid-area: play;
+  }
+  .tileLocalhost {
+    grid-area: locl;
+  }
   .slotLast {
-    padding: 0 ui.offset();
+    grid-area: last;
+  }
+  .tileFavorites {
+    grid-area: favr;
+  }
+  .tileHistory {
+    grid-area: hist;
   }
 
   .tile {
@@ -61,11 +75,10 @@
     align-items: center;
 
     gap: ui.offset('normal');
-    height: ui.q(8);
 
-    padding: ui.offset('normal') calc(ui.offset('normal') * 1.5);
+    padding: ui.offset('normal') calc(ui.offset('normal') * 2.5);
 
-    @include ui.font-size('normal');
+    @include ui.font-size('large');
     @include ui.font-weight('normal');
     @include ui.font-color('text-a75');
 
@@ -73,8 +86,7 @@
 
     @include ui.border-radius('normal');
 
-    @include ui.def('backdrop-color', ui.color-token('backdrop-300'));
-    @include ui.fake-backdrop-blur();
+    background-color: ui.color('main', 50);
 
     text-decoration: none;
     cursor: pointer;
@@ -97,8 +109,14 @@
 
       @include ui.font-color('text-a50');
     }
-  }
 
+    &.tileFavorites,
+    &.tileHistory {
+      text-transform: uppercase;
+      @include ui.font-size('normal');
+      @include ui.font-weight('bold');
+    }
+  }
 
   .tilePlay {
     position: relative;
@@ -112,17 +130,8 @@
     gap: ui.offset('large');
     padding: ui.offset('large') ui.offset('large');
 
-    @include ui.fake-backdrop-blur(
-      (
-        // radial-gradient(circle at bottom right, ui.color('teal', $alpha: .2), ui.color('primary', 'pure', $alpha: .15) 50%, rgba(170, 49, 146, .2)),
-        radial-gradient(circle at bottom right, rgba(170, 49, 146, .05), transparent),
-        ui.use('asset-image-bgpat'),
-        linear-gradient(ui.color-token('backdrop-300'), ui.color-token('backdrop-300')),
-      ),
-      (normal, normal, normal),
-      (cover, 150px, cover),
-      (scroll, scroll, scroll),
-    );
+    background-color: ui.color('main', 50);
+    background-image: radial-gradient(circle at bottom right, rgba(170, 49, 146, .05), transparent);
 
     @include ui.border-radius();
 
@@ -131,7 +140,7 @@
     .icon {
       color: ui.color('text-a50');
 
-      @include ui.font-size('xxxlarge');
+      @include ui.font-size('xxlarge');
 
       z-index: 1;
     }
@@ -139,9 +148,9 @@
     .title {
       @include ui.font-size('xxxlarge');
       @include ui.font-weight('bolder');
+      letter-spacing: -1px;
 
       span {
-        font-weight: 750;
         color: transparent;
         -webkit-background-clip: text;
         background-image: linear-gradient(135deg, ui.color-token('play-button-background-1'), ui.color-token('play-button-background-2'));

@@ -10,7 +10,6 @@ export enum ServersListSortBy {
 
 export enum ServersListType {
   All = 'browse',
-  Supporters = 'premium',
   Favorites = 'favorites',
   History = 'history',
 

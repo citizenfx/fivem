@@ -2190,6 +2190,11 @@ static HookFunction hookFunction([]()
 		// memset in CNetworkDamageTracker::ctor
 		hook::put<uint32_t>(hook::get_pattern("48 89 11 48 8B D9 41 B8 80 00 00 00", 8), sizeof(float) * 256);
 	}
+
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Patch_2026_1>())
+	{
+		hook::put<uint8_t>(hook::get_pattern("80 FB ? 73 ? 0F B6 C3 48 8D 14 80", 2), 0x80);
+	}
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);

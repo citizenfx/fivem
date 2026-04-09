@@ -25,21 +25,6 @@
 // BLIP_8 in global.gxt2 -> 'Waypoint'
 #define BLIP_WAYPOINT 8
 
-#include <SteamComponentAPI.h>
-
-inline ISteamComponent* GetSteam()
-{
-	auto steamComponent = Instance<ISteamComponent>::Get();
-
-	// if Steam isn't running, return an error
-	if (!steamComponent->IsSteamRunning())
-	{
-		return nullptr;
-	}
-
-	return steamComponent;
-}
-
 class LovelyThread : public CfxThread
 {
 private:
@@ -157,26 +142,14 @@ public:
 
 		auto setPresenceTemplate = [](std::string_view value)
 		{
-			static auto steam = GetSteam();
 			std::string valueStr{ value };
-
-			if (steam)
-			{
-				steam->SetRichPresenceTemplate(valueStr);
-			}
 
 			OnRichPresenceSetTemplate(valueStr);
 		};
 
 		auto setPresenceValue = [](int idx, std::string_view value)
 		{
-			static auto steam = GetSteam();
 			std::string valueStr{ value };
-
-			if (steam)
-			{
-				steam->SetRichPresenceValue(idx, valueStr);
-			}
 
 			OnRichPresenceSetValue(idx, valueStr);
 		};
@@ -185,11 +158,19 @@ public:
 
 		if (icgi->HasVariable("localMode"))
 		{
-			std::string localName = "None?!";
-			icgi->GetData("localResource", &localName);
+			if (icgi->HasVariable("editorMode"))
+			{
+				setPresenceTemplate("{0}");
+				setPresenceValue(0, "In the replay editor");
+			}
+			else
+			{
+				std::string localName = "Unknown";
+				icgi->GetData("localResource", &localName);
 
-			setPresenceTemplate("Playing a localGame: {0}");
-			setPresenceValue(0, localName);
+				setPresenceTemplate("Playing a localGame: {0}");
+				setPresenceValue(0, localName);
+			}
 		}
 		else if (icgi->HasVariable("storyMode"))
 		{

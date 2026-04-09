@@ -4,7 +4,7 @@ import { IServerView } from './types';
 
 export function getServerIconURL(server: IServerView): string {
   if (server.joinId && typeof server.iconVersion === 'number') {
-    return `https://servers-frontend.fivem.net/api/servers/icon/${server.joinId}/${server.iconVersion}.png`;
+    return `https://frontend.cfx-services.net/api/servers/icon/${server.joinId}/${server.iconVersion}.png`;
   }
 
   if (server.historicalIconURL) {

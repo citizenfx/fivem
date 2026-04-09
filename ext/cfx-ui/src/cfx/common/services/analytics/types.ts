@@ -26,6 +26,7 @@ export enum EventActionNames {
   ServerJoinFailed = 'server_join_fail',
   ServerSelect = 'server_select',
   BoostCTA = 'cta_boost',
+  ReportCTA = 'cta_report',
 }
 
 export enum ElementPlacements {
@@ -132,6 +133,12 @@ export interface BoostCTAProperties extends BaseProperties {
   server_type: ServerType;
   text: string;
 }
+export interface ReportCTAProperties extends BaseProperties {
+  element_placement: ElementPlacements;
+  server_id: string;
+  server_name: string;
+  server_type: ServerType;
+}
 
 export type TrackEventParams =
   | EventParamsBuilder<EventActionNames.PageViews, PageViewsProperties>
@@ -147,7 +154,8 @@ export type TrackEventParams =
   | EventParamsBuilder<EventActionNames.CTAOther, CTAOtherProperties>
   | EventParamsBuilder<EventActionNames.ServerJoinFailed, ServerJoinFailedProperties>
   | EventParamsBuilder<EventActionNames.ServerSelect, ServerSelectProperties>
-  | EventParamsBuilder<EventActionNames.BoostCTA, BoostCTAProperties>;
+  | EventParamsBuilder<EventActionNames.BoostCTA, BoostCTAProperties>
+  | EventParamsBuilder<EventActionNames.ReportCTA, ReportCTAProperties>;
 
 export const isFeaturedElementPlacement = (elementPlacement: ElementPlacements): boolean => {
   switch (elementPlacement) {

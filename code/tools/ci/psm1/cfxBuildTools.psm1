@@ -150,6 +150,17 @@ class CfxBuildTools {
     [boolean] hidden $_bcmVerified = $false
     [string] getBCM() {
         if (!$this._bcmVerified) {
+            # Try one from toolkit first
+            if ($env:CFX_BUILD_TOOLKIT_TOOL_BCM) {
+                if (Test-Path $env:CFX_BUILD_TOOLKIT_TOOL_BCM) {
+                    $this._bcm = $env:CFX_BUILD_TOOLKIT_TOOL_BCM
+                    $this._bcmVerified = $true
+                    return $this._bcm
+                } else {
+                    $this.ctx.addBuildWarning("BCM from gh releases will be used instead of one from the toolkit: CFX_BUILD_TOOLKIT_TOOL_BCM is set but the path does not exist: $env:CFX_BUILD_TOOLKIT_TOOL_BCM")
+                }
+            }
+
             $bcmDir = $this.ctx.getPathInBuildCache("build-cache-meta")
             $bcmPath = "$bcmDir\buildcachemeta-go.exe"
             $bcmURL = "https://github.com/citizenfx/buildcachemeta-go/releases/download/v0.0.4/buildcachemeta-go_0.0.4_win32_amd64.tar.gz"
@@ -181,18 +192,12 @@ class CfxBuildTools {
     [boolean] hidden $_sentryCLIVerified = $false
     [string] getSentryCLI() {
         if (!$this._sentryCLIVerified) {
-            $sentryDir = $this.ctx.getPathInBuildCache("sentry")
-            $sentryCLIPath = "$sentryDir\sentry-cli-1.67.2.exe"
-            $sentryCLIURL = "https://content.cfx.re/mirrors/vendor/sentry/sentry-cli-1.67.2.exe"
-
-            if (!(Test-Path $sentryCLIPath)) {
-                New-Item -ItemType Directory -Force $sentryDir
-
-                curl.exe -Lo $sentryCLIPath $sentryCLIURL
-                Test-LastExitCode "Failed to fetch sentry-cli"
+            $cmd = Get-Command -ErrorAction Ignore sentry-cli
+            if ($null -eq $cmd) {
+                throw "sentry-cli not found, make sure it is installed and available in the PATH env var"
             }
 
-            $this._sentryCLI = $sentryCLIPath
+            $this._sentryCLI = $cmd.Source
             $this._sentryCLIVerified = $true
         }
 

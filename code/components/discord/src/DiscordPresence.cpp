@@ -14,10 +14,10 @@
 #include <CfxState.h>
 
 #ifdef GTA_FIVE
-#define DEFAULT_APP_ID "382624125287399424"
+#define DEFAULT_APP_ID "1473308775258525930"
 #define DEFAULT_APP_ASSET "fivem_large"
 #elif defined(IS_RDR3)
-#define DEFAULT_APP_ID "879627773839278110"
+#define DEFAULT_APP_ID "1473627077826576454"
 #define DEFAULT_APP_ASSET "redm_large"
 #endif
 

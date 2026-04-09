@@ -18,7 +18,7 @@ import s from './ServersPage.module.scss';
 export interface ServersPageProps {
   listType: ServersListType;
 }
-export const MpMenuServersPage = observer(function ({
+export const MpMenuServersPage = observer(function MpMenuServersPage({
   listType,
 }: ServersPageProps) {
   const ServersService = useService(IServersService);

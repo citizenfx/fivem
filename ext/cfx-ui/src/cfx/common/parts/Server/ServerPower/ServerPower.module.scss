@@ -1,11 +1,9 @@
 .upvoteIcon {
-    font-size: ui.q(2.5);
-    color: #FF75AC;
-    margin-right: ui.q(0.5);
+  font-size: ui.q(2.5);
+  --color-inherit: 255, 117, 172;
 }
 
 .burstIcon {
-    font-size: ui.q(2.5);
-    color: #9EA4BD;
-    margin-right: ui.q(0.5);
+  font-size: ui.q(2.5);
+  --color-inherit: 158, 164, 189;
 }

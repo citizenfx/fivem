@@ -39,7 +39,7 @@ class CfxBuildContext {
     [string] $ToolkitRoot = ""
     [string] $ToolkitUri = ""
 
-    [string] $SentryOrgName = "citizenfx"
+    [string] $SentryOrgName = $env:CFX_SENTRY_ORG_NAME
     [string] $SentryProjectName
 
     [string] getPathInProject([string] $relativePath) {
@@ -167,7 +167,7 @@ function Get-CfxBuildContext {
             $ctx.ProductName = "fivem"
             $ctx.ProductExeName = "FiveM.exe"
             $ctx.PremakeGameName = "five"
-            $ctx.SentryProjectName = Get-EnvOrDefault $env:CFX_SENTRY_PROJECT_NAME_FIVEM "fivem-client-1604"
+            $ctx.SentryProjectName = $env:CFX_SENTRY_PROJECT_NAME_FIVEM
 
             break
         }
@@ -177,7 +177,7 @@ function Get-CfxBuildContext {
             $ctx.ProductName = "redm"
             $ctx.ProductExeName = "CitiLaunch.exe"
             $ctx.PremakeGameName = "rdr3"
-            $ctx.SentryProjectName = Get-EnvOrDefault $env:CFX_SENTRY_PROJECT_NAME_REDM "redm"
+            $ctx.SentryProjectName = $env:CFX_SENTRY_PROJECT_NAME_REDM
 
             break
         }
@@ -187,7 +187,7 @@ function Get-CfxBuildContext {
             $ctx.ProductName = "fxserver"
             $ctx.ProductExeName = "FXServer.exe"
             $ctx.PremakeGameName = "server"
-            $ctx.SentryProjectName = Get-EnvOrDefault $env:CFX_SENTRY_PROJECT_NAME_FXSERVER "fxserver"
+            $ctx.SentryProjectName = $env:CFX_SENTRY_PROJECT_NAME_FXSERVER
 
             $premakeDirSubpath = "windows\"
 

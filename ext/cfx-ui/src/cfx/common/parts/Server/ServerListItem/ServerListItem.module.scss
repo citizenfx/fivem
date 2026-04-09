@@ -1,3 +1,6 @@
+$widthTagsAndActions: ui.q(46);
+$widthPlayers: ui.q(20);
+
 .root {
   display: flex;
   align-items: center;
@@ -7,7 +10,7 @@
   width: 100%;
   height: 100%;
 
-  padding: ui.q();
+  padding: ui.offset('normal');
 
   border-bottom: solid 1px ui.color-token('server-item-border');
 
@@ -21,19 +24,10 @@
   }
 
   &.platinum {
-    background-image:
-      linear-gradient(5deg, transparent, ui.color-token('server-item-platinum-background')),
-      ui.use('asset-image-bgpat'),
-    ;
-    background-size: contain, 150px;
-    background-position: center center, calc(var(--offset, 0) * 100%) 0px;
-  }
+    background-color: ui.color('primary', $alpha: 0.025);
 
-  &.description-under-name {
-    .title {
-      .description {
-        margin-left: 0;
-      }
+    &:hover {
+      background-color: ui.color-token('server-item-hover-background');
     }
   }
 
@@ -48,16 +42,10 @@
     }
 
     .players {
-      width: initial;
+      width: auto;
+      padding-right: 0;
+      color: ui.color-token('server-item-players-text');
     }
-  }
-
-  .pin {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    @include ui.font-size('large');
   }
 
   .decorator {
@@ -75,28 +63,27 @@
   .title {
     flex-grow: 1;
 
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: ui.offset('small');
 
     line-height: 1.2;
 
     overflow-x: hidden;
     white-space: nowrap;
 
-    -webkit-mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
-    mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
+    // fade out long names
+    -webkit-mask: linear-gradient(90deg, red, red 80%, transparent);
+    mask: linear-gradient(90deg, red, red 80%, transparent);
 
     @include ui.font-size('large');
     @include ui.font-weight('bold');
     font-feature-settings: 'case', 'liga' 1;
 
-    // Not a mistake, this is needed to make ephasis dots of correct color
-    color: ui.color-token('server-item-description-text');
-
     .description {
-      margin-left: ui.offset('normal');
-
-      @include ui.font-size('normal');
+      @include ui.font-size('small');
       @include ui.font-weight('normal');
+      line-height: 1.2;
 
       color: ui.color-token('server-item-description-text');
     }
@@ -105,13 +92,23 @@
   .tags {
     flex-shrink: 0;
 
+    width: $widthTagsAndActions;
+
     display: flex;
 
-    gap: ui.offset();
+    gap: ui.offset('small');
+
+    overflow-x: hidden;
+
+    // fade out long tags
+    -webkit-mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
+    mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
   }
 
   .actions {
     flex-shrink: 0;
+
+    width: $widthTagsAndActions;
 
     display: flex;
     align-items: center;
@@ -122,10 +119,10 @@
   .players {
     flex-shrink: 0;
 
-    width: ui.q(15);
+    width: $widthPlayers;
     text-align: right;
 
-    color: ui.color-token('server-item-players-text');
+    padding-right: ui.q(6);
   }
 
   .density {

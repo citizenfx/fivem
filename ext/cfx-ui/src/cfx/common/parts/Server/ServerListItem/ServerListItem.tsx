@@ -6,7 +6,6 @@ import {
   Indicator,
   Interactive,
   Loaf,
-  PremiumBadge,
   Title,
   clsx,
 } from '@cfx-dev/ui-components';
@@ -20,7 +19,7 @@ import { useService, useServiceOptional } from 'cfx/base/servicesContainer';
 import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
 import { EventActionNames, ElementPlacements, isFeaturedElementPlacement } from 'cfx/common/services/analytics/types';
 import { $L } from 'cfx/common/services/intl/l10n';
-import { getServerDetailsLink, isServerLiveLoading, showServerPremiumBadge } from 'cfx/common/services/servers/helpers';
+import { getServerDetailsLink, isServerLiveLoading } from 'cfx/common/services/servers/helpers';
 import { IServersService } from 'cfx/common/services/servers/servers.service';
 import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
 import { IServerView } from 'cfx/common/services/servers/types';
@@ -45,10 +44,8 @@ export interface ServerListItemProps {
   hideTags?: boolean;
   hideActions?: boolean;
   hideCountryFlag?: boolean;
-  hidePremiumBadge?: boolean;
 
   elementPlacement?: ElementPlacements;
-  descriptionUnderName?: boolean;
 }
 
 export const ServerListItem = observer(function ServerListItem(props: ServerListItemProps) {
@@ -59,8 +56,6 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
     hideTags = false,
     hideActions = false,
     hideCountryFlag = false,
-    hidePremiumBadge = false,
-    descriptionUnderName = false,
     elementPlacement = ElementPlacements.Unknown,
   } = props;
 
@@ -113,9 +108,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
   const isOffline = Boolean(server.offline);
   const isLoading = isServerLiveLoading(server);
 
-  const showPremiumBadge = !hidePremiumBadge && showServerPremiumBadge(server.premium);
   const showCountryFlag = !hideCountryFlag;
-  const showDecorator = showPremiumBadge || showCountryFlag;
 
   const showTags = !hideTags && !!server.tags;
 
@@ -124,35 +117,27 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
     [s.boosted]: boostPower,
     [s.pinned]: pinned,
     [s.platinum]: server.premium === 'pt',
-    [s['description-under-name']]: descriptionUnderName,
   });
 
   return (
     <Interactive onClick={handleClick} className={rootClassName}>
       <ServerIcon type="list" server={server} loading={isLoading} className={s.icon} />
 
-      {isOffline && (
-        <Loaf size="small" color="error">
-          {$L('#Server_Offline')}
-        </Loaf>
-      )}
-
-      {pinned && (
-        <Title title={$L('#Server_FeaturedServer_Title')}>
-          <div className={s.pin}>{Icons.serversFeatured}</div>
-        </Title>
-      )}
-
       <div className={s.title}>
-        <ServerTitle title={server.projectName || server.hostname} />
+        {isOffline && (
+          <Flex centered="axis" gap="small">
+            <Loaf size="small" color="error">
+              {$L('#Server_Offline')}
+            </Loaf>
+            <ServerTitle title={server.projectName || server.hostname} />
+          </Flex>
+        )}
+        {!isOffline && (
+          <ServerTitle title={server.projectName || server.hostname} />
+        )}
 
         {!!description && (
-          <>
-            {descriptionUnderName && (
-              <br />
-            )}
-            <span className={s.description}>{description}</span>
-          </>
+          <span className={s.description}>{description}</span>
         )}
       </div>
 
@@ -177,12 +162,8 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
 
       <LastConnectedAt id={server.id} />
 
-      {showDecorator && (
+      {showCountryFlag && (
         <div className={clsx(s.decorator)}>
-          {showPremiumBadge && (
-            <PremiumBadge level={server.premium as any} />
-          )}
-
           <CountryFlag forceShow title={countryTitle} country={server.localeCountry} />
         </div>
       )}
@@ -192,11 +173,6 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
       <div className={s.players}>
         <ServerPlayersCount server={server} />
       </div>
-
-      {/* <Density server={server} /> */}
-
-      {/* SPACER */}
-      <div />
     </Interactive>
   );
 });
@@ -217,21 +193,6 @@ const Tags = observer(function Tags({
     </div>
   );
 });
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function Density({
-  server,
-}: { server: IServerView }) {
-  const density = 0 + Math.round(((server.playersCurrent || 0) / (server.playersMax || 1)) * 100);
-
-  return (
-    <div className={s.density} style={{ '--density': `${density}%` } as any}>
-      {Math.ceil(((server.playersCurrent || 0) / (server.playersMax || 1)) * 100)}
-      &nbsp;
-      <span className={s.dim}>%</span>
-    </div>
-  );
-}
 
 const Favorite = observer(function Favorite({
   id,
@@ -296,7 +257,7 @@ const LastConnectedAt = observer(function LastConnectedAt({
   return (
     <Title fixedOn="bottom" title={`Last connected at ${fullDate}`}>
       <Loaf bright size="small" className={s['hide-on-hover']}>
-        {$L('#Server_LastPlayed')}: {distanceDate}
+        {Icons.serversListHistory} {distanceDate}
       </Loaf>
     </Title>
   );

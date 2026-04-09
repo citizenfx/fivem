@@ -50,5 +50,6 @@ function Invoke-UpdateVersionFiles {
         "#pragma once"
         '#define GIT_DESCRIPTION "{0} win32"' -f ($gitDescription -join " ")
         '#define GIT_TAG "{0}"' -f $Context.GitTag
+        '#define BUILD_ID "cfx-{0}"' -f $Versions.BuildID
     ) -join "`n" | Out-File -Force -Encoding ascii $CfxVersionFile
 }

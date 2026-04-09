@@ -4,6 +4,7 @@ import { makeAutoObservable } from 'mobx';
 import { ServicesContainer, defineService, useService } from 'cfx/base/servicesContainer';
 import { ASID } from 'cfx/utils/asid';
 import { joaat } from 'cfx/utils/hash';
+import { Deferred } from "cfx/utils/async";
 
 export const ILegalService = defineService<LegalService>('legalService');
 
@@ -26,11 +27,13 @@ type LegalAcceptanceData = {
 
 @injectable()
 export class LegalService {
-  readonly CURRENT_TOS_VERSION = 'September 12, 2023';
+  readonly CURRENT_TOS_VERSION = 'January 12, 2026';
 
   readonly TOS_URL = 'https://fivem.net/terms';
 
   private readonly currentTOSVersionHash = joaat(`${ASID}.${this.CURRENT_TOS_VERSION}`);
+
+  private _clearanceDeferred = new Deferred<void>();
 
   private _hasUserAccepted: boolean;
   public get hasUserAccepted(): boolean {
@@ -59,10 +62,19 @@ export class LegalService {
     } catch (e) {
       // no-op
     } finally {
-      // Set as accept for now anyway so we don't get stuck
+      // Set as accepted so we don't get stuck if localstorage freaks out,
       // this effectively means that we'll present user with ToS accepting UI on the next launch
       this.hasUserAccepted = true;
+      this._clearanceDeferred.resolve();
     }
+  };
+
+  public readonly clearance = async () => {
+    if (this.hasUserAccepted) {
+      return;
+    }
+
+    await this._clearanceDeferred.promise;
   };
 
   private reviveHasUserAccepted(): boolean {

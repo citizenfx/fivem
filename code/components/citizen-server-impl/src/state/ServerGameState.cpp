@@ -3545,6 +3545,18 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			std::unique_lock _lock(data->playerEntityMutex);
 			sync::SyncEntityPtr playerEntity = data->playerEntity.lock();
 
+			// Prevent clients from creating multiple CNetObjPlayer entities
+			if (createdHere && playerEntity)
+			{
+				GS_LOG("%s: client %d %s tried to create duplicate player entity %d, but already has player entity %d. Rejecting!\n",
+					__func__,
+					client->GetNetId(),
+					client->GetName(),
+					objectId,
+					playerEntity->handle & 0xFFFF);
+				return false;
+			}
+
 			if (!playerEntity)
 			{
 				SendWorldGrid(nullptr, client);
@@ -4017,7 +4029,7 @@ void ServerGameState::GetFreeObjectIds(const fx::ClientSharedPtr& client, uint8_
 	{
 		bool hadId = false;
 
-		for (; id < m_objectIdsSent.size(); id++)
+		for (; id < static_cast<uint16_t>(MaxObjectId); id++)
 		{
 			if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
 			{
@@ -8031,7 +8043,12 @@ static InitFunction initFunction([]()
 		// start sessionmanager
 		if (gameServer->GetGameName() == fx::GameName::RDR3)
 		{
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+			// Race
+			instance->OnInitialConfiguration.Connect([consoleCtx]()
+			{
+				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+			},
+			INT32_MAX);
 		}
 		else if (!g_oneSyncEnabledVar->GetValue() && g_oneSyncVar->GetValue() == fx::OneSyncState::Off)
 		{

@@ -451,9 +451,6 @@
 [submodule "vendor/boost-submodules/boost-static-string"]
 	path = vendor/boost-submodules/boost-static-string
 	url = https://github.com/boostorg/static_string.git
-[submodule "vendor/libnode/node"]
-	path = vendor/libnode/node
-	url = https://github.com/nodejs/node.git
 [submodule "vendor/v8/12.4/source"]
 	path = vendor/v8/12.4/source
 	url = https://github.com/v8/v8.git

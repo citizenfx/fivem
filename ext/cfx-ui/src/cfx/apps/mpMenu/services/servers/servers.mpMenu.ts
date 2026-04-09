@@ -334,13 +334,6 @@ export class MpMenuServersService implements IServersService, AppContribution {
           () => this._pinnedServersConfig,
         );
       }
-      case ServersListType.Supporters: {
-        return new BaseConfigurableServersList(
-          { type: ServersListType.Supporters,
-            onlyPremium: true },
-          this.listSource,
-        );
-      }
 
       default: {
         throw new Error('Unknown servers list type');

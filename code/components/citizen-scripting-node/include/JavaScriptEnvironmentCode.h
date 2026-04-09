@@ -41,6 +41,14 @@ const result = m._compile(script, 'dummy-wrapper');
 
 global.require = m.exports.require;
 
+// redirect os.tmpdir() to a per-resource sandboxed temp directory (created lazily on first call)
+const os = require('os');
+let _cfxTempPath;
+os.tmpdir = () => {
+	if (!_cfxTempPath) _cfxTempPath = Citizen.getResourceTempPath();
+	return _cfxTempPath;
+};
+
 // prevent process exit
 process.on('uncaughtException', () => {});
 )";

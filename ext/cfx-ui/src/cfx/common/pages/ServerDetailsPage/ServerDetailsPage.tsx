@@ -9,38 +9,39 @@ import {
   Pad,
   Page,
   Scrollable,
-  PremiumBadge,
   Separator,
   Text,
   Linkify,
   clsx,
   identity,
+  FlexRestricter,
 } from '@cfx-dev/ui-components';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { BsExclamationTriangleFill, BsLayersFill, BsLockFill, BsTagsFill } from 'react-icons/bs';
+import { BsExclamationTriangleFill, BsLockFill } from 'react-icons/bs';
 
 import { ALPHANUMERIC_COLLATOR } from 'cfx/base/collators';
 import { EOL_LINK, EOS_LINK, isServerEOL, isServerEOS, shouldDisplayServerResource } from 'cfx/base/serverUtils';
 import { useService } from 'cfx/base/servicesContainer';
+import { ServerCoreLoafs } from 'cfx/common/parts/Server/ServerCoreLoafs/ServerCoreLoafs';
 import { ServerFavoriteButton } from 'cfx/common/parts/Server/ServerFavoriteButton/ServerFavoriteButton';
 import { ServerIcon } from 'cfx/common/parts/Server/ServerIcon/ServerIcon';
 import { ServerPlayersCount } from 'cfx/common/parts/Server/ServerPlayersCount/ServerPlayersCount';
 import { ServerPower } from 'cfx/common/parts/Server/ServerPower/ServerPower';
+import { ServerReportButton } from 'cfx/common/parts/Server/ServerReportButton/ServerReportButton';
 import { useAccountService } from 'cfx/common/services/account/account.service';
 import { ElementPlacements } from 'cfx/common/services/analytics/types';
 import { useIntlService } from 'cfx/common/services/intl/intl.service';
 import { $L, useL10n } from 'cfx/common/services/intl/l10n';
 import { getServerLegalRatingImageURL, isServerOffline } from 'cfx/common/services/servers/helpers';
 import { IServersService } from 'cfx/common/services/servers/servers.service';
-import { IServerView, IServerViewPlayer, ServerViewDetailsLevel } from 'cfx/common/services/servers/types';
+import { IServerView, ServerViewDetailsLevel } from 'cfx/common/services/servers/types';
 import { useServerCountryTitle, useTimeoutFlag } from 'cfx/utils/hooks';
 
 import { LongListSideSection } from './LongListSideSection/LongListSideSection';
 import { ServerActivityFeed } from '../../parts/Server/ServerActivityFeed/ServerActivityFeed';
 import { ServerConnectButton } from '../../parts/Server/ServerConnectButton/ServerConnectButton';
 import { ServerExtraDetails } from '../../parts/Server/ServerExtraDetails/ServerExtraDetails';
-import { ServerReviews } from '../../parts/Server/ServerReviews/ServerReviews';
 import { ServerTitle } from '../../parts/Server/ServerTitle/ServerTitle';
 
 import s from './ServerDetailsPage.module.scss';
@@ -53,8 +54,6 @@ const LAYOUT_SPLITS = {
 interface ServerDetailsPageProps {
   server: IServerView;
 
-  forceReviewsAvailable?: boolean;
-
   onScroll?(event: WheelEvent): void;
   scrollTrackingRef?: React.Ref<HTMLElement>;
 }
@@ -63,7 +62,6 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
     server,
     onScroll,
     scrollTrackingRef,
-    forceReviewsAvailable = false,
   } = props;
 
   useEnsureCompleteServerLoaded(server);
@@ -109,18 +107,16 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                     <Flex vertical>
                       <ServerIcon type="details" server={server} />
 
-                      <Flex centered className={s.decorator}>
-                        {!!server.premium && (
-                          <PremiumBadge level={server.premium} />
-                        )}
+                      <Flex>
+                        <FlexRestricter>
+                          <Flex fullWidth vertical centered className={s.decorator}>
+                            <ServerPower server={server} />
 
-                        {!!server.localeCountry && (
-                          <CountryFlag country={server.localeCountry} title={countryTitle} />
-                        )}
-                      </Flex>
-
-                      <Flex centered>
-                        <ServerPower server={server} />
+                            {!!server.localeCountry && (
+                              <CountryFlag country={server.localeCountry} title={countryTitle} />
+                            )}
+                          </Flex>
+                        </FlexRestricter>
                       </Flex>
 
                       <Flex centered>
@@ -139,7 +135,9 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                           </div>
 
                           {!!server.projectDescription && (
-                            <Text opacity="50">{server.projectDescription}</Text>
+                            <div className={s.description}>
+                              <Text typographic opacity="50">{server.projectDescription}</Text>
+                            </div>
                           )}
                         </Flex>
 
@@ -149,7 +147,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                               <ServerConnectButton server={server} elementPlacement={ElementPlacements.ServerPage} />
                             </div>
 
-                            <ServerFavoriteButton size="large" server={server} />
+                            <ServerFavoriteButton size="large" theme="default" server={server} />
                           </Flex>
                         </Flex>
                       </Flex>
@@ -161,10 +159,6 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                   <Flex vertical gap="large">
                     {server.activitypubFeed && (
                       <ServerActivityFeed pub={server.activitypubFeed} />
-                    )}
-
-                    {(server.canReview || forceReviewsAvailable) && (
-                      <ServerReviews server={server} />
                     )}
                   </Flex>
                 </Pad>
@@ -187,21 +181,9 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
 
                     <ServerExtraDetails server={server} />
 
-                    {!!server.players && (
-                      <LongListSideSection
-                        icon={Icons.playersCount}
-                        title={$L('#ServerDetail_Players')}
-                        subtitle={`${server.playersCurrent} / ${server.playersMax}`}
-                        items={server.players}
-                        seeAllTitle={$L('#ServerDetail_Players_ShowAll')}
-                        renderPreviewItem={playerRenderer}
-                        itemMatchesFilter={(filter, item) => item.name.toLowerCase().includes(filter.toLowerCase())}
-                      />
-                    )}
-
                     {!!displayResources && (
                       <LongListSideSection
-                        icon={<BsLayersFill />}
+                        icon={Icons.resources}
                         title={$L('#ServerDetail_Resources')}
                         items={displayResources}
                         seeAllTitle={$L('#ServerDetail_Resources_ShowAll')}
@@ -212,7 +194,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
 
                     {!!server.tags && (
                       <LongListSideSection
-                        icon={<BsTagsFill />}
+                        icon={Icons.tags}
                         title={$L('#ServerDetail_Tags')}
                         items={server.tags}
                         renderPreviewItem={identity}
@@ -220,6 +202,12 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                         itemMatchesFilter={(filter, item) => item.toLowerCase().includes(filter.toLowerCase())}
                       />
                     )}
+
+                    <Flex wrap>
+                      <ServerCoreLoafs server={server} elementPlacement={ElementPlacements.ServerExtraDetails} />
+                    </Flex>
+
+                    <ServerReportButton server={server} elementPlacement={ElementPlacements.ServerExtraDetails} />
                   </Flex>
                 </Pad>
               </Box>
@@ -230,10 +218,6 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
     </Page>
   );
 });
-
-function playerRenderer(player: IServerViewPlayer): React.ReactNode {
-  return player.name;
-}
 
 function useEnsureCompleteServerLoaded(server: IServerView) {
   const ServersService = useService(IServersService);
@@ -248,7 +232,7 @@ function useEnsureCompleteServerLoaded(server: IServerView) {
       return;
     }
 
-    if (server.detailsLevel !== ServerViewDetailsLevel.MasterList) {
+    if (detailsLevel !== ServerViewDetailsLevel.MasterList) {
       return;
     }
 
@@ -278,22 +262,22 @@ const Warning = observer(function Warning({
   if (isServerEOL(server)) {
     const descriptionNode = currentUserIsOwner
       ? (
-        <Text typographic size="large">
-          {$L('#ServerDetail_EOLWarning2_ForOwner_1')}
-          <br />
-          <br />
-          <Text weight="bold" size="large">
-            {$L('#ServerDetail_EOLWarning2_ForOwner_2')}
+          <Text typographic size="large">
+            {$L('#ServerDetail_EOLWarning2_ForOwner_1')}
+            <br />
+            <br />
+            <Text weight="bold" size="large">
+              {$L('#ServerDetail_EOLWarning2_ForOwner_2')}
+            </Text>
           </Text>
-        </Text>
         )
       : (
-        <Text typographic size="large">
-          {$L('#ServerDetail_EOLWarning2_ForPlayer_1')}
-          <br />
-          <br />
-          {$L('#ServerDetail_EOLWarning2_ForPlayer_2')}
-        </Text>
+          <Text typographic size="large">
+            {$L('#ServerDetail_EOLWarning2_ForPlayer_1')}
+            <br />
+            <br />
+            {$L('#ServerDetail_EOLWarning2_ForPlayer_2')}
+          </Text>
         );
 
     return (
@@ -334,7 +318,7 @@ const Warning = observer(function Warning({
           <br />
           <Text weight="bold">{$L('#ServerDetail_SupportWarning2_ForOwner_2')}</Text>
         </Text>
-        )
+      )
       : (
         <Text typographic>
           {$L('#ServerDetail_SupportWarning2_ForPlayer_1')}
@@ -342,7 +326,7 @@ const Warning = observer(function Warning({
           <br />
           {$L('#ServerDetail_SupportWarning2_ForPlayer_2')}
         </Text>
-        );
+      );
 
     const type: React.ComponentProps<typeof InfoPanel>['type'] = currentUserIsOwner
       ? 'warning'
@@ -394,10 +378,10 @@ const Warning = observer(function Warning({
 
   const icon = server.private
     ? (
-      <BsLockFill />
+        <BsLockFill />
       )
     : (
-      <BsExclamationTriangleFill />
+        <BsExclamationTriangleFill />
       );
 
   return (

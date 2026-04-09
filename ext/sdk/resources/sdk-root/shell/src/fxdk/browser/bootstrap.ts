@@ -49,7 +49,8 @@ if (process.env.__CFX_SENTRY_DSN__ && process.env.__CFX_SENTRY_RELEASE__) {
     integrations: [
       new Integrations.BrowserTracing(),
     ],
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 0.01,
+    sampleRate: 0.01,
   });
 }
 

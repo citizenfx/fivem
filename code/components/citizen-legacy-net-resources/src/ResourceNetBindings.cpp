@@ -855,7 +855,7 @@ static class : public fx::EventReassemblySink
 
 	void SendPacketV2(int target, net::packet::ReassembledEventV2Packet& packet) override
 	{
-		g_netLibrary->SendNetPacket(packet);
+		g_netLibrary->SendNetPacket(packet, false);
 	}
 } g_eventSink;
 

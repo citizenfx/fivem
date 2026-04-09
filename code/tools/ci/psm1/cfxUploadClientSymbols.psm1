@@ -1,5 +1,6 @@
 using module .\cfxBuildContext.psm1
 using module .\cfxBuildTools.psm1
+using module .\cfxSentry.psm1
 
 function Invoke-UploadClientSymbols {
     param(
@@ -62,12 +63,17 @@ function Invoke-UploadClientSymbols {
         Copy-Item -Force -Path $file.FullName -Destination $filePath
     }
 
+    # Rename .bin to .exe so the symbol store module names match the client
+    foreach ($binFile in (Get-ChildItem -Recurse -Filter "*.bin" -File $symTmpDir)) {
+        $exePath = [IO.Path]::ChangeExtension($binFile.FullName, ".exe")
+        Move-Item -Force -Path $binFile.FullName -Destination $exePath
+    }
+
     & $symstore add /o /f $symTmpDir /s $symUploadDir /t "Cfx" /r
     Test-LastExitCode "Failed to upload symbols, symstore failed"
     
     $pdbs  = @(Get-ChildItem -Recurse -Filter "*.dll" -File $symUploadDir)
     $pdbs += @(Get-ChildItem -Recurse -Filter "*.exe" -File $symUploadDir)
-    $pdbs += @(Get-ChildItem -Recurse -Filter "*.bin" -File $symUploadDir)
 
     $pdbs = $pdbs.Where{ $_.BaseName -notin @("botan", "citizen-scripting-lua", "citizen-scripting-lua54") }
 
@@ -132,8 +138,13 @@ function Invoke-UploadClientSymbols {
             # restore PATH
             $env:PATH = $oldEnvPath
         }
+
     Pop-Location
 
+    if ($Context.IsPublicBuild) {
+        Invoke-SentryUploadDebugFiles -Context $Context -Tools $Tools -Path $symUploadDir
+    }
+    
     if (!$Context.IsDryRun) {
         # Cleanup
         Remove-Item -Force -Recurse $symUploadDir

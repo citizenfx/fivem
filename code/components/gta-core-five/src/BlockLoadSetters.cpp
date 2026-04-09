@@ -329,7 +329,7 @@ int BlipAsIndex(int blip)
 
 static hook::cdecl_stub<void()> g_runWarning([]()
 {
-	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 83 64 24 ? ? 41 8B 06"));
+	return hook::get_call(hook::get_pattern("44 8B BC 24 ? ? ? ? E8", 8));
 });
 
 DLL_EXPORT fwEvent<> PreSetupLoadingScreens;

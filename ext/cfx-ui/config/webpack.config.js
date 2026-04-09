@@ -17,7 +17,8 @@ module.exports = (env, argv) => {
 
   const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN;
   const sentryRelease = `cfx-${process.env.CI_PIPELINE_ID || 'dev'}`;
-  const sentryProjectName = process.env.CFX_SENTRY_PROJECT_NAME_CFXUI || 'mpmenu';
+  const sentryProjectName = process.env.CFX_SENTRY_PROJECT_NAME_CFXUI || 'cfx-ui';
+  const sentryOrgName = process.env.CFX_SENTRY_ORG_NAME
 
   const app = env.app;
 
@@ -190,12 +191,11 @@ module.exports = (env, argv) => {
       isProd && new MiniCssExtractPlugin(),
 
       !!sentryAuthToken && new SentryWebpackPlugin({
-        url: 'https://sentry.fivem.net/',
         authToken: sentryAuthToken,
 
         release: sentryRelease,
 
-        org: 'citizenfx',
+        org: sentryOrgName,
         project: sentryProjectName,
 
         include: appBuildPath,

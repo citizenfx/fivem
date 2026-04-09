@@ -76,8 +76,7 @@
   .content {
     box-shadow: ui.use('shadow-large');
 
-    @include ui.def('backdrop-color', ui.color('main'));
-    @include ui.fake-backdrop-blur();
+    background-color: ui.color('main', 50);
 
     border-bottom-left-radius: ui.border-radius('small');
     border-bottom-right-radius: ui.border-radius('small');

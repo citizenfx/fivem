@@ -14,7 +14,8 @@ enum ClientConfigFlag
 {
     WeaponsNoAutoReload = 0,
 	UIVisibleWhenDead = 1,
-	DisableDeathAudioScene = 2
+	DisableDeathAudioScene = 2,
+	DisableRemoteAttachments = 3
 }
 ```
 

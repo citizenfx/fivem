@@ -36,7 +36,15 @@ namespace fx
 			std::string request = ToNarrow(requestRaw);
 			if (!request.empty())
 			{
-				sizeIncrease = nlohmann::json::parse(request).get<std::unordered_map<std::string, uint32_t>>();
+				try
+				{
+					sizeIncrease = nlohmann::json::parse(request).get<std::unordered_map<std::string, uint32_t>>();
+				}
+				catch (std::exception& e)
+				{
+					trace("Error occured while parsing the pool size increase request json: %s.\n", e.what());
+					WritePrivateProfileString(L"Game", L"PoolSizesIncrease", L"", fpath.c_str());
+				}
 			}
 		}
 	}
@@ -73,6 +81,21 @@ namespace fx
 		{
 			httpRequestPrt->Wait();
 		}
+	}
+
+	uint32_t PoolSizeManager::GetLimit(const std::string& poolName)
+	{
+		if (!LimitsLoaded())
+		{
+			return 0;
+		}
+
+		auto it = limits->find(poolName);
+		if (it == limits->end())
+		{
+			return 0;
+		}
+		return it->second;
 	}
 
 	std::optional<std::string> PoolSizeManager::ValidateImpl(const std::string& poolName, uint32_t sizeIncrease)
@@ -124,18 +147,30 @@ namespace fx
 		return std::nullopt;
 	}
 
-	std::optional<std::string> PoolSizeManager::Validate(const std::unordered_map<std::string, uint32_t>& increaseRequest)
+	void PoolSizeManager::Sanitize(std::unordered_map<std::string, uint32_t>& increaseRequest)
 	{
 		for (const auto& [name, sizeIncrease] : increaseRequest)
 		{
 			std::optional<std::string> validationError = Validate(name, sizeIncrease);
-			if (validationError.has_value())
+			if (!validationError.has_value())
 			{
-				return validationError;
+				continue;
+			}
+
+			uint32_t limit = GetLimit(name);
+			trace(
+				"Pool size increase validation failed: %s. Using maximum allowed increase %d instead.\n",
+				validationError.value(), limit
+			);
+			if (limit == 0)
+			{
+				increaseRequest.erase(name);
+			}
+			else
+			{
+				increaseRequest[name] = limit;
 			}
 		}
-
-		return std::nullopt;
 	}
 }
 
@@ -143,9 +178,9 @@ namespace fx
 static InitFunction initFunction([]()
 {
 #ifdef GTA_FIVE
-	std::string limitsFileUrl = "https://content.cfx.re/mirrors/client/pool-size-limits/fivem.json";
+	std::string limitsFileUrl = "https://gss.cfx-services.net/v1/pool-size-limits/fivem";
 #else
-	std::string limitsFileUrl = "https://content.cfx.re/mirrors/client/pool-size-limits/redm.json";
+	std::string limitsFileUrl = "https://gss.cfx-services.net/v1/pool-size-limits/redm";
 #endif
 	fx::PoolSizeManager::FetchLimits(limitsFileUrl);
 	fx::PoolSizeManager::FetchIncreaseRequest();

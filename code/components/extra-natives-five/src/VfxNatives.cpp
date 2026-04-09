@@ -36,7 +36,7 @@ static void* g_coronas;
 
 static hook::cdecl_stub<void(CVehicle*, int32_t, rage::Mat34V*, int32_t*)> _getExhaustMatrix([]()
 {
-	return hook::get_pattern("4D 8B E1 49 8B F0 48 8B D9 44 0F 29 48", -0x33);
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 0F 28 C6 0F C2 45 ? ? 0F 50 C0 83 E0 ? 3C ? 75"));
 });
 
 static hook::cdecl_stub<bool(CVehicle*, rage::Mat34V*, int32_t)> _getModdedExhaustMatrixBone([]()

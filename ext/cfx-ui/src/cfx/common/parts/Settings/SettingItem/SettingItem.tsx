@@ -71,6 +71,20 @@ function getControl(setting: ISetting.AnySetting): React.ReactNode {
       );
     }
 
+    case 'selectnative': {
+      const accessors = setting.accessors();
+
+      return (
+        <select value={accessors.getValue()} onChange={(e) => accessors.setValue(e.target.value)}>
+          {Object.entries(getValue(setting.options)).map(([value, label]) => (
+            <option key={value} value={value}>
+              {getValue(label)}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
     case 'switch': {
       const accessors = setting.accessors();
 

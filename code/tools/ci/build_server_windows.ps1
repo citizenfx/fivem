@@ -61,8 +61,10 @@ try {
         Invoke-RunMSBuild -Context $ctx -Tools $tools
     }.GetNewClosure()
 
+    $additionalSentryProjects = @("fxserver-legacy-hangs")
+
     Invoke-LogSection "Uploading symbols" {
-        Invoke-UploadServerSymbols -Context $ctx -Tools $tools
+        Invoke-UploadServerSymbols -Context $ctx -Tools $tools -AdditionalSentryProjects $additionalSentryProjects
     }.GetNewClosure()
 
     Invoke-LogSection "Building system resources" {
@@ -75,7 +77,13 @@ try {
 
     if ($ctx.IsPublicBuild){
         Invoke-LogSection "Creating sentry release" {
-            Invoke-SentryCreateRelease -Context $ctx -Version $ctx.GitTag
+            $sentryVersion = "cfx-{0}" -f $versions.BuildID
+
+            Invoke-SentryCreateRelease -Context $ctx -Tools $tools -Version $sentryVersion
+
+            foreach ($project in $additionalSentryProjects) {
+                Invoke-SentryCreateRelease -Context $ctx -Tools $tools -Version $sentryVersion -ProjectName $project
+            }
         }.GetNewClosure()
     }
 
