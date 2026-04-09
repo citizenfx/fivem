@@ -1744,7 +1744,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 			if (!success)
 			{
-				static ConVar<bool> streamerMode("ui_streamerMode", ConVar_None, false);
+				static ConVar<bool> streamerMode("ui_streamerMode", ConVar_UserPref, false);
 				if (streamerMode.GetValue())
 				{
 					OnConnectionError("Failed to fetch server variables.", json::object({

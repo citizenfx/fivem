@@ -1355,7 +1355,7 @@ void CreateRootWindow()
 	int resX, resY;
 	g_nuiGi->GetGameResolution(&resX, &resY);
 
-	static ConVar<std::string> rootUrl("ui_rootUrl", ConVar_None, "nui://game/ui/root.html");
+	static ConVar<std::string> rootUrl("ui_rootUrl", ConVar_UserPref, "nui://game/ui/root.html");
 
 	auto rootWindow = NUIWindow::Create(true, resX, resY, rootUrl.GetValue(), true, nui::GetContext());
 	rootWindow->SetPaintType(NUIPaintTypePostRender);
@@ -1471,7 +1471,7 @@ void Initialize(nui::GameInterface* gi)
         return;
     }
 
-	static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
+	static ConVar<std::string> uiUrlVar("ui_url", ConVar_UserPref, "https://nui-game-internal/ui/app/index.html");
 
 	auto deferredInitializer = DeferredInitializer::Create([]()
 	{
@@ -1666,7 +1666,7 @@ void Initialize(nui::GameInterface* gi)
 			{
 				nui::DestroyFrame("mpMenu");
 
-				static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
+				static ConVar<std::string> uiUrlVar("ui_url", ConVar_UserPref, "https://nui-game-internal/ui/app/index.html");
 				nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
 			}
 

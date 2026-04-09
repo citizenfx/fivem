@@ -3236,25 +3236,25 @@ static InitFunction initFunctionSceneExperiment([]()
 });
 #endif
 
-static ConVar<bool> crosshair("cl_customCrosshair", ConVar_Archive, false);
-static ConVar<int> cl_crosshaircolor("cl_crosshaircolor", ConVar_Archive, 1);
-static ConVar<float> cl_crosshairgap("cl_crosshairgap", ConVar_Archive, 1);
-static ConVar<float> cl_crosshairsize("cl_crosshairsize", ConVar_Archive, 5);
-static ConVar<float> cl_crosshairthickness("cl_crosshairthickness", ConVar_Archive, 0.5f);
-static ConVar<int> cl_crosshaircolor_r("cl_crosshaircolor_r", ConVar_Archive, 50);
-static ConVar<int> cl_crosshaircolor_g("cl_crosshaircolor_g", ConVar_Archive, 250);
-static ConVar<int> cl_crosshaircolor_b("cl_crosshaircolor_b", ConVar_Archive, 50);
-static ConVar<int> cl_crosshairalpha("cl_crosshairalpha", ConVar_Archive, 200);
-static ConVar<int> cl_crosshairstyle("cl_crosshairstyle", ConVar_Archive, 0);
-static ConVar<float> cl_crosshair_dynamic_splitdist("cl_crosshair_dynamic_splitdist", ConVar_Archive, 7.f);
-static ConVar<bool> cl_crosshairusealpha("cl_crosshairusealpha", ConVar_Archive, true);
-static ConVar<bool> cl_crosshair_drawoutline("cl_crosshair_drawoutline", ConVar_Archive, true);
-static ConVar<float> cl_crosshair_outlinethickness("cl_crosshair_outlinethickness", ConVar_Archive, 1.f);
-static ConVar<bool> cl_crosshairdot("cl_crosshairdot", ConVar_Archive, true);
-static ConVar<float> cl_crosshair_dynamic_splitalpha_innermod("cl_crosshair_dynamic_splitalpha_innermod", ConVar_Archive, 1.f);
-static ConVar<float> cl_crosshair_dynamic_splitalpha_outermod("cl_crosshair_dynamic_splitalpha_outermod", ConVar_Archive, 0.5f);
-static ConVar<float> cl_crosshair_dynamic_maxdist_splitratio("cl_crosshair_dynamic_maxdist_splitratio", ConVar_Archive, 0.35f);
-static ConVar<bool> cl_crosshair_t("cl_crosshair_t", ConVar_Archive, false);
+static ConVar<bool> crosshair("cl_customCrosshair", ConVar_Archive | ConVar_UserPref, false);
+static ConVar<int> cl_crosshaircolor("cl_crosshaircolor", ConVar_Archive | ConVar_UserPref, 1);
+static ConVar<float> cl_crosshairgap("cl_crosshairgap", ConVar_Archive | ConVar_UserPref, 1);
+static ConVar<float> cl_crosshairsize("cl_crosshairsize", ConVar_Archive | ConVar_UserPref, 5);
+static ConVar<float> cl_crosshairthickness("cl_crosshairthickness", ConVar_Archive | ConVar_UserPref, 0.5f);
+static ConVar<int> cl_crosshaircolor_r("cl_crosshaircolor_r", ConVar_Archive | ConVar_UserPref, 50);
+static ConVar<int> cl_crosshaircolor_g("cl_crosshaircolor_g", ConVar_Archive | ConVar_UserPref, 250);
+static ConVar<int> cl_crosshaircolor_b("cl_crosshaircolor_b", ConVar_Archive | ConVar_UserPref, 50);
+static ConVar<int> cl_crosshairalpha("cl_crosshairalpha", ConVar_Archive | ConVar_UserPref, 200);
+static ConVar<int> cl_crosshairstyle("cl_crosshairstyle", ConVar_Archive | ConVar_UserPref, 0);
+static ConVar<float> cl_crosshair_dynamic_splitdist("cl_crosshair_dynamic_splitdist", ConVar_Archive | ConVar_UserPref, 7.f);
+static ConVar<bool> cl_crosshairusealpha("cl_crosshairusealpha", ConVar_Archive | ConVar_UserPref, true);
+static ConVar<bool> cl_crosshair_drawoutline("cl_crosshair_drawoutline", ConVar_Archive | ConVar_UserPref, true);
+static ConVar<float> cl_crosshair_outlinethickness("cl_crosshair_outlinethickness", ConVar_Archive | ConVar_UserPref, 1.f);
+static ConVar<bool> cl_crosshairdot("cl_crosshairdot", ConVar_Archive | ConVar_UserPref, true);
+static ConVar<float> cl_crosshair_dynamic_splitalpha_innermod("cl_crosshair_dynamic_splitalpha_innermod", ConVar_Archive | ConVar_UserPref, 1.f);
+static ConVar<float> cl_crosshair_dynamic_splitalpha_outermod("cl_crosshair_dynamic_splitalpha_outermod", ConVar_Archive | ConVar_UserPref, 0.5f);
+static ConVar<float> cl_crosshair_dynamic_maxdist_splitratio("cl_crosshair_dynamic_maxdist_splitratio", ConVar_Archive | ConVar_UserPref, 0.35f);
+static ConVar<bool> cl_crosshair_t("cl_crosshair_t", ConVar_Archive | ConVar_UserPref, false);
 
 static void DoCrosshairDraw()
 {

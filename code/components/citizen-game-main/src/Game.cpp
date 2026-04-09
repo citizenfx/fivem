@@ -84,7 +84,7 @@ public:
 
 		m_ep.Bind("disconnected", [this]()
 		{
-			static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
+			static ConVar<std::string> uiUrlVar("ui_url", ConVar_UserPref, "https://nui-game-internal/ui/app/index.html");
 			static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
 
 			TerminateProcess(g_gp, 0);
@@ -267,7 +267,7 @@ void GameImpl::RunMod(const std::string& modId, const std::string& args)
 			WaitForSingleObject(processInfo.hProcess, INFINITE);
 			CloseHandle(processInfo.hProcess);
 
-			static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
+			static ConVar<std::string> uiUrlVar("ui_url", ConVar_UserPref, "https://nui-game-internal/ui/app/index.html");
 
 			nui::SetMainUI(true);
 			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());

@@ -303,7 +303,7 @@ static InitFunction initFunction([]()
 {
 	static bool modelViewerEnabled;
 
-	static ConVar<bool> streamingDebugVar("modelviewer", ConVar_Archive, false, &modelViewerEnabled);
+	static ConVar<bool> streamingDebugVar("modelviewer", ConVar_Archive | ConVar_UserPref, false, &modelViewerEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{

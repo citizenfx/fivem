@@ -1026,7 +1026,7 @@ bool IsNonProduction()
 #if (!defined(GTA_FIVE) && !defined(IS_RDR3)) || defined(_DEBUG)
 	return true;
 #else
-	static ConVar<int> moo("moo", ConVar_None, 0);
+	static ConVar<int> moo("moo", ConVar_UserPref, 0);
 
 	static auto isProd = ([]()
 	{

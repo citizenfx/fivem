@@ -345,8 +345,8 @@ static InitFunction initFunction([]()
 		}
 	});
 
-	g_handbrakeCamConvar = std::make_shared<ConVar<bool>>("cam_enableHandbrakeCamera", ConVar_Archive, true);
-	g_customVehicleFPSFov = new ConVar<float>("cam_vehicleFirstPersonFOV", ConVar_Archive, 0.0f);
+	g_handbrakeCamConvar = std::make_shared<ConVar<bool>>("cam_enableHandbrakeCamera", ConVar_Archive | ConVar_UserPref, true);
+	g_customVehicleFPSFov = new ConVar<float>("cam_vehicleFirstPersonFOV", ConVar_Archive | ConVar_UserPref, 0.0f);
 	g_customVehicleFPSFov->GetHelper()->SetConstraints(-1.0f, 130.0f);
 
 	OnMainGameFrame.Connect([]()

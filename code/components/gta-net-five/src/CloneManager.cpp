@@ -396,7 +396,7 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	})
 	.detach();
 
-	static ConVar<std::string> logFile("onesync_logFile", ConVar_None, "", &m_logFile);
+	static ConVar<std::string> logFile("onesync_logFile", ConVar_UserPref, "", &m_logFile);
 
 	static ConsoleCommand printObj("net_printOwner", [this](int objectId)
 	{

@@ -121,7 +121,7 @@ namespace fx
 
 	std::optional<std::string> PoolSizeManager::Validate(const std::string& poolName, uint32_t sizeIncrease)
 	{
-		static ConVar<int> moo("moo", ConVar_None, 0);
+		static ConVar<int> moo("moo", ConVar_UserPref, 0);
 
 		bool skipValidation = moo.GetValue() == 31337;
 
