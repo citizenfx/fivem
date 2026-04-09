@@ -8,13 +8,13 @@
    are met:
 
    - Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
+	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -66,7 +66,7 @@ enum LogLevel
 	MLL_DEBUG
 };
 
-void logthis(const char *logstring, ...)
+void logthis(const char* logstring, ...)
 {
 	if (!mumble_logLevel || mumble_logLevel->GetValue() < MLL_INFO)
 	{
@@ -83,7 +83,7 @@ void logthis(const char *logstring, ...)
 	trace("%s\n", buf);
 }
 
-void Log_warn(const char *logstring, ...)
+void Log_warn(const char* logstring, ...)
 {
 	if (!mumble_logLevel || mumble_logLevel->GetValue() < MLL_WARN)
 	{
@@ -103,7 +103,7 @@ void Log_warn(const char *logstring, ...)
 	trace("%s\n", buf);
 }
 
-void Log_info(const char *logstring, ...)
+void Log_info(const char* logstring, ...)
 {
 	if (!mumble_logLevel || mumble_logLevel->GetValue() < MLL_INFO)
 	{
@@ -123,7 +123,7 @@ void Log_info(const char *logstring, ...)
 	trace("%s\n", buf);
 }
 
-void Log_info_client(client_t *client, const char *logstring, ...)
+void Log_info_client(client_t* client, const char* logstring, ...)
 {
 	if (!mumble_logLevel || mumble_logLevel->GetValue() < MLL_INFO)
 	{
@@ -140,18 +140,18 @@ void Log_info_client(client_t *client, const char *logstring, ...)
 	offset += vsnprintf(&buf[offset], STRSIZE - offset, logstring, argp);
 	va_end(argp);
 
-	char *clientAddressString = Util_clientAddressToString(client);
+	char* clientAddressString = Util_clientAddressToString(client);
 	offset += snprintf(&buf[offset], STRSIZE - offset, " - [%d] %s@%s:%d",
-		client->sessionId,
-		client->username == NULL ? "" : client->username,
-		clientAddressString,
-		Util_clientAddressToPortTCP(client));
+	client->sessionId,
+	client->username == NULL ? "" : client->username,
+	clientAddressString,
+	Util_clientAddressToPortTCP(client));
 	free(clientAddressString);
 
 	trace("%s\n", buf);
 }
 
-void Log_debug(const char *logstring, ...)
+void Log_debug(const char* logstring, ...)
 {
 	if (!mumble_logLevel || mumble_logLevel->GetValue() < MLL_DEBUG)
 	{
@@ -167,11 +167,11 @@ void Log_debug(const char *logstring, ...)
 	va_start(argp, logstring);
 	vsnprintf(&buf[offset], STRSIZE - offset, logstring, argp);
 	va_end(argp);
-	
+
 	trace("%s\n", buf);
 }
 
-void Log_fatal(const char *logstring, ...)
+void Log_fatal(const char* logstring, ...)
 {
 	va_list argp;
 	char buf[STRSIZE + 1];

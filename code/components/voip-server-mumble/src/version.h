@@ -5,4 +5,3 @@
 #define UMURMUR_CODENAME "Colin"
 
 #endif
-

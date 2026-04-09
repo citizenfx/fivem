@@ -8,13 +8,13 @@
    are met:
 
    - Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
+	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -35,7 +35,7 @@
 
 #include <stdint.h>
 #include <sys/types.h>
-#include <errno.h>              /* errno */
+#include <errno.h> /* errno */
 
 #include "list.h"
 #include "types.h"
@@ -53,7 +53,7 @@
 
 #include "StreamByteReader.h"
 
-#define READ_BUFFER_SIZE (8192 + 6 + 4)*2
+#define READ_BUFFER_SIZE (8192 + 6 + 4) * 2
 #define BUFSIZE 8192
 #define UDP_BUFSIZE 512
 #define INACTIVITY_TIMEOUT 60 /* Seconds */
@@ -69,7 +69,8 @@
 #define strnicmp strncasecmp
 #endif
 
-typedef struct {
+typedef struct
+{
 	fwRefContainer<net::TcpServerStream> stream;
 	bool_t SSLready;
 	bool_t shutdown_wait;
@@ -78,12 +79,12 @@ typedef struct {
 	net::PeerAddress remote_tcp;
 	net::PeerAddress remote_udp;
 	uint8_t rcvbuf[READ_BUFFER_SIZE];
-	net::StreamByteReader streamByteReader {rcvbuf, READ_BUFFER_SIZE};
+	net::StreamByteReader streamByteReader{ rcvbuf, READ_BUFFER_SIZE };
 	uint8_t txbuf[BUFSIZE];
 	uint32_t rxcount, txcount, txsize;
 	int sessionId;
 	uint8_t key[KEY_LENGTH];
-	char *username;
+	char* username;
 	bool_t bUDP, authenticated, deaf, mute, self_deaf, self_mute, recording, bOpus;
 	char *os, *release, *os_version;
 	uint32_t version;
@@ -94,8 +95,8 @@ typedef struct {
 	struct dlist node;
 	struct dlist txMsgQueue;
 	int txQueueCount;
-	void *channel; /* Ugly... */
-	char *context;
+	void* channel; /* Ugly... */
+	char* context;
 	struct dlist chan_node;
 	struct dlist voicetargets;
 	struct dlist tokens;
@@ -109,43 +110,45 @@ typedef struct {
 	uint32_t numFailedCrypt;
 } client_t;
 
-typedef struct {
+typedef struct
+{
 	int codec, count;
 	struct dlist node;
 } codec_t;
 
-typedef struct {
-	char *token;
+typedef struct
+{
+	char* token;
 	struct dlist node;
 } token_t;
 
 void Client_init();
-int Client_getfds(struct pollfd *pollfds);
+int Client_getfds(struct pollfd* pollfds);
 bool Client_is_player_muted(const char* namePrefix, size_t len);
 void Client_set_player_muted(const char* namePrefix, size_t len, bool muted);
 void Client_janitor();
 int Client_add(fwRefContainer<net::TcpServerStream> stream, client_t** client);
 int Client_read_fd(int fd);
 int Client_write_fd(int fd);
-int Client_send_message(client_t *client, message_t *msg);
-int Client_send_message_ver(client_t *client, message_t *msg, uint32_t version);
-int Client_send_message_except_ver(client_t *client, message_t *msg, uint32_t version);
+int Client_send_message(client_t* client, message_t* msg);
+int Client_send_message_ver(client_t* client, message_t* msg, uint32_t version);
+int Client_send_message_except_ver(client_t* client, message_t* msg, uint32_t version);
 int Client_count(void);
-void Client_close(client_t *client);
-client_t *Client_iterate(client_t **client);
-int Client_send_message_except(client_t *client, message_t *msg);
+void Client_close(client_t* client);
+client_t* Client_iterate(client_t** client);
+int Client_send_message_except(client_t* client, message_t* msg);
 int Client_read_udp(int udpsock);
 void Client_disconnect_all();
-int Client_voiceMsg(client_t *client, uint8_t *data, int len);
-void recheckCodecVersions(client_t *connectingClient);
-void Client_codec_add(client_t *client, int codec);
-void Client_codec_free(client_t *client);
-codec_t *Client_codec_iterate(client_t *client, codec_t **codec_itr);
-void Client_textmessage(client_t *client, char *text);
-bool_t Client_token_match(client_t *client, char const *str);
-void Client_token_free(client_t *client);
-void Client_token_add(client_t *client, char *token_string);
-void Client_free(client_t *client);
-int Client_getPlayerId(client_t *client, char *username);
+int Client_voiceMsg(client_t* client, uint8_t* data, int len);
+void recheckCodecVersions(client_t* connectingClient);
+void Client_codec_add(client_t* client, int codec);
+void Client_codec_free(client_t* client);
+codec_t* Client_codec_iterate(client_t* client, codec_t** codec_itr);
+void Client_textmessage(client_t* client, char* text);
+bool_t Client_token_match(client_t* client, char const* str);
+void Client_token_free(client_t* client);
+void Client_token_add(client_t* client, char* token_string);
+void Client_free(client_t* client);
+int Client_getPlayerId(client_t* client, char* username);
 
 #endif

@@ -8,13 +8,13 @@
    are met:
 
    - Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
+	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -52,18 +52,18 @@
 
 std::shared_ptr<ConVar<std::string>> mumble_adminPass;
 
-void Conf_init(const char *conffile)
+void Conf_init(const char* conffile)
 {
-/*	config_init(&configuration);
-	if (conffile == NULL)
-		conffile = defaultconfig;
-	if (config_read_file(&configuration, conffile) != CONFIG_TRUE) {
-		Log_fatal("Error in config file %s line %d: %s", conffile,
-			config_error_line(&configuration), config_error_text(&configuration));
-	}*/
+	/*	config_init(&configuration);
+		if (conffile == NULL)
+			conffile = defaultconfig;
+		if (config_read_file(&configuration, conffile) != CONFIG_TRUE) {
+			Log_fatal("Error in config file %s line %d: %s", conffile,
+				config_error_line(&configuration), config_error_text(&configuration));
+		}*/
 }
 
-bool_t Conf_ok(const char *conffile)
+bool_t Conf_ok(const char* conffile)
 {
 	bool_t rc = true;
 	/*config_init(&configuration);
@@ -80,12 +80,13 @@ bool_t Conf_ok(const char *conffile)
 
 void Conf_deinit()
 {
-	//config_destroy(&configuration);
+	// config_destroy(&configuration);
 }
 
-const char *getStrConf(param_t param)
+const char* getStrConf(param_t param)
 {
-	switch (param) {
+	switch (param)
+	{
 		case CERTIFICATE:
 			return "/etc/umurmur/certificate.crt";
 		case KEY:
@@ -113,7 +114,8 @@ static fx::ServerInstanceBase* g_serverInstance;
 
 int getIntConf(param_t param)
 {
-	switch (param) {
+	switch (param)
+	{
 		case BAN_LENGTH:
 			return DEFAULT_BAN_LENGTH;
 		case MAX_BANDWIDTH:
@@ -141,7 +143,8 @@ int getIntConf(param_t param)
 
 bool_t getBoolConf(param_t param)
 {
-	switch (param) {
+	switch (param)
+	{
 		case ALLOW_TEXTMESSAGE:
 			return false;
 		case ENABLE_BAN:
@@ -158,7 +161,7 @@ bool_t getBoolConf(param_t param)
 	return false;
 }
 
-int Conf_getNextChannel(conf_channel_t *chdesc, int index)
+int Conf_getNextChannel(conf_channel_t* chdesc, int index)
 {
 	if (index > 0)
 	{
@@ -172,77 +175,77 @@ int Conf_getNextChannel(conf_channel_t *chdesc, int index)
 	chdesc->noenter = false;
 	chdesc->position = 0;
 	chdesc->silent = false;
-// 	config_setting_t *setting = NULL;
-// 	int maxconfig = 64, ret = 0;
-// 	char configstr[maxconfig];
-// 
-// 	ret = snprintf(configstr, maxconfig, "channels.[%d].name", index);
-// 	setting = config_lookup(&configuration, configstr);
-// 	if (ret >= maxconfig || ret < 0 || setting == NULL)
-// 		return -1; /* Required */
-// 	chdesc->name =  config_setting_get_string(setting);
-// 
-// 	ret = snprintf(configstr, maxconfig, "channels.[%d].parent", index);
-// 	setting = config_lookup(&configuration, configstr);
-// 	if (ret >= maxconfig || ret < 0 || setting == NULL)
-// 		return -1; /* Required */
-// 	chdesc->parent = config_setting_get_string(setting);
-// 
-// 	ret = snprintf(configstr, maxconfig, "channels.[%d].description", index);
-// 	setting = config_lookup(&configuration, configstr);
-// 	if (ret >= maxconfig || ret < 0 || setting == NULL) /* Optional */
-// 		chdesc->description = NULL;
-// 	else
-// 		chdesc->description = config_setting_get_string(setting);
-// 
-// 	ret = snprintf(configstr, maxconfig, "channels.[%d].password", index);
-// 	setting = config_lookup(&configuration, configstr);
-// 	if (ret >= maxconfig || ret < 0 || setting == NULL) /* Optional */
-// 		chdesc->password = NULL;
-// 	else
-// 		chdesc->password = config_setting_get_string(setting);
-// 
-// 	ret = snprintf(configstr, maxconfig, "channels.[%d].noenter", index);
-// 	setting = config_lookup(&configuration, configstr);
-// 	if (ret >= maxconfig || ret < 0 || setting == NULL) /* Optional */
-// 		chdesc->noenter = false;
-// 	else
-// 		chdesc->noenter = config_setting_get_bool(setting);
-// 
-// 	ret = snprintf(configstr, maxconfig, "channels.[%d].silent", index);
-// 	setting = config_lookup(&configuration, configstr);
-// 	if (ret >= maxconfig || ret < 0 || setting == NULL) /* Optional */
-// 		chdesc->silent = false;
-// 	else
-// 		chdesc->silent = config_setting_get_bool(setting);
-// 
-// 	ret = snprintf(configstr, maxconfig, "channels.[%d].position", index);
-// 	setting = config_lookup(&configuration, configstr);
-// 	if (ret >= maxconfig || ret < 0 || setting == NULL) /* Optional */
-// 		chdesc->position = 0;
-// 	else
-// 		chdesc->position = config_setting_get_int(setting);
+	// 	config_setting_t *setting = NULL;
+	// 	int maxconfig = 64, ret = 0;
+	// 	char configstr[maxconfig];
+	//
+	// 	ret = snprintf(configstr, maxconfig, "channels.[%d].name", index);
+	// 	setting = config_lookup(&configuration, configstr);
+	// 	if (ret >= maxconfig || ret < 0 || setting == NULL)
+	// 		return -1; /* Required */
+	// 	chdesc->name =  config_setting_get_string(setting);
+	//
+	// 	ret = snprintf(configstr, maxconfig, "channels.[%d].parent", index);
+	// 	setting = config_lookup(&configuration, configstr);
+	// 	if (ret >= maxconfig || ret < 0 || setting == NULL)
+	// 		return -1; /* Required */
+	// 	chdesc->parent = config_setting_get_string(setting);
+	//
+	// 	ret = snprintf(configstr, maxconfig, "channels.[%d].description", index);
+	// 	setting = config_lookup(&configuration, configstr);
+	// 	if (ret >= maxconfig || ret < 0 || setting == NULL) /* Optional */
+	// 		chdesc->description = NULL;
+	// 	else
+	// 		chdesc->description = config_setting_get_string(setting);
+	//
+	// 	ret = snprintf(configstr, maxconfig, "channels.[%d].password", index);
+	// 	setting = config_lookup(&configuration, configstr);
+	// 	if (ret >= maxconfig || ret < 0 || setting == NULL) /* Optional */
+	// 		chdesc->password = NULL;
+	// 	else
+	// 		chdesc->password = config_setting_get_string(setting);
+	//
+	// 	ret = snprintf(configstr, maxconfig, "channels.[%d].noenter", index);
+	// 	setting = config_lookup(&configuration, configstr);
+	// 	if (ret >= maxconfig || ret < 0 || setting == NULL) /* Optional */
+	// 		chdesc->noenter = false;
+	// 	else
+	// 		chdesc->noenter = config_setting_get_bool(setting);
+	//
+	// 	ret = snprintf(configstr, maxconfig, "channels.[%d].silent", index);
+	// 	setting = config_lookup(&configuration, configstr);
+	// 	if (ret >= maxconfig || ret < 0 || setting == NULL) /* Optional */
+	// 		chdesc->silent = false;
+	// 	else
+	// 		chdesc->silent = config_setting_get_bool(setting);
+	//
+	// 	ret = snprintf(configstr, maxconfig, "channels.[%d].position", index);
+	// 	setting = config_lookup(&configuration, configstr);
+	// 	if (ret >= maxconfig || ret < 0 || setting == NULL) /* Optional */
+	// 		chdesc->position = 0;
+	// 	else
+	// 		chdesc->position = config_setting_get_int(setting);
 
 	return 0;
 }
 
-int Conf_getNextChannelLink(conf_channel_link_t *chlink, int index)
+int Conf_getNextChannelLink(conf_channel_link_t* chlink, int index)
 {
-// 	config_setting_t *setting = NULL;
-// 	int maxconfig = 64, ret = 0;
-// 	char configstr[maxconfig];
-// 
-// 	ret = snprintf(configstr, maxconfig, "channel_links.[%d].source", index);
-// 	setting = config_lookup(&configuration, configstr);
-// 	if (ret >= maxconfig || ret < 0 || setting == NULL)
-// 		return -1;
-// 	chlink->source = config_setting_get_string(setting);
-// 
-// 	ret = snprintf(configstr, maxconfig, "channel_links.[%d].destination", index);
-// 	setting = config_lookup(&configuration, configstr);
-// 	if (ret >= maxconfig || ret < 0 || setting == NULL)
-// 		return -1;
-// 	chlink->destination = config_setting_get_string(setting);
+	// 	config_setting_t *setting = NULL;
+	// 	int maxconfig = 64, ret = 0;
+	// 	char configstr[maxconfig];
+	//
+	// 	ret = snprintf(configstr, maxconfig, "channel_links.[%d].source", index);
+	// 	setting = config_lookup(&configuration, configstr);
+	// 	if (ret >= maxconfig || ret < 0 || setting == NULL)
+	// 		return -1;
+	// 	chlink->source = config_setting_get_string(setting);
+	//
+	// 	ret = snprintf(configstr, maxconfig, "channel_links.[%d].destination", index);
+	// 	setting = config_lookup(&configuration, configstr);
+	// 	if (ret >= maxconfig || ret < 0 || setting == NULL)
+	// 		return -1;
+	// 	chlink->destination = config_setting_get_string(setting);
 
 	return -1;
 }

@@ -8,13 +8,13 @@
    are met:
 
    - Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
+	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -35,13 +35,14 @@
 #include "log.h"
 #include "memory.h"
 
-void * Memory_safeMalloc(size_t nmem, size_t size) {
+void* Memory_safeMalloc(size_t nmem, size_t size)
+{
 	// Check if we're going to overflow.
 	if (size && nmem > SIZE_MAX / size)
 		Log_fatal("Request for memory would've overflowed.");
 
 	// Allocate the memory requested.
-	void * retPtr = malloc(nmem * size);
+	void* retPtr = malloc(nmem * size);
 
 	// Check if we had an error.
 	if (retPtr == NULL)
@@ -50,9 +51,10 @@ void * Memory_safeMalloc(size_t nmem, size_t size) {
 	return retPtr;
 }
 
-void * Memory_safeCalloc(size_t nmem, size_t size) {
+void* Memory_safeCalloc(size_t nmem, size_t size)
+{
 	// Allocate the memory requested.
-	void * retPtr = calloc(nmem, size);
+	void* retPtr = calloc(nmem, size);
 
 	// Check if we had an error.
 	if (retPtr == NULL)

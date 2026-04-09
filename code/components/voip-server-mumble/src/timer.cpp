@@ -8,13 +8,13 @@
    are met:
 
    - Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
+	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -42,28 +42,27 @@ static uint64_t Timer_now()
 	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
-
-void Timer_init(etimer_t *t)
+void Timer_init(etimer_t* t)
 {
 	*t = Timer_now();
 }
 
-bool_t Timer_isElapsed(etimer_t *t, uint64_t us)
+bool_t Timer_isElapsed(etimer_t* t, uint64_t us)
 {
-	if (Timer_elapsed(t) > us) {
+	if (Timer_elapsed(t) > us)
+	{
 		*t += us;
 		return true;
 	}
 	return false;
-
 }
 
-uint64_t Timer_elapsed(etimer_t *t)
+uint64_t Timer_elapsed(etimer_t* t)
 {
 	return Timer_now() - *t;
 }
 
-uint64_t Timer_restart(etimer_t *t)
+uint64_t Timer_restart(etimer_t* t)
 {
 	uint64_t n = Timer_now();
 	uint64_t e = n - *t;

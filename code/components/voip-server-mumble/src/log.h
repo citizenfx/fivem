@@ -8,13 +8,13 @@
    are met:
 
    - Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
+	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -34,30 +34,31 @@
 #include "types.h"
 #include "client.h"
 
-#define doAssert(_cond_) do {					\
-		if (!(_cond_)) {												\
+#define doAssert(_cond_)                                                                                \
+	do                                                                                                  \
+	{                                                                                                   \
+		if (!(_cond_))                                                                                  \
+		{                                                                                               \
 			logthis("Assertion failed in %s: Line: %d Function: %s", __FILE__, __LINE__, __FUNCTION__); \
-			abort();													\
-		}																\
+			abort();                                                                                    \
+		}                                                                                               \
 	} while (0)
 
+void logthis(const char* logstring, ...);
 
-void logthis(const char *logstring, ...);
+// #ifdef DEBUG
+void Log_debug(const char* logstring, ...);
+// #else
+// #define Log_debug(_args_, ...) ((void)0)
+// #endif
 
-//#ifdef DEBUG
-void Log_debug(const char *logstring, ...);
-//#else
-//#define Log_debug(_args_, ...) ((void)0)
-//#endif
-
-void Log_warn(const char *logstring, ...);
-void Log_info(const char *logstring, ...);
-void Log_info_client(client_t *client, const char *logstring, ...);
-void Log_fatal(const char *logstring, ...);
+void Log_warn(const char* logstring, ...);
+void Log_info(const char* logstring, ...);
+void Log_info_client(client_t* client, const char* logstring, ...);
+void Log_fatal(const char* logstring, ...);
 
 void Log_init(bool_t terminal);
 void Log_reset();
 void Log_free();
 
 #endif
-

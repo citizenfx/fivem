@@ -8,13 +8,13 @@
    are met:
 
    - Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
+	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -58,14 +58,15 @@
 #define PERM_KICK 0x10000
 #define PERM_BAN 0x20000
 #define PERM_REGISTER 0x40000
-#define PERM_SELFREGISTER 0x80000	
+#define PERM_SELFREGISTER 0x80000
 #define PERM_CACHED 0x8000000
 #define PERM_ALL 0xf0fff
 
 #define PERM_DEFAULT (PERM_TRAVERSE | PERM_ENTER | PERM_SPEAK | PERM_WHISPER | PERM_TEXTMESSAGE | PERM_MAKETEMPCHANNEL | PERM_LISTEN)
 #define PERM_ADMIN (PERM_DEFAULT | PERM_MUTEDEAFEN | PERM_MOVE | PERM_KICK | PERM_BAN)
 
-typedef enum {
+typedef enum
+{
 	Version,
 	UDPTunnel,
 	Authenticate,
@@ -93,7 +94,8 @@ typedef enum {
 	ServerConfig
 } messageType_t;
 
-typedef enum {
+typedef enum
+{
 	UDPVoiceCELTAlpha,
 	UDPPing,
 	UDPVoiceSpeex,
@@ -101,38 +103,39 @@ typedef enum {
 	UDPVoiceOpus,
 } UDPMessageType_t;
 
-
-typedef union payload {
-	MumbleProto::Version *version;
-	MumbleProto::UDPTunnel *UDPTunnel;
-	MumbleProto::Authenticate *authenticate;
-	MumbleProto::Ping *ping;
-	MumbleProto::Reject *reject;
-	MumbleProto::ServerSync *serverSync;
-	MumbleProto::ChannelRemove *channelRemove;
-	MumbleProto::ChannelState *channelState;
-	MumbleProto::UserRemove *userRemove;
-	MumbleProto::UserState *userState;
-	MumbleProto::BanList *banList;	
-	MumbleProto::TextMessage *textMessage;
-	MumbleProto::PermissionDenied *permissionDenied;
+typedef union payload
+{
+	MumbleProto::Version* version;
+	MumbleProto::UDPTunnel* UDPTunnel;
+	MumbleProto::Authenticate* authenticate;
+	MumbleProto::Ping* ping;
+	MumbleProto::Reject* reject;
+	MumbleProto::ServerSync* serverSync;
+	MumbleProto::ChannelRemove* channelRemove;
+	MumbleProto::ChannelState* channelState;
+	MumbleProto::UserRemove* userRemove;
+	MumbleProto::UserState* userState;
+	MumbleProto::BanList* banList;
+	MumbleProto::TextMessage* textMessage;
+	MumbleProto::PermissionDenied* permissionDenied;
 	/* ChanACL not supported */
 	/* ACL not supported */
-	MumbleProto::QueryUsers *queryUsers;
-	MumbleProto::CryptSetup *cryptSetup;
+	MumbleProto::QueryUsers* queryUsers;
+	MumbleProto::CryptSetup* cryptSetup;
 	/* ContextActionAdd not supported */
 	/* ContextAction not supported */
-	MumbleProto::UserList::User *userList_user;
-	MumbleProto::UserList *userList;
-	MumbleProto::VoiceTarget::Target *voiceTarget_target;
-	MumbleProto::VoiceTarget *voiceTarget;
-	MumbleProto::PermissionQuery *permissionQuery;
-	MumbleProto::CodecVersion *codecVersion;
-	MumbleProto::UserStats *userStats;
-	MumbleProto::ServerConfig *serverConfig;
+	MumbleProto::UserList::User* userList_user;
+	MumbleProto::UserList* userList;
+	MumbleProto::VoiceTarget::Target* voiceTarget_target;
+	MumbleProto::VoiceTarget* voiceTarget;
+	MumbleProto::PermissionQuery* permissionQuery;
+	MumbleProto::CodecVersion* codecVersion;
+	MumbleProto::UserStats* userStats;
+	MumbleProto::ServerConfig* serverConfig;
 } payload_t;
 
-typedef struct message {
+typedef struct message
+{
 	messageType_t messageType;
 	int refcount;
 	struct dlist node;
@@ -140,19 +143,17 @@ typedef struct message {
 	payload_t payload;
 } message_t;
 
+int Msg_messageToNetwork(message_t* msg, uint8_t* buffer);
+message_t* Msg_networkToMessage(uint8_t* data, int size);
+void Msg_free(message_t* msg);
+void Msg_inc_ref(message_t* msg);
 
-int Msg_messageToNetwork(message_t *msg, uint8_t *buffer);
-message_t *Msg_networkToMessage(uint8_t *data, int size);
-void Msg_free(message_t *msg);
-void Msg_inc_ref(message_t *msg);
-
-message_t *Msg_CreateVoiceMsg(uint8_t *data, int size);
-message_t *Msg_create(messageType_t messageType);
-void Msg_banList_addEntry(message_t *msg, int index, uint8_t *address, uint32_t mask,
-                          char *name, char *hash, char *reason, char *start, uint32_t duration);
-void Msg_banList_getEntry(message_t *msg, int index, uint8_t **address, uint32_t *mask,
-                          char **name, char **hash, char **reason, char **start, uint32_t *duration);
-message_t *Msg_banList_create(int n_bans);
-
+message_t* Msg_CreateVoiceMsg(uint8_t* data, int size);
+message_t* Msg_create(messageType_t messageType);
+void Msg_banList_addEntry(message_t* msg, int index, uint8_t* address, uint32_t mask,
+char* name, char* hash, char* reason, char* start, uint32_t duration);
+void Msg_banList_getEntry(message_t* msg, int index, uint8_t** address, uint32_t* mask,
+char** name, char** hash, char** reason, char** start, uint32_t* duration);
+message_t* Msg_banList_create(int n_bans);
 
 #endif
