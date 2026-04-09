@@ -2159,6 +2159,16 @@ int32_t NetLibrary::GetVariance()
 	return -1;
 }
 
+int32_t NetLibrary::GetPacketLoss()
+{
+	if (auto impl = GetImpl())
+	{
+		return impl->GetPacketLoss();
+	}
+
+	return -1;
+}
+
 void NetLibrary::SetRichError(const std::string& data /* = "{}" */)
 {
 	m_richError = data;

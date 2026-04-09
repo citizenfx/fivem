@@ -394,6 +394,8 @@ public:
 
 	int32_t GetVariance();
 
+	int32_t GetPacketLoss();
+
 	void SetMetricSink(fwRefContainer<INetMetricSink>& sink);
 
 	virtual void AddReceiveTick() override;
