@@ -115,7 +115,6 @@ struct InfoHttpHandlerComponentLocals : fwRefCountable
 
 				infoJson["requestSteamTicket"] = requestSteamTicket;
 				infoJson["enforceSteamAuth"] = g_enforceSteamAuth->GetValue();
-				infoJson["useNewSteamAppId"] = true;
 
 				infoJson["version"] = 0;
 

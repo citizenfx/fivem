@@ -1656,37 +1656,12 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	};
 
 	static std::string requestSteamTicket = "on";
-	static bool useNewSteamAppId = false;
 	static bool enforceSteamAuth = false;
-	static bool switchedOnce = false;
 
 	continueRequest = [=]()
 	{
 		if (requestSteamTicket == "on")
 		{
-			bool steamResult;
-			if (useNewSteamAppId)
-			{
-				steamResult = cfx::legitimacy::SetSteamAppId(false);
-			}
-			else
-			{
-				steamResult = cfx::legitimacy::SetSteamAppId(true);
-			}
-
-			if (steamResult)
-			{
-				if (switchedOnce)
-				{
-					OnConnectionError("Cannot switch Steam App-ID, please restart " PRODUCT_NAME ".");
-					return;
-				}
-				switchedOnce = true;
-
-				OnConnectionProgress("Switching Steam App-ID...", 0, 100, false);
-				cfx::legitimacy::WaitForAppSwitchWrapper();
-			}
-
 			OnConnectionProgress("Obtaining Steam ticket...", 0, 100, false);
 
 			auto authCallback = [=](std::pair<std::string, std::string> authResult)
@@ -1843,7 +1818,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 					requestSteamTicket = info.value("requestSteamTicket", "on");
 					enforceSteamAuth = info.value("enforceSteamAuth", false);
-					useNewSteamAppId = info.value("useNewSteamAppId", false);
 				}
 #endif
 			}

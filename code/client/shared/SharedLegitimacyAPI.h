@@ -25,6 +25,4 @@ uint64_t DLL_IMPORT GetSteamIdAsIntWrapper();
 std::string DLL_IMPORT GetSteamUsernameWrapper();
 void DLL_IMPORT SetSteamRichPresenceWrapper(std::string key, std::string value);
 void DLL_IMPORT ResetSteamRichPresenceWrapper();
-bool DLL_IMPORT SetSteamAppId(bool legacy);
-void DLL_IMPORT WaitForAppSwitchWrapper();
 }
