@@ -328,62 +328,50 @@ static int Lua_SetStackTraceRoutine(lua_State* L)
 		// get the referenced function
 		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
 
-		// push arguments on the stack
+		// start boundary hint
 		if (start)
 		{
 			auto startRef = (LuaBoundary*)start;
 			lua_pushinteger(L, startRef->hint);
+		}
+		else
+		{
+			lua_pushnil(L);
+		}
 
-			if (startRef->thread)
-			{
-				lua_pushthread(startRef->thread);
-				lua_xmove(startRef->thread, L, 1);
-			}
-			else if (auto thread = luaRuntime->GetRunningThread())
+		// thread for debug.getinfo
+		if (auto thread = luaRuntime->GetRunningThread())
+		{
+			int status = lua_status(thread);
+			if (status == LUA_OK || status == LUA_YIELD)
 			{
 				lua_pushthread(thread);
 				lua_xmove(thread, L, 1);
 			}
 			else
 			{
+				// Thread is in an error state - its stack is not safe to push onto.
 				lua_pushnil(L);
 			}
 		}
 		else
 		{
 			lua_pushnil(L);
-
-			if (auto thread = luaRuntime->GetRunningThread())
-			{
-				lua_pushthread(thread);
-				lua_xmove(thread, L, 1);
-			}
-			else
-			{
-				lua_pushnil(L);
-			}
 		}
 
+		// end boundary hint
 		if (end)
 		{
 			auto endRef = (LuaBoundary*)end;
 			lua_pushinteger(L, endRef->hint);
-
-			if (endRef->thread)
-			{
-				lua_pushthread(endRef->thread);
-				lua_xmove(endRef->thread, L, 1);
-			}
-			else
-			{
-				lua_pushnil(L);
-			}
 		}
 		else
 		{
 			lua_pushnil(L);
-			lua_pushnil(L);
 		}
+
+		// end thread
+		lua_pushnil(L);
 
 		// invoke the tick routine
 		if (lua_pcall(L, 4, 1, eh) != 0)
