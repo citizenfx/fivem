@@ -169,6 +169,7 @@ void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
 	static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, true);
+	static ConVar<bool> nuiDisableGpuDriverBugWorkarounds("nui_disableGpuDriverBugWorkarounds", ConVar_Archive, false);
 
 	static std::string defaultUiUrl = "https://nui-game-internal/ui/app/index.html";
 	static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, defaultUiUrl);
@@ -194,13 +195,22 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	command_line->AppendSwitch("ignore-gpu-blacklist");
 	command_line->AppendSwitch("ignore-gpu-blocklist"); // future proofing for when Google disables the above
 	command_line->AppendSwitch("disable-direct-composition");
-	command_line->AppendSwitch("disable-gpu-driver-bug-workarounds");
+
+	if (nuiDisableGpuDriverBugWorkarounds.GetValue())
+	{
+		command_line->AppendSwitch("disable-gpu-driver-bug-workarounds");
+	}
+
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
 	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
 	command_line->AppendSwitchWithValue("disable-features", "HardwareMediaKeyHandling");
 
 #if !GTA_NY
-	command_line->AppendSwitch("enable-gpu-rasterization");
+	static ConVar<bool> nuiUseGpuRasterization("nui_useGpuRasterization", ConVar_Archive, false);
+	if (nuiUseGpuRasterization.GetValue())
+	{
+		command_line->AppendSwitch("enable-gpu-rasterization");
+	}
 #else
 	command_line->AppendSwitch("disable-gpu-vsync");
 #endif
