@@ -103,7 +103,7 @@ namespace CitizenFX.Core
             {
                 try
                 {
-					var passArgs = CallUtilities.GetPassArguments(callback.Method, args, sourceString);
+					var passArgs = CallUtilities.GetPassArguments(callback.Method, args, sourceString, m_eventName);
 					var rv = callback.DynamicInvoke(passArgs);
 
 					if (rv != null && rv is Task task)
@@ -123,7 +123,7 @@ namespace CitizenFX.Core
 
 	static class CallUtilities
 	{
-		public static object[] GetPassArguments(MethodInfo method, object[] args, string sourceString)
+		public static object[] GetPassArguments(MethodInfo method, object[] args, string sourceString, string eventName = null)
 		{
 			List<object> passArgs = new List<object>();
 
@@ -146,7 +146,27 @@ namespace CitizenFX.Core
 				}
 				else if (value is IConvertible)
 				{
-					return Convert.ChangeType(value, type);
+					var sourceValueType = value.GetType().Name;
+
+					try
+					{
+						return Convert.ChangeType(value, type);
+					}
+					catch (InvalidCastException)
+					{
+						Debug.WriteLine("Error converting argument for event {0}: source {1} sent invalid cast from {2} to {3}.", eventName ?? "<unknown>", sourceString, sourceValueType, type.Name);
+						return Default(type);
+					}
+					catch (FormatException)
+					{
+						Debug.WriteLine("Error converting argument for event {0}: source {1} sent invalid format from {2} to {3}.", eventName ?? "<unknown>", sourceString, sourceValueType, type.Name);
+						return Default(type);
+					}
+					catch (OverflowException)
+					{
+						Debug.WriteLine("Error converting argument for event {0}: source {1} sent overflow value from {2} to {3}.", eventName ?? "<unknown>", sourceString, sourceValueType, type.Name);
+						return Default(type);
+					}
 				}
 
 				throw new InvalidCastException($"Could not cast event argument from {value.GetType().Name} to {type.Name}");
