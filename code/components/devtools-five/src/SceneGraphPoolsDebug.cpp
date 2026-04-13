@@ -261,17 +261,8 @@ static void FwBasePool(rage::fwBasePool* pool, int poolSize, uint8_t* storage, u
 	g_origFwBasePool(pool, poolSize, storage, scratchBuffer, name, classSize, flags);
 }
 
-static int16_t (*g_origComputeSceneNodeIndex)(const void* sceneNode);
-static int16_t ComputeSceneNodeIndex(const void* sceneNode)
-{
-	auto result = g_origComputeSceneNodeIndex(sceneNode);
-	trace("Scene Node Index: %d\n", result);
-	return result;
-}
-
 static HookFunction hookFunction([]()
 {
-	g_origComputeSceneNodeIndex = hook::trampoline(hook::get_pattern("4C 8B C1 0F B6 49 ? 85 C9"), ComputeSceneNodeIndex);
 	g_origFwBasePool = hook::trampoline(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 89 1D ? ? ? ? EB ? 48 89 35 ? ? ? ? 48 8B 0D")), FwBasePool);
 	// Visibility Being
 	{
@@ -323,6 +314,7 @@ static HookFunction hookFunction([]()
 	}
 
 	// Asset scratch buffer guard
+	#ifdef _DEBUG
 	{
 		auto location = hook::get_pattern<char>("48 8D 4C 24 ? E8 ? ? ? ? B0 ? 48 81 C4 ? ? ? ? 5D");
 
@@ -345,6 +337,7 @@ static HookFunction hookFunction([]()
 		hook::nop(location, 5);
 		hook::jump_rcx(location, stub.GetCode());
 	}
+	#endif
 });
 
 static InitFunction initFunction([]()
