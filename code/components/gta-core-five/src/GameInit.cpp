@@ -294,7 +294,7 @@ static InitFunction initFunction([] ()
 	});
 
 	static int warningMessageActive = false;
-	static ConVar<int> warningMessageResult("warningMessageResult", ConVar_None, 0);
+	static ConVar<int> warningMessageResult("warningMessageResult", ConVar_Internal, 0);
 	static int wmButtons;
 
 	static ConsoleCommand warningMessageCmd("warningMessage", [](const std::string& heading, const std::string& label, const std::string& label2, int buttons)

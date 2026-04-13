@@ -2750,10 +2750,10 @@ static InitFunction initFunction([]()
 
 	OnGameFrame.Connect([]()
 	{
-		static ConVar<bool> arenaWarVariable("ui_disableMusicTheme", ConVar_Archive, false);
+		static ConVar<bool> arenaWarVariable("ui_disableMusicTheme", ConVar_Archive | ConVar_UserPref, false);
 #ifdef GTA_FIVE
-		static ConVar<bool> arenaWarVariableForce("ui_forceMusicTheme", ConVar_Archive, false);
-		static ConVar<std::string> musicThemeVariable("ui_selectMusic", ConVar_Archive, "dlc_awxm2018_theme_5_stems");
+		static ConVar<bool> arenaWarVariableForce("ui_forceMusicTheme", ConVar_Archive | ConVar_UserPref, false);
+		static ConVar<std::string> musicThemeVariable("ui_selectMusic", ConVar_Archive | ConVar_UserPref, "dlc_awxm2018_theme_5_stems");
 		static std::string lastSong = musicThemeVariable.GetValue();
 
 		static rage::audSound* g_sound;

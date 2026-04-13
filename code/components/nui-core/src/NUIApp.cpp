@@ -171,7 +171,7 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, true);
 
 	static std::string defaultUiUrl = "https://nui-game-internal/ui/app/index.html";
-	static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, defaultUiUrl);
+	static ConVar<std::string> uiUrlVar("ui_url", ConVar_UserPref, defaultUiUrl);
 
 	if (uiUrlVar.GetValue() != defaultUiUrl)
 	{

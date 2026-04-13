@@ -330,7 +330,7 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 															})
 									 .dump());
 
-			static ConVar<bool> streamerMode("ui_streamerMode", ConVar_None, false);
+			static ConVar<bool> streamerMode("ui_streamerMode", ConVar_UserPref, false);
 			std::string errorData = fmt::sprintf(" Error state: %s", std::string{ data, size });
 
 			if (streamerMode.GetValue())

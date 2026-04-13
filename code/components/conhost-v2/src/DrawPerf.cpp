@@ -85,12 +85,12 @@ static LUID GetAdapterLUID()
 static InitFunction initFunction([]()
 {
 	static bool drawPerfEnabled = false;
-	static ConVar<bool> drawPerf("cl_drawPerf", ConVar_Archive, false, &drawPerfEnabled);
+	static ConVar<bool> drawPerf("cl_drawPerf", ConVar_Archive | ConVar_UserPref, false, &drawPerfEnabled);
 
 	static std::vector<std::tuple<std::shared_ptr<ConVar<bool>>, std::function<std::string()>>> drawPerfModules;
 	auto addDrawPerfModule = [](const std::string& convar, const std::string& label, std::function<std::string()>&& fn)
 	{
-		drawPerfModules.emplace_back(std::make_shared<ConVar<bool>>(convar, ConVar_Archive, true), std::move(fn));
+		drawPerfModules.emplace_back(std::make_shared<ConVar<bool>>(convar, ConVar_Archive | ConVar_UserPref, true), std::move(fn));
 
 		// enable it for console usage
 		seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.extConsole" }, se::Object{ fmt::sprintf("command.%s", convar) }, se::AccessType::Allow);

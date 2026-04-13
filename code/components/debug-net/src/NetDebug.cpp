@@ -201,7 +201,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 	memset(m_inRouteDelaySamples, 0, sizeof(m_inRouteDelaySamples));
 	memset(m_inRouteDelaySamplesArchive, 0, sizeof(m_inRouteDelaySamplesArchive));
 
-	static ConVar<bool> conVar("netgraph", ConVar_Archive, false, &m_enabled);
+	static ConVar<bool> conVar("netgraph", ConVar_Archive | ConVar_UserPref, false, &m_enabled);
 
 	ConHost::OnShouldDrawGui.Connect([this](bool* should)
 	{
@@ -408,7 +408,7 @@ void NetOverlayMetricSink::OnOutgoingCommand(uint32_t type, size_t size, bool re
 }
 
 // log data if enabled
-static ConVar<std::string> netLogFile("net_statsFile", ConVar_Archive, "");
+static ConVar<std::string> netLogFile("net_statsFile", ConVar_Archive | ConVar_UserPref, "");
 
 void NetOverlayMetricSink::OverrideBandwidthStats(uint32_t in, uint32_t out)
 {

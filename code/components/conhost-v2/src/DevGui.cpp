@@ -247,7 +247,7 @@ static InitFunction initFunction([]()
 	});
 
 #ifndef IS_FXSERVER
-	static ConVar<std::string> uiConnectHost("uiConnectHost", ConVar_Archive, "");
+	static ConVar<std::string> uiConnectHost("uiConnectHost", ConVar_Archive | ConVar_UserPref, "");
 
 	static ConsoleCommand uiConnect("uiConnect", []()
 	{

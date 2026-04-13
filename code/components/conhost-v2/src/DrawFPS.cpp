@@ -13,7 +13,7 @@ static InitFunction initFunction([]()
 	static bool streamingListEnabled;
 	static bool streamingMemoryEnabled;
 
-	static ConVar<bool> drawFps("cl_drawFPS", ConVar_Archive, false, &drawFpsEnabled);
+	static ConVar<bool> drawFps("cl_drawFPS", ConVar_Archive | ConVar_UserPref, false, &drawFpsEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
