@@ -4,4 +4,3 @@
 using bool_t = bool;
 
 #endif
-

@@ -8,13 +8,13 @@
    are met:
 
    - Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
+	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -38,28 +38,29 @@
 #define TARGET_MAX_CHANNELS 256
 #define TARGET_MAX_SESSIONS 256
 
-typedef struct {
+typedef struct
+{
 	int channel;
 	bool_t linked;
 	bool_t children;
 } channeltarget_t;
 
-typedef struct {
+typedef struct
+{
 	int id;
 	channeltarget_t channels[TARGET_MAX_CHANNELS];
 	int sessions[TARGET_MAX_SESSIONS];
 	struct dlist node;
 } voicetarget_t;
 
-void Voicetarget_add_id(client_t *client, int targetId);
-void Voicetarget_del_id(client_t *client, int targetId);
+void Voicetarget_add_id(client_t* client, int targetId);
+void Voicetarget_del_id(client_t* client, int targetId);
 
-void Voicetarget_add_session(client_t *client, int targetId, int sessionId);
-void Voicetarget_add_channel(client_t *client, int targetId, int channelId,
-							 bool_t linked, bool_t children);
-voicetarget_t *Voicetarget_get_id(client_t *client, int targetId);
+void Voicetarget_add_session(client_t* client, int targetId, int sessionId);
+void Voicetarget_add_channel(client_t* client, int targetId, int channelId,
+bool_t linked, bool_t children);
+voicetarget_t* Voicetarget_get_id(client_t* client, int targetId);
 
-void Voicetarget_free_all(client_t *client);
-
+void Voicetarget_free_all(client_t* client);
 
 #endif

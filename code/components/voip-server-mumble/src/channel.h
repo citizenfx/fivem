@@ -8,13 +8,13 @@
    are met:
 
    - Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
+	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -35,12 +35,13 @@
 #include "list.h"
 #include "client.h"
 
-typedef struct channel {
+typedef struct channel
+{
 	int id;
-	char *name;
-	char *desc;
-	char *password;
-	struct channel *parent;
+	char* name;
+	char* desc;
+	char* password;
+	struct channel* parent;
 	bool_t temporary, noenter, silent;
 	int position;
 	struct dlist node;
@@ -51,34 +52,36 @@ typedef struct channel {
 	int linkcount;
 } channel_t;
 
-typedef struct {
-	channel_t *chan;
+typedef struct
+{
+	channel_t* chan;
 	struct dlist node;
 } channellist_t;
 
-typedef struct {
-  bool_t CHJOIN_SILENT,
+typedef struct
+{
+	bool_t CHJOIN_SILENT,
 	CHJOIN_NOENTER,
 	CHJOIN_WRONGPW,
 	CHJOIN_NOTFOUND;
 } channelJoinResult_t;
-	
+
 void Chan_init();
 void Chan_free();
-void Chan_addChannel(channel_t *parent, channel_t *sub);
-void Chan_removeChannel(channel_t *c);
-void Chan_addClient(channel_t *c, client_t *client);
-void Chan_removeClient(channel_t *c, client_t *client);
-int Chan_userJoin(channel_t *ch, client_t *client);
-int Chan_userJoin_id(int channelid, client_t *client);
-int Chan_userLeave(client_t *client);
-channelJoinResult_t Chan_userJoin_id_test(int channelid, client_t *client);
-channel_t *Chan_iterate(channel_t **channelpptr);
-channel_t *Chan_iterate_siblings(channel_t *parent, channel_t **channelpptr);
-channel_t *Chan_createChannel(const char *name, const char *desc);
-channel_t *Chan_fromId(int channelid);
-void Chan_freeChannel(channel_t *ch);
-void Chan_buildTreeList(channel_t *ch, struct dlist *head);
-void Chan_freeTreeList(struct dlist *head);
+void Chan_addChannel(channel_t* parent, channel_t* sub);
+void Chan_removeChannel(channel_t* c);
+void Chan_addClient(channel_t* c, client_t* client);
+void Chan_removeClient(channel_t* c, client_t* client);
+int Chan_userJoin(channel_t* ch, client_t* client);
+int Chan_userJoin_id(int channelid, client_t* client);
+int Chan_userLeave(client_t* client);
+channelJoinResult_t Chan_userJoin_id_test(int channelid, client_t* client);
+channel_t* Chan_iterate(channel_t** channelpptr);
+channel_t* Chan_iterate_siblings(channel_t* parent, channel_t** channelpptr);
+channel_t* Chan_createChannel(const char* name, const char* desc);
+channel_t* Chan_fromId(int channelid);
+void Chan_freeChannel(channel_t* ch);
+void Chan_buildTreeList(channel_t* ch, struct dlist* head);
+void Chan_freeTreeList(struct dlist* head);
 
 #endif

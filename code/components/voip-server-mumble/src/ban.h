@@ -8,13 +8,13 @@
    are met:
 
    - Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
+	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -36,24 +36,25 @@
 #include "list.h"
 #include "timer.h"
 
-typedef struct {
+typedef struct
+{
 	uint8_t hash[20];
 	struct sockaddr_storage address;
 	uint32_t mask;
-	char *reason;
-	char *name;
+	char* reason;
+	char* name;
 	time_t time;
 	uint32_t duration;
 	struct dlist node;
 } ban_t;
 
-void Ban_UserBan(client_t *client, char *reason);
+void Ban_UserBan(client_t* client, char* reason);
 void Ban_pruneBanned();
-bool_t Ban_isBanned(client_t *client);
-bool_t Ban_isBannedAddr(struct sockaddr_storage *address);
+bool_t Ban_isBanned(client_t* client);
+bool_t Ban_isBannedAddr(struct sockaddr_storage* address);
 int Ban_getBanCount(void);
-message_t *Ban_getBanList(void);
-void Ban_putBanList(message_t *msg, int n_bans);
+message_t* Ban_getBanList(void);
+void Ban_putBanList(message_t* msg, int n_bans);
 void Ban_clearBanList(void);
 void Ban_init(void);
 void Ban_deinit(void);

@@ -24,8 +24,10 @@ void fx::MumbleVoice::CreateChannel(const int id)
 		return;
 
 	channel_t* channel_itr = NULL;
-	while (Chan_iterate_siblings(parent, &channel_itr) != NULL) {
-		if (strcmp(channel_itr->name, channelName.c_str()) == 0) {
+	while (Chan_iterate_siblings(parent, &channel_itr) != NULL)
+	{
+		if (strcmp(channel_itr->name, channelName.c_str()) == 0)
+		{
 			break;
 		}
 	}
@@ -34,7 +36,7 @@ void fx::MumbleVoice::CreateChannel(const int id)
 		return;
 
 	channel_t* newChannel = Chan_createChannel(channelName.c_str(), "Permanent channel.");
-	//newChannel->position = id;
+	// newChannel->position = id;
 	newChannel->password = NULL;
 	newChannel->noenter = false;
 	newChannel->silent = false;

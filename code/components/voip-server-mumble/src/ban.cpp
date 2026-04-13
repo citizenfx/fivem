@@ -10,11 +10,11 @@
    - Redistributions of source code must retain the above copyright notice,
 	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -44,7 +44,6 @@
 static void Ban_saveBanFile(void);
 static void Ban_readBanFile(void);
 
-
 declare_list(banlist);
 static int bancount; /* = 0 */
 static int ban_duration;
@@ -67,9 +66,9 @@ void Ban_deinit(void)
 	Ban_clearBanList();
 }
 
-void Ban_UserBan(client_t *client, char *reason)
+void Ban_UserBan(client_t* client, char* reason)
 {
-	ban_t *ban;
+	ban_t* ban;
 	char hexhash[41];
 
 	ban = (ban_t*)Memory_safeCalloc(1, sizeof(ban_t));
@@ -85,96 +84,104 @@ void Ban_UserBan(client_t *client, char *reason)
 	list_add_tail(&ban->node, &banlist);
 	bancount++;
 	banlist_changed = true;
-	if(getBoolConf(SYNC_BANFILE))
+	if (getBoolConf(SYNC_BANFILE))
 		Ban_saveBanFile();
 
 	hexhash[0] = '\0';
-	//SSLi_hash2hex(ban->hash, hexhash);
+	// SSLi_hash2hex(ban->hash, hexhash);
 
-	char *clientAddressString = Util_clientAddressToString(client);
+	char* clientAddressString = Util_clientAddressToString(client);
 
 	Log_info_client(client, "User kickbanned. Reason: '%s' Hash: %s IP: %s Banned for: %d seconds",
-		ban->reason, hexhash, clientAddressString, ban->duration);
+	ban->reason, hexhash, clientAddressString, ban->duration);
 
 	free(clientAddressString);
 }
 
-
 void Ban_pruneBanned()
 {
-	struct dlist *itr;
-	ban_t *ban;
+	struct dlist* itr;
+	ban_t* ban;
 
-	list_iterate(itr, &banlist) {
+	list_iterate(itr, &banlist)
+	{
 		ban = list_get_entry(itr, ban_t, node);
 #ifdef DEBUG
 		char hexhash[41];
 		SSLi_hash2hex(ban->hash, hexhash);
-		char *addressString = Util_addressToString(&ban->address);
+		char* addressString = Util_addressToString(&ban->address);
 		Log_debug("BL: User %s Reason: '%s' Hash: %s IP: %s Time left: %d",
-			ban->name, ban->reason, hexhash, addressString,
-			ban->time + ban->duration - time(NULL));
+		ban->name, ban->reason, hexhash, addressString,
+		ban->time + ban->duration - time(NULL));
 		free(addressString);
 #endif
 		/* Duration of 0 = forever */
-		if (ban->duration != 0 && ban->time + ban->duration - time(NULL) <= 0) {
+		if (ban->duration != 0 && ban->time + ban->duration - time(NULL) <= 0)
+		{
 			free(ban->name);
 			free(ban->reason);
 			list_del(&ban->node);
 			free(ban);
 			bancount--;
 			banlist_changed = true;
-			if(getBoolConf(SYNC_BANFILE))
+			if (getBoolConf(SYNC_BANFILE))
 				Ban_saveBanFile();
 		}
 	}
 }
 
-bool_t Ban_isBanned(client_t *client)
+bool_t Ban_isBanned(client_t* client)
 {
-	struct dlist *itr;
-	ban_t *ban;
-	list_iterate(itr, &banlist) {
+	struct dlist* itr;
+	ban_t* ban;
+	list_iterate(itr, &banlist)
+	{
 		ban = list_get_entry(itr, ban_t, node);
 		if (memcmp(ban->hash, client->hash, 20) == 0)
 			return true;
 	}
 	return false;
-
 }
 
-bool_t Ban_isBannedAddr(struct sockaddr_storage *address)
+bool_t Ban_isBannedAddr(struct sockaddr_storage* address)
 {
-	struct dlist *itr;
-	ban_t *ban;
+	struct dlist* itr;
+	ban_t* ban;
 
-	list_iterate(itr, &banlist) {
+	list_iterate(itr, &banlist)
+	{
 		ban = list_get_entry(itr, ban_t, node);
-		if (ban->address.ss_family == address->ss_family) {
-			if (address->ss_family == AF_INET) {
+		if (ban->address.ss_family == address->ss_family)
+		{
+			if (address->ss_family == AF_INET)
+			{
 				uint32_t a1, a2, mask;
 				mask = (ban->mask == 32) ? UINT32_MAX : (1u << ban->mask) - 1;
-				a1 = (uint32_t)((struct sockaddr_in *)&ban->address)->sin_addr.s_addr & mask;
-				a2 = (uint32_t)((struct sockaddr_in *)address)->sin_addr.s_addr & mask;
+				a1 = (uint32_t)((struct sockaddr_in*)&ban->address)->sin_addr.s_addr & mask;
+				a2 = (uint32_t)((struct sockaddr_in*)address)->sin_addr.s_addr & mask;
 				if (a1 == a2)
 					return true;
-			} else {
+			}
+			else
+			{
 				uint64_t mask[2];
-				uint64_t *a1 = (uint64_t *) &((struct sockaddr_in6 *)&ban->address)->sin6_addr.s6_addr;
-				uint64_t *a2 = (uint64_t *) &((struct sockaddr_in6 *)address)->sin6_addr.s6_addr;
+				uint64_t* a1 = (uint64_t*)&((struct sockaddr_in6*)&ban->address)->sin6_addr.s6_addr;
+				uint64_t* a2 = (uint64_t*)&((struct sockaddr_in6*)address)->sin6_addr.s6_addr;
 
 				if (ban->mask == 128)
 					mask[0] = mask[1] = 0xffffffffffffffffULL;
-				else if (ban->mask > 64) {
+				else if (ban->mask > 64)
+				{
 					mask[0] = 0xffffffffffffffffULL;
 					mask[1] = SWAPPED(~((1ULL << (128 - ban->mask)) - 1));
-				} else {
+				}
+				else
+				{
 					mask[0] = SWAPPED(~((1ULL << (64 - ban->mask)) - 1));
 					mask[1] = 0ULL;
 				}
-				if ((a1[0] & mask[0]) == (a2[0] & mask[0]) &&
-				    (a1[1] & mask[1]) == (a2[1] & mask[1]))
-				    return true;
+				if ((a1[0] & mask[0]) == (a2[0] & mask[0]) && (a1[1] & mask[1]) == (a2[1] & mask[1]))
+					return true;
 			}
 		}
 	}
@@ -187,43 +194,47 @@ int Ban_getBanCount(void)
 	return bancount;
 }
 
-message_t *Ban_getBanList(void)
+message_t* Ban_getBanList(void)
 {
 	int i = 0;
-	struct dlist *itr;
-	ban_t *ban;
-	message_t *msg;
+	struct dlist* itr;
+	ban_t* ban;
+	message_t* msg;
 	struct tm timespec;
 	char timestr[32];
 	char hexhash[41];
 	uint8_t address[16];
 
 	msg = Msg_banList_create(bancount);
-	list_iterate(itr, &banlist) {
+	list_iterate(itr, &banlist)
+	{
 		ban = list_get_entry(itr, ban_t, node);
-		//gmtime_r(&ban->time, &timespec);
+		// gmtime_r(&ban->time, &timespec);
 		strftime(timestr, 32, "%Y-%m-%dT%H:%M:%SZ", &timespec);
-		//SSLi_hash2hex(ban->hash, hexhash);
+		// SSLi_hash2hex(ban->hash, hexhash);
 		memset(address, 0, 16);
 
-		if(ban->address.ss_family == AF_INET) {
-			memcpy(&address[12], &((struct sockaddr_in *)&ban->address)->sin_addr, 4);
+		if (ban->address.ss_family == AF_INET)
+		{
+			memcpy(&address[12], &((struct sockaddr_in*)&ban->address)->sin_addr, 4);
 			memset(&address[10], 0xff, 2);
 			Msg_banList_addEntry(msg, i++, address, ban->mask + 96, ban->name, hexhash, ban->reason, timestr, ban->duration);
-		} else {
-			memcpy(&address, &((struct sockaddr_in6 *)&ban->address)->sin6_addr, 16);
+		}
+		else
+		{
+			memcpy(&address, &((struct sockaddr_in6*)&ban->address)->sin6_addr, 16);
 			Msg_banList_addEntry(msg, i++, address, ban->mask, ban->name, hexhash, ban->reason, timestr, ban->duration);
 		}
-
 	}
 	return msg;
 }
 
 void Ban_clearBanList(void)
 {
-	ban_t *ban;
+	ban_t* ban;
 	struct dlist *itr, *save;
-	list_iterate_safe(itr, save, &banlist) {
+	list_iterate_safe(itr, save, &banlist)
+	{
 		ban = list_get_entry(itr, ban_t, node);
 		free(ban->name);
 		free(ban->reason);
@@ -233,30 +244,35 @@ void Ban_clearBanList(void)
 	}
 }
 
-void Ban_putBanList(message_t *msg, int n_bans)
+void Ban_putBanList(message_t* msg, int n_bans)
 {
 	int i = 0;
 	struct tm timespec;
-	ban_t *ban;
+	ban_t* ban;
 	char *hexhash, *name, *reason, *start;
 	uint32_t duration, mask;
-	uint8_t *address;
-	uint8_t mappedBytes[12] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff};
-	char *tz;
+	uint8_t* address;
+	uint8_t mappedBytes[12] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff };
+	char* tz;
 
-	for (i = 0; i < n_bans; i++) {
+	for (i = 0; i < n_bans; i++)
+	{
 		Msg_banList_getEntry(msg, i, &address, &mask, &name, &hexhash, &reason, &start, &duration);
 		ban = (ban_t*)Memory_safeMalloc(1, sizeof(ban_t));
-		//SSLi_hex2hash(hexhash, ban->hash);
+		// SSLi_hex2hash(hexhash, ban->hash);
 
-		if(memcmp(address, mappedBytes, 12) == 0) {
-			memcpy(&((struct sockaddr_in *)&ban->address)->sin_addr, &address[12], 4);
+		if (memcmp(address, mappedBytes, 12) == 0)
+		{
+			memcpy(&((struct sockaddr_in*)&ban->address)->sin_addr, &address[12], 4);
 			ban->address.ss_family = AF_INET;
-			if (mask > 32) {
+			if (mask > 32)
+			{
 				mask = 32;
 			}
-		} else {
-			memcpy(&((struct sockaddr_in6 *)&ban->address)->sin6_addr, address, 16);
+		}
+		else
+		{
+			memcpy(&((struct sockaddr_in6*)&ban->address)->sin6_addr, address, 16);
 			ban->address.ss_family = AF_INET6;
 		}
 
@@ -286,30 +302,32 @@ void Ban_putBanList(message_t *msg, int n_bans)
 		bancount++;
 	}
 	banlist_changed = true;
-	if(getBoolConf(SYNC_BANFILE))
+	if (getBoolConf(SYNC_BANFILE))
 		Ban_saveBanFile();
 }
 
 static void Ban_saveBanFile(void)
 {
-	struct dlist *itr;
-	ban_t *ban;
+	struct dlist* itr;
+	ban_t* ban;
 	char hexhash[41];
-	FILE *file;
+	FILE* file;
 
 	if (!banlist_changed)
 		return;
 	file = fopen(getStrConf(BANFILE), "w");
-	if (file == NULL) {
+	if (file == NULL)
+	{
 		Log_warn("Could not save banlist to file %s: %s", getStrConf(BANFILE), strerror(errno));
 		return;
 	}
-	list_iterate(itr, &banlist) {
+	list_iterate(itr, &banlist)
+	{
 		ban = list_get_entry(itr, ban_t, node);
-		//SSLi_hash2hex(ban->hash, hexhash);
+		// SSLi_hash2hex(ban->hash, hexhash);
 
-		char *addressString = Util_addressToString(&ban->address);
-		fprintf(file, "%s,%s,%d,%ld,%d,%s,%s\n", hexhash, addressString,ban->mask, (long int)ban->time, ban->duration, ban->name, ban->reason);
+		char* addressString = Util_addressToString(&ban->address);
+		fprintf(file, "%s,%s,%d,%ld,%d,%s,%s\n", hexhash, addressString, ban->mask, (long int)ban->time, ban->duration, ban->name, ban->reason);
 		free(addressString);
 	}
 	fclose(file);
@@ -319,50 +337,64 @@ static void Ban_saveBanFile(void)
 
 static void Ban_readBanFile(void)
 {
-	ban_t *ban;
+	ban_t* ban;
 	char line[1024], *hexhash, *address, *name, *reason;
 	uint32_t mask, duration;
 	time_t time;
-	char *p;
-	FILE *file;
+	char* p;
+	FILE* file;
 
 	file = fopen(getStrConf(BANFILE), "r");
-	if (file == NULL) {
+	if (file == NULL)
+	{
 		Log_warn("Could not read banlist file %s: %s", getStrConf(BANFILE), strerror(errno));
 		return;
 	}
-	while (fgets(line, 1024, file) != NULL) {
+	while (fgets(line, 1024, file) != NULL)
+	{
 		p = strtok(line, ",");
 		hexhash = p;
 		p = strtok(NULL, ",");
-		if (p == NULL) break;
+		if (p == NULL)
+			break;
 		address = p;
 		p = strtok(NULL, ",");
-		if (p == NULL) break;
+		if (p == NULL)
+			break;
 		mask = strtoul(p, NULL, 0);
 		p = strtok(NULL, ",");
-		if (p == NULL) break;
+		if (p == NULL)
+			break;
 		time = strtoul(p, NULL, 0);
 		p = strtok(NULL, ",");
-		if (p == NULL) break;
+		if (p == NULL)
+			break;
 		duration = strtoul(p, NULL, 0);
 		p = strtok(NULL, ",");
-		if (p == NULL) break;
+		if (p == NULL)
+			break;
 		name = p;
 		p = strtok(NULL, "\n");
-		if (p == NULL) break;
+		if (p == NULL)
+			break;
 		reason = p;
 
 		ban = (ban_t*)Memory_safeMalloc(1, sizeof(ban_t));
 		memset(ban, 0, sizeof(ban_t));
-		//SSLi_hex2hash(hexhash, ban->hash);
-		if (inet_pton(AF_INET, address, &ban->address) == 0) {
-			if (inet_pton(AF_INET6, address, &ban->address) == 0) {
+		// SSLi_hex2hash(hexhash, ban->hash);
+		if (inet_pton(AF_INET, address, &ban->address) == 0)
+		{
+			if (inet_pton(AF_INET6, address, &ban->address) == 0)
+			{
 				Log_warn("Address \"%s\" is illegal!", address);
-			} else {
+			}
+			else
+			{
 				ban->address.ss_family = AF_INET6;
 			}
-		} else {
+		}
+		else
+		{
 			ban->address.ss_family = AF_INET;
 		}
 		ban->name = strdup(name);

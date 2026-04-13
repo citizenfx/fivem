@@ -8,13 +8,13 @@
    are met:
 
    - Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
+	 this list of conditions and the following disclaimer.
    - Redistributions in binary form must reproduce the above copyright notice,
-     this list of conditions and the following disclaimer in the documentation
-     and/or other materials provided with the distribution.
+	 this list of conditions and the following disclaimer in the documentation
+	 and/or other materials provided with the distribution.
    - Neither the name of the Developers nor the names of its contributors may
-     be used to endorse or promote products derived from this software without
-     specific prior written permission.
+	 be used to endorse or promote products derived from this software without
+	 specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -34,7 +34,8 @@
 #include "messages.h"
 #include "config.h"
 
-typedef enum param {
+typedef enum param
+{
 	CERTIFICATE,
 	KEY,
 	PASSPHRASE,
@@ -60,28 +61,30 @@ typedef enum param {
 	SHOW_ADDRESSES,
 } param_t;
 
-typedef struct {
-	const char *parent;
-	const char *name;
-	const char *description;
-	const char *password;
+typedef struct
+{
+	const char* parent;
+	const char* name;
+	const char* description;
+	const char* password;
 	bool_t noenter, silent;
 	int position;
 } conf_channel_t;
 
-typedef struct {
-	const char *source;
-	const char *destination;
+typedef struct
+{
+	const char* source;
+	const char* destination;
 } conf_channel_link_t;
 
-void Conf_init(const char *conffile);
+void Conf_init(const char* conffile);
 void Conf_deinit();
-bool_t Conf_ok(const char *conffile);
+bool_t Conf_ok(const char* conffile);
 
-const char *getStrConf(param_t param);
+const char* getStrConf(param_t param);
 int getIntConf(param_t param);
 bool_t getBoolConf(param_t param);
-int Conf_getNextChannel(conf_channel_t *chdesc, int index);
-int Conf_getNextChannelLink(conf_channel_link_t *chlink, int index);
+int Conf_getNextChannel(conf_channel_t* chdesc, int index);
+int Conf_getNextChannelLink(conf_channel_link_t* chlink, int index);
 
 #endif

@@ -12,7 +12,7 @@
 #include "channel.h"
 #include "sharedmemory_struct.h"
 
-void Sharedmemory_init( int bindport, int bindport6 );
+void Sharedmemory_init(int bindport, int bindport6);
 void Sharedmemory_update(void);
 void Sharedmemory_alivetick(void);
 void Sharedmemory_deinit(void);
