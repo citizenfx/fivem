@@ -120,7 +120,7 @@ static bool CTaskNM_CanRagdoll(CPed* ped, int32_t flags, rage::fwEntity* source,
 
 static HookFunction hookFunction([]()
 {
-	static ConVar<bool> sanitizeRagdollEvents("game_sanitizeRagdollEvents", ConVar_Replicated, false, &g_sanitizeRagdollEvents);
+	static ConVar<bool> sanitizeRagdollEvents("game_sanitizeRagdollEvents", ConVar_Replicated, true, &g_sanitizeRagdollEvents);
 
 	eTaskType::TASK_NM_CONTROL = *hook::get_pattern<int32_t>("40 84 ED 74 0C 81 FB ? ? ? ? 0F 85", 0x7);
 	CPed::kPlayerFlagsOffset = *hook::get_pattern<int32_t>("8A 81 ? ? ? ? A8 01 75 04 A8 02 75 53", 0x2);
