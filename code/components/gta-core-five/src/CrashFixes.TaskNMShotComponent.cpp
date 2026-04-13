@@ -31,14 +31,6 @@ enum eRagdollComponent
 	RAGDOLL_MAX_COMPONENTS
 };
 
-static inline void ClampRagdollComponent(uint8_t& component)
-{
-	if (component >= RAGDOLL_MAX_COMPONENTS)
-	{
-		component = RAGDOLL_HEAD;
-	}
-}
-
 static void (*g_CClonedNMShotInfo_Serialise)(hook::FlexStruct*, hook::FlexStruct*);
 
 static void CClonedNMShotInfo_Serialise(hook::FlexStruct* thisPtr, hook::FlexStruct* serialiser)
@@ -47,23 +39,15 @@ static void CClonedNMShotInfo_Serialise(hook::FlexStruct* thisPtr, hook::FlexStr
 
 	uint8_t& component = thisPtr->At<uint8_t>(0x68);
 
-	ClampRagdollComponent(component);
-}
-
-static void (*g_CClonedNMFlinchInfo_Serialise)(hook::FlexStruct*, hook::FlexStruct*);
-
-static void CClonedNMFlinchInfo_Serialise(hook::FlexStruct* thisPtr, hook::FlexStruct* serialiser)
-{
-	g_CClonedNMFlinchInfo_Serialise(thisPtr, serialiser);
-
-	uint8_t& component = thisPtr->At<uint8_t>(0x7c);
-
-	ClampRagdollComponent(component);
+	if (component >= RAGDOLL_MAX_COMPONENTS)
+	{
+		component = RAGDOLL_HEAD;
+	}
 }
 
 static HookFunction hookFunction([]()
 {
-	// A null pointer dereference can occur during the NM Shot & Flinch task, which is for ragdoll-inducing weapons like stun gun & melees.
+	// A null pointer dereference can occur during the NM Shot task, which is for ragdoll-inducing weapons like stun gun.
 	//
 	// Cheaters can serialize an out-of-bounds m_Component value,
 	// the game later uses this invalid index when accessing phBoundComposite bounds data.
@@ -72,5 +56,4 @@ static HookFunction hookFunction([]()
 	// This hook clamps the component index to the valid range preventing out-of-bounds access and avoiding the crash.
 
 	g_CClonedNMShotInfo_Serialise = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B FA 48 8B F1 E8 ? ? ? ? ? ? ? 48 8D 56 ? 45 33 C0 48 8B CF FF 50 ? 80 7E ? 00 75 ? ? ? ? 48 8B CF FF 90 ? ? ? ? 84 C0 74 ? ? ? ? 48 8D 56"), CClonedNMShotInfo_Serialise);
-	g_CClonedNMFlinchInfo_Serialise = hook::trampoline(hook::get_pattern("40 55 53 56 57 41 56 41 57 48 8B EC 48 83 EC ? 48 8B FA"), g_CClonedNMFlinchInfo_Serialise);
 });
