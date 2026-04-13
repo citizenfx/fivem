@@ -72,5 +72,5 @@ static HookFunction hookFunction([]()
 	// This hook clamps the component index to the valid range preventing out-of-bounds access and avoiding the crash.
 
 	g_CClonedNMShotInfo_Serialise = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B FA 48 8B F1 E8 ? ? ? ? ? ? ? 48 8D 56 ? 45 33 C0 48 8B CF FF 50 ? 80 7E ? 00 75 ? ? ? ? 48 8B CF FF 90 ? ? ? ? 84 C0 74 ? ? ? ? 48 8D 56"), CClonedNMShotInfo_Serialise);
-	g_CClonedNMFlinchInfo_Serialise = hook::trampoline(hook::get_pattern("40 55 53 56 57 41 56 41 57 48 8B EC 48 83 EC ? 48 8B FA"), g_CClonedNMFlinchInfo_Serialise);
+	g_CClonedNMFlinchInfo_Serialise = hook::trampoline(hook::get_pattern("40 55 53 56 57 41 56 41 57 48 8B EC 48 83 EC ? 48 8B FA"), CClonedNMFlinchInfo_Serialise);
 });
