@@ -165,7 +165,7 @@ public:
 	{
 		if (!IsMasterInitialized())
 		{
-			FatalError("Failed to send LinkProtocolIPC message, no master process");
+			FatalErrorNoReport("Failed to send LinkProtocolIPC message, no master process");
 		}
 
 		auto msg = ToWide(_msg);

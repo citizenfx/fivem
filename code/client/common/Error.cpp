@@ -24,7 +24,7 @@
 #include <rapidjson/writer.h>
 
 template<typename T>
-static std::string FormatErrorPickup(std::string_view buffer, const T& thisError)
+static std::string FormatErrorPickup(std::string_view buffer, const T& thisError, bool noUpload = false)
 {
 	rapidjson::Document document;
 	document.SetObject();
@@ -32,6 +32,11 @@ static std::string FormatErrorPickup(std::string_view buffer, const T& thisError
 	document.AddMember("file", rapidjson::Value(std::get<0>(thisError).data(), rapidjson::SizeType(std::get<0>(thisError).length())), document.GetAllocator());
 	document.AddMember("line", rapidjson::Value(std::get<1>(thisError)), document.GetAllocator());
 	document.AddMember("sigHash", rapidjson::Value(std::get<2>(thisError)), document.GetAllocator());
+
+	if (noUpload)
+	{
+		document.AddMember("no_upload", rapidjson::Value(true), document.GetAllocator());
+	}
 
 	rapidjson::StringBuffer sbuffer;
 	rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
@@ -156,6 +161,63 @@ static int SysError(const char* buffer)
 	return 0;
 }
 
+static int SysErrorNoReport(const char* buffer)
+{
+#ifdef WIN32
+	HWND wnd = CoreGetGameWindow();
+
+#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
+	if (CoreIsDebuggerPresent())
+#else
+	if (IsDebuggerPresent())
+#endif
+	{
+		__debugbreak();
+	}
+
+#if !defined(COMPILING_CONSOLE) && !defined(IS_FXSERVER)
+	auto errorPickup = FormatErrorPickup(buffer, g_thisError, true);
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\error-pickup").c_str(), L"wb");
+
+	if (f)
+	{
+		fprintf(f, "%s", errorPickup.c_str());
+		fclose(f);
+
+#if defined(COMPILING_LAUNCH) && !defined(COMPILING_DIAG)
+		if (MinidumpInitialized())
+#endif
+		{
+			return -1;
+		}
+	}
+#endif
+
+#if defined(IS_FXSERVER)
+	fprintf(stderr, "Fatal Error: %s", buffer);
+#endif
+
+	if (IsUserConnected())
+	{
+		MessageBoxW(wnd, ToWide(buffer).c_str(), L"Fatal Error", MB_OK | MB_ICONSTOP);
+	}
+
+#ifdef _DEBUG
+#ifndef IS_FXSERVER
+	assert(!"breakpoint time");
+#endif
+#endif
+
+	TerminateProcess(GetCurrentProcess(), 1);
+#else
+	fprintf(stderr, "%s", buffer);
+
+	raise(SIGTERM);
+#endif
+
+	return 0;
+}
+
 struct ErrorDataPerProcess
 {
 	bool inFatalError = false;
@@ -208,7 +270,7 @@ inline ErrorData* GetErrorData()
 extern "C" ErrorData* GetErrorData();
 #endif
 
-static int GlobalErrorHandler(int eType, const char* buffer)
+static int GlobalErrorHandler(int eType, const char* buffer, bool noReport = false)
 {
 	auto errorData = GetErrorData();
 
@@ -284,7 +346,7 @@ static int GlobalErrorHandler(int eType, const char* buffer)
 		inFatalError = true;
 		lastFatalError = buffer;
 
-		return SysError(buffer);
+		return noReport ? SysErrorNoReport(buffer) : SysError(buffer);
 	}
 
 	inError = false;
@@ -333,6 +395,12 @@ int FatalErrorNoExceptRealV(const char* file, int line, uint32_t stringHash, con
 #endif
 
 	return FatalErrorRealV(file, line, stringHash, string, formatList);
+}
+
+int FatalErrorNoReportRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList)
+{
+	ScopedError error(file, line, stringHash);
+	return GlobalErrorHandler(ERR_FATAL, fmt::vsprintf(string, formatList).c_str(), true);
 }
 #else
 void GlobalErrorV(const char* string, fmt::printf_args formatList)

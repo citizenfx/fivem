@@ -697,7 +697,7 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 
 				if (result != VK_SUCCESS)
 				{
-					FatalError("Failed to allocate memory for Vulkan. VkResult: %s", ResultToString(result));
+					FatalErrorNoReport("Failed to allocate memory for Vulkan. VkResult: %s", ResultToString(result));
 				}
 
 				VkBindImageMemoryInfo BindImageMemoryInfo = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO };
@@ -708,7 +708,7 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 
 				if (result != VK_SUCCESS)
 				{
-					FatalError("Failed to bind Vulkan image memory. VkResult: %s", ResultToString(result));
+					FatalErrorNoReport("Failed to bind Vulkan image memory. VkResult: %s", ResultToString(result));
 				}
 
 				auto newImage = new rage::sga::TextureVK::ImageData;

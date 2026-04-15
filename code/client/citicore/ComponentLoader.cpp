@@ -236,7 +236,7 @@ void ComponentLoader::InitializeWithString(std::string_view cacheBuf)
 		auto comp = LoadComponent(componentName.c_str());
 		if (!comp.GetRef())
 		{
-			FatalError("Could not load component %s.", comp->GetName().c_str());
+			FatalErrorNoReport("Could not load component %s.", comp->GetName().c_str());
 		}
 
 		m_loadedComponents.push_back(comp);
