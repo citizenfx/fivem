@@ -670,6 +670,21 @@ static InitFunction initFunction([]()
 			return resources;
 		};
 
+		static auto isPreventRestart = [resman](const std::string& resourceName) -> bool
+		{
+			auto resource = resman->GetResource(resourceName);
+
+			if (!resource.GetRef())
+			{
+				return false;
+			}
+
+			auto metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
+			auto iv = metaData->GetEntries("prevent_restart");
+
+			return iv.begin() != iv.end();
+		};
+
 		static auto commandRef = instance->AddCommand("start", [=](const std::string& resourceName)
 		{
 			if (resourceName.empty())
@@ -693,6 +708,12 @@ static InitFunction initFunction([]()
 			if (!resource.GetRef())
 			{
 				trace("^3Couldn't find resource %s.^7\n", resourceName);
+				return;
+			}
+
+			if (isPreventRestart(resourceName))
+			{
+				trace("^3Resource %s has prevent_restart set and cannot be started via console commands.^7\n", resourceName);
 				return;
 			}
 
@@ -732,6 +753,12 @@ static InitFunction initFunction([]()
 				return;
 			}
 
+			if (isPreventRestart(resourceName))
+			{
+				trace("^3Resource %s has prevent_restart set and cannot be stopped via console commands.^7\n", resourceName);
+				return;
+			}
+
 			if (!resource->Stop())
 			{
 				if (resource->GetState() != fx::ResourceState::Stopped)
@@ -749,6 +776,12 @@ static InitFunction initFunction([]()
 			if (!resource.GetRef())
 			{
 				trace("^3Couldn't find resource %s.^7\n", resourceName);
+				return;
+			}
+
+			if (isPreventRestart(resourceName))
+			{
+				trace("^3Resource %s has prevent_restart set and cannot be restarted via console commands.^7\n", resourceName);
 				return;
 			}
 
@@ -789,6 +822,12 @@ static InitFunction initFunction([]()
 				if (!resource.GetRef())
 				{
 					trace("^3Couldn't find resource %s.^7\n", resourceName);
+					return false;
+				}
+
+				if (isPreventRestart(resourceName))
+				{
+					trace("^3Resource %s has prevent_restart set and cannot be managed via console commands.^7\n", resourceName);
 					return false;
 				}
 
