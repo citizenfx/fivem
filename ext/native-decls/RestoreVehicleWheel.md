@@ -11,7 +11,9 @@ void RESTORE_VEHICLE_WHEEL(Vehicle vehicle, int wheelIndex);
 
 Restores a previously broken-off vehicle wheel by index. Inverse of [BREAK_OFF_VEHICLE_WHEEL](#_0xA274CADB).
 
-Clears the broken-off state, restores tyre and suspension health to full. And reattaches the detached wheel fragment back to the vehicle.
+Clears the broken-off state, restores tyre and suspension health to full, and reattaches the detached wheel fragment back to the vehicle.
+
+Please note that this is not synchronized across the network.
 
 ## Examples
 ```lua
