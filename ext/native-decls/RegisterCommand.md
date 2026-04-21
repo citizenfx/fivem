@@ -14,6 +14,8 @@ Commands registered using this function can also be executed by resources, using
 
 The restricted bool is not used on the client side. Permissions can only be checked on the server side, so if you want to limit your command with an ace permission automatically, make it a server command (by registering it in a server script).
 
+This will automatically add permission for the current resource to execute the registered command.
+
 **Example result**:
 
 ![](https://i.imgur.com/TaCnG09.png)
