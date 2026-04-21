@@ -2300,8 +2300,15 @@ void LoadManifest(const char* tagName)
 
 				CDataFileMgr::DataFile entry = { 0 };
 				strcpy_s(entry.name, name.c_str());
+				entry.type = DataFileType::DLC_ITYP_REQUEST;
 
-				mounter->UnloadDataFile(&entry);
+				__try
+				{
+					mounter->UnloadDataFile(&entry);
+				}
+				__except (FilterUnmountOperation(entry))
+				{
+				}
 			}
 		}
 
@@ -2344,8 +2351,15 @@ void LoadManifest(const char* tagName)
 
 					CDataFileMgr::DataFile entry = { 0 };
 					strcpy_s(entry.name, name.c_str());
+					entry.type = DataFileType::DLC_ITYP_REQUEST;
 
-					mounter->UnloadDataFile(&entry);
+					__try
+					{
+						mounter->UnloadDataFile(&entry);
+					}
+					__except (FilterUnmountOperation(entry))
+					{
+					}
 				}
 			}
 		}
