@@ -675,6 +675,7 @@ void StateBagComponentImpl::AttachToObject(fx::ResourceManager* object)
 
 void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, std::string* outBagNameName)
 {
+#ifndef IS_FXSERVER
 	// read state
 	rl::MessageBuffer buffer{ reinterpret_cast<const uint8_t*>(dataRaw.data()), dataRaw.size() };
 
@@ -766,6 +767,7 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, s
 	{
 		*outBagNameName = bagName;
 	}
+#endif
 }
 
 void StateBagComponentImpl::HandlePacketV2(int source, net::packet::StateBagV2& message, std::string_view* outBagNameName)

@@ -679,6 +679,7 @@ void EventReassemblyComponentImpl::NetworkTick()
 /// <param name="data">The packet data we received</param>
 void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view data)
 {
+#ifndef IS_FXSERVER
 	rl::MessageBufferView buffer(net::Span<uint8_t>(const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data.data())), static_cast<size_t>(data.size())));
 
 	EventPacket packet;
@@ -870,6 +871,7 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 			HandleReceivedPacket(source, receiveData, net::packet::ReassembledEvent::kFragmentSize);
 		}
 	}
+#endif
 }
 
 /// <summary>

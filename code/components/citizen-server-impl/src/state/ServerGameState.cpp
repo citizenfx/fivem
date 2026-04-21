@@ -89,8 +89,6 @@ std::shared_ptr<ConVar<std::string>> g_oneSyncLogVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncWorkaround763185;
 std::shared_ptr<ConVar<bool>> g_oneSyncBigMode;
 std::shared_ptr<ConVar<bool>> g_oneSyncLengthHack;
-std::shared_ptr<ConVar<bool>> g_experimentalOneSyncPopulation;
-std::shared_ptr<ConVar<bool>> g_experimentalNetGameEventHandler;
 std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
 std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
@@ -4660,11 +4658,6 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 			trace("^3You must specify an event name to block.^7\n");
 			return;
 		}
-		if (!g_experimentalNetGameEventHandler->GetValue())
-		{
-			trace("^3You must enable sv_experimentalNetGameEventHandler convar before using this command.^7\n");
-			return;
-		}
 
 		std::transform(eventName.begin(), eventName.end(), eventName.begin(),
 		[](unsigned char c)
@@ -4681,11 +4674,6 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 		if (eventName.empty())
 		{
 			trace("^3You must specify an event name to unblock.^7\n");
-			return;
-		}
-		if (!g_experimentalNetGameEventHandler->GetValue())
-		{
-			trace("^3You must enable sv_experimentalNetGameEventHandler convar before using this command.^7\n");
 			return;
 		}
 
@@ -7873,9 +7861,6 @@ static InitFunction initFunction([]()
 		// or maybe, beyond?
 		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_ReadOnly, false);
 
-		g_experimentalOneSyncPopulation = instance->AddVariable<bool>("sv_experimentalOneSyncPopulation", ConVar_None, true);
-		g_experimentalNetGameEventHandler = instance->AddVariable<bool>("sv_experimentalNetGameEventHandler", ConVar_None, true);
-
 		constexpr bool canLengthHack =
 #ifdef STATE_RDR3
 		false
@@ -7885,21 +7870,11 @@ static InitFunction initFunction([]()
 		;
 
 		fx::SetBigModeHack(g_oneSyncBigMode->GetValue(), canLengthHack && g_oneSyncLengthHack->GetValue());
-		if (g_experimentalOneSyncPopulation->GetValue() || g_experimentalNetGameEventHandler->GetValue())
-		{
-			fx::SetOneSyncPopulation(g_oneSyncPopulation->GetValue());
-		}
+		fx::SetOneSyncPopulation(g_oneSyncPopulation->GetValue());
 
 		if (g_oneSyncVar->GetValue() == fx::OneSyncState::On)
 		{
-			if (g_experimentalOneSyncPopulation->GetValue() || g_experimentalNetGameEventHandler->GetValue())
-			{
-				fx::SetBigModeHack(true, canLengthHack);
-			}
-			else
-			{
-				fx::SetBigModeHack(true, canLengthHack && g_oneSyncPopulation->GetValue());
-			}
+			fx::SetBigModeHack(true, canLengthHack);
 
 			g_oneSyncBigMode->GetHelper()->SetRawValue(true);
 			g_oneSyncLengthHack->GetHelper()->SetRawValue(fx::IsLengthHack());
@@ -7952,12 +7927,9 @@ static InitFunction initFunction([]()
 
 		auto gameServer = instance->GetComponent<fx::GameServer>();
 
+#if 0
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgNetGameEvent"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::ByteReader& reader, fx::ENetPacketPtr packet)
 		{
-			if (g_experimentalNetGameEventHandler->GetValue())
-			{
-				return;
-			}
 			// this should match up with SendGameEventRaw on client builds
 			// 1024 bytes is from the rlBuffer
 			// 512 is from the max amount of players (2 * 256)
@@ -8037,6 +8009,7 @@ static InitFunction initFunction([]()
 				routeEvent();
 			}
 		} });
+#endif
 
 		auto consoleCtx = instance->GetComponent<console::Context>();
 
