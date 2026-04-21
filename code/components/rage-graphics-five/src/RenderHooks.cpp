@@ -1508,7 +1508,7 @@ static int Return1()
 
 static void __declspec(noinline) DisplayD3DCrashMessageGeneric(const std::string& errorBody)
 {
-	FatalError("DirectX encountered an unrecoverable error: %s", errorBody);
+	FatalErrorNoReport("DirectX encountered an unrecoverable error: %s", errorBody);
 }
 
 static void __declspec(noinline) DisplayD3DCrashMessageReShadeENBSeries(const std::string& errorBody)

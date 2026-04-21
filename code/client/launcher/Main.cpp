@@ -114,7 +114,7 @@ void DLLError(DWORD errorCode, std::string_view dllName)
 	// force verifying game files
 	_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
 
-	FatalError("Could not load %s\nThis is usually a sign of an incomplete game installation. Please restart %s and try again.\n\nError 0x%08x - %s",
+	FatalErrorNoReport("Could not load %s\nThis is usually a sign of an incomplete game installation. Please restart %s and try again.\n\nError 0x%08x - %s",
 		dllName,
 		ToNarrow(PRODUCT_NAME),
 		HRESULT_FROM_WIN32(errorCode),

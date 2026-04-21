@@ -13,6 +13,7 @@ bool IsErrorException(PEXCEPTION_POINTERS ep);
 int GlobalErrorRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList);
 int FatalErrorRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList);
 int FatalErrorNoExceptRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList);
+int FatalErrorNoReportRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList);
 
 template<typename... TArgs>
 inline int GlobalErrorReal(const char* file, int line, uint32_t stringHash, const char* string, const TArgs&... args)
@@ -32,6 +33,12 @@ inline int FatalErrorNoExceptReal(const char* file, int line, uint32_t stringHas
 	return FatalErrorNoExceptRealV(file, line, stringHash, string, fmt::make_printf_args(args...));
 }
 
+template<typename... TArgs>
+inline int FatalErrorNoReportReal(const char* file, int line, uint32_t stringHash, const char* string, const TArgs&... args)
+{
+	return FatalErrorNoReportRealV(file, line, stringHash, string, fmt::make_printf_args(args...));
+}
+
 template<uint32_t I>
 inline uint32_t const_uint32()
 {
@@ -49,6 +56,7 @@ inline uint32_t const_uint32()
 #define FatalError(f, ...) do { if (FatalErrorReal(_CFX_FILE, __LINE__, const_uint32<fnv1a_t<4>::Hash(f)>(), f, ##__VA_ARGS__) < 0) { *(volatile int*)ERROR_CRASH_MAGIC = 0; } } while(false)
 #endif
 #define FatalErrorNoExcept(f, ...) do { if (FatalErrorNoExceptReal(_CFX_FILE, 99999, const_uint32<fnv1a_t<4>::Hash(f)>(), f, ##__VA_ARGS__) < 0) { } } while(false)
+#define FatalErrorNoReport(f, ...) do { if (FatalErrorNoReportReal(_CFX_FILE, __LINE__, const_uint32<fnv1a_t<4>::Hash(f)>(), f, ##__VA_ARGS__) < 0) { *(volatile int*)ERROR_CRASH_MAGIC = 0; } } while(false)
 #else
 void GlobalErrorV(const char* string, fmt::printf_args formatList);
 void FatalErrorV(const char* string, fmt::printf_args formatList);

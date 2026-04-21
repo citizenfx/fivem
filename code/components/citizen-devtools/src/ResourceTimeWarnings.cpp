@@ -198,22 +198,22 @@ static TThreadStack* GetThread()
 
 static void __declspec(noinline) StoppedRespondingNVIDIA(const std::string& reasoning)
 {
-	FatalError(STOPPED_RESPONDING_MESSAGE("(NVIDIA drivers)"), reasoning);
+	FatalErrorNoReport(STOPPED_RESPONDING_MESSAGE("(NVIDIA drivers)"), reasoning);
 }
 
 static void __declspec(noinline) StoppedRespondingScripts(const std::string& reasoning)
 {
-	FatalError(STOPPED_RESPONDING_MESSAGE("(script deadloop)"), reasoning);
+	FatalErrorNoReport(STOPPED_RESPONDING_MESSAGE("(script deadloop)"), reasoning);
 }
 
 static void __declspec(noinline) StoppedRespondingRenderQuery(const std::string& reasoning)
 {
-	FatalError(STOPPED_RESPONDING_MESSAGE("(DirectX query)"), reasoning);
+	FatalErrorNoReport(STOPPED_RESPONDING_MESSAGE("(DirectX query)"), reasoning);
 }
 
 static void __declspec(noinline) StoppedRespondingGeneric(const std::string& reasoning)
 {
-	FatalError(STOPPED_RESPONDING_MESSAGE(""), reasoning);
+	FatalErrorNoReport(STOPPED_RESPONDING_MESSAGE(""), reasoning);
 }
 
 #ifdef GTA_FIVE
