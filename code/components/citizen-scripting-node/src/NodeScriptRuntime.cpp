@@ -151,6 +151,18 @@ const std::string_view& resource)
 
 		fwRefContainer<vfs::Device> device = !res.empty() && res[0] == '@' ? vfs::GetDevice(res) : nullptr;
 		std::string path = res;
+
+		// Handle VFS scheme paths (e.g., "citizen:/scripting/v8/main.js") that may
+		// reach Node's fs layer directly
+		if (!device.GetRef())
+		{
+			auto colonSlashPos = res.find(":/");
+			if (colonSlashPos != std::string::npos && colonSlashPos > 0 && (res.find('/') == std::string::npos || colonSlashPos < res.find('/')))
+			{
+				device = vfs::GetDevice(res);
+			}
+		}
+
 		if (!device.GetRef())
 		{
 			std::string absolutePath = std::filesystem::absolute(std::filesystem::path(path)).string();
@@ -659,7 +671,32 @@ result_t NodeScriptRuntime::LoadHostFileInternal(char* scriptFile, v8::Local<v8:
 	char* resourceName;
 	m_resourceHost->GetResourceName(&resourceName);
 
-	return LoadFileInternal(stream, (scriptFile[0] != '@') ? const_cast<char*>(fmt::sprintf("@%s/%s", resourceName, scriptFile).c_str()) : scriptFile, outScript);
+	// Resolve VFS scheme paths (e.g., "citizen:/scripting/v8/main.js") to real filesystem
+	// paths before passing them as script names to V8. This prevents Node.js from
+	// misinterpreting scheme paths as relative filesystem paths and triggering fs.open
+	// with mangled paths that fail the permission check.
+	std::string scriptName(scriptFile);
+	auto colonSlashPos = scriptName.find(":/");
+	if (colonSlashPos != std::string::npos && colonSlashPos > 0 && (scriptName.find('/') == std::string::npos || colonSlashPos < scriptName.find('/')))
+	{
+		fwRefContainer<vfs::Device> device = vfs::GetDevice(scriptName);
+		if (device.GetRef())
+		{
+			std::string absPath = device->GetAbsolutePath();
+			if (!absPath.empty())
+			{
+				// Construct the resolved path: device's absolute path + relative portion after ":/"
+				scriptName = absPath + scriptName.substr(colonSlashPos + 2);
+			}
+		}
+	}
+
+	if (scriptFile[0] != '@' && scriptName == scriptFile)
+	{
+		scriptName = fmt::sprintf("@%s/%s", resourceName, scriptFile);
+	}
+
+	return LoadFileInternal(stream, const_cast<char*>(scriptName.c_str()), outScript);
 }
 
 result_t NodeScriptRuntime::RunFileInternal(char* scriptName, std::function<result_t(char*, v8::Local<v8::Script>*)> loadFunction)
