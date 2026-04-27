@@ -166,6 +166,8 @@ static const char* poolEntriesTable[] = {
 	"CTask",
 	"OcclusionPathNode",
 	"OcclusionPortalInfo",
+	"CNetObjVehicle",
+	"CVehicleSyncData",
 #include "gta_vtables.h"
 	"Decorator",
 	"StreamPed req data",
