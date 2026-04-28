@@ -115,7 +115,7 @@ namespace CfxRePlaceholders {
 export function replaceCfxRePlaceholders(message: string, server?: IServerView | null | undefined): string {
   if (message.includes(CfxRePlaceholders.STATUSPAGE_STR)) {
     return message
-      .replace(CfxRePlaceholders.STATUSPAGE_RE, '<a href="https://status.cfx.re">Cfx.re Status</a>')
+      .replace(CfxRePlaceholders.STATUSPAGE_RE, '<a href="https://support.rockstargames.com/servicestatus">Cfx.re Status</a>')
       .replace(CfxRePlaceholders.SUPPORT_RE, '<a href="https://aka.cfx.re/support">Cfx.re Support</a>');
   }
 

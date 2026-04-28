@@ -1,7 +1,6 @@
 export enum LinkedIdentityProvider {
   Steam = 'steam',
   Discord = 'discord',
-  XboxLive = 'xbl',
   ROS = 'ros',
   Cfxre = 'fivem',
 }
