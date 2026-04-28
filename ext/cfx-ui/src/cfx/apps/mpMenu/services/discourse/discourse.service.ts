@@ -105,7 +105,7 @@ class DiscourseService implements IAccountService, AppContribution {
   }
 
   private recreateClientId() {
-    this.clientId = randomBytes(32);
+    this.clientId = randomBytes(64);
   }
 
   constructor() {
