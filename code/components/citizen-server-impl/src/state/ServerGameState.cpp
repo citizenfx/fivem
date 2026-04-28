@@ -1796,7 +1796,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				localLastFrameIndex = entity->lastFrameIndex;
 			}
 
-			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, syncData.hasCreated };
+			ces.Insert(entity->handle, ClientEntityData{ entity, baseFrameIndex, syncData.hasCreated });
 
 			if (syncData.hasCreated && !syncData.hasRoutedStateBag)
 			{
@@ -1979,10 +1979,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				size_t thisMaxBacklog = maxSavedClientFrames;
 
-				if (client->GetLastSeen() > 5s)
+				/*if (client->GetLastSeen() > 5s)
 				{
 					thisMaxBacklog = maxSavedClientFramesWorstCase;
-				}
+				}*/
 
 				// gradually remove if needed
 				thisMaxBacklog = std::max(thisMaxBacklog, clientDataUnlocked->frameStates.size() - 2);
@@ -1998,6 +1998,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				firstFrameState = m_frameIndex;
 			}
+			
+			ces.Sort();
 
 			// emplace new frame
 			clientDataUnlocked->frameStates.emplace(m_frameIndex, std::move(ces));
@@ -4268,8 +4270,8 @@ void ServerGameState::HandleGameStateNAck(fx::ServerInstanceBase* instance, cons
 		{
 			if (auto frameIt = states.find(frame); frameIt != states.end())
 			{
-				auto& [synced, deletions] = frameIt->second;
-				for (auto& [objectId, entData] : synced)
+				ClientEntityState& clientEntityState = frameIt->second;
+				for (auto& [objectId, entData] : clientEntityState.GetSyncedEntities())
 				{
 					if (auto ent = entData.GetEntity(this))
 					{
@@ -4292,7 +4294,7 @@ void ServerGameState::HandleGameStateNAck(fx::ServerInstanceBase* instance, cons
 					}
 				}
 
-				for (auto [identPair, deletionData] : deletions)
+				for (auto [identPair, deletionData] : clientEntityState.deletions)
 				{
 					clientData->entitiesToDestroy[identPair] = { fx::sync::SyncEntityPtr{}, deletionData };
 				}
@@ -4307,13 +4309,13 @@ void ServerGameState::HandleGameStateNAck(fx::ServerInstanceBase* instance, cons
 		// propagate these frames into newer states, as well
 		for (auto frameIt = states.upper_bound(lastMissingFrame); frameIt != states.end(); frameIt++)
 		{
-			auto& [synced, deletions] = frameIt->second;
+			ClientEntityState& clientEntityState = frameIt->second;
 
 			for (const auto& [objectId, correction] : lastSentCorrections)
 			{
-				if (auto entIt = synced.find(objectId); entIt != synced.end())
+				if (auto entIt = clientEntityState.GetClientEntityData(objectId); entIt != nullptr)
 				{
-					entIt->second.lastSent = correction;
+					entIt->lastSent = correction;
 				}
 			}
 		}
@@ -4329,10 +4331,10 @@ void ServerGameState::HandleGameStateNAck(fx::ServerInstanceBase* instance, cons
 		{
 			for (auto& ignoreListEntry : packet.GetIgnoreList())
 			{
-				auto& [synced, deletions] = frameIt->second;
-				if (auto entIter = synced.find(ignoreListEntry.entry); entIter != synced.end())
+				ClientEntityState& clientEntityState = frameIt->second;
+				if (auto entIter = clientEntityState.GetClientEntityData(ignoreListEntry.entry); entIter != nullptr)
 				{
-					if (auto ent = entIter->second.GetEntity(this))
+					if (auto ent = entIter->GetEntity(this))
 					{
 						std::lock_guard _(ent->frameMutex);
 						ent->lastFramesSent[slotId] = std::min(ignoreListEntry.lastFrame, ent->lastFramesSent[slotId]);
@@ -4347,10 +4349,10 @@ void ServerGameState::HandleGameStateNAck(fx::ServerInstanceBase* instance, cons
 			for (uint16_t objectId : packet.GetRecreateList())
 			{
 				GS_LOG("attempt recreate of id %d for client %d\n", objectId, client->GetNetId());
-				auto& [synced, deletions] = frameIt->second;
-				if (auto entIter = synced.find(objectId); entIter != synced.end())
+				ClientEntityState& clientEntityState = frameIt->second;
+				if (auto entIter = clientEntityState.GetClientEntityData(objectId); entIter != nullptr)
 				{
-					if (auto ent = entIter->second.GetEntity(this))
+					if (auto ent = entIter->GetEntity(this))
 					{
 						const auto entIdentifier = MakeHandleUniqifierPair(objectId, ent->uniqifier);
 						if (auto syncedIt = clientData->syncedEntities.find(entIdentifier); syncedIt != clientData->syncedEntities.end())
@@ -4397,14 +4399,14 @@ void ServerGameState::HandleGameStateAck(fx::ServerInstanceBase* instance, const
 	auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
 			
 	const auto& ref = clientData->frameStates[frameIndex];
-	const auto& [synced, deletions] = ref;
+	const ClientEntityState& clientEntityState = ref;
 
 	{
 		for (const uint16_t objectId : packet.GetRecreateList())
 		{
-			if (auto entIter = synced.find(objectId); entIter != synced.end())
+			if (auto entIter = clientEntityState.GetClientEntityData(objectId); entIter != nullptr)
 			{
-				if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
+				if (auto ent = entIter->GetEntity(sgs.GetRef()))
 				{
 					if (auto secIt = clientData->syncedEntities.find(MakeHandleUniqifierPair(objectId, ent->uniqifier)); secIt != clientData->syncedEntities.end())
 					{
@@ -4416,9 +4418,9 @@ void ServerGameState::HandleGameStateAck(fx::ServerInstanceBase* instance, const
 
 		for (auto& ignoreListEntry : packet.GetIgnoreList())
 		{
-			if (auto entIter = synced.find(ignoreListEntry.entry); entIter != synced.end())
+			if (auto entIter = clientEntityState.GetClientEntityData(ignoreListEntry.entry); entIter != nullptr)
 			{
-				if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
+				if (auto ent = entIter->GetEntity(sgs.GetRef()))
 				{
 					std::lock_guard _(ent->frameMutex);
 					ent->lastFramesSent[slotId] = std::min(ent->lastFramesSent[slotId], ignoreListEntry.lastFrame);
@@ -4429,7 +4431,7 @@ void ServerGameState::HandleGameStateAck(fx::ServerInstanceBase* instance, const
 	}
 
 	{
-		for (auto& [id, entityData] : synced)
+		for (auto& [id, entityData] : clientEntityState.GetSyncedEntities())
 		{
 			fx::sync::SyncEntityPtr entityRef = entityData.GetEntity(sgs.GetRef());
 

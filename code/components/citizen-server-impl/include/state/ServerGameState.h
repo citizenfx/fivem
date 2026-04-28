@@ -30,6 +30,8 @@ static constexpr const size_t kGamePlayerCap =
 #include <variant>
 
 #include <EASTL/bitset.h>
+#include <EASTL/algorithm.h>
+#include <EASTL/sort.h>
 #include <EASTL/deque.h>
 #include <EASTL/fixed_map.h>
 #include <EASTL/fixed_hash_map.h>
@@ -1278,17 +1280,67 @@ struct EntityDeletionData
 	bool forceSteal; // should we force a steal from the client?
 };
 
-struct ClientEntityState
+class ClientEntityState
 {
-#ifdef _WIN32
-	eastl::vector_map<uint16_t, ClientEntityData, std::less<uint16_t>, EASTLAllocatorType, eastl::deque<eastl::pair<uint16_t, ClientEntityData>, EASTLAllocatorType>> syncedEntities;
-#else
-	// on Linux/Clang/libstdc++/dunno the above vector_map leads to very rare corruption under high load
-	eastl::fixed_map<uint16_t, ClientEntityData, 192> syncedEntities;
-#endif
-
+public:
 	// and 24 deletions per frame
 	eastl::fixed_vector<std::tuple<uint32_t, EntityDeletionData>, 24> deletions;
+	
+	void Insert(uint16_t handle, ClientEntityData clientEntityData)
+	{
+		syncedEntities.emplace_back(handle, clientEntityData);
+	}
+	
+	void Sort()
+	{
+		eastl::sort(syncedEntities.begin(), syncedEntities.end(), [](const auto& lhs, const auto& rhs)
+		{
+			return lhs.first < rhs.first;
+		});
+	}
+	
+	ClientEntityData* GetClientEntityData(uint16_t id)
+	{
+		auto it = eastl::lower_bound(syncedEntities.begin(), syncedEntities.end(), id, [](const auto& entry, uint16_t value)
+		{
+			return entry.first < value;
+		});
+
+		if (it != syncedEntities.end() && it->first == id)
+		{
+			return &it->second;
+		}
+
+		return nullptr;
+	}
+	
+	const ClientEntityData* GetClientEntityData(uint16_t id) const
+	{
+		auto it = eastl::lower_bound(syncedEntities.begin(), syncedEntities.end(), id, [](const auto& entry, uint16_t value)
+		{
+			return entry.first < value;
+		});
+
+		if (it != syncedEntities.end() && it->first == id)
+		{
+			return &it->second;
+		}
+
+		return nullptr;
+	}
+	
+	eastl::vector<eastl::pair<uint16_t, ClientEntityData>>& GetSyncedEntities()
+	{
+		return syncedEntities;
+	}
+	
+	const eastl::vector<eastl::pair<uint16_t, ClientEntityData>>& GetSyncedEntities() const
+	{
+		return syncedEntities;
+	}
+
+private:
+	eastl::vector<eastl::pair<uint16_t, ClientEntityData>> syncedEntities;
 };
 
 struct SyncedEntityData
