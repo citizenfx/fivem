@@ -43,7 +43,9 @@ public:
 
 	virtual void HandlePacketV2(int source, const net::packet::ReassembledEventV2& packet) = 0;
 
+#ifndef IS_FXSERVER
 	virtual void TriggerEvent(int target, std::string_view eventName, std::string_view eventPayload, int bytesPerSecond = 50000) = 0;
+#endif
 
 	virtual void TriggerEventV2(int target, std::string_view eventName, std::string_view eventPayload, int bytesPerSecond = 50000) = 0;
 
