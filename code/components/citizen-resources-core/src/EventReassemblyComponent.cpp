@@ -419,6 +419,11 @@ void EventReassemblyComponentImpl::TriggerEventV2(const int target, std::string_
 /// <param name="event">ReceiveEvent that contains the infos about the packet to receive. It contains the map of packets to reassemble which should be complete now</param>
 void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::shared_ptr<ReceiveEvent>& event, uint32_t fragmentSize, const bool v2)
 {
+	if (m_sink->LimitEvent(source))
+	{
+		return;
+	}
+
 	// reassemble the buffer
 	std::vector<uint8_t> eventPayload(event->ackedBits.size() * fragmentSize);
 	size_t readSize = 0;
@@ -445,6 +450,13 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 		uint16_t nameLength;
 		reader.Field(nameLength);
 		reader.Field(name, nameLength);
+
+		// Strip trailing null terminator if present (much older clients include it in the length)
+		if (!name.empty() && name.back() == '\0')
+		{
+			name = name.substr(0, name.size() - 1);
+		}
+
 		reader.Field(data, reader.GetRemaining());
 	}
 	else
@@ -466,11 +478,6 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 
 	// get the resource manager and eventing component
 	fwRefContainer<fx::ResourceEventManagerComponent> eventManager = m_resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
-
-	if (m_sink->LimitEvent(source))
-	{
-		return;
-	}
 
 	// and queue the event
 	eventManager->QueueEvent(
@@ -695,6 +702,11 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 		return;
 	}
 
+	if (packet.packetIdx >= packet.totalPackets)
+	{
+		return;
+	}
+
 	if (packet.IsAck())
 	{
 		// received a ack packet to indicate the remote side received a payload packet
@@ -780,8 +792,14 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 
 			// note down as acked
 			auto& ackBits = receiveData->ackedBits;
+
+			if (packet.totalPackets != ackBits.size())
+			{
+				return;
+			}
+
 			// packetIdx (0, ackBitsSize] is the relative index of the packet inside the event to receive
-			bool ackedPacket = (packet.packetIdx < ackBits.size()) ? ackBits[packet.packetIdx] : false;
+			bool ackedPacket = ackBits[packet.packetIdx];
 
 			// Event has already been completed or acked: just send an ACK.
 			if (receiveData->source == source && (receiveData->completed || ackedPacket))
@@ -801,12 +819,7 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 			// receiveData->source == source is always true
 			else if (receiveData->source == source)
 			{
-				// check to prevent overflow of the ack bitset
-				// but the relative index of the event packet should always be below, otherwise its invalid data
-				if (packet.packetIdx < ackBits.size())
-				{
-					ackBits.set(packet.packetIdx, true);
-				}
+				ackBits.set(packet.packetIdx, true);
 
 				// copy the payload from the packet to our ReceiveEvent to assemble it when all data is received
 				{
@@ -884,6 +897,11 @@ void EventReassemblyComponentImpl::HandlePacketV2(int source, const net::packet:
 {
 	// packet that has no total amount of packet is invalid
 	if (packet.totalPackets == static_cast<uint16_t>(0))
+	{
+		return;
+	}
+
+	if (packet.packetIdx >= packet.totalPackets)
 	{
 		return;
 	}
@@ -973,8 +991,14 @@ void EventReassemblyComponentImpl::HandlePacketV2(int source, const net::packet:
 
 			// note down as acked
 			auto& ackBits = receiveData->ackedBits;
+
+			if (packet.totalPackets != ackBits.size() )
+			{
+				return;
+			}
+
 			// packetIdx (0, ackBitsSize] is the relative index of the packet inside the event to receive
-			bool ackedPacket = (packet.packetIdx < ackBits.size()) ? ackBits[packet.packetIdx] : false;
+			bool ackedPacket = ackBits[packet.packetIdx];
 
 			// Event has already been completed or acked: just send an ACK.
 			if (receiveData->source == source && (receiveData->completed || ackedPacket))
@@ -990,12 +1014,6 @@ void EventReassemblyComponentImpl::HandlePacketV2(int source, const net::packet:
 			// receiveData->source == source is always true
 			else if (receiveData->source == source)
 			{
-				// check to prevent overflow of the ack bitset
-				// but the relative index of the event packet should always be below, otherwise its invalid data
-				if (packet.packetIdx >= ackBits.size())
-				{
-					return;
-				}
 
 				ackBits.set(packet.packetIdx, true);
 

@@ -109,7 +109,7 @@ namespace
 		// get the owning server instance
 		const auto rac = resourceManager->GetComponent<fx::EventReassemblyComponent>();
 
-		rac->TriggerEventV2(std::stoi(targetSrcIdx), std::string_view{ eventName.c_str(), eventName.size() + 1 }, std::string_view{ reinterpret_cast<const char*>(data), dataLen }, bps);
+		rac->TriggerEventV2(std::stoi(targetSrcIdx), std::string_view{ eventName.c_str(), eventName.size() }, std::string_view{ reinterpret_cast<const char*>(data), dataLen }, bps);
 	}
 
 	void TriggerDisabledLatentClientEventInternal(fx::ScriptContext& context)
