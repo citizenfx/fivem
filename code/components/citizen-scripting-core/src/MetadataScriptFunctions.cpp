@@ -128,17 +128,32 @@ static InitFunction initFunction([]()
 		// try opening the file from the resource's home directory
 		const char* fileName = context.CheckArgument<const char*>(1);
 
-		std::filesystem::path canonical = std::filesystem::weakly_canonical(
-		std::filesystem::path(rootPath) / fileName);
-		if (canonical.string().rfind(
-			std::filesystem::weakly_canonical(rootPath).string(), 0)
-			!= 0)
+		// Strip the file name to a relative path so that absolute paths
+		// (e.g. "/etc/passwd", "C:\…") don't cause operator/ to discard
+		// the root directory.
+		std::string sanitizedFileName = std::filesystem::path(fileName).relative_path().string();
+		// Remove any remaining leading slashes/backslashes
+		while (!sanitizedFileName.empty() && (sanitizedFileName[0] == '/' || sanitizedFileName[0] == '\\'))
+		{
+			sanitizedFileName.erase(sanitizedFileName.begin());
+		}
+
+		if (sanitizedFileName.empty())
 		{
 			context.SetResult(nullptr);
 			return;
 		}
 
-		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(rootPath + "/" + fileName);
+		std::filesystem::path canonicalRoot = std::filesystem::weakly_canonical(rootPath);
+		std::filesystem::path canonical = std::filesystem::weakly_canonical(
+			std::filesystem::path(rootPath) / sanitizedFileName);
+		if (canonical.native().rfind(canonicalRoot.native(), 0) != 0)
+		{
+			context.SetResult(nullptr);
+			return;
+		}
+
+		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(canonical.string());
 
 		if (!stream.GetRef())
 		{
@@ -204,17 +219,31 @@ static InitFunction initFunction([]()
 		const char* fileName = context.CheckArgument<const char*>(1);
 		const auto& rootPath = resource->GetPath();
 
-		std::filesystem::path canonical = std::filesystem::weakly_canonical(
-		std::filesystem::path(rootPath) / fileName);
-		if (canonical.string().rfind(
-			std::filesystem::weakly_canonical(rootPath).string(), 0)
-			!= 0)
+		// Strip the file name to a relative path so that absolute paths
+		// don't cause operator/ to discard the root directory.
+		std::string sanitizedFileName = std::filesystem::path(fileName).relative_path().string();
+		while (!sanitizedFileName.empty() && (sanitizedFileName[0] == '/' || sanitizedFileName[0] == '\\'))
+		{
+			sanitizedFileName.erase(sanitizedFileName.begin());
+		}
+
+		if (sanitizedFileName.empty())
 		{
 			context.SetResult(false);
 			return;
 		}
 
-		const std::string filePath = rootPath + "/" + fileName;
+		std::filesystem::path canonicalRoot = std::filesystem::weakly_canonical(rootPath);
+		std::filesystem::path canonical = std::filesystem::weakly_canonical(
+			std::filesystem::path(rootPath) / sanitizedFileName);
+
+		if (canonical.native().rfind(canonicalRoot.native(), 0) != 0)
+		{
+			context.SetResult(false);
+			return;
+		}
+
+		const std::string filePath = canonical.string();
 
 		fwRefContainer<vfs::Device> device = vfs::GetDevice(filePath);
 		auto handle = device->Create(filePath);
