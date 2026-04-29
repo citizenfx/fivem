@@ -8,7 +8,10 @@
 
 #include "packethandlers/ReassembledEventPacketHandler.h"
 
+#include "ClientDropReasons.h"
 #include "EventReassemblyComponent.h"
+#include "GameServer.h"
+#include "KeyedRateLimiter.h"
 #include "ReassembledEventPacket.h"
 #include "ResourceManager.h"
 
@@ -17,7 +20,8 @@ namespace fx
 std::shared_ptr<ConVar<bool>> g_enableNetEventReassemblyConVar;
 }
 
-fx::ServerDecorators::ReassembledEventPacketHandler::ReassembledEventPacketHandler(fx::ServerInstanceBase* instance): m_rac(instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::EventReassemblyComponent>())
+fx::ServerDecorators::ReassembledEventPacketHandler::ReassembledEventPacketHandler(fx::ServerInstanceBase* instance)
+	: m_rac(instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::EventReassemblyComponent>())
 {
 }
 
@@ -36,17 +40,46 @@ bool fx::ServerDecorators::ReassembledEventPacketHandler::Process(ServerInstance
 			// packet needs to be moved to prevent packet memory from being freed
 			(void)packet;
 		});
-	}, instance, client, m_rac, packet);
+	},
+	instance, client, m_rac, packet);
 }
 
-fx::ServerDecorators::ReassembledEventV2PacketHandler::ReassembledEventV2PacketHandler(fx::ServerInstanceBase* instance): m_rac(instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::EventReassemblyComponent>())
+fx::ServerDecorators::ReassembledEventV2PacketHandler::ReassembledEventV2PacketHandler(fx::ServerInstanceBase* instance)
+	: m_rac(instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::EventReassemblyComponent>())
 {
 }
 
 bool fx::ServerDecorators::ReassembledEventV2PacketHandler::Process(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader, ENetPacketPtr& packet)
 {
+	static fx::RateLimiterStore<uint32_t, false> latentEventRateLimiterStore{
+		instance->GetComponent<console::Context>().GetRef()
+	};
+
+	constexpr double kLatentEventRateLimit = 75.f;
+	constexpr double kLatentEventRateLimitBurst = 125.f;
+	static auto latentEventRateLimiter = latentEventRateLimiterStore.GetRateLimiter(
+	"latentEvent", fx::RateLimiterDefaults{ kLatentEventRateLimit, kLatentEventRateLimitBurst });
+
+	constexpr double kLatentEventRateFloodLimit = 150.f;
+	constexpr double kLatentEventRateFloodLimitBurst = 175.f;
+	static auto latentEventRateFloodLimiter = latentEventRateLimiterStore.GetRateLimiter(
+	"latentEventFlood", fx::RateLimiterDefaults{ kLatentEventRateFloodLimit, kLatentEventRateFloodLimitBurst });
+
 	if (!g_enableNetEventReassemblyConVar->GetValue())
 	{
+		return false;
+	}
+
+	const uint32_t netId = client->GetNetId();
+
+	if (!latentEventRateLimiter->Consume(netId))
+	{
+		return false;
+	}
+
+	if (!latentEventRateFloodLimiter->Consume(netId))
+	{
+		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::LATENT_NET_EVENT_RATE_LIMIT, "latent event packet overflow.");
 		return false;
 	}
 
@@ -58,7 +91,8 @@ bool fx::ServerDecorators::ReassembledEventV2PacketHandler::Process(ServerInstan
 			// packet needs to be moved to prevent packet memory from being freed
 			(void)packet;
 		});
-	}, instance, client, m_rac, packet);
+	},
+	instance, client, m_rac, packet);
 }
 
 static InitFunction initFunction([]()
