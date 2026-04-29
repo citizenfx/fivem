@@ -336,6 +336,8 @@ CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrows
 
 OVERLAY_DECL fwEvent<const char*, CefRefPtr<CefRequest>, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;
 
+OVERLAY_DECL fwEvent<CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, CefRefPtr<CefRequest>, CefRefPtr<CefResourceHandler>&> OnGetResourceHandler;
+
 const std::map<std::string_view, std::string_view, std::less<>> g_mimeTypeMap{
 	{ "*3gpp", "audio/3gpp" },
 	{ "*jpm", "video/jpm" },
