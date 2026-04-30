@@ -76,7 +76,7 @@ char stub_seg[0x100000];
 #pragma bss_seg(".cdummy")
 char dummy_seg[0x8000000];
 
-char stub_seg[0x100000];
+char stub_seg[0x400000];
 #elif (!defined(IS_LAUNCHER))
 #error No dummy segments defined!
 #endif
