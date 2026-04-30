@@ -15,11 +15,56 @@
 #include <tbb/concurrent_vector.h>
 
 #include <HttpClient.h>
+#include <TcpListenManager.h>
 
 using json = nlohmann::json;
 
 static HttpClient* httpClient;
 static std::atomic<int> reqToken;
+static fx::ServerInstanceBase* g_serverInstance;
+
+static std::string RewriteNucleusUrl(const std::string& url)
+{
+	static const std::string kNucleusSuffix = ".users.cfx.re";
+
+	// Find scheme end
+	auto schemeEnd = url.find("://");
+	if (schemeEnd == std::string::npos)
+	{
+		return url;
+	}
+
+	auto hostStart = schemeEnd + 3;
+	auto pathStart = url.find('/', hostStart);
+	if (pathStart == std::string::npos)
+	{
+		pathStart = url.size();
+	}
+
+	std::string authority = url.substr(hostStart, pathStart - hostStart);
+
+	// Strip port from host if present
+	auto portPos = authority.find(':');
+	std::string host = (portPos != std::string::npos) ? authority.substr(0, portPos) : authority;
+
+	if (host.size() > kNucleusSuffix.size() &&
+		host.compare(host.size() - kNucleusSuffix.size(), kNucleusSuffix.size(), kNucleusSuffix) == 0)
+	{
+		int port = 30120;
+		if (g_serverInstance)
+		{
+			auto tcpManager = g_serverInstance->GetComponent<fx::TcpListenManager>();
+			if (tcpManager.GetRef())
+			{
+				port = tcpManager->GetPrimaryPort();
+			}
+		}
+
+		return "http://localhost:" + std::to_string(port) + url.substr(pathStart);
+	}
+
+	return url;
+}
 
 template<bool IsJson>
 void PerformHttpRequestInternal(fx::ScriptContext& context)
@@ -97,6 +142,9 @@ void PerformHttpRequestInternal(fx::ScriptContext& context)
 				map["followLocation"].convert_if_not_nil(followLocation);
 			}
 
+			// If the URL targets *.users.cfx.re, rewrite to localhost
+			url = RewriteNucleusUrl(url);
+
 			auto responseHeaders = std::make_shared<HttpHeaderList>();
 			auto responseCode = std::make_shared<int>();
 
@@ -168,6 +216,11 @@ void PerformHttpRequestInternal(fx::ScriptContext& context)
 static InitFunction initFunction([]()
 {
 	httpClient = new HttpClient(L"FXServer/PerformHttpRequest");
+
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	{
+		g_serverInstance = instance;
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("PERFORM_HTTP_REQUEST_INTERNAL", PerformHttpRequestInternal<true>);
 	fx::ScriptEngine::RegisterNativeHandler("PERFORM_HTTP_REQUEST_INTERNAL_EX", PerformHttpRequestInternal<false>);

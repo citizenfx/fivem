@@ -441,4 +441,8 @@ struct nui_s
 extern
 	OVERLAY_DECL
 	fwEvent<const char*, CefRefPtr<CefRequest>, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;
+
+extern
+	OVERLAY_DECL
+	fwEvent<CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, CefRefPtr<CefRequest>, CefRefPtr<CefResourceHandler>&> OnGetResourceHandler;
 #endif

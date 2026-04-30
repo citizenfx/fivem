@@ -460,6 +460,15 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 	return RV_CONTINUE;
 }
 
+CefRefPtr<CefResourceHandler> NUIClient::GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request)
+{
+	CefRefPtr<CefResourceHandler> handler;
+
+	OnGetResourceHandler(browser, frame, request, handler);
+
+	return handler;
+}
+
 void NUIClient::AddProcessMessageHandler(std::string key, TProcessMessageHandler handler)
 {
 	m_processMessageHandlers[key] = handler;
