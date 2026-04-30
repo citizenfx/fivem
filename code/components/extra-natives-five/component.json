@@ -15,7 +15,8 @@
 		"net",
 		"voip:mumble",
 		"vendor:directxtex",
-		"vendor:im3d"
+		"vendor:im3d",
+		"conhost:v2"
 	],
 	"provides": []
 }

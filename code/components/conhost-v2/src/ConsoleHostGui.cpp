@@ -1021,6 +1021,49 @@ static void EnsureConsoles()
 	}
 }
 
+namespace ConHost
+{
+	std::string GetBufferText(size_t maxLines)
+	{
+		std::string result;
+
+		std::unique_lock consolesLock(g_consolesMutex);
+		auto* console = g_consoles[0].get();
+		if (!console)
+		{
+			return result;
+		}
+
+		std::unique_lock<std::recursive_mutex> itemsLock(console->ItemsMutex);
+		const size_t total = console->Items.size();
+		const size_t count = (maxLines == 0 || maxLines > total) ? total : maxLines;
+		const size_t startIdx = total - count;
+		for (size_t i = startIdx; i < total; ++i)
+		{
+			std::string line = console->Items[i];
+			while (!line.empty() && (line.back() == '\n' || line.back() == '\r'))
+			{
+				line.pop_back();
+			}
+
+			if (i > startIdx)
+			{
+				result += '\n';
+			}
+
+			const std::string& key = console->ItemKeys[i];
+			if (!key.empty())
+			{
+				result += '[';
+				result += key;
+				result += "] ";
+			}
+			result += line;
+		}
+		return result;
+	}
+}
+
 bool IsNonProduction()
 {
 #if (!defined(GTA_FIVE) && !defined(IS_RDR3)) || defined(_DEBUG)
