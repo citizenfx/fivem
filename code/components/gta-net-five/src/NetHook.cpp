@@ -34,7 +34,7 @@
 #include "HeHost.h"
 #include "IHost.h"
 
-NetLibrary* g_netLibrary;
+DLL_EXPORT NetLibrary* g_netLibrary;
 
 #include <ws2tcpip.h>
 
