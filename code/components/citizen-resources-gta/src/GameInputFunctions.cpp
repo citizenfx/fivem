@@ -27,6 +27,20 @@ static InitFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("UNREGISTER_KEY_MAPPING", [](fx::ScriptContext& context)
+	{
+		std::string commandString = context.CheckArgument<const char*>(0);
+
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			game::UnregisterBindingForTag(resource->GetName(), commandString);
+		}
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_KEY_MAPPING_HIDE_RESOURCES", [](fx::ScriptContext& context)
 	{
 		bool hide = context.GetArgument<bool>(0);

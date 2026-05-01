@@ -1125,6 +1125,67 @@ namespace game
 		}
 	}
 
+	void UnregisterBindingForTag(const std::string& tag, const std::string& command)
+	{
+		bindingManager.QueueOnFrame([tag, command]()
+		{
+			if (auto it = g_registeredBindings.find(command); it != g_registeredBindings.end())
+			{
+				if (std::get<0>(it->second) == tag)
+				{
+					g_registeredBindings.erase(it);
+				}
+				else
+				{
+					return; // not owned by this resource
+				}
+			}
+
+			auto textKey = fmt::sprintf("INPUT_%08X", HashString(command.c_str()));
+			game::RemoveCustomText(HashString(textKey.c_str()));
+
+			// Remove primary & alternate
+			std::string altCommand = "~!" + command;
+			auto& bindings = bindingManager.GetBindings();
+
+			for (auto it = bindings.begin(); it != bindings.end(); )
+			{
+				if (it->second->GetTag() == tag &&
+					(it->second->GetCommand() == command || it->second->GetCommand() == altCommand))
+				{
+					std::string_view cmd = it->second->GetCommand();
+					if (cmd.size() > 1 && cmd[0] == '+')
+					{
+						std::string_view baseCmd = cmd;
+						if (baseCmd.find("~!") == 0)
+						{
+							baseCmd = baseCmd.substr(2);
+						}
+						std::string plusCmd(baseCmd);
+
+						if (auto dsIt = g_downSet.find(plusCmd); dsIt != g_downSet.end())
+						{
+							g_downSet.erase(dsIt);
+
+							if (g_downSet.find(plusCmd) == g_downSet.end())
+							{
+								console::GetDefaultContext()->AddToBuffer("-" + plusCmd.substr(1) + "\n");
+							}
+						}
+					}
+
+					it = bindings.erase(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+
+			console::GetDefaultContext()->SetVariableModifiedFlags(ConVar_Archive);
+		});
+	}
+
 	bool IsInputSourceDown(const rage::ioInputSource& controlData)
 	{
 		// mouse?
