@@ -32,6 +32,36 @@ bool shouldHaveRootWindow;
 
 static nui::IAudioSink* g_audioSink;
 
+static bool IsTrustedEntitlementFrame(const std::string& frameUrl)
+{
+	if (frameUrl.empty())
+	{
+		return false;
+	}
+
+	CefURLParts urlParts;
+
+	if (!CefParseURL(frameUrl, urlParts))
+	{
+		return false;
+	}
+
+	auto scheme = boost::algorithm::to_lower_copy(CefString(&urlParts.scheme).ToString());
+	auto host = boost::algorithm::to_lower_copy(CefString(&urlParts.host).ToString());
+
+	if (scheme == "nui")
+	{
+		return (host == "game" || host == "nui-game-internal");
+	}
+
+	if (scheme == "https")
+	{
+		return (host == "nui-game-internal");
+	}
+
+	return false;
+}
+
 namespace nui
 {
 	void SetAudioSink(IAudioSink* sinkRef)
@@ -451,6 +481,13 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 
 	if (cfx::legitimacy::ShouldProcessHeaders(hostString.c_str()))
 	{
+		auto& frameUrl = (frame) ? frame->GetURL().ToString() : std::string{};
+
+		if (!IsTrustedEntitlementFrame(frameUrl))
+		{
+			return RV_CONTINUE;
+		}
+
 		char key[256] = { 0 };
 		char value[2048] = { 0 };
 		cfx::legitimacy::ProcessHeaders(key, value);
