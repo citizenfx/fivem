@@ -19,17 +19,23 @@ RelativeDevice::RelativeDevice(const fwRefContainer<Device>& otherDevice, const 
 
 Device::THandle RelativeDevice::Open(const std::string& fileName, bool readOnly, bool append)
 {
-	return m_otherDevice->Open(TranslatePath(fileName), readOnly, append);
+	auto path = TranslatePath(fileName);
+	if (path.empty()) return InvalidHandle;
+	return m_otherDevice->Open(path, readOnly, append);
 }
 
 Device::THandle RelativeDevice::OpenBulk(const std::string& fileName, uint64_t* ptr)
 {
-	return m_otherDevice->OpenBulk(TranslatePath(fileName), ptr);
+	auto path = TranslatePath(fileName);
+	if (path.empty()) return InvalidHandle;
+	return m_otherDevice->OpenBulk(path, ptr);
 }
 
 Device::THandle RelativeDevice::Create(const std::string& filename, bool createIfExists, bool append)
 {
-	return m_otherDevice->Create(TranslatePath(filename), createIfExists, append);
+	auto path = TranslatePath(filename);
+	if (path.empty()) return InvalidHandle;
+	return m_otherDevice->Create(path, createIfExists, append);
 }
 
 size_t RelativeDevice::Read(THandle handle, void* outBuffer, size_t size)
@@ -69,27 +75,38 @@ bool RelativeDevice::CloseBulk(THandle handle)
 
 bool RelativeDevice::RemoveFile(const std::string& filename)
 {
-	return m_otherDevice->RemoveFile(TranslatePath(filename));
+	auto path = TranslatePath(filename);
+	if (path.empty()) return false;
+	return m_otherDevice->RemoveFile(path);
 }
 
 bool RelativeDevice::RenameFile(const std::string& from, const std::string& to)
 {
-	return m_otherDevice->RenameFile(TranslatePath(from), TranslatePath(to));
+	auto pathFrom = TranslatePath(from);
+	auto pathTo = TranslatePath(to);
+	if (pathFrom.empty() || pathTo.empty()) return false;
+	return m_otherDevice->RenameFile(pathFrom, pathTo);
 }
 
 bool RelativeDevice::CreateDirectory(const std::string& name)
 {
-	return m_otherDevice->CreateDirectory(TranslatePath(name));
+	auto path = TranslatePath(name);
+	if (path.empty()) return false;
+	return m_otherDevice->CreateDirectory(path);
 }
 
 bool RelativeDevice::RemoveDirectory(const std::string& name)
 {
-	return m_otherDevice->RemoveDirectory(TranslatePath(name));
+	auto path = TranslatePath(name);
+	if (path.empty()) return false;
+	return m_otherDevice->RemoveDirectory(path);
 }
 
 std::time_t RelativeDevice::GetModifiedTime(const std::string& fileName)
 {
-	return m_otherDevice->GetModifiedTime(TranslatePath(fileName));
+	auto path = TranslatePath(fileName);
+	if (path.empty()) return 0;
+	return m_otherDevice->GetModifiedTime(path);
 }
 
 size_t RelativeDevice::GetLength(THandle handle)
@@ -99,17 +116,23 @@ size_t RelativeDevice::GetLength(THandle handle)
 
 size_t RelativeDevice::GetLength(const std::string& fileName)
 {
-	return m_otherDevice->GetLength(TranslatePath(fileName));
+	auto path = TranslatePath(fileName);
+	if (path.empty()) return -1;
+	return m_otherDevice->GetLength(path);
 }
 
 uint32_t RelativeDevice::GetAttributes(const std::string& fileName)
 {
-	return m_otherDevice->GetAttributes(TranslatePath(fileName));
+	auto path = TranslatePath(fileName);
+	if (path.empty()) return -1;
+	return m_otherDevice->GetAttributes(path);
 }
 
 Device::THandle RelativeDevice::FindFirst(const std::string& folder, FindData* findData)
 {
-	return m_otherDevice->FindFirst(TranslatePath(folder), findData);
+	auto path = TranslatePath(folder);
+	if (path.empty()) return InvalidHandle;
+	return m_otherDevice->FindFirst(path, findData);
 }
 
 bool RelativeDevice::FindNext(THandle handle, FindData* findData)
@@ -128,6 +151,7 @@ bool RelativeDevice::ExtensionCtl(int controlIdx, void* controlData, size_t cont
 	{
 		auto data = (vfs::MakeHardLinkExtension*)controlData;
 		data->newPath = TranslatePath(data->newPath);
+		if (data->newPath.empty()) return false;
 
 		return m_otherDevice->ExtensionCtl(controlIdx, data, controlSize);
 	}

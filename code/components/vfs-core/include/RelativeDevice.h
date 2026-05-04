@@ -7,13 +7,13 @@ namespace vfs
 {
 class
 #if defined(COMPILING_VFS_CORE)
-	DLL_EXPORT
+DLL_EXPORT
 #else
-	DLL_IMPORT
+DLL_IMPORT
 #endif
-	RelativeDevice : public Device
+RelativeDevice : public Device
 {
-  public:
+public:
 	// finds the other device in the manager
 	RelativeDevice(const std::string& otherPrefix);
 
@@ -75,16 +75,36 @@ class
 
 	bool Truncate(THandle handle, uint64_t length) override;
 
-  private:
+private:
 	fwRefContainer<Device> m_otherDevice;
 
 	std::string m_otherPrefix;
 	std::string m_pathPrefix;
 
-  private:
-	inline std::string TranslatePath(const std::string& inPath)
+private:
+	std::string TranslatePath(const std::string& inPath) const
 	{
-		return m_otherPrefix + inPath.substr(m_pathPrefix.length());
+		if (inPath.length() < m_pathPrefix.length() ||
+			inPath.compare(0, m_pathPrefix.length(), m_pathPrefix) != 0)
+		{
+			return {};
+		}
+
+		std::string relativePart = inPath.substr(m_pathPrefix.length());
+		std::filesystem::path normalized = std::filesystem::path(relativePart).lexically_normal();
+
+		if (normalized.has_root_path())
+		{
+			return {};
+		}
+
+		auto it = normalized.begin();
+		if (it != normalized.end() && *it == "..")
+		{
+			return {};
+		}
+
+		return m_otherPrefix + normalized.generic_string();
 	}
 };
 }
