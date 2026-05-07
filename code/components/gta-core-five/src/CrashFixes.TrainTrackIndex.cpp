@@ -4,6 +4,8 @@
 #include <Hooking.Stubs.h>
 #include <Hooking.Patterns.h>
 
+static constexpr uint32_t kMaxTrainTracks = 27;
+
 class CTrainTrack
 {
 public:
@@ -14,7 +16,8 @@ public:
 };
 static_assert(sizeof(CTrainTrack) == 0x250, "CTrainTrack has wrong size!");
 
-static CTrainTrack (*g_TrainTracks)[27] = nullptr;
+// Pointer to an array of CTrainTrack with 27 elements.
+static CTrainTrack* g_TrainTracks = nullptr;
 
 static uint32_t g_TrainTrackOffset = 0x0;
 
@@ -26,17 +29,14 @@ static void CNetObjTrain_SetTrainGameState(hook::FlexStruct* thisPtr, hook::Flex
 
 	// NOTE: this should be fine since b3788 does exactly the same for carriage and config
 	//		 and yes, -1 is correct, the game uses that for default / uninitialized train tracks
-	if (trackIndex < -1 || trackIndex >= 27)
+	if (trackIndex < -1 || trackIndex >= kMaxTrainTracks)
 	{
 		trackIndex = -1;
 	}
-	else if (trackIndex >= 0)
+	// fixes another exploit, where a cheater can serialize a train track with no initialized nodes
+	else if (trackIndex >= 0 && g_TrainTracks[trackIndex].m_NumNodes <= 0)
 	{
-		// fixes another exploit, where a cheater can serialize a train track with no initialized nodes
-		if (!g_TrainTracks[trackIndex] || g_TrainTracks[trackIndex]->m_NumNodes <= 0)
-		{
-			trackIndex = -1;
-		}
+		trackIndex = -1;
 	}
 	
 	g_CNetObjTrain_SetTrainGameState(thisPtr, dataNode);
@@ -56,5 +56,5 @@ static HookFunction hookFunction([]()
 	g_CNetObjTrain_SetTrainGameState = (decltype(g_CNetObjTrain_SetTrainGameState))netObjTrainVtable[8];
 	hook::put(&netObjTrainVtable[8], (uintptr_t)CNetObjTrain_SetTrainGameState);
 
-	g_TrainTracks = hook::get_address<CTrainTrack(*)[27]>(hook::get_pattern("4C 8D 15 ? ? ? ? 4D 69 C9", 3));
+	g_TrainTracks = hook::get_address<CTrainTrack*>(hook::get_pattern("4C 8D 15 ? ? ? ? 4D 69 C9", 3));
 });
