@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "ScriptWarnings.h"
 
@@ -10,7 +10,14 @@ enum class ScriptDeprecations : uint8_t
 	CLIENT_EVENT_OLD_NET_ID,
 
 	// It's not possible to get the heli tail rotor health, it's the heli rear rotor health, GET_HELI_REAR_ROTOR_HEALTH should be used instead
-	GET_HELI_TAIL_ROTOR_HEALTH
+	GET_HELI_TAIL_ROTOR_HEALTH,
+
+	// Old commerce API, fully removed
+	CAN_PLAYER_START_COMMERCE_SESSION,
+	LOAD_PLAYER_COMMERCE_DATA,
+	IS_PLAYER_COMMERCE_INFO_LOADED,
+	DOES_PLAYER_OWN_SKU,
+	REQUEST_PLAYER_COMMERCE_SESSION
 };
 
 template<ScriptDeprecations TDeprecation>

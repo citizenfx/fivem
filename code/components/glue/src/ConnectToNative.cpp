@@ -57,7 +57,6 @@
 #include "Error.h"
 
 #include "PacketHandler.h"
-#include "PaymentRequest.h"
 
 #include "LinkProtocolIPC.h"
 
@@ -510,59 +509,6 @@ static void DisconnectCmd()
 
 extern void MarkNuiLoaded();
 
-static std::function<void()> g_onYesCallback;
-
-class PaymentRequestPacketHandler : public net::PacketHandler<net::packet::ServerPaymentRequest, HashRageString("msgPaymentRequest")>
-{
-public:
-	template<typename T>
-	bool Process(T& stream)
-	{
-		return ProcessPacket(stream, [](net::packet::ServerPaymentRequest& serverPaymentRequest)
-		{
-			try
-			{
-				auto json = nlohmann::json::parse(std::string(reinterpret_cast<const char*>(serverPaymentRequest.data.GetValue().data()), serverPaymentRequest.data.GetValue().size()));
-
-				se::ScopedPrincipal scope(se::Principal{ "system.console" });
-				console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("warningMessageResult")->SetValue("0");
-				console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "warningmessage", "PURCHASE REQUEST", fmt::sprintf("The server is requesting a purchase of %s for %s.", json.value("sku_name", ""), json.value("sku_price", "")), "Do you want to purchase this item?", "20" });
-
-				g_onYesCallback = [json]()
-				{
-					std::map<std::string, std::string> postMap;
-					postMap["data"] = json.value<std::string>("data", "");
-					postMap["sig"] = json.value<std::string>("sig", "");
-					postMap["clientId"] = g_discourseClientId;
-					postMap["userToken"] = g_discourseUserToken;
-
-					Instance<HttpClient>::Get()->DoPostRequest("https://keymaster.fivem.net/api/paymentAssign", postMap, [](bool success, const char* data, size_t length)
-					{
-						if (success)
-						{
-							auto res = nlohmann::json::parse(std::string(data, length));
-							auto url = res.value("url", "");
-
-							if (!url.empty())
-							{
-								if (url.find("http://") == 0 || url.find("https://") == 0)
-								{
-									ShellExecute(nullptr, L"open", ToWide(url).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-								}
-							}
-						}
-					});
-				};
-			}
-			catch (const std::exception& e)
-			{
-
-			}
-		});
-	}
-};
-
-
 static InitFunction initFunction([] ()
 {
 	static std::function<void()> backfillDoneEvent;
@@ -804,26 +750,6 @@ static InitFunction initFunction([] ()
 				ep.Call("unloaded");
 			}
 		}, 5000);
-
-		lib->AddPacketHandler<PaymentRequestPacketHandler>(true);
-	});
-
-	OnMainGameFrame.Connect([]()
-	{
-		if (g_onYesCallback)
-		{
-			int result = atoi(console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("warningMessageResult")->GetValue().c_str());
-
-			if (result != 0)
-			{
-				if (result == 4)
-				{
-					g_onYesCallback();
-				}
-
-				g_onYesCallback = {};
-			}
-		}
 	});
 
 	OnKillNetwork.Connect([](const char*)
