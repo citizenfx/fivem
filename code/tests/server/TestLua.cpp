@@ -264,7 +264,7 @@ TEST_CASE("build task filesystem permissions are scoped to the target resource")
 	REQUIRE(fx::ScriptingFilesystemAllowWrite("@builder/cache/target.json", &builder) == true);
 	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build/main.lua", &builder) == false);
 
-	const uint64_t invalidPermission = fx::ScriptingFilesystemPushBuildTaskPermission("builder", "target", { "../outside", "build/../fxmanifest.lua", "@other/build/" });
+	const uint64_t invalidPermission = fx::ScriptingFilesystemPushBuildTaskPermission("builder", "target", { "../outside", "build/../fxmanifest.lua", "@other/build/", "./@other/build/" });
 	REQUIRE(invalidPermission == 0);
 
 	const uint64_t exactBuildPermission = fx::ScriptingFilesystemPushBuildTaskPermission("builder", "target", { "build" });
@@ -338,6 +338,7 @@ TEST_CASE("build task permission metadata entries are explicit")
 	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder=build/", "builder", &allowedPath) == false);
 	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder build/", "builder", &allowedPath) == false);
 	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder:@other/build/", "builder", &allowedPath) == false);
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder:./@other/build/", "builder", &allowedPath) == false);
 	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder:build/../fxmanifest.lua", "builder", &allowedPath) == false);
 	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder:", "builder", &allowedPath) == false);
 }
