@@ -156,19 +156,16 @@ static std::string NormalizeRelativeResourcePath(const std::filesystem::path& pa
 static std::optional<BuildTaskFilesystemPathPermission> NormalizeBuildTaskAllowedPath(const std::string& path)
 {
 	const std::filesystem::path permissionPath = path;
-	auto firstPart = permissionPath.begin();
-	if (firstPart != permissionPath.end())
-	{
-		const std::string firstPartString = firstPart->generic_string();
-		if (!firstPartString.empty() && firstPartString[0] == '@')
-		{
-			return {};
-		}
-	}
-
 	const bool isDirectory = HasTrailingDirectorySeparator(path);
 	const auto normalizedPath = NormalizeRelativeResourcePath(permissionPath);
 	if (normalizedPath.empty())
+	{
+		return {};
+	}
+
+	const auto firstSeparator = normalizedPath.find('/');
+	const auto firstPart = normalizedPath.substr(0, firstSeparator);
+	if (!firstPart.empty() && firstPart[0] == '@')
 	{
 		return {};
 	}
