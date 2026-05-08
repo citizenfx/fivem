@@ -562,7 +562,8 @@ static void TriggerBuildSequence(Resource* resource, TIterator first, TIterator 
 	if (first != last)
 	{
 		std::shared_ptr<BuildTaskProvider> provider = (*first);
-		provider->Build(resource->GetName(), [resource, first, last](bool success, const std::string& result)
+		const std::string resourceName = resource->GetName();
+		provider->Build(resourceName, [resource, resourceName, first, last](bool success, const std::string& result)
 		{
 			if (success)
 			{
@@ -571,7 +572,7 @@ static void TriggerBuildSequence(Resource* resource, TIterator first, TIterator 
 			}
 			else
 			{
-				trace("Building resource %s failed.\n", resource->GetName());
+				trace("Building resource %s failed.\n", resourceName.c_str());
 				trace("Error data: %s\n", result);
 			}
 		});
