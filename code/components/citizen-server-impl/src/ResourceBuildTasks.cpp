@@ -15,6 +15,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <filesystem>
 #include <mutex>
 
 namespace fx
@@ -322,6 +323,22 @@ static void AppendBuildTaskPermissionEntries(const fwRefContainer<ResourceMetaDa
 	}
 }
 
+static bool HasResourceMetadata(const fwRefContainer<ResourceMetaDataComponent>& metadata, const std::string& key)
+{
+	return metadata.GetRef() && !metadata->GetEntries(key).empty();
+}
+
+static bool ResourceHasFile(Resource* resource, const std::string& relativePath)
+{
+	if (!resource)
+	{
+		return false;
+	}
+
+	std::error_code ec;
+	return std::filesystem::exists(std::filesystem::path(resource->GetPath()) / relativePath, ec);
+}
+
 static std::vector<std::string> GetBuildTaskAllowedPaths(Resource* targetResource, const std::string& builderResourceName)
 {
 	std::vector<std::string> allowedPaths;
@@ -331,13 +348,13 @@ static std::vector<std::string> GetBuildTaskAllowedPaths(Resource* targetResourc
 	}
 
 	const auto metadata = targetResource->GetComponent<ResourceMetaDataComponent>();
-	if (builderResourceName == "webpack")
+	if (builderResourceName == "webpack" && HasResourceMetadata(metadata, "webpack_config"))
 	{
 		// Compatibility for the built-in webpack provider. Custom providers require target opt-in.
 		allowedPaths.push_back("build/");
 		allowedPaths.push_back("dist/");
 	}
-	else if (builderResourceName == "yarn")
+	else if (builderResourceName == "yarn" && ResourceHasFile(targetResource, "package.json"))
 	{
 		// Compatibility for the built-in yarn provider marker file and package output.
 		allowedPaths.push_back(".yarn.installed");
