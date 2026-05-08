@@ -121,12 +121,13 @@ struct BuildMap : public fwRefCountable
 		ClearActiveBuilds("Build task target resource was destroyed before invoking its completion callback.");
 	}
 
-	void AddActiveBuild(const std::shared_ptr<ScopedBuildTaskFilesystemPermission>& permission, const std::function<void(const std::string&)>& failureCb)
+	void AddActiveBuild(const std::shared_ptr<ScopedBuildTaskFilesystemPermission>& permission, const std::function<bool()>& cancelCb, const std::function<void(const std::string&)>& failureCb)
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_activeBuildsMutex);
 		activeBuilds.push_back({
 			permission,
 			std::chrono::steady_clock::now() + kBuildTaskFilesystemPermissionTimeout,
+			cancelCb,
 			failureCb
 		});
 	}
@@ -157,6 +158,11 @@ struct BuildMap : public fwRefCountable
 
 			for (auto& activeBuild : activeBuilds)
 			{
+				if (!activeBuild.cancelCb())
+				{
+					continue;
+				}
+
 				activeBuild.permission->Release();
 				cleanupCallbacks.push_back(activeBuild.failureCb);
 			}
@@ -181,6 +187,12 @@ struct BuildMap : public fwRefCountable
 			{
 				if (it->permission->IsSourceResource(sourceResource))
 				{
+					if (!it->cancelCb())
+					{
+						it = activeBuilds.erase(it);
+						continue;
+					}
+
 					it->permission->Release();
 					cleanupCallbacks.push_back(it->failureCb);
 					it = activeBuilds.erase(it);
@@ -210,6 +222,12 @@ struct BuildMap : public fwRefCountable
 				if (it->timeout <= now)
 				{
 					trace("Build task for resource %s expired after build timeout.\n", targetResource.c_str());
+					if (!it->cancelCb())
+					{
+						it = activeBuilds.erase(it);
+						continue;
+					}
+
 					it->permission->Release();
 					timeoutCallbacks.push_back(it->failureCb);
 					it = activeBuilds.erase(it);
@@ -233,6 +251,7 @@ private:
 	{
 		std::shared_ptr<ScopedBuildTaskFilesystemPermission> permission;
 		std::chrono::steady_clock::time_point timeout;
+		std::function<bool()> cancelCb;
 		std::function<void(const std::string&)> failureCb;
 	};
 
@@ -440,14 +459,14 @@ void ResourceBuildTaskProvider::Build(const std::string& resourceName, const std
 		}
 	};
 
-	auto failBuild = [completionCb, markBuildCompleted](const std::string& result) mutable
+	auto failBuild = [completionCb](const std::string& result) mutable
 	{
-		if (!markBuildCompleted())
-		{
-			return;
-		}
-
 		completionCb(false, result);
+	};
+
+	auto cancelBuild = [markBuildCompleted]() mutable
+	{
+		return markBuildCompleted();
 	};
 
 	auto completeBuild = [completionCb, releasePermission, markBuildCompleted](bool success, const std::string& result) mutable
@@ -463,7 +482,7 @@ void ResourceBuildTaskProvider::Build(const std::string& resourceName, const std
 
 	if (buildMap.GetRef())
 	{
-		buildMap->AddActiveBuild(permission, failBuild);
+		buildMap->AddActiveBuild(permission, cancelBuild, failBuild);
 	}
 
 	ScopeExit setupGuard(releasePermission);
