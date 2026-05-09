@@ -9,14 +9,11 @@ game: gta5
 void SET_WATER_AREA_CLIP_RECT(int minX, int minY, int maxX, int maxY);
 ```
 
+**NOTE**: This native only works on build 2189+
+
 Sets world clip boundaries for water quads file (water.xml, water_heistisland.xml)
 Used internally by LOAD_GLOBAL_WATER_FILE
 
-## Examples
-
-```lua
-SetWaterAreaClipRect(-4000, -4000, 4500, 8000)
-```
 
 ## Parameters
 * **minX**: 
@@ -24,6 +21,8 @@ SetWaterAreaClipRect(-4000, -4000, 4500, 8000)
 * **maxX**: 
 * **maxY**: 
 
-```
-Supported Builds: 2189+
+## Examples
+
+```lua
+SetWaterAreaClipRect(-4000, -4000, 4500, 8000)
 ```

@@ -1,19 +1,20 @@
 ---
 ns: CFX
-apiset: shared 
+apiset: shared
 ---
 ## GET_ENTITY_FROM_STATE_BAG_NAME
 
 ```c
 Entity GET_ENTITY_FROM_STATE_BAG_NAME(char* bagName);
 ```
+
 Returns the entity handle for the specified state bag name. For use with [ADD_STATE_BAG_CHANGE_HANDLER](#_0x5BA35AAF).
 
 ## Parameters
 * **bagName**: An internal state bag ID from the argument to a state bag change handler.
 
 ## Return value
-The entity handle or 0 if the state bag name did not refer to an entity, or the entity does not exist.
+Returns the entity handle of the state bag, or `0` if the state bag name did not refer to an entity, or the entity does not exist.
 
 ## Examples
 ```js
@@ -34,7 +35,7 @@ AddStateBagChangeHandler("blockTasks", null, async (bagName, key, value /* boole
 ```
 
 ```lua
-AddStateBagChangeHandler("blockTasks", nil, function(bagName, key, value) 
+AddStateBagChangeHandler("blockTasks", nil, function(bagName, key, value)
     local entity = GetEntityFromStateBagName(bagName)
     -- Whoops, we don't have a valid entity!
     if entity == 0 then return end

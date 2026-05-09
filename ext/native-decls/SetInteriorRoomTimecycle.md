@@ -9,6 +9,11 @@ game: gta5
 void SET_INTERIOR_ROOM_TIMECYCLE(int interiorId, int roomIndex, int timecycleHash);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **roomIndex**: Interior room index.
+* **timecycleHash**: Timecycle hash.
+
 ## Examples
 
 ```lua
@@ -23,8 +28,3 @@ if roomId ~= -1 then
   RefreshInterior(interiorId)
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **roomIndex**: Interior room index.
-* **timecycleHash**: Timecycle hash.

@@ -8,7 +8,7 @@ apiset: client
 BOOL IS_NUI_FOCUS_KEEPING_INPUT();
 ```
 
-Checks if keyboard input is enabled during NUI focus using `SET_NUI_FOCUS_KEEP_INPUT`.
+Getter for [`SET_NUI_FOCUS_KEEP_INPUT`](#_0x39C9DC92).
 
 ## Return value
-True or false.
+Returns `true` if any NUI is set to keep input

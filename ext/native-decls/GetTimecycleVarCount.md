@@ -10,8 +10,10 @@ int GET_TIMECYCLE_VAR_COUNT();
 
 Returns the amount of variables available to be applied on timecycle modifiers.
 
-## Examples
+## Return value
+The amount of available variables for timecycle modifiers.
 
+## Examples
 ```lua
 local varCount = GetTimecycleVarCount()
 
@@ -24,6 +26,3 @@ if varCount ~= 0 then
   end
 end
 ```
-
-## Return value
-The amount of available variables for timecycle modifiers.

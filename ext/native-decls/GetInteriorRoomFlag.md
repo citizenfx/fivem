@@ -9,6 +9,13 @@ game: gta5
 int GET_INTERIOR_ROOM_FLAG(int interiorId, int roomIndex);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **roomIndex**: Interior room index.
+
+## Return value
+Room's flag.
+
 ## Examples
 
 ```lua
@@ -23,9 +30,3 @@ if roomId ~= -1 then
 end
 ```
 
-## Parameters
-* **interiorId**: The target interior.
-* **roomIndex**: Interior room index.
-
-## Return value
-Room's flag.

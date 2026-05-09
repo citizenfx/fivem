@@ -15,4 +15,4 @@ A getter for [_SET_WEAPON_DAMAGE_MODIFIER](#_0x4757F00BC6323CFE).
 * **weaponHash**: Weapon name hash.
 
 ## Return value
-A weapon damage modifier.
+Returns the weapons damage modifier.

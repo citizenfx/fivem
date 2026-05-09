@@ -15,4 +15,4 @@ A getter for [SET_PLAYER_VEHICLE_DEFENSE_MODIFIER](#_0x4C60E6EFDAFF2462).
 * **playerId**: The player index.
 
 ## Return value
-The value of player vehicle defense modifier.
+Returns the players vehicle defense modifier/multiplier.

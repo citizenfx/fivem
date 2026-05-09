@@ -8,11 +8,6 @@ game: gta5
 ```c
 BOOL SET_WATER_QUAD_ALPHA(int waterQuad, int a0, int a1, int a2, int a3);
 ```
-## Examples
-
-```lua
-local success = SetWaterQuadAlpha(0, 5, 5, 5, 5)
-```
 
 ## Parameters
 * **waterQuad**: The water quad index
@@ -22,4 +17,10 @@ local success = SetWaterQuadAlpha(0, 5, 5, 5, 5)
 * **a3**: The a3 level
 
 ## Return value
-Returns true on success.
+Returns `true` if `waveQuad`s alpha levels got set, `false` otherwise.
+
+## Examples
+
+```lua
+local success = SetWaterQuadAlpha(0, 5, 5, 5, 5)
+```

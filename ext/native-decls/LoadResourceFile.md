@@ -9,8 +9,8 @@ char* LOAD_RESOURCE_FILE(char* resourceName, char* fileName);
 ```
 
 Reads the contents of a text file in a specified resource.
+
 If executed on the client, this file has to be included in `files` in the resource manifest.
-Example: `local data = LoadResourceFile("devtools", "data.json")`
 
 ## Parameters
 * **resourceName**: The resource name.
@@ -18,3 +18,8 @@ Example: `local data = LoadResourceFile("devtools", "data.json")`
 
 ## Return value
 The file contents
+
+## Examples
+```lua
+local data = LoadResourceFile("devtools", "data.json")
+````

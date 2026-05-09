@@ -15,4 +15,4 @@ A getter for [SET_PLAYER_VEHICLE_DAMAGE_MODIFIER](#_0xA50E117CDDF82F0C).
 * **playerId**: The player index.
 
 ## Return value
-The value of player vehicle damage modifier.
+Returns the players vehicle damage modifier/multiplier.

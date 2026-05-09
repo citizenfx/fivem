@@ -18,6 +18,11 @@ List of known states:
 129: Vehicle is doing wheelie.
 ```
 
+
+## Parameters
+* **vehicle**: Vehicle
+* **state**: Wheelie state
+
 ## Examples
 
 ```lua
@@ -41,7 +46,3 @@ Citizen.CreateThread(function()
   end
 end)
 ```
-
-## Parameters
-* **vehicle**: Vehicle
-* **state**: Wheelie state

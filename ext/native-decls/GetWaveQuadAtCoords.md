@@ -23,4 +23,4 @@ local waveQuadIndex = GetWaveQuadAtCoords(currentPedPosition.x, currentPedPositi
 * **y**: The Y coordinate
 
 ## Return value
-The wave quad index at the given position. Returns -1 if there isn't any there.
+Returns the wave quad index at the given position, or `-1` if there isn't one.

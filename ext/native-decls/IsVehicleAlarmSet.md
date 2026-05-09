@@ -11,6 +11,6 @@ BOOL IS_VEHICLE_ALARM_SET(Vehicle vehicle);
 
 
 ## Parameters
-* **vehicle**: 
+* **vehicle**: The vehicle to check
 
 ## Return value

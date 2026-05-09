@@ -15,4 +15,4 @@ Returns whether or not the specific minimap overlay has loaded.
 * **id**: A minimap overlay ID.
 
 ## Return value
-A boolean indicating load status.
+Returns `true` if `id` overlay has loaded, `false` otherwise.

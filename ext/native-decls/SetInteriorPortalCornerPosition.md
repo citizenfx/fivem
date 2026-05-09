@@ -9,6 +9,14 @@ game: gta5
 void SET_INTERIOR_PORTAL_CORNER_POSITION(int interiorId, int portalIndex, int cornerIndex, float posX, float posY, float posZ);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **portalIndex**: Interior portal index.
+* **cornerIndex**: Interior corner index.
+* **posX**:
+* **posY**:
+* **posZ**:
+
 ## Examples
 
 ```lua
@@ -29,10 +37,3 @@ if interiorId ~= 0 then
 end
 ```
 
-## Parameters
-* **interiorId**: The target interior.
-* **portalIndex**: Interior portal index.
-* **cornerIndex**: Interior corner index.
-* **posX**:
-* **posY**:
-* **posZ**:

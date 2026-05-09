@@ -27,7 +27,7 @@ RegisterNetEvent("doesOwnPackage", function(packageIdSku)
 
 	-- input isn't right
 	if type(packageIdSku) ~= "number" then
-		return
+		return error("Argument `packageIdSku` was expected to be a number")
 	end
 
 	-- The native will cache the results

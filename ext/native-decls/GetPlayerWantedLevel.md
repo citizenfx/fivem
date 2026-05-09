@@ -8,12 +8,8 @@ apiset: server
 int GET_PLAYER_WANTED_LEVEL(char* playerSrc);
 ```
 
-```
-Returns given players wanted level server-side.
-```
-
 ## Parameters
 * **playerSrc**: The target player
 
 ## Return value
-The wanted level
+Returns the players wanted level

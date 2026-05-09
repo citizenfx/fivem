@@ -8,10 +8,11 @@ apiset: server
 BOOL DOES_PLAYER_EXIST(char* playerSrc);
 ```
 
-Returns whether or not the player exists
+## Parameters
+* **playerSrc**: the player to check of exists. 
 
 ## Return value
-True if the player exists, false otherwise
+Return` true` if the player exists, `false` otherwise.
 
 ## Examples
 
@@ -22,7 +23,6 @@ AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
     deferrals.defer()
 
     Wait(0)
-
 
     local messageIndex = 0
 

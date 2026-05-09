@@ -9,6 +9,13 @@ game: gta5
 int GET_INTERIOR_PORTAL_FLAG(int interiorId, int portalIndex);
 ```
 
+## Parameters
+* **interiorId**: The target interior.
+* **portalIndex**: Interior portal index.
+
+## Return value
+Portal's flag.
+
 ## Examples
 
 ```lua
@@ -20,10 +27,3 @@ if interiorId ~= 0 then
   print("portal 0 flag is: " .. portalRoomFrom)
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **portalIndex**: Interior portal index.
-
-## Return value
-Portal's flag.

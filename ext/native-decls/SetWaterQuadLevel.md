@@ -8,15 +8,16 @@ game: gta5
 ```c
 BOOL SET_WATER_QUAD_LEVEL(int waterQuad, float level);
 ```
-## Examples
-
-```lua
-local success = SetWaterQuadLevel(0, 55.0)
-```
 
 ## Parameters
 * **waterQuad**: The water quad index
 * **level**: The water level inside the water quad
 
 ## Return value
-Returns true on success.
+Returns `true` if `waveQuad`s level got set, `false` otherwise.
+
+## Examples
+
+```lua
+local success = SetWaterQuadLevel(0, 55.0)
+```

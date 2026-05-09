@@ -15,7 +15,7 @@ Can be used to get a console variable casted back to `bool`.
 * **defaultValue**: The default value to set if none is found.
 
 ## Return value
-Returns the convar value if it can be found, otherwise it returns the assigned `default`.
+Returns the convar value if it can be found, otherwise it returns the assigned `defaultValue`.
 
 ## Examples
 ```lua

@@ -14,4 +14,4 @@ Check whether specified channel exists on the Mumble server.
 * **channel**: A game voice channel ID.
 
 ## Return value
-True if the specific channel exists. False otherwise.
+Returns `true` if the specific channel exists

@@ -10,6 +10,7 @@ BOOL STOP_RESOURCE(char* resourceName);
 
 
 ## Parameters
-* **resourceName**: 
+* **resourceName**: The resource to stop
 
 ## Return value
+Returns `true` if it sucessfuly stopped the resource, `false` otherwise.

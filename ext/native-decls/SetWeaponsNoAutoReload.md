@@ -12,4 +12,4 @@ void SET_WEAPONS_NO_AUTORELOAD(BOOL state);
 Disables the game's built-in auto-reloading.
 
 ## Parameters
-* **state**: On/Off
+* **state**: `true` to disable autoreload, `false` (default) to enable autoreload

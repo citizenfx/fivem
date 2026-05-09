@@ -9,8 +9,15 @@ game: gta5
 int GET_INTERIOR_PORTAL_ENTITY_FLAG(int interiorId, int portalIndex, int entityIndex);
 ```
 
-## Examples
+## Parameters
+* **interiorId**: The target interior.
+* **portalIndex**: Interior portal index.
+* **entityIndex**: Portal entity index.
 
+## Return value
+Portal entity flag.
+
+## Examples
 ```lua
 local playerPed = PlayerPedId()
 local interiorId = GetInteriorFromEntity(playerPed)
@@ -24,11 +31,3 @@ if interiorId ~= 0 then
   end
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **portalIndex**: Interior portal index.
-* **entityIndex**: Portal entity index.
-
-## Return value
-Portal entity flag.

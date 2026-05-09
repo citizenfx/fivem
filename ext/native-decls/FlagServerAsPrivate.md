@@ -8,6 +8,7 @@ apiset: server
 void FLAG_SERVER_AS_PRIVATE(BOOL private_);
 ```
 
+Do not use, this native no longer exists and is only kept for compatability.
 
 ## Parameters
 * **private_**: 

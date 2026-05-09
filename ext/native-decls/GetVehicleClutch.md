@@ -9,8 +9,10 @@ game: gta5
 float GET_VEHICLE_CLUTCH(Vehicle vehicle);
 ```
 
+Getter for [SET_VEHICLE_CLUTCH](#_0x2F70ACED)
 
 ## Parameters
-* **vehicle**: 
+* **vehicle**: The vehicle to get the clutch of
 
 ## Return value
+Returns the current clutch ratio.

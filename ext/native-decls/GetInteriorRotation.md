@@ -6,11 +6,21 @@ game: gta5
 ## GET_INTERIOR_ROTATION
 
 ```c
-void GET_INTERIOR_ROTATION(int interiorId, float* rotx, float* rotY, float* rotZ, float* rotW);
+void GET_INTERIOR_ROTATION(int interiorId, float* rotX, float* rotY, float* rotZ, float* rotW);
 ```
 
-## Examples
 
+## Parameters
+* **interiorId**: The target interior.
+* **rotX**: The interiors X rotation
+* **rotY**: The interiors Y rotation
+* **rotZ**: The interiors Z rotation
+* **rotW**: The interiors W rotation
+
+## Return value
+Interior rotation in quaternion.
+
+## Examples
 ```lua
 local playerPed = PlayerPedId()
 local interiorId = GetInteriorFromEntity(playerPed)
@@ -20,9 +30,3 @@ if interiorId ~= 0 then
   print("current interior " .. interiorId .. " rotation is: " .. vec(x, y, z, w))
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-
-## Return value
-Interior rotation in quaternion.

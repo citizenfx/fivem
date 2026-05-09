@@ -23,4 +23,4 @@ local success, minX, minY, maxX, maxY = GetWaveQuadBounds(1)
 * **maxY**: The maxY coordinate
 
 ## Return value
-Returns true on success. Bounds are undefined on failure
+Returns `true` on success, `false` otherwise, `min[X|Y]` and `max[X|Y]` will be `0` on failure

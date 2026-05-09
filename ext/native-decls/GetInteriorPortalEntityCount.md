@@ -9,8 +9,14 @@ game: gta5
 int GET_INTERIOR_PORTAL_ENTITY_COUNT(int interiorId, int portalIndex);
 ```
 
-## Examples
+## Parameters
+* **interiorId**: The target interior.
+* **portalIndex**: Interior portal index.
 
+## Return value
+Portal entity count.
+
+## Examples
 ```lua
 local playerPed = PlayerPedId()
 local interiorId = GetInteriorFromEntity(playerPed)
@@ -21,10 +27,3 @@ if interiorId ~= 0 then
   print("portal " .. portalIndex .." entity count is: " .. count)
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **portalIndex**: Interior portal index.
-
-## Return value
-Portal entity count.

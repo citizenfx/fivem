@@ -9,8 +9,14 @@ game: gta5
 int GET_INTERIOR_PORTAL_ROOM_FROM(int interiorId, int portalIndex);
 ```
 
-## Examples
+## Parameters
+* **interiorId**: The target interior.
+* **portalIndex**: Interior portal index.
 
+## Return value
+Portal's room FROM index.
+
+## Examples
 ```lua
 local playerPed = PlayerPedId()
 local interiorId = GetInteriorFromEntity(playerPed)
@@ -22,10 +28,3 @@ if interiorId ~= 0 then
   print("portal " .. roomIndex .. " room FROM is: " .. portalRoomFrom)
 end
 ```
-
-## Parameters
-* **interiorId**: The target interior.
-* **portalIndex**: Interior portal index.
-
-## Return value
-Portal's room FROM index.

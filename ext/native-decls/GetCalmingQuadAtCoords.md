@@ -23,4 +23,4 @@ local calmingQuadIndex = GetCalmingQuadAtCoords(currentPedPosition.x, currentPed
 * **y**: The Y coordinate
 
 ## Return value
-The calming quad index at the given position. Returns -1 if there isn't any there.
+Returns the calming quad index at the given position, or -1 if there isn't one.
