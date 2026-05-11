@@ -34,6 +34,7 @@ using namespace google_breakpad;
 
 #include <json.hpp>
 
+#include <random>
 #include <regex>
 #include <sstream>
 
@@ -1267,6 +1268,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				bool shouldUpload = true;
 
 				{
+					// 5% chance to upload
+					std::random_device rd;
+					std::uniform_int_distribution<int> dist(0, 99);
+					shouldUpload = dist(rd) < 5;
+
 					auto errorPickup = load_error_pickup();
 					if (!errorPickup.is_null() && errorPickup.contains("no_upload") && errorPickup["no_upload"].get<bool>())
 					{
