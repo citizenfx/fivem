@@ -29,6 +29,12 @@ static FSM_Return (*g_CTaskInVehicleSeatShuffle_ProcessPreFSM)(CTaskInVehicleSea
 
 static FSM_Return CTaskInVehicleSeatShuffle_ProcessPreFSM(CTaskInVehicleSeatShuffle* thisPtr)
 {
+	// NOTE: we are calling original first to make sure the vehicle is still valid
+	FSM_Return result = g_CTaskInVehicleSeatShuffle_ProcessPreFSM(thisPtr);
+
+	if (result == FSM_Quit)
+		return FSM_Quit;
+
 	const bool invalidTargetSeat = !g_CVehicle_GetSeatAnimationInfo(
 		thisPtr->m_Vehicle,
 		thisPtr->m_TargetSeatIndex);
@@ -36,7 +42,7 @@ static FSM_Return CTaskInVehicleSeatShuffle_ProcessPreFSM(CTaskInVehicleSeatShuf
 	if (invalidTargetSeat)
 		return FSM_Quit;
 
-	return g_CTaskInVehicleSeatShuffle_ProcessPreFSM(thisPtr);
+	return result;
 }
 
 static HookFunction hookFunction([]
