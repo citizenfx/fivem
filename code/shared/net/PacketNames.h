@@ -33,8 +33,6 @@ namespace net
 		{ HashRageString("msgPackedAcks"), "msgPackedAcks" },
 		// 81e1c835
 		{ HashRageString("msgPackedClones"), "msgPackedClones" },
-		// 073b065b
-		{ HashRageString("msgPaymentRequest"), "msgPaymentRequest" },
 		// b8e611cf
 		{ HashRageString("msgRequestObjectIds"), "msgRequestObjectIds" },
 		// afe4cd4a
