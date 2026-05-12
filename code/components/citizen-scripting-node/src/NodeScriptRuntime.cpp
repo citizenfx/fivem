@@ -169,6 +169,12 @@ const std::string_view& resource)
 			device = vfs::FindDevice(absolutePath, path);
 			if (!device.GetRef())
 			{
+				if (perm == permission::PermissionScope::kFileSystemRead
+					&& fx::ScriptingFilesystemAllowAbsoluteRead(absolutePath, m_parentObject))
+				{
+					return true;
+				}
+
 				trace("Filesystem permission check from '%s' for permission %s on resource '%s' - no device found\n", m_resourceName.c_str(), permName.c_str(), res.c_str());
 				return false;
 			}
