@@ -44,6 +44,8 @@ public:
 
 	virtual int32_t GetVariance() override;
 
+	virtual int32_t GetPacketLoss() override;
+
 private:
 	void ProcessPacket(const uint8_t* data, size_t size, NetPacketMetrics& metrics, ENetPacketFlag flags);
 
@@ -478,6 +480,16 @@ int32_t NetLibraryImplV2::GetVariance()
 	if (m_serverPeer)
 	{
 		return int32_t(m_serverPeer->roundTripTimeVariance);
+	}
+
+	return -1;
+}
+
+int32_t NetLibraryImplV2::GetPacketLoss()
+{
+	if (m_serverPeer)
+	{
+		return int32_t((m_serverPeer->packetLoss / (double)ENET_PEER_PACKET_LOSS_SCALE) * 100);
 	}
 
 	return -1;

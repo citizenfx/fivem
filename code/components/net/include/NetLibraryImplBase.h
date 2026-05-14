@@ -52,6 +52,8 @@ public:
 	virtual int32_t GetPing() = 0;
 
 	virtual int32_t GetVariance() = 0;
+
+	virtual int32_t GetPacketLoss() = 0;
 };
 
 class INetLibraryInherit
