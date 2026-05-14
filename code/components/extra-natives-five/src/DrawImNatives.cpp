@@ -3236,7 +3236,7 @@ static InitFunction initFunctionSceneExperiment([]()
 });
 #endif
 
-static ConVar<bool> crosshair("cl_customCrosshair", ConVar_Archive | ConVar_UserPref, false);
+static ConVar<bool> crosshair("cl_customCrosshair", ConVar_Archive, false);
 static ConVar<int> cl_crosshaircolor("cl_crosshaircolor", ConVar_Archive | ConVar_UserPref, 1);
 static ConVar<float> cl_crosshairgap("cl_crosshairgap", ConVar_Archive | ConVar_UserPref, 1);
 static ConVar<float> cl_crosshairsize("cl_crosshairsize", ConVar_Archive | ConVar_UserPref, 5);
