@@ -424,6 +424,12 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 		blame_two = L"Please try updating your NVIDIA drivers, restarting your PC and then starting the game again.";
 	}
 
+	if (wcsstr(crashHash.c_str(), L"nvppex"))
+	{
+		blame = L"NVIDIA Game Filters (nvppex.dll)";
+		blame_two = L"Please disable NVIDIA Game Filters (Freestyle) in the NVIDIA App and restart the game.";
+	}
+
 	if (wcsstr(crashHash.c_str(), L"guard64"))
 	{
 		blame = L"Comodo Internet Security";

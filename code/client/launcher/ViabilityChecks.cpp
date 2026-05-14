@@ -10,6 +10,8 @@
 
 #if defined(LAUNCHER_PERSONALITY_MAIN)
 #include <CfxLocale.h>
+#include <winternl.h>
+#include <MinHook.h>
 #endif
 
 #pragma comment(lib, "d3d11.lib")
@@ -152,6 +154,33 @@ void DoPreLaunchTasks()
 		SetProcessMitigationPolicy(ProcessExtensionPointDisablePolicy, &dp, sizeof(dp));
 	}
 }
+
+#if defined(LAUNCHER_PERSONALITY_MAIN)
+static NTSTATUS(NTAPI* g_earlyOrigLoadDll)(const wchar_t*, uint32_t*, UNICODE_STRING*, HANDLE*);
+
+static NTSTATUS NTAPI EarlyLdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_STRING* moduleName, HANDLE* handle)
+{
+	std::wstring moduleNameStr(moduleName->Buffer, moduleName->Length / sizeof(wchar_t));
+	std::transform(moduleNameStr.begin(), moduleNameStr.end(), moduleNameStr.begin(), ::tolower);
+
+	if (
+		// NVIDIA Game Filter/Freestyle post-processing DLL, crashes on startup due to incompatible D3D hooks
+		moduleNameStr.find(L"nvppex") != std::string::npos
+	)
+	{
+		return 0xC0000428;
+	}
+
+	return g_earlyOrigLoadDll(fileName, flags, moduleName, handle);
+}
+
+void EarlyLdrBlock_Init()
+{
+	MH_Initialize();
+	MH_CreateHookApi(L"ntdll.dll", "LdrLoadDll", EarlyLdrLoadDllStub, (void**)&g_earlyOrigLoadDll);
+	MH_EnableHook(MH_ALL_HOOKS);
+}
+#endif
 
 void MigrateCacheFormat202105()
 {
