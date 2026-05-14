@@ -63,7 +63,7 @@ static bool* g_CLodLights_CanLoad;
 
 static hook::cdecl_stub<void()> g_CreateVertexBuffers([]
 {
-	return hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 80 3D ? ? ? ? 00 0F 85");
+	return hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 40 80 3D ? ? ? ? 00 0F 85");
 });
 
 static hook::cdecl_stub<void(CVisualEffectsRenderMode, float, float, float, int, void*)> g_RenderBufferBegin([]
@@ -112,6 +112,15 @@ public:
 	uint16_t m_Category;
 };
 static_assert(sizeof(CDistantLODLight) == 0x30, "CDistantLODLight has wrong size!");
+
+class CDistantLODLightBucket
+{
+public:
+	CDistantLODLight* m_Light;
+	uint16_t m_MapDataIndex;
+	uint16_t m_LightCount;
+};
+static_assert(sizeof(CDistantLODLightBucket) == 0x10, "CDistantLODLightBucket has wrong size!");
 
 uint64_t* g_MapDataStore_Boxes;
 
@@ -188,11 +197,9 @@ static void __fastcall CLodLights_RenderDistantLODLights(CVisualEffectsRenderMod
 
 			do
 			{
-				uint16_t* bucket = *(uint16_t**)bucketList;
+				CDistantLODLightBucket* bucket = *(CDistantLODLightBucket**)bucketList;
 
-				uint64_t lightData = *(uint64_t*)bucket;
-
-				const uint32_t totalLights = bucket[5];
+				const uint32_t totalLights = bucket->m_LightCount;
 
 				if (!totalLights)
 				{
@@ -201,9 +208,9 @@ static void __fastcall CLodLights_RenderDistantLODLights(CVisualEffectsRenderMod
 					continue;
 				}
 
-				const uint16_t aabbIndex = *(uint16_t*)(lightData + 8);
+				const uint16_t mapDataIndex = bucket->m_MapDataIndex;
 
-				DirectX::XMVECTOR* aabb = (DirectX::XMVECTOR*)(*g_MapDataStore_Boxes + (32 * aabbIndex));
+				DirectX::XMVECTOR* aabb = (DirectX::XMVECTOR*)(*g_MapDataStore_Boxes + (32 * mapDataIndex));
 
 				const DirectX::XMVECTOR aabbMin = aabb[0];
 				const DirectX::XMVECTOR aabbMax = aabb[1];
@@ -223,9 +230,9 @@ static void __fastcall CLodLights_RenderDistantLODLights(CVisualEffectsRenderMod
 					extents
 				);
 				
-				CDistantLODLight* lightDataAsDistantLodLight = (CDistantLODLight*)lightData;
+				CDistantLODLight* lightData = bucket->m_Light;
 
-				const uint32_t numStreetLights = lightDataAsDistantLodLight->m_NumStreetLights;
+				const uint32_t numStreetLights = lightData->m_NumStreetLights;
 
 				const float distanceSquared = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(delta));
 
@@ -248,8 +255,8 @@ static void __fastcall CLodLights_RenderDistantLODLights(CVisualEffectsRenderMod
 						break;
 
 					// NOTE: using raw pointers here avoids atArray::operator[] overhead in this hot loop
-					auto* colors = lightDataAsDistantLodLight->m_Colors.m_offset;
-					auto* positions = lightDataAsDistantLodLight->m_Positions.m_offset;
+					auto* colors = lightData->m_Colors.m_offset;
+					auto* positions = lightData->m_Positions.m_offset;
 
 					if (alphaStreet)
 					{
@@ -321,7 +328,7 @@ static HookFunction initFunction([]
 	
 	g_MapDataStore_Boxes = hook::get_address<uint64_t*>(hook::get_pattern("48 03 0D ? ? ? ? 0F 28 61"), 3, 7);
 
-	g_CLodLights_Enabled = hook::get_address<bool*>(hook::get_pattern("80 3D ? ? ? ? 00 48 63 DA"), 2, 7);
+    g_CLodLights_Enabled = hook::get_address<bool*>(hook::get_pattern("80 3D ? ? ? ? 00 48 63 DA 74 ? 80 3D ? ? ? ? 00"), 2, 7);
 	g_CLodLights_CanLoad = hook::get_address<bool*>(hook::get_pattern("80 3D ? ? ? ? 00 74 ? C6 05 ? ? ? ? 00 33 C9"), 2, 7);
 
 	g_CLodLightManager_CurrentFrameInfo = hook::get_address<uint64_t*>(hook::get_pattern("4C 8B 25 ? ? ? ? 45 8B FD"), 3, 7);
