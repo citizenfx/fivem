@@ -126,6 +126,27 @@ namespace fx
 				}
 			}
 
+			// Get ETag from existing file hash
+			std::string etag = "";
+			auto hashIt = filePairs.find(fileName);
+			if (hashIt != filePairs.end())
+			{
+				etag = "\"" + hashIt->second + "\"";
+			}
+
+			// Return 304 Not Modified if client already has this version
+			if (!etag.empty())
+			{
+				auto ifNoneMatch = request->GetHeader("if-none-match");
+				if (ifNoneMatch == etag)
+				{
+					response->SetHeader("ETag", etag);
+					response->WriteHead(304);
+					response->End();
+					return;
+				}
+			}
+
 			auto filter = filesComponent->CreateFilesFilter(fileName, request);
 
 			std::string reason;
@@ -191,7 +212,11 @@ namespace fx
 					// write header information and a 200 OK
 					response->SetHeader("content-length", std::to_string(size));
 					response->SetHeader("transfer-encoding", "identity");
-
+					if (!etag.empty())
+					{
+						response->SetHeader("ETag", etag);
+						response->SetHeader("Cache-Control", "public, max-age=0, must-revalidate");
+					}
 					response->WriteHead(200);
 
 					// read buffer and file handle
