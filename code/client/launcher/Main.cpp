@@ -49,6 +49,7 @@ std::map<std::string, std::string> UpdateGameCache();
 std::map<std::string, std::string> g_redirectionData;
 
 void DoPreLaunchTasks();
+void EarlyLdrBlock_Init();
 void NVSP_DisableOnStartup();
 void XBR_EarlySelect();
 bool ExecutablePreload_Init();
@@ -128,6 +129,9 @@ void DLLError(DWORD errorCode, std::string_view dllName)
 int RealMain()
 {
 #ifdef LAUNCHER_PERSONALITY_MAIN
+	// block problematic DLLs as early as possible, before any D3D/UI initialization
+	EarlyLdrBlock_Init();
+
 	if (!EnsureCompatibleOSVersion())
 	{
 		return 100;
