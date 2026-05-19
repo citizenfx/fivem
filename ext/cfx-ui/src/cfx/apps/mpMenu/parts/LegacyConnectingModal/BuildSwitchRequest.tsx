@@ -25,10 +25,13 @@ export function BuildSwitchRequest(props: BuildSwitchRequestProps) {
     onCancel = noop,
   } = props;
 
-  const [secondsLeft, setSecondsLeft] = React.useState(10);
+  const [secondsLeft, setSecondsLeft] = React.useState(state.optional ? 5 : 10);
 
   const performBuildSwitch = React.useCallback(() => {
     mpMenu.submitAdaptiveCardResponse({ action: 'ok' });
+  }, []);
+  const skipBuildSwitch = React.useCallback(() => {
+    mpMenu.submitAdaptiveCardResponse({ action: 'skip' });
   }, []);
   const cancelBuildSwitch = React.useCallback(() => {
     mpMenu.submitAdaptiveCardResponse({ action: 'cancel' });
@@ -43,7 +46,7 @@ export function BuildSwitchRequest(props: BuildSwitchRequestProps) {
         if (newLeft <= 0) {
           clearInterval(timer);
 
-          performBuildSwitch();
+          (state.optional ? skipBuildSwitch : performBuildSwitch)();
         }
 
         return newLeft;
@@ -70,7 +73,10 @@ export function BuildSwitchRequest(props: BuildSwitchRequestProps) {
         <Flex vertical>
           <Text size="xlarge">{$L('#BuildSwitch_Heading', textData)}</Text>
 
-          <Text size="large">{$L('#BuildSwitch_GeneralDescription', textData)}</Text>
+          {state.optional === true
+            && <Text size="large">{$L('#BuildSwitch_OptionalChange')}</Text>
+            || <Text size="large">{$L('#BuildSwitch_GeneralDescription', textData)}</Text>
+          }
           {state.currentBuild !== state.build && <Text size="large">{$L('#BuildSwitch_BuildDiff', textData)}</Text>}
           {state.currentPureLevel !== state.pureLevel && <Text size="large">{$L('#BuildSwitch_PureModeDiff', textData)}</Text>}
           {state.currentReplaceExecutable !== state.replaceExecutable && <Text size="large">{
@@ -84,9 +90,19 @@ export function BuildSwitchRequest(props: BuildSwitchRequestProps) {
 
       <Modal.Footer>
         <Flex>
-          <Button text={$L('#BuildSwitch_OK', { seconds: secondsLeft })} theme="primary" onClick={performBuildSwitch} />
+          {state.optional && (
+            <>
+              <Button text={$L('#BuildSwitch_Skip', { seconds: secondsLeft })} theme="primary" onClick={skipBuildSwitch} />
 
-          <Button text={$L('#BuildSwitch_Cancel', { seconds: secondsLeft })} onClick={cancelBuildSwitch} />
+              <Button text={$L('#BuildSwitch_Continue')} onClick={performBuildSwitch} />
+            </>
+          ) || (
+            <>
+              <Button text={$L('#BuildSwitch_OK', { seconds: secondsLeft })} theme="primary" onClick={performBuildSwitch} />
+
+              <Button text={$L('#BuildSwitch_Cancel', { seconds: secondsLeft })} onClick={cancelBuildSwitch} />
+            </>
+          )}
         </Flex>
       </Modal.Footer>
     </>
