@@ -6,7 +6,10 @@
 class CTaskInVehicleSeatShuffle
 {
 public:
-	char m_Padding[0x120];
+	char m_Padding[0x36];
+	int8_t m_TaskState;
+
+	char m_Padding2[0xE9];
 	void* m_Vehicle;
 	void* m_JackedPed;
 	int32_t m_TargetSeatIndex;
@@ -34,6 +37,9 @@ static FSM_Return CTaskInVehicleSeatShuffle_ProcessPreFSM(CTaskInVehicleSeatShuf
 
 	if (result == FSM_Quit)
 		return FSM_Quit;
+
+    if (thisPtr->m_TaskState <= 4 && thisPtr->m_TargetSeatIndex == -1)
+		return result;
 
 	const bool invalidTargetSeat = !g_CVehicle_GetSeatAnimationInfo(
 		thisPtr->m_Vehicle,
