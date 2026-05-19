@@ -75,7 +75,7 @@ static void FillDefaultScriptInitSlotData(ScriptInitSlotStorage& slot)
 	slot.data.filter.Int = 0;
 	slot.data.blendInDuration.Float = 0.125f;
 	slot.data.blendOutDuration.Float = 0.125f;
-	slot.data.timeToPlay.Int = -1;
+	slot.data.timeToPlay.Int = 0;
 	slot.data.flags.Int = 0;
 	slot.data.ikFlags.Int = 0;
 
@@ -198,7 +198,7 @@ static ScriptInitSlotStorage MakeScriptInitSlotDataFromObject(const fx::scrObjec
 		slot.data.filter.Int = GetIntOrDefault(data, "filter", 0);
 		slot.data.blendInDuration.Float = GetFloatOrDefault(data, "blendInDuration", 0.125f);
 		slot.data.blendOutDuration.Float = GetFloatOrDefault(data, "blendOutDuration", 0.125f);
-		slot.data.timeToPlay.Int = GetIntOrDefault(data, "timeToPlay", -1);
+		slot.data.timeToPlay.Int = GetIntOrDefault(data, "timeToPlay", 0);
 		slot.data.flags.Int = GetIntOrDefault(data, "flags", 0);
 		slot.data.ikFlags.Int = GetIntOrDefault(data, "ikFlags", 0);
 	}
