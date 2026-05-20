@@ -21,7 +21,7 @@ public:
 	using TCardCallback = std::function<void(const std::string&)>;
 	using TMessageCallback = std::function<void(const std::string&)>;
 	using TResolveCallback = std::function<void()>;
-	using TRejectCallback = std::function<void(const std::string&)>;
+	using TRejectCallback = std::function<void(const std::string&, const std::string&)>;
 
 public:
 	ClientDeferral(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client);

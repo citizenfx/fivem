@@ -94,6 +94,7 @@ void ClientDeferral::UpdateDeferrals()
 	bool allDone = true;
 	bool rejected = false;
 	std::string rejectionMsg;
+	std::string rejectionResource;
 
 	std::stringstream progressMsg;
 
@@ -112,6 +113,7 @@ void ClientDeferral::UpdateDeferrals()
 		if (ds.rejected)
 		{
 			rejectionMsg = ds.message;
+			rejectionResource = ds.resourceKey;
 
 			rejected = true;
 			break;
@@ -124,7 +126,7 @@ void ClientDeferral::UpdateDeferrals()
 
 		if (m_rejectCallback)
 		{
-			m_rejectCallback(rejectionMsg);
+			m_rejectCallback(rejectionMsg, rejectionResource);
 		}
 
 		return;
