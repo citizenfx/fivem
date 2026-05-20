@@ -376,6 +376,6 @@ static InitFunction httpInitFunction([]()
 	nui::RequestNUIBlocklist.Connect([](std::function<void(bool, const char*, size_t)> cb)
 	{
 		auto httpClient = Instance<HttpClient>::Get();
-		httpClient->DoGetRequest("https://runtime.fivem.net/nui-blacklist.json", cb);
+		httpClient->DoGetRequest("https://gss.cfx-services.net/v1/public/filter-lists/nui-blocklist", cb);
 	});
 });
