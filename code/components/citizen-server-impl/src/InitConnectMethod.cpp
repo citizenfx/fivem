@@ -394,6 +394,7 @@ static InitFunction initFunction([]()
 		auto pureVar = instance->AddVariable<int>("sv_pureLevel", ConVar_ServerInfo, 0);
 		auto shVar = instance->AddVariable<bool>("sv_scriptHookAllowed", ConVar_ServerInfo, false);
 		auto ehVar = instance->AddVariable<bool>("sv_enhancedHostSupport", ConVar_ServerInfo, false);
+		auto clipboardPermission = instance->AddVariable<bool>("sv_requiredClipboardPermission", ConVar_ServerInfo, false);
 
 		// list of space-separated endpoints that can but don't have to include a port
 		// for example: sv_endpoints "123.123.123.123 124.124.124.124"
@@ -1278,6 +1279,12 @@ static InitFunction initFunction([]()
 			}
 
 			cb(json::object({ { "result", "ok" } }));
+			cb(json(nullptr));
+		});
+		
+		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("precheck", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
+		{
+			cb(json::object({ {"result", "ok"}, {"requestClipboardPermission", clipboardPermission->GetValue()} }));
 			cb(json(nullptr));
 		});
 	}, 50);
