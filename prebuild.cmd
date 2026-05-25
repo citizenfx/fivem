@@ -5,3 +5,4 @@ call code\prebuild_misc.cmd
 cd %~dp0
 
 call prebuild_natives.cmd
+call prebuild_libnode.cmd
