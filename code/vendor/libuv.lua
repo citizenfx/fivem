@@ -12,7 +12,7 @@ return {
 	include = function()
 		includedirs { '../vendor/libnode/include/node/uv/include/' }
 
-        libdirs { '../vendor/libnode/bin/' }
+        libdirs { '../vendor/libuv/bin/' }
         if os.istarget('windows') then
             links { libName }
         else
@@ -25,10 +25,11 @@ return {
 
         files {
             -- dummy file to generate a project, so build commands are executed
-			'../vendor/libnode/tag.txt'
+			'../vendor/libuv/tag.txt'
 		}
 
-        local uvBinDir = path.getabsolute('../') .. '/vendor/libnode/bin'
+        local baseURL = ('https://content.cfx.re/mirrors/vendor/libnode/legacy%s/bin'):format(majorVersion)
+        local uvBinDir = path.getabsolute('../') .. '/vendor/libuv/bin'
 
 		if os.istarget('windows') then
 			filter 'files:**/tag.txt'
@@ -39,6 +40,12 @@ return {
                 }
 
                 buildcommands {
+                    -- download files, redownload only if outdated
+                    ('echo "%s/%s"'):format(baseURL, dllName),
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(uvBinDir, dllName, uvBinDir, dllName, baseURL, dllName),
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(uvBinDir, pdbName, uvBinDir, pdbName, baseURL, pdbName),
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(uvBinDir, libName, uvBinDir, libName, baseURL, libName),
+					'if %errorlevel% neq 0 (exit /b 1)',
 					('{COPY} %s/%s %%{cfg.targetdir}'):format(uvBinDir, dllName),
                     -- copy pdb manually to the server files
 					'{MKDIR} %{cfg.targetdir}/dbg/',
@@ -53,6 +60,7 @@ return {
                 }
 
                 buildcommands {
+                    ('curl "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(uvBinDir, soName, uvBinDir, soName, baseURL, soName),
 					('{COPY} %s/%s %%{cfg.targetdir}'):format(uvBinDir, soName),
                 }
 		end
