@@ -95,6 +95,11 @@ static InitFunction initFunction([] ()
 		);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("IS_GAME_ENHANCED_VERSION", [](fx::ScriptContext& context)
+	{
+		context.SetResult(false);
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("EXECUTE_COMMAND", [](fx::ScriptContext& context)
 	{
 		fx::OMPtr<IScriptRuntime> runtime;
