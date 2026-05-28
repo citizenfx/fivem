@@ -34,13 +34,18 @@ static nui::IAudioSink* g_audioSink;
 
 static bool IsTrustedEntitlementFrame(const std::string& frameUrl)
 {
+	static ConVar<std::string> uiUrlVar("ui_url", ConVar_UserPref, "https://nui-game-internal/ui/app/index.html");
+	if (boost::algorithm::starts_with(frameUrl, uiUrlVar.GetValue()))
+	{
+		return true;
+	}
+
 	if (frameUrl.empty())
 	{
 		return false;
 	}
 
 	CefURLParts urlParts;
-
 	if (!CefParseURL(frameUrl, urlParts))
 	{
 		return false;
