@@ -20,8 +20,6 @@ code/components/voip-mumble/include/lib*/** linguist-vendored
 **/winrt/** linguist-generated
 ext/natives/natives_stash/* linguist-generated
 *.p linguist-generated
-# ensure cfx-ui is using autocrlf
-ext/cfx-ui/** text=auto
 # LFS tracked binaries
 vendor/libnode/bin/*.dll filter=lfs diff=lfs merge=lfs -text
 vendor/libnode/bin/*.lib filter=lfs diff=lfs merge=lfs -text

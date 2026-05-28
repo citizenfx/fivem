@@ -96,7 +96,6 @@ function Get-CfxVersions {
         $versions.SDK = ((git rev-list $versions.SDKCommit | measure-object).Count * 10) + 1100000
 
         $UIPaths = @(
-            "ext/cfx-ui/"
             "ext/ui-build/"
         )
         $versions.UICommit = (git rev-list -1 HEAD $UIPaths)

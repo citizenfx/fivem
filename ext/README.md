@@ -4,7 +4,6 @@ This directory contains external projects which are _generally_ part of the core
 part of the main project.
 
 ## ext/
-* [**cfx-ui/**](./cfx-ui): The main menu interface for the game clients.
 * [**event-doc-gen/**](./event-doc-gen): Generation tooling for _event_ documentation.
 * [**native-decls/**](./native-decls): Native function declarations for `CFX/` natives defined in the main project.
 * [**native-doc-gen/**](./native-doc-gen): Scripts to generate `native-decls` using the `native-doc-tooling` submodule.

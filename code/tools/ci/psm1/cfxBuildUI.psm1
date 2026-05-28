@@ -15,13 +15,10 @@ function Invoke-BuildUI {
         $haveNewerCommit = $Versions.UICommit -ne (Get-Content -ErrorAction Ignore $lastBuiltCommitFile)
 
         if (!$havePreviouslyBuiltArtifacts -or $haveNewerCommit) {
-            cmd /c build.cmd
+            cmd /c build.cmd $($Context.PremakeGameName)
             Test-LastExitCode "Failed to build CfxUI"
 
             $Versions.UICommit | Out-File -Encoding ascii -NoNewline $lastBuiltCommitFile
-
-            # delete node_modules to avoid them polluting the build cache
-            Remove-Item -Recurse -Force $Context.getPathInProject("ext\cfx-ui\node_modules")
         } else {
             Write-Output "Skipping UI build: existing artifacts are up to date"
         }
