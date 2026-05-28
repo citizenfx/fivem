@@ -32,6 +32,7 @@ return {
 			('../vendor/libnode/tag.txt'):format(baseVersion)
 		}
 
+        local baseURL = ('https://content.cfx.re/mirrors/vendor/libnode/legacy%s/bin'):format(majorVersion)
         local nodeBinDir = path.getabsolute('../') .. '/vendor/libnode/bin'
 
 		if os.istarget('windows') then
@@ -43,6 +44,11 @@ return {
                 }
 
                 buildcommands {
+                    -- download files, redownload only if outdated
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, dllName, nodeBinDir, dllName, baseURL, dllName),
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, pdbName, nodeBinDir, pdbName, baseURL, pdbName),
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, libName, nodeBinDir, libName, baseURL, libName),
+					'if %errorlevel% neq 0 (exit /b 1)',
 					('{COPY} %s/%s %%{cfg.targetdir}'):format(nodeBinDir, dllName),
                     -- copy pdb manually to the server files
 					'{MKDIR} %{cfg.targetdir}/dbg/',
@@ -57,6 +63,7 @@ return {
                 }
 
                 buildcommands {
+                    ('curl "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, soName, nodeBinDir, soName, baseURL, soName),
 					('{COPY} %s/%s %%{cfg.targetdir}'):format(nodeBinDir, soName),
                 }
 		end
