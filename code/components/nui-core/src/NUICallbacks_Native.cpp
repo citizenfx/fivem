@@ -61,6 +61,11 @@ static bool IsUrlTrusted(const std::string& url)
 		return static_cast<char>(std::tolower(c));
 	});
 
+	if (host == "forum.cfx.re" && parsed->pathname().find("/uploads/") == 0)
+	{
+		return false;
+	}
+
 	// Check untrusted subdomains first
 	for (const auto& untrusted : untrustedSubdomains)
 	{

@@ -418,7 +418,7 @@ static InitFunction initFunction([]()
 			{
 				previousTitle = gameName;
 
-				std::string limitsFileUrl = "https://gss.cfx-services.net/v1/pool-size-limits/";
+				std::string limitsFileUrl = "https://gss.cfx-services.net/v1/public/pool-size-limits/";
 				limitsFileUrl += gameName == fx::GameName::GTA5 ? "fivem" : "redm";
 
 				fx::PoolSizeManager::FetchLimits(limitsFileUrl, true);
@@ -755,6 +755,7 @@ static InitFunction initFunction([]()
 			}
 
 			bool gameNameMatch = false;
+			bool serverIdMatch = false;
 
 			if (ticketData.extraJson)
 			{
@@ -771,6 +772,17 @@ static InitFunction initFunction([]()
 							gameNameMatch = true;
 						}
 					}
+
+					if (json["si"].is_string())
+					{
+						auto sentServerId = json["si"].get<std::string>();
+
+						auto serverIdVar = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("sv_serverId");
+						if (serverIdVar && sentServerId == serverIdVar->GetValue())
+						{
+							serverIdMatch = true;
+						}
+					}
 				}
 				catch (std::exception& e)
 				{
@@ -783,11 +795,18 @@ static InitFunction initFunction([]()
 			if (lanVar->GetValue())
 			{
 				gameNameMatch = true;
+				serverIdMatch = true;
 			}
 
 			if (!gameNameMatch)
 			{
 				sendError("CitizenFX ticket authorization failed. (3)");
+				return;
+			}
+
+			if (!serverIdMatch)
+			{
+				sendError("CitizenFX ticket authorization failed. (4)");
 				return;
 			}
 

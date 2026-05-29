@@ -194,5 +194,4 @@ privates_config.lua
 # python files
 *.pyc
 
-# Do not ignore libuv and libnode pdbs
-!/vendor/libnode/bin/*.pdb
+/vendor/libuv/bin/libuv.*

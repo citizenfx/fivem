@@ -1,1 +1,4 @@
-!/vendor/libnode/bin/*.pdb
+*.dll
+*.pdb
+*.lib
+*.so
