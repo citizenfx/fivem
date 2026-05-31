@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <ScriptEngine.h>
+#include <ScriptSerialization.h>
 #include <Hooking.h>
 #include <scrEngine.h>
 #include <CrossBuildRuntime.h>
@@ -778,6 +779,162 @@ static void FixNatives()
 	}
 }
 
+struct CompactStringBuffer
+{
+	std::vector<uint64_t> slots;
+	std::vector<std::string> strings;
+};
+
+static bool IsAllZero(const uint8_t* data, size_t size)
+{
+	for (size_t i = 0; i < size; ++i)
+	{
+		if (data[i] != 0)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static bool StartsWith(const char* data, size_t len, const char* prefix)
+{
+	const size_t prefixLen = std::strlen(prefix);
+	return len >= prefixLen && std::memcmp(data, prefix, prefixLen) == 0;
+}
+
+static size_t StrnLenSafe(const char* data, size_t maxLen)
+{
+	size_t len = 0;
+
+	while (len < maxLen && data[len] != '\0')
+	{
+		++len;
+	}
+
+	return len;
+}
+
+static CompactStringBuffer CompactCfxStringMarkers(const void* input, size_t inputSize)
+{
+	constexpr size_t kSlotSize = 8;
+	constexpr size_t kInlineStringSize = 48;
+	constexpr size_t kOutputSize = 0xB0;
+	constexpr size_t kOutputSlotCount = kOutputSize / kSlotSize;
+	constexpr const char* kPrefix = "__cfx_str:";
+
+	CompactStringBuffer out;
+
+	if (!input || inputSize == 0)
+	{
+		out.slots.assign(kOutputSlotCount, 0);
+		return out;
+	}
+
+	const auto* bytes = static_cast<const uint8_t*>(input);
+	size_t offset = 0;
+
+	out.slots.reserve(kOutputSlotCount);
+
+	while (offset + kSlotSize <= inputSize && out.slots.size() < kOutputSlotCount)
+	{
+		const size_t remaining = inputSize - offset;
+		const char* current = reinterpret_cast<const char*>(bytes + offset);
+
+		if (remaining >= kInlineStringSize && StartsWith(current, kInlineStringSize, kPrefix))
+		{
+			const size_t prefixLen = std::strlen(kPrefix);
+			const size_t strLen = StrnLenSafe(current + prefixLen, kInlineStringSize - prefixLen);
+
+			out.strings.emplace_back(current + prefixLen, strLen);
+
+			out.slots.push_back(
+			out.strings.back().empty()
+			? 0
+			: static_cast<uint64_t>(reinterpret_cast<uintptr_t>(out.strings.back().c_str())));
+
+			offset += kInlineStringSize;
+			continue;
+		}
+
+		uint64_t value = 0;
+		std::memcpy(&value, bytes + offset, kSlotSize);
+
+		out.slots.push_back(value);
+		offset += kSlotSize;
+	}
+
+	while (out.slots.size() < kOutputSlotCount)
+	{
+		out.slots.push_back(0);
+	}
+
+	if (out.slots.size() > kOutputSlotCount)
+	{
+		out.slots.resize(kOutputSlotCount);
+	}
+
+	return out;
+}
+
+static CompactStringBuffer CompactCfxStringMarkers(const fx::scrObject& obj)
+{
+	if (!obj.data || obj.length == 0)
+	{
+		return {};
+	}
+
+	return CompactCfxStringMarkers(obj.data, obj.length);
+}
+
+static void FixScriptedAnimNative(uint64_t nativeHash)
+{
+	auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!handler)
+	{
+		return;
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	{
+		constexpr size_t kExpandedAnimSlotSize = 0x1A0;
+
+		auto low = CompactCfxStringMarkers(ctx.GetArgument<void*>(1), kExpandedAnimSlotSize);
+		auto mid = CompactCfxStringMarkers(ctx.GetArgument<void*>(2), kExpandedAnimSlotSize);
+		auto high = CompactCfxStringMarkers(ctx.GetArgument<void*>(3), kExpandedAnimSlotSize);
+
+		//trace("low compact slots=%zu strings=%zu\n", low.slots.size(), low.strings.size());
+
+		if (!low.slots.empty())
+		{
+			ctx.SetArgument<void*>(1, low.slots.data());
+		}
+
+		if (!mid.slots.empty())
+		{
+			ctx.SetArgument<void*>(2, mid.slots.data());
+		}
+
+		if (!high.slots.empty())
+		{
+			ctx.SetArgument<void*>(3, high.slots.data());
+		}
+
+		handler(ctx);
+	});
+
+}
+
+static void FixScriptedAnimNatives()
+{
+	constexpr const uint64_t PlayEntityScriptedAnimHash = 0x77A1EEC547E7FCF1;
+	constexpr const uint64_t TaskScriptedAnimHash = 0x126EF75F1E17ABE5;
+	FixScriptedAnimNative(PlayEntityScriptedAnimHash);
+	FixScriptedAnimNative(TaskScriptedAnimHash);
+}
+
 namespace
 {
 
@@ -907,6 +1064,8 @@ static HookFunction hookFunction([]()
 		FixActionscriptFlagNatives();
 
 		FixNatives();
+
+		FixScriptedAnimNatives();
 
 		if (xbr::IsGameBuildOrGreater<2612>())
 		{
