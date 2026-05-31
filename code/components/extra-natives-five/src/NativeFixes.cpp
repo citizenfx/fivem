@@ -785,19 +785,6 @@ struct CompactStringBuffer
 	std::vector<std::string> strings;
 };
 
-static bool IsAllZero(const uint8_t* data, size_t size)
-{
-	for (size_t i = 0; i < size; ++i)
-	{
-		if (data[i] != 0)
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
 static bool StartsWith(const char* data, size_t len, const char* prefix)
 {
 	const size_t prefixLen = std::strlen(prefix);
@@ -876,16 +863,6 @@ static CompactStringBuffer CompactCfxStringMarkers(const void* input, size_t inp
 	}
 
 	return out;
-}
-
-static CompactStringBuffer CompactCfxStringMarkers(const fx::scrObject& obj)
-{
-	if (!obj.data || obj.length == 0)
-	{
-		return {};
-	}
-
-	return CompactCfxStringMarkers(obj.data, obj.length);
 }
 
 static void FixScriptedAnimNative(uint64_t nativeHash)
