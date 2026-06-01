@@ -879,18 +879,22 @@ concurrency::task<void> NetLibrary::PrecheckServer(const std::string& rootUrl)
 			
 			if (response["result"] == "ok")
 			{
-				if (response["requestClipboardPermission"])
+				if (response["optionalUserPermissionClipboard"])
 				{					
 					json clipBoardCardJson = json::object({
 						{ "type", "AdaptiveCard" },
 						{ "version", "1.0" },
 						{ "body", json::array({
-							  {
+							  json::object({
+								  { "type", "TextBlock" },
+								  { "title", "Optional server permissions" }
+							  }),
+							  json::object({
 								  { "type", "Input.Toggle" },
 								  { "title", "Enables the server to copy text or media data directly to your clipboard to use." },
 								  { "id", "acceptedClipboardPermission" },
 								  { "value", "true" }
-							  }
+							  })
 							})
 						},
 						{ "actions", json::array({
@@ -905,7 +909,7 @@ concurrency::task<void> NetLibrary::PrecheckServer(const std::string& rootUrl)
 						}
 					});
 					
-					OnConnectionCardPresent(clipBoardCardJson.dump(), "requestClipboardPermission");
+					OnConnectionCardPresent(clipBoardCardJson.dump(), "optionalUserPermissionClipboard");
 				}
 				else
 				{
