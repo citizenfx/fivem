@@ -782,7 +782,7 @@ static void FixNatives()
 struct CompactStringBuffer
 {
 	std::vector<uint64_t> slots;
-	std::vector<std::string> strings;
+	std::deque<std::string> strings;
 };
 
 static bool StartsWith(const char* data, size_t len, const char* prefix)
