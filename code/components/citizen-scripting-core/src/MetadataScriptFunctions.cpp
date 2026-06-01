@@ -16,6 +16,10 @@
 
 #include "FilesystemPermissions.h"
 
+#ifdef IS_FXSERVER
+#include <filesystem>
+#endif
+
 #if __has_include(<CrossBuildRuntime.h>) && defined(_WIN32)
 #include <CrossBuildRuntime.h>
 
@@ -27,6 +31,52 @@ static inline auto GetGameBuild()
 static inline auto GetGameBuild()
 {
 	return 0;
+}
+#endif
+
+#ifdef IS_FXSERVER
+static bool IsPathWithinResourceRoot(const std::filesystem::path& rootPath, const std::filesystem::path& candidatePath)
+{
+#ifdef _WIN32
+	auto equalsPathPart = [](const std::filesystem::path& lhs, const std::filesystem::path& rhs)
+	{
+		auto lhsString = lhs.wstring();
+		auto rhsString = rhs.wstring();
+
+		if (lhsString.size() != rhsString.size())
+		{
+			return false;
+		}
+
+		for (size_t i = 0; i < lhsString.size(); ++i)
+		{
+			if (towlower(lhsString[i]) != towlower(rhsString[i]))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	};
+#else
+	auto equalsPathPart = [](const std::filesystem::path& lhs, const std::filesystem::path& rhs)
+	{
+		return lhs == rhs;
+	};
+#endif
+
+	auto rootIt = rootPath.begin();
+	auto candidateIt = candidatePath.begin();
+
+	for (; rootIt != rootPath.end(); ++rootIt, ++candidateIt)
+	{
+		if (candidateIt == candidatePath.end() || !equalsPathPart(*rootIt, *candidateIt))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 #endif
 
@@ -95,6 +145,8 @@ static InitFunction initFunction([] ()
 
 	fx::ScriptEngine::RegisterNativeHandler("LOAD_RESOURCE_FILE", [] (fx::ScriptContext& context)
 	{
+		const char* requestedFileName = context.CheckArgument<const char*>(1);
+
 		// find the resource
 		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
 		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
@@ -121,10 +173,35 @@ static InitFunction initFunction([] ()
 			context.SetResult(nullptr);
 			return;
 		}
+#else
+		try
+		{
+			const std::filesystem::path resourceRoot = std::filesystem::weakly_canonical(std::filesystem::absolute(std::filesystem::u8path(rootPath)));
+			const std::filesystem::path requestedPath = std::filesystem::u8path(requestedFileName);
+
+			if (requestedPath.is_absolute() || requestedPath.has_root_name())
+			{
+				context.SetResult(nullptr);
+				return;
+			}
+
+			const std::filesystem::path absoluteRequestedPath = std::filesystem::weakly_canonical(std::filesystem::absolute(resourceRoot / requestedPath));
+
+			if (!IsPathWithinResourceRoot(resourceRoot, absoluteRequestedPath))
+			{
+				context.SetResult(nullptr);
+				return;
+			}
+		}
+		catch (const std::filesystem::filesystem_error&)
+		{
+			context.SetResult(nullptr);
+			return;
+		}
 #endif
 
 		// try opening the file from the resource's home directory
-		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(rootPath + "/" + context.CheckArgument<const char*>(1));
+		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(rootPath + "/" + requestedFileName);
 
 		if (!stream.GetRef())
 		{
