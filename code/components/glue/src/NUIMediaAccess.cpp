@@ -2,6 +2,7 @@
 #include <CefOverlay.h>
 #include <json.hpp>
 #include <NetLibrary.h>
+#include <ICoreGameInit.h>
 
 #include <ConsoleHost.h>
 
@@ -19,12 +20,37 @@ static std::map<std::string, int> g_mediaSettings;
 
 extern NetLibrary* netLibrary;
 
+static std::string GetMediaPermissionServerKey()
+{
+	// Prefer a stable logical server identifier over the selected network peer.
+	// This avoids re-prompting for the same server when it is reached through
+	// different proxy/endpoint addresses.
+	if (auto gameInit = Instance<ICoreGameInit>::Get())
+	{
+		std::string serverId;
+
+		if (gameInit->GetData("serverId", &serverId) && !serverId.empty())
+		{
+			return "server:" + serverId;
+		}
+	}
+
+	// Fallback to the connect URL.
+	if (!netLibrary->GetCurrentServerUrl().empty())
+	{
+		return "url:" + netLibrary->GetCurrentServerUrl();
+	}
+
+	// Fallback: preserve old behavior.
+	return "peer:" + netLibrary->GetCurrentPeer().ToString();
+}
+
 static void ParseMediaSettings(const std::string& jsonStr)
 {
 	try
 	{
 		auto j = nlohmann::json::parse(jsonStr);
-		
+
 		for (auto& pair : j["origins"])
 		{
 			g_mediaSettings.emplace(pair[0].get<std::string>(), pair[1].get<int>());
@@ -32,7 +58,6 @@ static void ParseMediaSettings(const std::string& jsonStr)
 	}
 	catch (std::exception& e)
 	{
-
 	}
 }
 
@@ -97,7 +122,6 @@ void SavePermissionSettings()
 	}
 	catch (std::exception& e)
 	{
-	
 	}
 }
 
@@ -116,7 +140,7 @@ bool HandleMediaRequest(const std::string& frameOrigin, const std::string& url, 
 	permissions &= ~nui::NUI_MEDIA_PERMISSION_DESKTOP_VIDEO_CAPTURE;
 
 	// if this server+resource already has permission, keep it
-	auto origin = netLibrary->GetCurrentPeer().ToString() + ":" + frameOrigin;
+	auto origin = GetMediaPermissionServerKey() + ":" + frameOrigin;
 	int hadPermissions = 0;
 
 	if (auto it = g_mediaSettings.find(origin); it != g_mediaSettings.end())
@@ -156,7 +180,7 @@ bool HandleMediaRequest(const std::string& frameOrigin, const std::string& url, 
 	};
 	requestedPermissionMask = permissions & ~hadPermissions;
 	requestedPermissionOrigin = origin;
-	
+
 	permGrants[0] = true;
 	permGrants[1] = false;
 	permGrants[2] = false;
@@ -199,7 +223,7 @@ static InitFunction mediaRequestInit([]()
 			{
 				ImGui::Text("Permission request: %s", requestedPermissionResource.c_str());
 				ImGui::Separator();
-				
+
 				if (ConHost::IsConsoleOpen())
 				{
 					ImGui::Text("The resource %s at %s wants access to the following:", requestedPermissionResource.c_str(), requestedPermissionUrl.c_str());
@@ -258,7 +282,7 @@ static InitFunction mediaRequestInit([]()
 						requestedPermissionCallback(true, outcomeMask);
 						requestedPermissionCallback = {};
 					}
-					
+
 					ImGui::SameLine();
 
 					if (ImGui::Button("Deny"))
