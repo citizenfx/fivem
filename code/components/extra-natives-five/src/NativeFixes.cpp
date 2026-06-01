@@ -806,7 +806,7 @@ static size_t StrnLenSafe(const char* data, size_t maxLen)
 static CompactStringBuffer CompactCfxStringMarkers(const void* input, size_t inputSize)
 {
 	constexpr size_t kSlotSize = 8;
-	constexpr size_t kInlineStringSize = 48;
+	constexpr size_t kInlineStringSize = 128;
 	constexpr size_t kOutputSize = 0xB0;
 	constexpr size_t kOutputSlotCount = kOutputSize / kSlotSize;
 	constexpr const char* kPrefix = "__cfx_str:";
