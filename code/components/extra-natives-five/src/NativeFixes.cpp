@@ -876,7 +876,7 @@ static void FixScriptedAnimNative(uint64_t nativeHash)
 
 	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
 	{
-		constexpr size_t kExpandedAnimSlotSize = 0x1A0;
+		constexpr size_t kExpandedAnimSlotSize = 0x380;
 
 		auto low = CompactCfxStringMarkers(ctx.GetArgument<void*>(1), kExpandedAnimSlotSize);
 		auto mid = CompactCfxStringMarkers(ctx.GetArgument<void*>(2), kExpandedAnimSlotSize);
