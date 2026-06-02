@@ -67,6 +67,8 @@ static void* g_lastBackbufTexture;
 static bool g_useFlipModel = false;
 
 static bool g_overrideVsync;
+static uint16_t g_fpsLimit = 0;
+static ConVar<uint16_t> gameFpsLimit("game_fpsLimit", ConVar_Archive, 0, &g_fpsLimit);
 
 static void CaptureBufferOutput();
 static void CaptureInternalScreenshot();
@@ -224,6 +226,16 @@ static auto LimitFrameTime(WaitableTimer& timer, size_t fpsLimit)
 	}
 
 	return ReturnToken{};
+}
+
+static size_t GetFpsLimit()
+{
+	if (g_fpsLimit <= 0) // ignore non-positive values, enforcing no fps limit
+	{
+		return 0;
+	}
+
+	return std::clamp<size_t>(g_fpsLimit, 30, 500);
 }
 
 class BufferBackedDXGISwapChain : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, IDXGISwapChain>
@@ -1454,6 +1466,9 @@ void D3DPresent(int syncInterval, int flags)
 	}
 
 	RootCheckPresented(flags);
+
+	static WaitableTimer fpsLimitTimer{ NULL, TRUE, NULL };
+	auto fpsLimitToken = LimitFrameTime(fpsLimitTimer, GetFpsLimit());
 
 	if (IsWindows10OrGreater())
 	{
