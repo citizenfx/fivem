@@ -190,9 +190,9 @@ void ReMountDefaultDevice(const char* rpfFile, const char* intermediateMount, co
 static InitFunction initFunction([]()
 {
 #if defined(GTA_FIVE)
-	// Either feature flag for the new build system is not set or requested build above latest stable.
-	// Do not override .rpf files. We will load .exe and .rpf files for the requested game build in GameCache.cpp instead.
-	if (xbr::GetReplaceExecutable() || xbr::GetRequestedGameBuild() >= xbr::GetGameBuild())
+	// If the requested build is at or above the effective default exe build, do not override .rpf files.
+	// We will load .exe and .rpf files for the requested game build in GameCache.cpp instead.
+	if (xbr::GetRequestedGameBuild() >= xbr::GetGameBuild())
 	{
 		return;
 	}

@@ -379,7 +379,6 @@ std::optional<TicketData> VerifyTicketEx(const std::string& ticket, const Botan:
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 fx::GameBuild g_enforcedGameBuild;
-bool g_replaceExecutable;
 
 static InitFunction initFunction([]()
 {
@@ -403,8 +402,13 @@ static InitFunction initFunction([]()
 		g_enforcedGameBuild = xbr::GetDefaultGTA5BuildString();
 		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, xbr::GetDefaultGTA5BuildString(), &g_enforcedGameBuild);
 
-		g_replaceExecutable = false;
-		auto replaceExecutableVar = instance->AddVariable<bool>("sv_replaceExeToSwitchBuilds", ConVar_ReadOnly | ConVar_ServerInfo, false, &g_replaceExecutable);
+		// The default game build communicated to clients. Clients use this as their default build
+		// instead of a hardcoded value, allowing server updates to roll out new defaults without client releases.
+		auto defaultGameBuildVar = instance->AddVariable<std::string>("sv_defaultGameBuild", ConVar_ServerInfo | ConVar_Internal, xbr::GetDefaultGTA5ExecutableString());
+
+		// Kept for backwards compatibility with older clients that read this value.
+		// Always false: we never replace the executable to switch builds.
+		auto replaceExecutableVar = instance->AddVariable<bool>("sv_replaceExeToSwitchBuilds", ConVar_ServerInfo | ConVar_Internal, false);
 
 		auto poolSizesIncrease = std::make_shared<std::unordered_map<std::string, uint32_t>>();
 		auto poolSizesIncreaseVar = instance->AddVariable<std::string>("sv_poolSizesIncrease", ConVar_ServerInfo | ConVar_Internal, "");
@@ -438,7 +442,7 @@ static InitFunction initFunction([]()
 			poolSizesIncreaseVar->GetHelper()->SetRawValue(nlohmann::json(*poolSizesIncrease).dump());
 		});
 
-		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance, enforceGameBuildVar]()
+		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance, enforceGameBuildVar, defaultGameBuildVar, replaceExecutableVar]()
 		{
 			if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::RDR3)
 			{
@@ -721,9 +725,6 @@ static InitFunction initFunction([]()
 			{
 				trace("Something went wrong. Pool sizes increase may not be set.");
 			}
-
-			// Capture replaceExecutableVar just to prolong it's lifetime until connection is initialized.
-			(void)replaceExecutableVar;
 
 			{
 				auto oldClient = clientRegistry->GetClientByGuid(guid);

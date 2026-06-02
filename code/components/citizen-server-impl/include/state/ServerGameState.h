@@ -53,14 +53,14 @@ static constexpr const size_t kGamePlayerCap =
 #include <net/NetObjEntityType.h>
 
 #ifdef STATE_FIVE
-// For GTA5, if the feature flag for new build system is set, we use the latest stable build executable even if lower version is enforced.
-// The different sv_enforceGameBuild behaviors is achieved on the client side by loading different DLC sets with IsDlcIncludedInBuild.
+// We always use the latest stable build executable. The different sv_enforceGameBuild behaviors
+// are achieved on the client side by loading different DLC sets with IsDlcIncludedInBuild.
 
 inline bool Is2060()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2060) || fx::GetEnforcedGameBuildNumber() >= 2060;
+		return xbr::GetDefaultGTA5Executable() >= 2060 || fx::GetEnforcedGameBuildNumber() >= 2060;
 	})();
 
 	return value;
@@ -70,7 +70,7 @@ inline bool Is2189()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2189) || fx::GetEnforcedGameBuildNumber() >= 2189;
+		return xbr::GetDefaultGTA5Executable() >= 2189 || fx::GetEnforcedGameBuildNumber() >= 2189;
 	})();
 
 	return value;
@@ -80,7 +80,7 @@ inline bool Is2372()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2372) || fx::GetEnforcedGameBuildNumber() >= 2372;
+		return xbr::GetDefaultGTA5Executable() >= 2372 || fx::GetEnforcedGameBuildNumber() >= 2372;
 	})();
 
 	return value;
@@ -90,7 +90,7 @@ inline bool Is2545()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2545) || fx::GetEnforcedGameBuildNumber() >= 2545;
+		return xbr::GetDefaultGTA5Executable() >= 2545 || fx::GetEnforcedGameBuildNumber() >= 2545;
 	})();
 
 	return value;
@@ -100,7 +100,7 @@ inline bool Is2612()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2612) || fx::GetEnforcedGameBuildNumber() >= 2612;
+		return xbr::GetDefaultGTA5Executable() >= 2612 || fx::GetEnforcedGameBuildNumber() >= 2612;
 	})();
 
 	return value;
@@ -110,7 +110,7 @@ inline bool Is2699()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2699) || fx::GetEnforcedGameBuildNumber() >= 2699;
+		return xbr::GetDefaultGTA5Executable() >= 2699 || fx::GetEnforcedGameBuildNumber() >= 2699;
 	})();
 
 	return value;
@@ -120,7 +120,7 @@ inline bool Is2802()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2802) || fx::GetEnforcedGameBuildNumber() >= 2802;
+		return xbr::GetDefaultGTA5Executable() >= 2802 || fx::GetEnforcedGameBuildNumber() >= 2802;
 	})();
 
 	return value;
@@ -130,7 +130,7 @@ inline bool Is2944()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 2944) || fx::GetEnforcedGameBuildNumber() >= 2944;
+		return xbr::GetDefaultGTA5Executable() >= 2944 || fx::GetEnforcedGameBuildNumber() >= 2944;
 	})();
 
 	return value;
@@ -140,7 +140,7 @@ inline bool Is3095()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3095) || fx::GetEnforcedGameBuildNumber() >= 3095;
+		return xbr::GetDefaultGTA5Executable() >= 3095 || fx::GetEnforcedGameBuildNumber() >= 3095;
 	})();
 
 	return value;
@@ -150,7 +150,7 @@ inline bool Is3258()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3258) || fx::GetEnforcedGameBuildNumber() >= 3258;
+		return xbr::GetDefaultGTA5Executable() >= 3258 || fx::GetEnforcedGameBuildNumber() >= 3258;
 	})();
 
 	return value;
@@ -160,7 +160,7 @@ inline bool Is3323()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3323) || fx::GetEnforcedGameBuildNumber() >= 3323;
+		return xbr::GetDefaultGTA5Executable() >= 3323 || fx::GetEnforcedGameBuildNumber() >= 3323;
 	})();
 
 	return value;
@@ -170,7 +170,7 @@ inline bool Is3407()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3407) || fx::GetEnforcedGameBuildNumber() >= 3407;
+		return xbr::GetDefaultGTA5Executable() >= 3407 || fx::GetEnforcedGameBuildNumber() >= 3407;
 	})();
 
 	return value;
@@ -180,7 +180,7 @@ inline bool IsSummerUpdate25()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= xbr::Build::Summer_2025) || fx::GetEnforcedGameBuildNumber() >= xbr::Build::Summer_2025;
+		return xbr::GetDefaultGTA5Executable() >= xbr::Build::Summer_2025 || fx::GetEnforcedGameBuildNumber() >= xbr::Build::Summer_2025;
 	})();
 
 	return value;
@@ -190,7 +190,7 @@ inline bool IsWinterUpdate25()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= 3717) || fx::GetEnforcedGameBuildNumber() >= 3717;
+		return xbr::GetDefaultGTA5Executable() >= 3717 || fx::GetEnforcedGameBuildNumber() >= 3717;
 	})();
 
 	return value;
@@ -200,7 +200,7 @@ inline bool IsPatch2026_1()
 {
 	static bool value = ([]()
 	{
-		return (!fx::GetReplaceExecutable() && xbr::GetDefaultGTA5Build() >= xbr::Build::Patch_2026_1) || fx::GetEnforcedGameBuildNumber() >= xbr::Build::Patch_2026_1;
+		return xbr::GetDefaultGTA5Executable() >= xbr::Build::Patch_2026_1 || fx::GetEnforcedGameBuildNumber() >= xbr::Build::Patch_2026_1;
 	})();
 
 	return value;

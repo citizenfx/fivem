@@ -63,17 +63,31 @@ int GetRequestedGameBuildInit()
 	return buildNumber;
 }
 
-bool GetReplaceExecutableInit()
+int GetEffectiveDefaultGameBuildInit()
 {
-	bool replaceExecutable = true;
-
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	int effectiveDefault = GetDefaultGameBuild();
+
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
-		replaceExecutable = (GetPrivateProfileInt(L"Game", L"ReplaceExecutable", 1, fpath.c_str()) != 0);
+		int persisted = GetPrivateProfileInt(L"Game", L"DefaultGameBuild", 0, fpath.c_str());
+		if (persisted >= GetDefaultGameBuild())
+		{
+			effectiveDefault = persisted;
+		}
 	}
 
-	return replaceExecutable;
+	return effectiveDefault;
+}
+
+void SetEffectiveDefaultGameBuild(int build)
+{
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		WritePrivateProfileString(L"Game", L"DefaultGameBuild", fmt::sprintf(L"%d", build).c_str(), fpath.c_str());
+	}
 }
 
 }
