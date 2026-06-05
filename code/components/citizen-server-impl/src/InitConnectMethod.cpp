@@ -53,8 +53,9 @@
 
 #include <HttpClient.h>
 
-#include "CnlEndpoint.h"
+#include <StructuredTrace.h>
 
+#include "CnlEndpoint.h"
 using json = nlohmann::json;
 
 static std::forward_list<fx::ServerIdentityProviderBase*> g_serverProviders;
@@ -1039,7 +1040,7 @@ static InitFunction initFunction([]()
 				auto weakEarlyReject = std::weak_ptr(earlyReject);
 				auto weakNoReason = std::weak_ptr(noReason);
 
-				(*deferrals)->SetRejectCallback([deferrals, cbRef, clientWeak, weakEarlyReject, weakNoReason](const std::string& message)
+				(*deferrals)->SetRejectCallback([deferrals, cbRef, clientWeak, weakEarlyReject, weakNoReason](const std::string& message, const std::string& resourceName)
 				{
 					auto earlyReject = weakEarlyReject.lock();
 					auto noReason = weakNoReason.lock();
@@ -1053,6 +1054,23 @@ static InitFunction initFunction([]()
 					auto newLockedClient = clientWeak.lock();
 					if (newLockedClient)
 					{
+						std::string license;
+						for (const auto& identifier : newLockedClient->GetIdentifiers())
+						{
+							if (identifier.rfind("license:", 0) == 0)
+							{
+								license = identifier;
+								break;
+							}
+						}
+
+						StructuredTrace(
+							{ "type", "player_connection_rejected" },
+							{ "license", license },
+							{ "resource", resourceName },
+							{ "reason", message }
+						);
+
 						auto ref1 = *cbRef;
 
 						if (ref1)
