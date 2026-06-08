@@ -39,36 +39,12 @@ inline int GetDefaultRDR3Build()
 }
 
 #ifdef IS_FXSERVER
-// The minimum game build (client-enforced floor). Used as the default for sv_enforceGameBuild.
 inline const char* GetDefaultGTA5BuildString()
 {
 	return "3258";
 }
 
 inline const char* GetDefaultRDR3BuildString()
-{
-	return "1491";
-}
-
-// The server-mandated default executable build sent to clients via sv_defaultGameBuild.
-// Bump this to roll out a new exe build to all players without requiring a client release.
-// Must be >= GetDefaultGTA5Build(). Clients will reject values below their hardcoded minimum.
-inline int GetDefaultGTA5Executable()
-{
-	return 3258;
-}
-
-inline int GetDefaultRDR3Executable()
-{
-	return 1491;
-}
-
-inline const char* GetDefaultGTA5ExecutableString()
-{
-	return "3258";
-}
-
-inline const char* GetDefaultRDR3ExecutableString()
 {
 	return "1491";
 }
@@ -129,8 +105,7 @@ inline std::pair<int, int> ParseGameBuildFromString(const std::string& buildStr)
 namespace xbr
 {
 int GetRequestedGameBuildInit();
-int GetEffectiveDefaultGameBuildInit();
-void SetEffectiveDefaultGameBuild(int build);
+bool GetReplaceExecutableInit();
 
 #ifdef IS_FXSERVER
 inline int GetGameBuild()
@@ -141,6 +116,11 @@ inline int GetGameBuild()
 inline int GetRequestedGameBuild()
 {
 	return 0;
+}
+
+inline bool GetReplaceExecutable()
+{
+	return false;
 }
 
 #else
@@ -157,28 +137,28 @@ inline int GetRequestedGameBuild()
 	return buildNumber;
 }
 
-// The effective default game build: comes from the server (persisted in INI),
-// floored at the client's hardcoded minimum (GetDefaultGameBuild).
-inline int GetEffectiveDefaultGameBuild()
+inline bool GetReplaceExecutable()
 {
-	static int buildNumber = -1;
-
-	if (buildNumber == -1)
-	{
-		buildNumber = GetEffectiveDefaultGameBuildInit();
-	}
-
-	return buildNumber;
+	// Special build 1 with all DLCs turned off can not be achieved by replacing the executable.
+	static bool replaceExecutable = GetReplaceExecutableInit() && GetRequestedGameBuild() != 1;
+	return replaceExecutable;
 }
 
 inline int GetGameBuild()
 {
-	// We always use at least the effective default game build executable.
-	// Older DLC content is achieved by partially loading old update.rpf files in UpdateRpfOverrideMount.cpp.
+	// For GTA5 we may want to ignore the CLI build request and use the latest build.
+	// In this case the requested build behavior will be achieved by partially loading old update.rpf files in UpdateRpfOverrideMount.cpp.
 #ifdef GTA_FIVE
-	if (GetRequestedGameBuild() < GetEffectiveDefaultGameBuild())
+	if (!GetReplaceExecutable() && GetRequestedGameBuild() < GetDefaultGameBuild())
 	{
-		return GetEffectiveDefaultGameBuild();
+		static int buildNumber = -1;
+
+		if (buildNumber == -1)
+		{
+			buildNumber = GetDefaultGameBuild();
+		}
+
+		return buildNumber;
 	}
 #endif
 	return GetRequestedGameBuild();

@@ -103,17 +103,18 @@ static void SaveBuildNumber(uint32_t build)
 	}
 }
 
-static void SaveGameSettings(const std::wstring& poolIncreases)
+static void SaveGameSettings(const std::wstring& poolIncreases, bool replaceExecutable)
 {
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
 		WritePrivateProfileString(L"Game", L"PoolSizesIncrease", poolIncreases.c_str(), fpath.c_str());
+		WritePrivateProfileString(L"Game", L"ReplaceExecutable", replaceExecutable ? L"1" : L"0", fpath.c_str());
 	}
 }
 
-void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, int serverDefaultBuild)
+void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 	SECURITY_ATTRIBUTES securityAttributes = { 0 };
@@ -132,13 +133,13 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 	hostData->GetLinkProtocol(),
 	ToWide(g_lastConn));
 
-	// Save the build number we're switching to so cold starts use the same build.
-	SaveBuildNumber(build);
+	// we won't launch the default build if we don't do this
+	if (build == xbr::GetDefaultGameBuild())
+	{
+		SaveBuildNumber(xbr::GetDefaultGameBuild());
+	}
 
-	// Persist the server's default game build for exe selection on next launch.
-	xbr::SetEffectiveDefaultGameBuild(serverDefaultBuild);
-
-	SaveGameSettings(poolSizesIncreaseSetting);
+	SaveGameSettings(poolSizesIncreaseSetting, replaceExecutable);
 
 	trace("Switching from build %d to build %d...\n", xbr::GetRequestedGameBuild(), build);
 
@@ -174,7 +175,7 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 #endif
 }
 
-extern void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, int serverDefaultBuild);
+extern void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable);
 
 void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
@@ -618,9 +619,9 @@ static InitFunction initFunction([] ()
 			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
 		});
 
-		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring poolSizesIncreaseSetting, int serverDefaultBuild)
+		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable)
 		{
-			InitializeBuildSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting), serverDefaultBuild);
+			InitializeBuildSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting), replaceExecutable);
 			g_connected = false;
 		});
 

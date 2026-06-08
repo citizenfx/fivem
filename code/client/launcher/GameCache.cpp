@@ -1357,16 +1357,16 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 #if defined(COMPILING_GLUE)
 extern int gameCacheTargetBuild;
-extern int gameCacheEffectiveDefault;
+extern bool gameCacheReplaceExecutable;
 
 inline int GetTargetGameBuild()
 {
 	return gameCacheTargetBuild;
 }
 
-inline int GetEffectiveDefault()
+inline int GetReplaceExecutable()
 {
-	return gameCacheEffectiveDefault;
+	return gameCacheReplaceExecutable;
 }
 #else
 inline int GetTargetGameBuild()
@@ -1374,9 +1374,9 @@ inline int GetTargetGameBuild()
 	return xbr::GetRequestedGameBuild();
 }
 
-inline int GetEffectiveDefault()
+inline bool GetReplaceExecutable()
 {
-	return xbr::GetEffectiveDefaultGameBuild();
+	return xbr::GetReplaceExecutable();
 }
 #endif
 
@@ -2300,8 +2300,9 @@ std::map<std::string, std::string> UpdateGameCache()
 	// cross-build toggle
 #ifdef GTA_FIVE
 
-	// We always use the effective default game build executable. Older build behavior is achieved by loading DLC content.
-	if (GetTargetGameBuild() >= GetEffectiveDefault())
+	// Either the feature flag for the new build system with single executable is not set.
+	// Or we are loading the game build that does not require any overrides.
+	if (GetReplaceExecutable() || GetTargetGameBuild() >= xbr::GetDefaultGameBuild())
 	{
 		for (auto [_, entry]: g_entriesToLoadPerBuild[GetTargetGameBuild()])
 		{
@@ -2310,8 +2311,8 @@ std::map<std::string, std::string> UpdateGameCache()
 	}
 	else
 	{
-		// Download files for the effective default executable build because that's what we run regardless of the requested version.
-		for (auto [_, entry]: g_entriesToLoadPerBuild[GetEffectiveDefault()])
+		// Download files for the latest stable executable build because that's what we run regardless of the requested version.
+		for (auto [_, entry]: g_entriesToLoadPerBuild[xbr::GetDefaultGameBuild()])
 		{
 			g_requiredEntries.push_back(entry);
 		}
