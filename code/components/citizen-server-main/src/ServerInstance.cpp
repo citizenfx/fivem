@@ -36,7 +36,6 @@ static std::set<std::string, console::IgnoreCaseLess> setList =
 	"onesync_enableBeyond",
 	"gamename",
 	"sv_enforceGameBuild",
-	"sv_replaceExeToSwitchBuilds",
 	"sv_licenseKey",
 	"resources_useSystemChat",
 };

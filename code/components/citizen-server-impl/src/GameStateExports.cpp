@@ -10,7 +10,6 @@ static bool g_oneSyncPopulation;
 static bool(*g_onesync)();
 
 extern fx::GameBuild g_enforcedGameBuild;
-extern bool g_replaceExecutable;
 
 namespace fx
 {
@@ -67,10 +66,5 @@ int GetEnforcedGameBuildNumber()
 	std::from_chars(buildNum.data(), buildNum.data() + buildNum.size(), build);
 
 	return build;
-}
-
-bool GetReplaceExecutable()
-{
-	return g_replaceExecutable;
 }
 }
