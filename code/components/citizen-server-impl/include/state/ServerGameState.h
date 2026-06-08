@@ -919,8 +919,8 @@ struct SyncEntityState
 	std::array<uint64_t, MAX_CLIENTS> lastFramesPreSent;
 
 	std::chrono::milliseconds createdAt{ 0 };
-	std::chrono::milliseconds lastReceivedAt;
-	std::chrono::milliseconds lastMigratedAt;
+	std::chrono::milliseconds lastReceivedAt{ 0 };
+	std::chrono::milliseconds lastMigratedAt{ 0 };
 
 	std::shared_ptr<SyncTreeBase> syncTree;
 
@@ -1540,6 +1540,8 @@ public:
 	std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> ExternalGetClientData(const fx::ClientSharedPtr& client);
 
 	void ForAllEntities(const std::function<void(sync::Entity*)>& cb);
+
+	std::vector<StateEntityDebugInfo> GetEntityDebugInfoList() override;
 
 	inline auto GetServerInstance() const
 	{
