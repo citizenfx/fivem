@@ -437,6 +437,11 @@ static InitFunction initFunction([] ()
 
 				brandName += fmt::sprintf(L" (b%d)", xbr::GetRequestedGameBuild());
 
+				if (xbr::GetGameBuild() != xbr::GetRequestedGameBuild() && xbr::GetGameBuild() != xbr::GetDefaultGameBuild())
+				{
+					brandName += fmt::sprintf(L" [e%d]", xbr::GetGameBuild());
+				}
+
 				if (launch::IsSDKGuest())
 				{
 					brandName += L" (SDK)";

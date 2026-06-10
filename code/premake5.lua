@@ -557,6 +557,7 @@ if _OPTIONS['game'] ~= 'launcher' then
 		clr 'Unsafe'
 		files { 'client/clrcore/*.cs', 'client/clrcore/Math/*.cs' }
 		files { '../vendor/ben-demystifier/src/Ben.Demystifier/**.cs' }
+		removefiles { '../vendor/ben-demystifier/src/Ben.Demystifier/obj/**.cs' }
 		
 		if _OPTIONS['game'] == 'server' then
 			files { 'client/clrcore/Server/*.cs' }

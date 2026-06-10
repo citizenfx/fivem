@@ -103,18 +103,18 @@ static void SaveBuildNumber(uint32_t build)
 	}
 }
 
-static void SaveGameSettings(const std::wstring& poolIncreases, bool replaceExecutable)
+static void SaveGameSettings(const std::wstring& poolIncreases, int defaultBuild)
 {
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
 	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
 		WritePrivateProfileString(L"Game", L"PoolSizesIncrease", poolIncreases.c_str(), fpath.c_str());
-		WritePrivateProfileString(L"Game", L"ReplaceExecutable", replaceExecutable ? L"1" : L"0", fpath.c_str());
+		WritePrivateProfileString(L"Game", L"DefaultBuild", fmt::sprintf(L"%d", defaultBuild).c_str(), fpath.c_str());
 	}
 }
 
-void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable)
+void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, int defaultBuild)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 	SECURITY_ATTRIBUTES securityAttributes = { 0 };
@@ -139,9 +139,9 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 		SaveBuildNumber(xbr::GetDefaultGameBuild());
 	}
 
-	SaveGameSettings(poolSizesIncreaseSetting, replaceExecutable);
+	SaveGameSettings(poolSizesIncreaseSetting, defaultBuild);
 
-	trace("Switching from build %d to build %d...\n", xbr::GetRequestedGameBuild(), build);
+	trace("Switching from build %d to build %d (exe %d)...\n", xbr::GetRequestedGameBuild(), build, defaultBuild);
 
 	SIZE_T size = 0;
 	InitializeProcThreadAttributeList(NULL, 1, 0, &size);
@@ -175,7 +175,7 @@ void RestartGameToOtherBuild(int build, int pureLevel, std::wstring poolSizesInc
 #endif
 }
 
-extern void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable);
+extern void InitializeBuildSwitch(int build, int pureLevel, std::wstring poolSizesIncreaseSetting, int defaultBuild);
 
 void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
@@ -619,9 +619,9 @@ static InitFunction initFunction([] ()
 			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
 		});
 
-		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring poolSizesIncreaseSetting, bool replaceExecutable)
+		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring poolSizesIncreaseSetting, int defaultBuild)
 		{
-			InitializeBuildSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting), replaceExecutable);
+			InitializeBuildSwitch(build, pureLevel, std::move(poolSizesIncreaseSetting), defaultBuild);
 			g_connected = false;
 		});
 

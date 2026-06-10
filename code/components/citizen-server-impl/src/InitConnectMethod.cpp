@@ -380,7 +380,6 @@ std::optional<TicketData> VerifyTicketEx(const std::string& ticket, const Botan:
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 fx::GameBuild g_enforcedGameBuild;
-bool g_replaceExecutable;
 
 static InitFunction initFunction([]()
 {
@@ -401,11 +400,14 @@ static InitFunction initFunction([]()
 		auto srvEndpoints = instance->AddVariable<std::string>("sv_endpoints", ConVar_None, "");
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
-		g_enforcedGameBuild = xbr::GetDefaultGTA5BuildString();
-		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, xbr::GetDefaultGTA5BuildString(), &g_enforcedGameBuild);
+		g_enforcedGameBuild = xbr::GetMandatedDefaultGTA5BuildString();
+		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, xbr::GetMandatedDefaultGTA5BuildString(), &g_enforcedGameBuild);
 
-		g_replaceExecutable = false;
-		auto replaceExecutableVar = instance->AddVariable<bool>("sv_replaceExeToSwitchBuilds", ConVar_ReadOnly | ConVar_ServerInfo, false, &g_replaceExecutable);
+		// sv_defaultGameBuild mandates the default game executable build that clients must use.
+		// This allows the server to control which executable clients run without requiring all clients to update simultaneously.
+		auto defaultGameBuildVar = instance->AddVariable<std::string>("sv_defaultGameBuild", ConVar_Internal | ConVar_ServerInfo, xbr::GetMandatedDefaultGTA5BuildString());
+
+		auto replaceExecutableVar = instance->AddVariable<bool>("sv_replaceExeToSwitchBuilds", ConVar_Internal | ConVar_ServerInfo, false);
 
 		auto poolSizesIncrease = std::make_shared<std::unordered_map<std::string, uint32_t>>();
 		auto poolSizesIncreaseVar = instance->AddVariable<std::string>("sv_poolSizesIncrease", ConVar_ServerInfo | ConVar_Internal, "");
@@ -439,13 +441,18 @@ static InitFunction initFunction([]()
 			poolSizesIncreaseVar->GetHelper()->SetRawValue(nlohmann::json(*poolSizesIncrease).dump());
 		});
 
-		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance, enforceGameBuildVar]()
+		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance, enforceGameBuildVar, defaultGameBuildVar]()
 		{
 			if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::RDR3)
 			{
-				if (g_enforcedGameBuild == xbr::GetDefaultGTA5BuildString())
+				if (g_enforcedGameBuild == xbr::GetMandatedDefaultGTA5BuildString())
 				{
-					enforceGameBuildVar->GetHelper()->SetRawValue(xbr::GetDefaultRDR3BuildString());
+					enforceGameBuildVar->GetHelper()->SetRawValue(xbr::GetMandatedDefaultRDR3BuildString());
+				}
+
+				if (defaultGameBuildVar->GetValue() == xbr::GetMandatedDefaultGTA5BuildString())
+				{
+					defaultGameBuildVar->GetHelper()->SetRawValue(xbr::GetMandatedDefaultRDR3BuildString());
 				}
 			}
 
@@ -723,8 +730,9 @@ static InitFunction initFunction([]()
 				trace("Something went wrong. Pool sizes increase may not be set.");
 			}
 
-			// Capture replaceExecutableVar just to prolong it's lifetime until connection is initialized.
+			// Capture replaceExecutableVar and defaultGameBuildVar just to prolong their lifetime until connection is initialized.
 			(void)replaceExecutableVar;
+			(void)defaultGameBuildVar;
 
 			{
 				auto oldClient = clientRegistry->GetClientByGuid(guid);

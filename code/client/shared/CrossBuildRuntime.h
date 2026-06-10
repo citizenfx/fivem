@@ -39,12 +39,24 @@ inline int GetDefaultRDR3Build()
 }
 
 #ifdef IS_FXSERVER
-inline const char* GetDefaultGTA5BuildString()
+// The mandated default build is the build that the server tells clients to use as their game executable.
+// This can be bumped independently of GetDefaultGTA5Build()/GetDefaultRDR3Build() (the client floor).
+inline int GetMandatedDefaultGTA5Build()
+{
+	return 3258;
+}
+
+inline const char* GetMandatedDefaultGTA5BuildString()
 {
 	return "3258";
 }
 
-inline const char* GetDefaultRDR3BuildString()
+inline int GetMandatedDefaultRDR3Build()
+{
+	return 1491;
+}
+
+inline const char* GetMandatedDefaultRDR3BuildString()
 {
 	return "1491";
 }
@@ -106,6 +118,7 @@ namespace xbr
 {
 int GetRequestedGameBuildInit();
 bool GetReplaceExecutableInit();
+int GetDefaultBuildInit();
 
 #ifdef IS_FXSERVER
 inline int GetGameBuild()
@@ -144,21 +157,20 @@ inline bool GetReplaceExecutable()
 	return replaceExecutable;
 }
 
+inline int GetPersistedDefaultBuild()
+{
+	static int defaultBuild = GetDefaultBuildInit();
+	return defaultBuild;
+}
+
 inline int GetGameBuild()
 {
-	// For GTA5 we may want to ignore the CLI build request and use the latest build.
-	// In this case the requested build behavior will be achieved by partially loading old update.rpf files in UpdateRpfOverrideMount.cpp.
+	// The exe build is determined by the persisted default build (from sv_defaultGameBuild or legacy ReplaceExecutable).
+	// If the requested content build is lower, we still run the higher exe and achieve content differences via DLC loading.
 #ifdef GTA_FIVE
-	if (!GetReplaceExecutable() && GetRequestedGameBuild() < GetDefaultGameBuild())
+	if (GetRequestedGameBuild() < GetPersistedDefaultBuild())
 	{
-		static int buildNumber = -1;
-
-		if (buildNumber == -1)
-		{
-			buildNumber = GetDefaultGameBuild();
-		}
-
-		return buildNumber;
+		return GetPersistedDefaultBuild();
 	}
 #endif
 	return GetRequestedGameBuild();
