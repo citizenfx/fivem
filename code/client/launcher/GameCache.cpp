@@ -1357,16 +1357,16 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 #if defined(COMPILING_GLUE)
 extern int gameCacheTargetBuild;
-extern bool gameCacheReplaceExecutable;
+extern int gameCacheDefaultBuild;
 
 inline int GetTargetGameBuild()
 {
 	return gameCacheTargetBuild;
 }
 
-inline int GetReplaceExecutable()
+inline int GetDefaultBuild()
 {
-	return gameCacheReplaceExecutable;
+	return gameCacheDefaultBuild;
 }
 #else
 inline int GetTargetGameBuild()
@@ -1374,9 +1374,9 @@ inline int GetTargetGameBuild()
 	return xbr::GetRequestedGameBuild();
 }
 
-inline bool GetReplaceExecutable()
+inline int GetDefaultBuild()
 {
-	return xbr::GetReplaceExecutable();
+	return xbr::GetGameBuild();
 }
 #endif
 
@@ -2302,7 +2302,7 @@ std::map<std::string, std::string> UpdateGameCache()
 
 	// Either the feature flag for the new build system with single executable is not set.
 	// Or we are loading the game build that does not require any overrides.
-	if (GetReplaceExecutable() || GetTargetGameBuild() >= xbr::GetDefaultGameBuild())
+	if (GetTargetGameBuild() >= GetDefaultBuild())
 	{
 		for (auto [_, entry]: g_entriesToLoadPerBuild[GetTargetGameBuild()])
 		{
@@ -2311,8 +2311,8 @@ std::map<std::string, std::string> UpdateGameCache()
 	}
 	else
 	{
-		// Download files for the latest stable executable build because that's what we run regardless of the requested version.
-		for (auto [_, entry]: g_entriesToLoadPerBuild[xbr::GetDefaultGameBuild()])
+		// Download files for the default executable build because that's what we run regardless of the requested version.
+		for (auto [_, entry]: g_entriesToLoadPerBuild[GetDefaultBuild()])
 		{
 			g_requiredEntries.push_back(entry);
 		}
