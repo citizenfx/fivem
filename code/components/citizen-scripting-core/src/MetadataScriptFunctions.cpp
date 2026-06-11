@@ -177,7 +177,14 @@ static InitFunction initFunction([] ()
 		try
 		{
 			const std::filesystem::path resourceRoot = std::filesystem::weakly_canonical(std::filesystem::absolute(std::filesystem::u8path(rootPath)));
-			const std::filesystem::path requestedPath = std::filesystem::u8path(requestedFileName);
+
+			std::string sanitizedFileName = requestedFileName;
+			while (!sanitizedFileName.empty() && (sanitizedFileName[0] == '/' || sanitizedFileName[0] == '\\'))
+			{
+				sanitizedFileName.erase(sanitizedFileName.begin());
+			}
+
+			const std::filesystem::path requestedPath = std::filesystem::u8path(sanitizedFileName);
 
 			if (requestedPath.is_absolute() || requestedPath.has_root_name())
 			{
