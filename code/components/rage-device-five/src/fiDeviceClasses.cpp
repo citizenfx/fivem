@@ -114,6 +114,21 @@ void fiPackfile::ClosePackfile()
 	return fiPackfile__closeArchive(this);
 }
 
+static const int kIsMaskingAnRpfSlot = 42;
+
+// fiDeviceRelative::IsMaskingAnRpf() only checks one level down, so for a chain of relative
+// devices (e.g. update:/dlc_patch/mpBeach -> update:/ -> update.rpf) it wrongly returns false.
+// fiPackfile::Init() then treats the device as a plain non-RPF file and issues a manual Seek
+// before reading the header (a step it skips for RPF-backed devices). That handle is a bulk
+// handle, and the Seek is forwarded down to fiPackfile::Seek64(), which dereferences it as a
+// fiPackfileState* -> crash. Making IsMaskingAnRpf() recurse makes Init take the RPF path and
+// skip the bad Seek.
+static bool FixedRelativeIsMaskingAnRpf(rage::fiDevice* self)
+{
+	rage::fiDevice* rpf = self->GetCollection(); // == game's GetRpfDevice(), recurses through nested relatives
+	return rpf && rpf != self && rpf->IsCollection();
+}
+
 static HookFunction hookFunction([] ()
 {
 	auto result = hook::pattern("48 85 C0 74 11 48 83 63 08 00 48").count(1).get(0).get<uint32_t>(13);
@@ -127,6 +142,9 @@ static HookFunction hookFunction([] ()
 	endOffset = ((uintptr_t)result) + 4;
 
 	g_vTable_fiPackfile = endOffset + *result;
+
+	void** vtRel = (void**)g_vTable_fiDeviceRelative;
+	vtRel[kIsMaskingAnRpfSlot] = (void*)&FixedRelativeIsMaskingAnRpf;
 
 	result = hook::get_pattern<uint32_t>("45 33 F6 48 89 85 30 02 00 00 48 8D 45 30 48", -4);
 
