@@ -2,6 +2,51 @@ using module .\cfxBuildContext.psm1
 using module .\cfxBuildTools.psm1
 using module .\cfxSentry.psm1
 
+function Rename-SymstoreEntry {
+    param(
+        [string] $SymUploadDir,
+        [string] $OldName,
+        [string] $NewName
+    )
+
+    $sourceDir = [IO.Path]::Combine($SymUploadDir, $OldName)
+    if (!(Test-Path $sourceDir)) {
+        return
+    }
+
+    foreach ($hashDir in (Get-ChildItem -Directory -Path $sourceDir)) {
+        $sourceFile = [IO.Path]::Combine($hashDir.FullName, $OldName)
+        if (Test-Path $sourceFile) {
+            Rename-Item -Path $sourceFile -NewName $NewName
+        }
+    }
+
+    Rename-Item -Path $sourceDir -NewName $NewName
+}
+
+function Copy-SymstoreEntry {
+    param(
+        [string] $SymUploadDir,
+        [string] $OldName,
+        [string] $NewName
+    )
+
+    $sourceDir = [IO.Path]::Combine($SymUploadDir, $OldName)
+    if (!(Test-Path $sourceDir)) {
+        return
+    }
+
+    $destDir = [IO.Path]::Combine($SymUploadDir, $NewName)
+    Copy-Item -Recurse -Force -Path $sourceDir -Destination $destDir
+
+    foreach ($hashDir in (Get-ChildItem -Directory -Path $destDir)) {
+        $sourceFile = [IO.Path]::Combine($hashDir.FullName, $OldName)
+        if (Test-Path $sourceFile) {
+            Rename-Item -Path $sourceFile -NewName $NewName
+        }
+    }
+}
+
 function Invoke-UploadClientSymbols {
     param(
         [CfxBuildContext] $Context,
@@ -75,8 +120,6 @@ function Invoke-UploadClientSymbols {
     $pdbs  = @(Get-ChildItem -Recurse -Filter "*.dll" -File $symUploadDir)
     $pdbs += @(Get-ChildItem -Recurse -Filter "*.exe" -File $symUploadDir)
 
-    $pdbs = $pdbs.Where{ $_.BaseName -notin @("botan", "citizen-scripting-lua", "citizen-scripting-lua54") }
-
     foreach ($pdb in $pdbs) {
         $outname = [io.path]::ChangeExtension($pdb.FullName, "sym")
 
@@ -111,6 +154,29 @@ function Invoke-UploadClientSymbols {
                 Start-Sleep -Milliseconds 500
             }
         }
+    }
+
+    # Rename symbol server entries to match runtime names
+    $aliasPrefix = if ($Context.IS_FIVEM) { "FiveM" } elseif ($Context.IS_REDM) { "RedM" } else { $null }
+
+    if ($aliasPrefix) {
+        # Game executables
+        foreach ($sourceDir in (Get-ChildItem -Directory -Path $symUploadDir -Filter "CitizenFX_SubProcess_game_*_aslr.exe")) {
+            if ($sourceDir.Name -match 'CitizenFX_SubProcess_game_(\d+)_aslr\.exe') {
+                $buildNum = $Matches[1]
+                Rename-SymstoreEntry $symUploadDir $sourceDir.Name "${aliasPrefix}_b${buildNum}_GTAProcess.exe"
+            }
+        }
+
+        # CitizenFX_SubProcess_chrome -> ChromeBrowser
+        Rename-SymstoreEntry $symUploadDir "CitizenFX_SubProcess_chrome.exe" "${aliasPrefix}_ChromeBrowser"
+
+        # CitizenFX_SubProcess_game_mtl -> ROSLauncher + ROSService
+        Copy-SymstoreEntry $symUploadDir "CitizenFX_SubProcess_game_mtl.exe" "${aliasPrefix}_ROSService"
+        Rename-SymstoreEntry $symUploadDir "CitizenFX_SubProcess_game_mtl.exe" "${aliasPrefix}_ROSLauncher"
+
+        # Main exe -> DumpServer (copy)
+        Copy-SymstoreEntry $symUploadDir "${aliasPrefix}.exe" "${aliasPrefix}_DumpServer"
     }
 
     # chdir to the directory to avoid converting path to what rsync would expect

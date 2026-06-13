@@ -73,15 +73,12 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 		productName += L"fxdk_";
 	}
 	
-	if ((origin.find(L"game") == 0 && origin != L"game_mtl") || processType == L"DumpServer")
+	if ((origin.find(L"game") == 0 && origin != L"game_mtl"))
 	{
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 		auto buildNumber = xbr::GetGameBuild();
 
-		if (buildNumber != xbr::GetDefaultGameBuild())
-		{
-			productName += fmt::sprintf(L"b%d_", buildNumber);
-		}
+		productName += fmt::sprintf(L"b%d_", buildNumber);
 #endif
 #endif
 	}
