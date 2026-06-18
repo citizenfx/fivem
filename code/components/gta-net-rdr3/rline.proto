@@ -1,0 +1,214 @@
+syntax = "proto3";
+package rline;
+
+// oneof is used for any field that can have 0/null passed to it but still need to be serialised
+// This differs from sessionmanager-rdr3 as the version of protobuf used in the client will otherwise not serialise the field.
+// To use within gta-net-rdr3, compile this with libprotoc 3.10.1.
+
+message RpcErrorData {
+	string ErrorCodeString = 1;
+	int32 ErrorCode = 2;
+	string DomainString = 3;
+	int32 DomainCode = 4;
+	bytes DataEx = 5;
+};
+
+message RpcError {
+	int32 ErrorCode = 1;
+	string ErrorMessage = 2;
+	RpcErrorData Data = 3;
+};
+
+message RpcHeader {
+	string RequestId = 1;
+	string MethodName = 2;
+	RpcError Error = 3;
+	string srcTid = 4;
+};
+
+message RpcMessage {
+	RpcHeader Header = 1;
+	bytes Content = 2;
+};
+
+message RpcResponseContainer {
+	bytes Content = 1;
+};
+
+message RpcResponseMessage {
+	RpcHeader Header = 1;
+	RpcResponseContainer Container = 2;
+};
+
+message TokenStuff {
+	string tkn = 1;
+};
+
+message InitSessionResponse {
+	bytes sesid = 1;
+	TokenStuff token = 2;
+};
+
+message MpGamerHandleDto {
+	string gh = 1;
+};
+
+message MpPeerAddressDto {
+	string addr = 1;
+};
+
+message InitPlayer2_Parameters {
+	MpGamerHandleDto gh = 1;
+	MpPeerAddressDto peerAddress = 2;
+	int32 discriminator = 3;
+	int32 seamlessType = 4;
+	uint32 connectionReason = 5;
+};
+
+message InitPlayerResult {
+	oneof code_oneof {
+		uint32 code = 1;
+	}
+};
+
+message Restriction {
+	int32 u1 = 1;
+	int32 u2 = 2;
+	int32 u3 = 3;
+}
+
+message GetRestrictionsData {
+	repeated Restriction restriction = 1;
+	repeated string unk2 = 2;
+};
+
+message GetRestrictionsResult {
+	GetRestrictionsData data = 1;
+};
+
+message PlayerIdSto {
+	int32 acctId = 1;
+	int32 platId = 2;
+};
+
+message MpSessionRequestIdDto {
+	PlayerIdSto requestor = 1;
+	int32 index = 2;
+	int32 hash = 3;
+};
+
+message QueueForSession_Seamless_Parameters {
+	MpSessionRequestIdDto requestId = 1;
+	uint32 optionFlags = 2;
+	int32 x = 3;
+	int32 y = 4;
+};
+
+message QueueForSessionResult {
+	uint32 code = 1;
+};
+
+message QueueEntered_Parameters {
+	uint32 queueGroup = 1;
+	MpSessionRequestIdDto requestId = 2;
+	uint32 optionFlags = 3;
+};
+
+message GuidDto {
+	fixed64 a = 1;
+	oneof guidDto_oneof {
+		fixed64 b = 2;
+	}
+};
+
+message MpTransitionIdDto {
+	GuidDto value = 1;
+};
+
+message MpSessionIdDto {
+	GuidDto value = 1;
+};
+
+message SessionSubcommandEnterSession {
+	int32 index = 1;
+	int32 hindex = 2;
+	oneof sessionFlags_oneof {
+		uint32 sessionFlags = 3;
+	}
+	oneof mode_oneof {
+		uint32 mode = 4;
+	}
+	oneof size_oneof {
+		int32 size = 5;
+	}
+	oneof teamIndex_oneof {
+		int32 teamIndex = 6;
+	}
+	MpTransitionIdDto transitionId = 7;
+	oneof sessionManagerType_oneof {
+		uint32 sessionManagerType = 8;
+	}
+	int32 slotCount = 9;
+};
+
+message SessionSubcommandLeaveSession {
+	uint32 reason = 1;
+};
+
+message SessionSubcommandAddPlayer {
+	PlayerIdSto id = 1;
+	MpGamerHandleDto gh = 2;
+	MpPeerAddressDto addr = 3;
+	int32 index = 4;
+};
+
+message SessionSubcommandRemovePlayer {
+	PlayerIdSto id = 1;
+};
+
+message SessionSubcommandHostChanged {
+	int32 index = 1;
+};
+
+message SessionCommand {
+	oneof cmd_oneof {
+		uint32 cmd = 1;
+	}
+	string cmdname = 2;
+	SessionSubcommandEnterSession EnterSession = 3;
+	SessionSubcommandLeaveSession LeaveSession = 4;
+	SessionSubcommandAddPlayer AddPlayer = 5;
+	SessionSubcommandRemovePlayer RemovePlayer = 6;
+	SessionSubcommandHostChanged HostChanged = 7;
+};
+
+message scmds_Parameters {
+	MpSessionIdDto sid = 1;
+	int32 ncmds = 2;
+	repeated SessionCommand cmds = 3;
+};
+
+message UriType {
+	oneof url_oneof {
+    	string url = 1;
+	}
+};
+
+message TransitionReady_PlayerQueue_Parameters {
+    UriType serverUri = 1;
+    uint32 serverSandbox = 2;
+    MpTransitionIdDto id = 3;
+    uint32 sessionType = 4;
+    MpSessionRequestIdDto requestId = 5;
+    MpSessionIdDto transferId = 6;
+};
+
+message TransitionToSession_Parameters {
+	MpTransitionIdDto id = 1;
+	float x = 2;
+	float y = 3;
+};
+
+message TransitionToSessionResult {
+	uint32 code = 1;
+};
