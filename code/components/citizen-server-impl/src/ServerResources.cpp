@@ -337,6 +337,7 @@ static InitFunction initFunction([]()
 	{
 		{
 			g_citizenDir = instance->AddVariable<std::string>("citizen_dir", ConVar_None, ToNarrow(MakeRelativeCitPath(L"citizen")));
+			static ConVar<std::string> profilerDir("profiler_dir", ConVar_ReadOnly, instance->GetRootPath() + "/profiler/");
 
 			// create cache directory if needed
 			auto device = vfs::GetDevice(instance->GetRootPath());
@@ -345,6 +346,7 @@ static InitFunction initFunction([]()
 			if (device.GetRef())
 			{
 				device->CreateDirectory(cacheDir);
+				device->CreateDirectory(profilerDir.GetValue());
 
 				// precreate cache/files/ so that later components won't have to
 				device->CreateDirectory(cacheDir + "files/");
@@ -352,6 +354,7 @@ static InitFunction initFunction([]()
 
 			vfs::Mount(new vfs::RelativeDevice(g_citizenDir->GetValue() + "/"), "citizen:/");
 			vfs::Mount(new vfs::RelativeDevice(cacheDir), "cache:/");
+			vfs::Mount(new vfs::RelativeDevice(profilerDir.GetValue()), "profiler:/");
 		}
 
 		instance->SetComponent(fx::CreateResourceManager());
