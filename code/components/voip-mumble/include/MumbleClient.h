@@ -69,8 +69,6 @@ public:
 
 	virtual MumbleConnectionInfo* GetConnectionInfo() = 0;
 
-	virtual bool IsAnyoneTalking() = 0;
-
 	virtual float GetInputAudioLevel() = 0;
 
 	virtual void SetChannel(const std::string& channelName) = 0;
@@ -83,7 +81,7 @@ public:
 
 	virtual std::string GetVoiceChannelFromServerId(uint32_t serverId) = 0;
 
-	virtual void GetTalkers(std::vector<std::string>* names) = 0;
+	virtual std::vector<std::string> GetTalkers() = 0;
 
 	virtual void SetPositionHook(const TPositionHook& hook) = 0;
 

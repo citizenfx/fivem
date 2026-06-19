@@ -122,6 +122,25 @@ public:
 
 	inline std::map<uint32_t, MumbleChannel>& GetChannels() { return m_channels; }
 
+	inline std::vector<std::string> GetUserNamesFromSessionIds(const std::vector<uint32_t>& sessionIds)
+	{
+		// preallocate because this could be a larger list on bigger servers
+		// +1 because in GetTalkers we might add our local client to the talkers list
+		std::vector<std::string> userNames(sessionIds.size() + 1);
+
+		std::shared_lock<std::shared_mutex> lock(m_usersMutex);
+		for (auto session : sessionIds)
+		{
+			auto it = m_users.find(session);
+			if (it != m_users.end())
+			{
+				userNames.push_back(it->second->GetName());
+			}
+		}
+
+		return userNames;
+	}
+
 	inline std::shared_ptr<MumbleUser> GetUser(uint32_t id)
 	{
 		std::shared_lock<std::shared_mutex> lock(m_usersMutex);
