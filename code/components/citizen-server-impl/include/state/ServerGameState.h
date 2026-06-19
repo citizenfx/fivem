@@ -325,12 +325,29 @@ struct CPedGameStateNodeData
 
 	int curWeapon;
 
+	// Weapon detail decoded alongside curWeapon (previously read and discarded in
+	// Parse). Surfaced through onPlayerWeaponEquip.
+	int weaponTintIndex;       // -1 = no tint synced this packet
+	int weaponComponentCount;  // number of attached weapon components
+	bool weaponHasAmmo;
+	bool weaponVisible;
+	uint8_t weaponState;       // reload/charge state, build >= 3258 only (else 0)
+
 	bool isHandcuffed;
 	bool actionModeEnabled;
 	bool isFlashlightOn;
 
+	// Death detail decoded in the ped game-state node (previously discarded).
+	// Surfaced through onPlayerDeath.
+	int deathState;            // 0 = alive, non-zero = dying/dead
+	bool killedByStealth;
+	bool killedByTakedown;
+
 	inline CPedGameStateNodeData()
-		: lastVehicle(-1), lastVehicleSeat(-1), lastVehiclePedWasIn(-1)
+		: lastVehicle(-1), lastVehicleSeat(-1), lastVehiclePedWasIn(-1),
+		  weaponTintIndex(-1), weaponComponentCount(0), weaponHasAmmo(false),
+		  weaponVisible(false), weaponState(0), deathState(0),
+		  killedByStealth(false), killedByTakedown(false)
 	{
 	}
 };
@@ -662,6 +679,7 @@ struct CPlayerGameStateNodeData
 
 	bool neverTarget;
 	int spectatorId;
+	bool isSpectating;
 
 	bool randomPedsFlee;
 	bool everybodyBackOff;
@@ -936,6 +954,176 @@ struct SyncEntityState
 	EntityOrphanMode orphanMode = EntityOrphanMode::DeleteWhenNotRelevant;
 #ifdef STATE_FIVE
 	bool allowRemoteSyncedScenes = false;
+
+	// --- Server-observable player sync event caches (FiveM) ---
+	// onPlayerModelUpdate: last ped model hash seen by the server (0 = not yet observed).
+	uint32_t lastKnownModelHash = 0;
+
+	// onPlayerCoordsUpdate: world-space position the last event was fired for,
+	// whether it has been seeded, and the timestamp of the last emission (rate-limit).
+	float lastCoordsEventPos[3] = { 0.0f, 0.0f, 0.0f };
+	bool lastCoordsEventPosValid = false;
+	std::chrono::milliseconds lastCoordsEventTime{ 0 };
+
+	// onPlayerAnimStart: last scripted-task command hash seen (0 = not yet observed).
+	uint32_t lastKnownScriptTaskCommand = 0;
+
+	// onPlayerWeaponEquip: last equipped weapon hash seen (0 = not yet observed /
+	// no weapon synced this packet).
+	uint32_t lastKnownWeapon = 0;
+
+	// onPlayerHealthChange/ArmourChange/Death — ped health node.
+	int lastKnownHealth = 0;
+	int lastKnownArmour = 0;
+	bool lastHealthValid = false;
+	bool lastKnownAlive = true;
+
+	// onPlayerFlashlightToggle / onPlayerActionModeToggle / onPlayerHandcuffChange — ped game-state node.
+	bool lastFlashlightOn = false;
+	bool lastActionModeOn = false;
+	bool lastHandcuffed = false;
+	bool lastPedToggleValid = false;
+
+	// onPlayerStealthChange / StrafeChange / RagdollChange — ped movement-group node.
+	bool lastStealthy = false;
+	bool lastStrafing = false;
+	bool lastRagdolling = false;
+	bool lastMovementGroupValid = false;
+
+	// onPlayerWantedLevelChange / onPlayerWantedDetailChange — player wanted/LOS node.
+	int lastWantedLevel = 0;
+	int lastFakeWantedLevel = 0;
+	int lastIsWanted = 0;
+	int lastIsEvading = 0;
+	bool lastWantedValid = false;
+
+	// onPlayerInvincibleToggle / Spectate / SuperJump / VoiceProximity / ModifierChange / TeamChange / FriendlyFireToggle — player game-state node.
+	bool lastInvincible = false;
+	int lastPlayerTeam = 0;
+	bool lastFriendlyFire = false;
+	bool lastIsSpectating = false;
+	bool lastSuperJump = false;
+	float lastVoiceProx[3] = { 0.0f, 0.0f, 0.0f };
+	float lastWeaponDamageMod = 0.0f;
+	float lastWeaponDefenseMod = 0.0f;
+	float lastWeaponDefenseMod2 = 0.0f;
+	float lastMeleeDamageMod = 0.0f;
+	float lastAirDragMod = 0.0f;
+	bool lastPlayerGameStateValid = false;
+
+	// onPlayerVelocityUpdate — physical velocity node (threshold + rate-limited).
+	float lastVelEventVel[3] = { 0.0f, 0.0f, 0.0f };
+	bool lastVelEventValid = false;
+	std::chrono::milliseconds lastVelEventTime{ 0 };
+
+	// onPlayerCameraUpdate — player camera node (threshold + rate-limited).
+	int lastCamMode = 0;
+	float lastCamX = 0.0f;
+	float lastCamZ = 0.0f;
+	bool lastCamValid = false;
+	std::chrono::milliseconds lastCamEventTime{ 0 };
+
+	// onPlayerEnterVehicle/onPlayerExitVehicle: last vehicle network id the ped was in
+	// (-1 = on foot) and the script seat at that time. valid flag avoids firing on the
+	// first observation.
+	int lastKnownVehicle = -1;
+	int lastKnownVehicleSeat = -1;
+	bool lastKnownVehicleValid = false;
+
+	// onPlayerPingUpdate: last emitted ping (ms), whether seeded, and emission timestamp.
+	int lastPingEventValue = -1;
+	bool lastPingEventValid = false;
+	std::chrono::milliseconds lastPingEventTime{ 0 };
+
+	// ── Server-observable VEHICLE sync event caches (FiveM) ───────────────────
+	// Mirror the player caches above: seed on first observation (no event), then
+	// fire on change. Populated only when entity->type == Vehicle; left at their
+	// defaults (and unused) for every other entity type.
+
+	// Vehicle game-state node — onVehicleEngineToggle / SirenToggle /
+	// HandbrakeToggle / LightsChange / DoorsChange / LockChange / RadioChange /
+	// StationaryChange.
+	bool lastVehEngineOn = false;
+	bool lastVehEngineStarting = false;
+	bool lastVehSirenOn = false;
+	bool lastVehHandbrake = false;
+	bool lastVehLightsOn = false;
+	bool lastVehHighbeamsOn = false;
+	int lastVehHeadlightsColour = -1;
+	int lastVehDoorsOpen = 0;
+	int lastVehLockStatus = -1;
+	int lastVehRadioStation = -1;
+	bool lastVehStationary = false;
+	bool lastVehGameStateValid = false;
+
+	// Vehicle health node — onVehicleHealthChange / onVehicleTyreBurst.
+	int lastVehEngineHealth = 0;
+	int lastVehPetrolHealth = 0;
+	int lastVehBodyHealth = 0;
+	int lastVehHealth = 0;
+	int lastVehTyreStatus[16] = { 0 };
+	bool lastVehHealthValid = false;
+
+	// Vehicle damage-status node — onVehicleWindowBreak / onVehicleBulletDamage.
+	bool lastVehWindowsState[8] = { false, false, false, false, false, false, false, false };
+	bool lastVehDamagedByBullets = false;
+	bool lastVehDamageValid = false;
+
+	// Vehicle appearance node — onVehicleColourChange / ModChange / PlateChange /
+	// LiveryChange / NeonChange / DirtChange / WindowTintChange. kitMods/toggle/
+	// wheels are folded into a single cheap signature so we don't cache 32 ints.
+	int lastVehPrimaryColour = -1;
+	int lastVehSecondaryColour = -1;
+	int lastVehDirtLevel = -1;
+	int lastVehWindowTint = -1;
+	int lastVehLivery = -1;
+	int lastVehRoofLivery = -1;
+	uint32_t lastVehModSignature = 0;
+	int lastVehNeonColour[3] = { -1, -1, -1 };
+	bool lastVehNeonOn[4] = { false, false, false, false };
+	std::string lastVehPlate;
+	bool lastVehAppearanceValid = false;
+
+	// Vehicle steering — onVehicleSteeringChange (rate-limited float).
+	float lastVehSteering = 0.0f;
+	bool lastVehSteeringValid = false;
+	std::chrono::milliseconds lastVehSteeringTime{ 0 };
+
+	// Vehicle angular velocity — onVehicleAngVelocity (rate-limited).
+	float lastVehAngVel[3] = { 0.0f, 0.0f, 0.0f };
+	bool lastVehAngVelValid = false;
+	std::chrono::milliseconds lastVehAngVelTime{ 0 };
+
+	// Helicopter health/control — onHeliHealthChange / onHeliControlChange.
+	int lastHeliMainRotor = 0;
+	int lastHeliRearRotor = 0;
+	int lastHeliBodyHealth = 0;
+	int lastHeliGasTank = 0;
+	int lastHeliEngineHealth = 0;
+	bool lastHeliBoomBroken = false;
+	bool lastHeliHealthValid = false;
+	float lastHeliControl[4] = { 0.0f, 0.0f, 0.0f, 0.0f }; // yaw, pitch, roll, throttle
+	bool lastHeliControlValid = false;
+	std::chrono::milliseconds lastHeliControlTime{ 0 };
+
+	// Plane state/control — onPlaneStateChange / onPlaneControlChange.
+	uint32_t lastPlaneLandingGear = 0;
+	uint32_t lastPlaneLockOnState = 0;
+	bool lastPlaneStateValid = false;
+	float lastPlaneNozzle = 0.0f;
+	bool lastPlaneControlValid = false;
+	std::chrono::milliseconds lastPlaneControlTime{ 0 };
+
+	// Boat state — onBoatStateChange.
+	int lastBoatWreckedAction = 0;
+	bool lastBoatLockedToXY = false;
+	bool lastBoatStateValid = false;
+
+	// Train state — onTrainStateChange.
+	int lastTrainState = -1;
+	int lastTrainTrackId = -1;
+	bool lastTrainDirection = false;
+	bool lastTrainStateValid = false;
 #endif
 
 	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;

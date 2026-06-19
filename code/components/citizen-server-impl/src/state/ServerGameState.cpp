@@ -111,6 +111,77 @@ static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
 static RequestControlFilterMode g_requestControlFilterState;
 static int g_requestControlSettleDelay;
 
+#ifdef STATE_FIVE
+// --- onPlayerCoordsUpdate event convars (FiveM) ---
+// Disabled by default (opt-in); threshold + per-player rate-limit keep the cost bounded.
+static std::shared_ptr<ConVar<bool>> g_enablePlayerCoordsUpdateEventVar;
+static bool g_enablePlayerCoordsUpdateEvent = false;
+static std::shared_ptr<ConVar<float>> g_playerCoordsUpdateThresholdVar;
+static float g_playerCoordsUpdateThreshold = 1.0f; // squared metres
+static std::shared_ptr<ConVar<int>> g_playerCoordsUpdateMinIntervalVar;
+static int g_playerCoordsUpdateMinInterval = 250; // milliseconds
+
+// --- onPlayerPingUpdate event convars (FiveM) ---
+// Same shape as the coords event: enable toggle, change threshold, rate-limit.
+static std::shared_ptr<ConVar<bool>> g_enablePlayerPingUpdateEventVar;
+static bool g_enablePlayerPingUpdateEvent = false;
+static std::shared_ptr<ConVar<int>> g_playerPingUpdateThresholdVar;
+static int g_playerPingUpdateThreshold = 10; // milliseconds of ping delta
+static std::shared_ptr<ConVar<int>> g_playerPingUpdateMinIntervalVar;
+static int g_playerPingUpdateMinInterval = 1000; // milliseconds
+
+// --- onPlayerVelocityUpdate event convars (FiveM) ---
+// Velocity changes every frame, so it is threshold + rate-limited like coords.
+static std::shared_ptr<ConVar<bool>> g_enablePlayerVelocityUpdateEventVar;
+static bool g_enablePlayerVelocityUpdateEvent = false;
+static std::shared_ptr<ConVar<float>> g_playerVelocityUpdateThresholdVar;
+static float g_playerVelocityUpdateThreshold = 1.0f; // squared (m/s) delta
+static std::shared_ptr<ConVar<int>> g_playerVelocityUpdateMinIntervalVar;
+static int g_playerVelocityUpdateMinInterval = 250; // milliseconds
+
+// --- onPlayerCameraUpdate event convars (FiveM) ---
+// Camera moves constantly while looking around, so threshold + rate-limited.
+static std::shared_ptr<ConVar<bool>> g_enablePlayerCameraUpdateEventVar;
+static bool g_enablePlayerCameraUpdateEvent = false;
+static std::shared_ptr<ConVar<float>> g_playerCameraUpdateThresholdVar;
+static float g_playerCameraUpdateThreshold = 0.1f; // radians of look delta
+static std::shared_ptr<ConVar<int>> g_playerCameraUpdateMinIntervalVar;
+static int g_playerCameraUpdateMinInterval = 500; // milliseconds
+
+// --- Vehicle sync event convars (FiveM) ---
+// One master toggle gates the whole vehicle block — vehicles clone often and
+// there can be many of them, so a server owner can switch the extra compares
+// off entirely. The discrete state events (engine/siren/doors/...) fire on
+// change with no rate-limit; the continuous floats below are threshold +
+// interval limited like the player coords/velocity events.
+static std::shared_ptr<ConVar<bool>> g_enableVehicleSyncEventsVar;
+static bool g_enableVehicleSyncEvents = true;
+
+// Continuous vehicle events default OFF: they fire every frame while driving/flying
+// and would flood the scheduler even with no listener. Opt in per group.
+static std::shared_ptr<ConVar<bool>> g_enableVehicleSteeringUpdateEventVar;
+static bool g_enableVehicleSteeringUpdateEvent = false;
+static std::shared_ptr<ConVar<bool>> g_enableVehicleAngVelocityUpdateEventVar;
+static bool g_enableVehicleAngVelocityUpdateEvent = false;
+static std::shared_ptr<ConVar<bool>> g_enableVehicleControlUpdateEventVar;
+static bool g_enableVehicleControlUpdateEvent = false;
+
+static std::shared_ptr<ConVar<float>> g_vehicleSteeringUpdateThresholdVar;
+static float g_vehicleSteeringUpdateThreshold = 0.05f; // radians of steering delta
+static std::shared_ptr<ConVar<int>> g_vehicleSteeringUpdateMinIntervalVar;
+static int g_vehicleSteeringUpdateMinInterval = 250; // milliseconds
+
+static std::shared_ptr<ConVar<float>> g_vehicleAngVelocityUpdateThresholdVar;
+static float g_vehicleAngVelocityUpdateThreshold = 0.5f; // squared (rad/s) delta
+static std::shared_ptr<ConVar<int>> g_vehicleAngVelocityUpdateMinIntervalVar;
+static int g_vehicleAngVelocityUpdateMinInterval = 250; // milliseconds
+
+// Shared interval for the heli/plane control-surface events (yaw/pitch/roll/
+// throttle/nozzle) — they move every frame while flying.
+static std::shared_ptr<ConVar<int>> g_vehicleControlUpdateMinIntervalVar;
+static int g_vehicleControlUpdateMinInterval = 500; // milliseconds
+#endif
+
 static uint32_t MakeHandleUniqifierPair(uint16_t objectId, uint16_t uniqifier)
 {
 	return ((uint32_t)objectId << 16) | (uint32_t)uniqifier;
@@ -3535,6 +3606,1483 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			}
 		}
 	}
+
+#ifdef STATE_FIVE
+	// Server-observable player sync events (FiveM). 'source' is internal-net:<id>
+	// (server-internal, client-unspoofable) so listeners read it the standard way
+	// (`source` / [FromSource]). parsingType 1 = create (seed caches only),
+	// 2 = update (compare & fire).
+	if (client && entity->syncTree && entity->type == sync::NetObjEntityType::Player)
+	{
+		auto evComponent = m_instance->GetComponent<fx::ResourceManager>()
+			->GetComponent<fx::ResourceEventManagerComponent>();
+
+		if (evComponent.GetRef())
+		{
+			const auto& playerSyncTree = entity->syncTree;
+
+			// Built lazily so packets that emit no event pay nothing.
+			std::optional<std::string> eventSourceStr;
+			auto eventSource = [&]() -> const std::string&
+			{
+				if (!eventSourceStr)
+				{
+					eventSourceStr = "internal-net:" + std::to_string(client->GetNetId());
+				}
+				return *eventSourceStr;
+			};
+
+			{
+				uint32_t currentModel = 0;
+				if (playerSyncTree->GetModelHash(&currentModel) && currentModel != 0)
+				{
+					if (parsingType == 2
+						&& entity->lastKnownModelHash != 0
+						&& entity->lastKnownModelHash != currentModel)
+					{
+						/*NETEV onPlayerModelUpdate SERVER
+						/#*
+						 * Triggered when a player's ped model (character hash) changes
+						 * server-side. Not triggered on the initial spawn; use
+						 * entityCreated or playerJoining for that.
+						 *
+						 * @param oldModel - Previous model hash (uint32).
+						 * @param newModel - New model hash (uint32).
+						 #/
+						declare function onPlayerModelUpdate(oldModel: number, newModel: number): void;
+						*/
+						evComponent->QueueEvent2("onPlayerModelUpdate", { eventSource() },
+							entity->lastKnownModelHash, currentModel);
+					}
+
+					entity->lastKnownModelHash = currentModel;
+				}
+			}
+
+			if (g_enablePlayerCoordsUpdateEvent && parsingType == 2)
+			{
+				float newPos[3];
+				playerSyncTree->GetPosition(newPos);
+
+				if (!entity->lastCoordsEventPosValid)
+				{
+					// Seed on first observation; seed time too so the first emission
+					// reports a sane msSinceLastUpdate instead of a since-epoch value.
+					entity->lastCoordsEventPos[0] = newPos[0];
+					entity->lastCoordsEventPos[1] = newPos[1];
+					entity->lastCoordsEventPos[2] = newPos[2];
+					entity->lastCoordsEventPosValid = true;
+					entity->lastCoordsEventTime = msec();
+				}
+				else
+				{
+					const float dx = newPos[0] - entity->lastCoordsEventPos[0];
+					const float dy = newPos[1] - entity->lastCoordsEventPos[1];
+					const float dz = newPos[2] - entity->lastCoordsEventPos[2];
+					const float distSq = dx * dx + dy * dy + dz * dz;
+
+					const auto now = msec();
+					const auto minInterval = std::chrono::milliseconds(g_playerCoordsUpdateMinInterval);
+
+					if (distSq >= g_playerCoordsUpdateThreshold
+						&& (now - entity->lastCoordsEventTime) >= minInterval)
+					{
+						const float oldX = entity->lastCoordsEventPos[0];
+						const float oldY = entity->lastCoordsEventPos[1];
+						const float oldZ = entity->lastCoordsEventPos[2];
+
+						const auto prevEventTime = entity->lastCoordsEventTime;
+
+						entity->lastCoordsEventPos[0] = newPos[0];
+						entity->lastCoordsEventPos[1] = newPos[1];
+						entity->lastCoordsEventPos[2] = newPos[2];
+						entity->lastCoordsEventTime = now;
+
+						// Heading in degrees [0, 360), matching the GET_ENTITY_HEADING native:
+						// currentHeading (radians, [-pi, pi]) * 180/pi, then wrap negatives.
+						float heading = 0.0f;
+						if (auto* orient = playerSyncTree->GetPedOrientation())
+						{
+							const double deg = orient->currentHeading * 180.0 / 3.14159265358979323846;
+							heading = (float)((deg < 0.0) ? (360.0 + deg) : deg);
+						}
+
+						const int64_t msSinceLastUpdate = (now - prevEventTime).count();
+
+						/*NETEV onPlayerCoordsUpdate SERVER
+						/#*
+						 * Triggered when a player moves more than
+						 * sv_playerCoordsUpdateThreshold (squared metres) since the
+						 * last emission. Rate-limited per player by
+						 * sv_playerCoordsUpdateMinInterval (ms). Disabled by default;
+						 * enable with sv_enablePlayerCoordsUpdateEvent true.
+						 *
+						 * @param oldX - Previous X coordinate.
+						 * @param oldY - Previous Y coordinate.
+						 * @param oldZ - Previous Z coordinate.
+						 * @param newX - New X coordinate.
+						 * @param newY - New Y coordinate.
+						 * @param newZ - New Z coordinate.
+						 * @param heading - Current ped heading in degrees [0, 360).
+						 * @param msSinceLastUpdate - Milliseconds since the previous
+						 *        onPlayerCoordsUpdate for this player. Much larger than
+						 *        sv_playerCoordsUpdateMinInterval indicates dropped/late sync.
+						 #/
+						declare function onPlayerCoordsUpdate(oldX: number, oldY: number, oldZ: number, newX: number, newY: number, newZ: number, heading: number, msSinceLastUpdate: number): void;
+						*/
+						evComponent->QueueEvent2("onPlayerCoordsUpdate", { eventSource() },
+							oldX, oldY, oldZ, newPos[0], newPos[1], newPos[2], heading, msSinceLastUpdate);
+					}
+				}
+			}
+
+			if (parsingType == 2)
+			{
+				if (auto* taskTree = playerSyncTree->GetPedTaskTree())
+				{
+					constexpr uint32_t kNoScriptTask = 0x811E343C;
+					const uint32_t cmd = taskTree->scriptCommand;
+
+					if (cmd != kNoScriptTask
+						&& cmd != 0
+						&& cmd != entity->lastKnownScriptTaskCommand)
+					{
+						/*NETEV onPlayerAnimStart SERVER
+						/#*
+						 * Triggered when a player's active scripted task (e.g. a
+						 * TASK_* that drives an animation, such as TASK_PLAY_ANIM)
+						 * changes server-side.
+						 *
+						 * NOTE: the network sync only exposes the task command hash
+						 * and stage, NOT the animation dictionary/clip name. Use the
+						 * hash to identify the task; per-clip detail is not available
+						 * server-side.
+						 *
+						 * @param scriptCommand   - Hash of the active scripted task command.
+						 * @param scriptTaskStage - Stage of that task (0-7).
+						 #/
+						declare function onPlayerAnimStart(scriptCommand: number, scriptTaskStage: number): void;
+						*/
+						evComponent->QueueEvent2("onPlayerAnimStart", { eventSource() },
+							cmd, taskTree->scriptTaskStage);
+					}
+
+					entity->lastKnownScriptTaskCommand = cmd;
+				}
+			}
+
+			if (parsingType == 2)
+			{
+				if (auto* pgs = playerSyncTree->GetPedGameState())
+				{
+					// curWeapon == 0 means no weapon synced this packet (transient).
+					const uint32_t curWeapon = (uint32_t)pgs->curWeapon;
+
+					if (curWeapon != 0
+						&& entity->lastKnownWeapon != 0
+						&& curWeapon != entity->lastKnownWeapon)
+					{
+						/*NETEV onPlayerWeaponEquip SERVER
+						/#*
+						 * Triggered when a player's equipped weapon changes server-side
+						 * (weapon-wheel switch, give/equip, holster to a different gun).
+						 * Not fired on the first observation. The hashes are weapon
+						 * hashes, e.g. `GetHashKey('WEAPON_PISTOL')`; unarmed is
+						 * `WEAPON_UNARMED` (0xA2719263).
+						 *
+						 * The trailing args expose weapon detail that was already decoded
+						 * from the same sync node but previously discarded.
+						 *
+						 * @param oldWeapon - Previous weapon hash.
+						 * @param newWeapon - Newly equipped weapon hash.
+						 * @param tintIndex - Weapon tint index, or -1 if none was synced.
+						 * @param componentCount - Number of attached weapon components.
+						 * @param weaponState - Reload/charge state (3-bit; 0 on builds < 3258).
+						 #/
+						declare function onPlayerWeaponEquip(oldWeapon: number, newWeapon: number, tintIndex: number, componentCount: number, weaponState: number): void;
+						*/
+						evComponent->QueueEvent2("onPlayerWeaponEquip", { eventSource() },
+							entity->lastKnownWeapon, curWeapon,
+							pgs->weaponTintIndex, pgs->weaponComponentCount, (int)pgs->weaponState);
+					}
+
+					// Only advance the cache on a real hash so transient 0 frames don't
+					// cause a spurious re-equip when the weapon reappears.
+					if (curWeapon != 0)
+					{
+						entity->lastKnownWeapon = curWeapon;
+					}
+				}
+			}
+
+			if (parsingType == 2)
+			{
+				if (auto* pgs = playerSyncTree->GetPedGameState())
+				{
+					// curVehicleSeat == -1 means on foot; script seat = curVehicleSeat - 2
+					// (-1 == driver). A direct vehicle swap fires exit+enter.
+					const bool inVehicle = (pgs->curVehicleSeat != -1) && (pgs->curVehicle != -1);
+					const int curVeh = inVehicle ? pgs->curVehicle : -1;
+					const int curSeat = inVehicle ? (pgs->curVehicleSeat - 2) : -1;
+
+					if (entity->lastKnownVehicleValid && curVeh != entity->lastKnownVehicle)
+					{
+						if (entity->lastKnownVehicle != -1)
+						{
+							/*NETEV onPlayerExitVehicle SERVER
+							/#*
+							 * Triggered when a player leaves a vehicle server-side
+							 * (also fires as the first half of a direct vehicle swap).
+							 *
+							 * @param vehicle - Network id of the vehicle left.
+							 * @param seat - Script seat index that was occupied (-1 = driver).
+							 #/
+							declare function onPlayerExitVehicle(vehicle: number, seat: number): void;
+							*/
+							evComponent->QueueEvent2("onPlayerExitVehicle", { eventSource() },
+								entity->lastKnownVehicle, entity->lastKnownVehicleSeat);
+						}
+
+						if (curVeh != -1)
+						{
+							/*NETEV onPlayerEnterVehicle SERVER
+							/#*
+							 * Triggered when a player enters a vehicle server-side.
+							 *
+							 * @param vehicle - Network id of the vehicle entered.
+							 * @param seat - Script seat index taken (-1 = driver).
+							 #/
+							declare function onPlayerEnterVehicle(vehicle: number, seat: number): void;
+							*/
+							evComponent->QueueEvent2("onPlayerEnterVehicle", { eventSource() },
+								curVeh, curSeat);
+						}
+					}
+					else if (entity->lastKnownVehicleValid && curVeh != -1
+						&& curVeh == entity->lastKnownVehicle
+						&& curSeat != entity->lastKnownVehicleSeat)
+					{
+						/*NETEV onPlayerSeatChange SERVER
+						/#*
+						 * Triggered when a player changes seat within the same vehicle
+						 * server-side (enter/exit have their own events).
+						 *
+						 * @param vehicle - Network id of the vehicle.
+						 * @param oldSeat - Previous script seat index (-1 = driver).
+						 * @param newSeat - New script seat index (-1 = driver).
+						 #/
+						declare function onPlayerSeatChange(vehicle: number, oldSeat: number, newSeat: number): void;
+						*/
+						evComponent->QueueEvent2("onPlayerSeatChange", { eventSource() },
+							curVeh, entity->lastKnownVehicleSeat, curSeat);
+					}
+
+					entity->lastKnownVehicle = curVeh;
+					entity->lastKnownVehicleSeat = curSeat;
+					entity->lastKnownVehicleValid = true;
+				}
+			}
+
+			if (g_enablePlayerPingUpdateEvent && parsingType == 2)
+			{
+				const int curPing = client->GetPing();
+
+				// GetPing() returns -1 when no peer/sample is available; skip those.
+				if (curPing >= 0)
+				{
+					if (!entity->lastPingEventValid)
+					{
+						entity->lastPingEventValue = curPing;
+						entity->lastPingEventValid = true;
+						entity->lastPingEventTime = msec();
+					}
+					else
+					{
+						const auto now = msec();
+						const auto minInterval = std::chrono::milliseconds(g_playerPingUpdateMinInterval);
+						const int pingDelta = (curPing > entity->lastPingEventValue)
+							? (curPing - entity->lastPingEventValue)
+							: (entity->lastPingEventValue - curPing);
+
+						if (pingDelta >= g_playerPingUpdateThreshold
+							&& (now - entity->lastPingEventTime) >= minInterval)
+						{
+							const int oldPing = entity->lastPingEventValue;
+							const int64_t msSinceLastUpdate = (now - entity->lastPingEventTime).count();
+
+							entity->lastPingEventValue = curPing;
+							entity->lastPingEventTime = now;
+
+							/*NETEV onPlayerPingUpdate SERVER
+							/#*
+							 * Triggered when a player's network ping changes by more
+							 * than sv_playerPingUpdateThreshold (ms) since the last
+							 * emission. Rate-limited per player by
+							 * sv_playerPingUpdateMinInterval (ms). Disabled by default;
+							 * enable with sv_enablePlayerPingUpdateEvent true.
+							 *
+							 * @param oldPing - Previous ping in milliseconds.
+							 * @param newPing - New ping in milliseconds.
+							 * @param msSinceLastUpdate - Milliseconds since the previous
+							 *        onPlayerPingUpdate for this player.
+							 #/
+							declare function onPlayerPingUpdate(oldPing: number, newPing: number, msSinceLastUpdate: number): void;
+							*/
+							evComponent->QueueEvent2("onPlayerPingUpdate", { eventSource() },
+								oldPing, curPing, msSinceLastUpdate);
+						}
+					}
+				}
+			}
+
+			if (parsingType == 2)
+			{
+				if (auto* ph = playerSyncTree->GetPedHealth())
+				{
+					if (entity->lastHealthValid)
+					{
+						if (ph->health != entity->lastKnownHealth)
+						{
+							/*NETEV onPlayerHealthChange SERVER
+							/#*
+							 * Triggered when a player ped health changes server-side.
+							 * @param oldHealth - Previous health.
+							 * @param newHealth - New health.
+							 #/
+							declare function onPlayerHealthChange(oldHealth: number, newHealth: number): void;
+							*/
+							evComponent->QueueEvent2("onPlayerHealthChange", { eventSource() },
+								entity->lastKnownHealth, ph->health);
+						}
+						if (ph->armour != entity->lastKnownArmour)
+						{
+							/*NETEV onPlayerArmourChange SERVER
+							/#*
+							 * Triggered when a player ped armour changes server-side.
+							 * @param oldArmour - Previous armour.
+							 * @param newArmour - New armour.
+							 #/
+							declare function onPlayerArmourChange(oldArmour: number, newArmour: number): void;
+							*/
+							evComponent->QueueEvent2("onPlayerArmourChange", { eventSource() },
+								entity->lastKnownArmour, ph->armour);
+						}
+						if (entity->lastKnownAlive && ph->health <= 0)
+						{
+							// Death detail lives in the ped game-state node; pull it from
+							// the same packet when present.
+							int deathState = 0;
+							bool killedByStealth = false;
+							bool killedByTakedown = false;
+							if (auto* pgsDeath = playerSyncTree->GetPedGameState())
+							{
+								deathState = pgsDeath->deathState;
+								killedByStealth = pgsDeath->killedByStealth;
+								killedByTakedown = pgsDeath->killedByTakedown;
+							}
+
+							/*NETEV onPlayerDeath SERVER
+							/#*
+							 * Triggered once when a player ped health crosses to <= 0 server-side.
+							 * @param cause - Weapon hash that caused death (causeOfDeath).
+							 * @param source - Net id of the killer entity (sourceOfDamage, 0 if none).
+							 * @param deathState - Ped death state (0 = alive, non-zero = dying/dead).
+							 * @param killedByStealth - True if the kill was a stealth kill.
+							 * @param killedByTakedown - True if the kill was a takedown.
+							 #/
+							declare function onPlayerDeath(cause: number, source: number, deathState: number, killedByStealth: boolean, killedByTakedown: boolean): void;
+							*/
+							evComponent->QueueEvent2("onPlayerDeath", { eventSource() },
+								ph->causeOfDeath, ph->sourceOfDamage,
+								deathState, killedByStealth, killedByTakedown);
+						}
+					}
+
+					entity->lastKnownHealth = ph->health;
+					entity->lastKnownArmour = ph->armour;
+					entity->lastKnownAlive = (ph->health > 0);
+					entity->lastHealthValid = true;
+				}
+			}
+
+			if (parsingType == 2)
+			{
+				if (auto* pgt = playerSyncTree->GetPedGameState())
+				{
+					if (entity->lastPedToggleValid)
+					{
+						if (pgt->isFlashlightOn != entity->lastFlashlightOn)
+						{
+							/*NETEV onPlayerFlashlightToggle SERVER
+							/#*
+							 * Triggered when a player toggles their flashlight server-side.
+							 * @param on - New flashlight state.
+							 #/
+							declare function onPlayerFlashlightToggle(on: boolean): void;
+							*/
+							evComponent->QueueEvent2("onPlayerFlashlightToggle", { eventSource() },
+								pgt->isFlashlightOn);
+						}
+						if (pgt->actionModeEnabled != entity->lastActionModeOn)
+						{
+							/*NETEV onPlayerActionModeToggle SERVER
+							/#*
+							 * Triggered when a player toggles action mode (combat stance) server-side.
+							 * @param on - New action-mode state.
+							 #/
+							declare function onPlayerActionModeToggle(on: boolean): void;
+							*/
+							evComponent->QueueEvent2("onPlayerActionModeToggle", { eventSource() },
+								pgt->actionModeEnabled);
+						}
+						if (pgt->isHandcuffed != entity->lastHandcuffed)
+						{
+							/*NETEV onPlayerHandcuffChange SERVER
+							/#*
+							 * Triggered when a player handcuff state changes server-side.
+							 * @param on - New handcuffed state.
+							 #/
+							declare function onPlayerHandcuffChange(on: boolean): void;
+							*/
+							evComponent->QueueEvent2("onPlayerHandcuffChange", { eventSource() }, pgt->isHandcuffed);
+						}
+					}
+
+					entity->lastFlashlightOn = pgt->isFlashlightOn;
+					entity->lastActionModeOn = pgt->actionModeEnabled;
+					entity->lastHandcuffed = pgt->isHandcuffed;
+					entity->lastPedToggleValid = true;
+				}
+			}
+
+			if (parsingType == 2)
+			{
+				if (auto* mg = playerSyncTree->GetPedMovementGroup())
+				{
+					if (entity->lastMovementGroupValid)
+					{
+						if (mg->isStealthy != entity->lastStealthy)
+						{
+							/*NETEV onPlayerStealthChange SERVER
+							/#*
+							 * Triggered when a player toggles stealth movement server-side.
+							 * @param on - New stealth state.
+							 #/
+							declare function onPlayerStealthChange(on: boolean): void;
+							*/
+							evComponent->QueueEvent2("onPlayerStealthChange", { eventSource() }, mg->isStealthy);
+						}
+						if (mg->isStrafing != entity->lastStrafing)
+						{
+							/*NETEV onPlayerStrafeChange SERVER
+							/#*
+							 * Triggered when a player starts/stops strafing server-side.
+							 * @param on - New strafing state.
+							 #/
+							declare function onPlayerStrafeChange(on: boolean): void;
+							*/
+							evComponent->QueueEvent2("onPlayerStrafeChange", { eventSource() }, mg->isStrafing);
+						}
+						if (mg->isRagdolling != entity->lastRagdolling)
+						{
+							/*NETEV onPlayerRagdollChange SERVER
+							/#*
+							 * Triggered when a player enters/leaves ragdoll server-side.
+							 * @param on - New ragdoll state.
+							 #/
+							declare function onPlayerRagdollChange(on: boolean): void;
+							*/
+							evComponent->QueueEvent2("onPlayerRagdollChange", { eventSource() }, mg->isRagdolling);
+						}
+					}
+
+					entity->lastStealthy = mg->isStealthy;
+					entity->lastStrafing = mg->isStrafing;
+					entity->lastRagdolling = mg->isRagdolling;
+					entity->lastMovementGroupValid = true;
+				}
+			}
+
+			if (parsingType == 2)
+			{
+				if (auto* wl = playerSyncTree->GetPlayerWantedAndLOS())
+				{
+					if (entity->lastWantedValid && wl->wantedLevel != entity->lastWantedLevel)
+					{
+						/*NETEV onPlayerWantedLevelChange SERVER
+						/#*
+						 * Triggered when a player wanted level changes server-side.
+						 * @param oldLevel - Previous wanted level.
+						 * @param newLevel - New wanted level.
+						 #/
+						declare function onPlayerWantedLevelChange(oldLevel: number, newLevel: number): void;
+						*/
+						evComponent->QueueEvent2("onPlayerWantedLevelChange", { eventSource() },
+							entity->lastWantedLevel, wl->wantedLevel);
+					}
+
+					if (entity->lastWantedValid
+						&& (wl->fakeWantedLevel != entity->lastFakeWantedLevel
+						 || wl->isWanted != entity->lastIsWanted
+						 || wl->isEvading != entity->lastIsEvading))
+					{
+						/*NETEV onPlayerWantedDetailChange SERVER
+						/#*
+						 * Triggered when a player wanted *detail* changes server-side (fake
+						 * wanted level, wanted flag, or evading flag). Wanted level itself has
+						 * its own onPlayerWantedLevelChange.
+						 * @param fakeWantedLevel - Displayed/fake wanted level.
+						 * @param isWanted - Non-zero if the player is wanted.
+						 * @param isEvading - Non-zero if the player is evading the cops.
+						 #/
+						declare function onPlayerWantedDetailChange(fakeWantedLevel: number, isWanted: number, isEvading: number): void;
+						*/
+						evComponent->QueueEvent2("onPlayerWantedDetailChange", { eventSource() },
+							wl->fakeWantedLevel, wl->isWanted, wl->isEvading);
+					}
+
+					entity->lastWantedLevel = wl->wantedLevel;
+					entity->lastFakeWantedLevel = wl->fakeWantedLevel;
+					entity->lastIsWanted = wl->isWanted;
+					entity->lastIsEvading = wl->isEvading;
+					entity->lastWantedValid = true;
+				}
+			}
+
+			if (parsingType == 2)
+			{
+				if (auto* pg = playerSyncTree->GetPlayerGameState())
+				{
+					if (entity->lastPlayerGameStateValid)
+					{
+						// float compare with a small epsilon to avoid sync jitter
+						auto fchg = [](float a, float b) { float d = a - b; return ((d < 0.0f) ? -d : d) > 0.0001f; };
+
+						if (pg->playerTeam != entity->lastPlayerTeam)
+						{
+							/*NETEV onPlayerTeamChange SERVER
+							/#*
+							 * Triggered when a player team changes server-side.
+							 * @param oldTeam - Previous team.
+							 * @param newTeam - New team.
+							 #/
+							declare function onPlayerTeamChange(oldTeam: number, newTeam: number): void;
+							*/
+							evComponent->QueueEvent2("onPlayerTeamChange", { eventSource() },
+								entity->lastPlayerTeam, pg->playerTeam);
+						}
+						if (pg->isFriendlyFireAllowed != entity->lastFriendlyFire)
+						{
+							/*NETEV onPlayerFriendlyFireToggle SERVER
+							/#*
+							 * Triggered when a player friendly-fire flag toggles server-side.
+							 * @param on - New friendly-fire-allowed state.
+							 #/
+							declare function onPlayerFriendlyFireToggle(on: boolean): void;
+							*/
+							evComponent->QueueEvent2("onPlayerFriendlyFireToggle", { eventSource() }, pg->isFriendlyFireAllowed);
+						}
+
+						if (pg->isInvincible != entity->lastInvincible)
+						{
+							/*NETEV onPlayerInvincibleToggle SERVER
+							/#*
+							 * Triggered when a player invincibility (god mode) toggles server-side.
+							 * @param on - New invincible state.
+							 #/
+							declare function onPlayerInvincibleToggle(on: boolean): void;
+							*/
+							evComponent->QueueEvent2("onPlayerInvincibleToggle", { eventSource() }, pg->isInvincible);
+						}
+						if (pg->isSpectating != entity->lastIsSpectating)
+						{
+							/*NETEV onPlayerSpectate SERVER
+							/#*
+							 * Triggered when a player starts or stops spectating server-side.
+							 * The network sync only exposes a spectating on/off flag, not the
+							 * spectated target, so no target id is reported.
+							 * @param spectating - True if the player is now spectating.
+							 #/
+							declare function onPlayerSpectate(spectating: boolean): void;
+							*/
+							evComponent->QueueEvent2("onPlayerSpectate", { eventSource() },
+								pg->isSpectating);
+						}
+						if (pg->isSuperJumpEnabled != entity->lastSuperJump)
+						{
+							/*NETEV onPlayerSuperJumpToggle SERVER
+							/#*
+							 * Triggered when a player super-jump toggles server-side.
+							 * @param on - New super-jump state.
+							 #/
+							declare function onPlayerSuperJumpToggle(on: boolean): void;
+							*/
+							evComponent->QueueEvent2("onPlayerSuperJumpToggle", { eventSource() }, pg->isSuperJumpEnabled);
+						}
+						if (fchg(pg->voiceProximityOverrideX, entity->lastVoiceProx[0])
+							|| fchg(pg->voiceProximityOverrideY, entity->lastVoiceProx[1])
+							|| fchg(pg->voiceProximityOverrideZ, entity->lastVoiceProx[2]))
+						{
+							/*NETEV onPlayerVoiceProximityChange SERVER
+							/#*
+							 * Triggered when a player voice-proximity override position changes server-side.
+							 * @param x - New override X.
+							 * @param y - New override Y.
+							 * @param z - New override Z.
+							 #/
+							declare function onPlayerVoiceProximityChange(x: number, y: number, z: number): void;
+							*/
+							evComponent->QueueEvent2("onPlayerVoiceProximityChange", { eventSource() },
+								pg->voiceProximityOverrideX, pg->voiceProximityOverrideY, pg->voiceProximityOverrideZ);
+						}
+
+						if (fchg(pg->weaponDamageModifier, entity->lastWeaponDamageMod))
+						{
+							/*NETEV onPlayerModifierChange SERVER
+							/#*
+							 * Triggered when one of a player combat modifiers changes server-side.
+							 * @param modifier - Which modifier: "weaponDamage" | "weaponDefense" |
+							 *        "weaponDefense2" | "meleeWeaponDamage" | "airDrag".
+							 * @param oldValue - Previous value.
+							 * @param newValue - New value.
+							 #/
+							declare function onPlayerModifierChange(modifier: string, oldValue: number, newValue: number): void;
+							*/
+							evComponent->QueueEvent2("onPlayerModifierChange", { eventSource() },
+								std::string("weaponDamage"), entity->lastWeaponDamageMod, pg->weaponDamageModifier);
+						}
+						if (fchg(pg->weaponDefenseModifier, entity->lastWeaponDefenseMod))
+						{
+							evComponent->QueueEvent2("onPlayerModifierChange", { eventSource() },
+								std::string("weaponDefense"), entity->lastWeaponDefenseMod, pg->weaponDefenseModifier);
+						}
+						if (fchg(pg->weaponDefenseModifier2, entity->lastWeaponDefenseMod2))
+						{
+							evComponent->QueueEvent2("onPlayerModifierChange", { eventSource() },
+								std::string("weaponDefense2"), entity->lastWeaponDefenseMod2, pg->weaponDefenseModifier2);
+						}
+						if (fchg(pg->meleeWeaponDamageModifier, entity->lastMeleeDamageMod))
+						{
+							evComponent->QueueEvent2("onPlayerModifierChange", { eventSource() },
+								std::string("meleeWeaponDamage"), entity->lastMeleeDamageMod, pg->meleeWeaponDamageModifier);
+						}
+						if (fchg(pg->airDragMultiplier, entity->lastAirDragMod))
+						{
+							evComponent->QueueEvent2("onPlayerModifierChange", { eventSource() },
+								std::string("airDrag"), entity->lastAirDragMod, pg->airDragMultiplier);
+						}
+					}
+
+					entity->lastInvincible = pg->isInvincible;
+					entity->lastPlayerTeam = pg->playerTeam;
+					entity->lastFriendlyFire = pg->isFriendlyFireAllowed;
+					entity->lastIsSpectating = pg->isSpectating;
+					entity->lastSuperJump = pg->isSuperJumpEnabled;
+					entity->lastVoiceProx[0] = pg->voiceProximityOverrideX;
+					entity->lastVoiceProx[1] = pg->voiceProximityOverrideY;
+					entity->lastVoiceProx[2] = pg->voiceProximityOverrideZ;
+					entity->lastWeaponDamageMod = pg->weaponDamageModifier;
+					entity->lastWeaponDefenseMod = pg->weaponDefenseModifier;
+					entity->lastWeaponDefenseMod2 = pg->weaponDefenseModifier2;
+					entity->lastMeleeDamageMod = pg->meleeWeaponDamageModifier;
+					entity->lastAirDragMod = pg->airDragMultiplier;
+					entity->lastPlayerGameStateValid = true;
+				}
+			}
+
+			if (g_enablePlayerVelocityUpdateEvent && parsingType == 2)
+			{
+				if (auto* pv = playerSyncTree->GetVelocity())
+				{
+					if (!entity->lastVelEventValid)
+					{
+						entity->lastVelEventVel[0] = pv->velX;
+						entity->lastVelEventVel[1] = pv->velY;
+						entity->lastVelEventVel[2] = pv->velZ;
+						entity->lastVelEventValid = true;
+						entity->lastVelEventTime = msec();
+					}
+					else
+					{
+						const float dvx = pv->velX - entity->lastVelEventVel[0];
+						const float dvy = pv->velY - entity->lastVelEventVel[1];
+						const float dvz = pv->velZ - entity->lastVelEventVel[2];
+						const float dSq = dvx * dvx + dvy * dvy + dvz * dvz;
+
+						const auto now = msec();
+						const auto minInterval = std::chrono::milliseconds(g_playerVelocityUpdateMinInterval);
+
+						if (dSq >= g_playerVelocityUpdateThreshold
+							&& (now - entity->lastVelEventTime) >= minInterval)
+						{
+							/*NETEV onPlayerVelocityUpdate SERVER
+							/#*
+							 * Triggered when a player velocity changes past
+							 * sv_playerVelocityUpdateThreshold (squared m/s). Rate-limited by
+							 * sv_playerVelocityUpdateMinInterval (ms). Disabled by default; enable with sv_enablePlayerVelocityUpdateEvent true.
+							 * @param x - Velocity X (m/s).
+							 * @param y - Velocity Y (m/s).
+							 * @param z - Velocity Z (m/s).
+							 #/
+							declare function onPlayerVelocityUpdate(x: number, y: number, z: number): void;
+							*/
+							evComponent->QueueEvent2("onPlayerVelocityUpdate", { eventSource() },
+								pv->velX, pv->velY, pv->velZ);
+
+							entity->lastVelEventVel[0] = pv->velX;
+							entity->lastVelEventVel[1] = pv->velY;
+							entity->lastVelEventVel[2] = pv->velZ;
+							entity->lastVelEventTime = now;
+						}
+					}
+				}
+			}
+
+			if (g_enablePlayerCameraUpdateEvent && parsingType == 2)
+			{
+				if (auto* pc = playerSyncTree->GetPlayerCamera())
+				{
+					if (!entity->lastCamValid)
+					{
+						entity->lastCamMode = pc->camMode;
+						entity->lastCamX = pc->cameraX;
+						entity->lastCamZ = pc->cameraZ;
+						entity->lastCamValid = true;
+						entity->lastCamEventTime = msec();
+					}
+					else
+					{
+						const float dH = pc->cameraX - entity->lastCamX;
+						const float dP = pc->cameraZ - entity->lastCamZ;
+						const float look = ((dH < 0.0f) ? -dH : dH) + ((dP < 0.0f) ? -dP : dP);
+						const bool modeChanged = pc->camMode != entity->lastCamMode;
+
+						const auto now = msec();
+						const auto minInterval = std::chrono::milliseconds(g_playerCameraUpdateMinInterval);
+
+						if ((modeChanged || look >= g_playerCameraUpdateThreshold)
+							&& (now - entity->lastCamEventTime) >= minInterval)
+						{
+							/*NETEV onPlayerCameraUpdate SERVER
+							/#*
+							 * Triggered when a player camera mode or aim direction changes past
+							 * sv_playerCameraUpdateThreshold (radians). Rate-limited by
+							 * sv_playerCameraUpdateMinInterval (ms). Disabled by default; enable with sv_enablePlayerCameraUpdateEvent true.
+							 * @param camMode - Camera mode id.
+							 * @param relativeHeading - Camera heading in radians (cameraX).
+							 * @param relativePitch - Camera pitch in radians (cameraZ).
+							 #/
+							declare function onPlayerCameraUpdate(camMode: number, relativeHeading: number, relativePitch: number): void;
+							*/
+							evComponent->QueueEvent2("onPlayerCameraUpdate", { eventSource() },
+								pc->camMode, pc->cameraX, pc->cameraZ);
+
+							entity->lastCamMode = pc->camMode;
+							entity->lastCamX = pc->cameraX;
+							entity->lastCamZ = pc->cameraZ;
+							entity->lastCamEventTime = now;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Server-observable vehicle sync events (FiveM). Same compare-to-cache pattern as
+	// the player block. 'source' is the vehicle owner (the sending client) as
+	// internal-net:<netId>; the first event arg is always the vehicle's own network id.
+	if (g_enableVehicleSyncEvents && client && entity->syncTree
+		&& (entity->type == sync::NetObjEntityType::Automobile
+			|| entity->type == sync::NetObjEntityType::Bike
+			|| entity->type == sync::NetObjEntityType::Boat
+			|| entity->type == sync::NetObjEntityType::Heli
+			|| entity->type == sync::NetObjEntityType::Plane
+			|| entity->type == sync::NetObjEntityType::Submarine
+			|| entity->type == sync::NetObjEntityType::Trailer
+			|| entity->type == sync::NetObjEntityType::Train))
+	{
+		auto evComponent = m_instance->GetComponent<fx::ResourceManager>()
+			->GetComponent<fx::ResourceEventManagerComponent>();
+
+		if (evComponent.GetRef() && parsingType == 2)
+		{
+			const auto& vehSyncTree = entity->syncTree;
+			const int vehNetId = (int)entity->handle;
+
+			std::optional<std::string> eventSourceStr;
+			auto eventSource = [&]() -> const std::string&
+			{
+				if (!eventSourceStr)
+				{
+					eventSourceStr = "internal-net:" + std::to_string(client->GetNetId());
+				}
+				return *eventSourceStr;
+			};
+
+			if (auto* vg = vehSyncTree->GetVehicleGameState())
+			{
+				if (entity->lastVehGameStateValid)
+				{
+					if (vg->isEngineOn != entity->lastVehEngineOn
+						|| vg->isEngineStarting != entity->lastVehEngineStarting)
+					{
+						/*NETEV onVehicleEngineToggle SERVER
+						/#*
+						 * Triggered when a vehicle engine on/starting state changes server-side.
+						 * `source` is the vehicle's owner net id.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param on - New engine-on state.
+						 * @param starting - True while the engine is in its start-up phase.
+						 #/
+						declare function onVehicleEngineToggle(vehicle: number, on: boolean, starting: boolean): void;
+						*/
+						evComponent->QueueEvent2("onVehicleEngineToggle", { eventSource() },
+							vehNetId, vg->isEngineOn, vg->isEngineStarting);
+					}
+					if (vg->sirenOn != entity->lastVehSirenOn)
+					{
+						/*NETEV onVehicleSirenToggle SERVER
+						/#*
+						 * Triggered when a vehicle siren toggles server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param on - New siren state.
+						 #/
+						declare function onVehicleSirenToggle(vehicle: number, on: boolean): void;
+						*/
+						evComponent->QueueEvent2("onVehicleSirenToggle", { eventSource() },
+							vehNetId, vg->sirenOn);
+					}
+					if (vg->handbrake != entity->lastVehHandbrake)
+					{
+						/*NETEV onVehicleHandbrakeToggle SERVER
+						/#*
+						 * Triggered when a vehicle handbrake toggles server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param on - New handbrake state.
+						 #/
+						declare function onVehicleHandbrakeToggle(vehicle: number, on: boolean): void;
+						*/
+						evComponent->QueueEvent2("onVehicleHandbrakeToggle", { eventSource() },
+							vehNetId, vg->handbrake);
+					}
+					if (vg->lightsOn != entity->lastVehLightsOn
+						|| vg->highbeamsOn != entity->lastVehHighbeamsOn
+						|| vg->headlightsColour != entity->lastVehHeadlightsColour)
+					{
+						/*NETEV onVehicleLightsChange SERVER
+						/#*
+						 * Triggered when a vehicle light state changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param lightsOn - New lights-on state.
+						 * @param highbeamsOn - New high-beams state.
+						 * @param headlightsColour - Xenon headlight colour index.
+						 #/
+						declare function onVehicleLightsChange(vehicle: number, lightsOn: boolean, highbeamsOn: boolean, headlightsColour: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleLightsChange", { eventSource() },
+							vehNetId, vg->lightsOn, vg->highbeamsOn, vg->headlightsColour);
+					}
+					if (vg->doorsOpen != entity->lastVehDoorsOpen)
+					{
+						/*NETEV onVehicleDoorsChange SERVER
+						/#*
+						 * Triggered when a vehicle's set of open doors changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param doorsOpen - Bitmask of open doors (bit i = door i).
+						 #/
+						declare function onVehicleDoorsChange(vehicle: number, doorsOpen: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleDoorsChange", { eventSource() },
+							vehNetId, vg->doorsOpen);
+					}
+					if (vg->lockStatus != entity->lastVehLockStatus)
+					{
+						/*NETEV onVehicleLockChange SERVER
+						/#*
+						 * Triggered when a vehicle lock status changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param lockStatus - New lock status (eVehicleLockState).
+						 #/
+						declare function onVehicleLockChange(vehicle: number, lockStatus: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleLockChange", { eventSource() },
+							vehNetId, vg->lockStatus);
+					}
+					if (vg->radioStation != entity->lastVehRadioStation)
+					{
+						/*NETEV onVehicleRadioChange SERVER
+						/#*
+						 * Triggered when a vehicle radio station changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param station - New radio station index (-1 = off).
+						 #/
+						declare function onVehicleRadioChange(vehicle: number, station: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleRadioChange", { eventSource() },
+							vehNetId, vg->radioStation);
+					}
+					if (vg->isStationary != entity->lastVehStationary)
+					{
+						/*NETEV onVehicleStationaryChange SERVER
+						/#*
+						 * Triggered when a vehicle's stationary (parked) flag changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param on - New stationary state.
+						 #/
+						declare function onVehicleStationaryChange(vehicle: number, on: boolean): void;
+						*/
+						evComponent->QueueEvent2("onVehicleStationaryChange", { eventSource() },
+							vehNetId, vg->isStationary);
+					}
+				}
+
+				entity->lastVehEngineOn = vg->isEngineOn;
+				entity->lastVehEngineStarting = vg->isEngineStarting;
+				entity->lastVehSirenOn = vg->sirenOn;
+				entity->lastVehHandbrake = vg->handbrake;
+				entity->lastVehLightsOn = vg->lightsOn;
+				entity->lastVehHighbeamsOn = vg->highbeamsOn;
+				entity->lastVehHeadlightsColour = vg->headlightsColour;
+				entity->lastVehDoorsOpen = vg->doorsOpen;
+				entity->lastVehLockStatus = vg->lockStatus;
+				entity->lastVehRadioStation = vg->radioStation;
+				entity->lastVehStationary = vg->isStationary;
+				entity->lastVehGameStateValid = true;
+			}
+
+			if (auto* vh = vehSyncTree->GetVehicleHealth())
+			{
+				if (entity->lastVehHealthValid)
+				{
+					if (vh->engineHealth != entity->lastVehEngineHealth
+						|| vh->petrolTankHealth != entity->lastVehPetrolHealth
+						|| vh->bodyHealth != entity->lastVehBodyHealth
+						|| vh->health != entity->lastVehHealth)
+					{
+						/*NETEV onVehicleHealthChange SERVER
+						/#*
+						 * Triggered when a vehicle health value changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param engineHealth - Engine health.
+						 * @param petrolTankHealth - Petrol-tank health.
+						 * @param bodyHealth - Body health.
+						 * @param health - Overall vehicle health.
+						 #/
+						declare function onVehicleHealthChange(vehicle: number, engineHealth: number, petrolTankHealth: number, bodyHealth: number, health: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleHealthChange", { eventSource() },
+							vehNetId, vh->engineHealth, vh->petrolTankHealth, vh->bodyHealth, vh->health);
+					}
+
+					for (int i = 0; i < 16; i++)
+					{
+						if (vh->tyreStatus[i] != entity->lastVehTyreStatus[i])
+						{
+							/*NETEV onVehicleTyreBurst SERVER
+							/#*
+							 * Triggered when a vehicle tyre status changes server-side (burst or repair).
+							 * @param vehicle - Network id of the vehicle.
+							 * @param tyreIndex - Tyre/wheel index (0-15).
+							 * @param status - New tyre status (0 = intact, higher = more damaged).
+							 #/
+							declare function onVehicleTyreBurst(vehicle: number, tyreIndex: number, status: number): void;
+							*/
+							evComponent->QueueEvent2("onVehicleTyreBurst", { eventSource() },
+								vehNetId, i, vh->tyreStatus[i]);
+						}
+					}
+				}
+
+				entity->lastVehEngineHealth = vh->engineHealth;
+				entity->lastVehPetrolHealth = vh->petrolTankHealth;
+				entity->lastVehBodyHealth = vh->bodyHealth;
+				entity->lastVehHealth = vh->health;
+				for (int i = 0; i < 16; i++)
+				{
+					entity->lastVehTyreStatus[i] = vh->tyreStatus[i];
+				}
+				entity->lastVehHealthValid = true;
+			}
+
+			if (auto* vd = vehSyncTree->GetVehicleDamageStatus())
+			{
+				if (entity->lastVehDamageValid)
+				{
+					if (vd->damagedByBullets != entity->lastVehDamagedByBullets)
+					{
+						/*NETEV onVehicleBulletDamage SERVER
+						/#*
+						 * Triggered when a vehicle's "damaged by bullets" flag changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param damaged - New damaged-by-bullets state.
+						 #/
+						declare function onVehicleBulletDamage(vehicle: number, damaged: boolean): void;
+						*/
+						evComponent->QueueEvent2("onVehicleBulletDamage", { eventSource() },
+							vehNetId, vd->damagedByBullets);
+					}
+
+					for (int i = 0; i < 8; i++)
+					{
+						if (vd->windowsState[i] != entity->lastVehWindowsState[i])
+						{
+							/*NETEV onVehicleWindowBreak SERVER
+							/#*
+							 * Triggered when a vehicle window's broken state changes server-side.
+							 * @param vehicle - Network id of the vehicle.
+							 * @param windowIndex - Window index (0-7).
+							 * @param broken - New broken state for that window.
+							 #/
+							declare function onVehicleWindowBreak(vehicle: number, windowIndex: number, broken: boolean): void;
+							*/
+							evComponent->QueueEvent2("onVehicleWindowBreak", { eventSource() },
+								vehNetId, i, vd->windowsState[i]);
+						}
+					}
+				}
+
+				entity->lastVehDamagedByBullets = vd->damagedByBullets;
+				for (int i = 0; i < 8; i++)
+				{
+					entity->lastVehWindowsState[i] = vd->windowsState[i];
+				}
+				entity->lastVehDamageValid = true;
+			}
+
+			if (auto* va = vehSyncTree->GetVehicleAppearance())
+			{
+				// Cheap FNV-1a signature over the mod kit so "any mod changed" can be
+				// detected without caching all 32 kit slots per entity.
+				uint32_t modSig = 2166136261u;
+				auto fold = [&modSig](int v) { modSig = (modSig ^ (uint32_t)v) * 16777619u; };
+				for (int i = 0; i < 32; i++)
+				{
+					fold(va->kitMods[i]);
+				}
+				fold(va->toggleMods);
+				fold(va->wheelType);
+				fold(va->wheelChoice);
+
+				size_t plateLen = 0;
+				while (plateLen < sizeof(va->plate) && va->plate[plateLen] != '\0')
+				{
+					plateLen++;
+				}
+				std::string plate(va->plate, plateLen);
+
+				if (entity->lastVehAppearanceValid)
+				{
+					if (va->primaryColour != entity->lastVehPrimaryColour
+						|| va->secondaryColour != entity->lastVehSecondaryColour)
+					{
+						/*NETEV onVehicleColourChange SERVER
+						/#*
+						 * Triggered when a vehicle's primary/secondary colour changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param primaryColour - New primary colour index.
+						 * @param secondaryColour - New secondary colour index.
+						 #/
+						declare function onVehicleColourChange(vehicle: number, primaryColour: number, secondaryColour: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleColourChange", { eventSource() },
+							vehNetId, va->primaryColour, va->secondaryColour);
+					}
+					if (modSig != entity->lastVehModSignature)
+					{
+						/*NETEV onVehicleModChange SERVER
+						/#*
+						 * Triggered when a vehicle's mod kit (any mod slot, toggle mod or
+						 * wheel choice) changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 #/
+						declare function onVehicleModChange(vehicle: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleModChange", { eventSource() }, vehNetId);
+					}
+					if (plate != entity->lastVehPlate)
+					{
+						/*NETEV onVehiclePlateChange SERVER
+						/#*
+						 * Triggered when a vehicle number plate text changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param plate - New plate text.
+						 #/
+						declare function onVehiclePlateChange(vehicle: number, plate: string): void;
+						*/
+						evComponent->QueueEvent2("onVehiclePlateChange", { eventSource() },
+							vehNetId, plate);
+					}
+					if (va->liveryIndex != entity->lastVehLivery
+						|| va->roofLiveryIndex != entity->lastVehRoofLivery)
+					{
+						/*NETEV onVehicleLiveryChange SERVER
+						/#*
+						 * Triggered when a vehicle livery changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param livery - New livery index.
+						 * @param roofLivery - New roof-livery index.
+						 #/
+						declare function onVehicleLiveryChange(vehicle: number, livery: number, roofLivery: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleLiveryChange", { eventSource() },
+							vehNetId, va->liveryIndex, va->roofLiveryIndex);
+					}
+					if (va->neonRedColour != entity->lastVehNeonColour[0]
+						|| va->neonGreenColour != entity->lastVehNeonColour[1]
+						|| va->neonBlueColour != entity->lastVehNeonColour[2]
+						|| va->neonLeftOn != entity->lastVehNeonOn[0]
+						|| va->neonRightOn != entity->lastVehNeonOn[1]
+						|| va->neonFrontOn != entity->lastVehNeonOn[2]
+						|| va->neonBackOn != entity->lastVehNeonOn[3])
+					{
+						/*NETEV onVehicleNeonChange SERVER
+						/#*
+						 * Triggered when a vehicle's neon colour or per-side enable changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param red - Neon red component.
+						 * @param green - Neon green component.
+						 * @param blue - Neon blue component.
+						 * @param left - Left neon enabled.
+						 * @param right - Right neon enabled.
+						 * @param front - Front neon enabled.
+						 * @param back - Back neon enabled.
+						 #/
+						declare function onVehicleNeonChange(vehicle: number, red: number, green: number, blue: number, left: boolean, right: boolean, front: boolean, back: boolean): void;
+						*/
+						evComponent->QueueEvent2("onVehicleNeonChange", { eventSource() },
+							vehNetId, va->neonRedColour, va->neonGreenColour, va->neonBlueColour,
+							va->neonLeftOn, va->neonRightOn, va->neonFrontOn, va->neonBackOn);
+					}
+					if (va->dirtLevel != entity->lastVehDirtLevel)
+					{
+						/*NETEV onVehicleDirtChange SERVER
+						/#*
+						 * Triggered when a vehicle dirt level changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param dirtLevel - New dirt level (0-15).
+						 #/
+						declare function onVehicleDirtChange(vehicle: number, dirtLevel: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleDirtChange", { eventSource() },
+							vehNetId, va->dirtLevel);
+					}
+					if (va->windowTintIndex != entity->lastVehWindowTint)
+					{
+						/*NETEV onVehicleWindowTintChange SERVER
+						/#*
+						 * Triggered when a vehicle window tint changes server-side.
+						 * @param vehicle - Network id of the vehicle.
+						 * @param tint - New window-tint index.
+						 #/
+						declare function onVehicleWindowTintChange(vehicle: number, tint: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleWindowTintChange", { eventSource() },
+							vehNetId, va->windowTintIndex);
+					}
+				}
+
+				entity->lastVehPrimaryColour = va->primaryColour;
+				entity->lastVehSecondaryColour = va->secondaryColour;
+				entity->lastVehDirtLevel = va->dirtLevel;
+				entity->lastVehWindowTint = va->windowTintIndex;
+				entity->lastVehLivery = va->liveryIndex;
+				entity->lastVehRoofLivery = va->roofLiveryIndex;
+				entity->lastVehModSignature = modSig;
+				entity->lastVehNeonColour[0] = va->neonRedColour;
+				entity->lastVehNeonColour[1] = va->neonGreenColour;
+				entity->lastVehNeonColour[2] = va->neonBlueColour;
+				entity->lastVehNeonOn[0] = va->neonLeftOn;
+				entity->lastVehNeonOn[1] = va->neonRightOn;
+				entity->lastVehNeonOn[2] = va->neonFrontOn;
+				entity->lastVehNeonOn[3] = va->neonBackOn;
+				entity->lastVehPlate = plate;
+				entity->lastVehAppearanceValid = true;
+			}
+
+			if (auto* vs = vehSyncTree->GetVehicleSteeringData())
+			{
+				if (!entity->lastVehSteeringValid)
+				{
+					entity->lastVehSteering = vs->steeringAngle;
+					entity->lastVehSteeringValid = true;
+					entity->lastVehSteeringTime = msec();
+				}
+				else
+				{
+					const float d = vs->steeringAngle - entity->lastVehSteering;
+					const float ad = (d < 0.0f) ? -d : d;
+					const auto now = msec();
+
+					if (g_enableVehicleSteeringUpdateEvent && ad >= g_vehicleSteeringUpdateThreshold
+						&& (now - entity->lastVehSteeringTime) >= std::chrono::milliseconds(g_vehicleSteeringUpdateMinInterval))
+					{
+						/*NETEV onVehicleSteeringChange SERVER
+						/#*
+						 * Triggered when a vehicle steering angle changes past
+						 * sv_vehicleSteeringUpdateThreshold (radians). Rate-limited by
+						 * sv_vehicleSteeringUpdateMinInterval (ms).
+						 * @param vehicle - Network id of the vehicle.
+						 * @param angle - Steering angle in radians.
+						 #/
+						declare function onVehicleSteeringChange(vehicle: number, angle: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleSteeringChange", { eventSource() },
+							vehNetId, vs->steeringAngle);
+
+						entity->lastVehSteering = vs->steeringAngle;
+						entity->lastVehSteeringTime = now;
+					}
+				}
+			}
+
+			if (auto* av = vehSyncTree->GetAngVelocity())
+			{
+				if (!entity->lastVehAngVelValid)
+				{
+					entity->lastVehAngVel[0] = av->angVelX;
+					entity->lastVehAngVel[1] = av->angVelY;
+					entity->lastVehAngVel[2] = av->angVelZ;
+					entity->lastVehAngVelValid = true;
+					entity->lastVehAngVelTime = msec();
+				}
+				else
+				{
+					const float dx = av->angVelX - entity->lastVehAngVel[0];
+					const float dy = av->angVelY - entity->lastVehAngVel[1];
+					const float dz = av->angVelZ - entity->lastVehAngVel[2];
+					const float dSq = dx * dx + dy * dy + dz * dz;
+					const auto now = msec();
+
+					if (g_enableVehicleAngVelocityUpdateEvent && dSq >= g_vehicleAngVelocityUpdateThreshold
+						&& (now - entity->lastVehAngVelTime) >= std::chrono::milliseconds(g_vehicleAngVelocityUpdateMinInterval))
+					{
+						/*NETEV onVehicleAngVelocity SERVER
+						/#*
+						 * Triggered when a vehicle angular velocity changes past
+						 * sv_vehicleAngVelocityUpdateThreshold (squared rad/s). Rate-limited
+						 * by sv_vehicleAngVelocityUpdateMinInterval (ms).
+						 * @param vehicle - Network id of the vehicle.
+						 * @param x - Angular velocity X (rad/s).
+						 * @param y - Angular velocity Y (rad/s).
+						 * @param z - Angular velocity Z (rad/s).
+						 #/
+						declare function onVehicleAngVelocity(vehicle: number, x: number, y: number, z: number): void;
+						*/
+						evComponent->QueueEvent2("onVehicleAngVelocity", { eventSource() },
+							vehNetId, av->angVelX, av->angVelY, av->angVelZ);
+
+						entity->lastVehAngVel[0] = av->angVelX;
+						entity->lastVehAngVel[1] = av->angVelY;
+						entity->lastVehAngVel[2] = av->angVelZ;
+						entity->lastVehAngVelTime = now;
+					}
+				}
+			}
+
+			if (auto* hh = vehSyncTree->GetHeliHealth())
+			{
+				if (entity->lastHeliHealthValid)
+				{
+					if (hh->mainRotorHealth != entity->lastHeliMainRotor
+						|| hh->rearRotorHealth != entity->lastHeliRearRotor
+						|| hh->bodyHealth != entity->lastHeliBodyHealth
+						|| hh->gasTankHealth != entity->lastHeliGasTank
+						|| hh->engineHealth != entity->lastHeliEngineHealth
+						|| hh->boomBroken != entity->lastHeliBoomBroken)
+					{
+						/*NETEV onHeliHealthChange SERVER
+						/#*
+						 * Triggered when a helicopter health value changes server-side.
+						 * @param vehicle - Network id of the helicopter.
+						 * @param mainRotor - Main-rotor health.
+						 * @param rearRotor - Rear-rotor health.
+						 * @param body - Body health.
+						 * @param gasTank - Gas-tank health.
+						 * @param engine - Engine health.
+						 * @param boomBroken - True if the tail boom is broken.
+						 #/
+						declare function onHeliHealthChange(vehicle: number, mainRotor: number, rearRotor: number, body: number, gasTank: number, engine: number, boomBroken: boolean): void;
+						*/
+						evComponent->QueueEvent2("onHeliHealthChange", { eventSource() },
+							vehNetId, hh->mainRotorHealth, hh->rearRotorHealth, hh->bodyHealth,
+							hh->gasTankHealth, hh->engineHealth, hh->boomBroken);
+					}
+				}
+
+				entity->lastHeliMainRotor = hh->mainRotorHealth;
+				entity->lastHeliRearRotor = hh->rearRotorHealth;
+				entity->lastHeliBodyHealth = hh->bodyHealth;
+				entity->lastHeliGasTank = hh->gasTankHealth;
+				entity->lastHeliEngineHealth = hh->engineHealth;
+				entity->lastHeliBoomBroken = hh->boomBroken;
+				entity->lastHeliHealthValid = true;
+			}
+
+			if (auto* hc = vehSyncTree->GetHeliControl())
+			{
+				if (!entity->lastHeliControlValid)
+				{
+					entity->lastHeliControl[0] = hc->yawControl;
+					entity->lastHeliControl[1] = hc->pitchControl;
+					entity->lastHeliControl[2] = hc->rollControl;
+					entity->lastHeliControl[3] = hc->throttleControl;
+					entity->lastHeliControlValid = true;
+					entity->lastHeliControlTime = msec();
+				}
+				else
+				{
+					auto fchg = [](float a, float b) { float d = a - b; return ((d < 0.0f) ? -d : d) > 0.01f; };
+					const bool changed = fchg(hc->yawControl, entity->lastHeliControl[0])
+						|| fchg(hc->pitchControl, entity->lastHeliControl[1])
+						|| fchg(hc->rollControl, entity->lastHeliControl[2])
+						|| fchg(hc->throttleControl, entity->lastHeliControl[3]);
+					const auto now = msec();
+
+					if (g_enableVehicleControlUpdateEvent && changed
+						&& (now - entity->lastHeliControlTime) >= std::chrono::milliseconds(g_vehicleControlUpdateMinInterval))
+					{
+						/*NETEV onHeliControlChange SERVER
+						/#*
+						 * Triggered when a helicopter's control inputs change past a small
+						 * epsilon. Rate-limited by sv_vehicleControlUpdateMinInterval (ms).
+						 * @param vehicle - Network id of the helicopter.
+						 * @param yaw - Yaw control [-1, 1].
+						 * @param pitch - Pitch control [-1, 1].
+						 * @param roll - Roll control [-1, 1].
+						 * @param throttle - Throttle control.
+						 #/
+						declare function onHeliControlChange(vehicle: number, yaw: number, pitch: number, roll: number, throttle: number): void;
+						*/
+						evComponent->QueueEvent2("onHeliControlChange", { eventSource() },
+							vehNetId, hc->yawControl, hc->pitchControl, hc->rollControl, hc->throttleControl);
+
+						entity->lastHeliControl[0] = hc->yawControl;
+						entity->lastHeliControl[1] = hc->pitchControl;
+						entity->lastHeliControl[2] = hc->rollControl;
+						entity->lastHeliControl[3] = hc->throttleControl;
+						entity->lastHeliControlTime = now;
+					}
+				}
+			}
+
+			if (auto* pg = vehSyncTree->GetPlaneGameState())
+			{
+				if (entity->lastPlaneStateValid)
+				{
+					if (pg->landingGearState != entity->lastPlaneLandingGear
+						|| pg->lockOnState != entity->lastPlaneLockOnState)
+					{
+						/*NETEV onPlaneStateChange SERVER
+						/#*
+						 * Triggered when a plane's landing gear or lock-on state changes server-side.
+						 * @param vehicle - Network id of the plane.
+						 * @param landingGearState - Landing-gear state.
+						 * @param lockOnState - Homing/lock-on state.
+						 #/
+						declare function onPlaneStateChange(vehicle: number, landingGearState: number, lockOnState: number): void;
+						*/
+						evComponent->QueueEvent2("onPlaneStateChange", { eventSource() },
+							vehNetId, (int)pg->landingGearState, (int)pg->lockOnState);
+					}
+				}
+
+				entity->lastPlaneLandingGear = pg->landingGearState;
+				entity->lastPlaneLockOnState = pg->lockOnState;
+				entity->lastPlaneStateValid = true;
+			}
+
+			if (auto* pc2 = vehSyncTree->GetPlaneControl())
+			{
+				if (!entity->lastPlaneControlValid)
+				{
+					entity->lastPlaneNozzle = pc2->nozzlePosition;
+					entity->lastPlaneControlValid = true;
+					entity->lastPlaneControlTime = msec();
+				}
+				else
+				{
+					const float d = pc2->nozzlePosition - entity->lastPlaneNozzle;
+					const float ad = (d < 0.0f) ? -d : d;
+					const auto now = msec();
+
+					if (g_enableVehicleControlUpdateEvent && ad > 0.01f
+						&& (now - entity->lastPlaneControlTime) >= std::chrono::milliseconds(g_vehicleControlUpdateMinInterval))
+					{
+						/*NETEV onPlaneControlChange SERVER
+						/#*
+						 * Triggered when a plane's VTOL nozzle position changes. Rate-limited
+						 * by sv_vehicleControlUpdateMinInterval (ms).
+						 * @param vehicle - Network id of the plane.
+						 * @param nozzlePosition - Nozzle position [0, 1].
+						 #/
+						declare function onPlaneControlChange(vehicle: number, nozzlePosition: number): void;
+						*/
+						evComponent->QueueEvent2("onPlaneControlChange", { eventSource() },
+							vehNetId, pc2->nozzlePosition);
+
+						entity->lastPlaneNozzle = pc2->nozzlePosition;
+						entity->lastPlaneControlTime = now;
+					}
+				}
+			}
+
+			if (auto* bg = vehSyncTree->GetBoatGameState())
+			{
+				if (entity->lastBoatStateValid)
+				{
+					if (bg->wreckedAction != entity->lastBoatWreckedAction
+						|| bg->lockedToXY != entity->lastBoatLockedToXY)
+					{
+						/*NETEV onBoatStateChange SERVER
+						/#*
+						 * Triggered when a boat's anchor or wrecked-action state changes server-side.
+						 * @param vehicle - Network id of the boat.
+						 * @param wreckedAction - Wrecked-action id.
+						 * @param lockedToXY - True if the boat is anchored to its XY position.
+						 #/
+						declare function onBoatStateChange(vehicle: number, wreckedAction: number, lockedToXY: boolean): void;
+						*/
+						evComponent->QueueEvent2("onBoatStateChange", { eventSource() },
+							vehNetId, bg->wreckedAction, bg->lockedToXY);
+					}
+				}
+
+				entity->lastBoatWreckedAction = bg->wreckedAction;
+				entity->lastBoatLockedToXY = bg->lockedToXY;
+				entity->lastBoatStateValid = true;
+			}
+
+			if (auto* tg = vehSyncTree->GetTrainState())
+			{
+				if (entity->lastTrainStateValid)
+				{
+					if (tg->trainState != entity->lastTrainState
+						|| tg->trackId != entity->lastTrainTrackId
+						|| tg->direction != entity->lastTrainDirection)
+					{
+						/*NETEV onTrainStateChange SERVER
+						/#*
+						 * Triggered when a train's state, track or direction changes server-side.
+						 * @param vehicle - Network id of the train carriage.
+						 * @param trainState - Train state id.
+						 * @param trackId - Track id the train is on.
+						 * @param direction - Travel direction flag.
+						 #/
+						declare function onTrainStateChange(vehicle: number, trainState: number, trackId: number, direction: boolean): void;
+						*/
+						evComponent->QueueEvent2("onTrainStateChange", { eventSource() },
+							vehNetId, tg->trainState, tg->trackId, tg->direction);
+					}
+				}
+
+				entity->lastTrainState = tg->trainState;
+				entity->lastTrainTrackId = tg->trackId;
+				entity->lastTrainDirection = tg->direction;
+				entity->lastTrainStateValid = true;
+			}
+		}
+	}
+#endif
 
 	switch (entity->type)
 	{
@@ -7847,6 +9395,39 @@ static InitFunction initFunction([]()
 
 		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::NoFilter, (int*)&g_requestControlFilterState);
 		g_requestControlSettleVar = instance->AddVariable<int>("sv_filterRequestControlSettleTimer", ConVar_None, 30000, &g_requestControlSettleDelay);
+
+#ifdef STATE_FIVE
+		// onPlayerCoordsUpdate tuning (see ProcessClonePacket).
+		g_enablePlayerCoordsUpdateEventVar = instance->AddVariable<bool>("sv_enablePlayerCoordsUpdateEvent", ConVar_None, false, &g_enablePlayerCoordsUpdateEvent);
+		g_playerCoordsUpdateThresholdVar = instance->AddVariable<float>("sv_playerCoordsUpdateThreshold", ConVar_None, 1.0f, &g_playerCoordsUpdateThreshold);
+		g_playerCoordsUpdateMinIntervalVar = instance->AddVariable<int>("sv_playerCoordsUpdateMinInterval", ConVar_None, 250, &g_playerCoordsUpdateMinInterval);
+
+		// onPlayerPingUpdate tuning (see ProcessClonePacket).
+		g_enablePlayerPingUpdateEventVar = instance->AddVariable<bool>("sv_enablePlayerPingUpdateEvent", ConVar_None, false, &g_enablePlayerPingUpdateEvent);
+		g_playerPingUpdateThresholdVar = instance->AddVariable<int>("sv_playerPingUpdateThreshold", ConVar_None, 10, &g_playerPingUpdateThreshold);
+		g_playerPingUpdateMinIntervalVar = instance->AddVariable<int>("sv_playerPingUpdateMinInterval", ConVar_None, 1000, &g_playerPingUpdateMinInterval);
+
+		// onPlayerVelocityUpdate tuning (see ProcessClonePacket).
+		g_enablePlayerVelocityUpdateEventVar = instance->AddVariable<bool>("sv_enablePlayerVelocityUpdateEvent", ConVar_None, false, &g_enablePlayerVelocityUpdateEvent);
+		g_playerVelocityUpdateThresholdVar = instance->AddVariable<float>("sv_playerVelocityUpdateThreshold", ConVar_None, 1.0f, &g_playerVelocityUpdateThreshold);
+		g_playerVelocityUpdateMinIntervalVar = instance->AddVariable<int>("sv_playerVelocityUpdateMinInterval", ConVar_None, 250, &g_playerVelocityUpdateMinInterval);
+
+		// onPlayerCameraUpdate tuning (see ProcessClonePacket).
+		g_enablePlayerCameraUpdateEventVar = instance->AddVariable<bool>("sv_enablePlayerCameraUpdateEvent", ConVar_None, false, &g_enablePlayerCameraUpdateEvent);
+		g_playerCameraUpdateThresholdVar = instance->AddVariable<float>("sv_playerCameraUpdateThreshold", ConVar_None, 0.1f, &g_playerCameraUpdateThreshold);
+		g_playerCameraUpdateMinIntervalVar = instance->AddVariable<int>("sv_playerCameraUpdateMinInterval", ConVar_None, 500, &g_playerCameraUpdateMinInterval);
+
+		// Vehicle sync events tuning (see ProcessClonePacket).
+		g_enableVehicleSyncEventsVar = instance->AddVariable<bool>("sv_enableVehicleSyncEvents", ConVar_None, true, &g_enableVehicleSyncEvents);
+		g_enableVehicleSteeringUpdateEventVar = instance->AddVariable<bool>("sv_enableVehicleSteeringUpdateEvent", ConVar_None, false, &g_enableVehicleSteeringUpdateEvent);
+		g_enableVehicleAngVelocityUpdateEventVar = instance->AddVariable<bool>("sv_enableVehicleAngVelocityUpdateEvent", ConVar_None, false, &g_enableVehicleAngVelocityUpdateEvent);
+		g_enableVehicleControlUpdateEventVar = instance->AddVariable<bool>("sv_enableVehicleControlUpdateEvent", ConVar_None, false, &g_enableVehicleControlUpdateEvent);
+		g_vehicleSteeringUpdateThresholdVar = instance->AddVariable<float>("sv_vehicleSteeringUpdateThreshold", ConVar_None, 0.05f, &g_vehicleSteeringUpdateThreshold);
+		g_vehicleSteeringUpdateMinIntervalVar = instance->AddVariable<int>("sv_vehicleSteeringUpdateMinInterval", ConVar_None, 250, &g_vehicleSteeringUpdateMinInterval);
+		g_vehicleAngVelocityUpdateThresholdVar = instance->AddVariable<float>("sv_vehicleAngVelocityUpdateThreshold", ConVar_None, 0.5f, &g_vehicleAngVelocityUpdateThreshold);
+		g_vehicleAngVelocityUpdateMinIntervalVar = instance->AddVariable<int>("sv_vehicleAngVelocityUpdateMinInterval", ConVar_None, 250, &g_vehicleAngVelocityUpdateMinInterval);
+		g_vehicleControlUpdateMinIntervalVar = instance->AddVariable<int>("sv_vehicleControlUpdateMinInterval", ConVar_None, 500, &g_vehicleControlUpdateMinInterval);
+#endif
 
 		fx::SetOneSyncGetCallback([]()
 		{

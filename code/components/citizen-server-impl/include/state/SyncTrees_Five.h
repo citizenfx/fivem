@@ -1328,17 +1328,20 @@ struct CPedGameStateDataNode
 
 		auto hasWeapon = state.buffer.ReadBit();
 		int weapon = 0;
+		uint8_t weaponState = 0;
 
 		if (hasWeapon)
 		{
 			weapon = state.buffer.Read<int>(32);
 			if (Is3258())
 			{
-				auto weaponState = state.buffer.Read<uint8_t>(3);
+				weaponState = state.buffer.Read<uint8_t>(3);
 			}
 		}
 
 		data.curWeapon = weapon;
+		data.weaponState = weaponState;
+		data.deathState = deathState;
 
 		if (Is2060())
 		{
@@ -1351,14 +1354,20 @@ struct CPedGameStateDataNode
 		auto weaponAttachLeft = state.buffer.ReadBit();
 		auto weaponUnk = state.buffer.ReadBit();
 
+		data.weaponVisible = weaponVisible;
+		data.weaponHasAmmo = weaponHasAmmo;
+
 		auto hasTint = state.buffer.ReadBit();
 
+		data.weaponTintIndex = -1;
 		if (hasTint)
 		{
 			auto tintIndex = state.buffer.Read<int>(5);
+			data.weaponTintIndex = tintIndex;
 		}
 
 		auto numWeaponComponents = state.buffer.Read<int>(4);
+		data.weaponComponentCount = numWeaponComponents;
 
 		for (int i = 0; i < numWeaponComponents; i++)
 		{
@@ -1457,6 +1466,8 @@ struct CPedGameStateDataNode
 
 		data.actionModeEnabled = actionModeEnabled;
 		data.isFlashlightOn = isFlashLightOn;
+		data.killedByStealth = killedByStealth;
+		data.killedByTakedown = killedByTakedown;
 
 		// TODO
 
@@ -3043,6 +3054,8 @@ struct CPlayerGameStateDataNode
 		auto unk29 = state.buffer.ReadBit();
 		auto unk30 = state.buffer.ReadBit();
 		auto isSpectating = state.buffer.ReadBit();
+
+		data.isSpectating = isSpectating;
 
 		if (isSpectating)
 		{
