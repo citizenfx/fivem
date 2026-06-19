@@ -1543,7 +1543,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 									{
 										int otherSlot = plit->second;
 
-										sec->TriggerClientEvent("onPlayerDropped", fmt::sprintf("%d", client->GetNetId()), ownerNetId, ownerRef->GetName(), otherSlot);
+										sec->TriggerClientEvent("onPlayerDropped", fmt::sprintf("%d", client->GetNetId()), ownerNetId, ownerRef->GetName(), otherSlot, false);
 
 										/*NETEV playerLeftScope SERVER
 								/#*
