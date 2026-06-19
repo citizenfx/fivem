@@ -61,9 +61,13 @@ namespace CitizenFX.Core
 
 		internal static void PrintError(Exception what, string where = null)
 		{
+			WriteLine(CreateError(what, where));
+		}
+
+		internal static string CreateError(Exception what, string where = null)
+		{
 			where = where != null ? " in " + where : "";
-			WriteLine($"^1SCRIPT ERROR{where}: {what.GetType().FullName}: {what.Message}^7");
-			WriteLine(what.StackTrace.ToString());
+			return $"^1SCRIPT ERROR{where}: {what.GetType().FullName}: {what.Message}^7\n" + what.StackTrace.ToString();
 		}
 
 		/*[SecuritySafeCritical]

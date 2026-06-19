@@ -34,13 +34,8 @@ namespace fx_internal
 template<typename T>
 struct Unserializer
 {
-	static T Unserialize(const std::string& retval, msgpack::unpacked* unpackedRef = nullptr)
+	static std::pair<std::conditional_t<std::is_void_v<T>, std::nullptr_t, T>, std::optional<std::string>> Unserialize(const std::string& retval, msgpack::unpacked* unpackedRef = nullptr)
 	{
-		if (retval.empty())
-		{
-			return T();
-		}
-
 		// allow passing in a remote unpacked to keep lifetime of nested objects
 		msgpack::unpacked localUnpacked;
 		auto unpackedPtr = &localUnpacked;
@@ -51,18 +46,18 @@ struct Unserializer
 		}
 
 		*unpackedPtr = msgpack::unpack(retval.c_str(), retval.size());
-		auto objects = unpackedPtr->get().as<std::vector<msgpack::object>>();
+		auto [success, retvalUnpacked] = unpackedPtr->get().as<std::pair<bool, msgpack::object>>();
 
-		return objects[0].as<T>();
-	}
-};
+		std::optional errMessage = success ? std::nullopt : std::make_optional(retvalUnpacked.as<std::string>());
 
-template<>
-struct Unserializer<void>
-{
-	static void Unserialize(const std::string& retval, msgpack::unpacked* unpackedRef = nullptr)
-	{
-
+		if constexpr (std::is_void_v<T>)
+		{
+			return std::make_pair(nullptr, errMessage);
+		}
+		else
+		{
+			return std::make_pair(success ? retvalUnpacked.as<T>() : T(), errMessage);
+		}
 	}
 };
 }
@@ -160,8 +155,21 @@ public:
 		(packer.pack(args), ...);
 
 		std::string retval = CallReferenceInternal(functionReference, std::string(buf.data(), buf.size()));
+		auto [retvalUnpacked, errMessage] = fx_internal::Unserializer<TRet>::Unserialize(retval, unpacked);
 
-		return fx_internal::Unserializer<TRet>::Unserialize(retval, unpacked);
+		if (errMessage.has_value())
+		{
+			trace("%s\n", errMessage.value());
+		}
+
+		if constexpr (std::is_same_v<TRet, void>)
+		{
+			return;
+		}
+		else
+		{
+			return retvalUnpacked;
+		}
 	}
 
 private:

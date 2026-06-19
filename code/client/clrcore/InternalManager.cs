@@ -505,9 +505,10 @@ namespace CitizenFX.Core
 				}
 				catch (Exception e)
 				{
-					retval = IntPtr.Zero;
+					var formattedStackTrace = CreateStackTrace("reference call", e.InnerException ?? e);
+					var err = MsgPackSerializer.Serialize(new object[] { false, formattedStackTrace });
 
-					PrintError($"reference call", e.InnerException ?? e);
+					retval = GameInterface.MakeMemoryBuffer(err);
 				}
 			}
 		}
@@ -557,6 +558,17 @@ namespace CitizenFX.Core
 
 		[SecuritySafeCritical]
 		private void PrintError(string where, Exception what)
+		{
+			var formattedStackTrace = CreateStackTrace(where, what);
+
+			if (formattedStackTrace != null)
+			{
+				Debug.WriteLine($"^1SCRIPT ERROR in {where}: {what.GetType().FullName}: {what.Message}^7");
+				Debug.WriteLine("{0}", formattedStackTrace);
+			}
+		}
+
+		private string CreateStackTrace(string where, Exception what)
 		{
 			ScriptHost.SubmitBoundaryEnd(null, 0);
 
@@ -609,11 +621,7 @@ namespace CitizenFX.Core
 			var serializedFrames = MsgPackSerializer.Serialize(frames);
 			var formattedStackTrace = FormatStackTrace(serializedFrames);
 
-			if (formattedStackTrace != null)
-			{
-				Debug.WriteLine($"^1SCRIPT ERROR in {where}: {what.GetType().FullName}: {what.Message}^7");
-				Debug.WriteLine("{0}", formattedStackTrace);
-			}
+			return formattedStackTrace;
 		}
 
 		[SecurityCritical]

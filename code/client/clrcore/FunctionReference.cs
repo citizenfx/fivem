@@ -52,7 +52,7 @@ namespace CitizenFX.Core
                 Debug.WriteLine("No such reference for {0}.", reference);
 
                 // return nil
-                return new byte[] { 0xC0 };
+                return MsgPackSerializer.Serialize(new object[] { false, null });
             }
 
             var method = funcRef.m_method;
@@ -81,7 +81,7 @@ namespace CitizenFX.Core
 				};
 			}
 
-			return MsgPackSerializer.Serialize(new[] { rv });
+			return MsgPackSerializer.Serialize(new object[] { true, new[] { rv } });
         }
 
         public static int Duplicate(int reference)
