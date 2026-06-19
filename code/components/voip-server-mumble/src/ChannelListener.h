@@ -49,6 +49,11 @@ protected:
 	/// @param channelID The ID of the channel
 	void removeListenerImpl(unsigned int userSession, int channelID);
 
+	/// Removes all listeners for the given user.
+	///
+	/// @param userSession The session ID of the user
+	void removeAllListenersForUserImpl(unsigned int userSession);
+
 	/// @param userSession The session ID of the user
 	/// @param channelID The ID of the channel
 	/// @returns Whether the given user is listening to the given channel
@@ -108,6 +113,16 @@ public:
 	/// @param userSession The session ID of the user
 	/// @param channelID The ID of the channel
 	static void removeListener(const User* user, const Channel* channel);
+
+	/// Removes all listeners for the given user.
+	///
+	/// @param userSession The session ID of the user
+	static void removeAllListenersForUser(unsigned int userSession);
+
+	/// Removes all listeners for the given user.
+	///
+	/// @param user A pointer to the user object
+	static void removeAllListenersForUser(const User* user);
 
 	/// @param userSession The session ID of the user
 	/// @param channelID The ID of the channel
