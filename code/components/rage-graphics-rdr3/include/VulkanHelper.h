@@ -98,21 +98,23 @@ static uint32_t FindExternalMemoryType(VkDevice device, VkPhysicalDevice physica
 			continue;
 		}
 
-        VkMemoryWin32HandlePropertiesKHR handleProps = {
-			VK_STRUCTURE_TYPE_MEMORY_WIN32_HANDLE_PROPERTIES_KHR
-		};
-
-		// Finding the first 'VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT' memory type wasn't good enough on some system configurations.
-		// Check the handle properties against vkGetMemoryWin32HandlePropertiesKHR and 'VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT' if its good enough
-		static auto _vkGetMemoryWin32HandlePropertiesKHR = (PFN_vkGetMemoryWin32HandlePropertiesKHR)vkGetDeviceProcAddr(device, "vkGetMemoryWin32HandlePropertiesKHR");
-		if (_vkGetMemoryWin32HandlePropertiesKHR(device, VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT, handle, &handleProps) != VK_SUCCESS)
+		if (_vkGetMemoryWin32HandlePropertiesKHR)
 		{
-			continue;
-		}
+			VkMemoryWin32HandlePropertiesKHR handleProps = {
+				VK_STRUCTURE_TYPE_MEMORY_WIN32_HANDLE_PROPERTIES_KHR
+			};
 
-		if (handleProps.memoryTypeBits & (1 << i))
-		{
-			return i;
+			// Finding the first 'VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT' memory type wasn't good enough on some system configurations.
+			// Check the handle properties against vkGetMemoryWin32HandlePropertiesKHR and 'VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT' if its good enough
+			if (_vkGetMemoryWin32HandlePropertiesKHR(device, VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT, handle, &handleProps) != VK_SUCCESS)
+			{
+				continue;
+			}
+
+			if (handleProps.memoryTypeBits & (1 << i))
+			{
+				return i;
+			}
 		}
 	}
 
@@ -130,7 +132,7 @@ static void CreateVKImageFromShareHandle(VkDevice& device, HANDLE handle, unsign
 		_vkBindImageMemory2 = (PFN_vkBindImageMemory2)vkGetDeviceProcAddr(device, "vkBindImageMemory2");
 		if (!_vkBindImageMemory2)
 		{
-			FatalError("Unable to find 'vkBindImageMemory2' in vulkan.");
+			FatalError("Unable to find 'vkBindImageMemory2.\nIf this issue persists try updating your GPU Drivers or switching to DirectX12.");
 		}
 	}
 
@@ -139,7 +141,7 @@ static void CreateVKImageFromShareHandle(VkDevice& device, HANDLE handle, unsign
 		_vkGetPhysicalDeviceMemoryProperties2 = (PFN_vkGetPhysicalDeviceMemoryProperties2)vkGetInstanceProcAddr((VkInstance)GetVulkanInstance(), "vkGetPhysicalDeviceMemoryProperties2");
 		if (!_vkGetPhysicalDeviceMemoryProperties2)
 		{
-			FatalError("Unable to find 'vkGetPhysicalDeviceMemoryProperties2' in vulkan.");
+			FatalError("Unable to find 'vkGetPhysicalDeviceMemoryProperties2'.\nIf this issue persists try updating your GPU Drivers or switching to DirectX12.");
 		}
 	}
 
@@ -148,7 +150,7 @@ static void CreateVKImageFromShareHandle(VkDevice& device, HANDLE handle, unsign
 		_vkGetImageMemoryRequirements2 = (PFN_vkGetImageMemoryRequirements2)vkGetDeviceProcAddr(device, "vkGetImageMemoryRequirements2");
 		if (!_vkGetImageMemoryRequirements2)
 		{
-			FatalError("Unable to find 'vkGetImageMemoryRequirements2' in vulkan.");
+			FatalError("Unable to find 'vkGetImageMemoryRequirements2'.\nIf this issue persists try updating your GPU Drivers or switching to DirectX12.");
 		}
 	}
 
@@ -196,7 +198,7 @@ static void CreateVKImageFromShareHandle(VkDevice& device, HANDLE handle, unsign
 	if (dedicatedReqs.requiresDedicatedAllocation == VK_FALSE && dedicatedReqs.prefersDedicatedAllocation == VK_FALSE)
 	{
 		// Dedicated allocation should either be required or preferred.
-		FatalError("Vulkan cannot allocate D3D11 Shared texture.");
+		FatalError("Unable to allocate memory for D3D11 Texture.\nIf this issue persists try updating your GPU Drivers or switching to DirectX12.");
 		vkDestroyImage(device, outImage, nullptr);
 		outImage = VK_NULL_HANDLE;
 		outMemory = VK_NULL_HANDLE;
@@ -237,7 +239,7 @@ static void CreateVKImageFromShareHandle(VkDevice& device, HANDLE handle, unsign
 	result = vkAllocateMemory(device, &allocInfo, nullptr, &outMemory);
 	if (result != VK_SUCCESS)
 	{
-		FatalError("Failed to allocate memory for Vulkan shared texture. VkResult: %s", ResultToString(result));
+		FatalError("Failed to allocate memory for Vulkan shared texture. VkResult: %s\nIf this issue persists try upgrading your GPU drivers, disabling any intergrated GPU's or switching to DirectX12", ResultToString(result));
 		vkDestroyImage(device, outImage, nullptr);
 		outImage = VK_NULL_HANDLE;
 		outMemory = VK_NULL_HANDLE;

@@ -322,7 +322,7 @@ static inline void SetVulkanCrashometry(const VkPhysicalDevice physicalDevice)
 	isInitialized = true;
 }
 
-static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice)
+static VkResult vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice)
 {
 	// we keep the data here, to ensure the data does not go out of scope
 	std::vector<const char*> originalLayers(pCreateInfo->enabledLayerCount);
@@ -396,6 +396,14 @@ static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreat
 	{
 		trace("Unable to use vulkan driver: Vulkan driver does not include 'vkGetPhysicalDeviceImageFormatProperties2'\n");
 		return VK_ERROR_FEATURE_NOT_PRESENT;
+	}
+
+	// Even if the GPU claims to support 'VK_KHR_external_memory_win32' it can not support 'vkGetMemoryWin32HandlePropertiesKHR' which we expect for finding the right memory handle
+	// Since we can fallback to the legacy logic we don't want to fallback to DX12 for this but make a note to aid debugging should the user have issues with external memory.
+	static auto _vkGetMemoryWin32HandlePropertiesKHR = (PFN_vkGetMemoryWin32HandlePropertiesKHR)vkGetDeviceProcAddr(*pDevice, "vkGetMemoryWin32HandlePropertiesKHR");
+	if (!_vkGetMemoryWin32HandlePropertiesKHR)
+	{
+		AddCrashometry("vk_partial_external_memory_support", "1");
 	}
 
 	VkPhysicalDeviceExternalImageFormatInfo externalImageInfo{};
