@@ -1,6 +1,7 @@
 local gameBuilds = require("premake5_builds")
 local setCfxDefines = require("premake5_defines")
 
+-- ci trigger
 -- to work around slow init times due to packagesrv.com being down
 premake.downloadModule = function()
 	return false
