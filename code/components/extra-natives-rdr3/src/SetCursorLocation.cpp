@@ -3,6 +3,8 @@
 #include <Hooking.h>
 #include <ScriptEngine.h>
 #include <InputHook.h>
+#include <CrossBuildRuntime.h>
+#include <ConsoleHost.h>
 
 static hook::cdecl_stub<bool(float, float)> _setCursorLocation([]()
 {
@@ -13,13 +15,20 @@ static HookFunction hookFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("SET_CURSOR_LOCATION", [](fx::ScriptContext& context)
 	{
-		auto posX = context.GetArgument<float>(0);
-		auto posY = context.GetArgument<float>(1);
+		bool consoleFlag = ConHost::IsConsoleOpen();
+		HWND gameWindow = CoreGetGameWindow();
+		if (GetForegroundWindow() == gameWindow && !consoleFlag)
+		{
+			auto posX = context.GetArgument<float>(0);
+			auto posY = context.GetArgument<float>(1);
 
-		InputHook::EnableSetCursorPos(true);
-		auto result = _setCursorLocation(posX, posY);
-		InputHook::EnableSetCursorPos(false);
+			InputHook::EnableSetCursorPos(true);
+			auto result = _setCursorLocation(posX, posY);
+			InputHook::EnableSetCursorPos(false);
 
-		context.SetResult<bool>(result);
+			context.SetResult<bool>(result);
+		}
+		else
+			context.SetResult<bool>(false);
 	});
 });
