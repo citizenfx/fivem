@@ -2785,6 +2785,12 @@ static InitFunction initFunction([]()
 			return;
 		}
 
+		// don't run clone updates until resources are started after connect
+		if (!icgi->HasVariable("gameSettled"))
+		{
+			return;
+		}
+
 		ArrayManager_Update();
 		rage::EventManager_Update();
 		TheClones->Update();

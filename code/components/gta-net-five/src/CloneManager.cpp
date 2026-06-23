@@ -1384,6 +1384,31 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 
 	Log("received frame %d:%d\n", newIndex.frameIndex, newIndex.currentFragment);
 
+	if (m_lastReceivedFrame.frameIndex != 0)
+	{
+		bool isStale = false;
+
+		if (newIndex.frameIndex < m_lastReceivedFrame.frameIndex)
+		{
+			// received an older frame, out of order
+			isStale = true;
+		}
+		else if (newIndex.frameIndex == m_lastReceivedFrame.frameIndex
+			&& newIndex.currentFragment <= m_lastReceivedFrame.currentFragment)
+		{
+			// same frame but older or duplicate fragment
+			isStale = true;
+		}
+
+		if (isStale)
+		{
+			Log("Ignoring stale out-of-order packet (frame %d:%d, last received %d:%d)\n",
+				newIndex.frameIndex, newIndex.currentFragment,
+				m_lastReceivedFrame.frameIndex, m_lastReceivedFrame.currentFragment);
+			return;
+		}
+	}
+
 	// blah
 	if (m_lastReceivedFrame.frameIndex != 0)
 	{
