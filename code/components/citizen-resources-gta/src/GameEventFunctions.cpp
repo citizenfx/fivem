@@ -68,9 +68,10 @@ static InitFunction initFunction([]
 		 * @param victim - The entity which is damaged, or 0 if none.
 		 * @param culprit - The damaging entity, or 0 if none.
 		 * @param weapon - The hash of the weapon inflicting damage.
-		 * @param baseDamage - The base amount of damage inflicted, discounting any modifiers.
+		 * @param baseDamage - The base amount of damage inflicted, discounting any modifiers. (This is hard coded as zero)
+		 * @param isMelee - Weather the damage is inflicted via melee.
 		 #/
-		declare function entityDamaged(victim: number, culprit: number, weapon: number, baseDamage: number): void;
+		declare function entityDamaged(victim: number, culprit: number, weapon: number, baseDamage: number, isMelee: boolean): void;
 		*/
 		rec->QueueEvent2(
 			"entityDamaged",
@@ -78,7 +79,7 @@ static InitFunction initFunction([]
 			data.victim ? rage::fwScriptGuid::GetGuidFromBase(data.victim) : 0,
 			data.culprit ? rage::fwScriptGuid::GetGuidFromBase(data.culprit) : 0,
 			int64_t(int(data.weapon)),
-			data.baseDamage);
+			data.baseDamage, data.isMelee);
 	});
 });
 #endif
