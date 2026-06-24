@@ -52,6 +52,7 @@ private:
 	int m_instanceId;
 	std::string m_name;
 	std::string m_resourceName;
+	std::string m_resourceMountPrefix;
 	std::string m_tempDir;
 	bool m_isMonitorRuntime = false;
 
