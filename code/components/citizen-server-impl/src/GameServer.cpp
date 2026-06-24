@@ -982,7 +982,6 @@ namespace fx
 						{ "port", m_instance->GetComponent<fx::TcpListenManager>()->GetPrimaryPort() },
 						{ "listingToken", m_instance->GetComponent<ServerLicensingComponent>()->GetListingToken() },
 						{ "ipOverride", m_listingIpOverride->GetValue() },
-						{ "forceIndirectListing", m_forceIndirectListing->GetValue() },
 						{ "private", isPrivate },
 						{ "fallbackData", nlohmann::json::object({
 							{ "players", playersJson },
@@ -993,7 +992,12 @@ namespace fx
 
 					if (!m_listingHostOverride->GetValue().empty())
 					{
+						json["forceIndirectListing"] = m_forceIndirectListing->GetValue();
 						json["hostOverride"] = m_listingHostOverride->GetValue();
+					}
+					else if (m_forceIndirectListing->GetValue())
+					{
+						console::Printf("citizen-server-impl", "^1Error: Force indirect listing is enabled, but no host override is set. This is not supported!^7\n");
 					}
 
 					HttpRequestOptions ro;
