@@ -109,7 +109,6 @@ bool ScriptingFilesystemAllowWrite(const std::string& path, fx::Resource* resour
 		currentResource = static_cast<fx::Resource*>(runtime->GetParentObject());
 		currentResourceName = (currentResource) ? currentResource->GetName() : "";
 	}
-	
 
 	if (currentResourceName == resourceName)
 	{
@@ -120,43 +119,6 @@ bool ScriptingFilesystemAllowWrite(const std::string& path, fx::Resource* resour
 	auto permission = g_permissions.find({ currentResourceName, resourceName });
 	if (permission != g_permissions.end() && permission->second == FilesystemPermission::Write)
 	{
-		auto manager = ResourceManager::GetCurrent();
-		if (!manager)
-		{
-			return false;
-		}
-
-		fwRefContainer<Resource> resource = manager->GetResource(resourceName);
-		// if the resource is not initialized yet, we accept the write even when we can't check the author
-		if (!resource.GetRef() || resource->GetState() == ResourceState::Uninitialized)
-		{
-			return true;
-		}
-
-		fwRefContainer<ResourceMetaDataComponent> resourceMetaDataComponent = resource->GetComponent<
-		ResourceMetaDataComponent>();
-		fwRefContainer<ResourceMetaDataComponent> currentResourceMetaDataComponent = currentResource->GetComponent<
-		ResourceMetaDataComponent>();
-		if (!resourceMetaDataComponent.GetRef() || !currentResourceMetaDataComponent.GetRef())
-		{
-			// should always be present
-			return false;
-		}
-
-		auto resourceAuthor = resourceMetaDataComponent->GetEntries("author");
-		auto currentResourceAuthor = currentResourceMetaDataComponent->GetEntries("author");
-		if (resourceAuthor.begin() == resourceAuthor.end() || currentResourceAuthor.begin() == currentResourceAuthor.end())
-		{
-			// author should be set when write is required to be done
-			return false;
-		}
-
-		if (resourceAuthor.begin()->second != currentResourceAuthor.begin()->second)
-		{
-			// if the authors don't match, then writing is not allowed
-			return false;
-		}
-
 		// resource was explicitly allowed to modify the resource
 		return true;
 	}
