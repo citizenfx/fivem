@@ -4,6 +4,7 @@
 
 #include <optional>
 #include <string_view>
+#include <map>
 
 #include <msgpack.hpp>
 
@@ -183,6 +184,33 @@ public:
 	// Set the StateBagRole, used when the StateBagRole dynamically changes depending on protocol version between the server and client
 	//
 	virtual void SetRole(StateBagRole role) = 0;
+
+	//
+	// Diagnostic accessors used by the /onesync debug HTTP endpoints.
+	//
+	virtual size_t GetStateBagCount() = 0;
+	virtual size_t GetActiveStateBagCount() = 0;
+	virtual size_t GetExpiredStateBagCount() = 0;
+	virtual size_t GetTargetCount() = 0;
+	virtual size_t GetPreCreatedStateBagCount() = 0;
+	virtual size_t GetErasureListCount() = 0;
+	virtual size_t GetPreCreatePrefixCount() = 0;
+	virtual std::vector<int> GetRegisteredTargets() = 0;
+	virtual size_t GetStateBagCountForTarget(int target) = 0;
+	virtual std::vector<std::pair<std::string, bool>> GetPreCreatePrefixes() = 0;
+
+	struct StateBagDetails {
+		std::string id;
+		bool useParentTargets;
+		bool replicationEnabled;
+		std::optional<int> owningPeer;
+		std::vector<int> routingTargets;
+		std::map<std::string, std::string> storedData;
+		std::map<std::string, size_t> queuedData; // key -> size
+		bool isExpired;
+	};
+
+	virtual std::optional<StateBagDetails> GetStateBagDetails(const std::string& id) = 0;
 
 	//
 	// An event handling a state bag value change.
