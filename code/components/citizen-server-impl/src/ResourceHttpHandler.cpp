@@ -36,20 +36,6 @@ static auto GetHttpHandler(fx::Resource* resource)
 	};
 }
 
-static void PrintNucleusDeprecationWarning(const std::string& resourceName)
-{
-	static std::chrono::steady_clock::time_point lastWarningTime{};
-
-	auto now = std::chrono::steady_clock::now();
-
-	// Print warning at most once every 5 minutes
-	if (now - lastWarningTime > std::chrono::minutes(5))
-	{
-		lastWarningTime = now;
-		console::PrintWarning("deprecation-warning", "Resource '%s' is using the Cfx.re Nucleus service which will be deprecated in the future. You can find more information at https://forum.cfx.re/t/5387399.\n", resourceName.c_str());
-	}
-}
-
 class ResourceHttpComponent : public fwRefCountable, public fx::IAttached<fx::Resource>
 {
 private:
@@ -90,11 +76,6 @@ public:
 			response->End("Rate limit exceeded.");
 
 			return;
-		}
-
-		if (!request->GetHeader("X-Cfx-Source-Ip").empty())
-		{
-			PrintNucleusDeprecationWarning(m_resource->GetName());
 		}
 
 		// get the local path for the request
@@ -342,34 +323,6 @@ static InitFunction initFunction([]()
 	{
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/", [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 		{
-			auto webVar = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("web_baseUrl");
-
-			if (webVar)
-			{
-				auto wvv = webVar->GetValue();
-				std::string_view wvvv{
-					wvv
-				};
-
-				auto endPos = wvvv.find(".users.cfx.re");
-
-				if (endPos != std::string::npos)
-				{
-					auto startPos = wvvv.rfind("-", endPos);
-
-					if (startPos != std::string::npos)
-					{
-						auto webUrl = fmt::sprintf("https://cfx.re/join/%s", wvvv.substr(startPos + 1, endPos - (startPos + 1)));
-
-						response->SetStatusCode(302);
-						response->SetHeader("Location", webUrl);
-
-						response->End("Redirecting...");
-						return;
-					}
-				}
-			}
-
 			auto data = nlohmann::json::object(
 				{
 					{ "version", "FXServer-" GIT_DESCRIPTION }
