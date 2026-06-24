@@ -123,5 +123,7 @@ namespace vfs
 		bool OpenArchive(const std::string& archivePath);
 
 		bool OpenArchive(const std::string& archivePath, std::string* errorState);
+
+		void ForEachEntry(const std::function<void(const std::string& file, bool isDirectory)>& cb, Entry* curr = nullptr, std::string pathPrefix = "");
 	};
 }

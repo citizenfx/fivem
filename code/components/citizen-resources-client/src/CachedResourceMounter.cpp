@@ -228,7 +228,7 @@ bool CachedResourceMounter::MountOverlay(const std::string& resourceName, const 
 			m_overlayMountTasks.erase(overlayPath);
 		});
 
-		taskIt = m_overlayMountTasks.emplace(overlayPath, pplx::create_task([this, resource, overlayFile, overlayPath]() -> tl::expected<fwRefContainer<vfs::Device>, fx::ResourceManagerError>
+		taskIt = m_overlayMountTasks.emplace(overlayPath, pplx::create_task([this, resource, overlayName, overlayFile, overlayPath]() -> tl::expected<fwRefContainer<vfs::Device>, fx::ResourceManagerError>
 		{
 			if (!resource.GetRef())
 			{
@@ -258,8 +258,8 @@ bool CachedResourceMounter::MountOverlay(const std::string& resourceName, const 
 
 				if (packfileResult)
 				{
-					std::string resourceRoot = "resources:/" + resource->GetName() + "/";
-					vfs::Mount(packfileResult.value(), resourceRoot);
+					std::string overlayRoot = "overlay:/" + overlayName + "/" + resource->GetName() + "/";
+					vfs::Mount(packfileResult.value(), overlayRoot);
 
 					return packfileResult.value();
 				}
@@ -294,6 +294,29 @@ bool CachedResourceMounter::MountOverlay(const std::string& resourceName, const 
 				*outError = (errorStr.empty()) ? "Failed to mount overlay." : errorStr;
 			}
 		}
+	}
+
+	return success;
+}
+
+bool CachedResourceMounter::UnmountOverlay(const std::string& resourceName, const std::string& overlayName, std::string* outError)
+{
+	std::string overlayFile = fmt::sprintf("%s.rpf", overlayName);
+	std::string overlayPath = FormatPath(resourceName, overlayFile);
+
+	auto it = m_overlayMountTasks.find(overlayPath);
+
+	bool success = false;
+
+	if (it == m_overlayMountTasks.end())
+	{
+		*outError = "Failed to unmount overlay: task not found.";
+	}
+	else
+	{
+		m_overlayMountTasks.erase(overlayPath);
+		vfs::Unmount("overlay:/" + overlayName + "/" + resourceName + "/");
+		success = true;
 	}
 
 	return success;
@@ -372,6 +395,11 @@ void CachedResourceMounterWrap::AttachToObject(fx::Resource* resource)
 bool CachedResourceMounterWrap::MountOverlay(const std::string& overlayName, std::string* outError)
 {
 	return m_mounter->MountOverlay(m_resource->GetName(), overlayName, outError);
+}
+
+bool CachedResourceMounterWrap::UnmountOverlay(const std::string& overlayName, std::string* outError)
+{
+	return m_mounter->UnmountOverlay(m_resource->GetName(), overlayName, outError);
 }
 }
 

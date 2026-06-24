@@ -16,6 +16,7 @@ public:
 	virtual void AttachToObject(fx::Resource* resource) override;
 
 	bool MountOverlay(const std::string& overlayName, std::string* outError);
+	bool UnmountOverlay(const std::string& overlayName, std::string* outError);
 
 private:
 	fx::Resource* m_resource;

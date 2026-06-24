@@ -10,7 +10,7 @@
 
 #include <ICoreGameInit.h>
 
-uint32_t GetCurrentMapGroup()
+DLL_EXPORT uint32_t GetCurrentMapGroup()
 {
 	bool isSP = Instance<ICoreGameInit>::Get()->HasVariable("storyMode");
 	return (isSP) ? HashString("GROUP_MAP_SP") : HashString("GROUP_MAP");

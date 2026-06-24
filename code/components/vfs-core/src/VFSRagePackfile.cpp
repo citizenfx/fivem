@@ -129,6 +129,31 @@ namespace vfs
 		return true;
 	}
 
+	void RagePackfile::ForEachEntry(const std::function<void(const std::string& file, bool isDirectory)>& cb, Entry* curr, std::string prefix)
+	{
+		if (curr == nullptr)
+		{
+			curr = &m_entries[0];
+		}
+
+		std::string path = m_nameTable.data() + curr->nameOffset;
+
+		cb(prefix + path, curr->isDirectory);
+
+		if (curr->isDirectory)
+		{
+			if (path != "/")
+			{
+				prefix += path + "/";
+			}
+			
+			for (int i = 0; i < curr->length; i++)
+			{
+				ForEachEntry(cb, m_entries.data() + curr->dataOffset + i, prefix);
+			}
+		}
+	}
+
 	const RagePackfile::Entry* RagePackfile::FindEntry(const std::string& path)
 	{
 		// first, remove the path prefix
