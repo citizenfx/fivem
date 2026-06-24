@@ -35,6 +35,7 @@ struct CWeather
 	float changeCloundOnSameWeatherType;
 	uint32_t prevTypeIndex;
 	uint32_t nextTypeIndex;
+	float interp;
 	// and a bunch of other fields...
 
 	int32_t GetTypeIndex(const char* name)
@@ -68,6 +69,22 @@ static void AddStopCallback(T&& stopCb)
 template <int Build>
 static void RegisterExtraWeatherNatives()
 {
+	fx::ScriptEngine::RegisterNativeHandler("SET_WEATHER_INTERPOLATE", [](fx::ScriptContext& context)
+	{
+		const char* weatherNamePrev = context.CheckArgument<const char*>(0);
+		const char* weatherNameNext = context.CheckArgument<const char*>(1);
+		float interpVal = context.GetArgument<float>(2);
+
+		auto& weather = *g_weather<Build>;
+
+		int32_t typeIndexPrev = weather.GetTypeIndex(weatherNamePrev);
+		weather.prevTypeIndex = (uint32_t)typeIndexPrev;
+		int32_t typeIndexNext = weather.GetTypeIndex(weatherNameNext);
+		weather.nextTypeIndex = (uint32_t)typeIndexNext;
+
+		weather.interp = interpVal; 
+		weather.cycleTimer = (int)weather.currentMsPerCycle * weather.interp;
+	});
 	fx::ScriptEngine::RegisterNativeHandler("SET_WEATHER_CYCLE_ENTRY", [](fx::ScriptContext& context)
 	{
 		int index = context.GetArgument<int>(0);
