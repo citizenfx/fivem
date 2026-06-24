@@ -10,6 +10,7 @@ return function()
 	files {
 		'components/gta-net-five/include/CloneManager.h',
 		'components/gta-net-five/include/FramePacketHandler.h',
+		'components/gta-net/five/include/ObjectIdPacketHandler.h',
 		'components/gta-net-five/src/ClientRPC.cpp',
 		'components/gta-net-five/src/CloneDebug.cpp',
 		'components/gta-net-five/src/CloneExperiments.cpp',
