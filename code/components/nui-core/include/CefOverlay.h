@@ -365,6 +365,8 @@ namespace nui
 	bool OVERLAY_DECL HasCursor();
 	bool OVERLAY_DECL HasFocus();
 	bool OVERLAY_DECL HasFocusKeepInput();
+	void OVERLAY_DECL SetCursorHidden(bool isHidden);
+	bool OVERLAY_DECL IsCursorHidden();
 	void OVERLAY_DECL GiveFocus(const std::string& frameName, bool hasFocus, bool hasCursor = false);
 	void OVERLAY_DECL OverrideFocus(bool hasFocus);
 	void OVERLAY_DECL KeepInput(bool keepInput);
