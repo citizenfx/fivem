@@ -50,6 +50,7 @@ g_permissions{};
 
 static std::unordered_set<std::string> g_workerPermissions{};
 static std::unordered_set<std::string> g_childProcessPermissions{};
+static std::unordered_map<std::string, std::vector<std::string>> g_filesystemAbsoluteReadPermissions{};
 
 static std::tuple<std::string, std::filesystem::path> GetResourcePath(const std::filesystem::path& path)
 {
@@ -164,6 +165,58 @@ bool ScriptingFilesystemAllowWrite(const std::string& path, fx::Resource* resour
 	return false;
 }
 
+bool ScriptingFilesystemAllowAbsoluteRead(const std::string& absolutePath, fx::Resource* resourceOverride)
+{
+	fx::Resource* currentResource = nullptr;
+	if (resourceOverride != nullptr)
+	{
+		currentResource = resourceOverride;
+	}
+	else
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			return false;
+		}
+		currentResource = static_cast<fx::Resource*>(runtime->GetParentObject());
+	}
+
+	if (!currentResource)
+	{
+		return false;
+	}
+
+	auto it = g_filesystemAbsoluteReadPermissions.find(currentResource->GetName());
+	if (it == g_filesystemAbsoluteReadPermissions.end())
+	{
+		return false;
+	}
+
+	std::filesystem::path normalizedRequest = std::filesystem::path(absolutePath).lexically_normal();
+	std::string normalizedRequestStr = normalizedRequest.generic_string();
+
+	for (const auto& allowedPrefix : it->second)
+	{
+		std::filesystem::path normalizedAllowed = std::filesystem::path(allowedPrefix).lexically_normal();
+		std::string normalizedAllowedStr = normalizedAllowed.generic_string();
+
+		if (normalizedRequestStr == normalizedAllowedStr)
+		{
+			return true;
+		}
+
+		if (normalizedRequestStr.size() > normalizedAllowedStr.size()
+			&& normalizedRequestStr.rfind(normalizedAllowedStr, 0) == 0
+			&& normalizedRequestStr[normalizedAllowedStr.size()] == '/')
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool ScriptingWorkerAllowSpawn(fx::Resource* resourceOverride)
 {
 	fx::OMPtr<IScriptRuntime> runtime;
@@ -250,6 +303,25 @@ static InitFunction initFunction([]()
 			fx::g_workerPermissions.insert(sourceResource);
 		});
 
+		static ConsoleCommand addFSReadPermCmd("add_unsafe_filesystem_absolute_read_permission", [](const std::string& sourceResource, const std::string& absolutePath)
+		{
+			if (!fx::g_permissionModifyAllowed)
+			{
+				console::PrintWarning(_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
+				"add_unsafe_filesystem_absolute_read_permission is only executable before the server finished execution.\n");
+				return;
+			}
+
+			if (absolutePath.empty() || !std::filesystem::path(absolutePath).is_absolute())
+			{
+				console::PrintWarning(_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
+				"add_unsafe_filesystem_absolute_read_permission requires an absolute path, got '%s'.\n", absolutePath.c_str());
+				return;
+			}
+
+			fx::g_filesystemAbsoluteReadPermissions[sourceResource].push_back(absolutePath);
+		});
+
 		static ConsoleCommand addChildProcessPermCmd("add_unsafe_child_process_permission", [](const std::string& sourceResource)
 		{
 			if (!fx::g_permissionModifyAllowed)
@@ -274,6 +346,11 @@ namespace fx
 bool ScriptingFilesystemAllowWrite(const std::string& path, fx::Resource* resourceOverride)
 {
 	return true;
+}
+
+bool ScriptingFilesystemAllowAbsoluteRead(const std::string& absolutePath, fx::Resource* resourceOverride)
+{
+	return false;
 }
 }
 #endif
