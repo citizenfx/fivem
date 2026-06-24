@@ -1979,10 +1979,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				size_t thisMaxBacklog = maxSavedClientFrames;
 
-				/*if (client->GetLastSeen() > 5s)
+				if (client->GetLastSeen() > 5s)
 				{
 					thisMaxBacklog = maxSavedClientFramesWorstCase;
-				}*/
+				}
 
 				// gradually remove if needed
 				thisMaxBacklog = std::max(thisMaxBacklog, clientDataUnlocked->frameStates.size() - 2);
