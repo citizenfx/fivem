@@ -2,6 +2,7 @@
 
 #include <catch_amalgamated.hpp>
 #include <filesystem>
+#include <utility>
 
 #include <lua.hpp>
 #include <LuaFXLib.h>
@@ -9,6 +10,7 @@
 #include <lua_rapidjsonlib.h>
 
 #include "LuaScriptRuntime.h"
+#include "FilesystemPermissions.h"
 #include "RelativeDevice.h"
 #include "ResourceManager.h"
 #include "VFSManager.h"
@@ -16,6 +18,14 @@
 #ifdef IS_FXSERVER
 // vfs manager
 #include "Manager.h"
+#endif
+
+#ifdef IS_FXSERVER
+namespace fx
+{
+// Internal test hook from ResourceBuildTasks.cpp.
+bool ParseBuildTaskPermissionEntry(const std::string& entry, const std::string& builderResourceName, std::string* allowedPath);
+}
 #endif
 
 //#undef LuaScriptRuntime
@@ -180,9 +190,159 @@ void LoadAndRunCode(fx::LuaStateHolder& state, const std::string&& fileName, con
 		REQUIRE(!expectExecutionError);
 	}
 }
+
+#ifdef IS_FXSERVER
+class TestFilesystemPermissionResource final : public fx::Resource
+{
+public:
+	explicit TestFilesystemPermissionResource(std::string name)
+		: m_name(std::move(name))
+	{
+	}
+
+	virtual const std::string& GetName() override
+	{
+		return m_name;
+	}
+
+	virtual const std::string& GetIdentifier() override
+	{
+		return m_name;
+	}
+
+	virtual const std::string& GetPath() override
+	{
+		return m_path;
+	}
+
+	virtual fx::ResourceState GetState() override
+	{
+		return fx::ResourceState::Stopped;
+	}
+
+	virtual bool LoadFrom(const std::string& rootPath, std::string* errorResult) override
+	{
+		m_path = rootPath;
+		return true;
+	}
+
+	virtual bool Start() override
+	{
+		return false;
+	}
+
+	virtual bool Stop() override
+	{
+		return false;
+	}
+
+	virtual void Run(std::function<void()>&& func) override
+	{
+	}
+
+	virtual fx::ResourceManager* GetManager() override
+	{
+		return nullptr;
+	}
+
+private:
+	std::string m_name;
+	std::string m_path;
+};
+#endif
 }
 
 // todo: emulate threading
+
+#ifdef IS_FXSERVER
+TEST_CASE("build task filesystem permissions are scoped to the target resource")
+{
+	TestFilesystemPermissionResource builder("builder");
+	TestFilesystemPermissionResource otherBuilder("other-builder");
+	TestFilesystemPermissionResource target("target");
+
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@builder/cache/target.json", &builder) == true);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build/main.lua", &builder) == false);
+
+	const uint64_t invalidPermission = fx::ScriptingFilesystemPushBuildTaskPermission("builder", "target", { "../outside", "build/../fxmanifest.lua", "@other/build/", "./@other/build/" });
+	REQUIRE(invalidPermission == 0);
+
+	const uint64_t exactBuildPermission = fx::ScriptingFilesystemPushBuildTaskPermission("builder", "target", { "build" });
+	REQUIRE(exactBuildPermission != 0);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build", &builder) == true);
+	// Directory grants are explicit: use "build/" when children should be writable.
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build/main.lua", &builder) == false);
+	fx::ScriptingFilesystemPopBuildTaskPermission(exactBuildPermission);
+
+	const uint64_t buildPermission = fx::ScriptingFilesystemPushBuildTaskPermission("builder", "target", { "build/" });
+	REQUIRE(buildPermission != 0);
+
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build/main.lua", &builder) == true);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build/nested/main.lua", &builder) == true);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build/@scope/pkg.js", &builder) == true);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build/../fxmanifest.lua", &builder) == false);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build/main.lua", &otherBuilder) == false);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build-other/main.lua", &builder) == false);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/fxmanifest.lua", &builder) == false);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@other/build/main.lua", &builder) == false);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target", &builder) == false);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build/main.lua", &target) == true);
+
+	const uint64_t manifestPermission = fx::ScriptingFilesystemPushBuildTaskPermission("builder", "target", { "fxmanifest.lua" });
+	REQUIRE(manifestPermission != 0);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/fxmanifest.lua", &builder) == true);
+
+	fx::ScriptingFilesystemPopBuildTaskPermission(buildPermission);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/build/main.lua", &builder) == false);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/fxmanifest.lua", &builder) == true);
+
+	fx::ScriptingFilesystemPopBuildTaskPermission(manifestPermission);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/fxmanifest.lua", &builder) == false);
+
+	const uint64_t webpackPermission = fx::ScriptingFilesystemPushBuildTaskPermission("webpack", "target", { "build/", "dist/" });
+	REQUIRE(webpackPermission != 0);
+	TestFilesystemPermissionResource webpack("webpack");
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/dist/chat.js", &webpack) == true);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/dist/ui.html", &webpack) == true);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/dist-other/chat.js", &webpack) == false);
+	fx::ScriptingFilesystemPopBuildTaskPermission(webpackPermission);
+
+	const uint64_t yarnPermission = fx::ScriptingFilesystemPushBuildTaskPermission("yarn", "target", { ".yarn.installed", "node_modules/", "yarn.lock" });
+	REQUIRE(yarnPermission != 0);
+	TestFilesystemPermissionResource yarn("yarn");
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/.yarn.installed", &yarn) == true);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/node_modules/package/index.js", &yarn) == true);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/yarn.lock", &yarn) == true);
+	REQUIRE(fx::ScriptingFilesystemAllowWrite("@target/package.json", &yarn) == false);
+	fx::ScriptingFilesystemPopBuildTaskPermission(yarnPermission);
+}
+
+TEST_CASE("build task permission metadata entries are explicit")
+{
+	std::string allowedPath;
+
+	// Target resources explicitly opt in to build writes. Directory permissions use a trailing slash.
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder:build/", "builder", &allowedPath) == true);
+	REQUIRE(allowedPath == "build/");
+
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("  builder  :  fxmanifest.lua  ", "builder", &allowedPath) == true);
+	REQUIRE(allowedPath == "fxmanifest.lua");
+
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder:build", "builder", &allowedPath) == true);
+	REQUIRE(allowedPath == "build");
+
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder:build/@scope/pkg.js", "builder", &allowedPath) == true);
+	REQUIRE(allowedPath == "build/@scope/pkg.js");
+
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("other:build/", "builder", &allowedPath) == false);
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder=build/", "builder", &allowedPath) == false);
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder build/", "builder", &allowedPath) == false);
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder:@other/build/", "builder", &allowedPath) == false);
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder:./@other/build/", "builder", &allowedPath) == false);
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder:build/../fxmanifest.lua", "builder", &allowedPath) == false);
+	REQUIRE(fx::ParseBuildTaskPermissionEntry("builder:", "builder", &allowedPath) == false);
+}
+#endif
 
 TEST_CASE("lua run")
 {

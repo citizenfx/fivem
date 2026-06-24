@@ -113,7 +113,8 @@ const std::string_view& resource)
 		return true;
 	}
 
-	if (m_resourceName == "yarn" || m_resourceName == "webpack")
+	if ((m_resourceName == "yarn" || m_resourceName == "webpack") &&
+		(perm == permission::PermissionScope::kChildProcess || perm == permission::PermissionScope::kWorkerThreads))
 	{
 		return true;
 	}

@@ -11,6 +11,9 @@
 #include "Resource.h"
 
 #include <filesystem>
+#include <mutex>
+#include <optional>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "ServerInstanceBase.h"
@@ -48,6 +51,24 @@ static bool g_permissionModifyAllowed{ true };
 static std::unordered_map<std::tuple<Source, Target>, FilesystemPermission, ResourceTupleHash, ResourceTupleEqual>
 g_permissions{};
 
+static std::recursive_mutex g_buildTaskPermissionMutex;
+
+struct BuildTaskFilesystemPathPermission
+{
+	std::string path;
+	bool isDirectory;
+};
+
+struct BuildTaskFilesystemPermission
+{
+	std::string sourceResource;
+	std::string targetResource;
+	std::vector<BuildTaskFilesystemPathPermission> allowedPaths;
+};
+
+static uint64_t g_nextBuildTaskPermissionId = 1;
+static std::unordered_map<uint64_t, BuildTaskFilesystemPermission> g_buildTaskPermissions{};
+
 static std::unordered_set<std::string> g_workerPermissions{};
 static std::unordered_set<std::string> g_childProcessPermissions{};
 
@@ -81,9 +102,180 @@ static std::tuple<std::string, std::filesystem::path> GetResourcePath(const std:
 	return { resourceName, remainingPath };
 }
 
+static bool HasTrailingDirectorySeparator(const std::string& path)
+{
+	return !path.empty() && (path.back() == '/' || path.back() == '\\');
+}
+
+static std::string NormalizeRelativeResourcePath(const std::filesystem::path& path)
+{
+	if (path.empty() || path.is_absolute() || path.has_root_name() || path.has_root_directory())
+	{
+		return {};
+	}
+
+	for (const auto& part : path)
+	{
+		if (part == "..")
+		{
+			return {};
+		}
+	}
+
+	const auto normalized = path.lexically_normal();
+	if (normalized.empty())
+	{
+		return {};
+	}
+
+	std::string result;
+	for (const auto& part : normalized)
+	{
+		const std::string partString = part.generic_string();
+		if (partString.empty() || partString == ".")
+		{
+			continue;
+		}
+
+		if (partString == "..")
+		{
+			return {};
+		}
+
+		if (!result.empty())
+		{
+			result += '/';
+		}
+
+		result += partString;
+	}
+
+	return result;
+}
+
+static std::optional<BuildTaskFilesystemPathPermission> NormalizeBuildTaskAllowedPath(const std::string& path)
+{
+	const std::filesystem::path permissionPath = path;
+	const bool isDirectory = HasTrailingDirectorySeparator(path);
+	const auto normalizedPath = NormalizeRelativeResourcePath(permissionPath);
+	if (normalizedPath.empty())
+	{
+		return {};
+	}
+
+	const auto firstSeparator = normalizedPath.find('/');
+	const auto firstPart = normalizedPath.substr(0, firstSeparator);
+	if (!firstPart.empty() && firstPart[0] == '@')
+	{
+		return {};
+	}
+
+	return BuildTaskFilesystemPathPermission{
+		normalizedPath,
+		isDirectory
+	};
+}
+
+bool ScriptingFilesystemIsBuildTaskPathSafe(const std::string& path)
+{
+	return NormalizeBuildTaskAllowedPath(path).has_value();
+}
+
+static bool IsBuildTaskPathAllowed(const std::string& requestedPath, const BuildTaskFilesystemPathPermission& allowedPath)
+{
+	if (requestedPath == allowedPath.path)
+	{
+		return true;
+	}
+
+	if (!allowedPath.isDirectory)
+	{
+		return false;
+	}
+
+	return requestedPath.rfind(allowedPath.path + '/', 0) == 0;
+}
+
+static bool ScriptingFilesystemHasBuildTaskPermission(const std::string& sourceResource, const std::string& targetResource, const std::filesystem::path& targetPath)
+{
+	std::lock_guard<std::recursive_mutex> lock(g_buildTaskPermissionMutex);
+
+	const auto normalizedTargetPath = NormalizeRelativeResourcePath(targetPath);
+	if (normalizedTargetPath.empty())
+	{
+		return false;
+	}
+
+	for (const auto& [_, permission] : g_buildTaskPermissions)
+	{
+		if (permission.sourceResource != sourceResource || permission.targetResource != targetResource)
+		{
+			continue;
+		}
+
+		for (const auto& allowedPath : permission.allowedPaths)
+		{
+			if (IsBuildTaskPathAllowed(normalizedTargetPath, allowedPath))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+uint64_t ScriptingFilesystemPushBuildTaskPermission(const std::string& sourceResource, const std::string& targetResource, const std::vector<std::string>& allowedPaths)
+{
+	if (sourceResource.empty() || targetResource.empty() || sourceResource == targetResource)
+	{
+		return 0;
+	}
+
+	std::vector<BuildTaskFilesystemPathPermission> normalizedAllowedPaths;
+	for (const auto& path : allowedPaths)
+	{
+		if (const auto normalizedPath = NormalizeBuildTaskAllowedPath(path))
+		{
+			normalizedAllowedPaths.push_back(*normalizedPath);
+		}
+	}
+
+	if (normalizedAllowedPaths.empty())
+	{
+		return 0;
+	}
+
+	std::lock_guard<std::recursive_mutex> lock(g_buildTaskPermissionMutex);
+
+	const uint64_t permissionId = g_nextBuildTaskPermissionId++;
+	if (g_nextBuildTaskPermissionId == 0)
+	{
+		g_nextBuildTaskPermissionId = 1;
+	}
+
+	g_buildTaskPermissions[permissionId] = BuildTaskFilesystemPermission{
+		sourceResource,
+		targetResource,
+		std::move(normalizedAllowedPaths)
+	};
+
+	return permissionId;
+}
+
+void ScriptingFilesystemPopBuildTaskPermission(uint64_t permissionId)
+{
+	if (permissionId == 0)
+	{
+		return;
+	}
+
+	std::lock_guard<std::recursive_mutex> lock(g_buildTaskPermissionMutex);
+	g_buildTaskPermissions.erase(permissionId);
+}
+
 bool ScriptingFilesystemAllowWrite(const std::string& path, fx::Resource* resourceOverride)
 {
-	std::filesystem::path filePath = path;
 	auto [resourceName, resourceFilePath] = GetResourcePath(path);
 	if (resourceName.empty() || resourceFilePath.empty())
 	{
@@ -109,11 +301,15 @@ bool ScriptingFilesystemAllowWrite(const std::string& path, fx::Resource* resour
 		currentResource = static_cast<fx::Resource*>(runtime->GetParentObject());
 		currentResourceName = (currentResource) ? currentResource->GetName() : "";
 	}
-	
 
 	if (currentResourceName == resourceName)
 	{
 		// return true if the file is inside the same resource
+		return true;
+	}
+
+	if (ScriptingFilesystemHasBuildTaskPermission(currentResourceName, resourceName, resourceFilePath))
+	{
 		return true;
 	}
 
@@ -272,6 +468,20 @@ static InitFunction initFunction([]()
 namespace fx
 {
 bool ScriptingFilesystemAllowWrite(const std::string& path, fx::Resource* resourceOverride)
+{
+	return true;
+}
+
+uint64_t ScriptingFilesystemPushBuildTaskPermission(const std::string& sourceResource, const std::string& targetResource, const std::vector<std::string>& allowedPaths)
+{
+	return 0;
+}
+
+void ScriptingFilesystemPopBuildTaskPermission(uint64_t permissionId)
+{
+}
+
+bool ScriptingFilesystemIsBuildTaskPathSafe(const std::string& path)
 {
 	return true;
 }
