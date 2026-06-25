@@ -2137,7 +2137,7 @@ void ServerGameState::UpdateEntities()
 		else
 		{
 			// workaround: force-migrate a stuck entity
-			if ((time - entity->lastReceivedAt) > 10s)
+			if ((time - entity->lastReceivedAt) > 5s)
 			{
 				if (g_oneSyncForceMigration->GetValue() || fx::IsBigMode())
 				{
