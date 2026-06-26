@@ -9,6 +9,9 @@
 #include <mono/metadata/exception.h>
 #include <mono/metadata/mono-debug.h>
 #include <mono/metadata/mono-gc.h>
+#include <mono/metadata/assembly.h>
+#include <mono/metadata/appdomain.h>
+#include <mono/metadata/image.h>
 
 #ifndef IS_FXSERVER
 extern "C" {
@@ -137,7 +140,30 @@ void MonoComponentHostShared::Initialize()
 		mono_domain_set_config(rootDomain, (basePath + "cfg/mono/").c_str(), "cfx.config");
 
 		mono_install_unhandled_exception_hook(UnhandledException, nullptr);
+		mono_install_assembly_load_hook(AssemblyLoadCallback, nullptr);
 	}
+}
+
+void MonoComponentHostShared::AssemblyLoadCallback(MonoAssembly* assembly, void* user_data)
+{
+	MonoImage* image = mono_assembly_get_image(assembly);
+	if (!image)
+		return;
+
+	const char* filename = mono_image_get_filename(image);
+	const char* assembly_name = mono_assembly_get_name(assembly);
+
+   #ifndef IS_FXSERVER
+	// Just block Assembly.Load on client side if they try to load it from memory directly from an byte array
+	if (filename == NULL || strlen(filename) == 0 || strcmp(filename, assembly_name) == 0)
+	{
+		MonoDomain* currentDomain = mono_domain_get();
+		if (currentDomain)
+		{
+			mono_jit_cleanup(currentDomain);
+		}
+	}
+   #endif
 }
 
 void MonoComponentHostShared::PrintException(MonoObject* exc, bool fatal)

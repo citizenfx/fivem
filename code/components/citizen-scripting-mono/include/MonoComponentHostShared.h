@@ -80,6 +80,9 @@ public:
 	// Print script messages
 	static void Print(MonoString* channel, MonoString* message);
 
+	// Callback when someone calls Assembly.Load with an bytearray
+	static void AssemblyLoadCallback(MonoAssembly* assembly, void* user_data);
+
 	// Print exception details
 	FX_API static void PrintException(MonoObject* exc, bool fatal = false);
 
