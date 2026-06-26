@@ -55,7 +55,6 @@ static void RenderScriptIm()
 	{
 		g_scriptImRenderBuffer.clear();
 		std::swap(g_scriptImRequests, g_scriptImRenderBuffer);
-		g_scriptImReady.store(false, std::memory_order_relaxed);
 	}
 
 	if (g_scriptImRenderBuffer.empty())
@@ -99,12 +98,13 @@ struct DrawOriginStore
 	char pad_404[12];
 };
 
-static bool (*isGamePaused)();
-
 static int* g_renderBufferIndex;
 static int* g_updateBufferIndex;
 static DrawOriginStore* g_drawOriginStore;
 static uint32_t* g_scriptDrawOriginIndex;
+
+static int g_updateDrawOriginCount = 0;
+static DrawOriginData g_updateDrawOrigin[32];
 
 struct WorldhorizonManager
 {
@@ -138,8 +138,6 @@ static HookFunction hookFunction([]()
 		g_renderBufferIndex = hook::get_address<int*>(location - 20);
 		g_updateBufferIndex = hook::get_address<int*>(location - 7);
 		g_drawOriginStore = hook::get_address<DrawOriginStore*>(location + 10);
-
-		hook::set_call(&isGamePaused, location - 27);
 	}
 
 	{
@@ -174,14 +172,18 @@ static HookFunction hookFunction([]()
 	OnPostFrontendRender.Connect([]()
 	{
 		g_scriptImReady.store(true, std::memory_order_release);
+		if (g_updateDrawOriginCount)
+		{
+			auto drawIndex = *g_updateBufferIndex;
+			std::move(g_updateDrawOrigin, g_updateDrawOrigin + g_updateDrawOriginCount, g_drawOriginStore[drawIndex].m_items);
+			g_drawOriginStore[drawIndex].m_count = g_updateDrawOriginCount;
+			g_updateDrawOriginCount = 0;
+		}
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_DRAW_ORIGIN", [](fx::ScriptContext& context)
 	{
-		auto& store = g_drawOriginStore[*g_renderBufferIndex];
-		const auto index = store.m_count;
-
-		if (index >= 32)
+		if (g_updateDrawOriginCount >= 32)
 		{
 			return;
 		}
@@ -192,10 +194,9 @@ static HookFunction hookFunction([]()
 		data.m_pos.z = context.GetArgument<float>(2);
 		data.m_is2d = context.GetArgument<bool>(3);
 
-		store.m_items[index] = data;
-		store.m_count += 1;
-
-		*g_scriptDrawOriginIndex = index;
+		g_updateDrawOrigin[g_updateDrawOriginCount] = data;
+		*g_scriptDrawOriginIndex = g_updateDrawOriginCount;
+		g_updateDrawOriginCount += 1;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("CLEAR_DRAW_ORIGIN", [](fx::ScriptContext& context)
