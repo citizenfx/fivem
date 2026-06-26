@@ -1627,7 +1627,7 @@ using CAnimalSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CAnimalCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CAnimalCreationDataNode, 27>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
@@ -1635,75 +1635,75 @@ using CAnimalSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435984c0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPedScriptGameStateUncommonDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435981a0>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598fb0>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598e20>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598b00>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359b8a8>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435984c0, 19>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPedScriptGameStateUncommonDataNode, 262>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435981a0, 63>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598fb0, 101>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598e20, 33>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598b00, 207>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359b8a8, 44>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, DataNode_1435992d0>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359e920>,
-					NodeWrapper<NodeIds<127, 127, 1>, DataNode_14359e790>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 280>,
+					NodeWrapper<NodeIds<127, 127, 1>, DataNode_1435992d0, 68>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359e920, 31>,
+					NodeWrapper<NodeIds<127, 127, 1>, DataNode_14359e790, 61>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 1>, DataNode_143599dc0>,
+			NodeWrapper<NodeIds<127, 127, 1>, DataNode_143599dc0, 23>,
 			ParentNode<
 				NodeIds<127, 127, 0>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910>
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0, 21>,
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780, 74>,
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910, 36>
 			>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599aa0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599c30>
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599aa0, 21>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599c30, 26>
 			>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599f50>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359a8b0>,
-			NodeWrapper<NodeIds<86, 86, 0>, DataNode_14359aa40>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143598c90>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359eab0>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ec40>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a590>
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599f50, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359a8b0, 288>,
+			NodeWrapper<NodeIds<86, 86, 0>, DataNode_14359aa40, 31>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143598c90, 42>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359eab0, 8>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ec40, 57>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a590, 290>
 		>,
 		ParentNode<
 			NodeIds<87, 87, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedStandingOnObjectDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedStandingOnObjectDataNode, 13>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedOrientationDataNode, 3>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementDataNode, 47>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 253>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 94>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 50>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>
 			>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosMapNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosNavMeshDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a270>
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosMapNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosNavMeshDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a270, 53>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 4, 1>, CPedTaskSequenceDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<4, 4, 1>, CPedTaskSequenceDataNode, 4029>
 		>
 	>
 >;
@@ -1712,8 +1712,8 @@ using CAutomobileSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>,
-			NodeWrapper<NodeIds<1, 0, 0>, CAutomobileCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode, 21>,
+			NodeWrapper<NodeIds<1, 0, 0>, CAutomobileCreationDataNode, 4>
 		>,
 		ParentNode<
 			NodeIds<127, 87, 0>,
@@ -1721,48 +1721,48 @@ using CAutomobileSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 52>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 55>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 32>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode, 126>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode, 6>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode, 15>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode, 101>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode, 44>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode, 35>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode, 4>,
 			ParentNode<
 				NodeIds<127, 86, 0>,
-				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>
+				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 8>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 68>
 			>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 55>
 		>
 	>
 >;
@@ -1771,7 +1771,7 @@ using CBikeSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode, 21>
 		>,
 		ParentNode<
 			NodeIds<127, 87, 0>,
@@ -1779,49 +1779,49 @@ using CBikeSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CBikeGameStateDataNode>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 52>,
+					NodeWrapper<NodeIds<127, 127, 0>, CBikeGameStateDataNode, 1>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 55>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 32>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode, 126>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode, 6>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode, 15>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode, 101>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode, 44>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode, 35>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode, 4>,
 			ParentNode<
 				NodeIds<127, 86, 0>,
-				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>
+				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 8>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 68>
 			>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 55>
 		>
 	>
 >;
@@ -1830,7 +1830,7 @@ using CBoatSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode, 21>
 		>,
 		ParentNode<
 			NodeIds<127, 87, 0>,
@@ -1838,49 +1838,49 @@ using CBoatSyncTree = SyncTree<
 				NodeIds<127, 87, 0>,
 				ParentNode<
 					NodeIds<127, 87, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>,
-					NodeWrapper<NodeIds<87, 87, 0>, CBoatGameStateDataNode>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 52>,
+					NodeWrapper<NodeIds<87, 87, 0>, CBoatGameStateDataNode, 21>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 55>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 32>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode, 126>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode, 6>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode, 15>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode, 101>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode, 44>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode, 35>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode, 4>,
 			ParentNode<
 				NodeIds<127, 86, 0>,
-				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>
+				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 8>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 68>
 			>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 55>
 		>
 	>
 >;
@@ -1889,21 +1889,21 @@ using CDoorSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CDoorCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CDoorCreationDataNode, 19>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
-			NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CDoorDamageDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+			NodeWrapper<NodeIds<127, 127, 0>, CDoorDamageDataNode, 34>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
-			NodeWrapper<NodeIds<127, 127, 0>, CDoorMovementDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CDoorMovementDataNode, 2>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>
 		>
 	>
 >;
@@ -1912,8 +1912,8 @@ using CHeliSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>,
-			NodeWrapper<NodeIds<1, 0, 0>, CAutomobileCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode, 21>,
+			NodeWrapper<NodeIds<1, 0, 0>, CAutomobileCreationDataNode, 4>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
@@ -1921,50 +1921,50 @@ using CHeliSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 52>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 55>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode>,
-			NodeWrapper<NodeIds<86, 86, 0>, CHeliHealthDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 32>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode, 126>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode, 6>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode, 15>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode, 101>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode, 44>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode, 35>,
+			NodeWrapper<NodeIds<86, 86, 0>, CHeliHealthDataNode, 3>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode, 4>,
 			ParentNode<
 				NodeIds<127, 86, 0>,
-				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>,
-				NodeWrapper<NodeIds<86, 86, 0>, CHeliControlDataNode>
+				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 8>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 68>,
+				NodeWrapper<NodeIds<86, 86, 0>, CHeliControlDataNode, 5>
 			>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 55>
 		>
 	>
 >;
@@ -1973,46 +1973,46 @@ using CObjectSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CObjectCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CObjectCreationDataNode, 108>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594478>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594478, 18>,
 			ParentNode<
 				NodeIds<127, 127, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594dd8>,
-					NodeWrapper<NodeIds<127, 127, 0>, CObjectAITaskDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CObjectAITaskDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594dd8, 89>,
+					NodeWrapper<NodeIds<127, 127, 0>, CObjectAITaskDataNode, 79>,
+					NodeWrapper<NodeIds<127, 127, 0>, CObjectAITaskDataNode, 79>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CObjectScriptGameStateDataNode>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>,
+					NodeWrapper<NodeIds<127, 127, 1>, CObjectScriptGameStateDataNode, 15>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 32>
 		>,
 		ParentNode<
 			NodeIds<87, 87, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CObjectSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CObjectSectorPosNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalAngVelocityDataNode>
+			NodeWrapper<NodeIds<87, 87, 0>, CObjectSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CObjectSectorPosNode, 8>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalAngVelocityDataNode, 4>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>
 		>
 	>
 >;
@@ -2021,8 +2021,8 @@ using CPedSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CPedCreationDataNode>,
-			NodeWrapper<NodeIds<1, 0, 1>, CPedScriptCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CPedCreationDataNode, 29>,
+			NodeWrapper<NodeIds<1, 0, 1>, CPedScriptCreationDataNode, 1>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
@@ -2030,79 +2030,79 @@ using CPedSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435984c0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPedScriptGameStateUncommonDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435981a0>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598fb0>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598e20>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598b00>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359b8a8>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435984c0, 19>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPedScriptGameStateUncommonDataNode, 262>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435981a0, 63>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598fb0, 101>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598e20, 33>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598b00, 207>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359b8a8, 44>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, DataNode_1435992d0>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 280>,
+					NodeWrapper<NodeIds<127, 127, 1>, DataNode_1435992d0, 68>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 1>, DataNode_143599dc0>,
+			NodeWrapper<NodeIds<127, 127, 1>, DataNode_143599dc0, 23>,
 			ParentNode<
 				NodeIds<127, 127, 0>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910>
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0, 21>,
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780, 74>,
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910, 36>
 			>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599aa0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599c30>
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599aa0, 21>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599c30, 26>
 			>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599f50>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359a8b0>,
-			NodeWrapper<NodeIds<86, 86, 0>, DataNode_14359aa40>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143598c90>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a400>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedFacialAppearanceDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359b588>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedWeaponDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedVehicleDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ba38>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359bbc8>,
-			NodeWrapper<NodeIds<87, 87, 1>, DataNode_14359b0d8>
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599f50, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359a8b0, 288>,
+			NodeWrapper<NodeIds<86, 86, 0>, DataNode_14359aa40, 31>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143598c90, 42>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a400, 950>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedFacialAppearanceDataNode, 9>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359b588, 1226>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedWeaponDataNode, 85>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedVehicleDataNode, 6>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ba38, 337>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359bbc8, 140>,
+			NodeWrapper<NodeIds<87, 87, 1>, DataNode_14359b0d8, 46>
 		>,
 		ParentNode<
 			NodeIds<87, 87, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedStandingOnObjectDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedStandingOnObjectDataNode, 13>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedOrientationDataNode, 3>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementDataNode, 47>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 253>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 94>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 50>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>
 			>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosMapNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosNavMeshDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a270>
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosMapNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosNavMeshDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a270, 53>
 		>,
 		ParentNode<
 			NodeIds<5, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<5, 0, 0>, CPedInventoryDataNode>,
-			NodeWrapper<NodeIds<4, 4, 1>, CPedTaskSequenceDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<5, 0, 0>, CPedInventoryDataNode, 94>,
+			NodeWrapper<NodeIds<4, 4, 1>, CPedTaskSequenceDataNode, 4029>
 		>
 	>
 >;
@@ -2111,49 +2111,49 @@ using CPickupSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CPickupCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CPickupCreationDataNode, 227>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
 			ParentNode<
 				NodeIds<127, 127, 0>,
-				NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-				NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>
+				NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+				NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>
 			>,
 			ParentNode<
 				NodeIds<127, 127, 1>,
-				NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>,
-				NodeWrapper<NodeIds<127, 127, 1>, CPickupScriptGameStateNode>,
-				NodeWrapper<NodeIds<127, 127, 1>, CPhysicalGameStateDataNode>,
-				NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-				NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-				NodeWrapper<NodeIds<127, 127, 1>, CPhysicalHealthDataNode>
+				NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>,
+				NodeWrapper<NodeIds<127, 127, 1>, CPickupScriptGameStateNode, 22>,
+				NodeWrapper<NodeIds<127, 127, 1>, CPhysicalGameStateDataNode, 15>,
+				NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+				NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+				NodeWrapper<NodeIds<127, 127, 1>, DataNode_143594478, 18>
 			>,
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 32>
 		>,
 		ParentNode<
 			NodeIds<87, 87, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPickupSectorPosNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalAngVelocityDataNode>
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPickupSectorPosNode, 8>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalAngVelocityDataNode, 4>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>
 		>
 	>
 >;
 using CPickupPlacementSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
-		NodeWrapper<NodeIds<1, 0, 0>, CPickupPlacementCreationDataNode>,
-		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CPickupPlacementStateDataNode>
+		NodeWrapper<NodeIds<1, 0, 0>, CPickupPlacementCreationDataNode, 77>,
+		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+		NodeWrapper<NodeIds<127, 127, 0>, CPickupPlacementStateDataNode, 7>
 	>
 >;
 using CPlaneSyncTree = SyncTree<
@@ -2161,7 +2161,7 @@ using CPlaneSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode, 21>
 		>,
 		ParentNode<
 			NodeIds<127, 87, 0>,
@@ -2169,50 +2169,50 @@ using CPlaneSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 52>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 55>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435a0a20>
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 32>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode, 126>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode, 6>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode, 15>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode, 101>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode, 44>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode, 35>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435a0a20, 19>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode, 4>,
 			ParentNode<
 				NodeIds<127, 86, 0>,
-				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>,
-				NodeWrapper<NodeIds<86, 86, 0>, CPlaneControlDataNode>
+				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 8>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 68>,
+				NodeWrapper<NodeIds<86, 86, 0>, CPlaneControlDataNode, 5>
 			>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 55>
 		>
 	>
 >;
@@ -2221,7 +2221,7 @@ using CSubmarineSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode, 21>
 		>,
 		ParentNode<
 			NodeIds<127, 87, 0>,
@@ -2229,50 +2229,50 @@ using CSubmarineSyncTree = SyncTree<
 				NodeIds<127, 87, 0>,
 				ParentNode<
 					NodeIds<127, 87, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>,
-					NodeWrapper<NodeIds<87, 87, 0>, CSubmarineGameStateDataNode>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 52>,
+					NodeWrapper<NodeIds<87, 87, 0>, CSubmarineGameStateDataNode, 1>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 55>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 32>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode, 126>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode, 6>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode, 15>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode, 101>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode, 44>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode, 35>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode, 4>,
 			ParentNode<
 				NodeIds<127, 86, 0>,
-				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>,
-				NodeWrapper<NodeIds<86, 86, 0>, CSubmarineControlDataNode>
+				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 8>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 68>,
+				NodeWrapper<NodeIds<86, 86, 0>, CSubmarineControlDataNode, 4>
 			>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 55>
 		>
 	>
 >;
@@ -2281,7 +2281,7 @@ using CPlayerSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CPlayerCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CPlayerCreationDataNode, 13>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
@@ -2289,99 +2289,99 @@ using CPlayerSyncTree = SyncTree<
 				NodeIds<127, 87, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435984c0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPedScriptGameStateUncommonDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435981a0>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598fb0>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598e20>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598b00>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359b8a8>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435984c0, 19>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPedScriptGameStateUncommonDataNode, 262>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435981a0, 63>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598fb0, 101>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598e20, 33>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598b00, 207>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359b8a8, 44>
 				>,
 				ParentNode<
 					NodeIds<127, 87, 0>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359cd00>,
-					NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ce90>,
-					NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359d020>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359cd00, 12>,
+					NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ce90, 48>,
+					NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359d020, 306>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 1>, DataNode_143599dc0>,
+			NodeWrapper<NodeIds<127, 127, 1>, DataNode_143599dc0, 23>,
 			ParentNode<
 				NodeIds<127, 127, 0>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910>
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0, 21>,
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780, 74>,
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910, 36>
 			>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599aa0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599c30>
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599aa0, 21>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599c30, 26>
 			>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599f50>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359a8b0>,
-			NodeWrapper<NodeIds<86, 86, 0>, DataNode_14359aa40>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143598c90>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerCharacterCreatorDataNode>,
-			NodeWrapper<NodeIds<86, 86, 0>, CPlayerAmbientModelStreamingDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerGamerDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359db10>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerVoiceDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerWeaponInventoryDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedWeaponDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedVehicleDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerHealthDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerSpawnSearchDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAudioScriptBankDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359dfc0>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359dfc0>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359dfc0>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359dfc0>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359dfc0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerGoalsDataNode>,
-			NodeWrapper<NodeIds<87, 87, 1>, DataNode_14359b0d8>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedFacialAppearanceDataNode>
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599f50, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359a8b0, 288>,
+			NodeWrapper<NodeIds<86, 86, 0>, DataNode_14359aa40, 31>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143598c90, 42>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode, 1854>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerCharacterCreatorDataNode, 395>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerAmbientModelStreamingDataNode, 3>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerGamerDataNode, 352>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359db10, 9>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerVoiceDataNode, 19>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerWeaponInventoryDataNode, 1330>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedWeaponDataNode, 85>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedVehicleDataNode, 6>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerHealthDataNode, 3>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerSpawnSearchDataNode, 67>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAudioScriptBankDataNode, 40>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359dfc0, 420>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359dfc0, 420>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359dfc0, 420>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359dfc0, 420>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359dfc0, 420>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerGoalsDataNode, 186>,
+			NodeWrapper<NodeIds<87, 87, 1>, DataNode_14359b0d8, 46>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedFacialAppearanceDataNode, 9>
 		>,
 		ParentNode<
 			NodeIds<87, 86, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedStandingOnObjectDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedStandingOnObjectDataNode, 13>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedOrientationDataNode, 3>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementDataNode, 47>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 253>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 94>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 50>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>
 			>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerSectorPosNode>,
-			NodeWrapper<NodeIds<86, 86, 0>, CPlayerCameraDataNode>,
-			NodeWrapper<NodeIds<86, 86, 0>, CPlayerCameraUncommonDataNode>,
-			NodeWrapper<NodeIds<86, 86, 0>, DataNode_14359d660>
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerSectorPosNode, 10>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerCameraDataNode, 16>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerCameraUncommonDataNode, 9>,
+			NodeWrapper<NodeIds<86, 86, 0>, DataNode_14359d660, 636>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>
 		>
 	>
 >;
-using CTrailerSyncTree = SyncTree<
+using CAutomobileSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>,
-			NodeWrapper<NodeIds<1, 0, 0>, CAutomobileCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode, 21>,
+			NodeWrapper<NodeIds<1, 0, 0>, CAutomobileCreationDataNode, 4>
 		>,
 		ParentNode<
 			NodeIds<127, 87, 0>,
@@ -2389,48 +2389,48 @@ using CTrailerSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 52>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 55>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 32>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode, 126>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode, 6>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode, 15>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode, 101>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode, 44>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode, 35>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode, 4>,
 			ParentNode<
 				NodeIds<127, 86, 0>,
-				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>
+				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 8>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 68>
 			>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 55>
 		>
 	>
 >;
@@ -2439,7 +2439,7 @@ using CTrainSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode, 21>
 		>,
 		ParentNode<
 			NodeIds<127, 87, 0>,
@@ -2447,51 +2447,51 @@ using CTrainSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CTrainGameStateUncommonDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CTrainGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CTrainControlDataNode>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 52>,
+					NodeWrapper<NodeIds<127, 127, 0>, CTrainGameStateUncommonDataNode, 10>,
+					NodeWrapper<NodeIds<127, 127, 0>, CTrainGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 0>, CTrainControlDataNode, 22>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 55>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 32>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode, 126>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode, 6>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode, 15>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode, 101>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode, 44>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode, 35>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode, 4>,
 			ParentNode<
 				NodeIds<127, 86, 0>,
-				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>
+				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 8>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 68>
 			>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 55>
 		>
 	>
 >;
@@ -2500,9 +2500,9 @@ using CDraftVehSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>,
-			NodeWrapper<NodeIds<1, 0, 0>, CAutomobileCreationDataNode>,
-			NodeWrapper<NodeIds<1, 0, 0>, CDraftVehCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode, 21>,
+			NodeWrapper<NodeIds<1, 0, 0>, CAutomobileCreationDataNode, 4>,
+			NodeWrapper<NodeIds<1, 0, 0>, CDraftVehCreationDataNode, 33>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
@@ -2510,70 +2510,70 @@ using CDraftVehSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 52>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 55>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CDraftVehGameStateDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CDraftVehHorseGameStateDataNode>,
-			NodeWrapper<NodeIds<86, 86, 0>, CDraftVehHorseHealthDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode, 32>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode, 126>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleCommonDataNode, 6>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode, 15>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode, 101>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode, 44>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleTaskDataNode, 35>,
+			NodeWrapper<NodeIds<127, 127, 0>, CDraftVehGameStateDataNode, 1>,
+			NodeWrapper<NodeIds<127, 127, 0>, CDraftVehHorseGameStateDataNode, 851>,
+			NodeWrapper<NodeIds<86, 86, 0>, CDraftVehHorseHealthDataNode, 227>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode, 4>,
 			ParentNode<
 				NodeIds<127, 86, 0>,
-				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>
+				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 8>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 68>
 			>,
-			NodeWrapper<NodeIds<87, 87, 0>, CDraftVehControlDataNode>
+			NodeWrapper<NodeIds<87, 87, 0>, CDraftVehControlDataNode, 24>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode, 55>
 		>
 	>
 >;
 using CStatsTrackerSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 127, 0>,
-		NodeWrapper<NodeIds<127, 127, 0>, CStatsTrackerGameStateDataNode>
+		NodeWrapper<NodeIds<127, 127, 0>, CStatsTrackerGameStateDataNode, 129>
 	>
 >;
 using CPropSetSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
-		NodeWrapper<NodeIds<1, 0, 0>, CPropSetCreationDataNode>,
-		NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode>,
-		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CPropSetGameStateDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CPropSetUncommonGameStateDataNode>
+		NodeWrapper<NodeIds<1, 0, 0>, CPropSetCreationDataNode, 215>,
+		NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode, 270>,
+		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+		NodeWrapper<NodeIds<127, 127, 0>, CPropSetGameStateDataNode, 115>,
+		NodeWrapper<NodeIds<127, 127, 0>, CPropSetUncommonGameStateDataNode, 112>
 	>
 >;
 using CAnimSceneSyncTree = SyncTree<
@@ -2581,21 +2581,21 @@ using CAnimSceneSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<87, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CAnimSceneCreationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CAnimSceneCreationDataNode, 27>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode, 270>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
-			NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CAnimSceneInfrequentDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+			NodeWrapper<NodeIds<127, 127, 0>, CAnimSceneInfrequentDataNode, 700>
 		>,
 		ParentNode<
 			NodeIds<86, 86, 0>,
-			NodeWrapper<NodeIds<86, 86, 0>, CAnimSceneFrequentDataNode>
+			NodeWrapper<NodeIds<86, 86, 0>, CAnimSceneFrequentDataNode, 9>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>
 		>
 	>
 >;
@@ -2604,41 +2604,41 @@ using CGroupScenarioSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<87, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CGroupScenarioCreationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CGroupScenarioCreationDataNode, 20>,
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode, 270>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
-			NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-			NodeWrapper<NodeIds<127, 127, 0>, CGroupScenarioEntitiesDataNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+			NodeWrapper<NodeIds<127, 127, 0>, CGroupScenarioEntitiesDataNode, 38>
 		>,
 		ParentNode<
 			NodeIds<86, 86, 0>,
-			NodeWrapper<NodeIds<86, 86, 0>, CGroupScenarioFrequentDataNode>
+			NodeWrapper<NodeIds<86, 86, 0>, CGroupScenarioFrequentDataNode, 1>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>
 		>
 	>
 >;
 using CHerdSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
-		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-		NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-		NodeWrapper<NodeIds<87, 87, 0>, CHerdGameDataNode>,
-		NodeWrapper<NodeIds<87, 87, 0>, CHerdMemberDataNode>,
-		NodeWrapper<NodeIds<87, 87, 0>, CHerdPositionNode>
+		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+		NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode, 270>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+		NodeWrapper<NodeIds<87, 87, 0>, CHerdGameDataNode, 2>,
+		NodeWrapper<NodeIds<87, 87, 0>, CHerdMemberDataNode, 76>,
+		NodeWrapper<NodeIds<87, 87, 0>, CHerdPositionNode, 18>
 	>
 >;
-using CHorseSyncTree = SyncTree<
+using CAnimalSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CAnimalCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CAnimalCreationDataNode, 27>
 		>,
 		ParentNode<
 			NodeIds<127, 86, 0>,
@@ -2646,83 +2646,83 @@ using CHorseSyncTree = SyncTree<
 				NodeIds<127, 127, 0>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435984c0>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPedScriptGameStateUncommonDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435981a0>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598fb0>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598e20>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598b00>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359b8a8>
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 173>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 15>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435984c0, 19>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPedScriptGameStateUncommonDataNode, 262>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435981a0, 63>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598fb0, 101>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598e20, 33>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143598b00, 207>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_143594ab8, 3>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359b8a8, 44>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 0>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode>,
-					NodeWrapper<NodeIds<127, 127, 1>, DataNode_1435992d0>,
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>,
-					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359e920>,
-					NodeWrapper<NodeIds<127, 127, 1>, DataNode_14359e790>
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 280>,
+					NodeWrapper<NodeIds<127, 127, 1>, DataNode_1435992d0, 68>,
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 270>,
+					NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359e920, 31>,
+					NodeWrapper<NodeIds<127, 127, 1>, DataNode_14359e790, 61>
 				>
 			>,
-			NodeWrapper<NodeIds<127, 127, 1>, DataNode_143599dc0>,
+			NodeWrapper<NodeIds<127, 127, 1>, DataNode_143599dc0, 23>,
 			ParentNode<
 				NodeIds<127, 127, 0>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780>,
-				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910>
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435995f0, 21>,
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599780, 74>,
+				NodeWrapper<NodeIds<127, 127, 0>, DataNode_143599910, 36>
 			>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599aa0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599c30>
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599aa0, 21>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599c30, 26>
 			>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599f50>,
-			NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359a8b0>,
-			NodeWrapper<NodeIds<86, 86, 0>, DataNode_14359aa40>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143598c90>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359eab0>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ec40>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a590>
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143599f50, 3>,
+			NodeWrapper<NodeIds<127, 127, 0>, DataNode_14359a8b0, 288>,
+			NodeWrapper<NodeIds<86, 86, 0>, DataNode_14359aa40, 31>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_143598c90, 42>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359eab0, 8>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ec40, 57>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a590, 290>
 		>,
 		ParentNode<
 			NodeIds<87, 87, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedStandingOnObjectDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedOrientationDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementDataNode>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedStandingOnObjectDataNode, 13>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedOrientationDataNode, 3>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementDataNode, 47>,
 			ParentNode<
 				NodeIds<87, 87, 0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0>,
-				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88>
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 253>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 94>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359abd0, 50>,
+				NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359ad88, 406>
 			>,
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosMapNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosNavMeshDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a270>
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosMapNode, 5>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPedSectorPosNavMeshDataNode, 4>,
+			NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359a270, 53>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>,
-			NodeWrapper<NodeIds<4, 4, 1>, CPedTaskSequenceDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode, 1>,
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode, 7>,
+			NodeWrapper<NodeIds<4, 4, 1>, CPedTaskSequenceDataNode, 4029>
 		>
 	>
 >;
 using CWorldStateSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 87, 0>,
-		NodeWrapper<NodeIds<87, 87, 0>, CWorldStateBaseDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>
+		NodeWrapper<NodeIds<87, 87, 0>, CWorldStateBaseDataNode, 128>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>
 	>
 >;
 using CWorldProjectileSyncTree = SyncTree<
@@ -2730,117 +2730,116 @@ using CWorldProjectileSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CProjectileCreationDataNode>
+			NodeWrapper<NodeIds<1, 0, 0>, CProjectileCreationDataNode, 47>
 		>,
 		ParentNode<
 			NodeIds<127, 87, 0>,
-			NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-			NodeWrapper<NodeIds<87, 87, 0>, CProjectileAttachNode>
+			NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+			NodeWrapper<NodeIds<87, 87, 0>, CProjectileAttachNode, 36>
 		>,
 		ParentNode<
 			NodeIds<87, 87, 0>,
-			NodeWrapper<NodeIds<87, 87, 0>, CWorldProjectileDataNode>
+			NodeWrapper<NodeIds<87, 87, 0>, CWorldProjectileDataNode, 16>
 		>,
 		ParentNode<
 			NodeIds<4, 0, 0>,
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>
 		>
 	>
 >;
 using CIncidentSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
-		NodeWrapper<NodeIds<1, 0, 0>, CIncidentCreateDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentStateDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentCrimeSceneDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentPointOfInterestFinderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentDispatchDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode>,
-		NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode>,
-		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>
+		NodeWrapper<NodeIds<1, 0, 0>, CIncidentCreateDataNode, 18>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentStateDataNode, 25>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentCrimeSceneDataNode, 169>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentPointOfInterestFinderDataNode, 556>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentDispatchDataNode, 88>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, CIncidentOrderDataNode, 31>,
+		NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode, 270>,
+		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>
 	>
 >;
 using CGuardzoneSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
-		NodeWrapper<NodeIds<1, 0, 0>, CGuardzoneCreateDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGuardZoneStateDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGuardZoneGuardDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGuardZonePointOfInterestFinderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGuardZonePointOfInterestFinderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGuardZonePointOfInterestFinderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGuardZonePointOfInterestFinderDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143595bf0>,
-		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143595bf0>,
-		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143595bf0>,
-		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143595bf0>,
-		NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode>,
-		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>
+		NodeWrapper<NodeIds<1, 0, 0>, CGuardzoneCreateDataNode, 9>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGuardZoneStateDataNode, 136>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGuardZoneGuardDataNode, 71>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGuardZonePointOfInterestFinderDataNode, 556>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGuardZonePointOfInterestFinderDataNode, 556>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGuardZonePointOfInterestFinderDataNode, 556>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGuardZonePointOfInterestFinderDataNode, 556>,
+		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143595bf0, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143595bf0, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143595bf0, 31>,
+		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143595bf0, 31>,
+		NodeWrapper<NodeIds<87, 87, 0>, CEntityScriptInfoDataNode, 270>,
+		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>
 	>
 >;
 using CPedGroupSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
-		NodeWrapper<NodeIds<1, 0, 0>, CPedGroupCreateDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435929e0>,
-		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143592b70>,
-		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143592e90>,
-		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143592d00>,
-		NodeWrapper<NodeIds<127, 127, 0>, CEntityScriptInfoDataNode>,
-		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>
+		NodeWrapper<NodeIds<1, 0, 0>, CPedGroupCreateDataNode, 1>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
+		NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435929e0, 61>,
+		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143592b70, 354>,
+		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143592e90, 471>,
+		NodeWrapper<NodeIds<127, 127, 0>, DataNode_143592d00, 286>,
+		NodeWrapper<NodeIds<127, 127, 0>, CEntityScriptInfoDataNode, 270>,
+		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>
 	>
 >;
 using CCombatDirectorSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
-		NodeWrapper<NodeIds<87, 87, 0>, CCombatDirectorCreateUpdateDataNode>,
-		NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359bef0>,
-		NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359c080>,
-		NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359c210>,
-		NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359c3a0>,
-		NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-		NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>,
-		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>
+		NodeWrapper<NodeIds<87, 87, 0>, CCombatDirectorCreateUpdateDataNode, 17>,
+		NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359bef0, 71>,
+		NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359c080, 129>,
+		NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359c210, 221>,
+		NodeWrapper<NodeIds<87, 87, 0>, DataNode_14359c3a0, 444>,
+		NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+		NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode, 5>,
+		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>
 	>
 >;
 using CPedSharedTargetingSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
-		NodeWrapper<NodeIds<87, 87, 0>, DataNode_1435a1e78>,
-		NodeWrapper<NodeIds<87, 87, 0>, DataNode_1435a2010>,
-		NodeWrapper<NodeIds<87, 87, 0>, DataNode_1435a21a0>,
-		NodeWrapper<NodeIds<87, 87, 0>, DataNode_1435a2330>,
-		NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>,
-		NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>,
-		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>
+		NodeWrapper<NodeIds<87, 87, 0>, DataNode_1435a1e78, 1>,
+		NodeWrapper<NodeIds<87, 87, 0>, DataNode_1435a2010, 44>,
+		NodeWrapper<NodeIds<87, 87, 0>, DataNode_1435a21a0, 4>,
+		NodeWrapper<NodeIds<87, 87, 0>, DataNode_1435a2330, 546>,
+		NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode, 4>,
+		NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode, 5>,
+		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>
 	>
 >;
 using CPersistentSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
-		NodeWrapper<NodeIds<1, 0, 0>, DataNode_1435a24c0>,
-		NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435a2658>,
-		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>,
-		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>
+		NodeWrapper<NodeIds<1, 0, 0>, DataNode_1435a24c0, 24>,
+		NodeWrapper<NodeIds<127, 127, 0>, DataNode_1435a2658, 163>,
+		NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode, 17>,
+		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>
 	>
 >;
-}
