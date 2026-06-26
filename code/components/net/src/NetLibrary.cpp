@@ -360,15 +360,15 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 
 				StripColors(hostname, cleaned, 8192);
 
-				// Setting window text in RDR3's render thread causes the game to hang.
 #ifndef IS_RDR3
-				SetWindowText(CoreGetGameWindow(), va(
-#ifdef GTA_FIVE
-					L"FiveM® by Cfx.re"
-#elif defined(IS_RDR3)
-					L"RedM® by Cfx.re"
-#endif
-					L" - %s", ToWide(cleaned)));
+				SetWindowText(CoreGetGameWindow(), va(L"FiveM® by Cfx.re - %s", ToWide(cleaned)));
+#else
+				// Ensure that we only ever call SetWindowText in the main thread
+				// ProcessOOB can be called from the renderthread when the game is still loading.
+				m_mainFrameQueue.push([]()
+				{
+					SetWindowText(CoreGetGameWindow(), va(L"RedM® by Cfx.re - %s", ToWide(cleaned)));
+				});
 #endif
 
 				auto richPresenceSetTemplate = [&](const auto& tpl)

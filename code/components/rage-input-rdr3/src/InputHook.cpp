@@ -204,18 +204,14 @@ LRESULT APIENTRY sgaWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 {
 	if (uMsg == WM_CREATE)
 	{
-		std::string userEmail;
-		std::string userName;
+		SetWindowText(FindWindow(L"sgaWindow", nullptr), ToWide(fmt::sprintf("RedM™ by Cfx.re")).c_str());
+	}
 
-		if (Instance<ICoreGameInit>::Get()->GetData("rosUserName", &userName) && Instance<ICoreGameInit>::Get()->GetData("rosUserEmail", &userEmail))
-		{
-			if (HashString(userEmail.c_str()) == 0x448645b5 || HashString(userEmail.c_str()) == 0x96ea6c22)
-			{
-				userName = "root";
-			}
-		}
-
-		SetWindowText(FindWindow(L"sgaWindow", nullptr), ToWide(fmt::sprintf("RedM™ by Cfx.re - %s", userName)).c_str());
+	// WM_SETTEXT shouldn't be passed to the games WndProc handler
+	// Doing so can lead to potential deadlocking as the message may not get handled.
+	if (uMsg == WM_SETTEXT)
+	{
+		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 
 	if (uMsg == WM_ACTIVATEAPP)
