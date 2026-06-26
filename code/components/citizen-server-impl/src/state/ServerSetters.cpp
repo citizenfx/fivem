@@ -443,7 +443,7 @@ static InitFunction initFunction([]()
 			ctx.SetResult(guid);
 		});
 
-		fx::ScriptEngine::RegisterNativeHandler("CREATE_PED", [=](fx::ScriptContext& ctx)
+		fx::ScriptEngine::RegisterNativeHandler("CREATE_PED_SERVER_SETTER", [=](fx::ScriptContext& ctx)
 		{
 			uint32_t resourceHash = 0;
 
