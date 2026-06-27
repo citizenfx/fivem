@@ -86,6 +86,8 @@ public:
 #if COMPILE_MONO_RUNTIME_METHODS
 	// Hook to handle unhandled exceptions
 	static void UnhandledException(MonoObject* exc, void* userData);
+	// Hook to assembly Load
+	static void AssemblyLoadCallback(MonoAssembly* assembly, void* user_data);
 
 private:
 	// Hook to that determines if the loading of an image/assembly is trusted/platform or untrusted/UGC code

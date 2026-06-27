@@ -9,6 +9,8 @@
 #include <mono/metadata/exception.h>
 #include <mono/metadata/mono-debug.h>
 #include <mono/metadata/mono-gc.h>
+#include <mono/metadata/appdomain.h>
+#include <mono/metadata/image.h>
 
 #ifndef IS_FXSERVER
 extern "C" {
@@ -137,8 +139,11 @@ void MonoComponentHostShared::Initialize()
 		mono_domain_set_config(rootDomain, (basePath + "cfg/mono/").c_str(), "cfx.config");
 
 		mono_install_unhandled_exception_hook(UnhandledException, nullptr);
+		mono_install_assembly_load_hook(AssemblyLoadCallback, nullptr);
 	}
 }
+
+
 
 void MonoComponentHostShared::PrintException(MonoObject* exc, bool fatal)
 {
@@ -176,6 +181,29 @@ void MonoComponentHostShared::PrintException(MonoObject* exc, bool fatal)
 		mono_free(msg2CStr);
 	}
 }
+
+#if COMPILE_MONO_RUNTIME_METHODS
+void MonoComponentHostShared::AssemblyLoadCallback(MonoAssembly* assembly, void* user_data)
+{
+	MonoImage* image = mono_assembly_get_image(assembly);
+	if (!image)
+		return;
+
+	const char* filename = mono_image_get_filename(image);
+
+   #ifndef IS_FXSERVER
+	// block if the code is not trusted
+	if (MonoComponentHostShared::CoreCLRIsTrustedCode(filename) == 0)
+	{
+		MonoDomain* currentDomain = mono_domain_get();
+		if (currentDomain)
+		{
+			mono_jit_cleanup(currentDomain);
+		}
+	}
+   #endif
+}
+#endif
 
 #if COMPILE_MONO_RUNTIME_METHODS
 #ifndef IS_FXSERVER
