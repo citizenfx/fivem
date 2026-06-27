@@ -9,6 +9,7 @@
 #include <CommCtrl.h>
 #include <ctime>
 #include <chrono>
+#include <../citicore/LaunchMode.h>
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
 #include <shobjidl.h>
@@ -1339,9 +1340,11 @@ void UI_DoCreation(bool safeMode)
 		g_tenUI->InitManager();
 	}
 
-	if (IsWindows7OrGreater())
+	// The ITaskbarList3 COM server doesn't exist under Wine — skip it to avoid
+	// a failed CoCreateInstance call and the log noise it produces.
+	if (IsWindows7OrGreater() && !CfxIsWine())
 	{
-		CoCreateInstance(CLSID_TaskbarList, 
+		CoCreateInstance(CLSID_TaskbarList,
 			NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g_uui.tbList));
 	}
 

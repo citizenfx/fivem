@@ -21,6 +21,7 @@
 #include <CfxState.h>
 #include <CfxSubProcess.h>
 #include <HostSharedData.h>
+#include <../citicore/LaunchMode.h>
 
 using namespace google_breakpad;
 
@@ -1212,6 +1213,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				files[L"upload_file_minidump"] = *filePath;
 
 				// ask the game if it has any additional information to share
+				// Wine does not support CreateRemoteThread / WriteProcessMemory
+				// across separate Wine processes, so skip this entire block.
+				if (!CfxIsWine())
 				{
 					HostSharedData<CfxState> hostData("CfxInitState");
 					HANDLE gameProcess = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, hostData->gamePid);
@@ -1468,23 +1472,28 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 							friendlyReason = gettext("Game crashed: ") + friendlyReason;
 
-							LPVOID memPtr = VirtualAllocEx(gameProcess, NULL, friendlyReason.size() + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
-							if (memPtr)
+							// Wine does not reliably support cross-process
+							// VirtualAllocEx / WriteProcessMemory / CreateRemoteThread.
+							if (!CfxIsWine())
 							{
-								WriteProcessMemory(gameProcess, memPtr, friendlyReason.data(), friendlyReason.size() + 1, NULL);
-							}
+								LPVOID memPtr = VirtualAllocEx(gameProcess, NULL, friendlyReason.size() + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-							auto func = GetFunc(gameProcess, "BeforeTerminateHandler");
-
-							if (func)
-							{
-								HANDLE hThread = CreateRemoteThread(gameProcess, NULL, 0, func, memPtr, 0, NULL);
-
-								if (hThread)
+								if (memPtr)
 								{
-									WaitForSingleObject(hThread, 7500);
-									CloseHandle(hThread);
+									WriteProcessMemory(gameProcess, memPtr, friendlyReason.data(), friendlyReason.size() + 1, NULL);
+								}
+
+								auto func = GetFunc(gameProcess, "BeforeTerminateHandler");
+
+								if (func)
+								{
+									HANDLE hThread = CreateRemoteThread(gameProcess, NULL, 0, func, memPtr, 0, NULL);
+
+									if (hThread)
+									{
+										WaitForSingleObject(hThread, 7500);
+										CloseHandle(hThread);
+									}
 								}
 							}
 

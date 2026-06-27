@@ -16,6 +16,8 @@
 #include <CfxState.h>
 
 #include <wrl.h>
+#include <commdlg.h>
+#include <../citicore/LaunchMode.h>
 
 namespace WRL = Microsoft::WRL;
 
@@ -181,6 +183,30 @@ std::optional<int> EnsureGamePath()
 		}
 	}
 
+	// Under Proton, Steam sets STEAM_COMPAT_INSTALL_PATH to the game's
+	// installation directory on the host filesystem.  Wine maps the Linux root
+	// to the Z: drive, so we can build a usable Windows path from it directly.
+	if (CfxIsProton())
+	{
+		const char* protonInstallPath = getenv("STEAM_COMPAT_INSTALL_PATH");
+		if (protonInstallPath && protonInstallPath[0] != '\0')
+		{
+			std::wstring winePath = L"Z:" + ToWide(protonInstallPath);
+			std::replace(winePath.begin(), winePath.end(), L'/', L'\\');
+
+			std::wstring gameExe = winePath + L"\\" GAME_EXECUTABLE;
+			if (GetFileAttributesW(gameExe.c_str()) != INVALID_FILE_ATTRIBUTES)
+			{
+				WritePrivateProfileString(L"Game", pathKey, winePath.c_str(), fpath.c_str());
+
+				static HostSharedData<CfxState> initState("CfxInitState");
+				initState->gameDirectory[0] = L'\0';
+
+				return {};
+			}
+		}
+	}
+
 	ScopedCoInitialize coInit(COINIT_APARTMENTTHREADED);
 
 	if (!coInit)
@@ -195,9 +221,46 @@ std::optional<int> EnsureGamePath()
 
 	if (FAILED(hr))
 	{
-		MessageBox(nullptr, va(L"CoCreateInstance(IFileDialog) failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
+		if (!CfxIsWine())
+		{
+			MessageBox(nullptr, va(L"CoCreateInstance(IFileDialog) failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
+			return static_cast<int>(hr);
+		}
 
-		return static_cast<int>(hr);
+		// Wine's IFileDialog support is unreliable — fall back to the legacy
+		// GetOpenFileName dialog which Wine implements more reliably.
+		OPENFILENAMEW ofn = {};
+		ofn.lStructSize = sizeof(ofn);
+		wchar_t fileNameBuf[MAX_PATH] = {};
+		ofn.lpstrFile = fileNameBuf;
+		ofn.nMaxFile = MAX_PATH;
+		ofn.lpstrFilter = L"Game Executable\0" GAME_EXECUTABLE L"\0All Files\0*.*\0";
+		ofn.nFilterIndex = 1;
+		ofn.lpstrTitle = L"Select " GAME_EXECUTABLE L" to launch " PRODUCT_NAME;
+		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+		if (!GetOpenFileNameW(&ofn))
+		{
+			return 0;
+		}
+
+		std::wstring gamePath = fileNameBuf;
+		auto exeNameLength = std::size(GAME_EXECUTABLE);
+
+		if (gamePath.rfind(L"\\" GAME_EXECUTABLE) != (gamePath.length() - exeNameLength))
+		{
+			MessageBox(nullptr, va(gettext(L"The selected path does not contain a %s file."), GAME_EXECUTABLE), PRODUCT_NAME, MB_OK | MB_ICONWARNING);
+			return 0;
+		}
+
+		WritePrivateProfileString(L"Game", pathKey, gamePath.substr(0, gamePath.length() - exeNameLength).c_str(), fpath.c_str());
+
+		{
+			static HostSharedData<CfxState> initState("CfxInitState");
+			initState->gameDirectory[0] = L'\0';
+		}
+
+		return {};
 	}
 
 	FILEOPENDIALOGOPTIONS opts;
