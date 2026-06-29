@@ -72,4 +72,7 @@ static HookFunction hookFunction([]()
 
 	// Ignore hard coded limit of CVehicle to 128
 	hook::put<char>(hook::get_pattern("76 ? BA ? ? ? ? 41 B8 ? ? ? ? 83 C9 ? E8 ? ? ? ? 33 D2 8B CB"), 0xEB);
+
+	// Patch GET_MAX_NUM_NETWORK_VEHICLES/0x0AFCE529F69B21FF to reflect the increased network vehicle limit.
+	hook::put<uint32_t>(hook::get_pattern("48 8B 01 C7 00 28 00 00 00", 5), kDefaultMaxVehicles + increaseSize);
 });
