@@ -2070,6 +2070,19 @@ static HookFunction initFunction([]()
 		g_origCTaskVehicleReactToCopSiren_ctor = hook::trampoline(hook::get_call(hook::get_pattern("8B D3 48 8B C8 E8 ? ? ? ? 48 8B 9F ? ? ? ? 45 33 C9", 5)), CTaskVehicleReactToCopSiren_ctor);
 	}
 
+	using CVehicle_SetDeployOutriggers_t = void(__fastcall*)(fwEntity* vehicle, bool deploy);
+	void* deployOutriggersFunctionAddress = hook::get_pattern("48 83 EC ? 38 91 ? ? ? ? 74 ? 88 91 ? ? ? ? 48 8B 89");
+	const auto CVehicle_SetDeployOutriggers = reinterpret_cast<CVehicle_SetDeployOutriggers_t>(deployOutriggersFunctionAddress);
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_DEPLOY_OUTRIGGERS", [=](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "SET_DEPLOY_OUTRIGGERS"))
+		{
+			const auto deploy = context.GetArgument<bool>(1);
+			CVehicle_SetDeployOutriggers(vehicle, deploy);
+		}
+	});
+
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 8A 83 DA 00 00 00 24 0F 3C 02", -0x32), DeleteVehicleWrap, (void**)&g_origDeleteVehicle);
 	MH_CreateHook(hook::get_pattern("80 7A 4B 00 45 8A F9", -0x1D), DeleteNetworkCloneWrap, (void**)&g_origDeleteNetworkClone);
