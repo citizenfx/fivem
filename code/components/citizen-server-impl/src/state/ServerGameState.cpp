@@ -3587,14 +3587,23 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			}
 		}
 
-		auto startDelete = [this, entity, client, objectId, uniqifier]()
+		auto startDelete = [this, entity, client, objectId, uniqifier](const std::string& reason)
 		{
 			RemoveClone({}, entity->handle);
 
 			// if the entity isn't added yet, the owner should be told of its deletion too
 			{
 				auto [lock, data] = GetClientData(this, client);
-				data->entitiesToDestroy[MakeHandleUniqifierPair(objectId, uniqifier)] = { entity, { false, false } };
+
+				auto entityPair = MakeHandleUniqifierPair(objectId, uniqifier);
+				if (data->entitiesToDestroy.find(entityPair) == data->entitiesToDestroy.end())
+				{
+					// Trigger an event when the entity is deleted due to creation failure
+					auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+					evComponent->TriggerEvent2("entityCreationFailed", {}, MakeScriptHandle(entity), reason, client->GetNetId());
+				}
+
+				data->entitiesToDestroy[entityPair] = { entity, { false, false } };
 			}
 		};
 
@@ -3619,7 +3628,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			if (entityLockdownMode != EntityLockdownMode::Inactive && !ValidateEntity(entityLockdownMode, entity))
 			{
 				// yeet
-				startDelete();
+				startDelete(entityLockdownMode != EntityLockdownMode::Inactive ? "LockdownMode" : "EntityValidation");
 
 				return false;
 			}
@@ -3627,7 +3636,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 
 		if (!OnEntityCreate(entity))
 		{
-			startDelete();
+			startDelete("OnEntityCreate");
 
 			return false;
 		}
