@@ -17,12 +17,8 @@ void DLL_IMPORT AuthenticateDiscourse(const char* clientId, const char* authToke
 bool DLL_IMPORT ShouldProcessHeaders(const char* hostname);
 void DLL_IMPORT ProcessHeaders(char*, char*);
 
-void DLL_IMPORT InitSteamSDKConnection();
-bool DLL_IMPORT IsSteamRunning();
-bool DLL_IMPORT IsSteamInitializedWrapper();
-void DLL_IMPORT GetSteamAuthTicketWrapper(const std::function<void(std::pair<std::string, std::string>)>& callback, bool enforceSteamAuth);
-uint64_t DLL_IMPORT GetSteamIdAsIntWrapper();
-std::string DLL_IMPORT GetSteamUsernameWrapper();
-void DLL_IMPORT SetSteamRichPresenceWrapper(std::string key, std::string value);
-void DLL_IMPORT ResetSteamRichPresenceWrapper();
+// New Steam Auth
+bool DLL_IMPORT IsSteamLinked();
+void DLL_IMPORT AttemptSteamAuth(const std::function<void(std::pair<std::string, std::string>)>& callback, bool forceAuth);
+void DLL_IMPORT RefreshIdentities();
 }

@@ -23,8 +23,6 @@
 
 #include "Hooking.h"
 
-#include <SharedLegitimacyAPI.h>
-
 static std::string g_overrideNextLoadedLevel;
 static std::string g_nextLevelPath;
 
@@ -229,18 +227,10 @@ static void LoadLevel(const char* levelName)
 
 	gameInit->ShAllowed = true;
 
-	if (gameInit->HasVariable("storyMode"))
-	{
-		cfx::legitimacy::SetSteamRichPresenceWrapper("status", "Playing Story Mode");
-		cfx::legitimacy::SetSteamRichPresenceWrapper("steam_display", "#Status_InStoryMode");
-	}
-	else if (gameInit->HasVariable("localMode"))
+    if (gameInit->HasVariable("localMode"))
 	{
 		std::string localName = "Unknown";
 		Instance<ICoreGameInit>::Get()->GetData("localResource", &localName);
-
-		cfx::legitimacy::SetSteamRichPresenceWrapper("status", fmt::format("Playing: {}", localName));
-		cfx::legitimacy::SetSteamRichPresenceWrapper("steam_display", "#Status_InStoryMode");
 	}
 }
 
@@ -360,7 +350,6 @@ static InitFunction initFunction([]()
 	OnKillNetworkDone.Connect([]()
 	{
 		isLoadLevel = false;
-		cfx::legitimacy::ResetSteamRichPresenceWrapper();
 	});
 
 	/*static ConsoleCommand mehCommand("tryLoad", []()
