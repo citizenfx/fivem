@@ -135,7 +135,7 @@ static HookFunction hookFunction([]()
 			}
 		} patchStub;
 
-		if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+		if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>() && !xbr::IsGameBuildOrGreater<xbr::Build::Summer_2026>())
 		{
 			char* location = hook::get_pattern<char>("0F B6 A8 ? ? ? ? C1 E5");
 			const auto ret = reinterpret_cast<intptr_t>(location) + 10;

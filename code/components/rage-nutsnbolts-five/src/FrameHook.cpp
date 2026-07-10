@@ -184,7 +184,16 @@ static HookFunction hookFunction([] ()
 {
 	g_mainThreadId = GetCurrentThreadId();
 
-	void* lookAliveFrameCall = hook::pattern("48 81 EC ? 01 00 00 E8 ? ? ? ? 33 F6 48 8D").count(1).get(0).get<void>(7);
+	void* lookAliveFrameCall;
+
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2026>())
+	{
+		lookAliveFrameCall = hook::pattern("E8 ? ? ? ? 33 FF 48 8D 35").count(1).get(0).get<void>();
+	}
+	else
+	{
+		lookAliveFrameCall = hook::pattern("48 81 EC ? 01 00 00 E8 ? ? ? ? 33 F6 48 8D").count(1).get(0).get<void>(7);
+	}
 
 	hook::set_call(&g_origLookAlive, lookAliveFrameCall);
 	hook::call(lookAliveFrameCall, OnLookAlive);

@@ -3296,7 +3296,7 @@ static HookFunction hookFunctionNative([]()
 	MH_Initialize();
 
 #ifdef GTA_FIVE
-	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>() && !xbr::IsGameBuildOrGreater<xbr::Build::Summer_2026>())
 	{
 		MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 0F B6 B2"), SendCloneSync, (void**)&g_origSendCloneSync);
 	}

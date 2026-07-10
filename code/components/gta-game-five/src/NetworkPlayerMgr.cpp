@@ -63,7 +63,7 @@ static HookFunction hookFunction([]()
 
 	g_netGamePlayerClassSize = *hook::get_pattern<uint32_t>("48 81 C7 ? ? ? ? FF CD 79 ? 33 ED", 3);
 
-	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>() && !xbr::IsGameBuildOrGreater<xbr::Build::Summer_2026>())
 	{
 		g_netGamePlayerPhysicalIndexOffset = *hook::get_pattern<uint32_t>("8A 88 ? ? ? ? 80 F9 ? 74 ? BA", 2);
 		g_netGamePlayerActiveIndexOffset = *hook::get_pattern<uint32_t>("41 8A 80 ? ? ? ? 3C ? 73", 3);

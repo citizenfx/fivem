@@ -205,6 +205,16 @@ inline bool IsPatch2026_1()
 
 	return value;
 }
+
+inline bool IsSummerUpdate26()
+{
+	static bool value = ([]()
+	{
+		return xbr::GetMandatedDefaultGTA5Build() >= xbr::Build::Summer_2026 || fx::GetEnforcedGameBuildNumber() >= xbr::Build::Summer_2026;
+	})();
+
+	return value;
+}
 #elif defined(STATE_RDR3)
 inline bool Is1491()
 {

@@ -36,6 +36,11 @@ inline uintptr_t GetTriggerEP()
 		return ep;
 	}
 
+	if (xbr::IsGameBuild<xbr::Build::Summer_2026>())
+	{
+		return 0x14187F48C;
+	}
+	
 	if (xbr::IsGameBuild<xbr::Build::Patch_2026_1>())
 	{
 		return 0x14187C378;

@@ -13,6 +13,78 @@ using TPoolPtr = atPoolBase**;
 static TCreateCloneObjFn createCloneFuncs[(int)NetObjEntityType::Max];
 static TPoolPtr validatePools[(int)NetObjEntityType::Max];
 
+struct CloneBlockReferences
+{
+	TPoolPtr pool;
+	TCreateCloneObjFn createClone;
+};
+
+static bool MatchBytes(const uint8_t* address, const uint8_t* pattern, const char* mask)
+{
+	for (size_t i = 0; mask[i]; ++i)
+	{
+		if (mask[i] == 'x' && address[i] != pattern[i])
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static bool DiscoverCloneBlockReferences(char* location, CloneBlockReferences* references, size_t referenceCount)
+{
+	static constexpr uint8_t poolPattern[] = {
+		0x48, 0x8B, 0x05, 0x00, 0x00, 0x00, 0x00,
+		0x8B, 0x48, 0x20, 0x8B, 0x40, 0x10,
+		0xC1, 0xE1, 0x02, 0xC1, 0xF9, 0x02,
+		0x2B, 0xC1, 0x85, 0xC0
+	};
+	static constexpr char poolMask[] = "xxx????xxxxxxxxxxxxxxxx";
+	static constexpr uint8_t callMarker[] = { 0x41, 0x0F, 0xB7, 0xCC, 0xE8 };
+	static constexpr char callMask[] = "xxxxx";
+
+	constexpr size_t searchSize = 0x1000;
+	constexpr size_t maximumBlockSize = 0x100;
+	size_t found = 0;
+
+	for (size_t offset = 0; offset + sizeof(poolPattern) <= searchSize && found < referenceCount; ++offset)
+	{
+		auto block = reinterpret_cast<uint8_t*>(location + offset);
+
+		if (!MatchBytes(block, poolPattern, poolMask))
+		{
+			continue;
+		}
+
+		uint8_t* call = nullptr;
+		for (size_t blockOffset = sizeof(poolPattern);
+			blockOffset + sizeof(callMarker) <= maximumBlockSize;
+			++blockOffset)
+		{
+			if (MatchBytes(block + blockOffset, callMarker, callMask))
+			{
+				call = block + blockOffset + 4;
+				break;
+			}
+		}
+
+		if (!call)
+		{
+			return false;
+		}
+
+		references[found++] = {
+			reinterpret_cast<TPoolPtr>(hook::get_address<void*>(block + 3)),
+			reinterpret_cast<TCreateCloneObjFn>(hook::get_call(call))
+		};
+
+		offset = static_cast<size_t>((call + 5) - reinterpret_cast<uint8_t*>(location)) - 1;
+	}
+
+	return found == referenceCount;
+}
+
 namespace rage
 {
 	netObject* CreateCloneObject(NetObjEntityType type, uint16_t objectId, uint8_t a2, int a3, int a4)
@@ -42,37 +114,36 @@ static HookFunction hookFunction([]()
 {
 	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
 	{
-		auto location = hook::get_pattern<char>("45 84 ED 0F 84 ? ? ? ? 83 FE ? 0F 8F"); // 1411CCB27 - base
+		auto location = hook::get_pattern<char>("45 84 ED 0F 84 ? ? ? ? 83 FE ? 0F 8F");
+		static constexpr NetObjEntityType blockOrder[] = {
+			NetObjEntityType::Ped,
+			NetObjEntityType::Object,
+			NetObjEntityType::Heli,
+			NetObjEntityType::Door,
+			NetObjEntityType::Boat,
+			NetObjEntityType::Bike,
+			NetObjEntityType::Automobile,
+			NetObjEntityType::Pickup,
+			NetObjEntityType::Train,
+			NetObjEntityType::Trailer,
+			NetObjEntityType::Player,
+			NetObjEntityType::Submarine,
+			NetObjEntityType::Plane,
+			NetObjEntityType::PickupPlacement
+		};
+		CloneBlockReferences references[std::size(blockOrder)]{};
 
-		createCloneFuncs[(int)NetObjEntityType::Ped] = (TCreateCloneObjFn)hook::get_call(location + 0x7C); // 1411CCBA3
-		createCloneFuncs[(int)NetObjEntityType::Object] = (TCreateCloneObjFn)hook::get_call(location + 0xB8); // 1411CCBDF
-		createCloneFuncs[(int)NetObjEntityType::Heli] = (TCreateCloneObjFn)hook::get_call(location + 0xF4); // 1411CCC1B
-		createCloneFuncs[(int)NetObjEntityType::Door] = (TCreateCloneObjFn)hook::get_call(location + 0x130); // 1411CCC57
-		createCloneFuncs[(int)NetObjEntityType::Boat] = (TCreateCloneObjFn)hook::get_call(location + 0x16C); // 1411CCC93
-		createCloneFuncs[(int)NetObjEntityType::Bike] = (TCreateCloneObjFn)hook::get_call(location + 0x1A8); // 1411CCCCF
-		createCloneFuncs[(int)NetObjEntityType::Automobile] = (TCreateCloneObjFn)hook::get_call(location + 0x1E4); // 1411CCD0B
-		createCloneFuncs[(int)NetObjEntityType::Pickup] = (TCreateCloneObjFn)hook::get_call(location + 0x220); // 1411CCD47
-		createCloneFuncs[(int)NetObjEntityType::Train] = (TCreateCloneObjFn)hook::get_call(location + 0x287); // 1411CCDAE
-		createCloneFuncs[(int)NetObjEntityType::Trailer] = (TCreateCloneObjFn)hook::get_call(location + 0x2C3); // 1411CCDEA
-		createCloneFuncs[(int)NetObjEntityType::Player] = (TCreateCloneObjFn)hook::get_call(location + 0x2FF); // 1411CCE26
-		createCloneFuncs[(int)NetObjEntityType::Submarine] = (TCreateCloneObjFn)hook::get_call(location + 0x33B); // 01411CCE62
-		createCloneFuncs[(int)NetObjEntityType::Plane] = (TCreateCloneObjFn)hook::get_call(location + 0x370); // 1411CCE97
-		createCloneFuncs[(int)NetObjEntityType::PickupPlacement] = (TCreateCloneObjFn)hook::get_call(location + 0x3A5); // 1411CCECC
+		if (!DiscoverCloneBlockReferences(location, references, std::size(references)))
+		{
+			throw std::runtime_error("Failed to discover net object clone pool references");
+		}
 
-		validatePools[(int)NetObjEntityType::Ped] = (TPoolPtr)hook::get_address<void*>(location + 0x4C + 3); // 1411CCB73
-		validatePools[(int)NetObjEntityType::Object] = (TPoolPtr)hook::get_address<void*>(location + 0x86 + 3); // 1411CCBAD
-		validatePools[(int)NetObjEntityType::Heli] = (TPoolPtr)hook::get_address<void*>(location + 0xC2 + 3); // 1411CCBE9
-		validatePools[(int)NetObjEntityType::Door] = (TPoolPtr)hook::get_address<void*>(location + 0xFE + 3); // 1411CCC25
-		validatePools[(int)NetObjEntityType::Boat] = (TPoolPtr)hook::get_address<void*>(location + 0x13A + 3); // 1411CCC61
-		validatePools[(int)NetObjEntityType::Bike] = (TPoolPtr)hook::get_address<void*>(location + 0x176 + 3); // 1411CCC9D
-		validatePools[(int)NetObjEntityType::Automobile] = (TPoolPtr)hook::get_address<void*>(location + 0x1B2 + 3); // 1411CCCD9
-		validatePools[(int)NetObjEntityType::Pickup] = (TPoolPtr)hook::get_address<void*>(location + 0x1EE + 3); // 1411CCD15
-		validatePools[(int)NetObjEntityType::Train] = (TPoolPtr)hook::get_address<void*>(location + 0x257 + 3); // 1411CCD7E
-		validatePools[(int)NetObjEntityType::Trailer] = (TPoolPtr)hook::get_address<void*>(location + 0x291 + 3); // 1411CCDB8
-		validatePools[(int)NetObjEntityType::Player] = (TPoolPtr)hook::get_address<void*>(location + 0x2CD + 3); // 1411CCDF4
-		validatePools[(int)NetObjEntityType::Submarine] = (TPoolPtr)hook::get_address<void*>(location + 0x309 + 3); // 1411CCE30
-		validatePools[(int)NetObjEntityType::Plane] = (TPoolPtr)hook::get_address<void*>(location + 0x342 + 3); // 1411CCE69
-		validatePools[(int)NetObjEntityType::PickupPlacement] = (TPoolPtr)hook::get_address<void*>(location + 0x377 + 3); // 1411CCE9E
+		for (size_t i = 0; i < std::size(blockOrder); ++i)
+		{
+			auto type = static_cast<int>(blockOrder[i]);
+			validatePools[type] = references[i].pool;
+			createCloneFuncs[type] = references[i].createClone;
+		}
 	}
 	else
 	{

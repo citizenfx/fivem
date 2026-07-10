@@ -149,7 +149,17 @@ void RunRlInitServicing()
 	using dummyVoidFunc = void(*)();
 	using dummyVoidFunc2 = void(*)(void*);
 
-	dummyVoidFunc rlInitFunc1 = (dummyVoidFunc)hook::get_pattern<void*>("48 89 5C 24 ? 48 89 74 24 ? 55 57 41 54 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? E8");
+	dummyVoidFunc rlInitFunc1;
+
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2026>())
+	{
+		rlInitFunc1 = (dummyVoidFunc)hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 55 57 41 54 41 56 41 57 48 8B EC 48 83 EC ? E8");
+	}
+	else
+	{
+		rlInitFunc1 = (dummyVoidFunc)hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 55 57 41 54 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? E8");
+	}
+
 	dummyVoidFunc rlInitFunc2 = (dummyVoidFunc)hook::get_call(hook::get_pattern<void*>("E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 80 3D ? ? ? ? ? 74 ? 33 C9"));
 	dummyVoidFunc rlInitFunc3 = (dummyVoidFunc)hook::get_pattern<void*>("48 83 EC ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 48 8D 0D");
 	dummyVoidFunc2 rlInitFunc4 = (dummyVoidFunc2)hook::get_pattern<void*>("48 83 EC ? 48 8D 0D ? ? ? ? 33 D2 E8 ? ? ? ? E8");
