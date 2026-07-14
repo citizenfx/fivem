@@ -45,6 +45,22 @@ public:
 
 	virtual void AddSafePreCreatePrefix(std::string_view idPrefix, bool useParentTargets) override;
 
+	virtual size_t AddChangeHandler(std::string_view bagFilter, std::string_view keyFilter, TStateBagChangeHandler handler) override;
+
+	virtual void RemoveChangeHandler(size_t cookie) override;
+
+	//
+	// Returns whether any change handler (filtered or legacy event) could observe a
+	// change to the given (bagName, key). Cheap: no deserialization involved.
+	//
+	bool HasChangeHandlerFor(std::string_view bagName, std::string_view key);
+
+	//
+	// Invokes the legacy change event and any matching filtered change handlers.
+	// Returns false if any handler blocked the change.
+	//
+	bool DispatchChangeHandlers(int source, std::string_view bagName, std::string_view key, const msgpack::object& value, bool replicated);
+
 	virtual StateBagRole GetRole() const override
 	{
 		return m_role;
@@ -107,6 +123,19 @@ private:
 	// *owning* pointers for pre-created bags
 	std::set<std::shared_ptr<StateBagImpl>> m_preCreatedStateBags;
 	std::shared_mutex m_preCreatedStateBagsMutex;
+
+	// filtered change handlers
+	struct ChangeHandler
+	{
+		std::string bagFilter;
+		std::string keyFilter;
+		TStateBagChangeHandler handler;
+	};
+
+	std::map<size_t, std::shared_ptr<ChangeHandler>> m_changeHandlers;
+	std::shared_mutex m_changeHandlersMutex;
+	size_t m_nextChangeHandlerCookie = 1;
+	std::atomic<size_t> m_changeHandlerCount{ 0 };
 };
 
 class StateBagImpl : public StateBag
@@ -215,12 +244,10 @@ void StateBagImpl::SetKey(int source, std::string_view key, std::string_view dat
 		static_cast<StateBagImpl*>(thisRef.get())->SetKeyInternal(source, key, data, replicated);
 	};
 
-	const auto& sbce = m_parent->OnStateBagChange;
-
-	if (sbce)
+	// only deserialize (and potentially marshal to the main thread) if any change
+	// handler could actually observe this change
+	if (m_parent->HasChangeHandlerFor(m_id, key))
 	{
-		// #TODOPERF: this will unconditionally unpack and call into svMain if *any* change handler is reg'd
-		// -> ideally we'd have a separate event so we can poll if there's a match for script filters before doing this
 		msgpack::unpacked up;
 
 		try
@@ -251,7 +278,7 @@ void StateBagImpl::SetKey(int source, std::string_view key, std::string_view dat
 				up = std::move(up)
 			]()
 			{
-				if (parent->OnStateBagChange(source, id, key, up.get(), replicated))
+				if (parent->DispatchChangeHandlers(source, id, key, up.get(), replicated))
 				{
 					continuation(key, data);
 				}
@@ -260,7 +287,7 @@ void StateBagImpl::SetKey(int source, std::string_view key, std::string_view dat
 			return;
 		}
 
-		if (!sbce(source, m_id, key, up.get(), replicated))
+		if (!m_parent->DispatchChangeHandlers(source, m_id, key, up.get(), replicated))
 		{
 			return;
 		}
@@ -602,6 +629,89 @@ void StateBagComponentImpl::UnregisterTarget(int id)
 			b->RemoveRoutingTarget(id);
 		}
 	}
+}
+
+size_t StateBagComponentImpl::AddChangeHandler(std::string_view bagFilter, std::string_view keyFilter, TStateBagChangeHandler handler)
+{
+	std::unique_lock lock(m_changeHandlersMutex);
+
+	auto cookie = m_nextChangeHandlerCookie++;
+	m_changeHandlers.emplace(cookie, std::make_shared<ChangeHandler>(ChangeHandler{ std::string{ bagFilter }, std::string{ keyFilter }, std::move(handler) }));
+	m_changeHandlerCount.fetch_add(1, std::memory_order_relaxed);
+
+	return cookie;
+}
+
+void StateBagComponentImpl::RemoveChangeHandler(size_t cookie)
+{
+	std::unique_lock lock(m_changeHandlersMutex);
+
+	if (m_changeHandlers.erase(cookie))
+	{
+		m_changeHandlerCount.fetch_sub(1, std::memory_order_relaxed);
+	}
+}
+
+bool StateBagComponentImpl::HasChangeHandlerFor(std::string_view bagName, std::string_view key)
+{
+	// a direct event connection can't be filtered, so it always matches
+	if (OnStateBagChange)
+	{
+		return true;
+	}
+
+	// common case: no handlers registered at all
+	if (m_changeHandlerCount.load(std::memory_order_relaxed) == 0)
+	{
+		return false;
+	}
+
+	std::shared_lock lock(m_changeHandlersMutex);
+
+	for (const auto& [cookie, handler] : m_changeHandlers)
+	{
+		if ((handler->keyFilter.empty() || key == handler->keyFilter) &&
+			(handler->bagFilter.empty() || bagName == handler->bagFilter))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool StateBagComponentImpl::DispatchChangeHandlers(int source, std::string_view bagName, std::string_view key, const msgpack::object& value, bool replicated)
+{
+	if (!OnStateBagChange(source, bagName, key, value, replicated))
+	{
+		return false;
+	}
+
+	// collect matching handlers first: a handler may add/remove handlers itself
+	eastl::fixed_vector<std::shared_ptr<ChangeHandler>, 16> matchingHandlers;
+
+	{
+		std::shared_lock lock(m_changeHandlersMutex);
+
+		for (const auto& [cookie, handler] : m_changeHandlers)
+		{
+			if ((handler->keyFilter.empty() || key == handler->keyFilter) &&
+				(handler->bagFilter.empty() || bagName == handler->bagFilter))
+			{
+				matchingHandlers.push_back(handler);
+			}
+		}
+	}
+
+	for (const auto& handler : matchingHandlers)
+	{
+		if (!handler->handler(source, bagName, key, value, replicated))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void StateBagComponentImpl::AddSafePreCreatePrefix(std::string_view idPrefix, bool useParentTargets)

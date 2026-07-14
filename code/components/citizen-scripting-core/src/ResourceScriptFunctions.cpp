@@ -420,22 +420,18 @@ static InitFunction initFunction([] ()
 		auto rm = fx::ResourceManager::GetCurrent();
 		auto sbac = rm->GetComponent<fx::StateBagComponent>();
 
-		auto cookie = sbac->OnStateBagChange.Connect(make_shared_function([rm, keyNameRef, bagNameRef, cbRef = std::move(cbRef)](int source, std::string_view bagName, std::string_view key, const msgpack::object& value, bool replicated)
+		// registering the filter with the component allows it to skip deserializing
+		// changes that no handler is interested in
+		auto cookie = sbac->AddChangeHandler(bagNameRef, keyNameRef, make_shared_function([rm, cbRef = std::move(cbRef)](int source, std::string_view bagName, std::string_view key, const msgpack::object& value, bool replicated)
 		{
-			if (keyNameRef.empty() || key == keyNameRef)
-			{
-				if (bagNameRef.empty() || bagName == bagNameRef)
-				{
-					rm->CallReference<void>(cbRef.GetRef(), std::string{ bagName }, std::string{ key }, value, source, replicated);
-				}
-			}
+			rm->CallReference<void>(cbRef.GetRef(), std::string{ bagName }, std::string{ key }, value, source, replicated);
 
 			return true;
 		}));
 
 		resource->OnStop.Connect([sbac, cookie]()
 		{
-			sbac->OnStateBagChange.Disconnect(cookie);
+			sbac->RemoveChangeHandler(cookie);
 		});
 
 		context.SetResult(cookie);
@@ -447,7 +443,7 @@ static InitFunction initFunction([] ()
 		auto rm = fx::ResourceManager::GetCurrent();
 		auto sbac = rm->GetComponent<fx::StateBagComponent>();
 
-		sbac->OnStateBagChange.Disconnect(size_t(cookie));
+		sbac->RemoveChangeHandler(size_t(cookie));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("STATE_BAG_HAS_KEY", [](fx::ScriptContext& context)

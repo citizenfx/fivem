@@ -185,7 +185,27 @@ public:
 	virtual void SetRole(StateBagRole role) = 0;
 
 	//
+	// A state bag change handler. Returning false will block the change.
+	//
+	using TStateBagChangeHandler = std::function<bool(int source, std::string_view bagName, std::string_view key, const msgpack::object& value, bool replicated)>;
+
+	//
+	// Adds a change handler with an associated (bagName, key) filter, where an empty
+	// filter part matches any value. Unlike direct OnStateBagChange connections, this
+	// allows SetKey to skip deserialization entirely when no filter matches a change.
+	// Returns a cookie to pass to RemoveChangeHandler.
+	//
+	virtual size_t AddChangeHandler(std::string_view bagFilter, std::string_view keyFilter, TStateBagChangeHandler handler) = 0;
+
+	//
+	// Removes a change handler added with AddChangeHandler.
+	//
+	virtual void RemoveChangeHandler(size_t cookie) = 0;
+
+	//
 	// An event handling a state bag value change.
+	// NOTE: prefer AddChangeHandler; any connection to this event forces *every*
+	// state bag change to be deserialized, whether it matches or not.
 	//
 	fwEvent<int, std::string_view, std::string_view, const msgpack::object&, bool> OnStateBagChange;
 
