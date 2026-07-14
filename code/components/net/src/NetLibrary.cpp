@@ -226,7 +226,7 @@ bool NetLibrary::DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* net
 			return false;
 		}
 
-		auto packet = m_incomingPackets.front();
+		auto packet = std::move(m_incomingPackets.front());
 		m_incomingPackets.pop();
 
 		memcpy(buffer, packet.payload.c_str(), packet.payload.size());
@@ -250,7 +250,7 @@ void NetLibrary::RoutePacket(const char* buffer, size_t length, uint16_t netID)
 	routePacket.netID = netID;
 	routePacket.payload = std::string(buffer, length);
 
-	m_outgoingPackets.push(routePacket);
+	m_outgoingPackets.push(std::move(routePacket));
 }
 
 #define	BIG_INFO_STRING		8192  // used for system info key only
