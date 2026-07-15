@@ -297,7 +297,7 @@ public:
 
 	bool WaitForRoutedPacket(uint32_t timeout);
 
-	void EnqueueRoutedPacket(uint16_t netID, const std::string& packet) override;
+	void EnqueueRoutedPacket(uint16_t netID, std::string packet) override;
 
 	void SendOutOfBand(const NetAddress& address, const char* format, ...) override;
 

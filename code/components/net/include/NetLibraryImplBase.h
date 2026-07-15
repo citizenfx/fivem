@@ -73,7 +73,7 @@ public:
 
 	virtual void HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID, uint64_t serverTime) = 0;
 
-	virtual void EnqueueRoutedPacket(uint16_t netID, const std::string& packet) = 0;
+	virtual void EnqueueRoutedPacket(uint16_t netID, std::string packet) = 0;
 
 	virtual bool GetOutgoingPacket(RoutingPacket& packet) = 0;
 

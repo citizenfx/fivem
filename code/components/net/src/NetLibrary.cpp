@@ -200,7 +200,7 @@ bool NetLibrary::WaitForRoutedPacket(uint32_t timeout)
 	}
 }
 
-void NetLibrary::EnqueueRoutedPacket(uint16_t netID, const std::string& packet)
+void NetLibrary::EnqueueRoutedPacket(uint16_t netID, std::string packet)
 {
 	{
 		std::lock_guard<std::mutex> guard(m_incomingPacketMutex);
@@ -226,8 +226,7 @@ bool NetLibrary::DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* net
 			return false;
 		}
 
-		auto packet = std::move(m_incomingPackets.front());
-		m_incomingPackets.pop();
+		const auto& packet = m_incomingPackets.front();
 
 		memcpy(buffer, packet.payload.c_str(), packet.payload.size());
 		*netID = packet.netID;
@@ -237,6 +236,8 @@ bool NetLibrary::DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* net
 		auto timeval = (timeGetTime() - packet.genTime);
 
 		m_metricSink->OnRouteDelayResult(timeval);
+
+		m_incomingPackets.pop();
 	}
 
 	ResetEvent(m_receiveEvent);
