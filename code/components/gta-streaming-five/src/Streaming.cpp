@@ -3,6 +3,13 @@
 #include <Hooking.Stubs.h>
 #include <Streaming.h>
 
+#include <algorithm>
+#include <bitset>
+#include <cctype>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 static void* g_storeMgr;
 
 static hook::cdecl_stub<void(bool)> g_loadObjectsNow([]()
@@ -97,9 +104,38 @@ namespace rage
 
 rage::fiCollection** g_fiCollections;
 static void* (*g_orig_rage_pgStreamer_ctor)(void*);
-int currentIdx = 1;
 
-void AddRawStreamer()
+// slots 0-2 are the stock raw streamers (0 = base game, 1 = ytd mods, 2 = user mods)
+static const int kBaseRawStreamers = 3;
+
+static int g_maxPackfiles = 3928; // limit taken from b3258
+static const int kPackfileReserve = 512;
+static const uint16_t kStreamerRolloverEntries = 65535 - 1;
+static const uint8_t kMaxExtraStreamers = 16;
+
+static bool HasDedicatedStreamer(const std::string& ext)
+{
+	return ext == "ytd" || ext == "ybn" || ext == "yft" || ext == "ydd" || ext == "ydr" || ext == "ymap";
+}
+
+static std::unordered_map<std::string, int> g_streamerByExt;
+static std::unordered_map<int, std::string> g_extBySlot;
+
+static constexpr int kMaxCollections = 8192;
+static std::bitset<kMaxCollections> g_isRawStreamerSlot;
+static std::vector<int> g_bucketSlots;
+static int g_nextFreeSlotHint = kBaseRawStreamers;
+
+namespace streaming
+{
+	STREAMING_EXPORT bool IsRawStreamerCollection(uint16_t idx)
+	{
+		return idx < g_isRawStreamerSlot.size() && g_isRawStreamerSlot.test(idx);
+	}
+}
+
+// the game ctor writes itself into sm_Collections[0]; move it to `slot`
+static void MakeRawStreamerAt(int slot)
 {
 	auto alloc8ed = rage::GetAllocator()->Allocate(2048, 16, 0);
 
@@ -107,21 +143,70 @@ void AddRawStreamer()
 	g_orig_rage_pgStreamer_ctor(alloc8ed);
 	g_fiCollections[0] = swap;
 
-	g_fiCollections[currentIdx++] = static_cast<rage::fiCollection*>(alloc8ed);
+	g_fiCollections[slot] = static_cast<rage::fiCollection*>(alloc8ed);
+
+	if (slot >= 0 && slot < kMaxCollections)
+	{
+		g_isRawStreamerSlot.set(slot);
+	}
 }
 
 void* rage_pgStreamer_ctor(void* self)
 {
-	// the game's own raw streamer
 	auto ret = g_orig_rage_pgStreamer_ctor(self);
 
-	// for fivem
-	AddRawStreamer();
+	g_isRawStreamerSlot.set(0);
 
-	// for mod loader
-	AddRawStreamer();
+	MakeRawStreamerAt(1);
+	MakeRawStreamerAt(2);
 
 	return ret;
+}
+
+namespace streaming
+{
+	int GetOrCreateRawStreamerForExt(const std::string& ext)
+	{
+		if (auto it = g_streamerByExt.find(ext); it != g_streamerByExt.end())
+		{
+			int slot = it->second;
+			if (g_fiCollections[slot]->m_entries.count < kStreamerRolloverEntries)
+			{
+				return slot;
+			}
+
+			// full; the type moves to a fresh streamer (existing handles stay valid)
+			g_streamerByExt.erase(it);
+		}
+
+		if ((int)g_bucketSlots.size() < kMaxExtraStreamers)
+		{
+			int freeSlots = 0;
+			for (int slot = kBaseRawStreamers; slot < g_maxPackfiles; slot++)
+			{
+				freeSlots += (g_fiCollections[slot] == nullptr) ? 1 : 0;
+			}
+
+			if (freeSlots > kPackfileReserve)
+			{
+				for (int slot = g_nextFreeSlotHint; slot < g_maxPackfiles; slot++)
+				{
+					if (g_fiCollections[slot] == nullptr)
+					{
+						MakeRawStreamerAt(slot);
+						g_nextFreeSlotHint = slot + 1;
+						g_bucketSlots.push_back(slot);
+						g_streamerByExt.emplace(ext, slot);
+						g_extBySlot.emplace(slot, ext);
+						return slot;
+					}
+				}
+			}
+		}
+
+		// out of per-asset streamers; fall back to the ytd mod streamer
+		return 1;
+	}
 }
 
 namespace streaming
@@ -205,12 +290,14 @@ namespace streaming
 		return (Manager*)g_storeMgr;
 	}
 
-	uint32_t* RegisterRawStreamingFile(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed)
-	{
-		rage::fiCollection* rawStreamer = nullptr;
+	int GetOrCreateRawStreamerForExt(const std::string& ext);
 
-		if (auto collectionIdx = GetRawStreamerForFile(fileName, &rawStreamer))
+	static uint32_t* RegisterRawStreamingFileInto(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed, int collectionIdx)
+	{
+		if (collectionIdx)
 		{
+			rage::fiCollection* rawStreamer = g_fiCollections[collectionIdx];
+
 			auto fileIdx = rawStreamer->GetEntryByName(fileName);
 			if (fileIdx != uint16_t(-1))
 			{
@@ -231,14 +318,26 @@ namespace streaming
 		return g_registerRawStreamingFile(fileId, fileName, unkTrue, registerAs, errorIfFailed);
 	}
 
-	int GetCollectionIndexForFileName(const char* fileName)
+	uint32_t* RegisterRawStreamingFile(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed)
 	{
-		// anything related to mods installed by the users themselves
+		rage::fiCollection* rawStreamer = nullptr;
+		return RegisterRawStreamingFileInto(fileId, fileName, unkTrue, registerAs, errorIfFailed, GetRawStreamerForFile(fileName, &rawStreamer));
+	}
+
+	uint32_t* RegisterRawStreamingFileWithTag(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed, const std::string& tag)
+	{
+		rage::fiCollection* rawStreamer = nullptr;
+		return RegisterRawStreamingFileInto(fileId, fileName, unkTrue, registerAs, errorIfFailed, GetRawStreamerForFileWithTag(fileName, tag, &rawStreamer));
+	}
+
+	// stock routing: base game -> 0, ytd mods -> 1, user mods -> 2
+	static int GetCollectionIndexForFileName(const char* fileName)
+	{
 		if (strncmp(fileName, "faux_pack", 9) == 0 || strncmp(fileName, "addons:/", 8) == 0)
 		{
 			return 2;
 		}
-		// for now, only texture dictionaries have a custom streamer as its the most used
+
 		auto len = strlen(fileName);
 		if (len > 4 && strcmp(fileName + len - 3, "ytd") == 0)
 		{
@@ -250,14 +349,73 @@ namespace streaming
 
 	STREAMING_EXPORT int GetRawStreamerForFile(const char* fileName, rage::fiCollection** collection)
 	{
-		auto idx = GetCollectionIndexForFileName(fileName);
+		int idx = GetCollectionIndexForFileName(fileName);
 		*collection = g_fiCollections[idx];
 		return idx;
 	}
 
+	STREAMING_EXPORT int GetRawStreamerForFileWithTag(const char* fileName, const std::string& tag, rage::fiCollection** collection)
+	{
+		if (!tag.empty())
+		{
+			if (const char* extPos = strrchr(fileName, '.'))
+			{
+				std::string ext = extPos + 1;
+				std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return std::tolower(c); });
+
+				if (HasDedicatedStreamer(ext))
+				{
+					int idx = GetOrCreateRawStreamerForExt(ext);
+					*collection = g_fiCollections[idx];
+					return idx;
+				}
+			}
+		}
+
+		return GetRawStreamerForFile(fileName, collection);
+	}
+
 	STREAMING_EXPORT rage::fiCollection* GetRawStreamerByIndex(uint16_t idx)
 	{
+		if (!g_fiCollections || idx >= g_maxPackfiles)
+		{
+			return nullptr;
+		}
 		return g_fiCollections[idx];
+	}
+
+	// for the devtools window
+	STREAMING_EXPORT std::vector<std::pair<std::string, int>> GetRawStreamerTagMap()
+	{
+		std::vector<std::pair<std::string, int>> out;
+		out.reserve(g_extBySlot.size());
+		for (const auto& [idx, ext] : g_extBySlot)
+		{
+			out.emplace_back(ext, idx);
+		}
+		return out;
+	}
+
+	// for the devtools window
+	STREAMING_EXPORT std::vector<RawStreamerInfo> GetRawStreamerInfos()
+	{
+		std::vector<RawStreamerInfo> out;
+		for (int idx = 0; idx < g_maxPackfiles; idx++)
+		{
+			if (!g_isRawStreamerSlot.test(idx) || !g_fiCollections || g_fiCollections[idx] == nullptr)
+			{
+				continue;
+			}
+
+			std::string label;
+			if (idx == 0) { label = "game"; }
+			else if (idx == 1) { label = "ytd mods"; }
+			else if (idx == 2) { label = "user mods"; }
+			else if (auto it = g_extBySlot.find(idx); it != g_extBySlot.end()) { label = "." + it->second; }
+
+			out.push_back({ idx, std::move(label), g_fiCollections[idx]->m_entries.count });
+		}
+		return out;
 	}
 }
 
@@ -268,9 +426,13 @@ static HookFunction hookFunction([] ()
 
 	g_orig_rage_pgStreamer_ctor = hook::trampoline(hook::get_pattern("48 8B CB 33 D2 41 B8 00 02 00 00 E8", -0x29), rage_pgStreamer_ctor);
 
-	// the first 3 indexes are for rawstreamers, rest is for packfiles
+	// packfile slot scan starts at 2, keeping low slots for raw streamers
 	auto addr = hook::get_pattern<char>("41 0F B7 D2 4C 8D");
 	hook::put<uint32_t>(addr, 0x02528D41); // lea    edx,[r10+0x2]
 
 	g_fiCollections = hook::get_address<rage::fiCollection**>(addr + 7);
+
+	// MaxPackfiles
+	uint32_t maxPackfiles = *hook::get_pattern<uint32_t>("B8 ? ? ? ? 66 3B D0 72", 1);
+	g_maxPackfiles = std::min<uint32_t>(maxPackfiles, kMaxCollections);
 });
