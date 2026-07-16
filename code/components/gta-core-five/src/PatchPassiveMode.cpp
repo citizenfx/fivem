@@ -11,7 +11,7 @@ static bool g_DisablePassiveMode = false;
 
 static HookFunction hookFunction([]
 {
-	static ConVar<bool> enableVehicleHijackFix("game_disablePassiveMode", ConVar_Replicated, false, &g_DisablePassiveMode);
+	static ConVar<bool> convarDisablePassiveMode("game_disablePassiveMode", ConVar_Replicated, false, &g_DisablePassiveMode);
 
 	auto patchAllowedToDamagePassiveFlagLocation = hook::get_pattern("C1 E8 ? A8 ? 75 ? C1 E9 ? F6 C1 ? 75 ? 48 8B D3");
 	auto patchAllowedToDamageSkipLocation = hook::get_pattern("32 C0 E9 ? ? ? ? F7 83");
