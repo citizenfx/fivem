@@ -1,4 +1,4 @@
-# Source code layout for Cfx.re/CitizenFX
+# Source code layout for the Cfx codebase
 
 The CitizenFX codebase is a vast set of multiple components, many of which having nested README.md files explaining
 their purpose further in the codebase.
