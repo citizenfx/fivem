@@ -1,17 +1,37 @@
-# <img src="https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.6/assets/png/1f40c.png" width="32" height="32"> Cfx.re (FiveM/RedM) 
+<div align="center">
+  <img src="https://static.cfx.re/vcs-repository-logo.svg" alt="R* | Cfx" width="350"><br /><br />
 
-This repository contains the code for the Cfx.re projects, among which are the following:
+  [FiveM] | [RedM] | [Support]  | [Portal] | [Forum] | [Marketplace] | [Documentation] | [Discord]
+</div>
 
-* [FiveM](https://fivem.net/), a dual-purpose (SP/MP) modification framework for the PC version of Grand Theft Auto V as released by Rockstar Games.
-* [RedM](https://redm.gg/), a modification framework for the PC version of Red Dead Redemption 2 as released by Rockstar Games.
-* FXServer, the server component for multiplayer services on the Cfx.re projects.
+[FiveM]: https://fivem.net/
+[RedM]: https://redm.net/
+[Support]: https://support.cfx.re/
+[Portal]: https://portal.cfx.re/
+[Forum]: https://forum.cfx.re/
+[Marketplace]: https://marketplace.cfx.re/
+[Documentation]: https://docs.fivem.net/
+[Discord]: https://discord.gg/fivem
 
-On the multiplayer aspect, the GTA/RAGE modifications differ from other similar modifications by utilizing the embedded game networking frameworks, building a modification framework around them, and expanding the game's functionality on an end-to-end level, directly binding to the RAGE Technology Group's base frameworks and Rockstar North's GTA codebase.
+
+# FiveM & RedM
+
+This repository contains the code for the Cfx projects, among which are the following:
+
+* [FiveM](https://fivem.net/), a dual-purpose (SP/MP) modification framework for the PC version of Grand Theft Auto V Legacy as released by Rockstar Games.
+* [RedM](https://redm.net/), a modification framework for the PC version of Red Dead Redemption 2 as released by Rockstar Games.
+* FXServer, the server component for FiveM and RedM.
+
+FiveM and RedM allow the creator community to host and operate large-scale community servers. Creators build their own game modes and content in a variety of scripting languages, giving players fully customized experiences to jump into.
 
 ## Getting started
-To play FiveM, simply download the launcher binaries from the [website](https://fivem.net).
+To play, download the launcher from the [FiveM](https://fivem.net/) or [RedM](https://redm.net/) website.
 
-To develop FiveM, please follow the documentation in [docs/](https://github.com/citizenfx/fivem/tree/master/docs) in the repository.
+To contribute to FiveM or RedM, follow the documentation in [docs/](https://github.com/citizenfx/fivem/tree/master/docs).
+
+To run your own server, get started with server hosting for [FiveM](https://fivem.net/server-hosting) or [RedM](https://redm.net/server-hosting).
 
 ## License
-FiveM is licensed under a dual license, details of which are in the [code/LICENSE](https://github.com/citizenfx/fivem/blob/master/code/LICENSE) file in the repository.
+Use of this software is subject to the [Rockstar Games Creator Platform License Agreement](https://fivem.net/terms), except for specific files that are licensed under the GNU Lesser General Public License. 
+
+Full details are in the [LICENSE](https://github.com/citizenfx/fivem/blob/master/LICENSE) file, and third-party components are listed in [THIRD_PARTY_NOTICES.md](https://github.com/citizenfx/fivem/blob/master/THIRD_PARTY_NOTICES.md).
