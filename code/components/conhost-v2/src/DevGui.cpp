@@ -69,6 +69,10 @@ struct DevGuiNode
 	std::string name;
 	std::string commandOrConVar;
 
+	float sliderMin = 0.0f;
+	float sliderMax = 0.0f;
+	float sliderStep = 0.0f;
+
 	std::list<std::unique_ptr<DevGuiNode>> children;
 
 	inline DevGuiNode* RegisterMenu(const std::string& name)
@@ -185,11 +189,59 @@ static void DevGui_Draw(const DevGuiNode* node)
 				auto value = intEntry->GetRawValue();
 				auto initialValue = value;
 
-				ImGui::InputScalar(node->name.c_str(), ImGuiDataType_S32, &value);
+				bool useSlider = node->sliderMax > node->sliderMin;
+
+				if (useSlider)
+				{
+					ImGui::SetNextItemWidth(160.0f);
+					ImGui::SliderInt(node->name.c_str(), &value, (int)node->sliderMin, (int)node->sliderMax);
+
+					if (node->sliderStep > 0.0f)
+					{
+						int step = (int)node->sliderStep;
+						value = (int)node->sliderMin + (int)std::round((value - (int)node->sliderMin) / (float)step) * step;
+					}
+				}
+				else
+				{
+					ImGui::InputScalar(node->name.c_str(), ImGuiDataType_S32, &value);
+				}
 
 				if (initialValue != value)
 				{
 					intEntry->SetRawValue(value);
+				}
+
+				return;
+			}
+
+			auto floatEntry = std::dynamic_pointer_cast<internal::ConsoleVariableEntry<float>>(entry);
+
+			if (floatEntry)
+			{
+				auto value = floatEntry->GetRawValue();
+				auto initialValue = value;
+
+				bool useSlider = node->sliderMax > node->sliderMin;
+
+				if (useSlider)
+				{
+					ImGui::SetNextItemWidth(160.0f);
+					ImGui::SliderFloat(node->name.c_str(), &value, node->sliderMin, node->sliderMax, "%.2f");
+
+					if (node->sliderStep > 0.0f)
+					{
+						value = node->sliderMin + std::round((value - node->sliderMin) / node->sliderStep) * node->sliderStep;
+					}
+				}
+				else
+				{
+					ImGui::InputScalar(node->name.c_str(), ImGuiDataType_Float, &value);
+				}
+
+				if (initialValue != value)
+				{
+					floatEntry->SetRawValue(value);
 				}
 
 				return;
@@ -246,6 +298,28 @@ static InitFunction initFunction([]()
 		node->commandOrConVar = convarName;
 	});
 
+	// devgui_convar with an explicit slider range: devgui_convar_slider "path" convar min max [step]
+	static ConsoleCommand devguiAddConVarSlider("devgui_convar_slider", [](const DevGuiPath& path, const std::string& convarName, float min, float max)
+	{
+		auto node = DevGui_InstantiatePath(path);
+
+		node->type = DevGuiNode::DevGuiNode_ConVar;
+		node->commandOrConVar = convarName;
+		node->sliderMin = min;
+		node->sliderMax = max;
+	});
+
+	static ConsoleCommand devguiAddConVarSliderStep("devgui_convar_slider", [](const DevGuiPath& path, const std::string& convarName, float min, float max, float step)
+	{
+		auto node = DevGui_InstantiatePath(path);
+
+		node->type = DevGuiNode::DevGuiNode_ConVar;
+		node->commandOrConVar = convarName;
+		node->sliderMin = min;
+		node->sliderMax = max;
+		node->sliderStep = step;
+	});
+
 #ifndef IS_FXSERVER
 	static ConVar<std::string> uiConnectHost("uiConnectHost", ConVar_Archive | ConVar_UserPref, "");
 
@@ -277,13 +351,19 @@ devgui_convar "Tools/Windowed Console" con_winConsole
 set "game_mute" "profile_sfxVolume 0; profile_musicVolumeInMp 0; profile_musicVolume 0"
 set "game_unmute" "profile_sfxVolume 25; profile_musicVolumeInMp 10; profile_musicVolume 10"
 
-devgui_convar "Game/SFX Volume" profile_sfxVolume
+devgui_convar_slider "Game/SFX Volume" profile_sfxVolume 0 25
 devgui_cmd "Game/Mute" "vstr game_mute"
 devgui_cmd "Game/Unmute" "vstr game_unmute"
 
 devgui_convar "Overlays/Performance/Draw Performance" cl_drawPerf
 devgui_cmd    "Overlays/Performance/--------------------" "wait 1"
 )");
+
+#ifdef GTA_FIVE
+	console::GetDefaultContext()->AddToBuffer(R"(
+devgui_convar_slider "Game/Vehicle Volume" profile_vehicleVolume 0.0 1.0 0.05
+)");
+#endif
 
 	if (IsNonProduction())
 	{
