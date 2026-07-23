@@ -452,8 +452,8 @@ static const char* TypeToString(fx::sync::NetObjEntityType type)
 
 struct EntityImpl : sync::Entity
 {
-	EntityImpl(const sync::SyncEntityPtr& ent)
-		: ent(ent)
+	EntityImpl(const sync::SyncEntityPtr& ent, ServerGameState* sgs)
+		: ent(ent), sgs(sgs)
 	{
 
 	}
@@ -481,8 +481,14 @@ struct EntityImpl : sync::Entity
 		return {};
 	}
 
+	virtual uint32_t GetScriptGuid() override
+	{
+		return sgs ? sgs->MakeScriptHandle(ent) : ent->handle;
+	}
+
 private:
 	sync::SyncEntityPtr ent;
+	ServerGameState* sgs;
 
 	// Inherited via Entity
 	virtual uint32_t GetId() override
@@ -515,6 +521,12 @@ private:
 	{
 		return TypeToString(ent->type);
 	}
+	virtual int GetTypeIndex() override
+	{
+		// the raw sync entity type (NetObjEntityType) - automobile, bike, ped,
+		// player etc. - which is what the colshape entity-type filter uses
+		return static_cast<int>(ent->type);
+	}
 };
 
 void ServerGameState::ForAllEntities(const std::function<void(sync::Entity*)>& cb)
@@ -523,7 +535,7 @@ void ServerGameState::ForAllEntities(const std::function<void(sync::Entity*)>& c
 
 	for (auto& entity : m_entityList)
 	{
-		EntityImpl ent(entity);
+		EntityImpl ent(entity, this);
 		cb(&ent);
 	}
 }
