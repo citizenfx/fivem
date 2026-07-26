@@ -2178,14 +2178,19 @@ void ServerGameState::UpdateEntities()
 						lastVehicleData->playerOccupants.reset(vehicleData->lastVehicleSeat);
 					}
 
-					if (curVehicleData && curVehicleData->occupants[vehicleData->curVehicleSeat] == 0)
+					if (curVehicleData)
 					{
-						curVehicleData->occupants[vehicleData->curVehicleSeat] = pedHandle;
+						//set the last occupant even if the seat was not free
+						//will help to check for seat ejection
 						curVehicleData->lastOccupant[vehicleData->curVehicleSeat] = pedHandle;
-
-						if (entity->type == sync::NetObjEntityType::Player)
+						if (curVehicleData->occupants[vehicleData->curVehicleSeat] == 0)
 						{
-							curVehicleData->playerOccupants.set(vehicleData->curVehicleSeat);
+							curVehicleData->occupants[vehicleData->curVehicleSeat] = pedHandle;
+
+							if (entity->type == sync::NetObjEntityType::Player)
+							{
+								curVehicleData->playerOccupants.set(vehicleData->curVehicleSeat);
+							}
 						}
 					}
 
