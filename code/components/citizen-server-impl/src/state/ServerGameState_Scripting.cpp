@@ -1280,7 +1280,7 @@ static void Init()
 		 if (!pedVehicleData)
 			 return (uint32_t)0;
 
-		 if ((lastVehicleArg == true && pedVehicleData->lastVehiclePedWasIn == 0) || (lastVehicleArg == false && pedVehicleData->curVehicle == 0))
+		 if ((lastVehicleArg == true && pedVehicleData->lastVehiclePedWasIn == 0) || (lastVehicleArg == false && (!pedVehicleData->inVehicle || pedVehicleData->curVehicle == 0)))
 			 return (uint32_t)0;
 
 		 lastVeh = pedVehicleData->lastVehiclePedWasIn;
