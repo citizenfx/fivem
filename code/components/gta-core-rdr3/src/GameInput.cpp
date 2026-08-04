@@ -238,7 +238,15 @@ static void (*g_origGetMappingCategories)(atArray<unsigned int>& outCategories);
 static void GetMappingCategories(atArray<unsigned int>& outCategories)
 {
 	g_origGetMappingCategories(outCategories);
-	outCategories.Set(outCategories.GetCount(), HashString("PM_PANE_CFX"));
+
+	outCategories.Set(outCategories.GetCount(), 0);
+
+	for (int i = outCategories.GetCount() - 1; i > 0; i--)
+	{
+		outCategories[i] = outCategories[i - 1];
+	}
+
+	outCategories[0] = HashString("PM_PANE_CFX");
 }
 
 static void* (*g_origGetCategoryInputs)(uint32_t* categoryHash, atArray<uint32_t>& controlIds);
