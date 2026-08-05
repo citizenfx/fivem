@@ -2619,18 +2619,29 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 				// erase existing stack entry
 				auto& handleData = g_handleStack[strId + strModule->baseIdx];
 
-				for (auto it = handleData.begin(); it != handleData.end(); ++it)
+				for (auto it = handleData.begin(); it != handleData.end(); )
 				{
+					bool matches = false;
+
 #ifdef GTA_FIVE
-					auto rawStreamer = streaming::GetRawStreamerByIndex(streaming::GetCollectionIndex(*it));
-					auto entryName = rawStreamer->GetEntryName(streaming::GetEntryIndex(*it));
-					if (entryName && strcmp(file.c_str(), entryName) == 0)
-#elif IS_RDR3
-					if (*it == idx)
-#endif
+					// Only handles owned by a cfx raw streamer can refer to this resource
+					// file: `file` is a resource cache path, which game packfile entry
+					// names never match. More importantly, saved handles for an asset we
+					// overrode point at game packfile collections, and during session
+					// shutdown (e.g. Rockstar Editor activation forcing a disconnect)
+					// those collections are already destroyed - resolving their entry
+					// names dereferences freed collection state and crashes.
+					if (streaming::IsRawHandle(*it))
 					{
-						it = handleData.erase(it);
+						auto rawStreamer = streaming::GetRawStreamerByIndex(streaming::GetCollectionIndex(*it));
+						auto entryName = rawStreamer ? rawStreamer->GetEntryName(streaming::GetEntryIndex(*it)) : nullptr;
+						matches = entryName && strcmp(file.c_str(), entryName) == 0;
 					}
+#elif IS_RDR3
+					matches = (*it == idx);
+#endif
+
+					it = matches ? handleData.erase(it) : std::next(it);
 				}
 
 				// if not empty, set the handle to the current stack entry
