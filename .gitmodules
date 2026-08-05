@@ -82,7 +82,7 @@
 	url = https://github.com/nmoinvaz/minizip.git
 [submodule "vendor/glm"]
 	path = vendor/glm
-	url = https://github.com/g-truc/glm.git
+	url = https://github.com/citizenfx/glm.git
 [submodule "vendor/eastl"]
 	path = vendor/eastl
 	url = https://github.com/citizenfx/EASTL.git
