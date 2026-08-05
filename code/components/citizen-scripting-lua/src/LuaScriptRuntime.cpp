@@ -167,7 +167,7 @@ static const luaL_Reg lualibs[] = {
 	{ LUA_MATHLIBNAME, luaopen_math },
 	{ LUA_COLIBNAME, luaopen_coroutine },
 	{ LUA_UTF8LIBNAME, luaopen_utf8 },
-	{ LUA_FX_DEBUGLIBNAME, fx::lua_fx_opendebug },
+	{ LUA_FX_DEBUGLIBNAME, luaopen_debug },
 #ifdef IS_FXSERVER
 	{ LUA_FX_IOLIBNAME, fx::lua_fx_openio },
 	{ LUA_FX_OSLIBNAME, fx::lua_fx_openos },
@@ -801,7 +801,11 @@ static int Lua_Resume(lua_State* L)
 {
 	LuaScriptRuntime* lsRT = (LuaScriptRuntime*)lua_touserdata(L, lua_upvalueindex(1));
 
-	auto bookmark = lua_tointeger(L, lua_upvalueindex(2));
+	// create a new bookmark from the attached thread data
+	lua_pushvalue(L, lua_upvalueindex(2));
+	luaL_checktype(L, -1, LUA_TTABLE);
+	auto bookmark = luaL_ref(L, LUA_REGISTRYINDEX);
+
 	lsRT->RunBookmark(bookmark);
 
 	return 0;
@@ -932,20 +936,17 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 				lua_pushlightuserdata(thread, this);
 				// Lua stack: [runtime]
 
-				lua_pushinteger(thread, bookmark);
-				// Lua stack: [bookmark, runtime]
+				// attach the thread data to the callback
+				lua_rawgeti(thread, LUA_REGISTRYINDEX, bookmark);
+				// Lua stack: [thread data, runtime]
 
 				lua_pushcclosure(thread, Lua_Resume, 2);
 				// Lua stack: [resume func]
 
 				resumeValue = lua_resume(thread, L, 1, &nrv);
 
-				// if LUA_YIELD, cya later!
-				if (resumeValue != LUA_YIELD)
-				{
-					// bye, thread
-					luaL_unref(L, LUA_REGISTRYINDEX, bookmark);
-				}
+				// the thread data is now stored in the closure, so we can drop the existing bookmark and then create a new one in Lua_Resume
+				luaL_unref(L, LUA_REGISTRYINDEX, bookmark);
 			}
 		}
 	}
@@ -1117,7 +1118,10 @@ static int Lua_CreateThreadNow(lua_State* L)
 
 	if (lua_gettop(L) >= 2)
 	{
-		name = lua_tostring(L, 2);
+		if (const char* nameString = lua_tostring(L, 2))
+		{
+			name = nameString;
+		}
 	}
 
 	return Lua_CreateThreadInternal(L, true, 0, 1, name);

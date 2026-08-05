@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 
 #include <filesystem>
 #include <lua.hpp>
@@ -122,6 +122,7 @@ int LuaIODirectoryGC(lua_State* L)
 
 		free(p->directory);
 		p->directory = nullptr;
+		p->size = 0;
 	}
 
 	return 0;
@@ -139,6 +140,7 @@ int LuaIODirectoryClose(lua_State* L)
 
 		free(p->directory);
 		p->directory = nullptr;
+		p->size = 0;
 	}
 
 	return luaL_fileresult(L, true, nullptr);
@@ -166,14 +168,18 @@ int LuaIODirectoryToString(lua_State* L)
 
 int LuaIODirectoryIterator(lua_State* L)
 {
-	LuaIODirectory* p = static_cast<LuaIODirectory*>(lua_touserdata(L, lua_upvalueindex(1)));
-	size_t* index = static_cast<size_t*>(lua_touserdata(L, lua_upvalueindex(2)));
+	LuaIODirectory* p = static_cast<LuaIODirectory*>(luaL_checkudata(L, 1, LUA_FX_DIRECTORY_HANDLE));
 
-	if (*index < p->size)
+	if (p && p->directory)
 	{
-		lua_pushstring(L, p->directory[*index].fileName);
-		(*index)++;
-		return 1;
+		size_t* index = static_cast<size_t*>(lua_touserdata(L, lua_upvalueindex(2)));
+
+		if (*index < p->size)
+		{
+			lua_pushstring(L, p->directory[*index].fileName);
+			(*index)++;
+			return 1;
+		}
 	}
 
 	// No more lines
@@ -230,6 +236,7 @@ int LuaVFSStreamClose(lua_State* L)
 	if (p->f)
 	{
 		fwRefContainer<vfs::Stream> stream = reinterpret_cast<vfs::Stream*>(p->f);
+		p->f = nullptr;
 		stream->Close();
 		// should always reach zero here
 		stream->Release();
@@ -499,7 +506,13 @@ constexpr size_t kLineBufferSize = 64 * 1024;
 
 int LuaIOFileLineIterator(lua_State* L)
 {
-	const LStream* p = static_cast<LStream*>(lua_touserdata(L, lua_upvalueindex(1)));
+	const LStream* p = static_cast<LStream*>(luaL_testudata(L, lua_upvalueindex(1), LUA_FILEHANDLE));
+
+	if (isclosed(p))
+	{
+		return 0;
+	}
+
 	fwRefContainer<vfs::Stream> f = reinterpret_cast<vfs::Stream*>(p->f);
 	uint8_t* buffer = static_cast<uint8_t*>(lua_touserdata(L, lua_upvalueindex(2)));
 	size_t& bufferPos = *static_cast<size_t*>(lua_touserdata(L, lua_upvalueindex(3)));
