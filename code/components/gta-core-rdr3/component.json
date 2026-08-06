@@ -6,6 +6,7 @@
 		"citizen:scripting:core",
 		"pool-sizes-state",
 		"rage:allocator",
+		"rage:input:rdr3",
 		"rage:nutsnbolts",
 		"rage:scripting"
 	],

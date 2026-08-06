@@ -9,13 +9,19 @@
 #include "RageParser.h"
 #include "console/Console.CommandHelpers.h"
 #include <CoreConsole.h>
+#include <InputHook.h>
 #include <set>
 
 constexpr int UNBINDED_KEY = 0xFF000;
+
+constexpr int MOUSE_BUTTON_FLAG = 0x1000;
+constexpr int MOUSE_WHEEL_UP_KEY = 0x1008;
+constexpr int MOUSE_WHEEL_DOWN_KEY = 0x1009;
 constexpr int MAPPING_COUNT = 2; // One for the first bind entry and another for the second bind
 constexpr int MAX_CUSTOM_BINDINGS = 128;
 
 static char* g_gameKeyArray = nullptr;
+static int32_t* g_mouseWheelDelta = nullptr;
 
 class CustomBinding
 {
@@ -149,7 +155,30 @@ void CustomBinding::Update(bool suppress)
 	{
 		for (int key : m_bindedKeys[mapping])
 		{
-			if (key != UNBINDED_KEY && key > 0 && key < 256 && g_gameKeyArray && (g_gameKeyArray[key] & 0x80))
+			if (key == UNBINDED_KEY)
+			{
+				continue;
+			}
+
+			if (key == MOUSE_WHEEL_UP_KEY || key == MOUSE_WHEEL_DOWN_KEY)
+			{
+				int delta = g_mouseWheelDelta ? *g_mouseWheelDelta : 0;
+
+				if (key == MOUSE_WHEEL_UP_KEY ? delta > 0 : delta < 0)
+				{
+					down = true;
+					break;
+				}
+			}
+			else if ((key & ~0xFF) == MOUSE_BUTTON_FLAG)
+			{
+				if (InputHook::IsMouseButtonDown(1 << (key & 0xFF)))
+				{
+					down = true;
+					break;
+				}
+			}
+			else if (key > 0 && key < 256 && g_gameKeyArray && (g_gameKeyArray[key] & 0x80))
 			{
 				down = true;
 				break;
@@ -771,6 +800,11 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern<char>("48 3B 05 ? ? ? ? 48 8D 35", 0xA);
 		g_gameKeyArray = location + *(int32_t*)location + 4;
+	}
+
+	{
+		auto location = hook::get_pattern("8B 05 ? ? ? ? 8B 0D ? ? ? ? 83 25 ? ? ? ? 00 44 8B 0D", 0x27);
+		g_mouseWheelDelta = hook::get_address<int32_t*>(location, 2, 6);
 	}
 	
 	// Call to handle the initialize of binding system
