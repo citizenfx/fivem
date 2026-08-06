@@ -8,8 +8,6 @@
 #include <MinHook.h>
 #include <Hooking.h>
 
-#include <nutsnbolts.h>
-
 //
 // Game reload code flow:
 // 1. GameInit::KillNetwork
@@ -19,8 +17,8 @@
 // 4. When GameInit::ReloadGame is called, we'll return and let the game finish reloading.
 //
 
-static bool g_setLoadingScreens;
-static bool g_shouldKillNetwork;
+bool g_setLoadingScreens;
+bool g_shouldKillNetwork;
 bool g_isNetworkKilled;
 
 // 1207.80
@@ -40,20 +38,159 @@ static hook::cdecl_stub<void()> loadingScreenUpdate([]()
 	return hook::get_pattern("74 53 48 83 64 24 20 00 4C 8D", -0x31);
 });
 
-void SetRenderThreadOverride()
+static hook::cdecl_stub<void()> lookAlive([]()
 {
-	g_setLoadingScreens = true;
+	return hook::get_pattern("40 8A FB 38 1D", -0x29);
+});
+
+
+enum GameInitState : int
+{
+	STATE_START = 0,
+	STATE_BEFORE_INIT = 10,
+	STATE_LOAD_GAME = 15,
+	STATE_POST_INIT = 21
+};
+
+int* g_initState;
+bool g_isInInitLoop;
+static bool g_shouldReloadGame;
+
+static const char* typeMap[] = {
+	nullptr,
+	"system",
+	"beforeMapLoaded",
+	nullptr,
+	"afterMapLoaded",
+	nullptr,
+	nullptr,
+	nullptr,
+	"session"
+};
+
+struct InitFunctionStub: public jitasm::Frontend
+{
+	static uintptr_t LogStub(uintptr_t stub, int type)
+	{
+		trace("Running shutdown %s function: %p\n", typeMap[type], (void*)hook::get_unadjusted(stub));
+		return stub;
+	}
+
+	virtual void InternalMain() override
+	{
+		imul(rdx, 0x38);
+
+		push(r14);
+
+		mov(rcx, qword_ptr[rax + rdx + 8]);
+		mov(edx, r14d);
+
+		// scratch space!
+		sub(rsp, 0x20);
+
+		mov(rax, (uintptr_t)LogStub);
+		call(rax);
+
+		mov(ecx, r14d);
+		call(rax);
+
+		add(rsp, 0x20);
+		pop(r14);
+		ret();
+	}
+};
+
+static void (*g_origRunInitState)();
+static void WrapRunInitState()
+{
+	if (g_setLoadingScreens)
+	{
+		setupLoadingScreens(3);
+		loadingScreenUpdate();
+
+		g_setLoadingScreens = false;
+	}
+
+	if (g_shouldReloadGame)
+	{
+		Instance<ICoreGameInit>::Get()->OnGameRequestLoad();
+		*g_initState = STATE_LOAD_GAME;
+		g_shouldReloadGame = false;
+	}
+
+	if (g_shouldKillNetwork)
+	{
+		trace("Killing network, stage 2...\n");
+
+		_newGame(false);
+
+		g_shouldKillNetwork = false;
+	}
+
+	if (!g_isNetworkKilled)
+	{
+		g_origRunInitState();
+	}
 }
 
-static void(*g_shutdownSession)();
-extern hook::cdecl_stub<void()> _doLookAlive;
+static bool (*g_origSkipInit)(int);
+static bool WrapSkipInit(int a1)
+{
+	if (g_isNetworkKilled)
+	{
+		if (g_origSkipInit(a1))
+		{
+			printf("");
+		}
 
+		return false;
+	}
+
+	return g_origSkipInit(a1);
+}
+
+static void* g_renderThreadInterface;
+static hook::cdecl_stub<void()> runCriticalSystemServicing([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? BA 32 00 00 00 48 8D 0D ? ? ? ? E8", 22));
+});
+
+static hook::cdecl_stub<void(void*, char)> flushRenderThread([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 DB 74 71"));
+});
+
+static void WaitForInitLoop()
+{
+	// run our loop
+	g_isInInitLoop = true;
+
+	while (*g_initState <= STATE_BEFORE_INIT)
+	{
+		runCriticalSystemServicing();
+		lookAlive();
+		flushRenderThread(g_renderThreadInterface, 0);
+
+		if (*g_initState <= STATE_BEFORE_INIT)
+		{
+			Sleep(15);
+		}
+	}
+}
+
+static hook::cdecl_stub<void()> g_criticalTest([]()
+{
+	return hook::get_pattern("48 83 EC 28 E8 ? ? ? ? E8 ? ? ? ? 84 C0");
+});
+
+static void (*g_shutdownSession)();
 void ShutdownSessionWrap()
 {
 	Instance<ICoreGameInit>::Get()->SetVariable("gameKilled");
 	Instance<ICoreGameInit>::Get()->SetVariable("shutdownGame");
 
 	g_isNetworkKilled = true;
+	*g_initState = STATE_LOAD_GAME;
 
 	AddCrashometry("kill_network_game", "true");
 
@@ -67,66 +204,21 @@ void ShutdownSessionWrap()
 
 	while (g_isNetworkKilled)
 	{
-		// warning screens apparently need to run on main thread
-		OnGameFrame();
-		OnMainGameFrame();
-
-		Sleep(0);
-
-		_doLookAlive();
-
-		// todo: add critical servicing
+		runCriticalSystemServicing();
+		lookAlive();
+		flushRenderThread(g_renderThreadInterface, 0);
 	}
 
 	Instance<ICoreGameInit>::Get()->OnGameRequestLoad();
 }
 
-static InitFunction initFunction([]()
+static void UpdateInitState(int state)
 {
-	OnKillNetwork.Connect([=](const char* message)
-	{
-		AddCrashometry("kill_network", "true");
-		AddCrashometry("kill_network_msg", message);
-
-		trace("Killing network: %s\n", message);
-
-		g_shouldKillNetwork = true;
-
-		Instance<ICoreGameInit>::Get()->ClearVariable("networkInited");
-
-		SetRenderThreadOverride();
-	}, 500);
-
-	OnLookAliveFrame.Connect([]()
-	{
-		if (g_setLoadingScreens)
-		{
-			setupLoadingScreens(1);
-			loadingScreenUpdate();
-
-			g_setLoadingScreens = false;
-		}
-
-		if (g_shouldKillNetwork)
-		{
-			trace("Killing network, stage 2...\n");
-
-			_newGame(false);
-
-			g_shouldKillNetwork = false;
-		}
-	});
-
-	static ConsoleCommand reloadTest("reloadTest", []()
-	{
-		g_setLoadingScreens = true;
-		g_shouldKillNetwork = true;
-	});
-});
-
-static int Return0()
-{
-	return 0;
+#if _DEBUG
+	trace("UpdateInitState %d -> %d\n", *g_initState, state);
+#endif
+	WaitForInitLoop();
+	*g_initState = state;
 }
 
 static int Return2()
@@ -143,10 +235,60 @@ static HookFunction hookFunction([]()
 	// don't try the SP transition if we're init type 15
 	hook::put<uint8_t>(hook::get_pattern("83 F8 0F 75 58 8B 4B 0C", 3), 0xEB);
 
+	g_renderThreadInterface = hook::get_address<void*>(hook::get_pattern("E8 ? ? ? ? 84 DB 74 71", -4));
+
 	// shutdown session wrapper
 	{
 		MH_Initialize();
 		MH_CreateHook(hook::get_pattern("41 B9 13 00 00 00 45 33 C0 33 D2", -0x51), ShutdownSessionWrap, (void**)&g_shutdownSession);
 		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
+	static struct : jitasm::Frontend
+	{
+		virtual void InternalMain() override
+		{
+			sub(rsp, 0x20);
+
+			push(rsi);
+			mov(rsi, (uintptr_t)UpdateInitState);
+			call(rsi);
+			pop(rsi);
+
+			add(rsp, 0x20);
+			ret();
+		}
+	} updateInitStateStub;
+
+	{
+		// NOP any code that sets 
+		auto loc = hook::get_call(hook::get_call(hook::get_pattern("3B C8 41 0F 45 C0 E9", 6)));
+		// nop the right pointer
+		hook::nop(loc, 6);
+		// and call our internal loop function from there
+		hook::jump(loc, updateInitStateStub.GetCode());
+	}
+
+	// fwApp 2:1 state handler (loaded game), before running init machine
+	{
+		auto loc = hook::get_pattern<char>("40 8A DE 84 C0 74 02 B3 01 E8");
+
+		hook::set_call(&g_origRunInitState, loc + 9);
+		hook::call(loc + 9, WrapRunInitState);
+
+		hook::set_call(&g_origSkipInit, loc - 5);
+		hook::call(loc - 5, WrapSkipInit);
+
+		g_initState = hook::get_address<int*>(loc - 25);
+	}
+
+	// Init function #1
+	{
+		static InitFunctionStub initFunctionStub;
+		initFunctionStub.Assemble();
+
+		auto location = hook::get_pattern<char>("41 8B CE 48 6B D2 38 FF 54 02 08");
+		hook::nop(location, 11);
+		hook::call_rcx(location, initFunctionStub.GetCode());
 	}
 });
