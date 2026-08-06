@@ -893,10 +893,7 @@ static HookFunction hookFunction([]()
 		{
 			for (int m = 0; m < MAPPING_COUNT; m++)
 			{
-				if (keys[m] != UNBINDED_KEY)
-				{
-					writeLine(fmt::sprintf("bind_setkey \"%s\" %d %d", escapeArg(command), m, keys[m]));
-				}
+				writeLine(fmt::sprintf("bind_setkey \"%s\" %d %d", escapeArg(command), m, keys[m]));
 			}
 		}
 	});
