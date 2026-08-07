@@ -1,5 +1,6 @@
-(c) 2015-2026 Take-Two Interactive Software, Inc. All rights reserved. Use of
-this software is subject to the [Rockstar Games Creator Platform License Agreement](https://fivem.net/terms)
+© 2023 Take-Two Interactive Software, Inc. All rights reserved.
+
+Use of this software is subject to the [Rockstar Games Creator Platform License Agreement](https://fivem.net/terms)
 and all terms referenced therein, available here:
 
 https://fivem.net/terms
@@ -7,15 +8,7 @@ https://fivem.net/terms
 https://redm.gg/terms
 
 
-GNU LIBRARY GENERAL PUBLIC LICENSE
-
-Version 2, June 1991
-
-Copyright (c) 2015-2026 Take-Two Interactive Software, Inc.
-
-All rights reserved.
-
-The following files and directories, collectively referred to as the "Files":
+However, the following files and directories, collectively referred to as the "Files":
 
   code/client/shared/ 
   code/client/citicore/
@@ -27,35 +20,16 @@ The following files and directories, collectively referred to as the "Files":
   code/components/vfs-core/
   code/vendor/*.lua
 
-The Files are free software; you can redistribute them and/or modify them under
-the terms of the GNU Library General Public License as published by the Free
-Software Foundation; either version 2 of the License, or (at your option) any
-later version.
+The Files are free software; you can redistribute them and/or modify them under the terms of the GNU Library General Public License as published by the Free Software Foundation; version 2 of the License.
 
-The Files are distributed in the hope that they will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE. See the GNU Library General Public License for more details.
+The Files are distributed in the hope that they will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Library General Public License for more details.
 
-You should have received a copy of the GNU Library General Public License along
-with the Files; if not, see https://www.gnu.org/licenses/.
+You should have received a copy of the GNU Library General Public License along with the Files; if not, see https://www.gnu.org/licenses/.
 
-For the full text of the GNU Library General Public License Version 2, see:
-https://www.gnu.org/licenses/old-licenses/lgpl-2.0.en.html
+For the full text of the GNU Library General Public License Version 2, see: https://www.gnu.org/licenses/old-licenses/lgpl-2.0.en.html
+
 
 THIRD-PARTY SOFTWARE
 
-The Files, and other parts of this repository, include third-party software
-distributed under its own license terms. Those components are not covered by
-the license above and remain subject to their respective licenses. Required
-attributions and license texts are provided in [THIRD_PARTY_NOTICES.md](#THIRD_PARTY_NOTICES.md) in the
-root of this repository.
-
-
-DISCLAIMER
-
-Take-Two Interactive Software, Inc. hereby disclaims all copyright interest in
-the Files described above written by its contributors.
-
-Take-Two Interactive Software, Inc.
-
-2023
+The Files, and other parts of this repository, include third-party software distributed under their own license terms. Those components are not covered by the license above and remain subject to their respective licenses. 
+Required attributions and license texts are provided in [THIRD_PARTY_NOTICES.md](#THIRD_PARTY_NOTICES.md) in the root of this repository.

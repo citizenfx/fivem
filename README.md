@@ -32,6 +32,6 @@ To contribute to FiveM or RedM, follow the documentation in [docs/](https://gith
 To run your own server, get started with server hosting for [FiveM](https://fivem.net/server-hosting) or [RedM](https://redm.net/server-hosting).
 
 ## License
-Use of this software is subject to the [Rockstar Games Creator Platform License Agreement](https://fivem.net/terms), except for specific files that are licensed under the GNU Lesser General Public License. 
+Use of this software is subject to the [Rockstar Games Creator Platform License Agreement](https://fivem.net/terms), except for specific files that are licensed under the GNU Library General Public License. 
 
-Full details are in the [LICENSE](https://github.com/citizenfx/fivem/blob/master/LICENSE) file, and third-party components are listed in [THIRD_PARTY_NOTICES.md](https://github.com/citizenfx/fivem/blob/master/THIRD_PARTY_NOTICES.md).
+Full details are in the [LICENSE](https://github.com/citizenfx/fivem/blob/master/LICENSE) file, and third-party components are listed in [THIRD_PARTY_NOTICES](https://github.com/citizenfx/fivem/blob/master/THIRD_PARTY_NOTICES.md).

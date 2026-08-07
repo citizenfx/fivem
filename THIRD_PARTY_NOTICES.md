@@ -1,22 +1,14 @@
 # Third-Party Notices
 
-This repository includes third-party software distributed under its own license
-terms. Those components are **not** covered by the license in [`LICENSE`](LICENSE); each
-remains subject to the license listed below. These notices are provided to
-satisfy the attribution requirements of those licenses.
+This repository includes third-party software distributed under its own license terms. Those components are not covered by the license in [LICENSE](LICENSE); each remains subject to the license listed below. 
 
-Each entry lists the component, the license it is distributed under, and (where
-applicable) its copyright notice. The full text of each distinct license is reproduced in
-[Section 4](#4-full-license-texts) and in the [`LICENSES/`](LICENSES/) directory;
-the authoritative per-component license file is also retained in the source tree.
+Each entry lists the component, the license it is distributed under, and (where applicable) its copyright notice. The full text of each distinct license is reproduced in [Section 4](#4-full-license-texts) and in the [`LICENSES/`](LICENSES/) directory; the authoritative per-component license file is also retained in the source tree. 
+
+Take-Two Interactive Software, Inc. hereby disclaims all copyright interest in the Files described above written by its contributors.
 
 ---
 
-## 1. Third-party code embedded within first-party / LGPL-covered paths
-
-These components live inside otherwise first-party directories and carry their
-own licenses. Their original notices are preserved regardless of how the
-surrounding code is licensed.
+## 1. Embedded third-party code
 
 | Component | Location | License |
 |-----------|----------|---------|
@@ -33,11 +25,7 @@ surrounding code is licensed.
 
 ---
 
-## 2. Vendored dependencies (`vendor/`)
-
-Licenses were determined by reading the license file (or, where none exists, the
-source headers) in each dependency, verified against the tree on 2026-07-17.
-Each heading links to the full license text in [`LICENSES/`](LICENSES/).
+## 2. Vendored dependencies
 
 ### [MIT License](LICENSES/MIT.txt)
 
@@ -177,11 +165,7 @@ requires crediting the FreeType Project in product documentation:
 
 ---
 
-## 3. Notes on specific components
-
-A few components need more than a table row: a license election within a
-shipped archive, or a clarification of what is (and isn't) actually distributed
-from a given directory.
+## 3. Notes
 
 - **lz4 / zstd**: each also ships a GPLv2 `COPYING` that applies **only to the
   command-line programs**, not the library. Only the BSD-licensed library
@@ -203,20 +187,18 @@ from a given directory.
 ## 4. Full license texts
 
 The complete text of each distinct license used above is reproduced in the
-[`LICENSES/`](LICENSES/) directory as canonical, verbatim SPDX-named files (as
-published on the [SPDX License List](https://spdx.org/licenses/)); the
-authoritative per-component license file is also retained in each dependency's
-directory under `vendor/`.
+[LICENSES/](LICENSES/) directory as canonical, verbatim SPDX-named files (as
+published on the [SPDX License List](https://spdx.org/licenses/)).
 
 | License | Reference text |
 |---------|----------------|
-| MIT | [`LICENSES/MIT.txt`](LICENSES/MIT.txt) |
-| Apache-2.0 | [`LICENSES/Apache-2.0.txt`](LICENSES/Apache-2.0.txt) |
-| BSD-2-Clause | [`LICENSES/BSD-2-Clause.txt`](LICENSES/BSD-2-Clause.txt) |
-| BSD-3-Clause | [`LICENSES/BSD-3-Clause.txt`](LICENSES/BSD-3-Clause.txt) |
-| ISC | [`LICENSES/ISC.txt`](LICENSES/ISC.txt) |
-| Boost-1.0 | [`LICENSES/BSL-1.0.txt`](LICENSES/BSL-1.0.txt) |
-| Zlib | [`LICENSES/Zlib.txt`](LICENSES/Zlib.txt) |
-| curl | [`LICENSES/curl.txt`](LICENSES/curl.txt) |
-| FTL | [`LICENSES/FTL.txt`](LICENSES/FTL.txt) |
-| LGPL-2.1 | [`LICENSES/LGPL-2.1.txt`](LICENSES/LGPL-2.1.txt) |
+| MIT | [LICENSES/MIT.txt](LICENSES/MIT.txt) |
+| Apache-2.0 | [LICENSES/Apache-2.0.txt](LICENSES/Apache-2.0.txt) |
+| BSD-2-Clause | [LICENSES/BSD-2-Clause.txt](LICENSES/BSD-2-Clause.txt) |
+| BSD-3-Clause | [LICENSES/BSD-3-Clause.txt](LICENSES/BSD-3-Clause.txt) |
+| ISC | [LICENSES/ISC.txt](LICENSES/ISC.txt) |
+| Boost-1.0 | [LICENSES/BSL-1.0.txt](LICENSES/BSL-1.0.txt) |
+| Zlib | [LICENSES/Zlib.txt](LICENSES/Zlib.txt) |
+| curl | [LICENSES/curl.txt](LICENSES/curl.txt) |
+| FTL | [LICENSES/FTL.txt](LICENSES/FTL.txt) |
+| LGPL-2.1 | [LICENSES/LGPL-2.1.txt](LICENSES/LGPL-2.1.txt) |
