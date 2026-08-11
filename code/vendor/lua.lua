@@ -84,6 +84,8 @@ return {
 			'GLM_FORCE_DEFAULT_ALIGNED_GENTYPES',
 			'GLM_FORCE_SSE2',
 			--'GLM_FORCE_SSE3', -- Change vectorextensions
+
+			'LUA_CFX_SANITIZE_POINTERS',
 		}
 
 		if noGLM then
