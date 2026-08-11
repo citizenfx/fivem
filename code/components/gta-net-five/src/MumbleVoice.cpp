@@ -533,7 +533,7 @@ static void Mumble_RunFrame()
 		bool pushToTalkPressed = FxNativeInvoke::Invoke<bool>(isControlPressed, PLAYER_CONTROL, INPUT_PUSH_TO_TALK);
 		bool pushToTalkEnabled = FxNativeInvoke::Invoke<bool>(isControlEnabled, PLAYER_CONTROL, INPUT_PUSH_TO_TALK);
 
-#if __has_include(<GameInput.h>)
+#if __has_include(<GameInput.h>) && !defined(IS_RDR3)
 		// game::IsControlKeyDown doesn't take enabled/disabled state into account, so we manually check enabled state
 		g_mumbleClient->SetPTTButtonState(pushToTalkEnabled && (pushToTalkPressed || game::IsControlKeyDown(249 /* INPUT_PUSH_TO_TALK */)));
 #else

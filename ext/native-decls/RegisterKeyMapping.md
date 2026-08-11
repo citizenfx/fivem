@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## REGISTER_KEY_MAPPING
 
