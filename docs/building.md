@@ -1,4 +1,4 @@
-# Building Cfx.re
+# Building the Cfx codebase
 
 ## Generate solution
 
