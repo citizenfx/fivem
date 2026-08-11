@@ -17,7 +17,8 @@
 						</Item>
 						<Item>
 							<PoolName>CPlayerInfo</PoolName>
-							<PoolSize value="256"/>
+							<PoolSize value="500
+							"/>
 						</Item>
 						<Item>
 							<PoolName>CNetViewPortWrapper</PoolName>
