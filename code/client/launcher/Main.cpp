@@ -41,6 +41,7 @@ std::optional<int> EnsureGamePath();
 
 extern "C" bool InitializeExceptionHandler();
 bool InitializeExceptionServer();
+bool InitializeFileDialogServer();
 
 std::map<std::string, std::string> UpdateGameCache();
 
@@ -221,6 +222,13 @@ int RealMain()
 
 		// run exception handler
 		if (InitializeExceptionServer())
+		{
+			return 0;
+		}
+
+		// file dialog helper for the game process (see nui-core/src/NUIFileDialog.cpp) -
+		// must run before any bootstrap/update work
+		if (InitializeFileDialogServer())
 		{
 			return 0;
 		}

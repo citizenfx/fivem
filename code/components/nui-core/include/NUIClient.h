@@ -11,6 +11,7 @@
 
 #include <NUIWindow.h>
 #include <include/cef_client.h>
+#include <include/cef_dialog_handler.h>
 
 #if __has_include(<include/cef_permission_handler.h>)
 #define NUI_WITH_MEDIA_ACCESS
@@ -26,6 +27,7 @@ class NUIClient : public CefClient,
 	public CefLifeSpanHandler,
 	public CefDisplayHandler,
 	public CefContextMenuHandler,
+	public CefDialogHandler,
 	public CefLoadHandler,
 #ifdef NUI_WITH_MEDIA_ACCESS
 	public CefPermissionHandler,
@@ -100,6 +102,7 @@ protected:
 	virtual CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override;
 	virtual CefRefPtr<CefDisplayHandler> GetDisplayHandler() override;
 	virtual CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override;
+	virtual CefRefPtr<CefDialogHandler> GetDialogHandler() override;
 	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() override;
 	virtual CefRefPtr<CefRenderHandler> GetRenderHandler() override;
 	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() override;
@@ -159,6 +162,15 @@ protected:
 // CefContextMenuHandler
 protected:
 	virtual void OnBeforeContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefContextMenuParams> params, CefRefPtr<CefMenuModel> model) override;
+
+// CefDialogHandler
+protected:
+	virtual bool OnFileDialog(CefRefPtr<CefBrowser> browser,
+		FileDialogMode mode,
+		const CefString& title,
+		const CefString& default_file_path,
+		const std::vector<CefString>& accept_filters,
+		CefRefPtr<CefFileDialogCallback> callback) override;
 
 // CefDisplayHandler
 protected:
