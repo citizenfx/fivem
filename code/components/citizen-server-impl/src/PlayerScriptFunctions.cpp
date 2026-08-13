@@ -7,6 +7,11 @@
 #include <ClientRegistry.h>
 #include <ServerInstanceBaseRef.h>
 
+#include <ResourceEventComponent.h>
+#include <ServerEventComponent.h>
+
+#include <PlayerName.h>
+
 #include <ScriptEngine.h>
 
 #include <se/Security.h>
@@ -30,6 +35,63 @@ static void CreatePlayerCommands()
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_NAME", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		return client->GetName().c_str();
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_NAME", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		std::string name = context.CheckArgument<const char*>(1);
+
+		if (!fx::NormalizePlayerName(name) || name.empty())
+		{
+			return false;
+		}
+
+		std::string oldName = client->GetName();
+
+		if (oldName == name)
+		{
+			return false;
+		}
+
+		client->SetName(name);
+
+		std::string resourceName;
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			if (resource)
+			{
+				resourceName = resource->GetName();
+			}
+		}
+
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// joining clients get their name as part of onPlayerJoining
+		if (client->HasConnected())
+		{
+			instance->GetComponent<fx::ServerEventComponent>()->TriggerClientEvent("onPlayerNameChanged", std::optional<std::string_view>(), client->GetNetId(), oldName, name, resourceName);
+		}
+
+		/*NETEV onPlayerNameChanged SERVER
+		/#*
+		 * A server-side event that is triggered when a player's name is changed using SET_PLAYER_NAME.
+		 *
+		 * @param source - The player's NetID (a number in Lua/JS), **not a real argument, use [FromSource] or source**.
+		 * @param oldName - The name the player had before the change.
+		 * @param newName - The name the player has after the change, as normalized by the server.
+		 * @param resourceName - The name of the resource that changed the name, or an empty string if it wasn't changed by a resource.
+		 #/
+		declare function onPlayerNameChanged(source: string, oldName: string, newName: string, resourceName: string): void;
+		*/
+		resourceManager->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("onPlayerNameChanged", { fmt::sprintf("internal-net:%d", client->GetNetId()) }, oldName, name, resourceName);
+
+		return true;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("DOES_PLAYER_EXIST", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
