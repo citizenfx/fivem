@@ -3518,9 +3518,23 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		{
 			if (parsingType == 2)
 			{
+				auto healthNode = (entity->type == sync::NetObjEntityType::Ped || entity->type == sync::NetObjEntityType::Player)
+					? syncTree->GetPedHealth()
+					: nullptr;
+
+				// maxHealth is only 0 until the node was parsed for the first time
+				bool hadHealth = healthNode && healthNode->maxHealth != 0;
+				int oldHealth = hadHealth ? healthNode->health : 0;
+				int oldArmour = hadHealth ? healthNode->armour : 0;
+
 				syncTree->ParseSync(state);
 
 				entity->hasSynced = true;
+
+				if (hadHealth)
+				{
+					HandlePedHealthUpdate(entity, healthNode, oldHealth, oldArmour);
+				}
 			}
 			else if (parsingType == 1)
 			{
@@ -3706,6 +3720,83 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 	}
 
 	return true;
+}
+
+void ServerGameState::HandlePedHealthUpdate(const fx::sync::SyncEntityPtr& entity, fx::sync::CPedHealthNodeData* healthNode, int oldHealth, int oldArmour)
+{
+	int health = healthNode->health;
+	int armour = healthNode->armour;
+
+	if (health == oldHealth && armour == oldArmour)
+	{
+		return;
+	}
+
+	bool died = oldHealth > 0 && health <= 0;
+
+	uint32_t flags = m_pedEventFlags.load(std::memory_order_relaxed);
+	bool wantsHealthChanged = (flags & PedEventHealthChanged) != 0;
+	bool wantsDeath = died && (flags & PedEventDeath) != 0;
+
+	// don't pay for events nobody is listening to
+	if (!wantsHealthChanged && !wantsDeath)
+	{
+		return;
+	}
+
+	// the node may be parsed again before the callback runs, so pass values, not the node
+	uint32_t weaponHash = healthNode->causeOfDeath;
+	int sourceOfDamage = healthNode->sourceOfDamage;
+
+	gscomms_execute_callback_on_main_thread([this, entity, wantsHealthChanged, wantsDeath, oldHealth, health, oldArmour, armour, sourceOfDamage, weaponHash]()
+	{
+		auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+		auto ped = MakeScriptHandle(entity);
+
+		uint32_t attacker = 0;
+
+		if (sourceOfDamage != 0)
+		{
+			if (auto attackerEntity = GetEntity(0, sourceOfDamage))
+			{
+				attacker = MakeScriptHandle(attackerEntity);
+			}
+		}
+
+		if (wantsHealthChanged)
+		{
+			/*NETEV onPedHealthChanged SERVER
+			/#*
+			 * Triggered when the health or armour of a ped changed.
+			 *
+			 * @param ped - The handle of the ped whose health or armour changed.
+			 * @param oldHealth - The health the ped had before the change.
+			 * @param health - The health the ped has after the change.
+			 * @param oldArmour - The armour the ped had before the change.
+			 * @param armour - The armour the ped has after the change.
+			 * @param attacker - The handle of the entity that caused the damage, or 0 if unknown.
+			 * @param weaponHash - The hash of the weapon that caused the damage, or 0 if unknown.
+			 #/
+			declare function onPedHealthChanged(ped: number, oldHealth: number, health: number, oldArmour: number, armour: number, attacker: number, weaponHash: number): void;
+			*/
+			evComponent->TriggerEvent2("onPedHealthChanged", {}, ped, oldHealth, health, oldArmour, armour, attacker, weaponHash);
+		}
+
+		if (wantsDeath)
+		{
+			/*NETEV onPedDeath SERVER
+			/#*
+			 * Triggered when a ped died.
+			 *
+			 * @param ped - The handle of the ped that died.
+			 * @param attacker - The handle of the entity that killed the ped, or 0 if unknown.
+			 * @param weaponHash - The hash of the weapon that killed the ped, or 0 if unknown.
+			 #/
+			declare function onPedDeath(ped: number, attacker: number, weaponHash: number): void;
+			*/
+			evComponent->TriggerEvent2("onPedDeath", {}, ped, attacker, weaponHash);
+		}
+	});
 }
 
 bool ServerGameState::ValidateEntity(EntityLockdownMode entityLockdownMode, const fx::sync::SyncEntityPtr& entity)
@@ -4570,6 +4661,29 @@ auto ServerGameState::GetEntityLockdownMode(const fx::ClientSharedPtr& client) -
 void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 {
 	m_instance = instance;
+
+	instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>()->OnResourceHandledEvent.Connect([this](const std::string& eventName, const std::string&)
+	{
+		uint32_t flags = 0;
+
+		if (eventName == "onPedHealthChanged")
+		{
+			flags = PedEventHealthChanged;
+		}
+		else if (eventName == "onPedDeath")
+		{
+			flags = PedEventDeath;
+		}
+		else if (eventName == "*")
+		{
+			flags = PedEventHealthChanged | PedEventDeath;
+		}
+
+		if (flags)
+		{
+			m_pedEventFlags.fetch_or(flags, std::memory_order_relaxed);
+		}
+	});
 
 	m_lockdownModeVar = instance->AddVariable<fx::EntityLockdownMode>("sv_entityLockdown", ConVar_None, m_entityLockdownMode, &m_entityLockdownMode);
 	m_stateBagStrictModeVar = instance->AddVariable<bool>("sv_stateBagStrictMode", ConVar_None, m_stateBagStrictMode, &m_stateBagStrictMode);

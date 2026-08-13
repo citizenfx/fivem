@@ -1569,6 +1569,8 @@ private:
 
 	bool ValidateEntity(EntityLockdownMode entityLockdownMode, const fx::sync::SyncEntityPtr& entity);
 
+	void HandlePedHealthUpdate(const fx::sync::SyncEntityPtr& entity, fx::sync::CPedHealthNodeData* healthNode, int oldHealth, int oldArmour);
+
 public:
 	std::unordered_set<uint32_t> blockedEvents;
 	std::shared_mutex blockedEventsMutex;
@@ -1587,6 +1589,16 @@ public:
 
 private:
 	fx::ServerInstanceBase* m_instance;
+
+	enum PedEventFlags : uint32_t
+	{
+		PedEventHealthChanged = 1 << 0,
+		PedEventDeath = 1 << 1,
+	};
+
+	// updated when a resource registers a handler, so the sync parse path only needs an
+	// atomic read instead of a lookup in the event registry
+	std::atomic<uint32_t> m_pedEventFlags{ 0 };
 
 #ifdef USE_ASYNC_SCL_POSTING
 	std::unique_ptr<ThreadPool> m_tg;
