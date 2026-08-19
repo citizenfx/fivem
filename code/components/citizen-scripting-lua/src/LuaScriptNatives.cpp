@@ -159,21 +159,38 @@ void LuaScriptNativeContext::PushTableArgument(int idx)
 	luaL_checkstack(L, 2, "table arguments");
 	lua_pushliteral(L, "__data");
 
-	// get the type and decide what to do based on it
-	auto validType = [](int t)
+	auto tryPushTop = [&](int t)
 	{
-		return t == LUA_TBOOLEAN || t == LUA_TNUMBER || t == LUA_TSTRING || t == LUA_TVECTOR;
+		switch (t)
+		{
+			case LUA_TBOOLEAN:
+			case LUA_TNUMBER:
+			case LUA_TVECTOR:
+			case LUA_TSTRING:
+				PushArgument(lua_gettop(L));
+
+				// Don't pop garbage collected objects, keep them on the stack.
+				if (t != LUA_TSTRING)
+				{
+					lua_pop(L, 1);
+				}
+
+				return true;
+
+			default:
+				lua_pop(L, 1);
+				return false;
+		}
 	};
 
-	if (validType(lua_rawget(L, t_idx))) // Account for pushstring if idx < 0
+	if (tryPushTop(lua_rawget(L, t_idx)))
 	{
-		PushArgument(lua_gettop(L));
-		lua_pop(L, 1);
+		return;
 	}
-	else
+
+	if (int type = luaL_getmetafield(L, idx, "__data"); type != LUA_TNIL)
 	{
-		lua_pop(L, 1); // [...]
-		if (luaL_getmetafield(L, idx, "__data") == LUA_TFUNCTION) // [..., metafield]
+		if (type == LUA_TFUNCTION) // [..., metafield]
 		{
 			// The __data function can only allow one return value (no LUA_MULTRET)
 			// to avoid additional implicitly expanded types during native execution.
@@ -181,17 +198,15 @@ void LuaScriptNativeContext::PushTableArgument(int idx)
 			lua_call(L, 1, 1); // [..., value]
 		}
 
-		if (validType(lua_type(L, -1)))
+		if (tryPushTop(type))
 		{
-			PushArgument(lua_gettop(L));
-			lua_pop(L, 1); // [...]
+			return;
 		}
-		else
-		{
-			lua_pop(L, 1);
-			ScriptError("invalid lua type in __data");
-		}
+		
+		ScriptError("invalid lua type in __data");
 	}
+
+	ScriptError("invalid table argument");
 }
 
 template<typename T>

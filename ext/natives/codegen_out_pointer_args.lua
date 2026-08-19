@@ -20,6 +20,7 @@ local typeSizes = {
     ['Vector3'] = 24,
 }
 
+-- When changing this, also see codegen_out_native_lua.lua
 local paramOverrides = {
     ['CFX/SET_RUNTIME_TEXTURE_ARGB_DATA/1'] = PAS_ARG_POINTER | PAS_ARG_BUFFER, -- buffer
     ['CFX/SET_STATE_BAG_VALUE/2']           = PAS_ARG_POINTER | PAS_ARG_BUFFER, -- valueData

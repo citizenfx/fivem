@@ -12,7 +12,37 @@ local unsupList = {
 	'SET_MISSION_TRAIN_AS_NO_LONGER_NEEDED',
 	-- RDR3: This function can take multiple different types which OAL doesn't
 	-- currently support.
-	'VAR_STRING'
+	'VAR_STRING',
+
+	-- See paramOverrides in codegen_out_pointer_args.lua
+	'SET_RUNTIME_TEXTURE_ARGB_DATA',
+	'SET_STATE_BAG_VALUE',
+	'PERFORM_HTTP_REQUEST_INTERNAL',
+	'TRIGGER_CLIENT_EVENT_INTERNAL',
+	'TRIGGER_EVENT_INTERNAL',
+	'TRIGGER_LATENT_CLIENT_EVENT_INTERNAL',
+	'TRIGGER_LATENT_SERVER_EVENT_INTERNAL',
+	'TRIGGER_SERVER_EVENT_INTERNAL',
+	'DRAW_GIZMO',
+	'GET_MAPDATA_ENTITY_MATRIX',
+	'GET_PED_NEARBY_PEDS',
+	'GET_PED_NEARBY_VEHICLES',
+	'TRIGGER_SCRIPT_EVENT',
+	'_TRIGGER_SCRIPT_EVENT_2',
+	'_GET_ALL_VEHICLES',
+	'GET_PED_DRAWABLE_VARIATION',
+	'GET_PED_PALETTE_VARIATION',
+	'GET_PED_TEXTURE_VARIATION',
+	'SET_PED_COMPONENT_VARIATION',
+	'IS_VEHICLE_WINDOW_INTACT',
+	'FIX_VEHICLE_WINDOW',
+	'REMOVE_VEHICLE_WINDOW',
+	'ROLL_DOWN_WINDOW',
+	'ROLL_UP_WINDOW',
+	'SMASH_VEHICLE_WINDOW',
+	'NETWORK_OVERRIDE_CLOCK_TIME',
+	'NETWORK_OVERRIDE_CLOCK_TIME',
+	'NETWORK_OVERRIDE_CLOCK_TIME',
 }
 
 local unsup = {}
@@ -78,6 +108,10 @@ local function isSafeNative(native)
 		return false
 	end
 
+	if unsup[native.name] then
+		return false
+	end
+
 	local safe = true
 	local singlePointer = isSinglePointerNative(native)
 	for argn=1,#native.arguments do
@@ -106,10 +140,6 @@ local function isSafeNative(native)
 	end
 
 	return safe
-end
-
-local function isUnsupportedNative(native)
-	return unsup[native.name] and true or false
 end
 
 local function printFunctionName(native)
@@ -385,10 +415,6 @@ local function printNative(native)
 end
 
 local function printNativeRef(native)
-	if isUnsupportedNative(native) then
-		return ''
-	end
-
 	local nativeName = printFunctionName(native)
 	local n = ''
 	
