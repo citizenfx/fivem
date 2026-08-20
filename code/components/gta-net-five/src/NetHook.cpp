@@ -1476,7 +1476,11 @@ static HookFunction hookFunction([] ()
 	}
 
 	// exit game on game exit from alt-f4
-	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2026>())
+	{
+		hook::call(hook::get_pattern("40 88 3D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 48 8B CE"), ExitCleanly);
+	}
+	else if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
 	{
 		hook::call(hook::get_pattern("40 88 35 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 48 8B CF"), ExitCleanly);
 	}
@@ -1486,10 +1490,24 @@ static HookFunction hookFunction([] ()
 	}
 
 	// no netgame jumpouts in alt-f4
-	hook::put<uint8_t>(hook::get_pattern("40 38 35 ? ? ? ? 74 0A 48 8B CF", 7), 0xEB);
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2026>())
+	{
+		hook::put<uint8_t>(hook::get_pattern("40 38 3D ? ? ? ? 74 ? 48 8B CE E8 ? ? ? ? EB", 7), 0xEB);
+	}
+	else
+	{
+		hook::put<uint8_t>(hook::get_pattern("40 38 35 ? ? ? ? 74 0A 48 8B CF", 7), 0xEB);
+	}
 
 	// fix 'restart' handling to not ask MTL to restart, but relaunch 'ourselves' (eg on settings change)
-	hook::put<uint8_t>(hook::get_pattern("48 85 C9 74 15 40 38 31 74", 3), 0xEB);
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2026>())
+	{
+		hook::put<uint8_t>(hook::get_pattern("48 85 C9 74 ? 40 38 39 74", 3), 0xEB);
+	}
+	else
+	{
+		hook::put<uint8_t>(hook::get_pattern("48 85 C9 74 15 40 38 31 74", 3), 0xEB);
+	}
 
 	// shellexecuteexa -switch add so it can wait
 	hook::iat("shell32.dll", ShellExecuteExAHook, "ShellExecuteExA");
@@ -1736,7 +1754,7 @@ static HookFunction hookFunction([] ()
 	// objectmgr bandwidth stuff?
 	hook::put<uint8_t>(hook::pattern("74 ? 48 89 54 24 ? 48 8D 54 24 ? 48 81 C1").count(1).get(0).get<void>(0), 0xEB);
 
-	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>())
+	if (xbr::IsGameBuildOrGreater<xbr::Build::Summer_2025>() && !xbr::IsGameBuildOrGreater<xbr::Build::Summer_2026>())
 	{
 		hook::put<uint8_t>(hook::pattern("74 ? 48 8B 4E ? 0F B6 C0").count(1).get(0).get<void>(0), 0xEB);
 	}

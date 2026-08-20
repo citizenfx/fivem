@@ -65,9 +65,15 @@ static std::unordered_set<std::string> g_badFiles{
 	"dlc_mpSum2_g9ec:/common/data/effects/peds/first_person_alternates.meta",
 	"dlc_mpSum2_g9ec:/common/data/effects/peds/first_person.meta",
 	"dlc_mpSum2_g9ecCRC:/common/data/pedalternatevariations.meta",
+	"dlc_mpSum2_g9ec:/common/data/dlctext.meta",
+	"dlc_mpSum2_g9ecCRC:/common/data/contentunlocks.meta",
 
 	"dlc_mpChristmas3_G9EC:/x64/levels/mpChristmas3_G9EC/vehiclemods/entity3hsw_mods.rpf",
 	"dlc_mpChristmas3_G9EC:/x64/levels/mpChristmas3_G9EC/vehiclemods/issi8hsw_mods.rpf",
+
+	"dlc_patch2023_01_G9EC:/x64/models/cdimages/patch2023_01_g9ec_female.rpf",
+	"dlc_patch2023_01_G9EC:/x64/models/cdimages/patch2023_01_g9ec_female_p.rpf",
+	"dlc_patch2023_01_G9EC:/x64/models/cdimages/patch2023_01_g9ec_male.rpf",
 
 	"dlc_mp2023_01_G9EC:/common/data/overlayinfo.xml",
 	"dlc_mp2023_01_G9EC:/x64/levels/gta5/mp2023_01_g9ec_additions/mp2023_01_g9ec_additions.rpf",
@@ -84,13 +90,17 @@ static std::unordered_set<std::string> g_badFiles{
 	"dlc_mp2023_02_G9EC:/x64/levels/gta5/interiors/int_placement_m23_2_g9ec.rpf",
 	"dlc_mp2023_02_G9EC:/x64/levels/gta5/interiors/mp2023_02_dlc_int_3.rpf",
 	"dlc_mp2023_02_G9EC:/x64/levels/mp2023_02_G9EC/vehiclemods/vivanitehsw_mods.rpf",
+
+	"dlc_patch2024_01_G9EC:/x64/levels/patch2024_01_g9ec/vehiclemods/coureurhsw_mods.rpf",
 	
 	"dlc_mp2024_01_G9EC:/common/data/overlayinfo.xml",
 	"dlc_mp2024_01_G9EC:/common/data/interiorProxies.xml",
+	"dlc_mp2024_01_G9EC:/common/data/interiorProxies.meta",
 	"dlc_mp2024_01_G9EC:/x64/levels/gta5/interiors/int_placement_m24_1_g9ec.rpf",
 	"dlc_mp2024_01_G9EC:/x64/levels/gta5/interiors/m24_1_dlc_int_02.rpf",
 	"dlc_mp2024_01_G9EC:/x64/levels/mp2024_01_g9ec/vehiclemods/eurosx32hsw_mods.rpf",
 	"dlc_mp2024_01_G9EC:/x64/levels/mp2024_01_g9ec/vehiclemods/niobehsw_mods.rpf",
+	"dlc_mp2024_01_G9EC:/x64/levels/gta5/interiors/M24_1_DLC_INT_02.rpf",
 
 	"dlc_mp2024_02_G9EC:/x64/levels/mp2024_02_G9EC/vehiclemods/banshee3hsw_mods.rpf",
 	"dlc_mp2024_02_G9EC:/x64/levels/mp2024_02_G9EC/vehiclemods/firebolthsw_mods.rpf", 
@@ -104,13 +114,25 @@ static std::unordered_set<std::string> g_badFiles{
 	"dlc_mp2024_02_G9ECCRC:/common/data/ai/weaponanimations.meta",   
 	"dlc_mp2024_02_G9ECCRC:/common/data/ai/weaponcomponents.meta",
 
-	"dlc_mp2025_01_G9EC:/x64/levels/mp2025_01_g9ec/vehiclemods/tampa4hsw_mods.rpf",
-	"dlc_mp2025_01_G9EC:/x64/levels/mp2025_01_g9ec/vehiclemods/woodlanderhsw_mods.rpf",
+	"dlc_patch2025_02_G9EC:/x64/levels/patch2025_02_G9EC/vehiclemods/firebolthsw_mods.rpf",
+	"dlc_patch2025_02_G9EC:/x64/levels/patch2025_02_G9EC/vehiclemods/eurosX32hsw_mods.rpf",
+	"dlc_patch2025_02_G9EC:/x64/levels/patch2025_02_G9EC/vehiclemods/vivanitehsw_mods.rpf",
+	"dlc_patch2025_02_G9EC:/x64/levels/patch2025_02_G9EC/vehiclemods/tampa4hsw_mods.rpf",
+
+	"dlc_mp2025_01_G9EC:/x64/levels/mp2025_01_G9EC/vehiclemods/tampa4hsw_mods.rpf",
+	"dlc_mp2025_01_G9EC:/x64/levels/mp2025_01_G9EC/vehiclemods/woodlanderhsw_mods.rpf",
 
 	"dlc_mp2025_02_G9EC:/x64/levels/mp2025_02_g9ec/vehiclemods/fmj2hsw_mods.rpf",
 	"dlc_mp2025_02_G9EC:/x64/levels/mp2025_02_g9ec/vehiclemods/astralehsw_mods.rpf",
 	"dlc_mp2025_02_G9EC:/x64/levels/gta5/props/Prop_M25_2_Plaques_G9EC.rpf",
-	"dlc_mp2025_02_G9EC:/x64/levels/gta5/props/Prop_M25_2_Trophies_G9EC.rpf"
+	"dlc_mp2025_02_G9EC:/x64/levels/gta5/props/m25_2_Prop_M25_2_Plaques_G9EC.ityp",
+	"dlc_mp2025_02_G9EC:/x64/levels/gta5/props/Prop_M25_2_Trophies_G9EC.rpf",
+	"dlc_mp2025_02_G9EC:/x64/levels/gta5/props/m25_2_Prop_M25_2_Trophies_G9EC.ityp",
+
+	"dlc_mp2026_01_G9EC:/x64/levels/mp2026_01_g9ec/vehiclemods/horushsw_mods.rpf",
+	"dlc_mp2026_01_G9EC:/x64/levels/mp2026_01_g9ec/vehiclemods/velenogthsw_mods.rpf",
+	"dlc_mp2026_01_G9EC:/x64/levels/gta5/props/Prop_M26_1_Plaques.rpf",
+	"dlc_mp2026_01_G9EC:/x64/levels/gta5/props/m26_1_Prop_M26_1_Plaques.ityp"
 };
 
 static void (*_applyChangeSetEntry)(ChangeSetEntry* entry);

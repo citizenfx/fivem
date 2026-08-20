@@ -12,6 +12,11 @@
 
 static hook::cdecl_stub<void()> originalMount([]()
 {
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		return (void*)nullptr;
+	}
+
 	return hook::pattern("48 81 EC E0 03 00 00 48 B8 63 6F 6D 6D").count(1).get(0).get<void>(-0x1A);
 });
 

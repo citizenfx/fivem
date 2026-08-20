@@ -7853,15 +7853,15 @@ static InitFunction initFunction([]()
 			return g_oneSyncEnabledVar->GetValue() || g_oneSyncVar->GetValue() != fx::OneSyncState::Off;
 		});
 
-		g_oneSyncVar = instance->AddVariable<fx::OneSyncState>("onesync", ConVar_ReadOnly, fx::OneSyncState::Off);
+		g_oneSyncVar = instance->AddVariable<fx::OneSyncState>("onesync", ConVar_Internal, fx::OneSyncState::On);
 		g_oneSyncPopulation = instance->AddVariable<bool>("onesync_population", ConVar_ReadOnly, true);
 		g_oneSyncARQ = instance->AddVariable<bool>("onesync_automaticResend", ConVar_None, false);
 
 		// .. to infinity?
-		g_oneSyncBigMode = instance->AddVariable<bool>("onesync_enableInfinity", ConVar_ReadOnly, false);
+		g_oneSyncBigMode = instance->AddVariable<bool>("onesync_enableInfinity", ConVar_Internal, true);
 
 		// or maybe, beyond?
-		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_ReadOnly, false);
+		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_Internal, true);
 
 		constexpr bool canLengthHack =
 #ifdef STATE_RDR3
@@ -7905,7 +7905,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		g_oneSyncEnabledVar = instance->AddVariable<bool>("onesync_enabled", ConVar_ServerInfo, false);
+		g_oneSyncEnabledVar = instance->AddVariable<bool>("onesync_enabled", ConVar_ServerInfo | ConVar_Internal, false);
 		g_oneSyncCulling = instance->AddVariable<bool>("onesync_distanceCulling", ConVar_None, true);
 		g_oneSyncVehicleCulling = instance->AddVariable<bool>("onesync_distanceCullVehicles", ConVar_None, false);
 		g_oneSyncForceMigration = instance->AddVariable<bool>("onesync_forceMigration", ConVar_None, true);

@@ -180,6 +180,7 @@ static HookFunction hookFunction([]()
 	}
 
 	// CPedWeaponManager::SwitchToRagdoll
+	if (!xbr::IsGameBuildOrGreater<xbr::Summer_2026>())
 	{
 		static struct : jitasm::Frontend
 		{
