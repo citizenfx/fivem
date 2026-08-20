@@ -196,6 +196,7 @@ void LuaScriptNativeContext::PushTableArgument(int idx)
 			// to avoid additional implicitly expanded types during native execution.
 			lua_pushvalue(L, t_idx); // [..., function, argument]
 			lua_call(L, 1, 1); // [..., value]
+			type = lua_type(L, -1);
 		}
 
 		if (tryPushTop(type))

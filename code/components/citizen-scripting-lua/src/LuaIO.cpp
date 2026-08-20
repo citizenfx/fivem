@@ -168,7 +168,7 @@ int LuaIODirectoryToString(lua_State* L)
 
 int LuaIODirectoryIterator(lua_State* L)
 {
-	LuaIODirectory* p = static_cast<LuaIODirectory*>(luaL_checkudata(L, 1, LUA_FX_DIRECTORY_HANDLE));
+	LuaIODirectory* p = static_cast<LuaIODirectory*>(luaL_testudata(L, lua_upvalueindex(1), LUA_FX_DIRECTORY_HANDLE));
 
 	if (p && p->directory)
 	{
@@ -261,7 +261,7 @@ LStream* LuaNewPreFile(lua_State* L)
 
 int LuaIOOpen(lua_State* L)
 {
-	const char* file = luaL_optstring(L, 1, nullptr);
+	const char* file = luaL_checkstring(L, 1);
 	std::string fileName = file;
 	const char* modeStr = luaL_optstring(L, 2, nullptr);
 	std::string mode = "r";
@@ -508,7 +508,7 @@ int LuaIOFileLineIterator(lua_State* L)
 {
 	const LStream* p = static_cast<LStream*>(luaL_testudata(L, lua_upvalueindex(1), LUA_FILEHANDLE));
 
-	if (isclosed(p))
+	if (!p || isclosed(p))
 	{
 		return 0;
 	}
