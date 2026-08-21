@@ -40,7 +40,7 @@ public:
 	/// <param name="physicalIndex">netPlayer's physical index</param>
 	void ClearValue(uint8_t physicalIndex)
 	{
-		m_bits[physicalIndex / 32] |= ~(1 << (physicalIndex % 0x1F));
+		m_bits[physicalIndex / 32] &= ~(1 << (physicalIndex & 0x1F));
 	}
 private:
 	static constexpr int kMaxPlayers = 128;

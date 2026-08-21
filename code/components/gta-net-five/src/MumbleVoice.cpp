@@ -823,7 +823,9 @@ static void _filterVoiceChatConfig(void* engine, char* config)
 		*config = 0;
 	}
 
-	//g_origInitVoiceEngine(engine, config);
+#ifndef IS_RDR3
+	g_origInitVoiceEngine(engine, config);
+#endif
 }
 
 #include <LabSound/extended/LabSound.h>

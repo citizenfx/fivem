@@ -260,6 +260,8 @@ static bool netObjectMgrBase__ForAllLocalObjects(rage::netObjectMgr* manager, Lo
 	{
 		cb(entry.second, a3);
 	}
+
+	return true;
 }
 #endif
 
@@ -292,7 +294,7 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("45 8A F0 0F B7 F2 E8 ? ? ? ? 33 DB 38", -0x24), netObjectMgrBase__GetNetworkObject, (void**)&g_orig_netObjectMgrBase__GetNetworkObject);
 
 	// Remove dependency on NetworkObjectMgrBase::m_playerObjects
-	MH_CreateHook(hook::get_pattern("49 8B CE 4C 8B FA 33 F6", -37), netObjectMgrBase__GetObjectFilteredCount, (void**)g_orig_netObjectMgrBase__GetObjectFilteredCount);
+	MH_CreateHook(hook::get_pattern("49 8B CE 4C 8B FA 33 F6", -37), netObjectMgrBase__GetObjectFilteredCount, (void**)&g_orig_netObjectMgrBase__GetObjectFilteredCount);
 	MH_CreateHook(hook::get_pattern("0F 84 ? ? ? ? 48 8B 80 ? ? ? ? 80 78 ? ? 72 ? BA", -50), netObjectMgrBase__ForAllLocalObjects, (void**)&g_orig_netObjectMgrBase__ForAllLocalObjects);
 	// Replace ForAllObjects to support extended local player physical index
 	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 44 8A 0D ? ? ? ? 48 8B 3D", -0x44), netObjectMgrBase__ForAllObjects, (void**)&g_orig_netObjectMgrBase__ForAllObjects);
@@ -308,4 +310,3 @@ static InitFunction initFunctionEv([]()
 		icgi = Instance<ICoreGameInit>::Get();
 	});
 });
- 

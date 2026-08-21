@@ -1329,7 +1329,7 @@ static hook::cdecl_stub<void(rage::CSyncDataBase*, uint8_t*, char*)> _syncDataBa
 });
 
 static void (*g_origSyncDataReader_SerializePlayerIndex)(rage::CSyncDataReader*, uint8_t*, char*);
-static void SyncDataReader_SerializePlayerIndex(rage::CSyncDataReader* syncData, uint8_t* index, char* prefix) 
+static void SyncDataReader_SerializePlayerIndex(rage::CSyncDataReader* syncData, uint8_t* index, char* prefix)
 {
 	if (!icgi->OneSyncEnabled)
 	{
@@ -1353,7 +1353,7 @@ static void SyncDataReader_SerializePlayerIndex(rage::CSyncDataReader* syncData,
 }
 
 static void (*g_origSyncDataWriter_SerializePlayerIndex)(rage::CSyncDataWriter*, uint8_t*, char*);
-static void SyncDataWriter_SerializePlayerIndex(rage::CSyncDataWriter * syncData, uint8_t * index, char* prefix)
+static void SyncDataWriter_SerializePlayerIndex(rage::CSyncDataWriter* syncData, uint8_t* index, char* prefix)
 {
 	if (!icgi->OneSyncEnabled)
 	{
@@ -1788,7 +1788,6 @@ static HookFunction hookFunction([]()
 #endif
 		hook::set_call(&g_origJoinBubble, location);
 		hook::call(location, JoinPhysicalPlayerOnHost);
-		
 	}
 
 	{

@@ -166,6 +166,8 @@ static bool netObject__setCanBeTargetted(rage::netObject* object, uint8_t physic
 	{
 		g_netObjPlayerTargetting[object->GetObjectId()][index] &= ~(1 << bit);
 	}
+
+	return state;
 }
 
 static bool (*g_origCanBeTargetted)(rage::netObject*, uint8_t);
