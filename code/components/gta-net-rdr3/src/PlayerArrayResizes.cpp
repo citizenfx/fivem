@@ -33,30 +33,23 @@ static size_t GetDisplacementOffset(const ud_t& ud, ud_mnemonic_code mnemonic, u
 		return SIZE_MAX;
 	}
 
-	const uint8_t* start = instr;
-	const uint8_t* end = instr + len;
+	size_t minOffset = 0;
 
-	int minOffset = 0;
-	uint16_t opcode = (instr[0] << 8) | instr[1];
-	
-	// these are Multiple byte opcodes. 
-	if (opcode == 0x0F38 || opcode == 0x0F3A || (opcode >= 0x0F00 && opcode <= 0x0FFF))
+	if (len >= 2)
 	{
-		minOffset = 1;
+		uint16_t opcode = (instr[0] << 8) | instr[1];
+
+		// these are Multiple byte opcodes.
+		if (opcode >= 0x0F00 && opcode <= 0x0FFF)
+		{
+			minOffset = 1;
+		}
 	}
 
-	int offset = 0;
-	for (const uint8_t* p = instr; p <= end; p++)
+	for (size_t offset = minOffset + 1; offset + dataSize <= len; offset++)
 	{
 		uint64_t value = 0;
 		memcpy(&value, instr + offset, dataSize);
-
-		// Make sure we don't take the opcode as the value
-		if (offset <= minOffset)
-		{
-			offset++;
-			continue;
-		}
 
 		if (dataSize < 8)
 		{
@@ -68,8 +61,6 @@ static size_t GetDisplacementOffset(const ud_t& ud, ud_mnemonic_code mnemonic, u
 		{
 			return offset;
 		}
-
-		offset++;
 	}
 
 	return SIZE_MAX;
@@ -172,6 +163,23 @@ void IncreaseFunctionStack(void* address, std::initializer_list<StackResizes> li
 
 	StackInfo stackData[kMaxStackResizes]{};
 	size_t stackCount = 0;
+	const char* analysisFailure = nullptr;
+
+	auto pushStackInfo = [&](uintptr_t addr, size_t offset, uint64_t origValue, uint8_t valueSize)
+	{
+		if (offset == SIZE_MAX)
+		{
+			return;
+		}
+
+		if (stackCount >= kMaxStackResizes)
+		{
+			analysisFailure = "more stack references than kMaxStackResizes";
+			return;
+		}
+
+		stackData[stackCount++] = { addr, offset, origValue, valueSize };
+	};
 
 	for (int i = 0; i < kMaxInstructions; i++)
 	{
@@ -214,7 +222,7 @@ void IncreaseFunctionStack(void* address, std::initializer_list<StackResizes> li
 #endif
 
 			size_t offset = GetDisplacementOffset(ud, mnemonic, dataSize, size);
-			stackData[stackCount++] = { addr, offset, dataSize, size };
+			pushStackInfo(addr, offset, dataSize, size);
 
 			// if this is restoring the stack pointer, we can currently assume this is the end of the function and break out here
 			if (mnemonic == UD_Iadd)
@@ -259,13 +267,13 @@ void IncreaseFunctionStack(void* address, std::initializer_list<StackResizes> li
 				// Check if this LEA restores RSP
 				if (dataSize == functionStackSize)
 				{
-					stackData[stackCount++] = { addr, offset, dataSize, size };
+					pushStackInfo(addr, offset, dataSize, size);
 					break;
 				}
 
 				if (attemptStackRelocation)
 				{
-					stackData[stackCount++] = { addr, offset, dataSize, size };
+					pushStackInfo(addr, offset, dataSize, size);
 				}
 
 				continue;
@@ -296,7 +304,7 @@ void IncreaseFunctionStack(void* address, std::initializer_list<StackResizes> li
 				dataSize);
 #endif
 				size_t offset = GetDisplacementOffset(ud, mnemonic, dataSize, size);
-				stackData[stackCount++] = { addr, offset, dataSize, size };
+				pushStackInfo(addr, offset, dataSize, size);
 				continue;
 			}
 
@@ -313,7 +321,7 @@ void IncreaseFunctionStack(void* address, std::initializer_list<StackResizes> li
 #endif
 				size_t offset = GetDisplacementOffset(ud, mnemonic, dataSize, size);
 
-				stackData[stackCount++] = { addr, offset, dataSize, size };
+				pushStackInfo(addr, offset, dataSize, size);
 				continue;
 			}
 		}
@@ -330,14 +338,22 @@ void IncreaseFunctionStack(void* address, std::initializer_list<StackResizes> li
 			getImmValue(op1));
 #endif
 			size_t offset = GetDisplacementOffset(ud, mnemonic, dataSize, size);
-			stackData[stackCount++] = { addr, offset, dataSize, size };
+			pushStackInfo(addr, offset, dataSize, size);
 			continue;
 		}
 	}
 
-	int stackFrameReplaced = 0;
-	for (const StackInfo& val : stackData)
+	if (analysisFailure)
 	{
+		trace("IncreaseFunctionStack: %p has %s, leaving it alone.\n", address, analysisFailure);
+		return;
+	}
+
+	int stackFrameReplaced = 0;
+	for (size_t i = 0; i < stackCount; i++)
+	{
+		const StackInfo& val = stackData[i];
+
 		int newValue = (val.origValue == functionStackSize) ? NewStackSize : -1;
 		if (newValue == -1 && attemptStackRelocation )
 		{

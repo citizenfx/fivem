@@ -15,7 +15,7 @@ struct CPedGroup
 	char pad[4832];
 };
 
-static const uint8_t kMaxPedGroups = 128 + 36;
+static constexpr uint32_t kMaxPedGroups = 128 + 36;
 static CPedGroup* g_pedGroups;
 
 //TODO: These really need to be moved to some shared file.
@@ -98,7 +98,7 @@ static void PatchValue(std::initializer_list<PatternPatchPair> list)
 static HookFunction hookFunction([]()
 {
 	g_pedGroups = (CPedGroup*)hook::AllocateStubMemory(sizeof(CPedGroup) * kMaxPedGroups + 4);
-	uintptr_t g_unkEndPtr = reinterpret_cast<uintptr_t>(g_pedGroups + 68);
+	uintptr_t g_unkEndPtr = reinterpret_cast<uintptr_t>(g_pedGroups + kMaxPedGroups);
 
 	// cmp ebx, 0x44 (signed 8-bit comaparsion) -> cmp ebx, kMaxPedGroups (32-bit)
 	// this function also has a 32 sized player list access, but this is patched inside of netPlayerArrayPatch.
@@ -231,7 +231,7 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern("83 7C 24 ? ? 73 ? 8B 44 24 ? 48 69 C8 ? ? ? ? 48 8D 05 ? ? ? ? F6 84 01 ? ? ? ? ? 74 ? 48 8D 1C 01 48 8B CB");
 
-		SharedPatch patchStub;
+		static SharedPatch patchStub;
 
 		hook::nop(location, 5);
 		patchStub.Init((uintptr_t)location + 5, 0x40);
@@ -240,7 +240,7 @@ static HookFunction hookFunction([]()
 
 	{
 		auto location = hook::get_pattern("83 7C 24 ? ? 73 ? 8B 44 24 ? 48 69 C8 ? ? ? ? 48 8D 05 ? ? ? ? F6 84 01 ? ? ? ? ? 74 ? 48 8D 1C 01 EB");
-		SharedPatch patchStub;
+		static SharedPatch patchStub;
 		hook::nop(location, 5);
 		patchStub.Init((uintptr_t)location + 5, 0x40);
 		hook::jump(location, patchStub.GetCode());
@@ -397,5 +397,32 @@ static HookFunction hookFunction([]()
 		{ "BF ? ? ? ? 33 D2 48 8B CB E8 ? ? ? ? 48 81 C3", 1, 0x44, kMaxPedGroups } // _shutdownGroups
 	});
 
-	hook::put<uint8_t>(hook::get_pattern("8D 51 ? 8B C2 7E", 2), kMaxPedGroups);
+	{
+		auto location = hook::get_pattern("8D 51 ? 8B C2 7E");
+
+		static struct : jitasm::Frontend
+		{
+			uintptr_t retn;
+
+			void Init(uintptr_t retnAddress)
+			{
+				this->retn = retnAddress;
+			}
+
+			virtual void InternalMain() override
+			{
+				mov(rax, retn);
+				push(rax);
+
+				lea(edx, dword_ptr[rcx + kMaxPedGroups]);
+				mov(eax, edx);
+
+				ret();
+			}
+		} patchStub;
+
+		hook::nop(location, 5);
+		patchStub.Init((uintptr_t)location + 5);
+		hook::jump(location, patchStub.GetCode());
+	}
 });
