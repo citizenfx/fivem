@@ -267,6 +267,74 @@ namespace fx
 			}
 		}
 
+		inline fx::ClientSharedPtr MakeFakeClient(const std::string& guid, const std::string& name, int peerId)
+		{
+			fx::ClientSharedPtr client = fx::ClientSharedPtr::Construct(guid);
+			fx::ClientWeakPtr weakClient(client);
+
+			client->SetFake(true);
+			client->SetName(name);
+
+			{
+				std::unique_lock _(m_curNetIdMutex);
+
+				auto incrementId = [this]()
+				{
+					m_curNetId++;
+
+					if (m_curNetId == 0xFFFF)
+					{
+						m_curNetId = 1;
+					}
+				};
+
+				while (m_clientsByNetId[m_curNetId].lock())
+				{
+					incrementId();
+				}
+
+				client->SetNetId(m_curNetId);
+				incrementId();
+
+				++m_amountConnectedClients;
+			}
+
+			m_clientsByNetId[client->GetNetId()] = weakClient;
+
+			client->SetPeer(peerId, net::PeerAddress{});
+			m_clientsByPeer[peerId] = weakClient;
+
+			{
+				std::lock_guard clientGuard(m_clientSlotMutex);
+
+				for (int slot = m_clientsBySlotId.size() - 1; slot >= 0; slot--)
+				{
+					if (slot == 31)
+					{
+						continue;
+					}
+
+					if (!m_clientsBySlotId[slot].lock())
+					{
+						client->SetSlotId(slot);
+						m_clientsBySlotId[slot] = weakClient;
+						break;
+					}
+				}
+			}
+
+			{
+				std::unique_lock writeHolder(m_clientMutex);
+				m_clients.emplace(guid, client);
+			}
+
+			client->Touch();
+
+			OnClientCreated(client);
+
+			return client;
+		}
+
 		fx::ClientSharedPtr GetHost();
 
 		void SetHost(const fx::ClientSharedPtr& client);

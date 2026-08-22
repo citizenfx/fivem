@@ -44,6 +44,8 @@
 #include "ByteWriter.h"
 #include "NetGameEventPacket.h"
 
+#include <state/CloneRecorder.h>
+
 #ifdef STATE_FIVE
 static constexpr int kNetObjectTypeBitLength = 4;
 #elif defined(STATE_RDR3)
@@ -526,6 +528,23 @@ void ServerGameState::ForAllEntities(const std::function<void(sync::Entity*)>& c
 		EntityImpl ent(entity);
 		cb(&ent);
 	}
+}
+
+void ServerGameState::ForAllSyncEntities(const std::function<void(const fx::sync::SyncEntityPtr&)>& cb)
+{
+	std::shared_lock _(m_entityListMutex);
+
+	for (auto& entity : m_entityList)
+	{
+		cb(entity);
+	}
+}
+
+void ServerGameState::InjectClonePacket(const fx::ClientSharedPtr& client, const uint8_t* data, size_t len)
+{
+	net::ByteReader reader(const_cast<uint8_t*>(data), len);
+
+	ParseClonePacket(client, reader);
 }
 
 uint32_t ServerGameState::MakeScriptHandle(const fx::sync::SyncEntityPtr& ptr)
@@ -3838,6 +3857,9 @@ void ServerGameState::ParseGameStatePacket(const fx::ClientSharedPtr& client, co
 	switch (type)
 	{
 		case HashString("netClones"):
+#ifdef STATE_RDR3
+			CloneRecorder_OnClonePacket(client, reinterpret_cast<const uint8_t*>(bufferData), size_t(length));
+#endif
 			ParseClonePacket(client, reader);
 		break;
 		// #IFARQ

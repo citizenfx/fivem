@@ -138,6 +138,16 @@ namespace fx
 
 		bool IsDead();
 
+		inline void SetFake(bool fake)
+		{
+			m_fake = fake;
+		}
+
+		inline bool IsFake() const
+		{
+			return m_fake;
+		}
+
 		inline bool HasNetId() const
 		{
 			return m_netId != 0xFFFF;
@@ -452,6 +462,8 @@ namespace fx
 
 		// whether the client has sent a routing msg once
 		bool m_hasRouted;
+
+		bool m_fake = false;
 
 		// an arbitrary set of data
 		std::shared_mutex m_userDataMutex;

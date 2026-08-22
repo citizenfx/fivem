@@ -454,6 +454,11 @@ struct NodeWrapper : public NodeBase
 
 		if (shouldWrite(state, TIds::GetIds(), couldWrite))
 		{
+			if (state.writeNodeLengths)
+			{
+				state.buffer.Write<uint32_t>(13, length);
+			}
+
 			state.buffer.WriteBits(data.data(), length);
 
 			return true;

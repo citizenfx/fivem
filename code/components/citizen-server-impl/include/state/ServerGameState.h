@@ -1122,9 +1122,10 @@ struct SyncUnparseState
 	uint64_t lastFrameIndex;
 	uint32_t targetSlotId;
 	bool isFirstUpdate;
+	bool writeNodeLengths;
 
 	SyncUnparseState(rl::MessageBuffer& buffer)
-		: buffer(buffer), lastFrameIndex(0)
+		: buffer(buffer), lastFrameIndex(0), writeNodeLengths(false)
 	{
 	}
 };
@@ -1550,6 +1551,10 @@ public:
 	std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> ExternalGetClientData(const fx::ClientSharedPtr& client);
 
 	void ForAllEntities(const std::function<void(sync::Entity*)>& cb);
+
+	void ForAllSyncEntities(const std::function<void(const fx::sync::SyncEntityPtr&)>& cb);
+
+	void InjectClonePacket(const fx::ClientSharedPtr& client, const uint8_t* data, size_t len);
 
 	inline auto GetServerInstance() const
 	{

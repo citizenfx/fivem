@@ -43,6 +43,11 @@ namespace fx
 
 	bool Client::IsDead()
 	{
+		if (m_fake)
+		{
+			return false;
+		}
+
 		// if we've not connected yet, we can't be dead
 		if (!HasConnected())
 		{
