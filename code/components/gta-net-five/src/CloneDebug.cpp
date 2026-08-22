@@ -318,7 +318,7 @@ static void RenderNetObjectTree()
 		CloneObjectMgr->ForAllNetObjects(player, [&objects](rage::netObject* object)
 		{
 			objects.push_back(object);
-		});
+		}, true);
 
 		if (objects.size())
 		{

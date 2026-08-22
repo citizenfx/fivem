@@ -3894,8 +3894,11 @@ void ServerGameState::ParseAckPacket(const fx::ClientSharedPtr& client, net::Byt
 
 					if (syncTree)
 					{
-						entity->deletedFor.reset(client->GetSlotId());
-						
+						if (auto slotId = client->GetSlotId(); slotId >= 0 && slotId < (MAX_CLIENTS + 1))
+						{
+							entity->deletedFor.reset(slotId);
+						}
+
 						auto [lock, clientData] = GetClientData(this, client);
 						if (auto secIt = clientData->syncedEntities.find(MakeHandleUniqifierPair(objectId, uniqifier)); secIt != clientData->syncedEntities.end())
 						{
@@ -4128,7 +4131,11 @@ public:
 		m_sizes[buffer.index] = buffer.data.GetValue().size();
 
 		m_dirtyFlags[buffer.index].set();
-		m_dirtyFlags[buffer.index].reset(client->GetSlotId());
+
+		if (auto slotId = client->GetSlotId(); slotId >= 0 && slotId < (MAX_CLIENTS + 1))
+		{
+			m_dirtyFlags[buffer.index].reset(slotId);
+		}
 
 		return true;
 	}
@@ -4164,11 +4171,18 @@ public:
 
 	virtual void WriteUpdates(const fx::ClientSharedPtr& client) override
 	{
+		auto slotId = client->GetSlotId();
+
+		if (slotId < 0 || slotId >= (MAX_CLIENTS + 1))
+		{
+			return;
+		}
+
 		std::shared_lock lock(m_mutex);
 
 		for (int i = 0; i < Count; i++)
 		{
-			if (m_dirtyFlags[i].test(client->GetSlotId()))
+			if (m_dirtyFlags[i].test(slotId))
 			{
 				auto owner = m_owners[i].lock();
 
@@ -4189,7 +4203,7 @@ public:
 					client->SendPacket(0, msg, NetPacketType_Reliable);
 				}
 
-				m_dirtyFlags[i].reset(client->GetSlotId());
+				m_dirtyFlags[i].reset(slotId);
 			}
 		}
 	}
