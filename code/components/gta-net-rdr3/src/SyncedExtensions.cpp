@@ -50,18 +50,24 @@ static bool ReturnUsesIdMappings(void*)
 	return icgi->OneSyncEnabled && icgi->OneSyncBigIdEnabled ? onesyncVal : defaultVal;
 }
 
-template<int Extension = 3>
+template<int ObjectIdExtension = 3, int PlayerIndexExtension = 0>
 static uint64_t ExtendMaxBits(uint64_t (*orig)(void*), void* self)
 {
 	auto value = orig(self);
 
-	if (!icgi->OneSyncEnabled || !icgi->OneSyncBigIdEnabled) 
+	if (!icgi->OneSyncEnabled)
 	{
 		return value;
 	}
 
-	// x extra bits for 16 bit object ids.
-	return value + Extension;
+	value += PlayerIndexExtension;
+
+	if (icgi->OneSyncBigIdEnabled)
+	{
+		value += ObjectIdExtension;
+	}
+
+	return value;
 }
 
 static inline uint64_t OverrideMaxBits(uint64_t(*orig)(void*), void* self, bool padding = true)
@@ -103,13 +109,13 @@ static uint64_t CSyncUnk5180_GetMaxBits(void* self)
 
 static uint64_t SyncedAI_GetMaxBits(void* self)
 {
-	return ExtendMaxBits<12>(g_origSyncedAI_GetMaxBits, self);
+	return ExtendMaxBits<0, 12>(g_origSyncedAI_GetMaxBits, self);
 }
 
 static uint64_t SyncedTarget_GetMaxBits(void* self)
 {
 	// + 3 bits for the extended object id, + 10 bits for the onesync player index (6 -> 16 bit)
-	return ExtendMaxBits<13>(g_origSyncedTarget_GetMaxBits, self);
+	return ExtendMaxBits<3, 10>(g_origSyncedTarget_GetMaxBits, self);
 }	
 
 static uint64_t SyncedTargetAI_GetMaxBits(void* self)
@@ -120,7 +126,7 @@ static uint64_t SyncedTargetAI_GetMaxBits(void* self)
 static uint64_t SyncedAbstractTargetAI_GetMaxBits(void* self)
 {
 	// + 6 bits to account for the extension object id for the two serialized object ids, + 10 bits for the onesync player index (6 -> 16 bit)
-	return ExtendMaxBits<16>(g_origSyncedAbstractTargetAI_GetMaxBits, self);
+	return ExtendMaxBits<6, 10>(g_origSyncedAbstractTargetAI_GetMaxBits, self);
 }
 
 static uint64_t SyncedX_TargetData_GetMaxBits(void* self)
@@ -179,7 +185,7 @@ static uint64_t SyncedUnk03B8_GetMaxBits(void* self)
 
 static uint64_t SyncedTask_GetMaxBits(void* self)
 {
-	return ExtendMaxBits<10 + 3>(g_origSyncedTask_GetMaxBits, self);
+	return ExtendMaxBits<3, 10>(g_origSyncedTask_GetMaxBits, self);
 }
 
 static bool SyncedConstPed_UsesIdMappings(void* self)
