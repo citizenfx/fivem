@@ -34,6 +34,7 @@ static HookFunction hookFunction([]()
 	ApplyCachedPlayerLookupPatches();
 	ApplyPlayerFlagBuilderPatches();
 	ApplyRemainingBitsetPatches();
+	ApplyBitsetReadPatches();
 	ApplyDisabledSubsystemPatches();
 	ApplyNetworkObjectMgrPatches();
 
