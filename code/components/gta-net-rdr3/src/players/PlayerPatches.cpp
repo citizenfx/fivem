@@ -28,6 +28,7 @@ static HookFunction hookFunction([]()
 	ApplyGhostMaskPatch();
 	ApplyRemoteScriptInfoPatch();
 	ApplyPlayerMgrFlagsPatch();
+	ApplyScriptHandlerBitsetPatches();
 	ApplyCachedPlayerDataPatch();
 	ApplySyncMessageSequencePatch();
 	ApplyDisabledSubsystemPatches();
