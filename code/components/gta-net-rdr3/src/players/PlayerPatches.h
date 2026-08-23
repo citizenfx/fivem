@@ -24,6 +24,7 @@ void ApplyPlayerMgrFlagsPatch();
 void ApplyScriptHandlerBitsetPatches();
 void ApplyCachedPlayerDataPatch();
 void ApplySyncMessageSequencePatch();
+void ApplyCachedPlayerLookupPatches();
 void ApplyDisabledSubsystemPatches();
 void ApplyNetworkObjectMgrPatches();
 

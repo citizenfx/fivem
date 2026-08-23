@@ -501,6 +501,121 @@ void ApplySyncMessageSequencePatch()
 	hook::jump_reg<0>(location, patchStub.GetCode());
 }
 
+void ApplyCachedPlayerLookupPatches()
+{
+	{
+		auto location = hook::get_pattern<char>("48 8D 0D ? ? ? ? 48 8B 0C C1 48 85 C9 74 06 83");
+
+		static struct : jitasm::Frontend
+		{
+			uintptr_t retnAddr;
+			uintptr_t failAddr;
+			uintptr_t tableAddr;
+
+			void Init(uintptr_t retn, uintptr_t fail, uintptr_t table)
+			{
+				retnAddr = retn;
+				failAddr = fail;
+				tableAddr = table;
+			}
+
+			virtual void InternalMain() override
+			{
+				mov(rcx, tableAddr);
+
+				cmp(eax, kOriginalPlayers);
+				jae("Fail");
+
+				mov(rcx, qword_ptr[rcx + rax * 8]);
+				mov(r11, retnAddr);
+				jmp(r11);
+
+				L("Fail");
+				mov(r11, failAddr);
+				jmp(r11);
+			}
+		} patchStub;
+
+		auto table = hook::get_address<uintptr_t>(location, 3, 7);
+
+		hook::nop(location, 11);
+		patchStub.Init((uintptr_t)location + 0xB, (uintptr_t)location + 0x16, table);
+		hook::jump_reg<1>(location, patchStub.GetCode());
+	}
+
+	{
+		auto location = hook::get_pattern("BD 00 01 00 00 4C 8B 04 C1");
+
+		static struct : jitasm::Frontend
+		{
+			uintptr_t retnAddr;
+			uintptr_t failAddr;
+
+			void Init(uintptr_t retn, uintptr_t fail)
+			{
+				retnAddr = retn;
+				failAddr = fail;
+			}
+
+			virtual void InternalMain() override
+			{
+				mov(ebp, 0x100);
+
+				cmp(eax, kOriginalPlayers);
+				jae("Fail");
+
+				mov(r8, qword_ptr[rcx + rax * 8]);
+				mov(r11, retnAddr);
+				jmp(r11);
+
+				L("Fail");
+				mov(r11, failAddr);
+				jmp(r11);
+			}
+		} patchStub;
+
+		hook::nop(location, 9);
+		patchStub.Init((uintptr_t)location + 9, (uintptr_t)location + 0x15);
+		hook::jump_reg<5>(location, patchStub.GetCode());
+	}
+
+	{
+		auto location = hook::get_pattern("0F B6 42 19 48 8B 0C C1");
+
+		static struct : jitasm::Frontend
+		{
+			uintptr_t retnAddr;
+			uintptr_t failAddr;
+
+			void Init(uintptr_t retn, uintptr_t fail)
+			{
+				retnAddr = retn;
+				failAddr = fail;
+			}
+
+			virtual void InternalMain() override
+			{
+				movzx(eax, byte_ptr[rdx + 0x19]);
+
+				cmp(eax, kOriginalPlayers);
+				jae("Fail");
+
+				mov(rcx, qword_ptr[rcx + rax * 8]);
+				mov(r11, retnAddr);
+				jmp(r11);
+
+				L("Fail");
+				mov(r11, failAddr);
+				jmp(r11);
+			}
+		} patchStub;
+
+		hook::nop(location, 8);
+		patchStub.Init((uintptr_t)location + 8, (uintptr_t)location + 0x13);
+		hook::jump_reg<0>(location, patchStub.GetCode());
+	}
+}
+
 void ApplyPlayerBitsetPatches()
 {
 	// Extend bitshift in order to not lead to crashes
