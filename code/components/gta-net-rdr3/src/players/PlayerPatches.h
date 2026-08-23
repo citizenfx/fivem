@@ -28,6 +28,7 @@ void ApplyCachedPlayerLookupPatches();
 void ApplyPlayerFlagBuilderPatches();
 void ApplyRemainingBitsetPatches();
 void ApplyBitsetReadPatches();
+void ApplyActiveIndexPatches();
 void ApplyDisabledSubsystemPatches();
 void ApplyNetworkObjectMgrPatches();
 
