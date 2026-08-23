@@ -9,7 +9,10 @@
 #include <CoreConsole.h>
 #include <netPlayerManager.h>
 #include <netBitsets.h>
+#include <PlayerLimits.h>
 #include <netObjectMgr.h>
+
+using rage::kMaxPlayers;
 
 // RDR3 makes extensive use of 32 sized ints that are used as bitsets with flags being the players physicalIndexes.
 // This causes unintended behaviour with >32 indexes as they will try reading/writing past the bounds of the bitset.
@@ -17,7 +20,6 @@
 // Restoring original functionality
 
 static const uint8_t kOriginalPlayers = 32;
-static const uint8_t kMaxPlayers = 128;
 static const uint16_t kMaxObjects = std::numeric_limits<uint16_t>::max();
 
 extern ICoreGameInit* icgi;

@@ -1,0 +1,24 @@
+#pragma once
+
+void ApplyPlayerDamageArrayPatches();
+void ApplyAnimSceneHandlerPatches();
+void ApplyAnimSceneArrayHandlerPatches();
+void ApplyPlayerCachePatches();
+void ApplyPlayerBandwidthPatches();
+void ApplyPlayerDamageTrackerPatches();
+void ApplyNetObjectPlayerIndexPatches();
+void ApplyNetPlayerMgrPatches();
+void ApplyPlayerIndexComparisons();
+void ApplyPlayerIterationPatches();
+void ApplyPedIntelligencePatches();
+void ApplyPlayerStackResizes();
+void ApplyBubbleJoinPatch();
+void ApplyPlayerBitsetPatches();
+void ApplyDisabledSubsystemPatches();
+void ApplyNetworkObjectMgrPatches();
+
+void CreateDisabledSubsystemHooks();
+void CreatePlayerFocusHooks();
+void CreatePlayerBitsetHooks();
+void CreatePlayersNearPointHook();
+void CreateDisabledTelemetryHooks();

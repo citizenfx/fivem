@@ -2,6 +2,8 @@
 
 #include <StdInc.h>
 
+#include <PlayerLimits.h>
+
 namespace rage
 {
 class atPlayerBitsets
@@ -43,7 +45,6 @@ public:
 		m_bits[physicalIndex / 32] &= ~(1 << (physicalIndex & 0x1F));
 	}
 private:
-	static constexpr int kMaxPlayers = 128;
 	uint32_t m_bits[kMaxPlayers / 32];
 };
 }
