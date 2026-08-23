@@ -20,7 +20,6 @@ void ApplySyncDataOwnerPatch();
 void ApplyScriptHandlerNodePatch();
 void ApplyGhostMaskPatch();
 void ApplyRemoteScriptInfoPatch();
-void ApplyPlayerMgrFlagsPatch();
 void ApplyScriptHandlerBitsetPatches();
 void ApplyCachedPlayerDataPatch();
 void ApplySyncMessageSequencePatch();

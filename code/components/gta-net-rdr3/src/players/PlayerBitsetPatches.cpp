@@ -394,39 +394,6 @@ void ApplyRemoteScriptInfoPatch()
 	hook::jump_reg<0>(location, patchStub.GetCode());
 }
 
-void ApplyPlayerMgrFlagsPatch()
-{
-	auto location = hook::get_pattern("8B 84 93 90 08 00 00 0F AB C8");
-
-	static struct : jitasm::Frontend
-	{
-		uintptr_t retnAddr;
-
-		void Init(uintptr_t retn)
-		{
-			retnAddr = retn;
-		}
-
-		virtual void InternalMain() override
-		{
-			test(rdx, rdx);
-			jnz("Skip");
-
-			mov(eax, dword_ptr[rbx + rdx * 4 + 0x890]);
-			bts(eax, ecx);
-			mov(dword_ptr[rbx + rdx * 4 + 0x890], eax);
-
-			L("Skip");
-			mov(rax, retnAddr);
-			jmp(rax);
-		}
-	} patchStub;
-
-	hook::nop(location, 17);
-	patchStub.Init((uintptr_t)location + 17);
-	hook::jump_reg<0>(location, patchStub.GetCode());
-}
-
 void ApplyCachedPlayerDataPatch()
 {
 	auto location = hook::get_pattern<char>("0F B6 43 19 48 8D 0D ? ? ? ? 48 8B 0C C1 48 85 C9 74 32");
@@ -618,10 +585,6 @@ void ApplyCachedPlayerLookupPatches()
 
 void ApplyPlayerBitsetPatches()
 {
-	// Extend bitshift in order to not lead to crashes
-	//TODO: Resize struct, stack and rewrite logic to handle the new bitset size. But for now this is a good enough temporary solution.
-	hook::put<uint8_t>(hook::get_pattern("48 C1 EA ? 8B 44 94 ? 0F AB C8 48 8B CE", 3), 8);
-
 	// Jump over a 32 sized bitset tied to CNetObjPedBase ownership migration until we can resize it, corrupts a task related pointer which is not great.
 	hook::put<uint8_t>(hook::get_pattern("74 ? 45 33 C0 48 8D 4C 24 ? 48 8B D3 E8 ? ? ? ? 0F 28 44 24"), 0xEB);
 }
