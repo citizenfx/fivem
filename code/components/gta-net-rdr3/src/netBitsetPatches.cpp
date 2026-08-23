@@ -207,7 +207,7 @@ static HookFunction hookFunction([]()
 {
 	// Avoid writing to netPlayerMgrBase remotePlayer bitset with extended physical indexes.
 	{
-		auto location = hook::get_pattern<char>("48 8B CF FF 50 ? 48 8B C8 E8 ? ? ? ? 84 C0 74 ? 0F B6 4F", 0x18);
+		auto location = hook::get_pattern<char>("48 8B CF FF 50 ? 48 8B C8 E8 ? ? ? ? 84 C0 74 ? 0F B6 4F", 0x12);
 
 		static struct : jitasm::Frontend
 		{
@@ -223,19 +223,19 @@ static HookFunction hookFunction([]()
 			virtual void InternalMain() override
 			{
 				// Original Code
-				movzx(edx, byte_ptr[rdi + 0x19]);
+				movzx(ecx, byte_ptr[rdi + 0x19]);
 				mov(edx, ecx);
 
 				// Only use original behaviour if the index is 32 safe.
 				cmp(edx, kOriginalPlayers);
-				jge("Fail");
-
-				L("Fail");
-				mov(rax, failAddr);
-				jmp(rax);
+				jae("Fail");
 
 				//TODO: Populate our own bitset, and feed it to natives that require this functionality
 				mov(rax, successAddr);
+				jmp(rax);
+
+				L("Fail");
+				mov(rax, failAddr);
 				jmp(rax);
 			}
 		} patchStub;
