@@ -21,6 +21,15 @@ static HookFunction hookFunction([]()
 	ApplyPlayerStackResizes();
 	ApplyBubbleJoinPatch();
 	ApplyPlayerBitsetPatches();
+	ApplyPlayerSyncDataPatch();
+	ApplyNodeDataSentPatch();
+	ApplySyncDataOwnerPatch();
+	ApplyScriptHandlerNodePatch();
+	ApplyGhostMaskPatch();
+	ApplyRemoteScriptInfoPatch();
+	ApplyPlayerMgrFlagsPatch();
+	ApplyCachedPlayerDataPatch();
+	ApplySyncMessageSequencePatch();
 	ApplyDisabledSubsystemPatches();
 	ApplyNetworkObjectMgrPatches();
 

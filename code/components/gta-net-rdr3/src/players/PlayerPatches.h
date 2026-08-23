@@ -14,6 +14,15 @@ void ApplyPedIntelligencePatches();
 void ApplyPlayerStackResizes();
 void ApplyBubbleJoinPatch();
 void ApplyPlayerBitsetPatches();
+void ApplyPlayerSyncDataPatch();
+void ApplyNodeDataSentPatch();
+void ApplySyncDataOwnerPatch();
+void ApplyScriptHandlerNodePatch();
+void ApplyGhostMaskPatch();
+void ApplyRemoteScriptInfoPatch();
+void ApplyPlayerMgrFlagsPatch();
+void ApplyCachedPlayerDataPatch();
+void ApplySyncMessageSequencePatch();
 void ApplyDisabledSubsystemPatches();
 void ApplyNetworkObjectMgrPatches();
 
