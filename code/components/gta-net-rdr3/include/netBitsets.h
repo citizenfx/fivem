@@ -45,6 +45,6 @@ public:
 		m_bits[physicalIndex / 32] &= ~(1 << (physicalIndex & 0x1F));
 	}
 private:
-	uint32_t m_bits[kMaxPlayers / 32];
+	uint32_t m_bits[(kMaxPlayers / 32) + 1];
 };
 }
