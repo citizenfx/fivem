@@ -82,6 +82,13 @@ void ApplyPlayerStackResizes()
 		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 4C 8D B1"), { { 0x120, intSize } });
 	}
 
+	{
+		constexpr int base = 0x40;
+		constexpr int stackSize = base + ((kMaxPlayers + 1) * 16);
+
+		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 81 EC ? ? ? ? 45 8A E0 48 8B FA 4C 8B F9 33 DB", -0x19), {});
+	}
+
 #if 0
 	// Resize stack for CTheScripts::_getClosestPlayer
 	{
