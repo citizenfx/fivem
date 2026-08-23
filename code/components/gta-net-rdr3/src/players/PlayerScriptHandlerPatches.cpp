@@ -2,15 +2,9 @@
 
 #include <Hooking.h>
 
-#include "PlayerPatches.h"
+#include <GuardedBitset.h>
 
-static void ApplyGuardedBitset(void* location, const uint8_t* bytes, size_t size)
-{
-	for (size_t i = 0; i < size; i++)
-	{
-		hook::put<uint8_t>((uintptr_t)location + i, bytes[i]);
-	}
-}
+#include "PlayerPatches.h"
 
 void ApplyScriptHandlerBitsetPatches()
 {
