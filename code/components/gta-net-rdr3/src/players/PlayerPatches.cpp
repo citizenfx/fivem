@@ -33,6 +33,7 @@ static HookFunction hookFunction([]()
 	ApplySyncMessageSequencePatch();
 	ApplyCachedPlayerLookupPatches();
 	ApplyPlayerFlagBuilderPatches();
+	ApplyRemainingBitsetPatches();
 	ApplyDisabledSubsystemPatches();
 	ApplyNetworkObjectMgrPatches();
 
