@@ -105,13 +105,4 @@ void ApplyPlayerStackResizes()
 		IncreaseFunctionStack<stackSize>(hook::get_pattern<char>("48 83 EC ? 0F 29 70 ? 33 ED 0F 29 78 ? 0F 57 FF", -0x10), {});
 	}
 #endif
-	{
-		constexpr int ptrsBase = 0x20;
-		constexpr int stackSize = ptrsBase + (kMaxPlayers * 8);
-
-		auto location = hook::get_pattern<char>("48 81 EC 20 01 00 00 41 8A D8", -0x14);
-
-		IncreaseFunctionStack<stackSize>(location, { { 0x120, stackSize } });
-		hook::put<uint32_t>(location + 0x28, kMaxPlayers * 8);
-	}
 }
