@@ -1646,7 +1646,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				std::unique_lock _(entity->clientMutex);
 				auto cl = entity->GetClientUnsafe().lock();
-				if (!cl || (entity->wantsReassign && cl->GetNetId() != client->GetNetId()))
+				if (!client->IsFake() && (!cl || cl->IsFake() || (entity->wantsReassign && cl->GetNetId() != client->GetNetId())))
 				{
 					entity->wantsReassign = false;
 					ReassignEntity(entity->handle, client, std::move(_)); // transfer the lock inside
@@ -2563,6 +2563,8 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 		return;
 	}
 
+	fx::ClientSharedPtr realTarget = (targetClient && targetClient->IsFake()) ? fx::ClientSharedPtr{} : targetClient;
+
 	// perform a final std::move on the lock
 	std::unique_lock lock = std::move(lockIn);
 
@@ -2579,13 +2581,13 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 		entity->lastMigratedAt = msec();
 
 		entity->GetLastOwnerUnsafe() = oldClientRef;
-		entity->GetClientUnsafe() = targetClient;
+		entity->GetClientUnsafe() = realTarget;
 
 		if (auto stateBag = entity->GetStateBag())
 		{
-			if (targetClient)
+			if (realTarget)
 			{
-				stateBag->SetOwningPeer(targetClient->GetSlotId());
+				stateBag->SetOwningPeer(realTarget->GetSlotId());
 			}
 			else
 			{
@@ -2593,7 +2595,7 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 			}
 		}
 
-		GS_LOG("%s: obj id %d, old client %d, new client %d\n", __func__, entityHandle, (!oldClientRef) ? -1 : oldClientRef->GetNetId(), (targetClient) ? targetClient->GetNetId() : -1);
+		GS_LOG("%s: obj id %d, old client %d, new client %d\n", __func__, entityHandle, (!oldClientRef) ? -1 : oldClientRef->GetNetId(), (realTarget) ? realTarget->GetNetId() : -1);
 
 		if (oldClientRef)
 		{
@@ -2603,9 +2605,9 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 	}
 
 	{
-		if (targetClient)
+		if (realTarget)
 		{
-			auto [lock, targetData] = GetClientData(this, targetClient);
+			auto [lock, targetData] = GetClientData(this, realTarget);
 			targetData->objectIds.insert(entityHandle);
 		}
 	}
