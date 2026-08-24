@@ -1476,7 +1476,7 @@
                 </Item>
                 <Item>
                   <PoolName>MaxBroadphasePairs</PoolName>
-                  <PoolSize value="4000"/>
+                  <PoolSize value="8000"/>
                 </Item>
                 <Item>
                 <PoolName>CPickup</PoolName>
