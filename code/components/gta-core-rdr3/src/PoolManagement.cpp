@@ -686,6 +686,11 @@ atPoolBase* rage::GetPoolBase(uint32_t hash)
 	return it->second;
 }
 
+std::string rage::LookupPoolName(uint32_t hash)
+{
+	return poolEntries.LookupHash(hash);
+}
+
 const std::unordered_map<std::string, atPoolBase*>& rage::GetPools()
 {
 	return g_namedPools;
