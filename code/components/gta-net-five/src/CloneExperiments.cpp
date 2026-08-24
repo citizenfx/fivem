@@ -141,6 +141,15 @@ CNetGamePlayer* GetPlayerByNetId(uint16_t netId)
 	return g_playersByNetId[netId];
 }
 
+#ifdef IS_RDR3
+static int GetNetIdByPlayer(CNetGamePlayer* player)
+{
+	auto it = g_netIdsByPlayer.find(player);
+
+	return (it != g_netIdsByPlayer.end()) ? int(it->second) : -1;
+}
+#endif
+
 static CNetGamePlayer*(*g_origGetPlayerByIndexNet)(int);
 
 static CNetGamePlayer* GetPlayerByIndexNet(int index)
@@ -406,7 +415,11 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 			return;
 		}
 
+#ifdef IS_RDR3
+		auto player = GetPlayerByNetId(info.netId);
+#else
 		auto player = g_players[info.slotId];
+#endif
 
 		if (!player)
 		{
@@ -475,7 +488,13 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 		g_netIdsByPlayer[player] = -1;
 
 #ifdef IS_RDR3
-		_removeCachedPlayerArrayEntry(info.slotId);
+		const auto ownedSlot = player->physicalPlayerIndex();
+		const bool ownsSlot = (g_players[ownedSlot] == player);
+
+		if (ownsSlot)
+		{
+			_removeCachedPlayerArrayEntry(ownedSlot);
+		}
 #endif
 
 		for (int i = 0; i < g_playerListCount; i++)
@@ -511,7 +530,15 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 			return (left->physicalPlayerIndex() < right->physicalPlayerIndex());
 		});
 
+#ifdef IS_RDR3
+		if (ownsSlot)
+		{
+			g_players[ownedSlot] = nullptr;
+		}
+#else
 		g_players[info.slotId] = nullptr;
+#endif
+
 		g_playerBags.erase(info.netId);
 	}
 }
@@ -2714,7 +2741,18 @@ static InitFunction initFunction([]()
 			if (g_players[info.slotId])
 			{
 				console::DPrintf("onesync", "Dropping duplicate player for slotID %d.\n", info.slotId);
+
+#ifdef IS_RDR3
+				auto tempInfo = info;
+				tempInfo.netId = GetNetIdByPlayer(g_players[info.slotId]);
+
+				if (tempInfo.netId >= 0)
+				{
+					HandleClientDrop(tempInfo);
+				}
+#else
 				HandleClientDrop(info);
+#endif
 			}
 
 			if (g_playersByNetId[info.netId])
