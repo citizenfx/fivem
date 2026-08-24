@@ -656,15 +656,42 @@ uint16_t NextFreeSlot()
 	return slot;
 }
 
+static int GetPlayerPopulation()
+{
+	auto clientRegistry = g_serverInstance->GetComponent<fx::ClientRegistry>();
+
+	int population = 0;
+
+	clientRegistry->ForAllClients([&population](const fx::ClientSharedPtr& client)
+	{
+		if (client->GetSlotId() != -1)
+		{
+			population++;
+		}
+	});
+
+	return population;
+}
+
 int AddBots(int count, uint32_t spreadMs, uint32_t baseOffset)
 {
 	auto clientRegistry = g_serverInstance->GetComponent<fx::ClientRegistry>();
 	auto events = g_serverInstance->GetComponent<fx::ServerEventComponent>();
 
+	constexpr int kTrackableSlots = int(kGamePlayerCap) - 2;
+	constexpr int kMaxPopulation = kTrackableSlots + 1;
+
+	int population = GetPlayerPopulation();
 	int added = 0;
 
 	for (int i = 0; i < count; i++)
 	{
+		if (population >= kMaxPopulation)
+		{
+			console::PrintError("replay", "Reached the maximum concurrent player count (%d). Each client can only track %d others, as slots %d and %d are reserved.\n", kMaxPopulation, kTrackableSlots, int(kLocalPlayerSlot), int(kSentinelSlot));
+			break;
+		}
+
 		auto slot = NextFreeSlot();
 
 		if (slot >= kGamePlayerCap)
@@ -703,6 +730,7 @@ int AddBots(int count, uint32_t spreadMs, uint32_t baseOffset)
 
 		g_bots.push_back(std::move(bot));
 
+		population++;
 		added++;
 	}
 
