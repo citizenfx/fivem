@@ -8,8 +8,6 @@
 #include <PatchUtils.h>
 #include <PlayerLimits.h>
 
-#include "PlayerPatches.h"
-
 using rage::kMaxPlayers;
 
 static void** g_cachedPlayerArray;
@@ -48,7 +46,7 @@ static uint16_t GetPlayerFastInstanceId(uint8_t playerIndex)
 	return 0x100;
 }
 
-void ApplyPlayerCachePatches()
+static void ApplyPlayerCachePatches()
 {
 	static size_t kCachedPlayerSize = sizeof(void*) * (kMaxPlayers + 1);
 	g_cachedPlayerArray = (void**)hook::AllocateStubMemory(kCachedPlayerSize);
@@ -134,7 +132,7 @@ void ApplyPlayerCachePatches()
 	}
 }
 
-void ApplyPlayerBandwidthPatches()
+static void ApplyPlayerBandwidthPatches()
 {
 	constexpr size_t kBandwithArraySize = sizeof(uint32_t) * (static_cast<size_t>(kMaxPlayers) + 1);
 	void** bandwidthRelatedArray = (void**)hook::AllocateStubMemory(kBandwithArraySize);
@@ -152,3 +150,9 @@ void ApplyPlayerBandwidthPatches()
 		{ "B9 ? ? ? ? F3 AB 48 8D 8B ? ? ? ? 33 D2", 1, 0x20, kMaxPlayers + 1 },
 	});
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyPlayerCachePatches();
+	ApplyPlayerBandwidthPatches();
+});

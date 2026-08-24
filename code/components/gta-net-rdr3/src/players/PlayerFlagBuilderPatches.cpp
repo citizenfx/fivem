@@ -6,13 +6,11 @@
 #include <GuardedBitset.h>
 #include <PlayerLimits.h>
 
-#include "PlayerPatches.h"
-
 using rage::kMaxPlayers;
 
 static const uint8_t kOriginalPlayers = 32;
 
-void ApplyPlayerFlagBuilderPatches()
+static void ApplyPlayerFlagBuilderPatches()
 {
 	{
 		static const uint8_t patch[] = { 0x44, 0x8B, 0xC2, 0x49, 0xC1, 0xE8, 0x05, 0x75, 0x0B, 0x42, 0x8B, 0x0C, 0x83, 0x0F, 0xAB, 0xD1, 0x42, 0x89, 0x0C, 0x83, 0x90 };
@@ -63,3 +61,8 @@ void ApplyPlayerFlagBuilderPatches()
 		hook::jump_reg<0>(location, patchStub.GetCode());
 	}
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyPlayerFlagBuilderPatches();
+});

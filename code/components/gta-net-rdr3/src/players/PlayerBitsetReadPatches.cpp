@@ -5,11 +5,9 @@
 
 #include <PlayerLimits.h>
 
-#include "PlayerPatches.h"
-
 static const uint8_t kOriginalPlayers = 32;
 
-void ApplyBitsetReadPatches()
+static void ApplyBitsetReadPatches()
 {
 	{
 		auto location = hook::get_pattern("8B C2 8B CA 83 E1 1F 48 C1 E8 05 41 D3 E0 44 23 44 87 28");
@@ -197,3 +195,8 @@ void ApplyBitsetReadPatches()
 		hook::jump_reg<1>(location, patchStub.GetCode());
 	}
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyBitsetReadPatches();
+});

@@ -4,9 +4,7 @@
 
 #include <GuardedBitset.h>
 
-#include "PlayerPatches.h"
-
-void ApplyRemainingBitsetPatches()
+static void ApplyRemainingBitsetPatches()
 {
 	{
 		static const uint8_t patch[] = { 0x48, 0xC1, 0xEA, 0x05, 0x75, 0x09, 0x8B, 0x04, 0x97, 0x0F, 0xAB, 0xC8, 0x89, 0x04, 0x97, 0x90 };
@@ -38,3 +36,8 @@ void ApplyRemainingBitsetPatches()
 		ApplyGuardedBitset(hook::get_pattern("83 E1 1F 48 C1 EA 05 8B 44 94 40 0F B3 C8 49 83 7D 50 00 89 44 94 40"), patch, sizeof(patch));
 	}
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyRemainingBitsetPatches();
+});

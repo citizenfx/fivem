@@ -4,9 +4,7 @@
 
 #include <GuardedBitset.h>
 
-#include "PlayerPatches.h"
-
-void ApplyScriptHandlerBitsetPatches()
+static void ApplyScriptHandlerBitsetPatches()
 {
 	{
 		static const uint8_t patch[] = { 0x48, 0xC1, 0xEA, 0x05, 0x75, 0x0B, 0x8B, 0x44, 0x95, 0x14, 0x0F, 0xAB, 0xC8, 0x89, 0x44, 0x95, 0x14, 0x90 };
@@ -83,3 +81,8 @@ void ApplyScriptHandlerBitsetPatches()
 		ApplyGuardedBitset(hook::get_pattern("41 83 E0 1F 49 C1 E9 05 42 8B 44 89 14 44 0F B3 C0 42 89 44 89 14 48"), patch, sizeof(patch));
 	}
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyScriptHandlerBitsetPatches();
+});

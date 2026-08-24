@@ -12,8 +12,6 @@
 
 #include <PlayerLimits.h>
 
-#include "PlayerPatches.h"
-
 namespace rage
 {
 	using Vec3V = DirectX::XMVECTOR;
@@ -220,7 +218,7 @@ static void CNetworkObjectMgr__UpdateBitsets(void* networkMgr)
 
 // NetworkObjectMgr bitset update. Manages several int32 bitsets.
 // Only some of these bitsets are relevant for OneSync along with the focus position call.
-void ApplyNetworkObjectMgrPatches()
+static void ApplyNetworkObjectMgrPatches()
 {
 	auto location = hook::get_pattern("E8 ? ? ? ? 40 84 F6 74 ? 48 8B CF E8 ? ? ? ? 48 8B CF");
 	hook::set_call(&g_origNetworkObjectMgr__UpdateBitsets, location);
@@ -228,13 +226,25 @@ void ApplyNetworkObjectMgrPatches()
 }
 
 // Update Player Focus Positions to support 128 players.
-void CreatePlayerFocusHooks()
+static void CreatePlayerFocusHooks()
 {
 	MH_CreateHook(hook::get_pattern("0F A3 D0 0F 92 C0 88 06", -0x76), rage::GetPlayerFocusPosition, (void**)&g_origGetNetPlayerRelevancePosition);
 	MH_CreateHook(hook::get_pattern("74 ? 4C 8D 44 24 ? C6 44 24 ? ? 48 8B D6", -68), rage::UpdatePlayerFocusPosition, (void**)&g_origUpdatePlayerFocusPosition);
 }
 
-void CreatePlayersNearPointHook()
+static void CreatePlayersNearPointHook()
 {
 	MH_CreateHook(hook::get_pattern("33 DB 0F 29 70 D8 49 8B F9 4D 8B F0", -0x1B), GetPlayersNearPoint, (void**)&g_origGetPlayersNearPoint);
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyNetworkObjectMgrPatches();
+
+	MH_Initialize();
+
+	CreatePlayerFocusHooks();
+	CreatePlayersNearPointHook();
+
+	MH_EnableHook(MH_ALL_HOOKS);
+});

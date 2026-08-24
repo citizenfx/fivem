@@ -5,11 +5,9 @@
 
 #include <PlayerLimits.h>
 
-#include "PlayerPatches.h"
-
 static const uint8_t kOriginalPlayers = 32;
 
-void ApplyActiveIndexPatches()
+static void ApplyActiveIndexPatches()
 {
 	{
 		auto location = hook::get_pattern("48 89 5C 24 18 48 89 54 24 10 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 40 0F");
@@ -81,3 +79,8 @@ void ApplyActiveIndexPatches()
 		hook::jump_reg<0>(location, patchStub.GetCode());
 	}
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyActiveIndexPatches();
+});

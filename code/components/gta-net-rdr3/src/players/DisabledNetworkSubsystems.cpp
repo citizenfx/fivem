@@ -6,8 +6,6 @@
 
 #include <GameInit.h>
 
-#include "PlayerPatches.h"
-
 extern ICoreGameInit* icgi;
 
 template<bool Onesync, bool Legacy>
@@ -73,7 +71,7 @@ static void* unkBandwidthTelemetry(void* bandwidthMgr, int a2)
 	return nullptr;
 }
 
-void ApplyDisabledSubsystemPatches()
+static void ApplyDisabledSubsystemPatches()
 {
 	// Skip unused host kick related >32-unsafe arrays in onesync
 	hook::call(hook::get_pattern("E8 ? ? ? ? 84 C0 75 ? 8B 05 ? ? ? ? 33 C9 89 44 24"), Return<true, false>);
@@ -117,7 +115,7 @@ void ApplyDisabledSubsystemPatches()
 	}
 }
 
-void CreateDisabledSubsystemHooks()
+static void CreateDisabledSubsystemHooks()
 {
 	// Don't broadcast script info for script created vehicles in OneSync.
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 48 8B EC 48 81 EC ? ? ? ? 48 83 79"), unkRemoteBroadcast, (void**)&g_unkRemoteBroadcast);
@@ -126,10 +124,22 @@ void CreateDisabledSubsystemHooks()
 	MH_CreateHook(hook::get_pattern("48 8B 0F 0F B6 51 19 48 03 D2 49 8B 5C D6 08", -49), unkP2PObjectInit, NULL);
 }
 
-void CreateDisabledTelemetryHooks()
+static void CreateDisabledTelemetryHooks()
 {
 	//TEMP: Potentially can overflow and lead to issues, and this logic isn't important in onesync at the moment.
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 65 48 8B 0C 25 ? ? ? ? 4C 8B F2"), sub_1424, NULL);
 	MH_CreateHook(hook::get_pattern("48 89 4C 24 ? 53 55 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B F9"), netArrayManager__Update, (void**)&g_netArrayManager__Update);
 	MH_CreateHook(hook::get_pattern("40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 33 F6"), unkBandwidthTelemetry, (void**)&g_unkBandwidthTelemetry);
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyDisabledSubsystemPatches();
+
+	MH_Initialize();
+
+	CreateDisabledSubsystemHooks();
+	CreateDisabledTelemetryHooks();
+
+	MH_EnableHook(MH_ALL_HOOKS);
+});

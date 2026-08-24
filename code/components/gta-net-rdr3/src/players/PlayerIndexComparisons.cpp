@@ -6,11 +6,9 @@
 #include <PatchUtils.h>
 #include <PlayerLimits.h>
 
-#include "PlayerPatches.h"
-
 using rage::kMaxPlayers;
 
-void ApplyNetObjectPlayerIndexPatches()
+static void ApplyNetObjectPlayerIndexPatches()
 {
 	// 32/31 32bit comparsions
 	PatchValue<uint32_t>({
@@ -34,7 +32,7 @@ void ApplyNetObjectPlayerIndexPatches()
 }
 
 // rage::netPlayerMgrBase
-void ApplyNetPlayerMgrPatches()
+static void ApplyNetPlayerMgrPatches()
 {
 	// Change count from 32 to 128
 	PatchValue<uint32_t>({
@@ -42,7 +40,7 @@ void ApplyNetPlayerMgrPatches()
 	});
 }
 
-void ApplyPlayerIndexComparisons()
+static void ApplyPlayerIndexComparisons()
 {
 	std::initializer_list<PatternClampPair> list = {
 		//CNetGamePlayer::IsPhysical
@@ -134,7 +132,7 @@ void ApplyPlayerIndexComparisons()
 	}
 }
 
-void ApplyPlayerIterationPatches()
+static void ApplyPlayerIterationPatches()
 {
 	std::initializer_list<PatternClampPair> list = {
 		// Player Cache Data Initalization
@@ -151,10 +149,19 @@ void ApplyPlayerIterationPatches()
 }
 
 // CPedIntelligenceComponent, this has several atArrays that are sized for 32 players (or 1 if not-networked)
-void ApplyPedIntelligencePatches()
+static void ApplyPedIntelligencePatches()
 {
 	// Set maxPlayers networked to 127, as it increments the value by one later on
 	hook::put<uint8_t>(hook::get_pattern("8D 43 ? 0F 45 D8 0F B7 87", 2), 0x7F);
 	// Another atArray, set elsewhere inside of the constructor, Same behaviour as above.
 	hook::put<uint8_t>(hook::get_pattern("83 E2 ? FF C2 E8 ? ? ? ? 66 3B 7B", 2), 0x7F);
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyNetObjectPlayerIndexPatches();
+	ApplyNetPlayerMgrPatches();
+	ApplyPlayerIndexComparisons();
+	ApplyPlayerIterationPatches();
+	ApplyPedIntelligencePatches();
+});

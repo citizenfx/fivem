@@ -6,11 +6,9 @@
 #include <PlayerLimits.h>
 #include <StackFrameResizer.h>
 
-#include "PlayerPatches.h"
-
 using rage::kMaxPlayers;
 
-void ApplyPlayerStackResizes()
+static void ApplyPlayerStackResizes()
 {
 	// Support entity migration for >32 in CNetObjProximityMigrateable::_passOutOfScope & CNetObjPedBase::_passOutOfScope
 	{
@@ -106,3 +104,8 @@ void ApplyPlayerStackResizes()
 	}
 #endif
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyPlayerStackResizes();
+});

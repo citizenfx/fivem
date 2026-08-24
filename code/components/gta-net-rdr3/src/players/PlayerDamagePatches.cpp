@@ -6,11 +6,9 @@
 #include <PatchUtils.h>
 #include <PlayerLimits.h>
 
-#include "PlayerPatches.h"
-
 using rage::kMaxPlayers;
 
-void ApplyPlayerDamageArrayPatches()
+static void ApplyPlayerDamageArrayPatches()
 {
 	constexpr size_t kDamageArraySize = sizeof(uint32_t) * (static_cast<size_t>(kMaxPlayers) + 1);
 	uint32_t* damageArrayReplacement = (uint32_t*)hook::AllocateStubMemory(kDamageArraySize);
@@ -35,7 +33,7 @@ void ApplyPlayerDamageArrayPatches()
 	});
 }
 
-void ApplyPlayerDamageTrackerPatches()
+static void ApplyPlayerDamageTrackerPatches()
 {
 	// 32/31 comparsions
 	PatchValue<uint8_t>({
@@ -45,3 +43,9 @@ void ApplyPlayerDamageTrackerPatches()
 		{"80 7A ? ? 48 8B F9 72", 3, 0x20, kMaxPlayers + 1}
 	});
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyPlayerDamageArrayPatches();
+	ApplyPlayerDamageTrackerPatches();
+});

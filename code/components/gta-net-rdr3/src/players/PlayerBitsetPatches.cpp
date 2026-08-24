@@ -6,8 +6,6 @@
 
 #include <PlayerLimits.h>
 
-#include "PlayerPatches.h"
-
 using rage::kMaxPlayers;
 
 static const uint8_t kOriginalPlayers = 32;
@@ -67,7 +65,7 @@ static void* sub_1422B40D4(void* a1, uint32_t* oldBitset, uint32_t* unk, uint32_
 }
 
 // Patch bubble join to prevent writing out of bounds for player objects
-void ApplyBubbleJoinPatch()
+static void ApplyBubbleJoinPatch()
 {
 	auto location = hook::get_pattern("44 0F B6 4E ? 0F B6 40");
 
@@ -108,7 +106,7 @@ void ApplyBubbleJoinPatch()
 	hook::jump_reg<5>(location, patchStub.GetCode());
 }
 
-void ApplyPlayerSyncDataPatch()
+static void ApplyPlayerSyncDataPatch()
 {
 	auto location = hook::get_pattern("8B CE 48 8B D6 48 C1 EA 05 83 E1 1F 33 FF 8B 44 93 08 0F B3 C8");
 
@@ -150,7 +148,7 @@ void ApplyPlayerSyncDataPatch()
 	hook::jump_reg<2>(location, patchStub.GetCode());
 }
 
-void ApplyNodeDataSentPatch()
+static void ApplyNodeDataSentPatch()
 {
 	{
 		auto location = hook::get_pattern("8B 4C 98 08 44 0F B3 F9 89 4C 98 08 EB");
@@ -219,7 +217,7 @@ void ApplyNodeDataSentPatch()
 	}
 }
 
-void ApplySyncDataOwnerPatch()
+static void ApplySyncDataOwnerPatch()
 {
 	{
 		auto location = hook::get_pattern<char>("48 C1 EA 05 8B 04 93 44 0F AB C0 89 04 93", 4);
@@ -287,7 +285,7 @@ void ApplySyncDataOwnerPatch()
 	}
 }
 
-void ApplyScriptHandlerNodePatch()
+static void ApplyScriptHandlerNodePatch()
 {
 	auto location = hook::get_pattern("40 0F B6 CD 8B D1 83 E1 1F 48 C1 EA ? 41 8B 44 90 ? 0F B3 C8 41 89 44 90");
 
@@ -325,7 +323,7 @@ void ApplyScriptHandlerNodePatch()
 	hook::jump_reg<0>(location, patchStub.GetCode());
 }
 
-void ApplyGhostMaskPatch()
+static void ApplyGhostMaskPatch()
 {
 	auto location = hook::get_pattern("49 8B CB 41 83 E3 1F 48 C1 E9 ? 41 8B 04 89 44 0F AB D8 41 89 04 89");
 
@@ -361,7 +359,7 @@ void ApplyGhostMaskPatch()
 	hook::jump_reg<0>(location, patchStub.GetCode());
 }
 
-void ApplyRemoteScriptInfoPatch()
+static void ApplyRemoteScriptInfoPatch()
 {
 	auto location = hook::get_pattern("41 8B 44 90 ? 0F AB C8 41 89 44 90 ? 41 83 60 ? ?");
 
@@ -394,7 +392,7 @@ void ApplyRemoteScriptInfoPatch()
 	hook::jump_reg<0>(location, patchStub.GetCode());
 }
 
-void ApplyCachedPlayerDataPatch()
+static void ApplyCachedPlayerDataPatch()
 {
 	auto location = hook::get_pattern<char>("0F B6 43 19 48 8D 0D ? ? ? ? 48 8B 0C C1 48 85 C9 74 32");
 
@@ -435,7 +433,7 @@ void ApplyCachedPlayerDataPatch()
 	hook::jump_reg<0>(location, patchStub.GetCode());
 }
 
-void ApplySyncMessageSequencePatch()
+static void ApplySyncMessageSequencePatch()
 {
 	auto location = hook::get_pattern("66 46 01 AC 76 D8 00 00 00");
 
@@ -468,7 +466,7 @@ void ApplySyncMessageSequencePatch()
 	hook::jump_reg<0>(location, patchStub.GetCode());
 }
 
-void ApplyCachedPlayerLookupPatches()
+static void ApplyCachedPlayerLookupPatches()
 {
 	{
 		auto location = hook::get_pattern<char>("48 8D 0D ? ? ? ? 48 8B 0C C1 48 85 C9 74 06 83");
@@ -583,14 +581,14 @@ void ApplyCachedPlayerLookupPatches()
 	}
 }
 
-void ApplyPlayerBitsetPatches()
+static void ApplyPlayerBitsetPatches()
 {
 	// Jump over a 32 sized bitset tied to CNetObjPedBase ownership migration until we can resize it, corrupts a task related pointer which is not great.
 	hook::put<uint8_t>(hook::get_pattern("74 ? 45 33 C0 48 8D 4C 24 ? 48 8B D3 E8 ? ? ? ? 0F 28 44 24"), 0xEB);
 }
 
 // Allocate greater sized bitsets to avoid stack corruption
-void CreatePlayerBitsetHooks()
+static void CreatePlayerBitsetHooks()
 {
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 4C 89 44 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 65 4C 8B 14 25"), sub_1422B40D4, (void**)&g_sub_1422B40D4);
 	MH_CreateHook(hook::get_pattern("4D 8B 04 C0 4E 39 3C 01 75 ? 33 C0 89 02", -0x39), _unkPlayerFootstepBitset, (void**)&g_unkPlayerFootstepBitset);
@@ -598,3 +596,24 @@ void CreatePlayerBitsetHooks()
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 45 33 C9 4C 8B D1 66 44 3B 49 ? 73 ? 41 8B C8 0F B6 C2"), AudioPlayerChannelBits, (void**)&g_origAudioPlayerChannelBits);
 	MH_CreateHook(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 48 89 78 ? 41 54 41 56 41 57 48 83 EC 30 65 48 8B 0C 25 58 00 00 00 48"), CalcPlayersInScopeFlags, (void**)&g_origCalcPlayersInScopeFlags);
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyBubbleJoinPatch();
+	ApplyPlayerBitsetPatches();
+	ApplyPlayerSyncDataPatch();
+	ApplyNodeDataSentPatch();
+	ApplySyncDataOwnerPatch();
+	ApplyScriptHandlerNodePatch();
+	ApplyGhostMaskPatch();
+	ApplyRemoteScriptInfoPatch();
+	ApplyCachedPlayerDataPatch();
+	ApplySyncMessageSequencePatch();
+	ApplyCachedPlayerLookupPatches();
+
+	MH_Initialize();
+
+	CreatePlayerBitsetHooks();
+
+	MH_EnableHook(MH_ALL_HOOKS);
+});

@@ -6,14 +6,12 @@
 #include <PatchUtils.h>
 #include <PlayerLimits.h>
 
-#include "PlayerPatches.h"
-
 using rage::kMaxPlayers;
 
 // Extend AnimScene handler array, as we need to support kMaxPlayers instead of just 32
 // Theres a few finicky bits in AnimScenes that need extra attention.
 // It may be best to leave this until its patched in the future to work under onesync.
-void ApplyAnimSceneHandlerPatches()
+static void ApplyAnimSceneHandlerPatches()
 {
 #if 0
 	const size_t kPlayerEntriesSize = (static_cast<size_t>((kMaxPlayers + 1)) * 0x3200);
@@ -62,7 +60,7 @@ void ApplyAnimSceneHandlerPatches()
 #endif
 }
 
-void ApplyAnimSceneArrayHandlerPatches()
+static void ApplyAnimSceneArrayHandlerPatches()
 {
 #if 0
 	static size_t kPlayerArraySize = sizeof(void*) * (kMaxPlayers + 1);
@@ -81,3 +79,9 @@ void ApplyAnimSceneArrayHandlerPatches()
 	});
 #endif
 }
+
+static HookFunction hookFunction([]()
+{
+	ApplyAnimSceneHandlerPatches();
+	ApplyAnimSceneArrayHandlerPatches();
+});
