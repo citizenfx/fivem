@@ -29,9 +29,14 @@ static HookFunction hookFunction([]()
 	constexpr size_t BitsetNumBlocks = BitsetPresentCopyNumIterations * 32 + 28;
 	constexpr size_t BitsetNumBytes = BitsetNumBlocks * sizeof(uint32_t);
 
-	// x2 because the bitset is double-buffered, one for render thread and another one for update thread
-	uint32_t* amvEnabledBitsetReplacement =  reinterpret_cast<uint32_t*>(hook::AllocateStubMemory(BitsetNumBytes * 2));
-	memset(amvEnabledBitsetReplacement, 0, BitsetNumBytes * 2);
+	// AMVPresentBuffer can address a third BitsetNumBytes-sized buffer.
+	// Allocate space for all three buffers so the third copy does not overwrite
+	// subsequent allocations from the shared stub-memory arena.
+	constexpr size_t BitsetBufferCount = 3;
+	constexpr size_t BitsetAllocationBytes = BitsetNumBytes * BitsetBufferCount;
+
+	uint32_t* amvEnabledBitsetReplacement = reinterpret_cast<uint32_t*>(hook::AllocateStubMemory(BitsetAllocationBytes));
+	memset(amvEnabledBitsetReplacement, 0, BitsetAllocationBytes);
 
 	// AMVInit
 	{
