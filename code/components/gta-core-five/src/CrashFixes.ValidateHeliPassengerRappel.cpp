@@ -1,5 +1,7 @@
 #include "StdInc.h"
 
+#include "CrossBuildRuntime.h"
+
 #include "Hooking.Patterns.h"
 #include "Hooking.Stubs.h"
 
@@ -56,6 +58,8 @@ static HookFunction hookFunction([]
 	g_PedVehicleOffset = *hook::get_pattern<int32_t>("4C 39 BE ? ? ? ? 75 ? 41 8A C7", 3);
 
 	g_CTaskHeliPassengerRappel_ProcessPostMovement = hook::trampoline(
-		hook::get_pattern("48 8B C4 48 89 58 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 48 8B 79 ? 45 33 FF 0F 29 70 ? 48 8B 9F ? ? ? ? 0F 29 78 ? 48 8B F1 48 85 DB 0F 84"),
+		hook::get_pattern(xbr::IsGameBuild<2060>()
+			? "48 8B C4 48 89 58 ? 48 89 70 ? 48 89 78 ? 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 48 8B 71"
+			: "48 8B C4 48 89 58 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 48 8B 79"),
 		CTaskHeliPassengerRappel_ProcessPostMovement);
 });
