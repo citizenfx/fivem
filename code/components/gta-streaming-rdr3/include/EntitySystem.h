@@ -130,6 +130,11 @@ public:
 	return (this->*(get_member<TFn>(vtbl[(offset / 8)])))(__VA_ARGS__);
 
 public:
+	inline void SetMatrix(const DirectX::XMMATRIX& matrix, bool updateScene, bool moreUpdate = false, bool evenMoreUpdate = false)
+	{
+		FORWARD_FUNC(SetMatrix, 0x658, matrix, updateScene, moreUpdate, evenMoreUpdate);
+	}
+
 	inline float GetRadius()
 	{
 		FORWARD_FUNC(GetRadius, 0x200);
