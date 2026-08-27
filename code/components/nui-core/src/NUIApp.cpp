@@ -111,6 +111,7 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 	}
 
 	window->SetValue("invokeNative", CefV8Value::CreateFunction("invokeNative", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+	window->SetValue("getGameState", CefV8Value::CreateFunction("getGameState", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("nuiSetAudioCategory", CefV8Value::CreateFunction("nuiSetAudioCategory", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("nuiTargetGame", CefV8Value::CreateString(
 #ifdef IS_LAUNCHER
