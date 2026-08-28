@@ -1687,13 +1687,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 										slotId--;
 									}
 
-#ifdef STATE_RDR3
-									if (slotId == 16)
-									{
-										slotId--;
-									}
-#endif
-
 									if (!clientData->playersInScope.test(slotId))
 									{
 										break;
