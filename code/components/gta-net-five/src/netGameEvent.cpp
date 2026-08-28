@@ -1326,6 +1326,7 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 3B 87 ? ? ? ? 75 ? B3")), GetFireApplicability, (void**)&g_origGetFireApplicability);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 8B 0C C1 4C 39 24 0A 75 04 33 C0", -0x3A), GetFireApplicability, (void**)&g_origGetFireApplicability);
+	MH_CreateHook(hook::get_pattern("89 07 E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 8B F0", -0x48), GetFireApplicability, NULL);
 #endif
 
 #ifdef GTA_FIVE
