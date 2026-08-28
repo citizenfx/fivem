@@ -28,7 +28,6 @@ constexpr uint16_t kRecFlagLengthHack = 1;
 constexpr int kNetObjectTypeBitLength = 5;
 constexpr int kFakePeerBase = 1000000;
 constexpr size_t kPacketBufferSize = 16384;
-constexpr uint16_t kLocalPlayerSlot = 16;
 constexpr uint16_t kSentinelSlot = 31;
 
 #pragma pack(push, 1)
@@ -648,7 +647,7 @@ uint16_t NextFreeSlot()
 
 	uint16_t slot = 0;
 
-	while (slot == kLocalPlayerSlot || slot == kSentinelSlot || used.find(slot) != used.end())
+	while (slot == kSentinelSlot || used.find(slot) != used.end())
 	{
 		slot++;
 	}
@@ -678,7 +677,7 @@ int AddBots(int count, uint32_t spreadMs, uint32_t baseOffset)
 	auto clientRegistry = g_serverInstance->GetComponent<fx::ClientRegistry>();
 	auto events = g_serverInstance->GetComponent<fx::ServerEventComponent>();
 
-	constexpr int kTrackableSlots = int(kGamePlayerCap) - 2;
+	constexpr int kTrackableSlots = int(kGamePlayerCap) - 1;
 	constexpr int kMaxPopulation = kTrackableSlots + 1;
 
 	int population = GetPlayerPopulation();
@@ -688,7 +687,7 @@ int AddBots(int count, uint32_t spreadMs, uint32_t baseOffset)
 	{
 		if (population >= kMaxPopulation)
 		{
-			console::PrintError("replay", "Reached the maximum concurrent player count (%d). Each client can only track %d others, as slots %d and %d are reserved.\n", kMaxPopulation, kTrackableSlots, int(kLocalPlayerSlot), int(kSentinelSlot));
+			console::PrintError("replay", "Reached the maximum concurrent player count (%d). Each client can only track %d others, as slot %d is reserved.\n", kMaxPopulation, kTrackableSlots, int(kSentinelSlot));
 			break;
 		}
 
