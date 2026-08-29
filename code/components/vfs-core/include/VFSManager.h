@@ -40,6 +40,9 @@ public:
 	virtual void Unmount(const std::string& path) = 0;
 
 	virtual fwRefContainer<Device> GetNativeDevice(void* nativeDevice);
+
+	// Used when multiple mounted devices resolve to the same native path.
+	virtual fwRefContainer<Device> FindDevice(const std::string& absolutePath, std::string& transformedPath, const std::string& preferredMountPrefix);
 };
 
 VFS_CORE_EXPORT fwRefContainer<Stream> OpenRead(const std::string& path);
@@ -55,6 +58,9 @@ VFS_CORE_EXPORT fwRefContainer<Stream> Create(const std::string& path, bool crea
 VFS_CORE_EXPORT fwRefContainer<Device> GetDevice(const std::string& path);
 
 VFS_CORE_EXPORT fwRefContainer<Device> FindDevice(const std::string& absolutePath, std::string& transformedPath);
+
+// Used when multiple mounted devices resolve to the same native path.
+VFS_CORE_EXPORT fwRefContainer<Device> FindDevice(const std::string& absolutePath, std::string& transformedPath, const std::string& preferredMountPrefix);
 
 VFS_CORE_EXPORT fwRefContainer<Device> GetNativeDevice(void* nativeDevice);
 

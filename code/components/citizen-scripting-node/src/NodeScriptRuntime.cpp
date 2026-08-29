@@ -165,8 +165,9 @@ const std::string_view& resource)
 
 		if (!device.GetRef())
 		{
-			std::string absolutePath = std::filesystem::absolute(std::filesystem::path(path)).string();
-			device = vfs::FindDevice(absolutePath, path);
+			std::error_code ec;
+			const std::filesystem::path absolutePath = std::filesystem::absolute(std::filesystem::path(path), ec);
+			device = vfs::FindDevice(ec ? path : absolutePath.string(), path, m_resourceMountPrefix);
 			if (!device.GetRef())
 			{
 				trace("Filesystem permission check from '%s' for permission %s on resource '%s' - no device found\n", m_resourceName.c_str(), permName.c_str(), res.c_str());
@@ -387,6 +388,7 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 	char* resourceName = nullptr;
 	m_resourceHost->GetResourceName(&resourceName);
 	m_resourceName = resourceName;
+	m_resourceMountPrefix = "@" + m_resourceName + "/";
 
 	// don't create the runtime environment if nodejs is not initialized
 	if (!g_nodeEnv.IsInitialized())
