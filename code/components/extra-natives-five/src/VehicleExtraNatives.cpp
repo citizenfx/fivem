@@ -310,6 +310,7 @@ static int VehicleTransmissionOffset;
 static int WheelYRotOffset = 0x008;
 static int WheelInvYRotOffset = 0x010;
 static int WheelXOffsetOffset = 0x030;
+static int WheelHeightOffset = 0x038;
 static int WheelTyreRadiusOffset = 0x110;
 static int WheelRimRadiusOffset = 0x114;
 static int WheelTyreWidthOffset = 0x118;
@@ -1608,6 +1609,16 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEEL_X_OFFSET", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
 	{
 		*reinterpret_cast<float*>(wheelAddr + WheelXOffsetOffset) = context.GetArgument<float>(2);
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_HEIGHT", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		context.SetResult<float>(*reinterpret_cast<float*>(wheelAddr + WheelHeightOffset));
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEEL_HEIGHT", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		*reinterpret_cast<float*>(wheelAddr + WheelHeightOffset) = context.GetArgument<float>(2);
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_TOP_SPEED_MODIFIER", [](fx::ScriptContext& context)
