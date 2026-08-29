@@ -4397,9 +4397,14 @@ void ServerGameState::HandleGameStateAck(fx::ServerInstanceBase* instance, const
 	}
 
 	auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
-			
-	const auto& ref = clientData->frameStates[frameIndex];
-	const ClientEntityState& clientEntityState = ref;
+
+	auto frameIt = clientData->frameStates.find(frameIndex);
+	if (frameIt == clientData->frameStates.end())
+	{
+		return;
+	}
+
+	const ClientEntityState& clientEntityState = frameIt->second;
 
 	{
 		for (const uint16_t objectId : packet.GetRecreateList())
