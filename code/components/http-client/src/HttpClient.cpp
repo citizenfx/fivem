@@ -557,7 +557,8 @@ static std::shared_ptr<CurlData> SetupCURLHandle(const std::unique_ptr<HttpClien
 	curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYPEER, 0);
 	curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYHOST, 0);
 	curl_easy_setopt(curlHandle, CURLOPT_STREAM_WEIGHT, long(options.weight));
-	
+	curl_easy_setopt(curlHandle, CURLOPT_ACCEPT_ENCODING, "");
+
 	if (options.responseHeaders)
 	{
 		curl_easy_setopt(curlHandle, CURLOPT_HEADERFUNCTION, CurlHeaderInfo);
