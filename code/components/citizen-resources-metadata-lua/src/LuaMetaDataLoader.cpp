@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "Resource.h"
 #include "ResourceMetaDataComponent.h"
+#include <CoreConsole.h>
 
 #include "VFSManager.h"
 
@@ -226,6 +227,18 @@ std::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDataC
 	{
 		lua_pushnil(m_luaState);
 		lua_setglobal(m_luaState, removeThat);
+	}
+
+	const auto varMan = console::GetDefaultContext()->GetVariableManager();
+	const char* globalVar[] = { "gamename", "servername" };
+
+	for (auto varName : globalVar)
+	{
+		const auto var = varMan->FindEntryRaw(varName);
+		if (var) {
+			lua_pushstring(m_luaState, var->GetValue().c_str());
+			lua_setglobal(m_luaState, varName);
+		}
 	}
 
 	auto fileNameAttempts = { "fxmanifest.lua"s, "__resource.lua"s };
