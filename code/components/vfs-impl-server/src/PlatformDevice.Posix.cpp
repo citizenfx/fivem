@@ -49,7 +49,7 @@ Device::THandle LocalDevice::Create(const std::string& filename, bool createIfEx
 		flags |= O_APPEND;
 	}
 
-	int fd = open(filename.c_str(), flags, 0755);
+	int fd = open(filename.c_str(), flags, 0644);
 
 	if (fd < 0)
 	{
@@ -62,28 +62,100 @@ Device::THandle LocalDevice::Create(const std::string& filename, bool createIfEx
 size_t LocalDevice::Read(THandle handle, void* outBuffer, size_t size)
 {
 	assert(handle != Device::InvalidHandle);
+	uint8_t* outByteBuffer = static_cast<uint8_t*>(outBuffer);
 
-	ssize_t bytesRead = read(static_cast<int>(handle), outBuffer, size);
+	size_t totalBytesRead = 0;
 
-	return (bytesRead < 0) ? -1 : static_cast<size_t>(bytesRead);
+	while (totalBytesRead < size)
+	{
+		ssize_t bytesRead = read(static_cast<int>(handle), outByteBuffer + totalBytesRead, size - totalBytesRead);
+		if (bytesRead < 0)
+		{
+			// we got interrupted, we should retry our read
+			if (errno == EINTR)
+			{
+				continue;
+			}
+
+			// if we get any error we should treat it as a failure
+			return -1;
+		}
+
+		if (bytesRead == 0)
+		{
+			break;
+		}
+
+		totalBytesRead += static_cast<size_t>(bytesRead);
+	}
+
+	return totalBytesRead;
 }
 
 size_t LocalDevice::ReadBulk(THandle handle, uint64_t ptr, void* outBuffer, size_t size)
 {
 	assert(handle != Device::InvalidHandle);
 
-	ssize_t bytesRead = pread(static_cast<int>(handle), outBuffer, size, static_cast<off_t>(ptr));
+	uint8_t* outByteBuffer = static_cast<uint8_t*>(outBuffer);
 
-	return (bytesRead < 0) ? -1 : static_cast<size_t>(bytesRead);
+	size_t totalBytesRead = 0;
+
+	while (totalBytesRead < size)
+	{
+		ssize_t bytesRead = pread(static_cast<int>(handle), outByteBuffer + totalBytesRead, size - totalBytesRead, static_cast<off_t>(ptr + totalBytesRead));
+		if (bytesRead < 0)
+		{
+			// we got interrupted, we should retry our pread
+			if (errno == EINTR)
+			{
+				continue;
+			}
+
+			// if we get any errors we should treat it as a failure
+			return -1;
+		}
+
+		if (bytesRead == 0)
+		{
+			break;
+		}
+
+		totalBytesRead += static_cast<size_t>(bytesRead);
+	}
+
+	return totalBytesRead;
 }
 
 size_t LocalDevice::Write(THandle handle, const void* buffer, size_t size)
 {
 	assert(handle != Device::InvalidHandle);
+	const uint8_t* writeBuffer = static_cast<const uint8_t*>(buffer);
 
-	ssize_t bytesWritten = write(static_cast<int>(handle), buffer, size);
+	size_t totalBytesWritten = 0;
 
-	return (bytesWritten < 0) ? -1 : static_cast<size_t>(bytesWritten);
+	while (totalBytesWritten < size)
+	{
+		ssize_t bytesWritten = write(static_cast<int>(handle), writeBuffer + totalBytesWritten, size - totalBytesWritten);
+		if (bytesWritten < 0)
+		{
+			// if we got interrupted we should retry our write
+			if (errno == EINTR)
+			{
+				continue;
+			}
+
+			return -1;
+		}
+
+		if (bytesWritten == 0)
+		{
+			break;
+		}
+		
+		totalBytesWritten += static_cast<size_t>(bytesWritten);
+	}
+
+	return totalBytesWritten;
 }
 
 size_t LocalDevice::WriteBulk(THandle handle, uint64_t ptr, const void* buffer, size_t size)
@@ -117,7 +189,7 @@ bool LocalDevice::RemoveFile(const std::string& filename)
 
 bool LocalDevice::RenameFile(const std::string& from, const std::string& to)
 {
-	return (rename(from.c_str(), to.c_str()) != 0);
+	return (rename(from.c_str(), to.c_str()) == 0);
 }
 
 bool LocalDevice::CreateDirectory(const std::string& name)
@@ -144,7 +216,10 @@ std::time_t LocalDevice::GetModifiedTime(const std::string& fileName)
 size_t LocalDevice::GetLength(THandle handle)
 {
 	struct stat buf;
-	fstat(static_cast<int>(handle), &buf);
+	if (fstat(static_cast<int>(handle), &buf) < 0)
+	{
+		return 0;
+	}
 
 	return buf.st_size;
 }
@@ -196,6 +271,8 @@ Device::THandle LocalDevice::FindFirst(const std::string& folder, FindData* find
 
 			return reinterpret_cast<Device::THandle>(find);
 		}
+
+		closedir(dir);
 	}
 
 	return INVALID_DEVICE_HANDLE;
