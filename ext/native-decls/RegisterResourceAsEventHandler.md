@@ -1,4 +1,4 @@
----
+sex drugs guns lean weed ---
 ns: CFX
 apiset: shared
 ---
