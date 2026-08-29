@@ -1628,8 +1628,14 @@ static void Init()
 		// get the server's game state
 		auto gameState = instance->GetComponent<fx::ServerGameState>();
 
-		auto [lock, clientData] = gameState->ExternalGetClientData(client);
-		return int(clientData->routingBucket);
+		uint32_t routingBucket = 0;
+
+		{
+			auto [lock, clientData] = gameState->ExternalGetClientData(client);
+			routingBucket = clientData->routingBucket;
+		}
+
+		return int(routingBucket);
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_ROUTING_BUCKET", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
@@ -1650,24 +1656,29 @@ static void Init()
 				// get the server's game state
 				auto gameState = instance->GetComponent<fx::ServerGameState>();
 
-				auto [lock, clientData] = gameState->ExternalGetClientData(client);
-
-				 // store old bucket for event
-				const auto oldBucket = clientData->routingBucket;
-
-				gameState->ClearClientFromWorldGrid(client);
-				clientData->routingBucket = bucket;
 				
-				fx::sync::SyncEntityPtr playerEntity;
+				uint32_t oldBucket = 0;
 
 				{
-					std::shared_lock _lock(clientData->playerEntityMutex);
-					playerEntity = clientData->playerEntity.lock();
-				}
+					auto [lock, clientData] = gameState->ExternalGetClientData(client);
 
-				if (playerEntity)
-				{
-					playerEntity->routingBucket = bucket;
+					 // store old bucket for event
+					oldBucket = clientData->routingBucket;
+
+					gameState->ClearClientFromWorldGrid(client);
+					clientData->routingBucket = bucket;
+					
+					fx::sync::SyncEntityPtr playerEntity;
+
+					{
+						std::shared_lock _lock(clientData->playerEntityMutex);
+						playerEntity = clientData->playerEntity.lock();
+					}
+
+					if (playerEntity)
+					{
+						playerEntity->routingBucket = bucket;
+					}
 				}
 
 				
