@@ -55,6 +55,9 @@ static HookFunction hookFunction([]()
 	// Allow registration of script/mission peds up to and past the 110 limit.
 	hook::put<uint32_t>(hook::get_pattern("BB ? ? ? ? E9 ? ? ? ? E8 ? ? ? ? 48 8B 0D", 1), kDefaultMaxPeds + increaseSize);
 
+	// Patch GET_MAX_NUM_NETWORK_PEDS/0xC1F7D49C39D2289 to reflect the increased network ped limit.
+	hook::put<uint32_t>(hook::get_pattern("48 8B 01 C7 00 6E 00 00 00 C3", 5), kDefaultMaxPeds + increaseSize);
+
 	// Resize ped circular buffer to support greater then 160 peds.
 	{
 		// Allocate 270 as:
