@@ -185,6 +185,8 @@ namespace rage
 	COMPONENT_EXPORT(GTA_CORE_TARGET) rage::parStructure* GetStructureDefinition(const char* structType);
 
 	COMPONENT_EXPORT(GTA_CORE_TARGET) rage::parStructure* GetStructureDefinition(uint32_t structHash);
+
+	COMPONENT_EXPORT(GTA_CORE_TARGET) bool LoadFromStructure(const char* fileName, const char* ext, rage::parStructure* parStruct, void* target, bool typeChecks, void* unk);
 }
 
 #undef GTA_CORE_TARGET
