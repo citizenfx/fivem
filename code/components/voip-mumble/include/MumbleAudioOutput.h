@@ -60,7 +60,7 @@ public:
 
 	void SetVolume(float volume);
 
-	void GetTalkers(std::vector<uint32_t>* talkers);
+	void GetTalkers(std::vector<uint32_t>& talkers);
 
 	void SetMatrix(float position[3], float front[3], float up[3]);
 

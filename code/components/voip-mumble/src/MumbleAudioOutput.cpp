@@ -1442,9 +1442,9 @@ void MumbleAudioOutput::HandleClientDisconnect(const MumbleUser& user)
 	}
 }
 
-void MumbleAudioOutput::GetTalkers(std::vector<uint32_t>* talkers)
+void MumbleAudioOutput::GetTalkers(std::vector<uint32_t>& talkers)
 {
-	talkers->clear();
+	talkers.clear();
 
 	std::shared_lock<std::shared_mutex> _(m_clientsMutex);
 
@@ -1457,7 +1457,7 @@ void MumbleAudioOutput::GetTalkers(std::vector<uint32_t>* talkers)
 
 		if (client.second->IsTalking())
 		{
-			talkers->push_back(client.first);
+			talkers.push_back(client.first);
 		}
 	}
 }
