@@ -1,5 +1,6 @@
 // CFX JS runtime
 /// <reference path="./natives_server.d.ts" />
+/// <reference path="./index.d.ts" />
 
 const EXT_FUNCREF = 10;
 const EXT_LOCALFUNCREF = 11;
