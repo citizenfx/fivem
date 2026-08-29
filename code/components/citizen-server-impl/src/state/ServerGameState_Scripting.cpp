@@ -1727,6 +1727,64 @@ static void Init()
 		return true;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_ALL_ENTITIES_IN_ROUTING_BUCKET", [](fx::ScriptContext& context)
+	{
+		const int bucket = context.GetArgument<int>(0);
+		const bool filterPlayers = context.GetArgument<bool>(1);
+
+		// get the current resource manager
+		const auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		const auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		const auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		std::vector<int> entityList;
+		std::shared_lock<std::shared_mutex> lock(gameState->m_entityListMutex);
+
+		for (const auto& entity : gameState->m_entityList)
+		{
+			if (entity->routingBucket == bucket && (!filterPlayers || entity->type != fx::sync::NetObjEntityType::Player))
+			{
+				entityList.push_back(gameState->MakeScriptHandle(entity));
+			}
+		}
+
+		context.SetResult(fx::SerializeObject(entityList));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ALL_PLAYERS_IN_ROUTING_BUCKET", [](fx::ScriptContext& context)
+	{
+		const int bucket = context.GetArgument<int>(0);
+
+		// get the current resource manager
+		const auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		const auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the client registry
+		const auto clRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+		// get the server's game state
+		const auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		std::vector<uint32_t> playerList;
+
+		clRegistry->ForAllClients([&](const fx::ClientSharedPtr client)
+		{
+			const auto [lock, clientData] = gameState->ExternalGetClientData(client);
+			if (clientData->routingBucket == bucket)
+			{
+				playerList.push_back(client->GetNetId());
+			}
+		});
+
+		context.SetResult(fx::SerializeObject(playerList));
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_INVINCIBLE", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto pn = entity->syncTree->GetPlayerGameState();
