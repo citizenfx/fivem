@@ -508,78 +508,105 @@ struct CVehicleScriptGameStateDataNode
 	}
 };
 
-struct CEntityScriptInfoDataNode
+struct CEntityScriptInfoDataNode : GenericSerializeDataNode<CEntityScriptInfoDataNode>
 {
 	uint32_t m_scriptHash;
 	uint32_t m_timestamp;
+	uint32_t m_positionHash;
+	uint32_t m_instanceId;
+	uint32_t m_scriptObjectId;
+	uint32_t m_hostToken;
 
-	bool Parse(SyncParseState& state)
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
 	{
-		auto hasScript = state.buffer.ReadBit();
+		bool hasScript = m_scriptHash != 0;
+		s.Serialize(hasScript);
 
-		if (hasScript) // Has script info
+		if (hasScript)
 		{
-			// deserialize CGameScriptObjInfo
+			// -> CGameScriptObjInfo
 
-			// -> CGameScriptId
-
-			// ---> rage::scriptId
-			m_scriptHash = state.buffer.Read<uint32_t>(32);
-			// ---> end
-
-			m_timestamp = state.buffer.Read<uint32_t>(32);
-
-			if (state.buffer.ReadBit())
 			{
-				auto positionHash = state.buffer.Read<uint32_t>(32);
+				// -> CGameScriptId
+
+				{
+					// -> rage::scriptId
+					s.Serialize(32, m_scriptHash);
+				}
+
+				s.Serialize(32, m_timestamp);
+
+				bool hasPositionHash = m_positionHash != 0;
+				s.Serialize(hasPositionHash);
+
+				if (hasPositionHash)
+				{
+					s.Serialize(32, m_positionHash);
+				}
+				else if constexpr (Serializer::isReader)
+				{
+					m_positionHash = 0;
+				}
+
+				bool hasInstanceId = m_instanceId != 0;
+				s.Serialize(hasInstanceId);
+
+				if (hasInstanceId)
+				{
+					s.Serialize(8, m_instanceId);
+				}
+				else if constexpr (Serializer::isReader)
+				{
+					m_instanceId = 0;
+				}
 			}
 
-			if (state.buffer.ReadBit())
-			{
-				auto instanceId = state.buffer.Read<uint32_t>(7);
-			}
+			s.Serialize(32, m_scriptObjectId);
 
-			// -> end
+			bool longHostToken = m_hostToken >= (1 << 3);
+			s.Serialize(longHostToken);
 
-			auto scriptObjectId = state.buffer.Read<uint32_t>(32);
-
-			auto hostTokenLength = state.buffer.ReadBit() ? 16 : 3;
-			auto hostToken = state.buffer.Read<uint32_t>(hostTokenLength);
-
-			// end
+			auto hostTokenLength = longHostToken ? 16 : 3;
+			s.Serialize(hostTokenLength, m_hostToken);
 		}
-		else
+		else if constexpr (Serializer::isReader)
 		{
 			m_scriptHash = 0;
 		}
 
 		return true;
 	}
+};
 
-	bool Unparse(sync::SyncUnparseState& state)
+template<>
+struct NodeProcessor<CEntityScriptInfoDataNode>
+{
+	uint32_t lastScriptId = 0;
+
+	bool PreParse(CEntityScriptInfoDataNode& node, SyncParseState& state)
 	{
-		rl::MessageBuffer& buffer = state.buffer;
+		lastScriptId = node.m_scriptHash;
 
-		if (m_scriptHash)
+		return false;
+	}
+
+	bool PostParse(CEntityScriptInfoDataNode& node, SyncParseState& state)
+	{
+		if (lastScriptId && !node.m_scriptHash)
 		{
-			buffer.WriteBit(true);
-
-			buffer.Write<uint32_t>(32, m_scriptHash);
-			buffer.Write<uint32_t>(32, m_timestamp);
-
-			buffer.WriteBit(false);
-			buffer.WriteBit(false);
-
-			buffer.Write<uint32_t>(32, 12);
-
-			buffer.WriteBit(false);
-			buffer.Write<uint32_t>(3, 0);
-		}
-		else
-		{
-			buffer.WriteBit(false);
+			if (state.entity && state.entity->IsOwnedByServerScript())
+			{
+				node.m_scriptHash = lastScriptId;
+				return true;
+			}
 		}
 
+		return false;
+	}
+
+	constexpr bool IsHandled()
+	{
 		return true;
 	}
 };

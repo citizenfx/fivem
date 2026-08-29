@@ -111,6 +111,8 @@ std::shared_ptr<sync::SyncTreeBase> MakeAutomobile(uint32_t model, float posX, f
 	{
 		cdn.m_scriptHash = resourceHash;
 		cdn.m_timestamp = msec().count();
+		cdn.m_instanceId = 12;
+		cdn.m_scriptObjectId = 12;
 	});
 
 	return tree;
@@ -151,6 +153,8 @@ std::shared_ptr<sync::SyncTreeBase> MakeVehicle(uint32_t model, float posX, floa
 	{
 		cdn.m_scriptHash = resourceHash;
 		cdn.m_timestamp = msec().count();
+		cdn.m_instanceId = 12;
+		cdn.m_scriptObjectId = 12;
 	});
 
 	return tree;
@@ -195,6 +199,8 @@ std::shared_ptr<sync::SyncTreeBase> MakePed(uint32_t model, float posX, float po
 	{
 		cdn.m_scriptHash = resourceHash;
 		cdn.m_timestamp = msec().count();
+		cdn.m_instanceId = 12;
+		cdn.m_scriptObjectId = 12;
 	});
 
 	return tree;
@@ -235,6 +241,8 @@ std::shared_ptr<sync::SyncTreeBase> MakeObject(uint32_t model, float posX, float
 	{
 		cdn.m_scriptHash = resourceHash;
 		cdn.m_timestamp = msec().count();
+		cdn.m_instanceId = 12;
+		cdn.m_scriptObjectId = 12;
 	});
 
 	return tree;
