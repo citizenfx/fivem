@@ -287,6 +287,12 @@ namespace fx
 
 		ServerInstanceBase* m_instance;
 
+		uint32_t m_peerTimeout = 30000;
+
+		std::shared_ptr<ConVar<uint32_t>> m_peerTimeoutVar;
+
+		std::shared_ptr<ConsoleCommand> m_peerTimeoutCmd;
+
 		std::shared_ptr<ConsoleCommand> m_heartbeatCommand;
 
 		std::shared_ptr<ConVar<std::string>> m_listingIpOverride;
