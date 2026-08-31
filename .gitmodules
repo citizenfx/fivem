@@ -457,3 +457,6 @@
 [submodule "vendor/AntiLag2-SDK"]
 	path = vendor/AntiLag2-SDK
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/AntiLag2-SDK
+[submodule "vendor/stb"]
+	path = vendor/stb
+	url = https://github.com/nothings/stb.git
