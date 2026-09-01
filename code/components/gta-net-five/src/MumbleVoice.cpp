@@ -198,6 +198,8 @@ static VoiceChatMgrPrefs* g_voiceChatMgrPrefs;
 static bool g_voiceChatPrefEnabled;
 static void* g_voiceChatMgr;
 
+static bool g_useGameVoiceEngine = true;
+
 void VoiceChatPrefs::InitConfig()
 {
 	_initVoiceChatConfig(g_voiceChatMgr);
@@ -815,6 +817,8 @@ static void _filterVoiceChatConfig(void* engine, char* config)
 #ifdef IS_RDR3
 	// cache enabled state preference
 	g_voiceChatPrefEnabled = *config;
+
+	console::DPrintf("Mumble", __FUNCTION__ ": preference is %d, game engine init %s\n", (int)*config, g_useGameVoiceEngine ? "passed through" : "suppressed");
 #endif
 
 	// disable voice if mumble is used
@@ -825,6 +829,11 @@ static void _filterVoiceChatConfig(void* engine, char* config)
 
 #ifndef IS_RDR3
 	g_origInitVoiceEngine(engine, config);
+#else
+	if (g_useGameVoiceEngine)
+	{
+		g_origInitVoiceEngine(engine, config);
+	}
 #endif
 }
 
@@ -1466,6 +1475,10 @@ static HookFunction hookFunction([]()
 		});
 #endif
 	});
+
+#ifdef IS_RDR3
+	static ConVar<bool> useGameVoiceEngineVar("voice_useGameEngine", ConVar_Archive | ConVar_UserPref, true, &g_useGameVoiceEngine);
+#endif
 
 	MH_Initialize();
 
