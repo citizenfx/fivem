@@ -71,7 +71,7 @@ public:
 	uint8_t m_pad[244 - 8]; // +8
 	uint16_t m_index; // 244
 	uint16_t m_count; // 246
-	uint8_t m_unk; // 248
+	uint8_t m_numElementsInUse; // 248
 	uint8_t m_elementSize; // 249
 	uint8_t m_pad2[14]; // 250
 	void* m_array; // 264
@@ -80,7 +80,8 @@ public:
 	uint16_t m_index; // 308
 	uint8_t m_pad2[130]; // 310
 	uint16_t m_count; // 440
-	uint8_t m_pad3[6]; // 442
+	uint16_t m_numElementsInUse; // 442
+	uint8_t m_pad3[4]; // 444
 	uint8_t m_elementSize; // 448
 	uint8_t m_pad4[23]; // 449
 	void* m_array; // 472

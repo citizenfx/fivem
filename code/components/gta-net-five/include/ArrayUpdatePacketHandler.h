@@ -46,7 +46,7 @@ public:
 			}
 
 			// Why is this uint32_t when the array handler's count is a uint16_t? 
-			if (element >= arrayHandler->m_count)
+			if (element >= arrayHandler->m_numElementsInUse)
 			{
 				trace("ArrayUpdatePacketHandler: Invalid element index %d for array handler %d from player %d (count %d)\n", element, arrayIndex, player, arrayHandler->m_count);
 				return;
