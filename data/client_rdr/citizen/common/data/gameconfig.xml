@@ -11,25 +11,13 @@
             <PoolSizes>
               <Entries>
                 <!-- Keep these sorted -->
-				<Item>
-					<PoolName>CNetObjPlayer</PoolName>
-					<PoolSize value="128" />
-				</Item>
-				<Item>
-					<PoolName>CNetViewPortWrapper</PoolName>
-					<PoolSize value="128" />
-				</Item>
-				<Item>
-					<PoolName>CPedPlayerComponent</PoolName>
-					<PoolSize value="128" />
-				</Item>
                 <Item>
                   <PoolName>AnimatedBuilding</PoolName>
                   <PoolSize value="25"/>
                 </Item>
                 <Item>
                   <PoolName>AttachmentExtension</PoolName>
-                  <PoolSize value="900"/>
+                  <PoolSize value="1200"/>
                 </Item>
                 <Item>
                   <PoolName>AudioHeap</PoolName>
@@ -149,7 +137,7 @@
                 </Item>
                 <Item>
                     <PoolName>CLegIkSolver</PoolName>
-                    <PoolSize value="10"/>
+                    <PoolSize value="80"/>
                 </Item>
                 <Item>
                     <PoolName>CLegIkSolverState</PoolName>
@@ -342,7 +330,7 @@
 				</Item>
                 <Item>
                   <PoolName>CWeaponItem</PoolName>
-                  <PoolSize value="600"/>
+                  <PoolSize value="1000"/>
                 </Item>
                 <Item>
                   <PoolName>CAmmoItem</PoolName>
@@ -362,7 +350,7 @@
                 </Item>
                 <Item>
                   <PoolName>CCharacterItem</PoolName>
-                  <PoolSize value="160"/>
+                  <PoolSize value="150"/>
                 </Item>
                 <Item>
                   <PoolName>CHorseEquipmentInventoryItem</PoolName>
@@ -503,7 +491,7 @@
 				</Item>
 				<Item>
 					<PoolName>CObjectAnimationComponent</PoolName>
-					<PoolSize value="450"/>
+					<PoolSize value="768"/>
 				</Item>
 				<Item>
 					<PoolName>CPedAnimationComponent</PoolName>
@@ -591,15 +579,15 @@
 				</Item>
 				<Item>
 					<PoolName>crCreatureComponentExternalDofs</PoolName>
-					<PoolSize value="160"/>
+					<PoolSize value="150"/>
 				</Item>
 				<Item>
 					<PoolName>crCreatureComponentCloth</PoolName>
-					<PoolSize value="160"/>
+					<PoolSize value="150"/>
 				</Item>
 				<Item>
 					<PoolName>crCreatureComponentShaderVars</PoolName>
-					<PoolSize value="160"/>
+					<PoolSize value="150"/>
 				</Item>
 				<Item>
 					<PoolName>crCreatureComponentPhysical</PoolName>
@@ -607,7 +595,7 @@
 				</Item>
 				<Item>
 					<PoolName>crCreatureComponentHistory</PoolName>
-					<PoolSize value="160"/>
+					<PoolSize value="150"/>
 				</Item>
 				<Item>
 					<PoolName>crCreatureComponentParticleEffect</PoolName>
@@ -701,7 +689,7 @@
 				</Item>
 				<Item>
 					<PoolName>CPedBreatheComponent</PoolName>
-					<PoolSize value="40"/>
+					<PoolSize value="150"/>
 				</Item>
 				<Item>
 					<PoolName>CPedClothComponent</PoolName>
@@ -795,6 +783,10 @@
 					<PoolName>CPedPhysicsComponent</PoolName>
 					<PoolSize value="150"/>
 				</Item>
+                <Item>
+                  <PoolName>CPedPlayerComponent</PoolName>
+                  <PoolSize value="128"/>
+                </Item>
 				<Item>
 					<PoolName>CPedProjDecalComponent</PoolName>
 					<PoolSize value="150"/>
@@ -811,6 +803,10 @@
 					<PoolName>CPedStaminaComponent</PoolName>
 					<PoolSize value="150"/>
 				</Item>
+                <Item>
+                  <PoolName>CPedSyncData</PoolName>
+                  <PoolSize value="150"/>
+                </Item>
 				<Item>
 					<PoolName>CPedTargetingComponent</PoolName>
 					<PoolSize value="120"/>
@@ -893,7 +889,7 @@
         </Item>
         <Item>
           <PoolName>CObjectWeaponsComponent</PoolName>
-          <PoolSize value="512"/>
+          <PoolSize value="768"/>
         </Item>
                 <Item>
                   <PoolName>CPairedAnimationReservationComponent</PoolName>
@@ -1245,6 +1241,26 @@
                   <PoolSize value="380"/>
                 </Item>
                 <Item>
+                  <PoolName>CNetBlenderPed</PoolName>
+                  <PoolSize value="150"/>
+                </Item>
+                <Item>
+                  <PoolName>CNetObjPedBase</PoolName>
+                  <PoolSize value="150"/>
+                </Item>
+                <Item>
+                  <PoolName>CNetObjPlayer</PoolName>
+                  <PoolSize value="128"/>
+                </Item>
+                <Item>
+                  <PoolName>CNetViewPortWrapper</PoolName>
+                  <PoolSize value="128"/>
+                </Item>
+                <Item>
+                  <PoolName>CNetworkDamageTracker</PoolName>
+                  <PoolSize value="150"/>
+                </Item>
+                <Item>
                   <PoolName>volCylinder</PoolName>
                   <PoolSize value="600"/>
                 </Item>
@@ -1407,7 +1423,7 @@
                 </Item>
 				<Item>
 					<PoolName>CWeapon</PoolName>
-					<PoolSize value="300"/>
+					<PoolSize value="768"/>
 				</Item>
                 <Item>
                   <PoolName>CWeaponComponent</PoolName>
@@ -1476,7 +1492,7 @@
                 </Item>
                 <Item>
                   <PoolName>MaxBroadphasePairs</PoolName>
-                  <PoolSize value="8000"/>
+                  <PoolSize value="4000"/>
                 </Item>
                 <Item>
                 <PoolName>CPickup</PoolName>
@@ -1609,7 +1625,7 @@
 				</Item>
                 <Item>
                   <PoolName>CMoveObject</PoolName>
-                  <PoolSize value="450"/>
+                  <PoolSize value="768"/>
                 </Item>
                 <Item>
                   <PoolName>CMoveAnimatedBuilding</PoolName>

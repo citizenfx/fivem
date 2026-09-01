@@ -607,6 +607,10 @@ static const char* poolEntriesTable[] = {
 
 static RageHashList poolEntries(poolEntriesTable);
 
+// for ped related pool increase and scaling
+static constexpr int64_t kBaselinePeds = 150;
+static constexpr int64_t kMaxPedIncrease = 110;
+
 static std::unordered_map<uint32_t, std::string_view> pedPoolEntries{
 	{ HashString("Peds"), "Peds" },
 	{ HashString("CPedInventory"), "CPedInventory" },
@@ -641,14 +645,81 @@ static std::unordered_map<uint32_t, std::string_view> pedPoolEntries{
 	{ HashString("CPedWeaponManagerComponent"), "CPedWeaponManagerComponent" },
 	{ HashString("CPedVisibilityComponent"), "CPedVisibilityComponent" },
 	{ HashString("CNetBlenderPed"), "CNetBlenderPed" },
+	{ HashString("CNetworkDamageTracker"), "CNetworkDamageTracker" },
 	{ HashString("CPedSyncData"), "CPedSyncData" },
 	{ HashString("CEmotionalLocoHelper"), "CEmotionalLocoHelper" },
 	{ HashString("CCrimeObserver"), "CCrimeObserver" },
 	{ HashString("CAnimalGroupMember"), "CAnimalGroupMember" },
-	{ HashString("CPedFootstepComponent"), "CPedFootstepComponent" },
 	{ HashString("CCharacterItem"), "CCharacterItem" },
 	{ HashString("CPedBreatheComponent"), "CPedBreatheComponent" },
+	{ HashString("crCreatureComponentCloth"), "crCreatureComponentCloth" },
+	{ HashString("crCreatureComponentExternalDofs"), "crCreatureComponentExternalDofs" },
+	{ HashString("crCreatureComponentHistory"), "crCreatureComponentHistory" },
+	{ HashString("crCreatureComponentShaderVars"), "crCreatureComponentShaderVars" },
+	{ HashString("CPedClothComponent"), "CPedClothComponent" },
+	{ HashString("CPedDistractionComponent"), "CPedDistractionComponent" },
+	{ HashString("CPedFootstepComponent"), "CPedFootstepComponent" },
 	{ HashString("CPedTargetingComponent"), "CPedTargetingComponent" }
+};
+
+// pools that should scale with ped increase to the maximum values set here
+static std::unordered_map<uint32_t, int64_t> pedScaledPoolEntries{
+	{ HashString("AttachmentExtension"), 1800 },
+	{ HashString("CAimHelper"), 280 },
+	{ HashString("CAimSolver"), 256 },
+	{ HashString("CAimSolver::InternalState"), 16 },
+	{ HashString("CAnimDirectorComponentIk"), 640 },
+	{ HashString("CArmIkSolver"), 256 },
+	{ HashString("CArmPostureSolver"), 256 },
+	{ HashString("CArmSolver"), 304 },
+	{ HashString("CBalanceSolver"), 128 },
+	{ HashString("CBodyAimSolver"), 256 },
+	{ HashString("CBodyAimSolver::InternalState"), 16 },
+	{ HashString("CBodyDampingSolver"), 128 },
+	{ HashString("CBodyLookIkSolver"), 96 },
+	{ HashString("CBodyLookIkSolver::InternalState"), 16 },
+	{ HashString("CBodyLookIkSolverProxy"), 448 },
+	{ HashString("CBodyRecoilIkSolver"), 64 },
+	{ HashString("CClimbSolver"), 64 },
+	{ HashString("CContourSolver"), 8 },
+	{ HashString("CContourSolverProxy"), 64 },
+	{ HashString("CFullBodySolver"), 256 },
+	{ HashString("CHighHeelSolver"), 256 },
+	{ HashString("CImpulseReactionSolver"), 256 },
+	{ HashString("CLegIkSolver"), 320 },
+	{ HashString("CLegIkSolverProxy"), 320 },
+	{ HashString("CLegIkSolverState"), 16 },
+	{ HashString("CLegPostureSolver"), 256 },
+	{ HashString("CMountedLegSolver"), 16 },
+	{ HashString("CMountedLegSolverProxy"), 256 },
+	{ HashString("CMoveObject"), 1000 },
+	{ HashString("CObjectAnimationComponent"), 1000 },
+	{ HashString("CObjectWeaponsComponent"), 1024 },
+	{ HashString("CPedAvoidanceComponent"), 512 },
+	{ HashString("CPropInstanceHelper"), 512 },
+	{ HashString("CQuadLegIkSolver"), 32 },
+	{ HashString("CQuadLegIkSolverProxy"), 128 },
+	{ HashString("CQuadrupedInclineSolver"), 60 },
+	{ HashString("CQuadrupedInclineSolverProxy"), 256 },
+	{ HashString("CQuadrupedReactSolver"), 100 },
+	{ HashString("crCreatureComponentExtraDofs"), 500 },
+	{ HashString("crCreatureComponentPhysical"), 300 },
+	{ HashString("crCreatureComponentSkeleton"), 850 },
+	{ HashString("crExpressionPlayer"), 10050 },
+	{ HashString("CRootSlopeFixupIkSolver"), 256 },
+	{ HashString("CStirrupSolver"), 256 },
+	{ HashString("CTorsoReactIkSolver"), 64 },
+	{ HashString("CTorsoVehicleIkSolver"), 64 },
+	{ HashString("CTorsoVehicleIkSolverProxy"), 128 },
+	{ HashString("CTwoBoneSolver"), 256 },
+	{ HashString("CUpperBodyBlend"), 440 },
+	{ HashString("CUpperBodyBlend::CBodyBlendBoneCache"), 512 },
+	{ HashString("CWeapon"), 1024 },
+	{ HashString("CWeaponComponent"), 6000 },
+	{ HashString("CWeaponComponentItem"), 8300 },
+	{ HashString("CWeaponItem"), 2000 },
+	{ HashString("MaxBroadphasePairs"), 8000 },
+	{ HashString("TaskSequenceInfo"), 4000 }
 };
 
 static std::unordered_map<uint32_t, std::string_view> objectPoolEntries{
@@ -800,7 +871,18 @@ static int64_t GetSizeOfPool(void* configManager, uint32_t poolHash, int default
 		auto sizeIncreaseEntry = fx::PoolSizeManager::GetIncreaseRequest().find("CNetObjPedBase");
 		if (sizeIncreaseEntry != fx::PoolSizeManager::GetIncreaseRequest().end())
 		{
-			size += sizeIncreaseEntry->second;
+			size = (size * (int64_t)(kBaselinePeds + sizeIncreaseEntry->second)) / kBaselinePeds;
+		}
+		return size;
+	}
+
+	// interpolate from the base size up to the max configured
+	if (auto it = pedScaledPoolEntries.find(poolHash); it != pedScaledPoolEntries.end())
+	{
+		auto sizeIncreaseEntry = fx::PoolSizeManager::GetIncreaseRequest().find("CNetObjPedBase");
+		if (sizeIncreaseEntry != fx::PoolSizeManager::GetIncreaseRequest().end() && it->second > size)
+		{
+			size += ((it->second - size) * (int64_t)sizeIncreaseEntry->second) / kMaxPedIncrease;
 		}
 		return size;
 	}
