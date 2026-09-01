@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#include <PairedBuild.h>
 
 #include <ClientHttpHandler.h>
 
@@ -409,6 +410,8 @@ static InitFunction initFunction([]()
 
 		auto replaceExecutableVar = instance->AddVariable<bool>("sv_replaceExeToSwitchBuilds", ConVar_Internal | ConVar_ServerInfo, false);
 
+		auto requirePairedBuildVar = instance->AddVariable<bool>("sv_requirePairedBuild", ConVar_None, true);
+
 		auto poolSizesIncrease = std::make_shared<std::unordered_map<std::string, uint32_t>>();
 		auto poolSizesIncreaseVar = instance->AddVariable<std::string>("sv_poolSizesIncrease", ConVar_ServerInfo | ConVar_Internal, "");
 		auto poolSizesIncreaseCmd = instance->AddCommand("increase_pool_size", [instance, poolSizesIncreaseVar, poolSizesIncrease](const std::string& poolName, int sizeIncrease)
@@ -573,6 +576,14 @@ static InitFunction initFunction([]()
 				return;
 			}
 
+			auto pairedBuildIt = postMap.find("pairedBuild");
+
+			if (requirePairedBuildVar->GetValue() && (pairedBuildIt == postMap.end() || atoi(pairedBuildIt->second.c_str()) != PAIRED_BUILD))
+			{
+				sendError(fmt::sprintf("This server only accepts a paired test client build %d. Reconnect using that client.", PAIRED_BUILD));
+				return;
+			}
+
 			// verify game name
 			bool validGameName = false;
 			std::string intendedGameName;
@@ -713,6 +724,7 @@ static InitFunction initFunction([]()
 			data["onesync_big"] = fx::IsBigMode();
 			data["onesync_lh"] = fx::IsLengthHack();
 			data["onesync_population"] = fx::IsOneSyncPopulation();
+			data["pairedBuild"] = PAIRED_BUILD;
 
 			data["token"] = token;
 			data["gamename"] = gameName;

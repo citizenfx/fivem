@@ -7,6 +7,8 @@
 
 #include "StdInc.h"
 #include "NetLibrary.h"
+
+#include <PairedBuild.h>
 #include <base64.h>
 #include "ICoreGameInit.h"
 #include <mutex>
@@ -927,6 +929,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	static fwMap<fwString, fwString> postMap;
 	postMap["method"] = "initConnect";
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
+	postMap["pairedBuild"] = va("%d", PAIRED_BUILD);
 
 #if defined(IS_RDR3)
 	std::string gameName = "rdr3";
@@ -1172,6 +1175,18 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					return true;
 				}
 				
+				// The server advertises the same constant, so a paired test client cannot silently join
+				// a stock server either - mixed builds make every report from a test session suspect.
+				auto pairedBuildIt = node.find("pairedBuild");
+				int pairedBuild = (pairedBuildIt != node.end() && pairedBuildIt->is_number_integer()) ? pairedBuildIt->get<int>() : 0;
+
+				if (pairedBuild != PAIRED_BUILD)
+				{
+					OnConnectionError(fmt::sprintf("This is a paired test client build %d, and this server reports %d. Use a server on the same build.", PAIRED_BUILD, pairedBuild));
+					m_connectionState = CS_IDLE;
+					return true;
+				}
+
 				auto rawEndpoints = (node.find("endpoints") != node.end()) ? node["endpoints"] : json{};
 
 				auto continueAfterEndpoints = [=, capNode = node](const json& capEndpointsJson)
