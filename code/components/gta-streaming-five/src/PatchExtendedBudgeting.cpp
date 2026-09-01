@@ -99,7 +99,23 @@ static uint64_t SettingsVramTex(void* self, int quality, void* settings)
 	return g_vramLocation[quality + 1] - (1 * GB);
 }
 
+// RAGE's streaming eviction is reactive: it only evicts when a new asset must load and the
+// grcResourceCache is full, causing synchronous stalls (0.5-2s freezes) while the GPU
+// services page faults. Base game DLC content alone saturates the cache to 100% during
+// normal city traversal
+//
+// By throttling new streaming requests before the cache is completely full, we maintain
+// headroom so that new allocations can succeed without triggering synchronous eviction.
+// The engine's normal LRU/priority eviction still operates within the budget — we just
+// prevent it from being driven to the hard ceiling where every load causes a stall.
+//
+// Tunable via ConVar: 0 (default/off) disables, 90 recommended (keeps ~280 MiB
+// headroom on 4 GB cards, ~700 MiB on 10 GB cards). Valid range: 1-100.
+static ConVar<int> strResourceCachePressureThreshold("str_resourceCachePressureThreshold", ConVar_Archive, 0);
+
 static uint64_t (*g_origGetAvailableMemoryForStreamer)(void* self);
+static bool g_pressureThrottleActive = false;
+
 static uint64_t _getAvailableMemoryForStreamer(void* self)
 {
 	if (auto strMgr = streaming::Manager::GetInstance())
@@ -110,6 +126,50 @@ static uint64_t _getAvailableMemoryForStreamer(void* self)
 			return 0;
 		}
 	}
+
+	int threshold = strResourceCachePressureThreshold.GetValue();
+	if (threshold > 0 && threshold <= 100)
+	{
+		auto cache = rage::grcResourceCache::GetInstance();
+		if (cache)
+		{
+			size_t used = cache->GetUsedPhysicalMemory();
+			size_t total = cache->GetTotalPhysicalMemory();
+
+			if (total > 0 && (used * 100 / total) >= static_cast<size_t>(threshold))
+			{
+#ifdef _DEBUG
+				if (!g_pressureThrottleActive)
+				{
+					trace("grcResourceCache pressure throttle ACTIVATED: %llu / %llu MiB (%d%% >= %d%% threshold)\n",
+						(unsigned long long)(used / (1024 * 1024)),
+						(unsigned long long)(total / (1024 * 1024)),
+						(int)(used * 100 / total),
+						threshold);
+				}
+#endif
+				g_pressureThrottleActive = true;
+				return 0;
+			}
+		}
+	}
+
+#ifdef _DEBUG
+	if (g_pressureThrottleActive)
+	{
+		auto cache = rage::grcResourceCache::GetInstance();
+		if (cache)
+		{
+			size_t used = cache->GetUsedPhysicalMemory();
+			size_t total = cache->GetTotalPhysicalMemory();
+			trace("grcResourceCache pressure throttle DEACTIVATED: %llu / %llu MiB (%d%%)\n",
+				(unsigned long long)(used / (1024 * 1024)),
+				(unsigned long long)(total / (1024 * 1024)),
+				(int)(total > 0 ? (used * 100 / total) : 0));
+		}
+	}
+#endif
+	g_pressureThrottleActive = false;
 
 	return g_origGetAvailableMemoryForStreamer(self);
 }
