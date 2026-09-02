@@ -57,6 +57,12 @@ UvLoopHolder::UvLoopHolder(const std::string& loopTag)
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 
+		// close the async handle from within the loop thread and run the
+		// loop one final time so libuv can process the close callback
+		// before the loop is destroyed
+		m_async->close();
+		m_loop->run<uvw::Loop::Mode::DEFAULT>();
+
 		// clean up the libuv loop
 		m_loop = {};
 	});
@@ -70,24 +76,15 @@ UvLoopHolder::~UvLoopHolder()
 	// stop the loop as soon as possible
 	m_loop->stop();
 
-	// signal the loop so it can get triggered
-	uv_async_t async;
-	
-	uv_async_init(m_loop->raw(), &async, [] (uv_async_t*)
-	{
-
-	});
-
-	uv_async_send(&async);
+	// wake the loop thread using the existing async handle so it can
+	// observe m_shouldExit and shut down cleanly
+	m_async->send();
 
 	// wait for the thread to exit cleanly
 	if (m_thread.joinable())
 	{
 		m_thread.join();
 	}
-
-	// clean up the async
-	uv_close(reinterpret_cast<uv_handle_t*>(&async), nullptr);
 }
 
 void UvLoopHolder::AssertThread()
