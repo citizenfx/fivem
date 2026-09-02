@@ -60,6 +60,8 @@
 
 #include "NetLibraryResourcesComponent.h"
 
+DLL_EXPORT fwEvent<NetLibrary*> OnNetBindingsAttachToObject;
+
 static tbb::concurrent_queue<std::function<void()>> executeNextGameFrame;
 static NetAddress g_netAddress;
 
@@ -645,9 +647,26 @@ bool NetLibraryResourcesComponent::RequestResourceFileSet(fx::Resource* resource
 	return result;
 }
 
+bool NetLibraryResourcesComponent::ReleaseResourceFileSet(fx::Resource* resource, const std::string& setName)
+{
+	auto mounter = resource->GetComponent<fx::CachedResourceMounterWrap>();
+	
+	std::string error;
+	bool result = mounter->UnmountOverlay(setName, &error);
+
+	if (!error.empty())
+	{
+		trace("%s\n", error);
+	}
+
+	return result;
+}
+
 void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 {
 	m_netLibrary = netLibrary;
+
+	OnNetBindingsAttachToObject(netLibrary);
 
 	// download trigger
 	netLibrary->OnInitReceived.Connect([this](NetAddress address)

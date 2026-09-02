@@ -775,12 +775,16 @@ static void LoadDats(void* dataFileMgr, const char* name, bool enabled)
 	}
 }
 
+DLL_EXPORT fwEvent<const char*> OnLoadContentXML;
+
 static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 {
 	g_dataFileMgr = dataFileMgr;
 
 	// load before-level metas
 	trace("Loading content XML: %s\n", name);
+
+	OnLoadContentXML(name);
 
 	// load the level
 	dataFileMgr__loadDefDat(dataFileMgr, name, enabled);
@@ -1019,7 +1023,7 @@ static std::set<std::string> loadedCollisions;
 int GetDummyCollectionIndexByTag(const std::string& tag);
 extern std::unordered_map<int, std::string> g_handlesToTag;
 
-fwEvent<> OnReloadMapStore;
+DLL_EXPORT fwEvent<> OnReloadMapStore;
 
 #ifdef GTA_FIVE
 extern uint32_t GetCurrentMapGroup();
@@ -1156,8 +1160,6 @@ static void ReloadMapStore()
 	DeactivateStatusText(2);
 #endif
 
-	OnReloadMapStore();
-
 #ifdef GTA_FIVE
 	// needs verification for newer builds
 	if (!xbr::IsGameBuildOrGreater<xbr::Build::Latest + 1>())
@@ -1209,6 +1211,8 @@ static void ReloadMapStore()
 	}
 #endif
 
+	OnReloadMapStore();
+
 	g_reloadMapStore = false;
 }
 
@@ -1242,7 +1246,7 @@ static CfxPseudoMounter g_staticPseudoMounter;
 #ifdef GTA_FIVE
 void LoadCache(const char* tagName);
 #endif
-void LoadManifest(const char* tagName);
+DLL_EXPORT void LoadManifest(const char* tagName);
 
 class CfxCacheMounter : public CDataFileMountInterface
 {
@@ -2792,7 +2796,7 @@ static int64_t pgRawStreamer__GetEntry(rage::fiCollection* streamer, uint16_t in
 	return g_origGetEntry(streamer, index);
 }
 
-static bool g_unloadingCfx;
+DLL_EXPORT bool g_unloadingCfx;
 
 namespace streaming
 {
@@ -2803,7 +2807,7 @@ namespace streaming
 }
 
 static void* g_streamingInternals;
-static bool g_lockReload;
+DLL_EXPORT bool g_lockReload;
 
 std::unordered_set<std::string> g_streamingSuffixSet;
 
@@ -3336,7 +3340,7 @@ const rage::chunkyArray<rage::fiCollection::RawEntry, 1024, 64>& rage::GetPgRawS
 
 #endif
 
-static void CleanupStreaming()
+DLL_EXPORT void CleanupStreaming(std::set<std::string> tags = {})
 {
 	// safely drain the RAGE streamer before we unload everything
 	SafelyDrainStreamer();
@@ -3344,18 +3348,21 @@ static void CleanupStreaming()
 	g_lockReload = true;
 	g_unloadingCfx = true;
 
-	UnloadDataFiles();
-
-	std::set<std::string> tags;
-
-	for (auto& tag : g_customStreamingFilesByTag)
+	if (tags.size() == 0)
 	{
-		tags.insert(tag.first);
+		UnloadDataFiles();
+
+		for (auto& [tag, files] : g_customStreamingFilesByTag)
+		{
+			CfxCollection_RemoveStreamingTag(tag);
+		}
 	}
-
-	for (auto& tag : tags)
+	else
 	{
-		CfxCollection_RemoveStreamingTag(tag);
+		for (auto& tag : tags)
+		{
+			CfxCollection_RemoveStreamingTag(tag);
+		}
 	}
 
 	auto mapDataStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");

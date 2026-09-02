@@ -386,6 +386,20 @@ public:
 		return ConnectInternal(func, 0);
 	}
 
+	template<typename T>
+	size_t ConnectOnce(T func)
+	{
+		auto cookie_ptr = std::make_shared<size_t>(0);
+
+		*cookie_ptr = Connect([this, func, cookie_ptr](Args... args)
+		{
+			func(args...);
+			Disconnect(*cookie_ptr);
+		});
+
+		return *cookie_ptr;
+	}
+
 public:
 	operator bool() const
 	{
