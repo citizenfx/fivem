@@ -6,7 +6,6 @@
 #include <ICoreGameInit.h>
 #include <Streaming.h>
 
-#include <algorithm>
 #include <mutex>
 #include <unordered_set>
 
@@ -108,23 +107,14 @@ static void SetPedMetaDataFile(void* self, uint32_t localIndex)
 	}
 }
 
-static int GetDependencies(void* self, uint32_t localIndex, uint32_t* outIndices, int count)
+static int __declspec(noinline) FilterDependencies(const uint32_t* dependencies, int total, uint32_t* outIndices, int count)
 {
 	auto manager = streaming::Manager::GetInstance();
 
-	if (count <= 0 || static_cast<size_t>(count) >= kExtendedDependencyCount || !manager || !manager->Entries)
+	if (!manager || !manager->Entries)
 	{
-		return g_origGetDependencies(self, localIndex, outIndices, count);
-	}
-
-	uint32_t dependencies[kExtendedDependencyCount];
-
-	int total = std::clamp(g_origGetDependencies(self, localIndex, dependencies, kExtendedDependencyCount), 0, static_cast<int>(kExtendedDependencyCount));
-
-	if (total <= count)
-	{
-		memcpy(outIndices, dependencies, total * sizeof(uint32_t));
-		return total;
+		memcpy(outIndices, dependencies, static_cast<size_t>(count) * sizeof(uint32_t));
+		return count;
 	}
 
 	uint32_t rearm[kExtendedDependencyCount];
@@ -169,6 +159,42 @@ static int GetDependencies(void* self, uint32_t localIndex, uint32_t* outIndices
 	}
 
 	return written;
+}
+
+static int GetDependencies(void* self, uint32_t localIndex, uint32_t* outIndices, int count)
+{
+	if (count <= 0 || static_cast<size_t>(count) >= kExtendedDependencyCount)
+	{
+		return g_origGetDependencies(self, localIndex, outIndices, count);
+	}
+
+	uint32_t dependencies[kExtendedDependencyCount];
+
+	int total = g_origGetDependencies(self, localIndex, dependencies, static_cast<int>(kExtendedDependencyCount));
+
+	if (total == 1)
+	{
+		outIndices[0] = dependencies[0];
+		return 1;
+	}
+
+	if (total <= 0)
+	{
+		return 0;
+	}
+
+	if (static_cast<size_t>(total) > kExtendedDependencyCount)
+	{
+		total = static_cast<int>(kExtendedDependencyCount);
+	}
+
+	if (total > count)
+	{
+		return FilterDependencies(dependencies, total, outIndices, count);
+	}
+
+	memcpy(outIndices, dependencies, static_cast<size_t>(total) * sizeof(uint32_t));
+	return total;
 }
 
 static HookFunction hookFunction([]
