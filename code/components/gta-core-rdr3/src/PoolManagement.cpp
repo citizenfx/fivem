@@ -232,6 +232,9 @@ static const char* poolEntriesTable[] = {
 	"CNetBlenderPhysical",
 	"CPedSyncData",
 	"CNetworkTrainTrackJunctionSwitchWorldStateData",
+	"CNetworkDamageTracker",
+	"CNetViewPortWrapper",
+	"fragInstNMGta",
 	"CObjectAnimationComponent",
 	"CObjectAutoStartAnimComponent",
 	"CObjectAutoStartAnimExtensionComponent",
@@ -600,7 +603,6 @@ static const char* poolEntriesTable[] = {
 	"Wheels",
 	"CMoveVehicle",
 	"Vehicle Intelligence",
-	"fragInstNMGta",
 };
 
 static RageHashList poolEntries(poolEntriesTable);
