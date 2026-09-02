@@ -319,6 +319,12 @@ if isDuplicityVersion then
 	function TriggerClientEvent(eventName, playerId, ...)
 		local payload = msgpack_pack_args(...)
 
+		if type(playerId) == 'table' then
+			local targets = msgpack_pack(playerId)
+
+			return TriggerMulticastClientEventInternal(eventName, targets, targets:len(), payload, payload:len())
+		end
+
 		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
 
