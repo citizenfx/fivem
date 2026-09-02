@@ -1031,7 +1031,7 @@ static InitFunction initFunction2([]()
 
 		if (!fx::DecodeClientEventTargets(targetsData, targetsLength, targetNetIds))
 		{
-			fx::scripting::Warningf("natives", "TRIGGER_MULTICAST_CLIENT_EVENT_INTERNAL: eventTargets is not a msgpack array of player net IDs (accepted: unsigned integers and decimal strings). The event was not sent.\n");
+			fx::scripting::Warningf("natives", "TRIGGER_MULTICAST_CLIENT_EVENT_INTERNAL: eventTargets is not a msgpack array of player net IDs (accepted: unsigned integers and decimal strings, -1 entries are ignored). The event was not sent.\n");
 			return;
 		}
 

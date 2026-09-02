@@ -49,10 +49,25 @@ namespace fx
 				{
 					netId = element.via.u64;
 				}
+				else if (element.type == msgpack::type::NEGATIVE_INTEGER)
+				{
+					// Ignore -1 in this context
+					if (element.via.i64 == -1)
+					{
+						continue;
+					}
+
+					return false;
+				}
 				else if (element.type == msgpack::type::STR)
 				{
 					const char* begin = element.via.str.ptr;
 					const char* end = begin + element.via.str.size;
+
+					if (std::string_view(begin, element.via.str.size) == "-1")
+					{
+						continue;
+					}
 
 					const std::from_chars_result result = std::from_chars(begin, end, netId);
 
