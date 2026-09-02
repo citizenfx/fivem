@@ -840,6 +840,95 @@ void NetLibrary::OnConnectionError(const std::string& errorString, const std::st
 // hack for NetLibraryImplV2
 int g_serverVersion;
 
+concurrency::task<void> NetLibrary::PrecheckServer(const std::string& rootUrl)
+{
+	std::string ruRef = rootUrl;
+
+	auto urlRef = co_await ResolveUrl(ruRef);
+
+	if (!urlRef)
+	{
+		OnConnectionError(fmt::sprintf("Couldn't resolve URL %s.", ruRef), json::object({
+			{ "fault", "either" },
+			{ "status", true },
+			{ "action", "#ErrorAction_TryAgainCheckStatus" },
+		}).dump());
+
+		co_return;
+	}
+
+	auto url = *urlRef;
+	
+	m_cardResponseHandler = [this, rootUrl](const std::string& cardData, const std::string& token)
+	{
+		auto response = nlohmann::json::parse(cardData);
+
+		Instance<ICoreGameInit>::Get()->HasClipboardPermission = (!response["acceptedClipboardPermission"].is_null() && response["acceptedClipboardPermission"] == "true");
+		ConnectToServer(rootUrl);
+	};
+	
+	auto handlePrecheckResult = [this, rootUrl](bool result, const char* connDataStr, size_t size)
+	{
+		if (result)
+		{
+			console::PrintWarning(
+				_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
+				connDataStr
+			);
+			auto response = nlohmann::json::parse(connDataStr, connDataStr + size);
+			
+			if (response["result"] == "ok")
+			{
+				if (response["optionalUserPermissionClipboard"])
+				{					
+					json clipBoardCardJson = json::object({
+						{ "type", "AdaptiveCard" },
+						{ "version", "1.0" },
+						{ "body", json::array({
+							  json::object({
+								  { "type", "TextBlock" },
+								  { "title", "Optional server permissions" }
+							  }),
+							  json::object({
+								  { "type", "Input.Toggle" },
+								  { "title", "Enables the server to copy text or media data directly to your clipboard to use." },
+								  { "id", "acceptedClipboardPermission" },
+								  { "value", "true" }
+							  })
+							})
+						},
+						{ "actions", json::array({
+							  {
+								  { "type", "Action.Submit" },
+								  { "title", "Submit" },
+								  { "data", {
+										{ "action", "submitClipboardPermission" }
+									} }
+							  }
+						  }) 
+						}
+					});
+					
+					OnConnectionCardPresent(clipBoardCardJson.dump(), "optionalUserPermissionClipboard");
+				}
+				else
+				{
+					ConnectToServer(rootUrl);
+				}
+			}
+		}
+		else
+		{
+			ConnectToServer(rootUrl);
+		}
+	};
+	
+	m_handshakeRequest =  m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString({
+			{ "method", "precheck" }
+		}), handlePrecheckResult);
+	
+}
+
 concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 {
 	m_disconnecting = false;

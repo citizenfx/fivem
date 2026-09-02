@@ -36,7 +36,9 @@ public:
 	bool OneSyncBigIdEnabled = false;
 
 	bool SyncIsARQ = false;
-
+	
+	bool HasClipboardPermission = false;
+	
 	uint64_t BitVersion = 0;
 
 private:
