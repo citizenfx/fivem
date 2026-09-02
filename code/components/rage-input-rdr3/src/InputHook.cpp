@@ -346,6 +346,14 @@ HKL WINAPI ActivateKeyboardLayoutWrap(IN HKL hkl, IN UINT flags)
 
 BOOL WINAPI SetCursorPosWrap(int X, int Y)
 {
+	// the game keeps running while its window is inactive (alt-tabbed or minimized), so anything
+	// moving the cursor from there - such as a script looping SET_CURSOR_LOCATION - would warp the
+	// cursor away from whatever application the user is actually looking at
+	if (!g_isFocused)
+	{
+		return TRUE;
+	}
+
 	if (!g_isFocusStolen || g_enableSetCursorPos)
 	{
 		return SetCursorPos(X, Y);
