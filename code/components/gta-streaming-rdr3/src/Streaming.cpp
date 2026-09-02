@@ -137,6 +137,38 @@ namespace streaming
 	{
 		return g_registerRawStreamingFile(fileId, fileName, unkTrue, registerAs, errorIfFailed, true);
 	}
+
+	// stubs for the shared Streaming.h exports; raw streamer buckets are FiveM-only
+	uint32_t* RegisterRawStreamingFileWithTag(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed, const std::string& tag)
+	{
+		return RegisterRawStreamingFile(fileId, fileName, unkTrue, registerAs, errorIfFailed);
+	}
+
+	int GetRawStreamerForFileWithTag(const char* fileName, const std::string& tag, rage::fiCollection** collection)
+	{
+		*collection = nullptr;
+		return 0;
+	}
+
+	rage::fiCollection* GetRawStreamerByIndex(uint16_t idx)
+	{
+		return nullptr;
+	}
+
+	bool IsRawStreamerCollection(uint16_t idx)
+	{
+		return idx < 2;
+	}
+
+	std::vector<std::pair<std::string, int>> GetRawStreamerTagMap()
+	{
+		return {};
+	}
+
+	std::vector<RawStreamerInfo> GetRawStreamerInfos()
+	{
+		return {};
+	}
 }
 
 static HookFunction hookFunction([]()
