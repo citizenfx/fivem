@@ -2,11 +2,18 @@
 #include <Hooking.h>
 #include <RageParser.h>
 
+#include "Hooking.Stubs.h"
+
 static void** g_parser;
 
 static hook::cdecl_stub<rage::parStructure* (void* parser, uint32_t)> _parser_getStructure([]()
 {
 	return hook::get_call(hook::get_pattern("8B 10 E8 ? ? ? ? 4C 8D 5C 24", 2));
+});
+
+static hook::cdecl_stub<rage::parStructure* (void* parser, const char*, const char*, rage::parStructure*, void*, bool, void*)> _parser_loadFromStructure([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 0F B7 7D 10"));
 });
 
 namespace rage
@@ -19,6 +26,11 @@ namespace rage
 	DLL_EXPORT rage::parStructure* GetStructureDefinition(uint32_t structHash)
 	{
 		return _parser_getStructure(*g_parser, structHash);
+	}
+
+	DLL_EXPORT bool LoadFromStructure(const char* fileName, const char* ext, rage::parStructure* parStruct, void* target, bool typeChecks, void* unk)
+	{
+		return _parser_loadFromStructure(*g_parser, fileName, ext, parStruct, target, typeChecks, unk);
 	}
 }
 
