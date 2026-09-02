@@ -10,6 +10,7 @@
 
 #include <ServerInstanceBase.h>
 #include <ServerInstanceBaseRef.h>
+#include <ServerPerfComponent.h>
 
 #include "ServerResourceList.h"
 
@@ -840,10 +841,13 @@ static InitFunction initFunction([]()
 		});
 
 		auto gameServer = instance->GetComponent<fx::GameServer>();
+		auto serverPerf = instance->GetComponent<fx::ServerPerfComponent>();
 
-		gameServer->OnTick.Connect([=]()
+		gameServer->OnTick.Connect([resman, serverPerf]()
 		{
+			auto tickStart = std::chrono::steady_clock::now();
 			resman->Tick();
+			serverPerf->ObserveScriptTick(std::chrono::steady_clock::now() - tickStart);
 		});
 	}, 50);
 });
