@@ -80,6 +80,8 @@ class STREAMING_EXPORT fwScriptGuid
 {
 public:
 	static fwEntity* GetBaseFromGuid(int handle);
+
+	static int GetGuidFromBase(fwEntity* base);
 };
 
 using fwEntity = ::fwEntity;

@@ -14,7 +14,8 @@
 		"nui:core",
 		"citizen:resources:client",
 		"net",
-		"voip:mumble"
+		"voip:mumble",
+		"gta:net:rdr3"
 	],
 	"provides": []
 }
