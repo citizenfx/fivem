@@ -177,7 +177,10 @@ void ResourceEventManagerComponent::AddResourceHandledEvent(const std::string& r
 	}
 
 	m_eventResources.emplace(eventName, resourceName);
+
+	OnResourceHandledEvent(eventName, resourceName);
 }
+
 
 bool ResourceEventManagerComponent::TriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource /* = std::string() */, ResourceEventComponent* filter /* = nullptr*/)
 {
