@@ -1901,11 +1901,24 @@ static void LoadStreamingFiles(LoadType loadType)
 					newGfx.push_back({ strId, nameWithoutExt });
 				}
 			}
+			else if (ext == "gfx" && g_pendingRemovals.count({ strModule, strId }))
+			{
+				// GH-1576: slot exists from previous load but was pending removal —
+				// CScaleformStore has stale state, reinitialize it
+				newGfx.push_back({ strId, nameWithoutExt });
+			}
 #elif IS_RDR3
 			strModule->FindSlotFromHashKey(&strId, HashString(nameWithoutExt.c_str()));
 #endif
 
 			g_ourIndexes.insert(strId + strModule->baseIdx);
+			// GH-1576: for .gfx files pending removal, release the stale object first
+			if (ext == "gfx" && g_pendingRemovals.count({ strModule, strId }))
+			{
+				auto fullIdx = strId + strModule->baseIdx;
+				cstreaming->ReleaseObject(fullIdx, 0xF1);
+				cstreaming->ReleaseObject(fullIdx);
+			}
 			g_pendingRemovals.erase({ strModule, strId });
 
 			// get the raw streamer and make an entry in there
