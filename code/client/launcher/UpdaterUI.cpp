@@ -15,6 +15,8 @@
 
 #include "launcher.rc.h"
 
+#include <../citicore/LaunchMode.h>
+
 #include <ShellScalingApi.h>
 
 #include <winrt/Windows.Storage.Streams.h>
@@ -1330,6 +1332,12 @@ std::unique_ptr<TenUIBase> UI_InitTen()
 
 	if (getenv("CitizenFX_NoTenUI"))
 	{
+		forceOff = true;
+	}
+
+	if (CfxIsWine())
+	{
+		// WinRT XAML Islands not implemented in Wine/Proton, fall back to the plain Win32 controls UI.
 		forceOff = true;
 	}
 

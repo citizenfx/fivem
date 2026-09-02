@@ -14,6 +14,8 @@
 
 #include <udis86.h>
 
+#include <LaunchMode.h>
+
 static void* FindCallFromAddress(void* methodPtr, ud_mnemonic_code mnemonic = UD_Icall, bool breakOnFirst = false)
 {
 	// return value holder
@@ -210,7 +212,8 @@ extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* module
 			if (!internalAddress)
 			{
 				// and 2k3 to 7 don't even _have_ Rtlpx - so we directly hook the Rtl* function
-				if (IsWindows8OrGreater())
+				// (Wine's ntdll doesn't match real ntdll's binary layout, so it never finds RtlpxLookupFunctionTable there either. Treat it like a downlevel OS)
+				if (IsWindows8OrGreater() && !CfxIsWine())
 				{
 					FatalError("Could not find RtlpxLookupFunctionTable - hooking RtlLookupFunctionTable directly. This will break on a Win8+ system since RtlpxLookupFunctionTable is supposed to exist!\n");
 				}
