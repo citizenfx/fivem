@@ -568,7 +568,8 @@ const EXT_LOCALFUNCREF = 11;
 		}
 	});
 
-	on(`on${eventType}ResourceStop`, (resource) => {
+	// clear cache with onResourceStop to not break cached exports for onResourceStart
+	on('onResourceStop', (resource) => {
 		exportsCallbackCache[resource] = {};
 	});
 
