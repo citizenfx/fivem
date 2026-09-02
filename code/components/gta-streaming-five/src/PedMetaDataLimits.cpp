@@ -200,7 +200,12 @@ static int GetDependencies(void* self, uint32_t localIndex, uint32_t* outIndices
 static HookFunction hookFunction([]
 {
 	g_origSetPedMetaDataFile = hook::trampoline(hook::get_pattern("83 FA FF 74 ? 53 48 83 EC 20 8B DA 48 81 C1 E0 00 00 00 BA 01 00 00 00 E8"), SetPedMetaDataFile);
-	g_origGetDependencies = hook::trampoline(hook::get_pattern("48 8B C4 48 89 58 ? 44 89 48 ? 89 50 ? 48 89 48"), GetDependencies);
+
+	auto vtable = hook::get_address<uintptr_t*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 8D 0D ? ? ? ? 48 89 05 ? ? ? ? E8 ? ? ? ? 48 8D 15 ? ? ? ? 48 8D 0D ? ? ? ? E8", 3));
+	auto slot = *reinterpret_cast<uint32_t*>(hook::get_pattern("FF 90 ? ? ? ? 33 D2 4C 63 C0 85 C0", 2)) / 8;
+
+	g_origGetDependencies = reinterpret_cast<decltype(g_origGetDependencies)>(vtable[slot]);
+	hook::putVP(&vtable[slot], reinterpret_cast<uintptr_t>(GetDependencies));
 
 	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]
 	{
