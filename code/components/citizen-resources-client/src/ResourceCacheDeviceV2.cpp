@@ -300,6 +300,11 @@ size_t ResourceCacheDeviceV2::GetRealSize(const ResourceCacheEntryList::Entry& e
 	return realSize;
 }
 
+uint32_t ResourceCacheDeviceV2::GetAttributes(const std::string& fileName)
+{
+	return GetEntryForFileName(fileName) ? 0 : -1;
+}
+
 bool ResourceCacheDeviceV2::ExistsOnDisk(const std::string& fileName)
 {
 	auto entry = GetEntryForFileName(fileName);
@@ -670,8 +675,31 @@ void ResourceCacheDeviceV2::SetRequestWeight(const std::string& hash, int newWei
 	}
 }
 
+std::atomic<uint64_t> g_rcdEntryGeneration{ 0 };
+
 std::optional<std::reference_wrapper<const ResourceCacheEntryList::Entry>> ResourceCacheDeviceV2::GetEntryForFileName(std::string_view fileName)
 {
+	// The streaming load path asks for the same file two or three times in a row
+	// (existence, resource version, open), and each resolution walks the resource
+	// manager and two maps. Remember the last answer per thread.
+	struct LastEntry
+	{
+		uint64_t generation = UINT64_MAX;
+		const void* device = nullptr;
+		std::string fileName;
+		const ResourceCacheEntryList::Entry* entry = nullptr;
+		fwRefContainer<ResourceCacheEntryList> owner;
+	};
+
+	static thread_local LastEntry last;
+
+	const uint64_t generation = g_rcdEntryGeneration.load(std::memory_order_relaxed);
+
+	if (last.entry && last.generation == generation && last.device == this && last.fileName == fileName)
+	{
+		return *last.entry;
+	}
+
 	// strip the path prefix
 	std::string_view relativeName = fileName.substr(m_pathPrefix.length());
 
@@ -700,6 +728,12 @@ std::optional<std::reference_wrapper<const ResourceCacheEntryList::Entry>> Resou
 	{
 		return {};
 	}
+
+	last.generation = generation;
+	last.device = this;
+	last.fileName.assign(fileName);
+	last.entry = &entry->get();
+	last.owner = entryList;
 
 	return entry;
 }
@@ -1008,4 +1042,19 @@ void MountResourceCacheDeviceV2(std::shared_ptr<ResourceCache> cache)
 static InitFunction initFunction([]
 {
 	resources::g_downloadBackoff = new ConVar<int>("cl_rcdFailureBackoff", ConVar_None, 500);
+
+	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+	{
+		resource->OnStart.Connect([]()
+		{
+			resources::g_rcdEntryGeneration.fetch_add(1, std::memory_order_relaxed);
+		},
+		INT32_MIN);
+
+		resource->OnStop.Connect([]()
+		{
+			resources::g_rcdEntryGeneration.fetch_add(1, std::memory_order_relaxed);
+		},
+		INT32_MIN);
+	});
 });
