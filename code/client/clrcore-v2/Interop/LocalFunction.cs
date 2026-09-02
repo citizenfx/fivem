@@ -44,8 +44,21 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		internal unsafe Coroutine<object> Invoke(object[] args)
 		{
-			object[] returnData = MsgPackDeserializer.DeserializeArray(ScriptInterface.InvokeFunctionReference(m_reference, new InPacket(args).value));
-			if (returnData != null && returnData.Length > 0)
+			object[] values = MsgPackDeserializer.DeserializeArray(ScriptInterface.InvokeFunctionReference(m_reference, new InPacket(args).value));
+
+			if (!(values[0] is bool success))
+			{
+				return null;
+			}
+
+			if (!success)
+			{
+				var errorMessage = values[1] as string;
+
+				throw new Exception(errorMessage);
+			}
+
+			if (values[1] is object[] returnData && returnData.Length > 0)
 			{
 				var result = returnData[0];
 
