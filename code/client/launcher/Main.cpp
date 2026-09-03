@@ -608,6 +608,9 @@ int RealMain()
 	loadSystemDll(L"\\d3d11.dll");
 
 #ifdef IS_RDR3
+	// D3D12/RedM equivilant of the code above.
+	loadSystemDll(L"\\d3d12.dll");
+
 	// RedM attempts to load vulkan bundled with CEF first which on some systems leads to various issues
 	loadSystemDll(L"\\vulkan-1.dll");
 #endif

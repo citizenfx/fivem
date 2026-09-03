@@ -964,7 +964,6 @@ static InitFunction initFunction([] ()
 		{
 			static bool done = ([]
 			{
-#ifdef GTA_FIVE
 				std::thread([]
 				{
 					UiDone();
@@ -977,7 +976,6 @@ static InitFunction initFunction([] ()
 					SetForegroundWindow(hWnd);
 				})
 				.detach();
-#endif
 
 				MarkNuiLoaded();
 
