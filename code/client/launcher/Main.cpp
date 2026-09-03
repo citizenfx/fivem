@@ -687,7 +687,9 @@ int RealMain()
 
 #if defined(LAUNCHER_PERSONALITY_MAIN)
 			// also do checks here to complain at BAD USERS
-			if (!GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetThreadDescription")) // kernel32 forwarder only got this export in 1703, kernelbase.dll got this in 1607.
+			// Under Wine, kernel32 may not forward SetThreadDescription even when
+			// emulating Windows 10, producing a false "outdated OS" warning.
+			if (!CfxIsWine() && !GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetThreadDescription")) // kernel32 forwarder only got this export in 1703, kernelbase.dll got this in 1607.
 			{
 				std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 

@@ -14,6 +14,8 @@
 #include <MinHook.h>
 #endif
 
+#include <../citicore/LaunchMode.h>
+
 #pragma comment(lib, "d3d11.lib")
 
 using Microsoft::WRL::ComPtr;
@@ -93,6 +95,14 @@ bool BaseLdrCheck()
 
 bool MediaFeatureCheck()
 {
+	// Wine ships a stub mfreadwrite.dll that satisfies LoadLibrary but does not
+	// implement Media Foundation properly.  The check is Windows-specific and
+	// irrelevant under Wine, so skip it entirely.
+	if (CfxIsWine())
+	{
+		return true;
+	}
+
 	auto module = LoadLibraryW(L"mfreadwrite.dll");
 
 	if (!module)
@@ -144,14 +154,20 @@ bool VerifyViability()
 
 void DoPreLaunchTasks()
 {
-	auto SetProcessMitigationPolicy = (decltype(&::SetProcessMitigationPolicy))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetProcessMitigationPolicy");
-
-	if (SetProcessMitigationPolicy)
+	// SetProcessMitigationPolicy(ProcessExtensionPointDisablePolicy) is a
+	// Windows 8+ security feature that has no meaning under Wine and returns
+	// an error status that can generate confusing log noise.
+	if (!CfxIsWine())
 	{
-		PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY dp;
-		dp.DisableExtensionPoints = true;
+		auto SetProcessMitigationPolicy = (decltype(&::SetProcessMitigationPolicy))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetProcessMitigationPolicy");
 
-		SetProcessMitigationPolicy(ProcessExtensionPointDisablePolicy, &dp, sizeof(dp));
+		if (SetProcessMitigationPolicy)
+		{
+			PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY dp;
+			dp.DisableExtensionPoints = true;
+
+			SetProcessMitigationPolicy(ProcessExtensionPointDisablePolicy, &dp, sizeof(dp));
+		}
 	}
 }
 
@@ -176,6 +192,14 @@ static NTSTATUS NTAPI EarlyLdrLoadDllStub(const wchar_t* fileName, uint32_t* fla
 
 void EarlyLdrBlock_Init()
 {
+	// The LdrLoadDll hook blocks NVIDIA GameFilter/Freestyle (nvppex*.dll),
+	// which doesn't exist on Linux.  MinHook on Wine's ntdll is unstable and
+	// can cause crashes during startup, so skip this hook entirely under Wine.
+	if (CfxIsWine())
+	{
+		return;
+	}
+
 	MH_Initialize();
 	MH_CreateHookApi(L"ntdll.dll", "LdrLoadDll", EarlyLdrLoadDllStub, (void**)&g_earlyOrigLoadDll);
 	MH_EnableHook(MH_ALL_HOOKS);

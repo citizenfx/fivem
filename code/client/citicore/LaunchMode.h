@@ -17,3 +17,26 @@ inline bool CfxIsWine()
 	return false;
 #endif
 }
+
+// Returns true when running under Proton (Steam's Wine fork).
+// Proton injects STEAM_COMPAT_DATA_PATH and/or PROTON_VERSION into the
+// Wine environment, so we check those alongside the base Wine detection.
+inline bool CfxIsProton()
+{
+#ifdef _WIN32
+	static bool isProton = false;
+	static bool isProtonSet = false;
+
+	if (!isProtonSet)
+	{
+		isProton = CfxIsWine() &&
+		           (getenv("STEAM_COMPAT_DATA_PATH") != nullptr ||
+		            getenv("PROTON_VERSION") != nullptr);
+		isProtonSet = true;
+	}
+
+	return isProton;
+#else
+	return false;
+#endif
+}
