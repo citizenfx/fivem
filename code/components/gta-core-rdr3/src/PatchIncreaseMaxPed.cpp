@@ -21,6 +21,12 @@ struct EntityCircularBuffer
 	uint32_t totalEntries;
 };
 
+struct CMetaPedUpdateRequest
+{
+	char pad[24];
+};
+static_assert(sizeof(CMetaPedUpdateRequest) == 0x18, "CMetaPedUpdateRequest has the wrong size");
+
 template<int instrLen = 7, int instrOffset = 3>
 static void PatchRelativeLocation(uintptr_t address, uintptr_t newLocation)
 {
@@ -33,7 +39,7 @@ static void PatchRelativeLocation(uintptr_t address, uintptr_t newLocation)
 static HookFunction hookFunction([]()
 {
 	constexpr size_t kDefaultMaxPeds = 110;
-
+	constexpr size_t kMaxPlayers = 32;
 	int64_t increaseSize = 0;
 
 	// We use "CNetObjPedBase" as the increase request for peds and all other components.
@@ -43,17 +49,19 @@ static HookFunction hookFunction([]()
 		increaseSize = sizeIncreaseEntry->second;
 	}
 
+	size_t totalPeds = kDefaultMaxPeds + increaseSize;
+
 	// Don't fatally error if "Peds" pool is greater then 160.
 	hook::put<uint8_t>(hook::get_pattern("76 ? BA ? ? ? ? 41 B8 ? ? ? ? 83 C9 ? E8 ? ? ? ? 33 D2 8B CF"), 0xEB);
 
 	// Set total desired peds.
-	*hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? C6 05 ? ? ? ? ? 89 15", 2)) = kDefaultMaxPeds + increaseSize;
+	*hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? C6 05 ? ? ? ? ? 89 15", 2)) = totalPeds;
 	
 	// Set max amount of peds.
-	*hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 89 05 ? ? ? ? 89 05 ? ? ? ? C6 05", 2)) = kDefaultMaxPeds + increaseSize;
+	*hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 89 05 ? ? ? ? 89 05 ? ? ? ? C6 05", 2)) = totalPeds;
 
 	// Allow registration of script/mission peds up to and past the 110 limit.
-	hook::put<uint32_t>(hook::get_pattern("BB ? ? ? ? E9 ? ? ? ? E8 ? ? ? ? 48 8B 0D", 1), kDefaultMaxPeds + increaseSize);
+	hook::put<uint32_t>(hook::get_pattern("BB ? ? ? ? E9 ? ? ? ? E8 ? ? ? ? 48 8B 0D", 1), totalPeds);
 
 	// Resize ped circular buffer to support greater then 160 peds.
 	{
@@ -117,5 +125,55 @@ static HookFunction hookFunction([]()
 		hook::put<uint32_t>(hook::get_pattern("8B 81 ? ? ? ? 8D 72 ? 48 8B D9 E9 ? ? ? ? 44 8B 83", 2), kNewTotalEntryOffset);
 		hook::put<uint32_t>(hook::get_pattern("8B 83 08 05 00 00 FF C6", 2), kNewTotalEntryOffset);
 		hook::put<uint32_t>(hook::get_pattern("89 83 08 05 00 00 8B 83", 2), kNewTotalEntryOffset);
+	}
+	
+	// Resize ped meta update requests to support extended ped pool + 32 players
+	{
+		// For reference, this struct is layed out as
+		// CMetaPedUpdateRequests[count]
+		// int count
+		size_t arraySize = sizeof(CMetaPedUpdateRequest) * (totalPeds + kMaxPlayers);
+		size_t allocationSize = arraySize + sizeof(int);
+
+		static CMetaPedUpdateRequest* newArray = (CMetaPedUpdateRequest*)hook::AllocateStubMemory(allocationSize);
+
+		const uintptr_t kArrayStart = (uintptr_t)newArray;
+		const uintptr_t kPedOffset = (uintptr_t)newArray + 8;
+		const uintptr_t kUnkOffset = (uintptr_t)newArray + 16;
+		const uintptr_t kCountOffset = (uintptr_t)newArray + arraySize;
+
+		PatchRelativeLocation((uintptr_t)hook::get_pattern("48 8D 3D ? ? ? ? 41 8B DF 85 D2"), kArrayStart);
+		PatchRelativeLocation((uintptr_t)hook::get_pattern("48 8D 05 ? ? ? ? 48 39 0C D0"), kPedOffset);
+
+		auto allocLocation = hook::get_pattern("B9 ? ? ? ? 48 8D 05 ? ? ? ? 33 D2 48 89 50 ? 89 10 66 89 50");
+		PatchRelativeLocation((uintptr_t)allocLocation + 5, kUnkOffset);
+
+		hook::put<uint32_t>((uintptr_t)allocLocation + 1, totalPeds + kMaxPlayers);
+		// Patch fatal error limit
+		hook::put<uint32_t>(hook::get_pattern("B8 ? ? ? ? 2B C2 85 C0 7F", 1), totalPeds + kMaxPlayers);
+
+		auto offsetLocation = (uintptr_t)hook::get_pattern("4C 63 81 ? ? ? ? 41 8D 40 ? 89 81 ? ? ? ? 49 8D 40");
+		hook::put<uint32_t>(offsetLocation + 3, arraySize);
+		hook::put<uint32_t>(offsetLocation + 13, arraySize);
+
+		auto addUpdateRequestLoc = (uintptr_t)hook::get_pattern("48 83 EC ? 45 8A F1 45 8A F8 44 8A E2");
+		PatchRelativeLocation(addUpdateRequestLoc + 0x8D, kArrayStart);
+		PatchRelativeLocation(addUpdateRequestLoc + 0xD9, kArrayStart);
+
+		PatchRelativeLocation<6, 2>(addUpdateRequestLoc + 0x63, kCountOffset);
+		PatchRelativeLocation<6, 2>(addUpdateRequestLoc + 0x84, kCountOffset);
+		PatchRelativeLocation<6, 2>(addUpdateRequestLoc + 0x96, kCountOffset);
+
+		auto metaPedProcessLoc = (uintptr_t)hook::get_pattern("8B 15 ? ? ? ? 48 8D 3D ? ? ? ? 41 8B DF");
+		PatchRelativeLocation(metaPedProcessLoc + 0x6, kArrayStart);
+
+		PatchRelativeLocation<6, 2>(metaPedProcessLoc, kCountOffset);
+		PatchRelativeLocation<6, 2>(metaPedProcessLoc + 0x49, kCountOffset);
+		PatchRelativeLocation<6, 2>(metaPedProcessLoc + 0x7F, kCountOffset);
+		PatchRelativeLocation(metaPedProcessLoc + 0x8F, kCountOffset);
+
+		auto getMetaPedRequestLoc = (uintptr_t)hook::get_pattern("44 8B 0D ? ? ? ? 45 33 C0 45 85 C9 7E ? 4B 8D 14 40");
+		PatchRelativeLocation(getMetaPedRequestLoc + 0x13, kArrayStart);
+		PatchRelativeLocation(getMetaPedRequestLoc, kCountOffset);
 	}
 });
