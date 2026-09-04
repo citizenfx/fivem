@@ -498,8 +498,17 @@ namespace vfs
 
 	struct ResourceFlags
 	{
+#ifdef IS_RDR3
+		uint32_t magic;
+		uint32_t version;
+		uint32_t virtPages;
+		uint32_t physPages;
+		uint64_t fileSize;
+		uint64_t fileTime;
+#else
 		uint32_t virt;
 		uint32_t phys;
+#endif
 	};
 
 	struct GetRagePageFlagsExtension
@@ -513,11 +522,38 @@ namespace vfs
 	{
 		if (controlIdx == VFS_GET_RAGE_PAGE_FLAGS)
 		{
+#ifdef IS_RDR3
+			if (controlSize < sizeof(GetRagePageFlagsExtension))
+			{
+				return false;
+			}
+#endif
+
 			auto data = (GetRagePageFlagsExtension*)controlData;
 			auto handle = Open(data->fileName, true);
 
 			if (handle != InvalidHandle)
 			{
+#ifdef IS_RDR3
+				ResourceFlags header = {};
+				auto fileSize = GetLength(handle);
+				if (fileSize >= 16 && Read(handle, &header, 16) != 16)
+				{
+					Close(handle);
+					return false;
+				}
+				Close(handle);
+				data->version = 0;
+				data->flags = {};
+				if (header.magic == 0x38435352) // RSC8
+				{
+					data->version = header.version;
+					data->flags = header;
+				}
+				data->flags.fileSize = fileSize;
+				// RPF2 entries have no timestamps; use the VFS adapter's stable fallback.
+				data->flags.fileTime = 125213779100000000;
+#else
 				struct
 				{
 					uint32_t magic;
@@ -539,6 +575,7 @@ namespace vfs
 					data->flags.phys = rsc7Header.physPages;
 					data->flags.virt = rsc7Header.virtPages;
 				}
+#endif
 
 				return true;
 			}
