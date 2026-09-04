@@ -53,6 +53,16 @@ static hook::cdecl_stub<bool(void*, int)> getWheelBroken([]
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B CD 41 88 84 1F"));
 });
 
+static hook::cdecl_stub<void(void*)> restoreVehicleWheelState([]
+{
+	return hook::get_pattern("45 33 C0 B8 00 00 7A 44 89 81 E8 01 00 00");
+});
+
+static hook::cdecl_stub<void(void*, int)> reattachByBoneIndex([]
+{
+	return hook::get_call(hook::get_pattern("0F BE 57 06 48 8B 8E C0 09 00 00 E8", 11));
+});
+
 static hook::cdecl_stub<void(void*, bool)> switchEngineOff([]
 {
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B 8B ? ? ? ? 0F 2F FE"));
@@ -327,6 +337,7 @@ static char* VehicleTopSpeedModifierPtr;
 static int VehicleCheatPowerIncreaseOffset;
 
 static int VehicleDamageStructOffset;
+static int BrokenWheelsMaskOffset;
 
 static bool* g_trainsForceDoorsOpen;
 static int TrainDoorCountOffset;
@@ -804,6 +815,16 @@ static HookFunction initFunction([]()
 	{
 		auto location = hook::get_pattern<char>("F3 44 0F 11 4C 24 ? E8 ? ? ? ? EB 7A");
 		VehicleDamageStructOffset = *(uint32_t*)(location - 11);
+	}
+
+	{
+		// read the broken-wheels bitmask offset from the IS_VEHICLE_WHEEL_BROKEN_OFF
+		// mov     eax, [rcx+A98h]        <-- bitmask offset we extract
+		// bt      eax, edx
+		// setb    al
+		// retn
+		auto fn = hook::get_pattern<char>("8B 81 ? ? 00 00 0F A3 D0 0F 92 C0 C3");
+		BrokenWheelsMaskOffset = *(int32_t*)(fn + 2);
 	}
 
 	{
@@ -2004,6 +2025,45 @@ static HookFunction initFunction([]()
 			}
 
 			context.SetResult<bool>(getWheelBroken(vehicle, wheelIndex));
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("RESTORE_VEHICLE_WHEEL", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "RESTORE_VEHICLE_WHEEL"))
+		{
+			auto wheelIndex = context.GetArgument<uint32_t>(1);
+			auto numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
+
+			if (wheelIndex >= numWheels)
+				return;
+
+			if (!getWheelBroken(vehicle, wheelIndex))
+				return;
+
+
+			*reinterpret_cast<uint32_t*>((char*)vehicle + BrokenWheelsMaskOffset) &= ~(1u << wheelIndex);
+
+			auto wheelsAddress = readValue<uint64_t>(vehicle, WheelsPtrOffset);
+			auto wheelPtr = reinterpret_cast<void*>(*reinterpret_cast<uint64_t*>(wheelsAddress + 8 * wheelIndex));
+
+			if (!wheelPtr)
+			{
+				return;
+			}
+
+			restoreVehicleWheelState(wheelPtr);
+
+			// reattach only this wheel's fragment child not the whole vehicle (reattachVehicleFragments
+			// would restore hoods/doors/bumpers too) For deleteWheel=true the fragment was deleted
+			// so RestoreAbove recreates it from fragType data For deleteWheel=false it's a no-op
+			auto boneIndex = *reinterpret_cast<int8_t*>((char*)wheelPtr + 0x10C);
+			if (boneIndex >= 0)
+			{
+				auto fragInst = *reinterpret_cast<void**>((char*)vehicle + 0x9C0);
+				if (fragInst)
+					reattachByBoneIndex(fragInst, boneIndex);
+			}
 		}
 	});
 
