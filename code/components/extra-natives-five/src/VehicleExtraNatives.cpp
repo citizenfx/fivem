@@ -322,6 +322,39 @@ static int WheelPowerOffset;
 static int WheelHealthOffset; // = 0x1E8; // 75 24 F3 0F 10 81 ? ? ? ? F3 0F
 static int WheelSurfaceMaterialOffset;
 static int WheelFlagsOffset;
+// GTA V uses bits 0-25 of this 32-bit field. Reserve bit 30 for a Cfx-only
+// override so the physics hook can remain allocation-free.
+static constexpr uint32_t CfxCurbBoostDisabledWheelFlag = 0x40000000;
+
+static void SetVehicleCurbBoostEnabledForWheels(fwEntity* vehicle, bool enabled)
+{
+	const unsigned char numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
+	const uintptr_t wheelsAddress = readValue<uintptr_t>(vehicle, WheelsPtrOffset);
+
+	if (!wheelsAddress)
+	{
+		return;
+	}
+
+	for (unsigned char wheelIndex = 0; wheelIndex < numWheels; ++wheelIndex)
+	{
+		const uintptr_t wheelAddress = *reinterpret_cast<uintptr_t*>(wheelsAddress + (sizeof(uintptr_t) * wheelIndex));
+		if (!wheelAddress)
+		{
+			continue;
+		}
+
+		auto& wheelFlags = *reinterpret_cast<uint32_t*>(wheelAddress + WheelFlagsOffset);
+		if (enabled)
+		{
+			wheelFlags &= ~CfxCurbBoostDisabledWheelFlag;
+		}
+		else
+		{
+			wheelFlags |= CfxCurbBoostDisabledWheelFlag;
+		}
+	}
+}
 
 static char* VehicleTopSpeedModifierPtr;
 static int VehicleCheatPowerIncreaseOffset;
@@ -759,6 +792,54 @@ static HookFunction initFunction([]()
 		auto location = hook::get_pattern<char>("75 11 48 8B 01 8B 88");
 
 		WheelFlagsOffset = *(uint32_t*)(location + 7);
+	}
+
+	{
+		auto curbBoostLocation = hook::get_pattern<char>("0F 2E BB 4C 01 00 00 75 ? 44 38 2D ? ? ? ? F3 0F 10 05 ? ? ? ? 74 ? 48 8B 83 20 01 00 00 0F 2F 40 14");
+		auto curbBoostSkipTarget = curbBoostLocation + 9 + *(int8_t*)(curbBoostLocation + 8);
+
+		static struct : jitasm::Frontend
+		{
+			int32_t skipDelta{ 0 };
+			int32_t wheelFlagsOffset{ 0 };
+
+			void SetOffsets(int32_t delta, int32_t flagsOffset)
+			{
+				skipDelta = delta;
+				wheelFlagsOffset = flagsOffset;
+			}
+
+			void RedirectReturnAddress()
+			{
+				push(rax);
+				mov(rax, qword_ptr[rsp + 8]);
+				add(rax, skipDelta);
+				mov(qword_ptr[rsp + 8], rax);
+				pop(rax);
+				ret();
+			}
+
+			virtual void InternalMain() override
+			{
+				// Preserve the game's Open Wheel/suspension-raise condition.
+				ucomiss(xmm7, dword_ptr[rbx + 0x14C]);
+				jne("skipLongSlipSmoothing");
+
+				// The native marks the wheel directly, avoiding a helper call in the physics loop.
+				test(dword_ptr[rbx + wheelFlagsOffset], CfxCurbBoostDisabledWheelFlag);
+				jne("skipLongSlipSmoothing");
+				ret();
+
+				L("skipLongSlipSmoothing");
+				RedirectReturnAddress();
+			}
+		} curbBoostStub;
+
+		curbBoostStub.SetOffsets(
+			(int32_t)(curbBoostSkipTarget - (curbBoostLocation + 5)),
+			WheelFlagsOffset);
+		hook::nop(curbBoostLocation, 9);
+		hook::call(curbBoostLocation, curbBoostStub.GetCode());
 	}
 
 	{
@@ -1786,6 +1867,14 @@ static HookFunction initFunction([]()
 			{
 				g_skipRepairVehicles.erase(entity);
 			}	
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_CURB_BOOST_ENABLED", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* entity = getAndCheckVehicle(context, "SET_VEHICLE_CURB_BOOST_ENABLED"))
+		{
+			SetVehicleCurbBoostEnabledForWheels(entity, context.GetArgument<bool>(1));
 		}
 	});
 
