@@ -795,51 +795,63 @@ static HookFunction initFunction([]()
 	}
 
 	{
-		auto curbBoostLocation = hook::get_pattern<char>("0F 2E BB 4C 01 00 00 75 ? 44 38 2D ? ? ? ? F3 0F 10 05 ? ? ? ? 74 ? 48 8B 83 20 01 00 00 0F 2F 40 14");
-		auto curbBoostSkipTarget = curbBoostLocation + 9 + *(int8_t*)(curbBoostLocation + 8);
+		auto curbBoostLocation = hook::get_pattern<char>("0F 2E BB 4C 01 00 00");
 
-		static struct : jitasm::Frontend
+		const uint8_t curbBoostJumpOpcode = *(uint8_t*)(curbBoostLocation + 7);
+		const bool curbBoostNearJump = curbBoostJumpOpcode == 0x0F && *(uint8_t*)(curbBoostLocation + 8) == 0x85;
+
+		if (curbBoostJumpOpcode != 0x75 && !curbBoostNearJump)
 		{
-			int32_t skipDelta{ 0 };
-			int32_t wheelFlagsOffset{ 0 };
+			trace("Unrecognized jump after the curb boost gate, leaving it unpatched.\n");
+		}
+		else
+		{
+			const size_t curbBoostGateSize = curbBoostNearJump ? 13 : 9;
+			auto curbBoostSkipTarget = curbBoostLocation + curbBoostGateSize + (curbBoostNearJump
+				? *(int32_t*)(curbBoostLocation + 9)
+				: *(int8_t*)(curbBoostLocation + 8));
 
-			void SetOffsets(int32_t delta, int32_t flagsOffset)
+			static struct : jitasm::Frontend
 			{
-				skipDelta = delta;
-				wheelFlagsOffset = flagsOffset;
-			}
+				int32_t skipDelta{ 0 };
+				int32_t wheelFlagsOffset{ 0 };
 
-			void RedirectReturnAddress()
-			{
-				push(rax);
-				mov(rax, qword_ptr[rsp + 8]);
-				add(rax, skipDelta);
-				mov(qword_ptr[rsp + 8], rax);
-				pop(rax);
-				ret();
-			}
+				void SetOffsets(int32_t delta, int32_t flagsOffset)
+				{
+					skipDelta = delta;
+					wheelFlagsOffset = flagsOffset;
+				}
 
-			virtual void InternalMain() override
-			{
-				// Preserve the game's Open Wheel/suspension-raise condition.
-				ucomiss(xmm7, dword_ptr[rbx + 0x14C]);
-				jne("skipLongSlipSmoothing");
+				void RedirectReturnAddress()
+				{
+					push(rax);
+					mov(rax, qword_ptr[rsp + 8]);
+					add(rax, skipDelta);
+					mov(qword_ptr[rsp + 8], rax);
+					pop(rax);
+					ret();
+				}
 
-				// The native marks the wheel directly, avoiding a helper call in the physics loop.
-				test(dword_ptr[rbx + wheelFlagsOffset], CfxCurbBoostDisabledWheelFlag);
-				jne("skipLongSlipSmoothing");
-				ret();
+				virtual void InternalMain() override
+				{
+					// Preserve the game's Open Wheel/suspension-raise condition.
+					ucomiss(xmm7, dword_ptr[rbx + 0x14C]);
+					jne("skipLongSlipSmoothing");
 
-				L("skipLongSlipSmoothing");
-				RedirectReturnAddress();
-			}
-		} curbBoostStub;
+					// The native marks the wheel directly, avoiding a helper call in the physics loop.
+					test(dword_ptr[rbx + wheelFlagsOffset], CfxCurbBoostDisabledWheelFlag);
+					jne("skipLongSlipSmoothing");
+					ret();
 
-		curbBoostStub.SetOffsets(
-			(int32_t)(curbBoostSkipTarget - (curbBoostLocation + 5)),
-			WheelFlagsOffset);
-		hook::nop(curbBoostLocation, 9);
-		hook::call(curbBoostLocation, curbBoostStub.GetCode());
+					L("skipLongSlipSmoothing");
+					RedirectReturnAddress();
+				}
+			} curbBoostStub;
+
+			curbBoostStub.SetOffsets((int32_t)(curbBoostSkipTarget - (curbBoostLocation + 5)), WheelFlagsOffset);
+			hook::nop(curbBoostLocation, curbBoostGateSize);
+			hook::call(curbBoostLocation, curbBoostStub.GetCode());
+		}
 	}
 
 	{
