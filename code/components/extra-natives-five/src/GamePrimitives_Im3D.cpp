@@ -17,6 +17,7 @@
 
 #include <ConsoleHost.h>
 #include <ScriptEngine.h>
+#include "ScriptDeprecations.h"
 
 // copy draw lists for use off-thread
 struct RemoteDrawList : Im3d::DrawList
@@ -384,5 +385,20 @@ static InitFunction initFunctionScriptBind([]()
 			ConHost::SetCursorMode(false);
 			InputHook::SetControlBypasses(0x3D, {});
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DRAW_IM_NATIVES", [](fx::ScriptContext& context)
+	{
+		fx::WarningDeprecationf<fx::ScriptDeprecations::DRAW_IM_NATIVES>("natives", "DRAW_IM_NATIVES is deprecated.");
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DRAW_TEXTURED_IM_VERTICES", [](fx::ScriptContext& context)
+	{
+		fx::WarningDeprecationf<fx::ScriptDeprecations::DRAW_TEXTURED_IM_VERTICES>("natives", "DRAW_TEXTURED_IM_VERTICES is deprecated.");
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DRAW_TEXTURED_IM_VERTICES_CLIPPED", [](fx::ScriptContext& context)
+	{
+		fx::WarningDeprecationf<fx::ScriptDeprecations::DRAW_TEXTURED_IM_VERTICES_CLIPPED>("natives", "DRAW_TEXTURED_IM_VERTICES_CLIPPED is deprecated.");
 	});
 });
