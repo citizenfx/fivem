@@ -155,6 +155,14 @@ static InitFunction initFunction([] ()
 
 		context.SetResult(false);
 	});
+	
+	fx::ScriptEngine::RegisterNativeHandler("DOES_DUI_EXIST", [=](fx::ScriptContext& context)
+	{
+		auto duiHandle = context.CheckArgument<uint32_t>(0);
+		
+		auto find = g_ScrBindPool.Handles.find(duiHandle);
+		context.SetResult(find != g_ScrBindPool.Handles.end());
+	});
 
 	class NUIWindowWrapper;
 
