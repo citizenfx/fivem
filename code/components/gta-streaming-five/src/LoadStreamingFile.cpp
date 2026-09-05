@@ -1439,6 +1439,13 @@ static uint16_t AppendUniqueHashes(atArray<uint32_t>& dst, atArray<uint32_t>& sr
 		return 0;
 	}
 
+	uint16_t headroom = static_cast<uint16_t>(UINT16_MAX - dst.GetCount());
+
+	if (srcCount > headroom)
+	{
+		srcCount = headroom;
+	}
+
 	// reserve for the worst case, where none of the entries are already present
 	if (dst.GetCount() + srcCount > dst.GetSize())
 	{
