@@ -1145,6 +1145,162 @@ namespace game
 
 		return IsInputSourceDown(controlData) || IsInputSourceDown(controlDataSecondary);
 	}
+
+	BindingKeyInfo GetBindingInfo(const std::string& command)
+    {
+        BindingKeyInfo info;
+        info.command = command;
+        info.found = false;
+        info.hasKey = false;
+        info.parameter = 0;
+
+        auto it = g_registeredBindings.find(command);
+        if (it != g_registeredBindings.end())
+        {
+            info.tag = std::get<0>(it->second);
+            info.description = std::get<1>(it->second);
+            info.found = true;
+        }
+		
+        auto [guard, bindings] = bindingManager.GetSafeBindings();
+        for (auto& bindingPair : bindings)
+        {
+            if (bindingPair.second->GetCommand() == command && IsTagActive(bindingPair.second->GetTag()))
+            {
+                rage::ioInputSource source;
+                bindingPair.second->GetBinding(source);
+                
+                info.parameter = source.parameter;
+                info.hasKey = true;
+            	
+                auto parameterIndex = rage::ioMapper::GetParameterIndex(source.source, source.parameter);
+
+                for (auto& entry : ioSourceMap)
+                {
+                    if (entry.second == source.source)
+                    {
+                        info.sourceName = entry.first;
+                        break;
+                    }
+                }
+
+                for (auto& entry : ioParameterMap)
+                {
+                    if (entry.second == parameterIndex)
+                    {
+                        info.keyName = entry.first;
+                        break;
+                    }
+                }
+
+                break;
+            }
+        }
+		
+        return info;
+    }
+
+	bool RebindCommand(const std::string& command, const std::string& sourceName, const std::string& keyName)
+    {
+        auto it = g_registeredBindings.find(command);
+        if (it == g_registeredBindings.end())
+        {
+            console::Printf("IO", "Command '%s' is not registered\n", command.c_str());
+            return false;
+        }
+
+        std::string tag = std::get<0>(it->second);
+
+        rage::ioMapperSource ioSource;
+        auto sourceIt = ioSourceMap.find(sourceName);
+        if (sourceIt == ioSourceMap.end())
+        {
+            console::Printf("IO", "Invalid I/O source '%s'\n", sourceName.c_str());
+            return false;
+        }
+        ioSource = sourceIt->second;
+
+        int ioParameter;
+        auto paramIt = ioParameterMap.find(keyName);
+        if (paramIt == ioParameterMap.end())
+        {
+            console::Printf("IO", "Invalid key name '%s'\n", keyName.c_str());
+            return false;
+        }
+        
+        if (!rage::ioMapper::ValidateParameter(ioSource, paramIt->second))
+        {
+            console::Printf("IO", "Invalid I/O parameter pairing: <%s, %s>\n", sourceName.c_str(), keyName.c_str());
+            return false;
+        }
+
+        ioParameter = rage::ioMapper::UngetParameterIndex(ioSource, paramIt->second);
+
+        bindingManager.QueueOnFrame([=]()
+        {
+            auto& bindings = bindingManager.GetBindings();
+            for (auto it = bindings.begin(); it != bindings.end(); )
+            {
+                if (it->second->GetCommand() == command && IsTagActive(it->second->GetTag()))
+                {
+                    it = bindings.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+
+            auto binding = bindingManager.Bind(ioSource, ioParameter, command);
+            if (binding)
+            {
+                binding->SetTag(tag);
+                console::Printf("IO", "Command '%s' rebound to %s %s\n", command.c_str(), sourceName.c_str(), keyName.c_str());
+            }
+        });
+
+        return true;
+    }
+
+	bool UnbindCommand(const std::string& command)
+    {
+        auto it = g_registeredBindings.find(command);
+        if (it == g_registeredBindings.end())
+        {
+            console::Printf("IO", "Command '%s' is not registered\n", command.c_str());
+            return false;
+        }
+
+        bindingManager.QueueOnFrame([=]()
+        {
+            auto& bindings = bindingManager.GetBindings();
+            bool found = false;
+
+            for (auto it = bindings.begin(); it != bindings.end(); )
+            {
+                if (it->second->GetCommand() == command && IsTagActive(it->second->GetTag()))
+                {
+                    it = bindings.erase(it);
+                    found = true;
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+
+            if (found)
+            {
+                console::Printf("IO", "Command '%s' unbound\n", command.c_str());
+            }
+            else
+            {
+                console::Printf("IO", "Command '%s' was not bound to any key\n", command.c_str());
+            }
+        });
+
+        return true;
+    }
 }
 
 static uint32_t HashBinding(const std::string& key)
