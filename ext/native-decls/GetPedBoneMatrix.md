@@ -10,7 +10,7 @@ game: rdr3
 void GET_PED_BONE_MATRIX(Ped ped, int boneId, Vector3* forwardVector, Vector3* rightVector, Vector3* upVector, Vector3* position);
 ```
 
-Returns the bone matrix of the specified bone id. usefull for entity attachment
+Returns the bone matrix of the specified bone id. useful for entity attachment
 
 ## Examples
 ```lua
