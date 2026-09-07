@@ -25,6 +25,7 @@ namespace CitizenFX.Core.Native
 
 		private static unsafe object InvokeInternal(Hash nativeHash, Type returnType, InputArgument[] args)
 		{
+			PointerArgumentSafety.CheckArguments((ulong)nativeHash, args);
 			ScriptContext.Reset();
 
 			foreach (var arg in args)
