@@ -14,5 +14,5 @@ char* FIND_KVP(int handle);
 ## Return value
 None.
 
-## Example
+## Examples
 See [START_FIND_KVP](#_0xDD379006)
