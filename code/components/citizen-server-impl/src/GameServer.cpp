@@ -1127,7 +1127,7 @@ namespace fx
 			SendOutOfBand(client->GetAddress(), fmt::sprintf("error %s", realReason));
 		}
 
-		// force a hearbeat
+		// force a heartbeat
 		ForceHeartbeatSoon();
 
 		// ensure mono thread attachment (if this was a worker thread)

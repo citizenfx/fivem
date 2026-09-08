@@ -491,7 +491,7 @@ void ShiftWeaponInfoBlobsDown(CWeaponInfoBlob* pArray[], uint16_t startIndex)
 
 	g_origShiftWeaponInfoBlobsDown(pArray, startIndex);
 
-	// Only clear if a shift occured
+	// Only clear if a shift occurred
 	if (startIndex < lastItemIndex)
 	{
 		// Copy the next empty weapon info into this unused one to reset it

@@ -2640,7 +2640,7 @@ void ServerGameState::IterateTrainLink(const sync::SyncEntityPtr& initialTrain, 
 	static thread_local std::unordered_set<uint32_t> processedTrains{};
 	processedTrains.clear();
 
-	// for most stuff we want to call on the intial entity
+	// for most stuff we want to call on the initial entity
 	if (callOnInitialEntity)
 	{
 		if (!fn(const_cast<sync::SyncEntityPtr&>(initialTrain)))
