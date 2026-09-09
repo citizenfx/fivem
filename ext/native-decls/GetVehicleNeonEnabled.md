@@ -13,10 +13,10 @@ Getter to check if one of the neon lights of a vehicle is enabled. This native i
 ```c
 enum neonIndex
 {
-    NEON_BACK = 0,   // Back neon
+    NEON_LEFT = 0,   // Left neon
     NEON_RIGHT = 1,  // Right neon
-    NEON_LEFT = 2,   // Left neon
-    NEON_FRONT = 3   // Front neon
+    NEON_FRONT = 2,  // Front neon
+    NEON_BACK = 3    // Back neon
 };
 ```
 
