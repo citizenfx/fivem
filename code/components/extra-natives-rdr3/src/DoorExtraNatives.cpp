@@ -86,4 +86,43 @@ static HookFunction initFunction([]()
 		}
 		context.SetResult(fx::SerializeObject(doorList));
 	});
+
+	// GET_CLOSEST_DOOR_HASH - Returns the door hash of the closest door to the given position
+	fx::ScriptEngine::RegisterNativeHandler("GET_CLOSEST_DOOR_HASH", [](fx::ScriptContext& context)
+	{
+		float x = context.GetArgument<float>(0);
+		float y = context.GetArgument<float>(1);
+		float z = context.GetArgument<float>(2);
+		float maxDistance = context.GetArgument<float>(3);
+
+		uint32_t closestDoorHash = 0;
+		float closestDistanceSq = maxDistance * maxDistance;
+
+		for (int i = 0; i < g_doorData->bucketCapacity; i++)
+		{
+			DoorSystemEntry* entry = g_doorData->entries[i];
+
+			while (entry != nullptr)
+			{
+				if (entry->doorHash != 0 && entry->ptrFwEntity != nullptr)
+				{
+					auto position = entry->ptrFwEntity->GetPosition();
+
+					float dx = position.x - x;
+					float dy = position.y - y;
+					float dz = position.z - z;
+					float distSq = dx * dx + dy * dy + dz * dz;
+
+					if (distSq < closestDistanceSq)
+					{
+						closestDistanceSq = distSq;
+						closestDoorHash = entry->doorHash;
+					}
+				}
+				entry = entry->next;
+			}
+		}
+
+		context.SetResult<uint32_t>(closestDoorHash);
+	});
 });
