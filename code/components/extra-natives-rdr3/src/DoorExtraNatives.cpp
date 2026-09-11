@@ -19,6 +19,7 @@
 #include <GameInit.h>
 #include <scrEngine.h>
 
+#include <EntitySystem.h>
 #include <ConsoleHost.h>
 #include <CoreConsole.h>
 
@@ -197,5 +198,34 @@ static HookFunction initFunction([]()
 		}
 
 		context.SetResult(fx::SerializeObject(doorList));
+	});
+
+	// GET_DOOR_HASH_FROM_ENTITY - Returns door hash by door entity handle (reverse of _GET_ENTITY_BY_DOORHASH)
+	fx::ScriptEngine::RegisterNativeHandler("GET_DOOR_HASH_FROM_ENTITY", [&](fx::ScriptContext& context)
+	{
+		int entityHandle = context.GetArgument<int>(0);
+
+		fwEntity* targetEntity = rage::fwScriptGuid::GetBaseFromGuid(entityHandle);
+		if (!targetEntity)
+		{
+			context.SetResult<uint32_t>(0);
+			return;
+		}
+
+		for (int i = 0; i < g_doorData->bucketCapacity; i++)
+		{
+			DoorSystemEntry* entry = g_doorData->entries[i];
+			while (entry != nullptr)
+			{
+				if (entry->doorHash != 0 && entry->ptrFwEntity == targetEntity)
+				{
+					context.SetResult<uint32_t>(entry->doorHash);
+					return;
+				}
+				entry = entry->next;
+			}
+		}
+
+		context.SetResult<uint32_t>(0);
 	});
 });
