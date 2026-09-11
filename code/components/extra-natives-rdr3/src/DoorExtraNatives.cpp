@@ -6,8 +6,6 @@
  */
 
 #include "StdInc.h"
-#include "NativeWrappers.h"
-
 #include <ScriptEngine.h>
 #include <ScriptSerialization.h>
 
@@ -205,7 +203,7 @@ static HookFunction initFunction([]()
 	{
 		int entityHandle = context.GetArgument<int>(0);
 
-		fwEntity* targetEntity = rage::fwScriptGuid::GetBaseFromGuid(entityHandle);
+		auto* targetEntity = rage::fwScriptGuid::GetBaseFromGuid(entityHandle);
 		if (!targetEntity)
 		{
 			context.SetResult<uint32_t>(0);
