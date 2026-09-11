@@ -19,6 +19,9 @@
 #include <GameInit.h>
 #include <scrEngine.h>
 
+#include <ConsoleHost.h>
+#include <CoreConsole.h>
+
 class DoorSystemEntry
 {
 public:
@@ -55,6 +58,20 @@ struct DoorNativeResult
 	MSGPACK_DEFINE_ARRAY(doorHash, handle)
 };
 
+struct DoorDistanceResult
+{
+	DoorDistanceResult(uint32_t _doorHash, uint32_t _handle, float _distance)
+		: doorHash(_doorHash), handle(_handle), distance(_distance)
+	{
+	}
+
+	uint32_t doorHash;
+	uint32_t handle;
+	float distance;
+
+	MSGPACK_DEFINE_ARRAY(doorHash, handle, distance)
+};
+
 static HookFunction initFunction([]()
 {
 	static CDoorsRendered* g_doorData = hook::get_address<CDoorsRendered*>(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 48 85 C0 74 6E"), 3, 7);
@@ -88,7 +105,7 @@ static HookFunction initFunction([]()
 	});
 
 	// GET_CLOSEST_DOOR_HASH - Returns the door hash of the closest door to the given position
-	fx::ScriptEngine::RegisterNativeHandler("GET_CLOSEST_DOOR_HASH", [](fx::ScriptContext& context)
+	fx::ScriptEngine::RegisterNativeHandler("GET_CLOSEST_DOOR_HASH", [&](fx::ScriptContext& context)
 	{
 		float x = context.GetArgument<float>(0);
 		float y = context.GetArgument<float>(1);
@@ -106,17 +123,21 @@ static HookFunction initFunction([]()
 			{
 				if (entry->doorHash != 0 && entry->ptrFwEntity != nullptr)
 				{
-					auto position = entry->ptrFwEntity->GetPosition();
-
-					float dx = position.x - x;
-					float dy = position.y - y;
-					float dz = position.z - z;
-					float distSq = dx * dx + dy * dy + dz * dz;
-
-					if (distSq < closestDistanceSq)
+					uint32_t handle = NativeInvoke::Invoke<0xF7424890E4A094C0, uint32_t>(entry->doorHash);
+					if (handle != 0 && entry->doorHash != 0)
 					{
-						closestDistanceSq = distSq;
-						closestDoorHash = entry->doorHash;
+						scrVector position = NativeInvoke::Invoke<0xA86D5F069399F44D, scrVector>(handle);
+
+						float dx = position.x - x;
+						float dy = position.y - y;
+						float dz = position.z - z;
+						float distSq = dx * dx + dy * dy + dz * dz;
+
+						if (distSq < closestDistanceSq)
+						{
+							closestDistanceSq = distSq;
+							closestDoorHash = entry->doorHash;
+						}
 					}
 				}
 				entry = entry->next;
@@ -124,5 +145,57 @@ static HookFunction initFunction([]()
 		}
 
 		context.SetResult<uint32_t>(closestDoorHash);
+	});
+
+	// GET_CLOSEST_DOORS - Returns all doors within maxDistance, sorted by distance
+	fx::ScriptEngine::RegisterNativeHandler("GET_CLOSEST_DOORS", [&](fx::ScriptContext& context)
+	{
+		float x = context.GetArgument<float>(0);
+		float y = context.GetArgument<float>(1);
+		float z = context.GetArgument<float>(2);
+		float maxDistance = context.GetArgument<float>(3);
+		bool sortByDistance = context.GetArgument<bool>(4);
+
+		float maxDistanceSq = maxDistance * maxDistance;
+		std::vector<DoorDistanceResult> doorList;
+
+		for (int i = 0; i < g_doorData->bucketCapacity; i++)
+		{
+			DoorSystemEntry* entry = g_doorData->entries[i];
+
+			while (entry != nullptr)
+			{
+				if (entry->doorHash != 0 && entry->ptrFwEntity != nullptr)
+				{
+					uint32_t handle = NativeInvoke::Invoke<0xF7424890E4A094C0, uint32_t>(entry->doorHash);
+					if (handle != 0 && entry->doorHash != 0)
+					{
+						scrVector position = NativeInvoke::Invoke<0xA86D5F069399F44D, scrVector>(handle);
+
+						float dx = position.x - x;
+						float dy = position.y - y;
+						float dz = position.z - z;
+						float distSq = dx * dx + dy * dy + dz * dz;
+
+						if (distSq <= maxDistanceSq)
+						{
+							float dist = sqrtf(distSq);
+							doorList.emplace_back(entry->doorHash, handle, dist);
+						}
+					}
+				}
+				entry = entry->next;
+			}
+		}
+
+		if (sortByDistance)
+		{
+			std::sort(doorList.begin(), doorList.end(), [](const DoorDistanceResult& a, const DoorDistanceResult& b)
+			{
+				return a.distance < b.distance;
+			});
+		}
+
+		context.SetResult(fx::SerializeObject(doorList));
 	});
 });
