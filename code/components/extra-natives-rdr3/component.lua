@@ -22,5 +22,5 @@ return function()
 		'components/extra-natives-five/include/audDspEffect.h',
 	}
 
-	add_dependencies { 'vendor:dspfilters' }
+	add_dependencies { 'vendor:dspfilters', 'vendor:toojpeg', 'vendor:botan' }
 end
