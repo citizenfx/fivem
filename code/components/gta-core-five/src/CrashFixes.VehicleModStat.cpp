@@ -9,7 +9,6 @@
 
 #include <jitasm.h>
 #include <Hooking.h>
-#include <CrossBuildRuntime.h>
 
 struct VehicleModStatStub : jitasm::Frontend
 {
@@ -41,15 +40,17 @@ struct VehicleModStatStub : jitasm::Frontend
 
 static HookFunction hookFunction([]()
 {
-	// The function layout and missing-handler value are verified on b3258.
-	if (!xbr::IsGameBuild<3258>())
+	// Match the shared lookup's prologue and existing no-mod-kit return path.
+	auto pattern = hook::pattern("48 89 5C 24 08 57 48 83 EC 20 48 63 DA 48 8B F9 E8 ? ? ? ? 48 85 C0 75 04 33 C0 EB 30 8D 43 DC 83 F8 05");
+	if (pattern.size() != 1)
 	{
+		trace("Vehicle mod-stat crash fix skipped: expected one matching lookup.\n");
 		return;
 	}
 
 	// Shared integer mod-stat lookup (b3258: 0x627088). Returning zero for
 	// an absent handler matches this function's existing no-mod-kit path.
-	auto location = hook::get_pattern<uint8_t>("48 89 5C 24 08 57 48 83 EC 20 48 63 DA 48 8B F9 E8 ? ? ? ? 48 85 C0 75 04 33 C0 EB 30 8D 43 DC 83 F8 05");
+	auto location = pattern.get(0).get<uint8_t>();
 
 	static VehicleModStatStub stub;
 	stub.Init(reinterpret_cast<uintptr_t>(location));
