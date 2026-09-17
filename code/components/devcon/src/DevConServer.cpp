@@ -35,6 +35,13 @@ using json = nlohmann::json;
 static std::shared_mutex g_mutex;
 static std::set<net::TcpServerStream*> g_streams;
 
+// Guards g_knownChannels and FlushKnownCommands' lastCmds: both are mutated from the
+// DevCon print-drain thread (HandleConsoleMessage) and from the TCP server thread
+// (on every PPCR handshake), with no synchronisation previously. lastCmds.swap()
+// destroying the old std::set concurrently with a traversal from the other thread
+// corrupts the tree - this is what actually crashes, not the print path itself.
+static std::mutex g_consoleStateMutex;
+
 struct ConsoleBuffer
 {
 	char channels[512][48];
@@ -94,6 +101,8 @@ static std::set<std::string> g_knownChannels = { "Any", "font-renderer" };
 
 static void FlushKnownChannels(net::TcpServerStream* stream)
 {
+	std::lock_guard<std::mutex> lock(g_consoleStateMutex);
+
 	net::Buffer buf;
 	buf.Write(0x4E414843); // 'CHAN'
 	buf.Write<uint16_t>(sSwapShortRead(211)); // protocol
@@ -131,9 +140,14 @@ static void FlushKnownCommands(net::TcpServerStream* stream)
 	});
 
 	std::vector<std::string> cmdDiffs;
-	std::set_difference(cmds.begin(), cmds.end(), lastCmds.begin(), lastCmds.end(), std::back_inserter(cmdDiffs));
 
-	lastCmds.swap(cmds);
+	{
+		std::lock_guard<std::mutex> lock(g_consoleStateMutex);
+
+		std::set_difference(cmds.begin(), cmds.end(), lastCmds.begin(), lastCmds.end(), std::back_inserter(cmdDiffs));
+
+		lastCmds.swap(cmds);
+	}
 
 	for (const std::string& cmd : cmdDiffs)
 	{
@@ -163,11 +177,15 @@ static void HandleConsoleMessage(const std::string& channel, const std::string& 
 {
 	bool channelsChanged = false;
 
-	if (g_knownChannels.find(channel) == g_knownChannels.end())
 	{
-		channelsChanged = true;
+		std::lock_guard<std::mutex> lock(g_consoleStateMutex);
 
-		g_knownChannels.insert(channel);
+		if (g_knownChannels.find(channel) == g_knownChannels.end())
+		{
+			channelsChanged = true;
+
+			g_knownChannels.insert(channel);
+		}
 	}
 
 	{
@@ -367,6 +385,13 @@ static InitFunction initFunction([]()
 
 		stream->SetReadCallback([=](const std::vector<uint8_t>& data)
 		{
+			// the multiplex pattern matcher already required >= 4 bytes for the first
+			// packet, but a stream can be fed a short/split read afterwards too
+			if (data.size() < 4)
+			{
+				return;
+			}
+
 			if (*(uint32_t*)data.data() == 0x52435050)
 			{
 				// send an AINF
@@ -416,6 +441,11 @@ static InitFunction initFunction([]()
 				uint16_t protocol = sSwapShortRead(buf.Read<uint16_t>());
 				uint32_t length = sSwapLongRead(buf.Read<uint32_t>());
 				buf.Read<uint16_t>();
+
+				if (buf.GetRemainingBytes() < 1)
+				{
+					return;
+				}
 
 				std::vector<uint8_t> d(buf.GetRemainingBytes());
 				buf.Read(d.data(), d.size() - 1);
