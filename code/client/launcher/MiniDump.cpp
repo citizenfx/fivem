@@ -1538,7 +1538,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 				taskDialogConfig.cbSize = sizeof(taskDialogConfig);
 				taskDialogConfig.hInstance = GetModuleHandle(nullptr);
-				taskDialogConfig.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_EXPAND_FOOTER_AREA | TDF_SHOW_PROGRESS_BAR | TDF_CALLBACK_TIMER | TDF_USE_COMMAND_LINKS | TDF_EXPANDED_BY_DEFAULT;
+				taskDialogConfig.dwFlags = TDF_EXPAND_FOOTER_AREA | TDF_SHOW_PROGRESS_BAR | TDF_CALLBACK_TIMER | TDF_USE_COMMAND_LINKS | TDF_EXPANDED_BY_DEFAULT;
 				taskDialogConfig.dwCommonButtons = TDCBF_CLOSE_BUTTON;
 				taskDialogConfig.cButtons = 1;
 				taskDialogConfig.pButtons = buttons;
