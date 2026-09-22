@@ -22,6 +22,10 @@ class RPCResourceHandler : public CefResourceHandler
 private:
 	bool m_found;
 
+	// set once the script has answered; later answers must not touch m_result
+	// while CEF may still be reading it (see ReadResponse)
+	bool m_responded = false;
+
 	fwString m_result;
 	std::multimap<std::string, std::string> m_headers;
 	int m_statusCode = 200;
@@ -147,10 +151,22 @@ public:
 
 		CefRefPtr<RPCResourceHandler> self = this;
 
-		auto result = ui->InvokeCallback(path.substr(1), query, headers, postDataString, [self, callback] (int statusCode, const std::multimap<std::string, std::string>& headers, const std::string& callResult)
+		auto result = ui->InvokeCallback(path.substr(1), query, headers, postDataString, [self, callback, host, path] (int statusCode, const std::multimap<std::string, std::string>& headers, const std::string& callResult)
 		{
 			{
 				std::unique_lock _(self->m_mutex);
+
+				// A script calling the NUI callback's result function more than once
+				// used to replace m_result while CEF was still streaming the first
+				// answer. A shorter second answer then left m_cursor past the end of
+				// the new string and ReadResponse read out of bounds.
+				if (self->m_responded)
+				{
+					trace("RPCResourceHandler: NUI callback %s%s was answered more than once; ignoring the extra result\n", host.c_str(), path.c_str());
+					return;
+				}
+
+				self->m_responded = true;
 				self->m_headers = headers;
 				self->m_statusCode = statusCode;
 				self->m_result = callResult;
@@ -245,7 +261,15 @@ public:
 		{
 			std::unique_lock _(m_mutex);
 
-			int toRead = std::min((unsigned int)m_result.size() - m_cursor, (unsigned int)bytes_to_read);
+			// never let the unsigned subtraction below wrap around
+			if (bytes_to_read <= 0 || m_cursor >= m_result.size())
+			{
+				bytes_read = 0;
+
+				return false;
+			}
+
+			int toRead = static_cast<int>(std::min(m_result.size() - m_cursor, static_cast<size_t>(bytes_to_read)));
 
 			memcpy(data_out, &m_result.c_str()[m_cursor], toRead);
 
