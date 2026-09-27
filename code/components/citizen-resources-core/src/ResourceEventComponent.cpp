@@ -179,6 +179,25 @@ void ResourceEventManagerComponent::AddResourceHandledEvent(const std::string& r
 	m_eventResources.emplace(eventName, resourceName);
 }
 
+bool ResourceEventManagerComponent::HasResourceHandledEvent(const std::string& eventName)
+{
+	// entries are never removed when a resource stops, so only count resources that are still running
+	for (const auto& eventKey : { std::string{ "*" }, eventName })
+	{
+		for (const auto& resourcePair : fx::GetIteratorView(m_eventResources.equal_range(eventKey)))
+		{
+			auto resource = m_manager->GetResource(resourcePair.second, false);
+
+			if (resource.GetRef() && resource->GetState() != ResourceState::Stopped && resource->GetState() != ResourceState::Uninitialized)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 bool ResourceEventManagerComponent::TriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource /* = std::string() */, ResourceEventComponent* filter /* = nullptr*/)
 {
 	// add a value to signify event cancelation

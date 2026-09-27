@@ -119,6 +119,11 @@ public:
 	void AddResourceHandledEvent(const std::string& resourceName, const std::string& eventName);
 
 	//
+	// Returns whether any running resource has subscribed to a particular event (or to all events).
+	//
+	bool HasResourceHandledEvent(const std::string& eventName);
+
+	//
 	// An event to handle event execution externally.
 	// Arguments: eventName, eventPayload, eventSource, eventCanceled
 	//

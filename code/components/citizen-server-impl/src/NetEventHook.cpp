@@ -25,6 +25,12 @@ static InitFunction initFunction([]()
 				return true;
 			}
 
+			// don't decode the payload if no resource listens to 'netEventReceived'
+			if (!eventManager->HasResourceHandledEvent("netEventReceived"))
+			{
+				return true;
+			}
+
 			msgpack::object eventArgs;
 			msgpack::unpacked unpacked;
 
@@ -53,6 +59,8 @@ static InitFunction initFunction([]()
 			}
 
 			return true;
-		});
+		},
+		// run before any other global handler, so it can't be bypassed
+		INT32_MIN);
 	});
 });
