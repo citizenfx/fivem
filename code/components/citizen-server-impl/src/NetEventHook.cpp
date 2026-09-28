@@ -1,19 +1,30 @@
 #include "StdInc.h"
 
+#include <CoreConsole.h>
 #include <ResourceEventComponent.h>
 #include <ResourceManager.h>
+#include <ServerInstanceBase.h>
 
 #include <msgpack.hpp>
+
+static std::shared_ptr<ConVar<bool>> g_decodeArgsVar;
 
 // Triggers a local, cancelable 'netEventReceived' server event for every event a client sends
 // (TriggerServerEvent/TriggerLatentServerEvent), before any resource handles it - even if nothing is registered for it.
 //
 // AddEventHandler('netEventReceived', function(eventName, eventArgs, payloadSize)
 //     -- source is the player that sent the event
+//     -- eventArgs is nil if the payload is malformed, or if sv_netEventReceivedDecodeArgs is disabled
 //     -- CancelEvent() drops the original event
 // end)
 static InitFunction initFunction([]()
 {
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	{
+		// handlers that only need the event name and size (e.g. to ban on trap events) can skip decoding the arguments
+		g_decodeArgsVar = instance->AddVariable<bool>("sv_netEventReceivedDecodeArgs", ConVar_None, true);
+	});
+
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
 	{
 		auto eventManager = manager->GetComponent<fx::ResourceEventManagerComponent>();
@@ -34,14 +45,17 @@ static InitFunction initFunction([]()
 			msgpack::object eventArgs;
 			msgpack::unpacked unpacked;
 
-			try
+			if (!g_decodeArgsVar || g_decodeArgsVar->GetValue())
 			{
-				unpacked = msgpack::unpack(eventPayload.data(), eventPayload.size());
-				eventArgs = unpacked.get();
-			}
-			catch (const std::exception&)
-			{
-				// malformed payload, pass nil args
+				try
+				{
+					unpacked = msgpack::unpack(eventPayload.data(), eventPayload.size());
+					eventArgs = unpacked.get();
+				}
+				catch (const std::exception&)
+				{
+					// malformed payload, pass nil args
+				}
 			}
 
 			const bool allowed = eventManager->TriggerEvent2(
