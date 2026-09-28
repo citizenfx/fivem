@@ -59,10 +59,12 @@ struct
 {
 	struct
 	{
-		void(*loadCache)();
-		void(*saveCache)();
-		char name[48];
-		int size;
+		bool(*loadCache)(const void* entry, void* debugTextStream);
+		void(*saveCache)(void* debugTextStream);
+		char name[32];
+		char* headerPos;
+		char* footerPos;
+		int entrySize;
 	} fields[6];
 
 	uint32_t numModules;
@@ -316,7 +318,7 @@ static InitFunction initFunction([]()
 			};
 
 			fileData << "<module>\n" << g_cacheMgr->fields[i].name << "\n";
-			g_cacheMgr->fields[i].saveCache();
+			g_cacheMgr->fields[i].saveCache(nullptr);
 
 			// cache is prefixed with size
 			std::string cacheStr = cacheData.str();
