@@ -424,6 +424,29 @@ void NUIWindow::InitializeRenderBacking()
 
 void NUIWindow::AddDirtyRect(const CefRect& rect)
 {
+	// coalesce into a single bounding rect once many small dirty rects are queued,
+	// as the render buffer already holds the latest pixels for the whole area
+	if (m_dirtyRects.size() >= 32)
+	{
+		int left = rect.x;
+		int top = rect.y;
+		int right = rect.x + rect.width;
+		int bottom = rect.y + rect.height;
+
+		while (!m_dirtyRects.empty())
+		{
+			const auto& queued = m_dirtyRects.front();
+			left = std::min(left, queued.x);
+			top = std::min(top, queued.y);
+			right = std::max(right, queued.x + queued.width);
+			bottom = std::max(bottom, queued.y + queued.height);
+			m_dirtyRects.pop();
+		}
+
+		m_dirtyRects.emplace(left, top, right - left, bottom - top);
+		return;
+	}
+
 	m_dirtyRects.push(rect);
 }
 
