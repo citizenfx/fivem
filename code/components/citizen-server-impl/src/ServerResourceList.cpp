@@ -36,7 +36,7 @@ void ServerResourceList::AttachToObject(fx::ResourceManager* object)
 void ServerResourceList::ScanResources(const std::string& resourceRoot, ScanResult* outResult /* = nullptr */)
 {
 	// TEMPORARY convar for chat build swaparound
-	static auto useChatVar = m_manager->GetComponent<fx::ServerInstanceBaseRef>()->Get()->AddVariable<bool>("resources_useSystemChat", ConVar_None, false);
+	static auto useChatVar = m_manager->GetComponent<fx::ServerInstanceBaseRef>()->Get()->AddVariable<bool>("resources_useSystemChat", ConVar_None, true);
 	bool isSystemResourceRoot = resourceRoot.find("/system_resources/") != std::string::npos;
 
 	m_currentResult = outResult;
