@@ -22,25 +22,10 @@ static rage::ioMouse* g_input;
 
 static bool* g_isClippedCursor;
 
-static void(*disableFocus)();
-
-static void DisableFocus()
+static hook::cdecl_stub<void(bool)> _setCursorClipState([]()
 {
-	if (!g_isFocusStolen)
-	{
-		disableFocus();
-	}
-}
-
-static void(*enableFocus)();
-
-static void EnableFocus()
-{
-	if (!g_isFocusStolen)
-	{
-		enableFocus();
-	}
-}
+	return hook::get_pattern("40 53 48 83 EC ? 8A D9 48 8D 0D ? ? ? ? E8 ? ? ? ? 38 1D ? ? ? ? 74 ? 88 1D ? ? ? ? E8 ? ? ? ? E8");
+});
 
 static void (*recaptureLostDevices)();
 
@@ -137,13 +122,6 @@ void InputHook::SetGameMouseFocus(bool focus, bool flushMouse)
 
 		memset(g_gameKeyArray, 0, 0x100);
 	}
-
-	if (!enableFocus || !disableFocus)
-	{
-		return;
-	} 
-
-	return (focus) ? enableFocus() : disableFocus();
 }
 
 void InputHook::EnableSetCursorPos(bool enabled)
@@ -221,10 +199,11 @@ LRESULT APIENTRY sgaWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 	if (uMsg == WM_ACTIVATEAPP)
 	{
 		g_isFocused = (wParam) ? true : false;
-		if (!g_isFocused)
-		{
-			ClipHostCursor(NULL);
-		}
+		// Inform the game of the new cursor state based on if the window is focused or not
+		// Most cursor clip calls and checks happen on a different thread.
+		// This function locks/unlocks the mutex related to ioMouse operations, along with properly informing WndProc of input changes
+		// Resolving some cases where mouse clipping would essentially freeze mouse input in areas like conhost.
+		_setCursorClipState(g_isFocused);
 	}
 
 	if (uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST)
