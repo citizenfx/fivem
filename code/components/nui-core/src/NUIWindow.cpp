@@ -358,9 +358,12 @@ void NUIWindow::Initialize(CefString url)
 	info.bounds.width = m_width;
 	info.bounds.height = m_height;
 
+	static int nuiWindowlessFrameRateValue = 120;
+	static ConVar<int> nuiWindowlessFrameRate("nui_maxFrameRate", ConVar_Archive, 120, &nuiWindowlessFrameRateValue);
+
 	CefBrowserSettings settings;
 	settings.javascript_close_windows = STATE_DISABLED;
-	settings.windowless_frame_rate = 240;
+	settings.windowless_frame_rate = std::max(30, std::min(nuiWindowlessFrameRateValue, 240));
 	CefString(&settings.default_encoding).FromString("utf-8");
 
 	CefRefPtr<CefRequestContext> rc;
