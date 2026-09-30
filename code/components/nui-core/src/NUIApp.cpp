@@ -168,7 +168,13 @@ void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame
 
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
+#if defined(IS_RDR3)
+	// on RedM, an in-process GPU makes CEF's D3D11 device race other devices for the nui-core texture hooks,
+	// and losing that race fails the Vulkan import at startup ("Failed to allocate memory for Vulkan")
+	static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, false);
+#else
 	static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, true);
+#endif
 
 	static std::string defaultUiUrl = "https://nui-game-internal/ui/app/index.html";
 	static ConVar<std::string> uiUrlVar("ui_url", ConVar_UserPref, defaultUiUrl);
