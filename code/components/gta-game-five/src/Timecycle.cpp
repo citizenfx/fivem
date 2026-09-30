@@ -525,6 +525,16 @@ int TimecycleManager::GetInteriorModifierOverride()
 	return m_interiorModifierOverride;
 }
 
+void TimecycleManager::MarkInsideInteriorRoom()
+{
+	m_lastInteriorRoomTick = GetTickCount64();
+}
+
+bool TimecycleManager::IsInsideInteriorRoom()
+{
+	return GetTickCount64() - m_lastInteriorRoomTick < 250;
+}
+
 #if IS_RDR3
 void TimecycleManager::StoreVarInfoName(const std::string& name)
 {
@@ -791,6 +801,12 @@ static void (*g_origFindModifiersForInteriors)(const void*, void*, uint32_t, CPo
 static void FindModifiersForInteriors(const void* viewport, void* interiorInst, uint32_t roomId, CPortalModifierQueryResults* results)
 {
 	g_origFindModifiersForInteriors(viewport, interiorInst, roomId, results);
+
+	// room 0 is the exterior
+	if (roomId > 0)
+	{
+		TCManager.MarkInsideInteriorRoom();
+	}
 
 	int index = TCManager.GetInteriorModifierOverride();
 	if (index < 0)

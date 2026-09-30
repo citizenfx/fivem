@@ -108,6 +108,7 @@ class GAME_COMPONENT_EXPORT TimecycleManager
 private:
 	bool m_activateEditor; // hack...
 	int m_interiorModifierOverride = -1; // modifier the room the player is in should use instead of its own
+	uint64_t m_lastInteriorRoomTick = 0; // last time the game queried interior modifiers from inside a room
 	std::map<uint32_t, std::string> m_originalNames; // names that were gathered from data files
 	std::map<uint32_t, std::string> m_customNames; // names of custom timecycles that were created in code
 	std::map<uint32_t, rage::tcModifier*> m_modifiersBackup; // backups of original modifiers
@@ -145,6 +146,8 @@ public:
 	bool ShouldActivateEditor();
 	void SetInteriorModifierOverride(int index);
 	int GetInteriorModifierOverride();
+	void MarkInsideInteriorRoom();
+	bool IsInsideInteriorRoom();
 
 	static rage::tcManager* GetGameManager(); // get pointer to instance of RAGE timecycle manager
 	static TimecycleScriptData* GetScriptData(); // get "script" data, seems to be struct that is used in natives

@@ -222,7 +222,7 @@ void TimecycleEditor::Draw()
 			{
 				auto selected = m_selectedModifier.GetModifier();
 				int selectedIndex = selected ? TheTimecycleManager->GetTimecycleIndex(*selected) : -1;
-				int interiorIndex = m_replaceInteriorTimecycle ? selectedIndex : -1;
+				int interiorIndex = TheTimecycleManager->GetInteriorModifierOverride();
 
 				if (scriptData->m_primaryModifierIndex != -1)
 				{
@@ -304,46 +304,28 @@ void TimecycleEditor::Draw()
 
 				ImGui::Separator();
 
-				if (ImGui::Checkbox("Apply selected", &m_applySelectedTimecycle))
+				if (ImGui::Checkbox("Apply selected", &m_applySelectedTimecycle) && !m_applySelectedTimecycle)
 				{
-					if (m_applySelectedTimecycle)
-					{
-						m_replaceInteriorTimecycle = false;
-					}
-					else
-					{
-						scriptData->m_primaryModifierIndex = -1;
-					}
+					scriptData->m_primaryModifierIndex = -1;
 				}
 
 				if (ImGui::IsItemHovered())
 				{
 					ImGui::SetTooltip("Applies the selected timecycle globally, the way a script would.\n"
-									  "Inside an MLO this stacks on top of the interiors own timecycle.");
+									  "Inside an MLO it replaces the rooms own timecycle instead.");
 				}
 
-				if (m_applySelectedTimecycle && selectedIndex != -1)
+				if (!m_applySelectedTimecycle)
 				{
-					scriptData->m_primaryModifierIndex = selectedIndex;
+					TheTimecycleManager->SetInteriorModifierOverride(-1);
 				}
-
-				if (ImGui::Checkbox("Replace interior timecycle", &m_replaceInteriorTimecycle))
+				else if (selectedIndex != -1)
 				{
-					if (m_replaceInteriorTimecycle)
-					{
-						m_applySelectedTimecycle = false;
-						scriptData->m_primaryModifierIndex = -1;
-					}
-				}
+					bool inside = TheTimecycleManager->IsInsideInteriorRoom();
 
-				if (ImGui::IsItemHovered())
-				{
-					ImGui::SetTooltip("Makes the room you are standing in use the selected timecycle instead of its\n"
-									  "own, so you see it on its own rather than stacked on the interiors.\n"
-									  "Only does anything while you are inside an MLO.");
+					scriptData->m_primaryModifierIndex = inside ? -1 : selectedIndex;
+					TheTimecycleManager->SetInteriorModifierOverride(inside ? selectedIndex : -1);
 				}
-
-				TheTimecycleManager->SetInteriorModifierOverride(m_replaceInteriorTimecycle ? selectedIndex : -1);
 			}
 
 			if (ImGui::BeginChild("list", ImVec2(-1.0f, -1.0f), false))
@@ -868,7 +850,6 @@ void TimecycleEditor::Reset()
 
 	m_editorEnabled = false;
 	m_applySelectedTimecycle = false;
-	m_replaceInteriorTimecycle = true;
 	TheTimecycleManager->SetInteriorModifierOverride(-1);
 	g_timecycleXmlOutput.ClearBuffer();
 	m_searchCache.clear();

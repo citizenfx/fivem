@@ -41,7 +41,6 @@ private:
 	char m_detailDropDownBuffer[kMaxBufferSize]{};
 
 	bool m_applySelectedTimecycle = false;
-	bool m_replaceInteriorTimecycle = true;
 	tinyxml2::XMLPrinter g_timecycleXmlOutput;
 
 public:
