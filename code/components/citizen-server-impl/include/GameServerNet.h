@@ -11,7 +11,8 @@ namespace net
 enum NetPacketType
 {
 	NetPacketType_Unreliable,
-	NetPacketType_Reliable
+	NetPacketType_Reliable,
+	NetPacketType_UnreliableFragment
 };
 
 namespace fx
