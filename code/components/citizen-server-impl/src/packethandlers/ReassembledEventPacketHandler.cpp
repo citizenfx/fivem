@@ -65,26 +65,42 @@ bool fx::ServerDecorators::ReassembledEventV2PacketHandler::Process(ServerInstan
 	static auto latentEventRateFloodLimiter = latentEventRateLimiterStore.GetRateLimiter(
 	"latentEventFlood", fx::RateLimiterDefaults{ kLatentEventRateFloodLimit, kLatentEventRateFloodLimitBurst });
 
+	constexpr double kLatentEventAckRateLimit = 1000.f;
+	constexpr double kLatentEventAckRateLimitBurst = 2000.f;
+	static auto latentEventAckRateLimiter = latentEventRateLimiterStore.GetRateLimiter(
+	"latentEventAck", fx::RateLimiterDefaults{ kLatentEventAckRateLimit, kLatentEventAckRateLimitBurst });
+
 	if (!g_enableNetEventReassemblyConVar->GetValue())
 	{
 		return false;
 	}
 
-	const uint32_t netId = client->GetNetId();
-
-	if (!latentEventRateLimiter->Consume(netId))
-	{
-		return false;
-	}
-
-	if (!latentEventRateFloodLimiter->Consume(netId))
-	{
-		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::LATENT_NET_EVENT_RATE_LIMIT, "latent event packet overflow.");
-		return false;
-	}
-
 	return ProcessPacket(reader, [](net::packet::ReassembledEventV2& reassembledEvent, fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, fwRefContainer<fx::EventReassemblyComponent>& rac, ENetPacketPtr& packet)
 	{
+		const uint32_t netId = client->GetNetId();
+
+		// acks answer fragments the server sent, so they must not eat into the budget of client-sent fragments
+		if (reassembledEvent.IsAck())
+		{
+			if (!latentEventAckRateLimiter->Consume(netId))
+			{
+				return;
+			}
+		}
+		else
+		{
+			if (!latentEventRateLimiter->Consume(netId))
+			{
+				return;
+			}
+
+			if (!latentEventRateFloodLimiter->Consume(netId))
+			{
+				instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::LATENT_NET_EVENT_RATE_LIMIT, "latent event packet overflow.");
+				return;
+			}
+		}
+
 		gscomms_execute_callback_on_main_thread([rac, reassembledEvent, client, packet]()
 		{
 			rac->HandlePacketV2(client->GetNetId(), reassembledEvent);
