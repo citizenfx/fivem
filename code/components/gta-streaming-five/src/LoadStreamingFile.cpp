@@ -3375,6 +3375,9 @@ static void CleanupStreaming()
 	auto typesStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
 	auto navMeshStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ynv");
 	auto staticBoundsStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn");
+#ifdef GTA_FIVE
+	auto txdStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytd");
+#endif
 	auto str = streaming::Manager::GetInstance();
 
 	for (auto [module, idx] : g_pendingRemovals)
@@ -3493,6 +3496,16 @@ static void CleanupStreaming()
 	{
 		// navmeshstore won't remove from some internal 'name hash' and therefore re-registration crashes
 		// staticboundsstore has a weird issue too at times (regarding interior proxies?)
+#ifdef GTA_FIVE
+		// Vehicle fragments cache their texture-dictionary dependencies by TxdStore index.
+		// Keep the slot identity across session reconnects so re-registering the same YTD does
+		// not leave process-lifetime fragment metadata pointing at a freed TxdStore slot.
+		if (module == txdStore)
+		{
+			continue;
+		}
+#endif
+
 		if (module != navMeshStore && module != staticBoundsStore)
 		{
 			module->RemoveSlot(idx);
