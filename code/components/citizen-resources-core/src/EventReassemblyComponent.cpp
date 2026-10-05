@@ -47,6 +47,8 @@ public:
 
 	void HandlePacketV2(int source, const net::packet::ReassembledEventV2& packet) override;
 
+	EventReassemblyAckResult HandlePacketV2Ack(int source, const net::packet::ReassembledEventV2& packet) override;
+
 #ifndef IS_FXSERVER
 	void TriggerEvent(int target, std::string_view eventName, std::string_view eventPayload, int bytesPerSecond) override;
 #endif
@@ -64,7 +66,10 @@ private:
 		{
 			std::chrono::milliseconds lastSend{ 0 };
 			std::chrono::milliseconds delayNextSend{ 0 };
+			std::chrono::milliseconds lastProgress{ 0 };
 			eastl::bitvector<> ackBits;
+			eastl::bitvector<> sentBits;
+			size_t acknowledgedPackets = 0;
 			size_t lastBit = 0;
 		};
 
@@ -72,20 +77,25 @@ private:
 		int bytesPerSecond;
 		std::vector<uint8_t> sendPayload;
 		std::unordered_map<int, std::shared_ptr<PerTargetData>> targetData;
+		int nextTarget = std::numeric_limits<int>::min();
 	};
 
 	struct ReceiveEvent
 	{
 		int source;
 		eastl::bitvector<> ackedBits;
+		size_t receivedPackets = 0;
 
 		// completion information (used to handle lingering packets after full reassembly)
 		bool completed;
 		std::chrono::milliseconds timeLastAck;
+		std::chrono::milliseconds lastActivity;
 
 		// we don't reassemble in-flight since a malicious source may try to get us to allocate many in-flight packets to cause memory exhaustion
 		std::map<uint32_t, std::tuple<size_t, std::unique_ptr<uint8_t[]>>> packetData;
 	};
+
+	using SendList = std::map<EventId, std::shared_ptr<SendEvent>>;
 
 	struct Target
 	{
@@ -96,13 +106,13 @@ private:
 private:
 	void HandleReceivedPacket(int source, const std::shared_ptr<ReceiveEvent>& event, uint32_t fragmentSize, bool v2 = false);
 
-	void UnregisterSendList(int target, std::unordered_map<EventId, std::shared_ptr<SendEvent>>& sendList);
+	void UnregisterSendList(int target, SendList& sendList);
 
-	void NetworkTickSendList(const std::chrono::milliseconds& timeNow, const std::chrono::milliseconds& dT, std::unordered_map<EventId, std::shared_ptr<SendEvent>>& sendList, uint32_t fragmentSize, bool v2 = false);
+	void NetworkTickSendList(const std::chrono::milliseconds& timeNow, const std::chrono::milliseconds& dT, SendList& sendList, uint32_t fragmentSize, size_t& fragmentBudget, EventId& nextEvent, bool v2 = false);
 
 private:
-	std::unordered_map<EventId, std::shared_ptr<SendEvent>> m_sendList;
-	std::unordered_map<EventId, std::shared_ptr<SendEvent>> m_sendListV2;
+	SendList m_sendList;
+	SendList m_sendListV2;
 
 	std::unordered_map<int, std::unordered_map<EventId, std::shared_ptr<ReceiveEvent>>> m_receiveList;
 
@@ -120,6 +130,9 @@ private:
 
 	// Time of last m_receiveList cleanup
 	std::chrono::milliseconds m_lastCleanup;
+
+	EventId m_nextSendEvent = 0;
+	EventId m_nextSendEventV2 = 0;
 };
 
 struct EventPacket
@@ -217,7 +230,7 @@ void EventReassemblyComponentImpl::RegisterTarget(const int id, const uint8_t ma
 	m_targets[id] = Target{ id, maxPendingEvents };
 }
 
-void EventReassemblyComponentImpl::UnregisterSendList(int target, std::unordered_map<EventId, std::shared_ptr<SendEvent>>& sendList)
+void EventReassemblyComponentImpl::UnregisterSendList(int target, SendList& sendList)
 {
 	for (auto& [_, sendPacket] : sendList)
 	{
@@ -245,6 +258,8 @@ void EventReassemblyComponentImpl::UnregisterTarget(const int id)
 #ifndef IS_FXSERVER
 void EventReassemblyComponentImpl::TriggerEvent(const int target, const std::string_view eventName, const std::string_view eventPayload, int bytesPerSecond)
 {
+	const auto timeNow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+
 	// default BPS if it's 0/negative so we won't end up with weird calculation artifacts later on
 	if (bytesPerSecond <= 0)
 	{
@@ -262,7 +277,6 @@ void EventReassemblyComponentImpl::TriggerEvent(const int target, const std::str
 	// 10+MB/s bitrate to send 50+MB object.
 	if (bytesPerSecond >= 10000000 && eventPayload.size() >= 50000000)
 	{
-		auto timeNow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 		static std::chrono::milliseconds lastWarning{ 0 };
 		if (timeNow - lastWarning >= std::chrono::seconds(5))
 		{
@@ -317,7 +331,9 @@ void EventReassemblyComponentImpl::TriggerEvent(const int target, const std::str
 	{
 		auto targetData = std::make_shared<SendEvent::PerTargetData>();
 		targetData->ackBits.resize(packetCount);
+		targetData->sentBits.resize(packetCount);
 		targetData->lastSend = std::chrono::milliseconds{ 0 };
+		targetData->lastProgress = timeNow;
 
 		sendPacket->targetData[target] = targetData;
 	}
@@ -329,6 +345,8 @@ void EventReassemblyComponentImpl::TriggerEvent(const int target, const std::str
 
 void EventReassemblyComponentImpl::TriggerEventV2(const int target, std::string_view eventName, std::string_view eventPayload, int bytesPerSecond)
 {
+	const auto timeNow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+
 	// default BPS if it's 0/negative so we won't end up with weird calculation artifacts later on
 	if (bytesPerSecond <= 0)
 	{
@@ -346,7 +364,6 @@ void EventReassemblyComponentImpl::TriggerEventV2(const int target, std::string_
 	// 10+MB/s bitrate to send 50+MB object.
 	if (bytesPerSecond >= 10000000 && eventPayload.size() >= 50000000)
 	{
-		auto timeNow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 		static std::chrono::milliseconds lastWarning{ 0 };
 		if (timeNow - lastWarning >= std::chrono::seconds(5))
 		{
@@ -403,7 +420,9 @@ void EventReassemblyComponentImpl::TriggerEventV2(const int target, std::string_
 	{
 		auto targetData = std::make_shared<SendEvent::PerTargetData>();
 		targetData->ackBits.resize(packetCount);
+		targetData->sentBits.resize(packetCount);
 		targetData->lastSend = std::chrono::milliseconds{ 0 };
+		targetData->lastProgress = timeNow;
 
 		sendPacket->targetData[targetId] = targetData;
 	}
@@ -421,6 +440,7 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 {
 	if (m_sink->LimitEvent(source))
 	{
+		event->packetData.clear();
 		return;
 	}
 
@@ -435,8 +455,9 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 
 		readSize += std::get<0>(packet.second);
 
-		packet.second = std::tuple<size_t, std::unique_ptr<uint8_t[]>>{};
 	}
+
+	event->packetData.clear();
 
 	// parse event data
 	static char eventName[65536];
@@ -447,9 +468,11 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 	if (v2)
 	{
 		net::ByteReader reader{ eventPayload.data(), readSize };
-		uint16_t nameLength;
-		reader.Field(nameLength);
-		reader.Field(name, nameLength);
+		uint16_t nameLength = 0;
+		if (!reader.Field(nameLength) || !reader.Field(name, nameLength))
+		{
+			return;
+		}
 
 		// Strip trailing null terminator if present (much older clients include it in the length)
 		if (!name.empty() && name.back() == '\0')
@@ -457,14 +480,20 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 			name = name.substr(0, name.size() - 1);
 		}
 
-		reader.Field(data, reader.GetRemaining());
+		if (!reader.Field(data, reader.GetRemaining()))
+		{
+			return;
+		}
 	}
 	else
 	{
 		rl::MessageBufferView buffer(net::Span<uint8_t>(eventPayload.data(), readSize));
 
 		uint16_t nameLength = buffer.Read<uint16_t>(16);
-		buffer.ReadBits(eventName, nameLength * 8);
+		if (nameLength == 0 || nameLength >= std::size(eventName) || !buffer.ReadBits(eventName, nameLength * 8))
+		{
+			return;
+		}
 		eventName[nameLength] = '\0';
 
 		name = { eventName, static_cast<size_t>(nameLength - 1) };
@@ -486,19 +515,63 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 	sourceStr);
 }
 
-void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::milliseconds& timeNow, const std::chrono::milliseconds& dT, std::unordered_map<EventId, std::shared_ptr<SendEvent>>& sendList, const uint32_t fragmentSize, const bool v2)
+void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::milliseconds& timeNow, const std::chrono::milliseconds& dT, SendList& sendList, const uint32_t fragmentSize, size_t& fragmentBudget, EventId& nextEvent, const bool v2)
 {
+	static constexpr size_t kMaxFragmentsPerTargetPerTick = 64;
+	static constexpr std::chrono::milliseconds kMinimumNoProgressTimeout{ 120000 };
 	std::set<EventId> dones;
-
-	for (auto& [eventId, sendPacket] : sendList)
+	if (sendList.empty())
 	{
+		return;
+	}
+
+	auto eventIt = sendList.lower_bound(nextEvent);
+	if (eventIt == sendList.end())
+	{
+		eventIt = sendList.begin();
+	}
+
+	size_t eventsRemaining = sendList.size();
+	while (eventsRemaining-- > 0)
+	{
+		const auto currentEventIt = eventIt;
+		if (++eventIt == sendList.end())
+		{
+			eventIt = sendList.begin();
+		}
+
+		const EventId eventId = currentEventIt->first;
+		nextEvent = eventIt->first;
+		auto& sendPacket = currentEventIt->second;
+
 		double pps = (sendPacket->bytesPerSecond / static_cast<double>(fragmentSize));
-		std::chrono::milliseconds latency{ static_cast<uint64_t>(1000 / pps) };
+		std::chrono::milliseconds latency{ std::max<uint64_t>(1, static_cast<uint64_t>(1000 / pps)) };
 
 		std::set<int> doneTargets;
 
-		for (int target : sendPacket->targets)
+		auto targetIt = sendPacket->targets.lower_bound(sendPacket->nextTarget);
+		if (targetIt == sendPacket->targets.end())
 		{
+			targetIt = sendPacket->targets.begin();
+		}
+
+		size_t targetsRemaining = sendPacket->targets.size();
+		while (targetsRemaining-- > 0)
+		{
+			const auto currentTargetIt = targetIt;
+			if (++targetIt == sendPacket->targets.end())
+			{
+				targetIt = sendPacket->targets.begin();
+			}
+
+			const int target = *currentTargetIt;
+			if (fragmentBudget == 0)
+			{
+				sendPacket->nextTarget = target;
+				break;
+			}
+			sendPacket->nextTarget = *targetIt;
+
 			// if the target is gone, get rid of them
 			if (m_targets.find(target) == m_targets.end())
 			{
@@ -507,109 +580,108 @@ void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::millis
 			}
 
 			auto targetData = sendPacket->targetData[target];
+			const auto noProgressTimeout = std::max(kMinimumNoProgressTimeout, latency * 4);
+			if (targetData && (timeNow - targetData->lastProgress) >= noProgressTimeout)
+			{
+				sendPacket->targetData[target] = {};
+				doneTargets.insert(target);
+				continue;
+			}
 
 			if (targetData && (targetData->lastSend + latency) < timeNow && targetData->delayNextSend < timeNow)
 			{
 				// burst loop so we don't 'slow down' too much at a lower tick rate
 				auto resTime = dT;
 				auto& ackBits = targetData->ackBits;
-				auto startBit = targetData->lastBit;
+				size_t fragmentsSent = 0;
 
 				do
 				{
-					// All packets have been processed
-					bool hasAll = true;
-
 					const auto bc = ackBits.size();
-
-					// check if any 'early' bits still need to be acked.
-					size_t firstPacketIdx = -1;
-					for (size_t bit = 0; bit < targetData->lastBit; bit++)
+					if (targetData->acknowledgedPackets == bc)
 					{
-						if (!ackBits[bit])
-						{
-							hasAll = false;
-							firstPacketIdx = bit;
-							break;
-						}
+						sendPacket->targetData[target] = {};
+						doneTargets.insert(target);
+						break;
 					}
 
-					// find the first packet we have to send
-					size_t packetIdx = -1;
+					size_t packetIdx = bc;
 					for (size_t bit = targetData->lastBit; bit < bc; bit++)
 					{
 						if (!ackBits[bit])
 						{
-							hasAll = false;
 							packetIdx = bit;
 							break;
 						}
 					}
 
-					bool forceBurstDelay = false;
-					if (hasAll)
+					if (packetIdx == bc)
 					{
-						// hey, we're done with this target!
-						sendPacket->targetData[target] = {};
-						doneTargets.insert(target);
+						for (size_t bit = 0; bit < targetData->lastBit; bit++)
+						{
+							if (!ackBits[bit])
+							{
+								targetData->lastBit = bit;
+								break;
+							}
+						}
+
+						targetData->delayNextSend = timeNow + std::chrono::milliseconds(250);
 						break;
 					}
-					else if (packetIdx == -1)
-					{
-						forceBurstDelay = true;
 
-						// reset the loop to first packet that has not been ack'd
-						targetData->lastBit = firstPacketIdx;
+					targetData->lastBit = (packetIdx + 1) % bc;
+					targetData->sentBits.set(packetIdx, true);
+
+					if (v2)
+					{
+						net::packet::ReassembledEventV2Packet packet;
+						packet.data.eventId = eventId;
+						packet.data.packetIdx = static_cast<uint16_t>(packetIdx);
+						packet.data.totalPackets = static_cast<uint16_t>(ackBits.size());
+
+						size_t offset = (packetIdx * fragmentSize);
+						size_t size = std::min(sendPacket->sendPayload.size() - offset, static_cast<size_t>(fragmentSize));
+
+						packet.data.data.SetValue({ sendPacket->sendPayload.data() + offset, size });
+						m_sink->SendPacketV2(target, packet);
 					}
 					else
 					{
-						targetData->lastBit = (packetIdx + 1) % bc;
+						EventPacket packet;
+						packet.eventId = eventId;
+						packet.packetIdx = packetIdx;
+						packet.totalPackets = ackBits.size();
 
-						if (v2)
-						{
-							net::packet::ReassembledEventV2Packet packet;
-							packet.data.eventId = eventId;
-							packet.data.packetIdx = static_cast<uint16_t>(packetIdx);
-							packet.data.totalPackets = static_cast<uint16_t>(ackBits.size());
+						size_t offset = (packetIdx * fragmentSize);
+						size_t size = std::min(sendPacket->sendPayload.size() - offset, size_t(fragmentSize));
 
-							size_t offset = (packetIdx * fragmentSize);
-							size_t size = std::min(sendPacket->sendPayload.size() - offset, static_cast<size_t>(fragmentSize));
+						memcpy(packet.payload.data(), sendPacket->sendPayload.data() + offset, size);
+						packet.thisBytes = size;
 
-							packet.data.data.SetValue({ sendPacket->sendPayload.data() + offset, size });
-							m_sink->SendPacketV2(target, packet);
-						}
-						else
-						{
-							// try to send them a packet
-							EventPacket packet;
-							packet.eventId = eventId;
-							packet.packetIdx = packetIdx;
-							packet.totalPackets = ackBits.size();
+						uint8_t buf[1536];
+						rl::MessageBufferView view(net::Span<uint8_t>(buf, 1536));
+						packet.Unparse(view);
 
-							size_t offset = (packetIdx * fragmentSize);
-							size_t size = std::min(sendPacket->sendPayload.size() - offset, size_t(fragmentSize));
-
-							memcpy(packet.payload.data(), sendPacket->sendPayload.data() + offset, size);
-							packet.thisBytes = size;
-
-							uint8_t buf[1536];
-							rl::MessageBufferView view(net::Span<uint8_t>(buf, 1536));
-							packet.Unparse(view);
-
-							m_sink->SendPacket(target, std::string_view{ reinterpret_cast<char*>(buf), view.GetDataLength() });
-						}
-
-						// cut down time
-						if (resTime > latency)
-						{
-							resTime -= latency;
-						}
+						m_sink->SendPacket(target, std::string_view{ reinterpret_cast<char*>(buf), view.GetDataLength() });
 					}
 
-					// if we've cycled around fully, set next send time and break out
-					if (targetData->lastBit <= startBit || forceBurstDelay)
+					++fragmentsSent;
+					--fragmentBudget;
+
+					if (resTime > latency)
+					{
+						resTime -= latency;
+					}
+
+					if (targetData->lastBit == 0)
 					{
 						targetData->delayNextSend = timeNow + std::chrono::milliseconds(250);
+						break;
+					}
+
+					if (fragmentsSent >= kMaxFragmentsPerTargetPerTick || fragmentBudget == 0)
+					{
 						break;
 					}
 				} while (resTime > latency);
@@ -633,6 +705,11 @@ void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::millis
 		{
 			dones.insert(eventId);
 		}
+
+		if (fragmentBudget == 0)
+		{
+			break;
+		}
 	}
 
 	// remove dones
@@ -645,28 +722,42 @@ void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::millis
 void EventReassemblyComponentImpl::NetworkTick()
 {
 	auto timeNow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
-	auto dT = timeNow - m_lastTime;
+	auto dT = std::min(timeNow - m_lastTime, std::chrono::milliseconds{ 100 });
 	m_lastTime = timeNow;
 
 	// handle the send list
 	{
 		std::unique_lock lock(m_listMutex);
+		static constexpr size_t kMaxFragmentsPerNetworkTick = 1024;
+		size_t fragmentBudget = kMaxFragmentsPerNetworkTick;
 
-		NetworkTickSendList(timeNow, dT, m_sendList, net::packet::ReassembledEvent::kFragmentSize);
-		NetworkTickSendList(timeNow, dT, m_sendListV2, net::packet::ReassembledEventV2::kFragmentSize, true);
+		NetworkTickSendList(timeNow, dT, m_sendList, net::packet::ReassembledEvent::kFragmentSize, fragmentBudget, m_nextSendEvent);
+		NetworkTickSendList(timeNow, dT, m_sendListV2, net::packet::ReassembledEventV2::kFragmentSize, fragmentBudget, m_nextSendEventV2, true);
 
-		// Cleanup ReceiveEvents 2 minutes after completion (& last ACK).
-		static constexpr std::chrono::milliseconds gc_time(120000);
-		if (timeNow - m_lastCleanup >= gc_time)
+		static constexpr std::chrono::milliseconds gcInterval{ 30000 };
+		static constexpr std::chrono::milliseconds completedLifetime{ 120000 };
+		static constexpr std::chrono::milliseconds incompleteIdleTimeout{ 120000 };
+		if (timeNow - m_lastCleanup >= gcInterval)
 		{
 			m_lastCleanup = timeNow;
 			for (auto it = m_receiveList.begin(); it != m_receiveList.end(); /* no increment */)
 			{
 				for (auto clientIt = it->second.begin(); clientIt != it->second.end(); /* no increment */)
 				{
-					if (clientIt->second->completed && (timeNow - clientIt->second->timeLastAck) >= gc_time)
+					const auto& receiveEvent = clientIt->second;
+					const bool completedExpired = receiveEvent->completed && (timeNow - receiveEvent->timeLastAck) >= completedLifetime;
+					const bool incompleteExpired = !receiveEvent->completed && (timeNow - receiveEvent->lastActivity) >= incompleteIdleTimeout;
+					if (completedExpired || incompleteExpired)
 					{
-						// todo: test, might not work correctly
+						if (incompleteExpired && receiveEvent->source != 0)
+						{
+							auto target = m_targets.find(receiveEvent->source);
+							if (target != m_targets.end() && target->second.maxPendingEvents != 0xFF)
+							{
+								++target->second.maxPendingEvents;
+							}
+						}
+
 						clientIt = it->second.erase(clientIt);
 					}
 					else
@@ -674,7 +765,14 @@ void EventReassemblyComponentImpl::NetworkTick()
 						++clientIt;
 					}
 				}
-				++it;
+				if (it->second.empty())
+				{
+					it = m_receiveList.erase(it);
+				}
+				else
+				{
+					++it;
+				}
 			}
 		}
 	}
@@ -720,12 +818,18 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 
 			if (targetDataIt != sendData->targetData.end() && targetDataIt->second)
 			{
-				auto& ackBits = targetDataIt->second->ackBits;
+				auto& targetData = targetDataIt->second;
+				auto& ackBits = targetData->ackBits;
 
-				if (packet.packetIdx < ackBits.size())
+				if (packet.totalPackets == ackBits.size() && packet.packetIdx < ackBits.size() && targetData->sentBits[packet.packetIdx])
 				{
 					// marks the packetIdx (0, ackBitsSize] as arrived
-					ackBits.set(packet.packetIdx, true);
+					if (!ackBits[packet.packetIdx])
+					{
+						ackBits.set(packet.packetIdx, true);
+						++targetData->acknowledgedPackets;
+						targetData->lastProgress = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+					}
 				}
 			}
 		}
@@ -781,6 +885,7 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 				receiveData->source = source;
 				receiveData->completed = false;
 				receiveData->timeLastAck = std::chrono::milliseconds{ 0 };
+				receiveData->lastActivity = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 
 				clientReceiveMap->insert({ packet.eventId, receiveData });
 			}
@@ -820,6 +925,8 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 			else if (receiveData->source == source)
 			{
 				ackBits.set(packet.packetIdx, true);
+				++receiveData->receivedPackets;
+				receiveData->lastActivity = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 
 				// copy the payload from the packet to our ReceiveEvent to assemble it when all data is received
 				{
@@ -842,17 +949,7 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 					receiveData->timeLastAck = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 				}
 
-				// checks if all packets are received
-				// this is the case when all bits inside the bitset are set to 1
-				hasAll = true;
-				for (size_t bit = 0; bit < ackBits.size(); bit++)
-				{
-					if (!ackBits[bit])
-					{
-						hasAll = false;
-						break;
-					}
-				}
+				hasAll = receiveData->receivedPackets == ackBits.size();
 
 				if (hasAll)
 				{
@@ -864,7 +961,7 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 					{
 						// targets are protected by m_listMutex as well
 						const auto target = m_targets.find(source);
-						if (target != m_targets.end())
+						if (target != m_targets.end() && target->second.maxPendingEvents != 0xFF)
 						{
 							// count up max pending event count, because a event is fully received
 							++target->second.maxPendingEvents;
@@ -908,26 +1005,7 @@ void EventReassemblyComponentImpl::HandlePacketV2(int source, const net::packet:
 
 	if (packet.IsAck())
 	{
-		// received a ack packet to indicate the remote side received a payload packet
-		std::unique_lock lock(m_listMutex);
-		auto entryIt = m_sendListV2.find(packet.eventId);
-		if (entryIt != m_sendListV2.end())
-		{
-			std::shared_ptr<SendEvent> sendData = entryIt->second;
-
-			auto targetDataIt = sendData->targetData.find(source);
-
-			if (targetDataIt != sendData->targetData.end() && targetDataIt->second)
-			{
-				auto& ackBits = targetDataIt->second->ackBits;
-
-				if (packet.packetIdx < ackBits.size())
-				{
-					// marks the packetIdx (0, ackBitsSize] as arrived
-					ackBits.set(packet.packetIdx, true);
-				}
-			}
-		}
+		HandlePacketV2Ack(source, packet);
 	}
 	else
 	{
@@ -980,6 +1058,7 @@ void EventReassemblyComponentImpl::HandlePacketV2(int source, const net::packet:
 				receiveData->source = source;
 				receiveData->completed = false;
 				receiveData->timeLastAck = std::chrono::milliseconds{ 0 };
+				receiveData->lastActivity = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 
 				clientReceiveMap->insert({ packet.eventId, receiveData });
 			}
@@ -1016,6 +1095,8 @@ void EventReassemblyComponentImpl::HandlePacketV2(int source, const net::packet:
 			{
 
 				ackBits.set(packet.packetIdx, true);
+				++receiveData->receivedPackets;
+				receiveData->lastActivity = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 
 				// copy the payload from the packet to our ReceiveEvent to assemble it when all data is received
 				{
@@ -1035,17 +1116,7 @@ void EventReassemblyComponentImpl::HandlePacketV2(int source, const net::packet:
 					receiveData->timeLastAck = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 				}
 
-				// checks if all packets are received
-				// this is the case when all bits inside the bitset are set to 1
-				hasAll = true;
-				for (size_t bit = 0; bit < ackBits.size(); bit++)
-				{
-					if (!ackBits[bit])
-					{
-						hasAll = false;
-						break;
-					}
-				}
+				hasAll = receiveData->receivedPackets == ackBits.size();
 
 				if (hasAll)
 				{
@@ -1057,7 +1128,7 @@ void EventReassemblyComponentImpl::HandlePacketV2(int source, const net::packet:
 					{
 						// targets are protected by m_listMutex as well
 						const auto target = m_targets.find(source);
-						if (target != m_targets.end())
+						if (target != m_targets.end() && target->second.maxPendingEvents != 0xFF)
 						{
 							// count up max pending event count, because a event is fully received
 							++target->second.maxPendingEvents;
@@ -1078,6 +1149,44 @@ void EventReassemblyComponentImpl::HandlePacketV2(int source, const net::packet:
 			HandleReceivedPacket(source, receiveData, net::packet::ReassembledEventV2::kFragmentSize, true);
 		}
 	}
+}
+
+EventReassemblyAckResult EventReassemblyComponentImpl::HandlePacketV2Ack(const int source, const net::packet::ReassembledEventV2& packet)
+{
+	if (!packet.IsAck() || packet.totalPackets == static_cast<uint16_t>(0) || packet.packetIdx >= packet.totalPackets)
+	{
+		return EventReassemblyAckResult::Invalid;
+	}
+
+	std::unique_lock lock(m_listMutex);
+	const auto entryIt = m_sendListV2.find(packet.eventId);
+	if (entryIt == m_sendListV2.end())
+	{
+		return EventReassemblyAckResult::Invalid;
+	}
+
+	const auto targetDataIt = entryIt->second->targetData.find(source);
+	if (targetDataIt == entryIt->second->targetData.end() || !targetDataIt->second)
+	{
+		return EventReassemblyAckResult::Invalid;
+	}
+
+	auto& targetData = targetDataIt->second;
+	auto& ackBits = targetData->ackBits;
+	if (packet.totalPackets != ackBits.size() || packet.packetIdx >= ackBits.size() || !targetData->sentBits[packet.packetIdx])
+	{
+		return EventReassemblyAckResult::Invalid;
+	}
+
+	if (ackBits[packet.packetIdx])
+	{
+		return EventReassemblyAckResult::Duplicate;
+	}
+
+	ackBits.set(packet.packetIdx, true);
+	++targetData->acknowledgedPackets;
+	targetData->lastProgress = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+	return EventReassemblyAckResult::Accepted;
 }
 
 fwRefContainer<EventReassemblyComponent> EventReassemblyComponent::Create()

@@ -47,6 +47,10 @@ bool fx::ServerDecorators::ReassembledEventPacketHandler::Process(ServerInstance
 fx::ServerDecorators::ReassembledEventV2PacketHandler::ReassembledEventV2PacketHandler(fx::ServerInstanceBase* instance)
 	: m_rac(instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::EventReassemblyComponent>())
 {
+	if (!g_enableNetEventReassemblyConVar)
+	{
+		g_enableNetEventReassemblyConVar = instance->AddVariable<bool>("sv_enableNetEventReassembly", ConVar_None, true);
+	}
 }
 
 bool fx::ServerDecorators::ReassembledEventV2PacketHandler::Process(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader, ENetPacketPtr& packet)
@@ -65,26 +69,41 @@ bool fx::ServerDecorators::ReassembledEventV2PacketHandler::Process(ServerInstan
 	static auto latentEventRateFloodLimiter = latentEventRateLimiterStore.GetRateLimiter(
 	"latentEventFlood", fx::RateLimiterDefaults{ kLatentEventRateFloodLimit, kLatentEventRateFloodLimitBurst });
 
+	static auto latentEventAckAbuseRateLimiter = latentEventRateLimiterStore.GetRateLimiter(
+	"latentEventAckAbuse", fx::RateLimiterDefaults{ 100.f, 200.f });
+	static auto latentEventAckAbuseFloodLimiter = latentEventRateLimiterStore.GetRateLimiter(
+	"latentEventAckAbuseFlood", fx::RateLimiterDefaults{ 500.f, 1000.f });
+
 	if (!g_enableNetEventReassemblyConVar->GetValue())
 	{
 		return false;
 	}
 
-	const uint32_t netId = client->GetNetId();
-
-	if (!latentEventRateLimiter->Consume(netId))
-	{
-		return false;
-	}
-
-	if (!latentEventRateFloodLimiter->Consume(netId))
-	{
-		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::LATENT_NET_EVENT_RATE_LIMIT, "latent event packet overflow.");
-		return false;
-	}
-
 	return ProcessPacket(reader, [](net::packet::ReassembledEventV2& reassembledEvent, fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, fwRefContainer<fx::EventReassemblyComponent>& rac, ENetPacketPtr& packet)
 	{
+		const uint32_t netId = client->GetNetId();
+		if (reassembledEvent.IsAck())
+		{
+			const auto result = rac->HandlePacketV2Ack(netId, reassembledEvent);
+			if (result != fx::EventReassemblyAckResult::Accepted && !latentEventAckAbuseRateLimiter->Consume(netId))
+			{
+				if (!latentEventAckAbuseFloodLimiter->Consume(netId))
+				{
+					instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::LATENT_NET_EVENT_RATE_LIMIT, "latent event ACK overflow.");
+				}
+			}
+
+			return;
+		}
+
+		latentEventRateLimiter->Consume(netId);
+		const bool withinFloodRate = latentEventRateFloodLimiter->Consume(netId);
+		if (!withinFloodRate)
+		{
+			instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::LATENT_NET_EVENT_RATE_LIMIT, "latent event packet overflow.");
+			return;
+		}
+
 		gscomms_execute_callback_on_main_thread([rac, reassembledEvent, client, packet]()
 		{
 			rac->HandlePacketV2(client->GetNetId(), reassembledEvent);
