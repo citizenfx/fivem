@@ -8,6 +8,8 @@
 #include <state/RlMessageBuffer.h>
 
 #include <shared_mutex>
+#include <atomic>
+#include <new>
 
 #include <EASTL/unordered_map.h>
 
@@ -47,7 +49,9 @@ public:
 
 	void HandlePacketV2(int source, const net::packet::ReassembledEventV2& packet) override;
 
-	EventReassemblyAckResult HandlePacketV2Ack(int source, const net::packet::ReassembledEventV2& packet) override;
+	EventReassemblyAckResult HandlePacketV2Ack(int source, const net::packet::ReassembledEventV2& packet, EventReassemblyAckInfo* info = nullptr) override;
+
+	void SetAckDiagnosticsEnabled(bool enabled) override;
 
 #ifndef IS_FXSERVER
 	void TriggerEvent(int target, std::string_view eventName, std::string_view eventPayload, int bytesPerSecond) override;
@@ -71,6 +75,9 @@ private:
 			eastl::bitvector<> sentBits;
 			size_t acknowledgedPackets = 0;
 			size_t lastBit = 0;
+			uint64_t diagnosticEpoch = 0;
+			uint64_t observedSends = 0;
+			uint64_t observedRetries = 0;
 		};
 
 		std::set<int> targets;
@@ -106,7 +113,11 @@ private:
 private:
 	void HandleReceivedPacket(int source, const std::shared_ptr<ReceiveEvent>& event, uint32_t fragmentSize, bool v2 = false);
 
-	void UnregisterSendList(int target, SendList& sendList);
+	void UnregisterSendList(int target, SendList& sendList, bool v2 = false);
+
+	EventReassemblyAckInfo DescribeSend(const SendEvent& event, const SendEvent::PerTargetData& target, std::chrono::milliseconds now) const;
+
+	void RememberSend(EventId eventId, int source, const SendEvent& event, const SendEvent::PerTargetData& target, EventReassemblyAckReason reason, std::chrono::milliseconds now);
 
 	void NetworkTickSendList(const std::chrono::milliseconds& timeNow, const std::chrono::milliseconds& dT, SendList& sendList, uint32_t fragmentSize, size_t& fragmentBudget, EventId& nextEvent, bool v2 = false);
 
@@ -119,6 +130,9 @@ private:
 	std::unordered_map<int, Target> m_targets;
 
 	std::shared_mutex m_listMutex;
+	std::atomic<bool> m_ackDiagnosticsEnabled{ false };
+	std::unique_ptr<EventReassemblyAckHistory> m_ackHistory;
+	uint64_t m_ackDiagnosticEpoch = 0;
 
 	ResourceManager* m_resourceManager;
 
@@ -230,10 +244,19 @@ void EventReassemblyComponentImpl::RegisterTarget(const int id, const uint8_t ma
 	m_targets[id] = Target{ id, maxPendingEvents };
 }
 
-void EventReassemblyComponentImpl::UnregisterSendList(int target, SendList& sendList)
+void EventReassemblyComponentImpl::UnregisterSendList(int target, SendList& sendList, bool v2)
 {
-	for (auto& [_, sendPacket] : sendList)
+	for (auto& [eventId, sendPacket] : sendList)
 	{
+		if (v2 && m_ackHistory)
+		{
+			const auto targetIt = sendPacket->targetData.find(target);
+			if (targetIt != sendPacket->targetData.end() && targetIt->second)
+			{
+				RememberSend(eventId, target, *sendPacket, *targetIt->second, EventReassemblyAckReason::RetiredDisconnected,
+					std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()));
+			}
+		}
 		sendPacket->targetData.erase(target);
 		sendPacket->targets.erase(target);
 	}
@@ -251,7 +274,7 @@ void EventReassemblyComponentImpl::UnregisterTarget(const int id)
 		m_receiveList.erase(id);
 
 		UnregisterSendList(id, m_sendList);
-		UnregisterSendList(id, m_sendListV2);
+		UnregisterSendList(id, m_sendListV2, true);
 	}
 }
 
@@ -583,6 +606,10 @@ void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::millis
 			const auto noProgressTimeout = std::max(kMinimumNoProgressTimeout, latency * 4);
 			if (targetData && (timeNow - targetData->lastProgress) >= noProgressTimeout)
 			{
+				if (v2)
+				{
+					RememberSend(eventId, target, *sendPacket, *targetData, EventReassemblyAckReason::RetiredExpired, timeNow);
+				}
 				sendPacket->targetData[target] = {};
 				doneTargets.insert(target);
 				continue;
@@ -600,6 +627,10 @@ void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::millis
 					const auto bc = ackBits.size();
 					if (targetData->acknowledgedPackets == bc)
 					{
+						if (v2)
+						{
+							RememberSend(eventId, target, *sendPacket, *targetData, EventReassemblyAckReason::RetiredCompleted, timeNow);
+						}
 						sendPacket->targetData[target] = {};
 						doneTargets.insert(target);
 						break;
@@ -631,6 +662,16 @@ void EventReassemblyComponentImpl::NetworkTickSendList(const std::chrono::millis
 					}
 
 					targetData->lastBit = (packetIdx + 1) % bc;
+					if (v2 && m_ackHistory)
+					{
+						if (targetData->diagnosticEpoch != m_ackDiagnosticEpoch)
+						{
+							targetData->diagnosticEpoch = m_ackDiagnosticEpoch;
+							targetData->observedSends = targetData->observedRetries = 0;
+						}
+						++targetData->observedSends;
+						targetData->observedRetries += targetData->sentBits[packetIdx] ? 1 : 0;
+					}
 					targetData->sentBits.set(packetIdx, true);
 
 					if (v2)
@@ -1151,42 +1192,143 @@ void EventReassemblyComponentImpl::HandlePacketV2(int source, const net::packet:
 	}
 }
 
-EventReassemblyAckResult EventReassemblyComponentImpl::HandlePacketV2Ack(const int source, const net::packet::ReassembledEventV2& packet)
+void EventReassemblyComponentImpl::SetAckDiagnosticsEnabled(bool enabled)
 {
+	if (m_ackDiagnosticsEnabled.load(std::memory_order_acquire) == enabled)
+	{
+		return;
+	}
+	std::unique_lock lock(m_listMutex);
+	if (m_ackDiagnosticsEnabled.load(std::memory_order_relaxed) == enabled)
+	{
+		return;
+	}
+	if (enabled)
+	{
+		m_ackHistory.reset(new (std::nothrow) EventReassemblyAckHistory());
+		++m_ackDiagnosticEpoch;
+	}
+	else
+	{
+		m_ackHistory.reset();
+	}
+	m_ackDiagnosticsEnabled.store(enabled, std::memory_order_release);
+}
+
+EventReassemblyAckInfo EventReassemblyComponentImpl::DescribeSend(const SendEvent& event, const SendEvent::PerTargetData& target, std::chrono::milliseconds now) const
+{
+	EventReassemblyAckInfo info;
+	info.hasTransfer = true;
+	info.activeOutboundEvents = static_cast<int64_t>(m_sendListV2.size());
+	info.payloadBytes = event.sendPayload.size();
+	info.bytesPerSecond = event.bytesPerSecond;
+	info.pendingTargets = static_cast<uint32_t>(event.targets.size());
+	info.expectedFragments = static_cast<uint32_t>(target.ackBits.size());
+	info.acknowledgedFragments = static_cast<uint32_t>(target.acknowledgedPackets);
+	info.lastSendAgeMs = target.lastSend.count() ? std::max<int64_t>(0, (now - target.lastSend).count()) : 0;
+	info.noProgressAgeMs = std::max<int64_t>(0, (now - target.lastProgress).count());
+	if (target.diagnosticEpoch == m_ackDiagnosticEpoch)
+	{
+		info.observedSends = target.observedSends;
+		info.observedRetries = target.observedRetries;
+	}
+
+	net::ByteReader reader{ event.sendPayload.data(), event.sendPayload.size() };
+	uint16_t nameLength = 0;
+	if (reader.Field(nameLength))
+	{
+		const auto length = std::min({ static_cast<size_t>(nameLength), reader.GetRemaining(), info.eventName.size() - 1 });
+		for (size_t i = 0; i < length; ++i)
+		{
+			const auto ch = event.sendPayload[sizeof(nameLength) + i];
+			info.eventName[i] = (ch >= 32 && ch < 127) ? static_cast<char>(ch) : '?';
+		}
+	}
+	return info;
+}
+
+void EventReassemblyComponentImpl::RememberSend(EventId eventId, int source, const SendEvent& event, const SendEvent::PerTargetData& target, EventReassemblyAckReason reason, std::chrono::milliseconds now)
+{
+	if (!m_ackHistory)
+	{
+		return;
+	}
+	auto info = DescribeSend(event, target, now);
+	info.reason = reason;
+	m_ackHistory->Remember(eventId, source, now.count(), info);
+}
+
+EventReassemblyAckResult EventReassemblyComponentImpl::HandlePacketV2Ack(const int source, const net::packet::ReassembledEventV2& packet, EventReassemblyAckInfo* info)
+{
+	if (info)
+	{
+		*info = {};
+	}
+	const auto finish = [info](EventReassemblyAckResult result, EventReassemblyAckReason reason)
+	{
+		if (info)
+		{
+			info->reason = reason;
+		}
+		return result;
+	};
 	if (!packet.IsAck() || packet.totalPackets == static_cast<uint16_t>(0) || packet.packetIdx >= packet.totalPackets)
 	{
-		return EventReassemblyAckResult::Invalid;
+		return finish(EventReassemblyAckResult::Invalid, EventReassemblyAckReason::InvalidEnvelope);
 	}
 
 	std::unique_lock lock(m_listMutex);
+	const auto describeMissing = [&](EventReassemblyAckReason reason)
+	{
+		if (info && m_ackHistory && m_ackHistory->Find(packet.eventId, source, packet.totalPackets,
+			std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count(), *info))
+		{
+			info->activeOutboundEvents = static_cast<int64_t>(m_sendListV2.size());
+			return EventReassemblyAckResult::Invalid;
+		}
+		return finish(EventReassemblyAckResult::Invalid, reason);
+	};
+	if (info)
+	{
+		info->activeOutboundEvents = static_cast<int64_t>(m_sendListV2.size());
+	}
 	const auto entryIt = m_sendListV2.find(packet.eventId);
 	if (entryIt == m_sendListV2.end())
 	{
-		return EventReassemblyAckResult::Invalid;
+		return describeMissing(EventReassemblyAckReason::UnknownEvent);
 	}
 
 	const auto targetDataIt = entryIt->second->targetData.find(source);
 	if (targetDataIt == entryIt->second->targetData.end() || !targetDataIt->second)
 	{
-		return EventReassemblyAckResult::Invalid;
+		return describeMissing(EventReassemblyAckReason::UnknownTarget);
 	}
 
 	auto& targetData = targetDataIt->second;
 	auto& ackBits = targetData->ackBits;
-	if (packet.totalPackets != ackBits.size() || packet.packetIdx >= ackBits.size() || !targetData->sentBits[packet.packetIdx])
+	if (info && m_ackHistory)
 	{
-		return EventReassemblyAckResult::Invalid;
+		*info = DescribeSend(*entryIt->second, *targetData,
+			std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()));
+	}
+	if (packet.totalPackets != ackBits.size() || packet.packetIdx >= ackBits.size())
+	{
+		return finish(EventReassemblyAckResult::Invalid, EventReassemblyAckReason::FragmentCountMismatch);
+	}
+	if (!targetData->sentBits[packet.packetIdx])
+	{
+		return finish(EventReassemblyAckResult::Invalid, EventReassemblyAckReason::UnsentFragment);
 	}
 
 	if (ackBits[packet.packetIdx])
 	{
-		return EventReassemblyAckResult::Duplicate;
+		return finish(EventReassemblyAckResult::Duplicate, EventReassemblyAckReason::Duplicate);
 	}
 
 	ackBits.set(packet.packetIdx, true);
 	++targetData->acknowledgedPackets;
 	targetData->lastProgress = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
-	return EventReassemblyAckResult::Accepted;
+	return finish(EventReassemblyAckResult::Accepted, EventReassemblyAckReason::Accepted);
 }
 
 fwRefContainer<EventReassemblyComponent> EventReassemblyComponent::Create()
