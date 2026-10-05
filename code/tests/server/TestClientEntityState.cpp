@@ -62,3 +62,14 @@ TEST_CASE("Client entity state reserves its per-tick working set")
 	REQUIRE(reservedGrowth.relocatedElements == 0);
 	REQUIRE(reserved.GetSyncedEntities().capacity() >= kEntityCount);
 }
+
+TEST_CASE("Worst-case frame retention uses elapsed client silence")
+{
+	using namespace std::chrono_literals;
+
+	const auto now = 10min;
+	REQUIRE_FALSE(fx::ShouldUseWorstCaseFrameBacklog(now, now - 1s));
+	REQUIRE_FALSE(fx::ShouldUseWorstCaseFrameBacklog(now, now - 5s));
+	REQUIRE(fx::ShouldUseWorstCaseFrameBacklog(now, now - 5001ms));
+	REQUIRE_FALSE(fx::ShouldUseWorstCaseFrameBacklog(now, now + 1s));
+}
