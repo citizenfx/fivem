@@ -1351,10 +1351,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					const auto deltaTime = syncDelay - entityData.syncDelta;
 					newSyncedEntities[entIdentifier] = { entityData.nextSync + deltaTime, syncDelay, entity, entityData.forceUpdate, entityData.hasCreated, false };
 				}
-				else if (entityData.hasCreated || entityData.hasNAckedCreate)
+				else
 				{
-					GS_LOG("destroying entity %d:%d for client %d due to scope exit\n", entity->handle, entity->uniqifier, client->GetNetId());
-					clientDataUnlocked->entitiesToDestroy[entIdentifier] = { entity, { true, false } };
+					clientDataUnlocked->pendingCreates.erase(entIdentifier);
+					if (entityData.hasCreated || entityData.hasNAckedCreate)
+					{
+						GS_LOG("destroying entity %d:%d for client %d due to scope exit\n", entity->handle, entity->uniqifier, client->GetNetId());
+						clientDataUnlocked->entitiesToDestroy[entIdentifier] = { entity, { true, false } };
+					}
 				}
 			}
 			
@@ -1459,6 +1463,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				GS_LOG("deleting [obj:%d:%d] because it's deleting\n", entity->handle, entity->uniqifier);
 				entitiesToDestroy[identPair] = { entity, { false, false } };
+				clientDataUnlocked->pendingCreates.erase(identPair);
 				syncedEntities.erase(oldIt);
 			}
 		}
@@ -1732,6 +1737,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					auto oldSyncIt = syncIt;
 					++syncIt;
 
+					clientDataUnlocked->pendingCreates.erase(identPair);
 					syncedEntities.erase(oldSyncIt);
 					continue;
 				}
