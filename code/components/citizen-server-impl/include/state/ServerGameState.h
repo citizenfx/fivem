@@ -1300,6 +1300,11 @@ public:
 	{
 		syncedEntities.emplace_back(handle, clientEntityData);
 	}
+
+	void Reserve(size_t count)
+	{
+		syncedEntities.reserve(count);
+	}
 	
 	void Sort()
 	{

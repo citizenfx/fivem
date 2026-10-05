@@ -1465,6 +1465,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		// new client entity state
 		ClientEntityState ces;
+		ces.Reserve(syncedEntities.size());
 
 		// process deletions
 		for (auto& [_entityPair, _entity] : entitiesToDestroy)
