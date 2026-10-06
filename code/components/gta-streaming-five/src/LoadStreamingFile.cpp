@@ -1486,8 +1486,198 @@ static hook::cdecl_stub<void()> _initVehiclePaintRamps([]()
 });
 #endif
 
+#ifdef GTA_FIVE
+#include <RageParser.h>
+#include <unordered_set>
+
+using ParsedMotionData = std::unique_ptr<void, void (*)(void*)>;
+
+static bool (*g_loadMotionStructure)(void*, const char*, const char*, rage::parStructure*, void*, bool, void*);
+static void* g_motionParser;
+static rage::parStructure* g_motionStructure;
+static atArray<void*>* g_motionData;
+static uint64_t g_motionArrayOffset;
+static uint64_t g_motionNameOffset;
+static uint64_t g_motionOnFootOffset;
+
+static rage::parMember* FindMotionMember(rage::parStructure* structure, const char* name)
+{
+	for (auto current = structure; current; current = current->m_baseClass)
+	{
+		for (auto member : current->m_members)
+		{
+			if (member && member->m_definition && member->m_definition->hash == HashRageString(name))
+			{
+				return member;
+			}
+		}
+	}
+	return nullptr;
+}
+
+static atArray<void*>& MotionArray(void* data)
+{
+	return *reinterpret_cast<atArray<void*>*>(static_cast<char*>(data) + g_motionArrayOffset);
+}
+
+static uint32_t MotionName(void* data)
+{
+	return data ? *reinterpret_cast<uint32_t*>(static_cast<char*>(data) + g_motionNameOffset) : 0;
+}
+
+// Validate the whole file before publishing entries; never replace live datasets.
+static bool CanAppendMotionData(atArray<void*>& dst, atArray<void*>& src)
+{
+	if (!src.GetCount() || uint32_t(dst.GetCount()) + src.GetCount() > UINT16_MAX)
+	{
+		return false;
+	}
+
+	std::unordered_set<uint32_t> names;
+	for (auto data : dst)
+	{
+		names.insert(MotionName(data));
+	}
+	for (auto data : src)
+	{
+		auto hash = MotionName(data);
+		if (!hash || !names.insert(hash).second)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+// Remove by pointer identity: resources can unload in any order.
+static void RemoveMotionData(atArray<void*>& dst, atArray<void*>& src)
+{
+	std::unordered_set<void*> owned(src.begin(), src.end());
+	for (int i = int(dst.GetCount()) - 1; i >= 0; --i)
+	{
+		if (owned.count(dst.Get(i)))
+		{
+			dst.Remove(i);
+		}
+	}
+}
+
+static bool CaptureMotionTable(void* parser, rage::parStructure* structure, void* target)
+{
+	auto array = FindMotionMember(structure, "aMotionTaskData");
+	if (!array || array->m_definition->type != rage::parMemberType::Array || array->m_definition->arrayType != rage::parArrayType::atArray || !array->m_arrayDefinition)
+	{
+		return false;
+	}
+	const auto element = array->m_arrayDefinition->m_definition;
+	if (!element || element->type != rage::parMemberType::Struct || element->structType == rage::parStructType::Inline || !element->structure || array->m_definition->arrayElemSize != sizeof(void*))
+	{
+		return false;
+	}
+	auto name = FindMotionMember(element->structure, "Name");
+	auto onFoot = FindMotionMember(element->structure, "onFoot");
+	if (!name || name->m_definition->type != rage::parMemberType::String || !onFoot || onFoot->m_definition->type != rage::parMemberType::Struct || onFoot->m_definition->structType == rage::parStructType::Inline)
+	{
+		return false;
+	}
+	g_motionArrayOffset = array->m_definition->offset;
+	g_motionNameOffset = name->m_definition->offset;
+	g_motionOnFootOffset = onFoot->m_definition->offset;
+	g_motionData = &MotionArray(target);
+	g_motionParser = parser;
+	g_motionStructure = structure;
+	return true;
+}
+
+static bool LoadMotionStructure(void* parser, const char* file, const char* ext,
+rage::parStructure* structure, void* target, bool typeChecks, void* settings)
+{
+	bool result = g_loadMotionStructure(parser, file, ext, structure, target, typeChecks, settings);
+	if (result && target && structure && structure->m_nameHash == HashRageString("CMotionTaskDataManager") && file && !boost::starts_with(file, "resources:/"))
+	{
+		CaptureMotionTable(parser, structure, target);
+	}
+	return result;
+}
+
+class CfxMotionTaskDataMounter : public CDataFileMountInterface
+{
+private:
+	std::map<std::string, ParsedMotionData> m_loaded;
+
+public:
+	bool LoadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		if (m_loaded.count(entry->name))
+		{
+			trace("MOTION_TASK_DATA_FILE: reusing session data for %s; reconnect to apply edits\n", entry->name);
+			return true;
+		}
+		if (!g_motionData || !g_motionStructure || !g_motionStructure->m_new || !g_motionStructure->m_delete)
+		{
+			trace("MOTION_TASK_DATA_FILE: stock table/schema unavailable for %s\n", entry->name);
+			return false;
+		}
+		ParsedMotionData parsed(g_motionStructure->m_new(), g_motionStructure->m_delete);
+		std::string path = entry->name;
+		auto basePath = path.substr(0, path.find_last_of('.'));
+		if (!parsed || !g_loadMotionStructure(g_motionParser, basePath.c_str(), "meta", g_motionStructure, parsed.get(), true, nullptr))
+		{
+			trace("MOTION_TASK_DATA_FILE: could not parse %s\n", entry->name);
+			return false;
+		}
+		auto& loaded = MotionArray(parsed.get());
+		if (!CanAppendMotionData(*g_motionData, loaded))
+		{
+			trace("MOTION_TASK_DATA_FILE: empty file, duplicate/invalid name or capacity exceeded: %s\n", entry->name);
+			return false;
+		}
+		for (auto data : loaded)
+		{
+			if (!*reinterpret_cast<void**>(static_cast<char*>(data) + g_motionOnFootOffset))
+			{
+				trace("MOTION_TASK_DATA_FILE: dataset has no onFoot data: %s\n", entry->name);
+				return false;
+			}
+		}
+		// Grow explicitly: atArray::Set's geometric growth can overflow uint16_t.
+		g_motionData->Expand(uint32_t(g_motionData->GetCount()) + loaded.GetCount());
+		m_loaded.emplace(path, std::move(parsed));
+		for (auto data : loaded)
+		{
+			g_motionData->Set(g_motionData->GetCount(), data);
+		}
+		return true;
+	}
+
+	void UnloadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		// Existing peds can both cache pointers and perform fresh lookups.
+		// Retain the entries as well as their owners until all peds are gone.
+	}
+
+	void EndSession()
+	{
+		for (auto& [path, data] : m_loaded)
+		{
+			RemoveMotionData(*g_motionData, MotionArray(data.get()));
+		}
+		m_loaded.clear();
+	}
+};
+
+static CfxMotionTaskDataMounter g_motionTaskDataMounter;
+#endif
+
 static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 {
+#ifdef GTA_FIVE
+	if (type == "MOTION_TASK_DATA_FILE")
+	{
+		return &g_motionTaskDataMounter;
+	}
+#endif
+
 	if (type == "CFX_PSEUDO_ENTRY")
 	{
 		return &g_staticPseudoMounter;
@@ -2382,7 +2572,6 @@ void LoadManifest(const char* tagName)
 
 #ifdef GTA_FIVE
 #include <EntitySystem.h>
-#include <RageParser.h>
 
 struct CPedModelInfo
 {
@@ -2438,6 +2627,13 @@ static void LoadDataFiles()
 	auto dfSort = [](const std::pair<std::string, std::string>& type)
 	{
 		auto h = HashString(type.first.c_str());
+
+#ifdef GTA_FIVE
+		if (h == HashString("MOTION_TASK_DATA_FILE"))
+		{
+			return -100;
+		}
+#endif
 
 		if (h == HashString("VEHICLE_LAYOUTS_FILE") || h == HashString("HANDLING_FILE"))
 		{
@@ -3507,6 +3703,30 @@ static void CleanupStreaming()
 static HookFunction hookFunction([]()
 {
 #ifdef GTA_FIVE
+	// Existing public parser signature; observe in-place loads, not the
+	// pointer-creating overload patched by gta-core-five's parser error hook.
+	auto matches = hook::pattern("E8 ? ? ? ? 0F B7 7D 10");
+	matches.count_hint(1);
+	if (matches.size() == 1)
+	{
+		auto loadStructure = hook::get_call(matches.get(0).get<void>());
+		if (MH_CreateHook(loadStructure, LoadMotionStructure, reinterpret_cast<void**>(&g_loadMotionStructure)) != MH_OK || MH_EnableHook(loadStructure) != MH_OK)
+		{
+			trace("MOTION_TASK_DATA_FILE: could not install parser observer\n");
+		}
+	}
+	else
+	{
+		trace("MOTION_TASK_DATA_FILE: parser signature unavailable on this game build\n");
+	}
+
+	// Streaming's disconnect handlers drain and unload data before this point.
+	OnKillNetworkDone.Connect([]()
+	{
+		g_motionTaskDataMounter.EndSession();
+	},
+	99999);
+
 	g_GetRawStreamer = (decltype(g_GetRawStreamer))hook::get_pattern<uint8_t>("48 83 EC ? 48 8B 05 ? ? ? ? 48 85 C0 75 ? 8D 50");
 	auto chunkyArrayAppendLoc = hook::get_pattern<uint8_t>("40 53 48 83 EC ? F7 81 ? ? ? ? ? ? ? ? 48 8B D9 75");
 	chunkyArrayCountOffset = *(int32_t*)(chunkyArrayAppendLoc + 8);
