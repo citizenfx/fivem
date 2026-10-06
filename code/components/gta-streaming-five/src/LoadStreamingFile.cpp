@@ -3710,10 +3710,7 @@ static HookFunction hookFunction([]()
 	if (matches.size() == 1)
 	{
 		auto loadStructure = hook::get_call(matches.get(0).get<void>());
-		if (MH_CreateHook(loadStructure, LoadMotionStructure, reinterpret_cast<void**>(&g_loadMotionStructure)) != MH_OK || MH_EnableHook(loadStructure) != MH_OK)
-		{
-			trace("MOTION_TASK_DATA_FILE: could not install parser observer\n");
-		}
+		g_loadMotionStructure = hook::trampoline(loadStructure, LoadMotionStructure);
 	}
 	else
 	{
