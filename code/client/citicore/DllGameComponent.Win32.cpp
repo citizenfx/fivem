@@ -20,6 +20,7 @@
 #include <Hooking.Aux.h>
 
 #include <MinHook.h>
+#include "LaunchMode.h"
 
 static NTSTATUS(NTAPI* g_origRtlRaiseException)(_In_ PEXCEPTION_RECORD ExceptionRecord);
 static BOOL(NTAPI* g_origZwQueryDebugFilterState)(_In_ ULONG ComponentId, _In_ ULONG Level);
@@ -129,6 +130,23 @@ Component* DllGameComponent::CreateComponent()
 
 		// delete caches.xml so the game will be verified
 		_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
+
+		// Under Wine, Adhesive may legitimately fail to load (missing kernel
+		// components, unimplemented APIs, etc.).  Rather than hard-crashing,
+		// degrade to sticky.dll so the session continues in reduced-security
+		// mode instead of aborting entirely.
+		if (m_path == L"adhesive.dll" && CfxIsWine())
+		{
+			trace("Adhesive failed to load under Wine (error %d), falling back to sticky.\n", errorCode);
+			m_path = L"sticky.dll";
+
+			HMODULE stickyModule = LoadLibrary(MakeRelativeCitPath(m_path).c_str());
+			if (stickyModule)
+			{
+				auto createComponent = (Component*(__cdecl*)())GetProcAddress(stickyModule, "CreateComponent");
+				return createComponent ? createComponent() : nullptr;
+			}
+		}
 
 		// sanity check
 		if (m_path == L"adhesive.dll" && errorCode == ERROR_PROC_NOT_FOUND)
