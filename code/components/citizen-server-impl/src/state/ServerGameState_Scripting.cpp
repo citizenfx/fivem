@@ -242,6 +242,45 @@ static void Init()
         return retval;
     }));
 
+
+	fx::ScriptEngine::RegisterNativeHandler("NETWORK_SET_FIRST_ENTITY_OWNER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+    {
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+		auto playerSrc = context.GetArgument<const char*>(1);
+
+		int playerNetId = atoi(playerSrc);
+		if (playerNetId == 0)
+		{
+			throw std::runtime_error(va("NETWORK_SET_FIRST_ENTITY_OWNER: invalid player: %s", playerSrc));
+		}
+
+		bool firstOwnerExists = !!entity->GetFirstOwner();
+		bool hasClient = !!entity->GetClient();
+
+		// We only allow this to be set whenever we don't have an initial owner and the entity isn't already sync'd to clients
+		if (firstOwnerExists || hasClient)
+		{
+			fx::scripting::Warningf("net", "Tried to set the first owner for entity: %u but it already had an owner or client, hasFirstOwner: %d, hasClient: %d", context.GetArgument<uint32_t>(0), firstOwnerExists, hasClient);
+			return false;
+		}
+
+		auto client = clientRegistry->GetClientByNetID(playerNetId);
+		if (!client)
+		{
+			return false;
+		}
+
+		// set all of the owner fields that are expected, this is safe since this shouldn't be broadcasted yet if we just created the entity.
+		entity->GetFirstOwnerUnsafe() = client;
+		entity->GetLastOwnerUnsafe() = client;
+		entity->GetClientUnsafe() = client;
+
+		return true;
+    }));
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_ORPHAN_MODE", [](fx::ScriptContext& context)
     {
 		// get the current resource manager
