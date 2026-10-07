@@ -118,6 +118,13 @@ public:
 	//
 	void AddResourceHandledEvent(const std::string& resourceName, const std::string& eventName);
 
+	inline bool HasResourceHandledEvent(const std::string& eventName) const
+	{
+		static const std::string wildcard = "*";
+
+		return m_eventResources.count(eventName) != 0 || m_eventResources.count(wildcard) != 0;
+	}
+
 	//
 	// An event to handle event execution externally.
 	// Arguments: eventName, eventPayload, eventSource, eventCanceled

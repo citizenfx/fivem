@@ -158,7 +158,7 @@ void* HandleEventWrap(rage::fwEventGroup* group, rage::fwEvent* event)
 	{
 		try
 		{
-			if (auto eventName = GetEventName(event))
+			if (auto eventName = GetEventName(event); eventName && OnShouldTriggerGameEvent(eventName, false))
 			{
 				GameEventMetaData data{ eventName, 0 };
 
@@ -198,7 +198,7 @@ void* HandleEventWrapExt(rage::fwEventGroup* group, rage::fwEvent* event)
 
 		try
 		{
-			if (auto eventName = GetEventName(event))
+			if (auto eventName = GetEventName(event); eventName && OnShouldTriggerGameEvent(eventName, true))
 			{
 				GameEventData data{ eventName };
 
@@ -376,4 +376,5 @@ static HookFunction hookFunction([]()
 
 fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
 fwEvent<const GameEventData&> OnTriggerGameEventExt;
+fwEvent<const char*, bool> OnShouldTriggerGameEvent;
 fwEvent<const DamageEventMetaData&> OnEntityDamaged;

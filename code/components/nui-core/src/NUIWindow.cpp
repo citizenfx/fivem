@@ -676,8 +676,20 @@ void NUIWindow::UpdateFrame()
 						nativeTexture = (ID3D11Resource*)texture->GetNativeTexture();
 					}
 
-					if (m_swapTexture && m_swapRtv && m_swapSrv && nativeTexture)
+					if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
 					{
+						m_pendingSwapFrames = 3;
+					}
+
+					if (m_swapTexture && m_swapRtv && m_swapSrv && nativeTexture && (m_pendingSwapFrames > 0 || nativeTexture != m_lastSwapTarget))
+					{
+						m_lastSwapTarget = nativeTexture;
+
+						if (m_pendingSwapFrames > 0)
+						{
+							--m_pendingSwapFrames;
+						}
+
 						//
 						// LOTS of D3D11 garbage to flip a texture...
 						//
