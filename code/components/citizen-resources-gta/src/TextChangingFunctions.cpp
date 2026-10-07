@@ -178,6 +178,11 @@ static InitFunction initFunction([] ()
 		context.SetResult(overlayIdx);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("REMOVE_MINIMAP_OVERLAY", [](fx::ScriptContext& context)
+	{
+		sf::RemoveMinimapOverlay(context.GetArgument<int>(0));
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("HAS_MINIMAP_OVERLAY_LOADED", [](fx::ScriptContext& context)
 	{
 		context.SetResult(sf::HasMinimapLoaded(context.GetArgument<int>(0)));
