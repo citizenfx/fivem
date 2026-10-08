@@ -368,6 +368,53 @@ bool LocalDevice::ExtensionCtl(int controlIdx, void* controlData, size_t control
 			}
 		}
 	}
+	else if (controlIdx == VFS_GET_FILE_INFO && controlSize == sizeof(GetFileInfoExtension))
+	{
+		auto data = reinterpret_cast<GetFileInfoExtension*>(controlData);
+
+		BY_HANDLE_FILE_INFORMATION info;
+
+		if (!GetFileInformationByHandle(reinterpret_cast<HANDLE>(data->handle), &info))
+		{
+			return false;
+		}
+
+		ULARGE_INTEGER li;
+		li.HighPart = info.ftLastWriteTime.dwHighDateTime;
+		li.LowPart = info.ftLastWriteTime.dwLowDateTime;
+		data->mtime = li.QuadPart / 10000000ULL - 11644473600ULL;
+
+		ULARGE_INTEGER size;
+		size.HighPart = info.nFileSizeHigh;
+		size.LowPart = info.nFileSizeLow;
+		data->size = size.QuadPart;
+
+		data->fileId = vfs::FileId{};
+
+		if (IsWindows8OrGreater())
+		{
+			FILE_ID_INFO idInfo;
+
+			if (GetFileInformationByHandleEx(reinterpret_cast<HANDLE>(data->handle), FileIdInfo, &idInfo, sizeof(idInfo)))
+			{
+				memcpy(data->fileId.data(), &idInfo.FileId.Identifier, std::min(sizeof(idInfo.FileId.Identifier), data->fileId.size()));
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else
+		{
+			ULARGE_INTEGER fileInt;
+			fileInt.LowPart = info.nFileIndexLow;
+			fileInt.HighPart = info.nFileIndexHigh;
+
+			memcpy(data->fileId.data(), &fileInt, std::min(sizeof(fileInt), data->fileId.size()));
+		}
+
+		return true;
+	}
 	else if (controlIdx == VFS_MAKE_HARDLINK && controlSize == sizeof(MakeHardLinkExtension))
 	{
 		auto data = reinterpret_cast<MakeHardLinkExtension*>(controlData);

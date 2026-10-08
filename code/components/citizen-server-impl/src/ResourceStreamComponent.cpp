@@ -127,7 +127,9 @@ namespace fx
 
 			for (auto& entry : entries)
 			{
-				if (!vfs::OpenRead(entry.onDiskPath).GetRef())
+				auto entryDevice = vfs::GetDevice(entry.onDiskPath);
+
+				if (!entryDevice.GetRef() || entryDevice->GetAttributes(entry.onDiskPath) == -1)
 				{
 					return true;
 				}
@@ -137,7 +139,7 @@ namespace fx
 		return false;
 	}
 
-	static void MakeSymLink(const std::string& cacheRoot, ResourceStreamComponent::RuntimeEntry* file)
+	static void EnsureCacheRoot(const std::string& cacheRoot)
 	{
 		auto device = vfs::GetDevice(cacheRoot);
 		device->CreateDirectory(cacheRoot);
@@ -148,6 +150,11 @@ namespace fx
 		{
 			device->Close(h);
 		}
+	}
+
+	static void MakeSymLink(const std::string& cacheRoot, ResourceStreamComponent::RuntimeEntry* file)
+	{
+		auto device = vfs::GetDevice(cacheRoot);
 
 		vfs::MakeHardLinkExtension cd;
 		cd.existingPath = file->onDiskPath;
@@ -185,6 +192,8 @@ namespace fx
 
 		// look at files
 		std::vector<std::string> files;
+
+		EnsureCacheRoot(cacheRoot);
 
 		IterateRecursively(fmt::sprintf("%s/stream/", m_resource->GetPath()), [this, device, &cacheRoot, &files](const std::string& fullPath)
 		{
@@ -504,6 +513,8 @@ namespace fx
 					{
 						std::vector<Entry> entries(numEntries);
 						stream->Read(&entries[0], entries.size() * sizeof(Entry));
+
+						EnsureCacheRoot(cacheRoot);
 
 						for (auto& entry : entries)
 						{
