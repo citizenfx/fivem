@@ -13,6 +13,16 @@ fwEntity* rage::fwScriptGuid::GetBaseFromGuid(int handle)
 	return getScriptEntity(handle);
 }
 
+static hook::cdecl_stub<uint32_t(fwEntity*)> getScriptGuidForEntity([]()
+{
+	return hook::get_pattern("32 DB E8 ? ? ? ? 48 85 C0 75 ? 8A 05", -35);
+});
+
+int rage::fwScriptGuid::GetGuidFromBase(fwEntity* base)
+{
+	return int(getScriptGuidForEntity(base));
+}
+
 static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, rage::fwModelId& id)> getArchetype([]()
 {
 	return hook::get_call(hook::pattern("8B 4E 08 C1 EB 05 80 E3 01 E8").count(1).get(0).get<void>(9));

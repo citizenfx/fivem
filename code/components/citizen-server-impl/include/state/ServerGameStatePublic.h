@@ -52,6 +52,12 @@ public:
 	virtual uint32_t GetModel() = 0;
 
 	virtual std::string GetType() = 0;
+
+	// the GET_ENTITY_TYPE classification: 1 = ped, 2 = vehicle, 3 = object, 0 = none
+	virtual int GetTypeIndex() = 0;
+
+	// the script-facing entity handle (as returned by entity natives)
+	virtual uint32_t GetScriptGuid() = 0;
 };
 }
 
