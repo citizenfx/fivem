@@ -6,6 +6,8 @@ return function()
 	add_dependencies { 'vendor:eastl' }
 
 	if os.istarget('windows') then
+		add_dependencies { 'vendor:minhook' }
+
 		filter 'architecture:x64'
 			links { "mono-2.0-sgen" }
 	
