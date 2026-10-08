@@ -51,6 +51,24 @@ static bool CTaskHeliPassengerRappel_ProcessPostMovement(hook::FlexStruct* thisP
 	return g_CTaskHeliPassengerRappel_ProcessPostMovement(thisPtr);
 }
 
+static uint64_t (*g_CTaskHeliPassengerRappel_UpdateFSM)(hook::FlexStruct*, int, int);
+static uint64_t CTaskHeliPassengerRappel_UpdateFSM(hook::FlexStruct* thisPtr, int state, int event)
+{
+	auto* ped = thisPtr ? thisPtr->Get<hook::FlexStruct*>(0x10) : nullptr;
+	auto* vehicle = ped ? ped->Get<hook::FlexStruct*>(g_PedVehicleOffset) : nullptr;
+
+	if (vehicle)
+	{
+		const auto vehicleType = vehicle->Get<eVehicleType>(g_VehicleTypeOffset);
+		if (vehicleType != VEHICLE_TYPE_HELI && vehicleType != VEHICLE_TYPE_BLIMP)
+		{
+			return 1; // FSM_Quit
+		}
+	}
+
+	return g_CTaskHeliPassengerRappel_UpdateFSM(thisPtr, state, event);
+}
+
 static HookFunction hookFunction([]
 {
 	g_VehicleTypeOffset = *hook::get_pattern<int32_t>("41 83 BF ? ? ? ? 0B 74", 3);
@@ -62,4 +80,9 @@ static HookFunction hookFunction([]
 			? "48 8B C4 48 89 58 ? 48 89 70 ? 48 89 78 ? 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 48 8B 71"
 			: "48 8B C4 48 89 58 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 48 8B 79"),
 		CTaskHeliPassengerRappel_ProcessPostMovement);
+
+	g_CTaskHeliPassengerRappel_UpdateFSM = hook::trampoline(
+		hook::get_pattern("48 83 EC ? 85 D2 0F 88 ? ? ? ? 75 ? 45 85 C0 75 ? E8 ? ? ? ? E9 ? ? ? ? B8 ? ? ? ? 44 3B C0 0F 85 ? ? ? ? 48 83 C4 ? E9 ? ? ? ? B8 ? ? ? ? 3B D0 75 ? 45 85 C0 75 ? E8 ? ? ? ? E9 ? ? ? ? 44 3B C0 0F 85 ? ? ? ? 48 83 C4 ? E9 ? ? ? ? 83 FA"),
+		CTaskHeliPassengerRappel_UpdateFSM
+	);
 });
