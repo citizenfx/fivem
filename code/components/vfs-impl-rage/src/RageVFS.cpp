@@ -226,7 +226,7 @@ struct GetRagePageFlagsExtension
 
 int RageVFSDeviceAdapter::GetResourceVersion(const char* file, rage::ResourceFlags* version)
 {
-	GetRagePageFlagsExtension ext;
+	GetRagePageFlagsExtension ext = {};
 	ext.fileName = file;
 
 	if (m_cfxDevice->ExtensionCtl(VFS_GET_RAGE_PAGE_FLAGS, &ext, sizeof(ext)))
