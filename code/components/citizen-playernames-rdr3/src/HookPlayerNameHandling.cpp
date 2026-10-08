@@ -68,6 +68,31 @@ static InitFunction initFunction([]()
 		{
 			eventComponent->OnTriggerEvent.Connect([](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 			{
+				// a rename only needs the name map updated
+				if (eventName == "onPlayerNameChanged")
+				{
+					try
+					{
+						msgpack::unpacked msg;
+						msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+						std::vector<msgpack::object> arguments;
+						msg.get().convert(arguments);
+
+						// netId, oldName, newName, resourceName
+						if (arguments.size() >= 3)
+						{
+							g_netIdToNames[arguments[0].as<int>()] = arguments[2].as<std::string>();
+						}
+					}
+					catch (std::runtime_error& e)
+					{
+						trace("Failed to unpack onPlayerNameChanged event: %s\n", e.what());
+					}
+
+					return;
+				}
+
 				// if this is the event 'we' handle...
 				if (eventName == "onPlayerJoining" || eventName == "onPlayerDropped")
 				{
