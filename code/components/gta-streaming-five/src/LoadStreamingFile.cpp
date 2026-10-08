@@ -1484,6 +1484,39 @@ static hook::cdecl_stub<void()> _initVehiclePaintRamps([]()
 {
 	return xbr::IsGameBuildOrGreater<2545>() ? hook::get_pattern("83 F9 FF 74 52", -0x34) : nullptr;
 });
+#else
+
+static hook::thiscall_stub<void*(CDataFileMgr::DataFile*)> _wimRegister([]()
+{
+	return hook::get_pattern("48 81 EC ? ? ? ? 48 8B F9 48 8D 4C 24 ? E8 ? ? ? ? 66 83 64 24", -0x14);
+});
+
+static hook::thiscall_stub<void*(CDataFileMgr::DataFile*)> _wimReset([]()
+{
+	return hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 44 0F B7 15");
+});
+
+class CfxProxyWeaponInfoFile : public CDataFileMountInterface
+{
+	virtual bool LoadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		// In cases where we register a datafile that overrides existing CWeaponInfoBlob
+		// we want the game to make use of these CWeaponInfoBlob's over the current ones.
+		// By registering the data file, resetting it and registering it + postLoad call forced the game to use the duplicate blobs from this datafile.
+		// While also giving a fallback option for when this datafile gets unloaded.
+		_wimRegister(entry);
+		_wimReset(entry);
+		CDataFileMount::sm_Interfaces[77]->LoadDataFile(entry);
+		return true;
+	}
+
+	virtual void UnloadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		CDataFileMount::sm_Interfaces[77]->UnloadDataFile(entry);
+	}
+};
+
+static CfxProxyWeaponInfoFile g_proxyWeaponInfoFile;
 #endif
 
 static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
@@ -1520,6 +1553,11 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 	if (fileType == 173) // INTERIOR_PROXY_ORDER_FILE
 	{
 		return &g_proxyInteriorOrderMounter;
+	}
+#else
+	if (fileType == 77) // WEAPONINFO_FILE
+	{
+		return &g_proxyWeaponInfoFile;
 	}
 #endif
 
