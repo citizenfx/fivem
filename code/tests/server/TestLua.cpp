@@ -2,6 +2,7 @@
 
 #include <catch_amalgamated.hpp>
 #include <filesystem>
+#include <utility>
 
 #include <lua.hpp>
 #include <LuaFXLib.h>
@@ -179,6 +180,53 @@ void LoadAndRunCode(fx::LuaStateHolder& state, const std::string&& fileName, con
 	{
 		REQUIRE(!expectExecutionError);
 	}
+}
+
+template<typename TCallback>
+class ScopeExit
+{
+public:
+	explicit ScopeExit(TCallback callback)
+		: m_callback(std::move(callback))
+	{
+	}
+
+	~ScopeExit()
+	{
+		m_callback();
+	}
+
+	ScopeExit(const ScopeExit&) = delete;
+	ScopeExit& operator=(const ScopeExit&) = delete;
+
+private:
+	TCallback m_callback;
+};
+
+template<typename TCallback>
+ScopeExit(TCallback) -> ScopeExit<TCallback>;
+
+void CreateDirectorySymlinkOrSkip(const std::filesystem::path& target, const std::filesystem::path& link, const char* description)
+{
+	std::error_code ec;
+	std::filesystem::create_directory_symlink(target, link, ec);
+	if (ec)
+	{
+		SKIP("Could not " << description << ": " << ec.message());
+	}
+}
+
+std::filesystem::path GetNodePermissionPath(const std::filesystem::path& path)
+{
+	std::error_code ec;
+	std::filesystem::path normalizedPath = std::filesystem::weakly_canonical(path, ec);
+	if (!ec)
+	{
+		return normalizedPath;
+	}
+
+	normalizedPath = std::filesystem::absolute(path, ec);
+	return ec ? path : normalizedPath;
 }
 }
 
@@ -925,6 +973,195 @@ TEST_CASE("vfs")
 		REQUIRE(vfs::RenameFile("@test/test2.txt", "@test/test.txt") == true);
 	}
 }
+
+#ifdef IS_FXSERVER
+TEST_CASE("vfs resolves symlinked resource paths for node sandbox permission checks")
+{
+	REQUIRE(Instance<vfs::Manager>::Get() != nullptr);
+
+	std::error_code ec;
+	const auto basePath = std::filesystem::current_path() / "vfs_symlink_test";
+	const auto targetPath = basePath / "target";
+	const auto nestedTargetPath = targetPath / "nested";
+	const auto shortTargetPath = basePath / "t";
+	const auto canonicalTargetPath = basePath / "canonical_target";
+	const auto linkPath = basePath / "resource_link";
+	const auto duplicateLinkPath = basePath / "resource_link_duplicate";
+	const auto canonicalLinkPath = basePath / "resource_canonical_link";
+	const auto shortNestedLinkPath = targetPath / "short_link";
+	const auto nestedLinkPath = basePath / "resource_nested_link";
+	const std::string mountPath = "@symlink-test/";
+	const std::string duplicateMountPath = "@symlink-test-duplicate/";
+	const std::string directMountPath = "@symlink-test-direct/";
+	const std::string canonicalMountPath = "@symlink-test-canonical/";
+	const std::string shortNestedMountPath = "@symlink-test-short-nested/";
+	const std::string nestedMountPath = "@symlink-test-nested/";
+
+	ScopeExit cleanup([&]()
+	{
+		std::error_code cleanupEc;
+		vfs::Unmount(nestedMountPath);
+		vfs::Unmount(shortNestedMountPath);
+		vfs::Unmount(canonicalMountPath);
+		vfs::Unmount(directMountPath);
+		vfs::Unmount(duplicateMountPath);
+		vfs::Unmount(mountPath);
+		std::filesystem::remove_all(basePath, cleanupEc);
+	});
+
+	std::filesystem::remove_all(basePath, ec);
+	ec.clear();
+	REQUIRE(std::filesystem::create_directories(nestedTargetPath, ec));
+	REQUIRE(!ec);
+	ec.clear();
+	REQUIRE(std::filesystem::create_directories(shortTargetPath, ec));
+	REQUIRE(!ec);
+	ec.clear();
+	REQUIRE(std::filesystem::create_directories(canonicalTargetPath, ec));
+	REQUIRE(!ec);
+
+	CreateDirectorySymlinkOrSkip(targetPath, linkPath, "create directory symlink");
+
+	fwRefContainer relativeDevice = new vfs::RelativeDevice(linkPath.generic_string() + "/");
+	vfs::Unmount(mountPath);
+	vfs::Mount(relativeDevice, mountPath);
+
+	fwRefContainer<vfs::Stream> stream = vfs::Create(mountPath + "module.cjs", false);
+	REQUIRE(stream.GetRef() != nullptr);
+	stream->Close();
+
+	std::string transformedPath;
+	const auto linkFile = linkPath / "module.cjs";
+	const auto linkDevice = vfs::FindDevice(linkFile.string(), transformedPath);
+	REQUIRE(linkDevice.GetRef() == relativeDevice.GetRef());
+	REQUIRE(transformedPath == mountPath + "module.cjs");
+
+	transformedPath.clear();
+	// Mirrors Node's sandbox callback after require() resolves the symlinked resource path.
+	const auto nodeRequirePath = GetNodePermissionPath(linkFile);
+	const auto targetFile = targetPath / "module.cjs";
+	const auto nodeRequireDevice = vfs::FindDevice(nodeRequirePath.string(), transformedPath, mountPath);
+	REQUIRE(nodeRequireDevice.GetRef() == relativeDevice.GetRef());
+	REQUIRE(transformedPath == mountPath + "module.cjs");
+
+	transformedPath.clear();
+	const auto targetDirectoryDevice = vfs::FindDevice(targetPath.string(), transformedPath, mountPath);
+	REQUIRE(targetDirectoryDevice.GetRef() == relativeDevice.GetRef());
+	REQUIRE(transformedPath == mountPath);
+
+	CreateDirectorySymlinkOrSkip(shortTargetPath, shortNestedLinkPath, "create nested lexical directory symlink");
+
+	fwRefContainer shortNestedDevice = new vfs::RelativeDevice((linkPath / "short_link").generic_string() + "/");
+	vfs::Unmount(shortNestedMountPath);
+	vfs::Mount(shortNestedDevice, shortNestedMountPath);
+
+	transformedPath.clear();
+	const auto shortNestedFile = linkPath / "short_link" / "module.cjs";
+	const auto lexicalLongestDevice = vfs::FindDevice(shortNestedFile.string(), transformedPath);
+	REQUIRE(lexicalLongestDevice.GetRef() == shortNestedDevice.GetRef());
+	REQUIRE(transformedPath == shortNestedMountPath + "module.cjs");
+
+	CreateDirectorySymlinkOrSkip(targetPath, duplicateLinkPath, "create duplicate directory symlink");
+
+	fwRefContainer duplicateDevice = new vfs::RelativeDevice(duplicateLinkPath.generic_string() + "/");
+	vfs::Unmount(duplicateMountPath);
+	vfs::Mount(duplicateDevice, duplicateMountPath);
+
+	transformedPath.clear();
+	const auto lexicalLinkDevice = vfs::FindDevice(linkFile.string(), transformedPath, duplicateMountPath);
+	REQUIRE(lexicalLinkDevice.GetRef() == relativeDevice.GetRef());
+	REQUIRE(transformedPath == mountPath + "module.cjs");
+
+	transformedPath.clear();
+	const auto preferredTargetDevice = vfs::FindDevice(targetFile.string(), transformedPath, duplicateMountPath);
+	REQUIRE(preferredTargetDevice.GetRef() == duplicateDevice.GetRef());
+	REQUIRE(transformedPath == duplicateMountPath + "module.cjs");
+
+	transformedPath.clear();
+	const auto preferredOriginalDevice = vfs::FindDevice(targetFile.string(), transformedPath, mountPath);
+	REQUIRE(preferredOriginalDevice.GetRef() == relativeDevice.GetRef());
+	REQUIRE(transformedPath == mountPath + "module.cjs");
+
+	fwRefContainer directDevice = new vfs::RelativeDevice(targetPath.generic_string() + "/");
+	vfs::Unmount(directMountPath);
+	vfs::Mount(directDevice, directMountPath);
+
+	transformedPath.clear();
+	const auto canonicalPreferredDevice = vfs::FindDevice(targetFile.string(), transformedPath, mountPath);
+	REQUIRE(canonicalPreferredDevice.GetRef() == relativeDevice.GetRef());
+	REQUIRE(transformedPath == mountPath + "module.cjs");
+
+	transformedPath.clear();
+	const auto directPreferredDevice = vfs::FindDevice(targetFile.string(), transformedPath, directMountPath);
+	REQUIRE(directPreferredDevice.GetRef() == directDevice.GetRef());
+	REQUIRE(transformedPath == directMountPath + "module.cjs");
+
+	transformedPath.clear();
+	const auto newTargetFile = linkPath / "generated" / "write.js";
+	const auto newTargetDevice = vfs::FindDevice(GetNodePermissionPath(newTargetFile).string(), transformedPath, mountPath);
+	REQUIRE(newTargetDevice.GetRef() == relativeDevice.GetRef());
+	REQUIRE(transformedPath == mountPath + "generated/write.js");
+
+	transformedPath.clear();
+	const auto newTargetDirectory = linkPath / "generated-directory";
+	const auto newTargetDirectoryDevice = vfs::FindDevice(GetNodePermissionPath(newTargetDirectory).string(), transformedPath, mountPath);
+	REQUIRE(newTargetDirectoryDevice.GetRef() == relativeDevice.GetRef());
+	REQUIRE(transformedPath == mountPath + "generated-directory");
+
+	transformedPath.clear();
+	const auto newTargetDirectoryWithSlash = (linkPath / "generated-directory-with-slash").generic_string() + "/";
+	const auto newTargetDirectoryWithSlashDevice = vfs::FindDevice(newTargetDirectoryWithSlash, transformedPath, mountPath);
+	REQUIRE(newTargetDirectoryWithSlashDevice.GetRef() == relativeDevice.GetRef());
+	REQUIRE(transformedPath == mountPath + "generated-directory-with-slash/");
+
+	CreateDirectorySymlinkOrSkip(canonicalTargetPath, canonicalLinkPath, "create canonical directory symlink");
+
+	fwRefContainer canonicalDevice = new vfs::RelativeDevice(canonicalLinkPath.generic_string() + "/");
+	vfs::Unmount(canonicalMountPath);
+	vfs::Mount(canonicalDevice, canonicalMountPath);
+
+	transformedPath.clear();
+	const auto canonicalFile = canonicalTargetPath / "module.cjs";
+	const auto canonicalDeviceMatch = vfs::FindDevice(canonicalFile.string(), transformedPath, canonicalMountPath);
+	REQUIRE(canonicalDeviceMatch.GetRef() == canonicalDevice.GetRef());
+	REQUIRE(transformedPath == canonicalMountPath + "module.cjs");
+
+	CreateDirectorySymlinkOrSkip(nestedTargetPath, nestedLinkPath, "create nested directory symlink");
+
+	fwRefContainer nestedDevice = new vfs::RelativeDevice(nestedLinkPath.generic_string() + "/");
+	vfs::Unmount(nestedMountPath);
+	vfs::Mount(nestedDevice, nestedMountPath);
+
+	transformedPath.clear();
+	const auto nestedTargetFile = nestedTargetPath / "write.js";
+	const auto lexicalTargetDevice = vfs::FindDevice(nestedTargetFile.string(), transformedPath);
+	REQUIRE(lexicalTargetDevice.GetRef() == directDevice.GetRef());
+	REQUIRE(transformedPath == directMountPath + "nested/write.js");
+
+	transformedPath.clear();
+	const auto preferredParentResolvedDevice = vfs::FindDevice(nestedTargetFile.string(), transformedPath, mountPath);
+	REQUIRE(preferredParentResolvedDevice.GetRef() == nestedDevice.GetRef());
+	REQUIRE(transformedPath == nestedMountPath + "write.js");
+
+	transformedPath.clear();
+	const auto preferredNestedDevice = vfs::FindDevice(nestedTargetFile.string(), transformedPath, nestedMountPath);
+	REQUIRE(preferredNestedDevice.GetRef() == nestedDevice.GetRef());
+	REQUIRE(transformedPath == nestedMountPath + "write.js");
+
+	const auto siblingPath = basePath / "target-other";
+	REQUIRE(std::filesystem::create_directories(siblingPath, ec));
+	REQUIRE(!ec);
+	transformedPath = "stale";
+	const auto siblingDevice = vfs::FindDevice((siblingPath / "module.cjs").string(), transformedPath);
+	REQUIRE(siblingDevice.GetRef() == nullptr);
+	REQUIRE(transformedPath.empty());
+
+	transformedPath = "stale";
+	const auto siblingPreferredDevice = vfs::FindDevice((siblingPath / "module.cjs").string(), transformedPath, mountPath);
+	REQUIRE(siblingPreferredDevice.GetRef() == nullptr);
+	REQUIRE(transformedPath.empty());
+}
+#endif
 
 TEST_CASE("debug namespace")
 {

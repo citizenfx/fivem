@@ -8,11 +8,19 @@ namespace vfs
 class ManagerServer : public vfs::Manager
 {
 private:
+	struct MountedDevice
+	{
+		fwRefContainer<Device> device;
+		std::string absolutePath;
+		std::string canonicalPath;
+		bool resolvesThroughLink = false;
+	};
+
 	struct MountPoint
 	{
 		std::string prefix;
 
-		mutable std::vector<fwRefContainer<Device>> devices; // mutable? MUTABLE? is this Rust?!
+		mutable std::vector<MountedDevice> devices; // mutable? MUTABLE? is this Rust?!
 	};
 
 	// sorts mount points based on longest prefix
@@ -37,6 +45,8 @@ private:
 
 	std::recursive_mutex m_mountMutex;
 
+	bool m_hasCanonicalPathMounts = false;
+
 	// fallback device - usually a local file system implementation
 	fwRefContainer<vfs::Device> m_fallbackDevice;
 
@@ -49,6 +59,8 @@ public:
 	virtual fwRefContainer<Device> FindDevice(const std::string& absolutePath, std::string& transformedPath) override;
 
 	virtual fwRefContainer<Device> GetNativeDevice(void* nativeDevice) override;
+
+	virtual fwRefContainer<Device> FindDevice(const std::string& absolutePath, std::string& transformedPath, const std::string& preferredMountPrefix) override;
 
 	virtual void Mount(fwRefContainer<Device> device, const std::string& path) override;
 
