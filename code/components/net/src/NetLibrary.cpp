@@ -1804,10 +1804,15 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						// New server with sv_defaultGameBuild: exe matches that value.
 						int effectiveDefaultBuild = legacyReplaceExecutable ? buildRef : serverDefaultBuild;
 
-						if ((buildRef != 0 && buildRef != xbr::GetRequestedGameBuild()) ||
-							(pureLevel != fx::client::GetPureLevel()) ||
-							(poolSizesIncrease != fx::PoolSizeManager::GetIncreaseRequest()) ||
-							(effectiveDefaultBuild != xbr::GetPersistedDefaultBuild())
+						bool buildChanged = buildRef != 0 && buildRef != xbr::GetRequestedGameBuild();
+						bool pureLevelChanged = pureLevel != fx::client::GetPureLevel();
+						bool poolSizesChanged = poolSizesIncrease != fx::PoolSizeManager::GetIncreaseRequest();
+						bool executableChanged = effectiveDefaultBuild != xbr::GetPersistedDefaultBuild();
+
+						if (buildChanged ||
+							pureLevelChanged ||
+							poolSizesChanged ||
+							executableChanged
 						)
 						{
 							if (!xbr::IsSupportedGameBuild(buildRef))
@@ -1821,9 +1826,20 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 
-							OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw), effectiveDefaultBuild);
-							m_connectionState = CS_IDLE;
-							return;
+							if (pureLevelChanged && pureLevel <= fx::client::GetPureLevel() && !buildChanged && !poolSizesChanged && !executableChanged)
+							{
+								if (!OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw), effectiveDefaultBuild, true))
+								{
+									m_connectionState = CS_IDLE;
+									return;
+								}
+							}
+							else
+							{
+								OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw), effectiveDefaultBuild, false);
+								m_connectionState = CS_IDLE;
+								return;
+							}
 						}
 					}
 
@@ -1841,7 +1857,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 							return;
 						}
 
-						OnRequestBuildSwitch(serverDefaultBuild, 0, L"", serverDefaultBuild);
+						OnRequestBuildSwitch(serverDefaultBuild, 0, L"", serverDefaultBuild, false);
 						m_connectionState = CS_IDLE;
 						return;
 					}
