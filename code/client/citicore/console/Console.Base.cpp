@@ -12,6 +12,8 @@
 #include <condition_variable>
 #include <regex>
 
+#include <shared_mutex>
+
 namespace console
 {
 static bool g_allowVt;
@@ -327,6 +329,8 @@ bool GIsPrinting()
 	return !console::gConsole->consolePrintQueue.empty() || console::gConsole->isPrinting;
 }
 
+static std::shared_mutex g_listenersMutex;
+
 namespace console
 {
 void Printfv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
@@ -352,11 +356,13 @@ void Printfv(ConsoleChannel channel, std::string_view format, fmt::printf_args a
 		return;
 	}
 
+	std::shared_lock lock(g_listenersMutex);
+
 	// print to all interested listeners
-	for (auto& listener : gConsole->printListeners)
-	{
-		listener(channel, buffer.data());
-	}
+    for (auto& listener : gConsole->printListeners)
+    {
+        listener(channel, buffer.data());
+    }
 }
 
 void DPrintfv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
@@ -395,6 +401,7 @@ static ConVar<int> developerVariable(GetDefaultContext(), "developer", ConVar_Ar
 
 extern "C" DLL_EXPORT void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*))
 {
+	std::unique_lock lock(g_listenersMutex);
 	console::gConsole->printListeners.push_back(function);
 }
 
