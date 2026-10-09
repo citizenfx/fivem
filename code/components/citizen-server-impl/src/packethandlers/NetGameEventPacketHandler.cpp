@@ -16,6 +16,10 @@
 
 #include "packethandlers/NetGameEventPacketHandler.h"
 
+#include "KeyedRateLimiter.h"
+#include "GameServer.h"
+#include <ClientDropReasons.h>
+
 void NetGameEventPacketHandlerV2::RouteEvent(const fwRefContainer<fx::ServerGameStatePublic>& sgs, uint32_t bucket, const std::vector<uint16_t>& targetPlayers, const fwRefContainer<fx::ClientRegistry>& clientRegistry, const net::Buffer& data)
 {
 	for (uint16_t player : targetPlayers)
@@ -48,6 +52,17 @@ bool NetGameEventPacketHandlerV2::Process(fx::ServerInstanceBase* instance, cons
 bool NetGameEventPacketHandlerV2::ProcessNetEvent(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::ByteReader& reader)
 {
 	static size_t kServerMaxReplySize = net::SerializableComponent::GetMaxSize<net::packet::ServerNetGameEventV2Packet>();
+
+	static fx::RateLimiterStore<uint32_t, false> netGameEventLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
+	static auto netGameEventRateLimiter = netGameEventLimiterStore.GetRateLimiter(
+		"netGameEvent", fx::RateLimiterDefaults{ 200.f, 300.f }
+	);
+
+	if (!netGameEventRateLimiter->Consume(client->GetNetId()))
+	{
+		instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverDropResourceName, fx::ClientDropReason::NET_GAME_EVENT_RATE_LIMIT, "Reliable netGameEvent overflow.");
+		return false;
+	}
 
 	return ProcessPacket(reader, [](net::packet::ClientNetGameEventV2& clientNetEvent, fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client)
 	{

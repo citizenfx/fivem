@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 namespace fx
 {
@@ -27,7 +27,9 @@ enum class ClientDropReason: uint32_t
 	// command rate limit exceeded
 	COMMAND_RATE_LIMIT,
 	// too many missed frames in OneSync
-	ONE_SYNC_TOO_MANY_MISSED_FRAMES
+	ONE_SYNC_TOO_MANY_MISSED_FRAMES,
+	// too many net game events set in a short amount of time.
+	NET_GAME_EVENT_RATE_LIMIT,
 };
 
 constexpr const char* clientDropResourceName = "__cfx_internal:client";
