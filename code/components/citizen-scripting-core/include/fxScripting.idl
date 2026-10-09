@@ -190,6 +190,8 @@ interface IScriptHostWithBookmarks : fxIBase
 
 	void RemoveBookmarks(in IScriptTickRuntimeWithBookmarks runtime);
 
+	void RemoveBookmark(in uint64_t bookmark);
+
 	void CreateBookmarks(in IScriptTickRuntimeWithBookmarks runtime);
 };
 

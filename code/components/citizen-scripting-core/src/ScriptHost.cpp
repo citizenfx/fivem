@@ -112,6 +112,37 @@ static void RemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 	bookmarkRefs.resourceInsertionIterators.erase(scRT);
 }
 
+static bool RemoveBookmark(uint64_t bookmark)
+{
+	auto exIt = (bookmarkRefs.executing) ? bookmarkRefs.executingIt : nullptr;
+
+	auto& list = bookmarkRefs.list;
+
+	for (auto it = list.begin(); it != list.end(); )
+	{
+		if (it->bookmark == bookmark)
+		{
+			if (exIt && *exIt == it)
+			{
+				*exIt = it = list.erase(it);
+			}
+			else
+			{
+				it = list.erase(it);
+			}
+
+			return true;
+		}
+		else
+		{
+			++it;
+		}
+	}
+
+	return false;
+}
+
+
 static void RunBookmarks()
 {
 	bookmarkRefs.executing = true;
@@ -521,6 +552,17 @@ result_t TestScriptHost::RemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 {
 	::RemoveBookmarks(scRT);
 	return FX_S_OK;
+}
+
+result_t TestScriptHost::RemoveBookmark(uint64_t bookmark)
+{
+	bool removed = ::RemoveBookmark(bookmark);
+	if (removed)
+	{
+		return FX_S_OK;
+	}
+
+	return FX_E_INVALIDARG;
 }
 
 // TODO: don't ship with this in
