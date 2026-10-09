@@ -220,6 +220,10 @@ void TimecycleEditor::Draw()
 
 			if (auto scriptData = TimecycleManager::GetScriptData())
 			{
+				auto selected = m_selectedModifier.GetModifier();
+				int selectedIndex = selected ? TheTimecycleManager->GetTimecycleIndex(*selected) : -1;
+				int interiorIndex = TheTimecycleManager->GetInteriorModifierOverride();
+
 				if (scriptData->m_primaryModifierIndex != -1)
 				{
 					auto modifier = TheTimecycleManager->GetTimecycleByIndex(scriptData->m_primaryModifierIndex);
@@ -233,6 +237,7 @@ void TimecycleEditor::Draw()
 					if (ImGui::Button("Clear"))
 					{
 						scriptData->m_primaryModifierIndex = -1;
+						m_applySelectedTimecycle = false;
 					}
 				}
 				else
@@ -286,15 +291,40 @@ void TimecycleEditor::Draw()
 
 				ImGui::Separator();
 
-				if (ImGui::Checkbox("Apply selected", &m_applySelectedTimecycle))
+				if (interiorIndex != -1)
 				{
-					if (m_applySelectedTimecycle)
-					{
-						if (auto modifier = m_selectedModifier.GetModifier())
-						{
-							scriptData->m_primaryModifierIndex = TheTimecycleManager->GetTimecycleIndex(*modifier);
-						}
-					}
+					auto modifier = TheTimecycleManager->GetTimecycleByIndex(interiorIndex);
+					auto tcName = modifier ? TheTimecycleManager->GetTimecycleName(*modifier).c_str() : "INVALID";
+					ImGui::Text("Interior modifier: %s", tcName);
+				}
+				else
+				{
+					ImGui::Text("Interior modifier: NONE");
+				}
+
+				ImGui::Separator();
+
+				if (ImGui::Checkbox("Apply selected", &m_applySelectedTimecycle) && !m_applySelectedTimecycle)
+				{
+					scriptData->m_primaryModifierIndex = -1;
+				}
+
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("Applies the selected timecycle globally, the way a script would.\n"
+									  "Inside an MLO it replaces the rooms own timecycle instead.");
+				}
+
+				if (!m_applySelectedTimecycle)
+				{
+					TheTimecycleManager->SetInteriorModifierOverride(-1);
+				}
+				else if (selectedIndex != -1)
+				{
+					bool inside = TheTimecycleManager->IsInsideInteriorRoom();
+
+					scriptData->m_primaryModifierIndex = inside ? -1 : selectedIndex;
+					TheTimecycleManager->SetInteriorModifierOverride(inside ? selectedIndex : -1);
 				}
 			}
 
@@ -330,17 +360,6 @@ void TimecycleEditor::Draw()
 							TheTimecycleManager->EnsureTimecycleBackup(*modifier);
 							m_selectedModifier.SetModifier(modifier);
 							strcpy(m_detailNameBuffer, modifierName.c_str());
-
-							if (m_applySelectedTimecycle)
-							{
-								auto modifier = m_selectedModifier.GetModifier();
-								auto scriptData = TimecycleManager::GetScriptData();
-
-								if (scriptData != nullptr && modifier != nullptr)
-								{
-									scriptData->m_primaryModifierIndex = TheTimecycleManager->GetTimecycleIndex(*modifier);
-								}
-							}
 						}
 
 						ImGui::TreePop();
@@ -831,6 +850,7 @@ void TimecycleEditor::Reset()
 
 	m_editorEnabled = false;
 	m_applySelectedTimecycle = false;
+	TheTimecycleManager->SetInteriorModifierOverride(-1);
 	g_timecycleXmlOutput.ClearBuffer();
 	m_searchCache.clear();
 }

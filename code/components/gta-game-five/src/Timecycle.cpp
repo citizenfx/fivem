@@ -515,6 +515,26 @@ bool TimecycleManager::ShouldActivateEditor()
 	return m_activateEditor;
 }
 
+void TimecycleManager::SetInteriorModifierOverride(int index)
+{
+	m_interiorModifierOverride = index;
+}
+
+int TimecycleManager::GetInteriorModifierOverride()
+{
+	return m_interiorModifierOverride;
+}
+
+void TimecycleManager::MarkInsideInteriorRoom()
+{
+	m_lastInteriorRoomTick = GetTickCount64();
+}
+
+bool TimecycleManager::IsInsideInteriorRoom()
+{
+	return GetTickCount64() - m_lastInteriorRoomTick < 250;
+}
+
 #if IS_RDR3
 void TimecycleManager::StoreVarInfoName(const std::string& name)
 {
@@ -761,6 +781,51 @@ static uint32_t TimecycleComputeHashLoad(int ns, char* name)
 	return hash;
 }
 
+#if GTA_FIVE
+struct CPortalModifierData
+{
+	float portalBoundSphere[4]; // rage::spdSphere
+	float strength;
+	int mainModifier;
+	int secondaryModifier;
+	float blendWeight;
+};
+
+struct CPortalModifierQueryResults
+{
+	CPortalModifierData m_entries[20];
+	int m_count;
+};
+
+static void (*g_origFindModifiersForInteriors)(const void*, void*, uint32_t, CPortalModifierQueryResults*);
+static void FindModifiersForInteriors(const void* viewport, void* interiorInst, uint32_t roomId, CPortalModifierQueryResults* results)
+{
+	g_origFindModifiersForInteriors(viewport, interiorInst, roomId, results);
+
+	// room 0 is the exterior
+	if (roomId > 0)
+	{
+		TCManager.MarkInsideInteriorRoom();
+	}
+
+	int index = TCManager.GetInteriorModifierOverride();
+	if (index < 0)
+	{
+		return;
+	}
+
+	for (int i = 0; i < results->m_count; i++)
+	{
+		// -1 entries are portals looking out of the interior, they should stay exterior
+		if (results->m_entries[i].mainModifier != -1)
+		{
+			results->m_entries[i].mainModifier = index;
+			results->m_entries[i].secondaryModifier = -1;
+		}
+	}
+}
+#endif
+
 static uint32_t (*g_origTimecycleComputeHashUnload)(int, char*);
 static uint32_t TimecycleComputeHashUnload(int ns, char* name)
 {
@@ -792,6 +857,7 @@ static HookFunction hookFunction([]()
 	OnKillNetworkDone.Connect([=]()
 	{
 		TCManager.SetActivateEditor(false);
+		TCManager.SetInteriorModifierOverride(-1);
 		TCManager.RevertChanges();
 	});
 
@@ -853,6 +919,15 @@ static HookFunction hookFunction([]()
 		hook::set_call(&g_origTimecycleComputeHashUnload, location);
 		hook::call(location, TimecycleComputeHashUnload);
 	}
+
+#if GTA_FIVE
+	{
+		auto location = hook::get_pattern("4C 8D 0D ? ? ? ? 44 8B ? 48 8B ? 48 8B ? E8 ? ? ? ? 8B 05", 16);
+
+		hook::set_call(&g_origFindModifiersForInteriors, location);
+		hook::call(location, FindModifiersForInteriors);
+	}
+#endif
 
 #if IS_RDR3
 	// RDR3 doesn't store variable names inside rage::tcVarInfo anymore, so hacking around to get bring names back.
