@@ -227,6 +227,8 @@ public:
 	virtual void SetBase(uint32_t base) override;
 
 	virtual void RunFrame() override;
+	
+	virtual concurrency::task<void> PrecheckServer(const std::string& rootUrl);
 
 	virtual concurrency::task<void> ConnectToServer(const std::string& rootUrl);
 
