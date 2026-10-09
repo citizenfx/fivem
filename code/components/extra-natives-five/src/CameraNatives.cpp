@@ -252,7 +252,7 @@ static HookFunction hookFunction([]()
 	void* camCinematicInTrainContext_CanUpdateFunc = hook::get_pattern<void>("E8 ? ? ? ? 48 85 C0 0F 84 ? ? 00 00 4C 8B 80 ? ? 00 00 49 8B 80 ? ? 00 00 48 85 C0 74", -0xD);
 
 	// 2189 Added another vfunc between
-	// 2802 Repalced RTTI methods in the very beginning
+	// 2802 Replaced RTTI methods in the very beginning
 	int index = xbr::IsGameBuildOrGreater<2802>() ? 8 : xbr::IsGameBuildOrGreater<2189>() ? 4 : 3;
 
 	origCamCinematicOnFootIdleContext_CanUpdate = (camCanUpdateFn)camCinematicOnFootIdleContext_vtable[index];

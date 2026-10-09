@@ -48,7 +48,7 @@ public:
 											// Blocks is our way of dynamically allocating more slots
 											// When one block is full and we need more objects we can create another block and go ahead
 	int                 m_nBlocks;          // Number of blocks                  
-	U**                 m_ppBeginBlock;     // Array of pointers to the beggining of each block
+	U**                 m_ppBeginBlock;     // Array of pointers to the beginning of each block
 	U**                 m_ppEndBlock;       // Array of pointers to the end of each block
 
 											// Constructor, just does Init
@@ -77,7 +77,7 @@ public:
 		this->m_nBlocks = 0;
 		this->m_ppBeginBlock = m_ppEndBlock = nullptr;
 
-		// Size the pool to have enought slots
+		// Size the pool to have enough slots
 		this->MakeSureHasBlocks(size);
 	}
 
@@ -168,7 +168,7 @@ public:
 		return GetElementAt(index);
 	}
 
-	// Deletes a previosly allocated object in the pool
+	// Deletes a previously allocated object in the pool
 	void Delete(T* pObject)
 	{
 		auto index = GetIndexFromElement(pObject);
@@ -318,7 +318,7 @@ private:    // Hard work goes here
 			auto size = (MaxSize() - half < this->m_Size ? 0 :
 				this->m_Size + half);
 
-			// Make sure the grow was enought to have 'requires' size
+			// Make sure the grow was enough to have 'requires' size
 			return (size < requires_ ? requires_ : size);
 		}
 		return this->m_Size;
