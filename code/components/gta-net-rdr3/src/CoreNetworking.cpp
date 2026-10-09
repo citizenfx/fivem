@@ -922,7 +922,6 @@ static HookFunction hookFunction([]()
 		{
 			hostSystem.process();
 		}
-
 	});
 
 	static ConsoleCommand hhh("hhh", []()
@@ -981,7 +980,6 @@ static HookFunction hookFunction([]()
 		hook::jump(location + 15, location - 10);
 	}
 #endif
-
 	// don't allow tunable download requests to be considered pending
 	hook::jump(hook::get_call(hook::get_pattern("75 59 48 8B C8 E8 ? ? ? ? 84 C0 75", 5)), Return<int, 0>);
 
