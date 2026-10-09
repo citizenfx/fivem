@@ -46,7 +46,7 @@ static auto IsMapDataFromRawStreamer(int localIdx)
 	auto strIdx = mapDataStore->baseIdx + localIdx;
 
 	const auto& strEntry = streaming::Manager::GetInstance()->Entries[strIdx];
-	return streaming::GetCollectionIndex(strEntry.handle) < 3;
+	return streaming::IsRawStreamerCollection(streaming::GetCollectionIndex(strEntry.handle));
 }
 
 class MapDataOwnerExtension : public rage::fwExtension
