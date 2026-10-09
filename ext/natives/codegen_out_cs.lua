@@ -4,6 +4,24 @@ local function printFunctionName(native)
 	end)
 end
 
+local pointerOverrides = {
+	['CFX/SET_RUNTIME_TEXTURE_ARGB_DATA/1'] = true,
+	['CFX/SET_STATE_BAG_VALUE/2'] = true,
+	['CFX/PERFORM_HTTP_REQUEST_INTERNAL/0'] = true,
+	['CFX/TRIGGER_CLIENT_EVENT_INTERNAL/2'] = true,
+	['CFX/TRIGGER_EVENT_INTERNAL/1'] = true,
+	['CFX/TRIGGER_LATENT_CLIENT_EVENT_INTERNAL/2'] = true,
+	['CFX/TRIGGER_LATENT_SERVER_EVENT_INTERNAL/1'] = true,
+	['CFX/TRIGGER_SERVER_EVENT_INTERNAL/1'] = true,
+	['CFX/DRAW_GIZMO/0'] = true,
+	['CFX/GET_MAPDATA_ENTITY_MATRIX/2'] = true,
+	['PED/GET_PED_NEARBY_PEDS/1'] = true,
+	['PED/GET_PED_NEARBY_VEHICLES/1'] = true,
+	['SCRIPT/TRIGGER_SCRIPT_EVENT/1'] = true,
+	['SCRIPT/_TRIGGER_SCRIPT_EVENT_2/1'] = true,
+	['VEHICLE/_GET_ALL_VEHICLES/0'] = true,
+}
+
 function table.shallow_copy(t)
 	local t2 = {}
 	for k, v in pairs(t) do
@@ -598,6 +616,33 @@ print('\tinternal static partial class PointerArgumentSafety\n\t{')
 print('\t\tstatic PointerArgumentSafety()\n\t\t{')
 
 for _, v in pairs(_natives) do
+	if matchApiSet(v) and v.arguments then
+		local pointerMask = 0
+		local stringMask = 0
+
+		for i, argument in ipairs(v.arguments) do
+			local isPointer = pointerOverrides[('%s/%s/%s'):format(v.ns, v.name, i - 1)] == true
+			local isString = false
+
+			if not isPointer then
+				isString = argument.type.name == 'charPtr' or argument.type.name == 'func' or (gApiSet == 'server' and argument.type.name == 'Player')
+				isPointer = isString or argument.name == 'networkHandle' or argument.type.name == 'object' or argument.pointer
+			end
+
+			if isPointer and i <= 64 then
+				pointerMask = pointerMask | (1 << (i - 1))
+				if isString then
+					stringMask = stringMask | (1 << (i - 1))
+				end
+			end
+		end
+
+		if pointerMask ~= 0 then
+            print(("\t\t\t// %s"):format((v.ns or '') .. '/' .. v.name))
+			print(("\t\t\tAddPointerArgumentMasks(%s, 0x%016XUL, 0x%016XUL);\n"):format(v.hash, pointerMask, stringMask))
+		end
+	end
+
     if matchApiSet(v) and v.returns then
         local returnType = ''
 
