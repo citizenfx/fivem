@@ -266,6 +266,10 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 	if (uMsg == WM_ACTIVATEAPP)
 	{
 		g_isFocused = (wParam) ? true : false;
+		if (!g_isFocused)
+		{
+			ClipHostCursor(NULL);
+		}
 	}
 
 	if (uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST)
