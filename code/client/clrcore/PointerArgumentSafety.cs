@@ -127,6 +127,7 @@ namespace CitizenFX.Core.Native
 
 			switch (value)
 			{
+				case bool flag: return !flag;
 				case sbyte number: return number == 0;
 				case byte number: return number == 0;
 				case short number: return number == 0;
