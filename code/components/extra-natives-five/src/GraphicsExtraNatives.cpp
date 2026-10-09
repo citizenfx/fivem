@@ -5,6 +5,7 @@
 #include <CfxRGBA.h>
 #include <Hooking.h>
 #include <Hooking.Stubs.h>
+#include <Streaming.h>
 
 struct scrVector
 {
@@ -163,5 +164,21 @@ static InitFunction initFunction([]()
 		command.m_marker = marker;
 
 		g_sphereDrawRequests[g_sphereDrawRequestCount++] = command;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DOES_STREAMED_TEXTURE_DICT_EXIST", [](fx::ScriptContext& context)
+	{
+		auto str = streaming::Manager::GetInstance();
+        if (!str)
+        {
+			context.SetResult<bool>(false);
+            return;
+        }
+
+        std::string textureDict = context.CheckArgument<const char*>(0);
+		auto txdStore = str->moduleMgr.GetStreamingModule("ytd");
+        uint32_t id = -1;
+        txdStore->FindSlot(&id, textureDict.c_str());
+		context.SetResult<bool>(id != -1);
 	});
 });
