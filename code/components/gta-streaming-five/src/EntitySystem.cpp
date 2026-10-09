@@ -397,18 +397,18 @@ static std::string GetMapTypeDefName(uint16_t index)
 
 static std::unordered_set<uint32_t> SeenDuplicates;
 
-static void CheckForDuplicateArchetypes(uint32_t hash, uint16_t mapTypeDefIndex)
+static bool CheckForDuplicateArchetypes(uint32_t hash, uint16_t mapTypeDefIndex)
 {
 	if (SeenDuplicates.find(hash) != SeenDuplicates.end())
 	{
-		return;
+		return true;
 	}
 
 	rage::fwModelId id;
 
 	if (!rage::fwArchetypeManager::GetArchetypeFromHashKey(hash, id))
 	{
-		return;
+		return false;
 	}
 
 	SeenDuplicates.insert(hash);
@@ -418,6 +418,8 @@ static void CheckForDuplicateArchetypes(uint32_t hash, uint16_t mapTypeDefIndex)
 	std::string mapName2 = GetMapTypeDefName(id.mapTypesIndex);
 
 	trace("Duplicate Archetype '%s' (%08X), seen in '%s' and '%s'\n", modelName, hash, mapName1, mapName2);
+
+	return true;
 }
 
 static bool TooManyArchetypes = false;
@@ -446,7 +448,11 @@ static void SetArchetypeModelId(fwArchetype* archetype, uint32_t mapTypeDefIndex
 static uint16_t (*Orig_RegisterPermanentArchetype)(fwArchetype* archetype, uint32_t mapTypeDefIndex, bool bMemLock);
 uint16_t rage::fwArchetypeManager::RegisterPermanentArchetype(fwArchetype* archetype, uint32_t mapTypeDefIndex, bool bMemLock)
 {
-	CheckForDuplicateArchetypes(archetype->hash, mapTypeDefIndex);
+	if (CheckForDuplicateArchetypes(archetype->hash, mapTypeDefIndex))
+	{
+		return 0xFFFF;
+	}
+
 	uint16_t result = Orig_RegisterPermanentArchetype(archetype, mapTypeDefIndex, bMemLock);
 	SetArchetypeModelId(archetype, mapTypeDefIndex);
 	return result;
@@ -455,7 +461,11 @@ uint16_t rage::fwArchetypeManager::RegisterPermanentArchetype(fwArchetype* arche
 static uint16_t (*Orig_RegisterStreamedArchetype)(fwArchetype* archetype, uint32_t mapTypeDefIndex);
 uint16_t rage::fwArchetypeManager::RegisterStreamedArchetype(fwArchetype* archetype, uint32_t mapTypeDefIndex)
 {
-	CheckForDuplicateArchetypes(archetype->hash, mapTypeDefIndex);
+	if (CheckForDuplicateArchetypes(archetype->hash, mapTypeDefIndex))
+	{
+		return 0xFFFF;
+	}
+
 	uint16_t result = Orig_RegisterStreamedArchetype(archetype, mapTypeDefIndex);
 	SetArchetypeModelId(archetype, mapTypeDefIndex);
 	return result;
