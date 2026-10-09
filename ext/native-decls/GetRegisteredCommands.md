@@ -28,7 +28,7 @@ The data returned adheres to the following layout:
 ## Return value
 An object containing registered commands.
 
-## Example
+## Examples
 
 ```lua
 RegisterCommand("showCommands", function()
@@ -37,8 +37,9 @@ RegisterCommand("showCommands", function()
 
     local commandList = ""
     for i=1, #commands do
-        commandlist = commandList + ("%s: %s (arguments: %s)\n"):format(commands[i].resource, commands[i].name, commands[i].arity)
+        commandList = commandList .. ("%s: %s (arguments: %s)\n"):format(commands[i].resource, commands[i].name, commands[i].arity)
     end
 
     print(commandList)
 end)
+```
