@@ -1048,6 +1048,21 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		auto slotId = client->GetSlotId();
 		auto netId = client->GetNetId();
 
+		// look up the world grid for the client's routing bucket once: grids are only created
+		// and erased in UpdateWorldGrid, which ran earlier in this tick on this thread, so the
+		// pointer stays valid for the whole pass and we don't need to lock per entity
+		const WorldGrid* worldGrid = nullptr;
+
+		if (playerEntity)
+		{
+			std::shared_lock _(m_worldGridsMutex);
+
+			if (auto gridIt = m_worldGrids.find(clientDataUnlocked->routingBucket); gridIt != m_worldGrids.end())
+			{
+				worldGrid = gridIt->second.get();
+			}
+		}
+
 		auto& currentSyncedEntities = clientDataUnlocked->syncedEntities;
 		decltype(clientDataUnlocked->syncedEntities) newSyncedEntities{};
 
@@ -1089,19 +1104,17 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					}
 
 					// are we owning the world grid in which this entity exists?
-					int sectorX = std::max(entityPos.x + 8192.0f, 0.0f) / 150;
-					int sectorY = std::max(entityPos.y + 8192.0f, 0.0f) / 150;
-
-					auto selfBucket = clientDataUnlocked->routingBucket;
-
-					std::shared_lock _(m_worldGridsMutex);
-					const auto& grid = m_worldGrids[selfBucket];
-
-					if (grid && sectorX >= 0 && sectorY >= 0 && sectorX < 256 && sectorY < 256)
+					if (worldGrid)
 					{
-						if (grid->accel.netIDs[sectorX][sectorY] == netId)
+						int sectorX = std::max(entityPos.x + 8192.0f, 0.0f) / 150;
+						int sectorY = std::max(entityPos.y + 8192.0f, 0.0f) / 150;
+
+						if (sectorX >= 0 && sectorY >= 0 && sectorX < 256 && sectorY < 256)
 						{
-							return true;
+							if (worldGrid->accel.netIDs[sectorX][sectorY] == netId)
+							{
+								return true;
+							}
 						}
 					}
 				}
