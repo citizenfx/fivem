@@ -336,6 +336,9 @@ static int TrainStateOffset;
 static int TrainCruiseSpeedOffset;
 static int TrainSpeedOffset;
 
+static int PlaneBladesSpeedOffset;
+static int HeliBladesSpeedOffset;
+
 constexpr int TrainStopAtStationsFlag = 4;
 
 static int VehicleRepairMethodVtableOffset;
@@ -644,6 +647,8 @@ static HookFunction initFunction([]()
 		TrainCruiseSpeedOffset = *hook::get_pattern<uint32_t>("C7 87 ? ? ? ? ? ? ? ? E8 ? ? ? ? 4C 89 AF", 2);
 		TrainSpeedOffset = *hook::get_pattern<uint32_t>("4C 89 AF ? ? ? ? 44 89 AF ? ? ? ? 4C 89 AF ? ? ? ? 49 8B 0E", 3);
 		TrainTrackIndexOffset = *hook::get_pattern<uint32_t>("8A 8F ? ? ? ? F3 41 0F 58 CB", 2);
+		PlaneBladesSpeedOffset = *hook::get_pattern<uint32_t>("F3 0F 59 C6 F3 0F 11 83 ? ? ? ? 48 8B 83", 8);
+		HeliBladesSpeedOffset = *hook::get_pattern<uint32_t>("F3 0F 11 89 ? ? ? ? 48 8B D9 E8 ? ? ? ? 33 FF", 4);
 	}
 
 	{
@@ -1823,6 +1828,24 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("OVERRIDE_PEDS_USE_DEFAULT_DRIVE_BY_CLIPSET", [](fx::ScriptContext& context)
 	{
 		g_overrideUseDefaultDriveByClipset = context.GetArgument<bool>(0);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_BLADES_SPEED", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_HELI_BLADES_SPEED"))
+		{
+			int vehicleType = readValue<int>(vehicle, VehicleTypeOffset);
+			
+			if (vehicleType == 1)
+			{
+				return context.SetResult<float>(readValue<float>(vehicle, PlaneBladesSpeedOffset));
+			}
+			else if (vehicleType >= 8 && vehicleType <= 10)
+			{
+				return context.SetResult<float>(readValue<float>(vehicle, HeliBladesSpeedOffset));
+			}
+		}
+		context.SetResult<float>(0.0f);
 	});
 
 	// vehicle xenon lights patches to support RGB colors
