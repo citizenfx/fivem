@@ -9,7 +9,7 @@ game: gta5
 float GET_VEHICLE_GEAR_RATIO(Vehicle vehicle, int gear);
 ```
 
-Gets vehicles gear ratio on choosen gear.
+Gets vehicles gear ratio on chosen gear.
 
 ## Parameters
 * **vehicle**: The vehicle handle.
