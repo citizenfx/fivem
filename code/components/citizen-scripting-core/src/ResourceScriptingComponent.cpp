@@ -43,14 +43,22 @@ public:
 	{
 		resource->OnRemove.Connect([this, resource]()
 		{
-			m_resources.erase(resource);
+			m_resources.erase(
+				std::remove_if(m_resources.begin(), m_resources.end(), [resource](const auto& entry)
+				{
+					return entry.first == resource;
+				}),
+				m_resources.end());
 		});
 
-		m_resources[resource] = resource->GetComponent<ResourceScriptingComponent>();
+		m_resources.emplace_back(resource, resource->GetComponent<ResourceScriptingComponent>());
 	}
 
 private:
-	std::unordered_map<fx::Resource*, fwRefContainer<ResourceScriptingComponent>> m_resources;
+	// Resource membership changes rarely, while this collection is traversed on
+	// every game tick. A contiguous vector avoids hash-node pointer chasing in the
+	// hot path and gives the CPU a much more cache-friendly iteration pattern.
+	std::vector<std::pair<fx::Resource*, fwRefContainer<ResourceScriptingComponent>>> m_resources;
 };
 
 static tbb::concurrent_queue<std::tuple<std::string, std::function<void()>>> g_onNetInitCbs;
