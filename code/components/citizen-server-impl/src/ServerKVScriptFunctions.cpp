@@ -212,7 +212,7 @@ static void GetResourceKvp(fx::ScriptContext& context)
 	std::string value;
 	if (db->Get(rocksdb::ReadOptions{}, key, &value).IsNotFound())
 	{
-		context.SetResult<const char*>(nullptr);
+		context.SetResult<T>(context.GetArgument<T>(1));
 		return;
 	}
 
