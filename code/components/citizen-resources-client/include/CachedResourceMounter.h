@@ -39,6 +39,8 @@ namespace fx
 
 		bool MountOverlay(const std::string& resourceName, const std::string& overlayName, std::string* outError);
 
+		bool UnmountOverlay(const std::string& resourceName, const std::string& overlayName, std::string* outError);
+
 		virtual bool HandlesScheme(const std::string& scheme) override;
 
 		virtual pplx::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override;
@@ -103,6 +105,7 @@ namespace fx
 	};
 
 	extern RESCLIENT_EXPORT fwEvent<const StreamingEntryData&> OnAddStreamingResource;
+	extern RESCLIENT_EXPORT fwEvent<fx::Resource*, const std::string&, const std::string&> OnOverrideStreamTag;
 
 	extern RESCLIENT_EXPORT fwEvent<> OnLockStreaming;
 

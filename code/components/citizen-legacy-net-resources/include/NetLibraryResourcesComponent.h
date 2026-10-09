@@ -2,7 +2,7 @@
 #include "NetLibrary.h"
 #include "Resource.h"
 
-class NetLibraryResourcesComponent : public fwRefCountable, public fx::IAttached<NetLibrary>
+class COMPONENT_EXPORT(CITIZEN_LEGACY_NET_RESOURCES) NetLibraryResourcesComponent : public fwRefCountable, public fx::IAttached<NetLibrary>
 {
 public:
 	virtual void AttachToObject(NetLibrary* netLibrary) override;
@@ -14,10 +14,11 @@ public:
 		m_resourceUpdateQueue.push(resourceName);
 	}
 
+	bool RequestResourceFileSet(fx::Resource* resource, const std::string& setName);
+	bool ReleaseResourceFileSet(fx::Resource* resource, const std::string& setName);
+
 private:
 	void UpdateResources(const std::string& updateList, const std::function<void()>& doneCb);
-
-	bool RequestResourceFileSet(fx::Resource* resource, const std::string& setName);
 
 private:
 	std::queue<std::string> m_resourceUpdateQueue;
