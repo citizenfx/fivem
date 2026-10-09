@@ -14,6 +14,14 @@
 
 namespace fx::sync
 {
+inline int ReadSignedValue(SyncParseState& state, int length)
+{
+	bool negative = state.buffer.ReadBit();
+	int magnitude = state.buffer.Read<int>(length - 1);
+
+	return (negative) ? ~magnitude : magnitude;
+}
+
 struct CVehicleCreationDataNode : GenericSerializeDataNode<CVehicleCreationDataNode>
 { 
 	uint32_t m_model;
@@ -717,7 +725,70 @@ struct CPlaneGameStateDataNode { };
 struct CPlaneControlDataNode { };
 struct CSubmarineGameStateDataNode { };
 struct CSubmarineControlDataNode { };
-struct CTrainGameStateDataNode { };
+struct CTrainGameStateDataNode
+{
+	CTrainGameStateDataNodeData data{};
+
+	bool hasConsist = false;
+	bool linkedCarriageOnSameTrack = false;
+	int platformSide0 = -1;
+	int platformSide1 = -1;
+	int stationIndex0 = -1;
+	int stationIndex1 = -1;
+	int stationIndex2 = -1;
+	float maxSpeed = 0.0f;
+	bool hasStationData = false;
+	bool isHalted = false;
+	bool hasWhistleSequence = false;
+	uint32_t whistleSequence = 0;
+	bool isBellRinging = false;
+	bool hasJunctionAhead = false;
+	bool junctionSwitchState0 = false;
+	bool junctionSwitchState1 = false;
+
+	bool Parse(SyncParseState& state)
+	{
+		hasConsist = state.buffer.ReadBit();
+
+		data.trackId = ReadSignedValue(state, 6);
+		data.direction = state.buffer.ReadBit();
+		linkedCarriageOnSameTrack = state.buffer.ReadBit();
+
+		platformSide0 = ReadSignedValue(state, 6);
+		platformSide1 = ReadSignedValue(state, 6);
+		stationIndex0 = ReadSignedValue(state, 6);
+		stationIndex1 = ReadSignedValue(state, 6);
+		stationIndex2 = ReadSignedValue(state, 6);
+
+		data.trainState = state.buffer.Read<int>(4);
+
+		data.cruiseSpeed = ReadSignedValue(state, 10) * 0.1f;
+		maxSpeed = ReadSignedValue(state, 10) * 0.1f;
+
+		hasStationData = state.buffer.ReadBit();
+		isHalted = state.buffer.ReadBit();
+
+		hasWhistleSequence = state.buffer.ReadBit();
+
+		if (hasWhistleSequence)
+		{
+			whistleSequence = state.buffer.Read<uint32_t>(32);
+		}
+
+		isBellRinging = state.buffer.ReadBit();
+
+		hasJunctionAhead = state.buffer.ReadBit();
+
+		if (hasJunctionAhead)
+		{
+			junctionSwitchState0 = state.buffer.ReadBit();
+			junctionSwitchState1 = state.buffer.ReadBit();
+		}
+
+		return true;
+	}
+};
+
 struct CPlayerCreationDataNode { };
 struct CPlayerGameStateDataNode { };
 
@@ -1151,7 +1222,49 @@ struct CDraftVehControlDataNode { };
 struct CDraftVehHorseHealthDataNode { };
 struct CDraftVehHorseGameStateDataNode { };
 struct CDraftVehGameStateDataNode { };
-struct CTrainControlDataNode { };
+struct CTrainControlDataNode
+{
+	float speed = 0.0f;
+	bool hasCarriageData = false;
+	int carriageCount = 0;
+	float unkCarriage4544[20] = {};
+	float unkCarriage4548[20] = {};
+
+	bool Parse(SyncParseState& state)
+	{
+		speed = ReadSignedValue(state, 9) * 0.1f;
+
+		hasCarriageData = state.buffer.ReadBit();
+
+		if (!hasCarriageData)
+		{
+			carriageCount = 0;
+
+			for (int index = 0; index < 20; index++)
+			{
+				unkCarriage4544[index] = 0.0f;
+				unkCarriage4548[index] = 0.0f;
+			}
+
+			return true;
+		}
+
+		carriageCount = state.buffer.Read<int>(5);
+
+		if (carriageCount > 20)
+		{
+			carriageCount = 20;
+		}
+
+		for (int index = 0; index < carriageCount; index++)
+		{
+			unkCarriage4544[index] = state.buffer.Read<int>(4) * 0.1f;
+			unkCarriage4548[index] = state.buffer.Read<int>(4) * 0.1f;
+		}
+
+		return true;
+	}
+};
 struct CTrainGameStateUncommonDataNode { };
 struct CVehicleCommonDataNode { };
 struct CDoorDamageDataNode { };
@@ -1385,7 +1498,19 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 
 	virtual CTrainGameStateDataNodeData* GetTrainState() override
 	{
-		return nullptr;
+		auto [hasNode, node] = this->template GetData<CTrainGameStateDataNode>();
+
+		if (!hasNode)
+		{
+			return nullptr;
+		}
+
+		if (auto [hasControlNode, controlNode] = this->template GetData<CTrainControlDataNode>(); hasControlNode && node->data.carriageSpeed != controlNode->speed)
+		{
+			node->data.carriageSpeed = controlNode->speed;
+		}
+
+		return &node->data;
 	}
 
 	virtual CPlayerGameStateNodeData* GetPlayerGameState() override
