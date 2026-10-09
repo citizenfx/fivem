@@ -820,4 +820,180 @@ static HookFunction initFunction([]()
 			it->second.invincible = value;
 		}
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HEALTH_CONFIG_DEFAULT_HEALTH", [](fx::ScriptContext& context)
+	{
+		std::string name = context.GetArgument<const char*>(0);
+		uint32_t configHash = HashString(name);
+
+		auto it = g_healthConfigs.find(configHash);
+		if (it != g_healthConfigs.end())
+		{
+			context.SetResult(it->second.defaultHealth);
+		}
+		else
+		{
+			context.SetResult(0.0f);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HEALTH_CONFIG_DEFAULT_ARMOR", [](fx::ScriptContext& context)
+	{
+		std::string name = context.GetArgument<const char*>(0);
+		uint32_t configHash = HashString(name);
+
+		auto it = g_healthConfigs.find(configHash);
+		if (it != g_healthConfigs.end())
+		{
+			context.SetResult(it->second.defaultArmor);
+		}
+		else
+		{
+			context.SetResult(0.0f);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HEALTH_CONFIG_DEFAULT_ENDURANCE", [](fx::ScriptContext& context)
+	{
+		std::string name = context.GetArgument<const char*>(0);
+		uint32_t configHash = HashString(name);
+
+		auto it = g_healthConfigs.find(configHash);
+		if (it != g_healthConfigs.end())
+		{
+			context.SetResult(it->second.defaultEndurance);
+		}
+		else
+		{
+			context.SetResult(0.0f);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HEALTH_CONFIG_FATIGUED_THRESHOLD", [](fx::ScriptContext& context)
+	{
+		std::string name = context.GetArgument<const char*>(0);
+		uint32_t configHash = HashString(name);
+
+		auto it = g_healthConfigs.find(configHash);
+		if (it != g_healthConfigs.end())
+		{
+			context.SetResult(it->second.fatiguedHealthThreshold);
+		}
+		else
+		{
+			context.SetResult(0.0f);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HEALTH_CONFIG_INJURED_THRESHOLD", [](fx::ScriptContext& context)
+	{
+		std::string name = context.GetArgument<const char*>(0);
+		uint32_t configHash = HashString(name);
+
+		auto it = g_healthConfigs.find(configHash);
+		if (it != g_healthConfigs.end())
+		{
+			context.SetResult(it->second.injuredHealthThreshold);
+		}
+		else
+		{
+			context.SetResult(0.0f);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HEALTH_CONFIG_DYING_THRESHOLD", [](fx::ScriptContext& context)
+	{
+		std::string name = context.GetArgument<const char*>(0);
+		uint32_t configHash = HashString(name);
+
+		auto it = g_healthConfigs.find(configHash);
+		if (it != g_healthConfigs.end())
+		{
+			context.SetResult(it->second.dyingHealthThreshold);
+		}
+		else
+		{
+			context.SetResult(0.0f);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HEALTH_CONFIG_HURT_THRESHOLD", [](fx::ScriptContext& context)
+	{
+		std::string name = context.GetArgument<const char*>(0);
+		uint32_t configHash = HashString(name);
+
+		auto it = g_healthConfigs.find(configHash);
+		if (it != g_healthConfigs.end())
+		{
+			context.SetResult(it->second.hurtHealthThreshold);
+		}
+		else
+		{
+			context.SetResult(0.0f);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HEALTH_CONFIG_DOG_TAKEDOWN_THRESHOLD", [](fx::ScriptContext& context)
+	{
+		std::string name = context.GetArgument<const char*>(0);
+		uint32_t configHash = HashString(name);
+
+		auto it = g_healthConfigs.find(configHash);
+		if (it != g_healthConfigs.end())
+		{
+			context.SetResult(it->second.dogTakedownThreshold);
+		}
+		else
+		{
+			context.SetResult(0.0f);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HEALTH_CONFIG_WRITHE_FROM_BULLET_THRESHOLD", [](fx::ScriptContext& context)
+	{
+		std::string name = context.GetArgument<const char*>(0);
+		uint32_t configHash = HashString(name);
+
+		auto it = g_healthConfigs.find(configHash);
+		if (it != g_healthConfigs.end())
+		{
+			context.SetResult(it->second.writheFromBulletDamageThreshold);
+		}
+		else
+		{
+			context.SetResult(0.0f);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HEALTH_CONFIG_MELEE_FATAL_ATTACK", [](fx::ScriptContext& context)
+	{
+		std::string name = context.GetArgument<const char*>(0);
+		uint32_t configHash = HashString(name);
+
+		auto it = g_healthConfigs.find(configHash);
+		if (it != g_healthConfigs.end())
+		{
+			context.SetResult(it->second.meleeCardinalFatalAttackCheck);
+		}
+		else
+		{
+			context.SetResult(false);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HEALTH_CONFIG_INVINCIBLE", [](fx::ScriptContext& context)
+	{
+		std::string name = context.GetArgument<const char*>(0);
+		uint32_t configHash = HashString(name);
+
+		auto it = g_healthConfigs.find(configHash);
+		if (it != g_healthConfigs.end())
+		{
+			context.SetResult(it->second.invincible);
+		}
+		else
+		{
+			context.SetResult(false);
+		}
+	});
 });
