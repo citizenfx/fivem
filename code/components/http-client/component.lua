@@ -1,6 +1,6 @@
 dependency 'rage-device'
 
-flags { 'NoRuntimeChecks' }
+runtimechecks "Off"
 
 return function()
 	filter {}

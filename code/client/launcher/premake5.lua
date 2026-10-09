@@ -123,7 +123,8 @@ local function launcherpersonality_inner(name)
 			defines "LAUNCHER_PERSONALITY_ANY_GAME"
 		end
 
-		flags { "NoManifest", "NoImportLib" }
+		manifest "Off"
+		useimportlib "Off"
 		
 		symbols "Full"
 		buildoptions "/MP"
