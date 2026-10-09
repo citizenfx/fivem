@@ -847,7 +847,7 @@ namespace CitizenFX.Core
 			UnsafeTattooCollectionData data;
 			unsafe
 			{
-				Function.Call((Hash)0xFF56381874F82086, characterType, decorationIndex, &data);
+				Function.CallUnchecked((Hash)0xFF56381874F82086, characterType, decorationIndex, &data);
 			}
 			return data.GetData();
 		}
@@ -900,11 +900,11 @@ namespace CitizenFX.Core
 					UnsafeAltPropVariationData data = new UnsafeAltPropVariationData();
 					unsafe
 					{
-						Function.Call((Hash)0xD81B7F27BC773E66, propHashName, i, &someHash, &unk1, &unk2);
+						Function.CallUnchecked((Hash)0xD81B7F27BC773E66, propHashName, i, &someHash, &unk1, &unk2);
 					}
 					unsafe
 					{
-						Function.Call((Hash)0x5D5CAFF661DDF6FC, someHash, &data);
+						Function.CallUnchecked((Hash)0x5D5CAFF661DDF6FC, someHash, &data);
 					}
 					items[i] = data.GetData(someHash, unk1, unk2);
 				}
@@ -1084,7 +1084,7 @@ namespace CitizenFX.Core
 			UnsafeWeaponHudStats unsafeStats = new UnsafeWeaponHudStats();
 			unsafe
 			{
-				Function.Call(Hash.GET_WEAPON_HUD_STATS, weaponHash, &unsafeStats);
+				Function.CallUnchecked(Hash.GET_WEAPON_HUD_STATS, weaponHash, &unsafeStats);
 			}
 			return unsafeStats.GetSafeStats();
 		}
@@ -1095,7 +1095,7 @@ namespace CitizenFX.Core
 			UnsafeWeaponComponentHudStats unsafeStats = new UnsafeWeaponComponentHudStats();
 			unsafe
 			{
-				Function.Call(Hash.GET_WEAPON_COMPONENT_HUD_STATS, weaponComponentHash, &unsafeStats);
+				Function.CallUnchecked(Hash.GET_WEAPON_COMPONENT_HUD_STATS, weaponComponentHash, &unsafeStats);
 			}
 			return unsafeStats.GetSafeStats();
 		}
