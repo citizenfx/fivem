@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 namespace fx
 {
@@ -10,7 +10,7 @@ enum class ClientDropReason: uint32_t
 	CLIENT,
 	// server initiated a disconnect
 	SERVER,
-	// client with same guid connected and kicks old client
+	// not used, used to drop existing clients with GUID collisions
 	CLIENT_REPLACED,
 	// server -> client connection timed out
 	CLIENT_CONNECTION_TIMED_OUT,
