@@ -18,12 +18,12 @@ export default defineComponent({
       s = s.replace(`@default`, this.templates[this.templateId]);
 
       s = s.replace(/{(\d+)}/g, (match, number) => {
-        const argEscaped = this.args[number] != undefined ? this.escape(this.args[number]) : match;
+        let argEscaped = this.args[number] != undefined ? this.escape(this.args[number]) : match;
         if (number == 0 && this.color) {
           //color is deprecated, use templates or ^1 etc.
-          return this.colorizeOld(argEscaped);
+          argEscaped = this.colorizeOld(argEscaped);
         }
-        return argEscaped;
+        return this.colorize(argEscaped);
       });
 
       // format variant args
@@ -32,7 +32,7 @@ export default defineComponent({
       if (params) {
         s = s.replace(/\{\{([a-zA-Z0-9_\-]+?)\}\}/g, (match, id) => {
           const argEscaped = params[id] != undefined ? this.escape(params[id]) : match;
-          return argEscaped;
+          return this.colorize(argEscaped);
         });
       }
 
