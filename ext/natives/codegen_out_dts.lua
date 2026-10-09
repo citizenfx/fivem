@@ -103,7 +103,7 @@ local function printReturnType(type)
 	elseif type.nativeType == 'float' then
 		return 'number'
 	elseif type.nativeType == 'vector3' then
-		return 'number[]'
+		return '[number, number, number]'
 	elseif type.nativeType == 'int' then
 		return 'number'
 	elseif type.nativeType == 'object' then
