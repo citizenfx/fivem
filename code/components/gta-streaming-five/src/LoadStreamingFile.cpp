@@ -1264,6 +1264,91 @@ public:
 
 static CfxCacheMounter g_staticCacheMounter;
 
+#ifdef GTA_FIVE
+namespace rage
+{
+struct ptxClipRegionData
+{
+	int numColumns;
+	int numRows;
+	void* data;
+};
+
+struct ptxClipRegionTable
+{
+	uint32_t* hashNames;
+	uint16_t hashNamesCount;
+	uint16_t hashNamesCapacity;
+	ptxClipRegionData* clipRegions;
+	uint16_t clipRegionsCount;
+	uint16_t clipRegionsCapacity;
+	void* clipRegionPool;
+	int numClipRegions;
+};
+}
+
+static rage::ptxClipRegionTable* g_clipRegionTable;
+static bool* g_clipRegionsInitialised;
+static bool (*g_loadClipRegionTable)(rage::ptxClipRegionTable* self, const char* fileName);
+
+class CfxPtxClipRegionsMounter : public CDataFileMountInterface
+{
+public:
+	virtual bool LoadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		return Swap(entry->name);
+	}
+
+	virtual void UnloadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		Swap("common:/data/effects/ptxclipregions.dat");
+	}
+
+private:
+	static void FreeTable(rage::ptxClipRegionTable& table)
+	{
+		auto allocator = rage::GetAllocator();
+
+		if (table.clipRegionsCount > 0)
+		{
+			allocator->Free(table.clipRegions[0].data);
+		}
+
+		if (table.hashNames)
+		{
+			allocator->Free(table.hashNames);
+		}
+
+		if (table.clipRegions)
+		{
+			allocator->Free(table.clipRegions);
+		}
+	}
+
+	static bool Swap(const char* fileName)
+	{
+		static rage::ptxClipRegionTable retired{};
+
+		rage::ptxClipRegionTable fresh;
+		memset(&fresh, 0, sizeof(fresh));
+
+		if (!g_loadClipRegionTable(&fresh, fileName))
+		{
+			return false;
+		}
+
+		FreeTable(retired);
+		memcpy(&retired, g_clipRegionTable, sizeof(retired));
+		memcpy(g_clipRegionTable, &fresh, sizeof(fresh));
+		*g_clipRegionsInitialised = true;
+
+		return true;
+	}
+};
+
+static CfxPtxClipRegionsMounter g_ptxClipRegionsMounter;
+#endif
+
 struct IgnoreCaseLess
 {
 	inline bool operator()(const std::string& left, const std::string& right) const
@@ -1497,6 +1582,13 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 	{
 		return &g_staticCacheMounter;
 	}
+
+#ifdef GTA_FIVE
+	if (type == "PTXCLIPREGIONS_FILE")
+	{
+		return &g_ptxClipRegionsMounter;
+	}
+#endif
 
 	int fileType = LookupDataFileType(type);
 
@@ -3532,6 +3624,13 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::pattern("BA A1 85 94 52 41 B8 01").count(1).get(0).get<char>(0x34);
 		g_interiorProxyPool = (decltype(g_interiorProxyPool))(location + *(int32_t*)location + 4);
+	}
+
+	{
+		auto location = hook::get_pattern<char>("48 83 EC 28 48 8B D1 48 8D 0D ? ? ? ? E8 ? ? ? ? 88 05");
+		g_clipRegionTable = hook::get_address<rage::ptxClipRegionTable*>(location + 10);
+		g_loadClipRegionTable = (decltype(g_loadClipRegionTable))hook::get_call(location + 14);
+		g_clipRegionsInitialised = hook::get_address<bool*>(location + 21);
 	}
 
 	g_interiorProxyArray = hook::get_address<decltype(g_interiorProxyArray)>(hook::get_pattern("83 FA FF 75 4D 48 8D 0D ? ? ? ? BA", 8));
