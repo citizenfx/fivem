@@ -85,8 +85,19 @@ static rage::ScalarV* CalcClosestLeafDistance(rage::ScalarV* out, rage::Vec3V* p
 	return g_origCalcClosestLeafDistance(out, point, bvh);
 }
 
+static void (*g_origIterateManifold)(void* self, void* entityA, void* entityB, hook::FlexStruct* instA, hook::FlexStruct* instB);
+static void IterateManifold(void* self, void* entityA, void* entityB, hook::FlexStruct* instA, hook::FlexStruct* instB)
+{
+	if (!instA || !instB || !instA->At<void*>(0x10) || !instB->At<void*>(0x10))
+	{
+		return;
+	}
+	g_origIterateManifold(self, entityA, entityB, instA, instB);
+}
+
 static HookFunction hookFunction([]()
 {
 	g_origProcessSelfCollision = hook::trampoline(hook::get_pattern("48 8B C4 48 89 58 ? 4C 89 48 ? 4C 89 40 ? 48 89 50 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? B8"), ProcessSelfCollision);
 	g_origCalcClosestLeafDistance = hook::trampoline(hook::get_pattern("48 8B C4 48 89 58 ? 48 89 70 ? 48 89 78 ? 48 89 50 ? 55 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 49 8B 38"), CalcClosestLeafDistance);
+	g_origIterateManifold = hook::trampoline(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 83 C6 ? 48 FF CF 0F 85 ? ? ? ? 48 83 C4")), IterateManifold);
 });
