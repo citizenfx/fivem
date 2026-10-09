@@ -170,6 +170,14 @@ namespace rage
 		class TextureVK : public Texture
 		{
 		public:
+			struct TextureData : public sysUseAllocator
+			{
+				char pad0[0x11];
+				uint8_t imageViewType;
+				char pad1[6];
+				VkImageView imageView;
+			};
+
 			struct ImageData : public sysUseAllocator
 			{
 				VkDeviceMemory memory;
@@ -177,7 +185,12 @@ namespace rage
 				uint32_t pad[24];
 			};
 
-			char pad[64];
+			char pad[0x10];
+			uint16_t width;
+			uint16_t height;
+			char pad2[20];
+			TextureData* data;
+			char pad3[16];
 			ImageData* image;
 		};
 
@@ -212,7 +225,9 @@ namespace rage
 			}
 		};
 
-		void GFX_EXPORT Driver_Create_ShaderResourceView(Texture* texture, const TextureViewDesc& desc);
+		bool GFX_EXPORT Driver_Create_ShaderResourceView(Texture* texture, const TextureViewDesc& desc);
+
+		void GFX_EXPORT Driver_Destroy_ShaderResourceView(Texture* texture);
 
 		void GFX_EXPORT Driver_Destroy_Texture(Texture* texture);
 	}
