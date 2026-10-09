@@ -78,6 +78,43 @@ static bool IsPathWithinResourceRoot(const std::filesystem::path& rootPath, cons
 
 	return true;
 }
+
+// Resolves a resource-relative file name against the resource root and checks that it stays
+// there. Read and write natives have to agree on this, so they share the check.
+static bool IsResourceFilePathAllowed(const std::string& rootPath, const std::string& requestedFileName)
+{
+	// an empty root path would resolve against the process working directory
+	if (rootPath.empty())
+	{
+		return false;
+	}
+
+	try
+	{
+		const std::filesystem::path resourceRoot = std::filesystem::weakly_canonical(std::filesystem::absolute(std::filesystem::u8path(rootPath)));
+
+		std::string sanitizedFileName = requestedFileName;
+		while (!sanitizedFileName.empty() && (sanitizedFileName[0] == '/' || sanitizedFileName[0] == '\\'))
+		{
+			sanitizedFileName.erase(sanitizedFileName.begin());
+		}
+
+		const std::filesystem::path requestedPath = std::filesystem::u8path(sanitizedFileName);
+
+		if (requestedPath.empty() || requestedPath.is_absolute() || requestedPath.has_root_name())
+		{
+			return false;
+		}
+
+		const std::filesystem::path absoluteRequestedPath = std::filesystem::weakly_canonical(std::filesystem::absolute(resourceRoot / requestedPath));
+
+		return IsPathWithinResourceRoot(resourceRoot, absoluteRequestedPath);
+	}
+	catch (const std::filesystem::filesystem_error&)
+	{
+		return false;
+	}
+}
 #endif
 
 static InitFunction initFunction([] ()
@@ -174,33 +211,7 @@ static InitFunction initFunction([] ()
 			return;
 		}
 #else
-		try
-		{
-			const std::filesystem::path resourceRoot = std::filesystem::weakly_canonical(std::filesystem::absolute(std::filesystem::u8path(rootPath)));
-
-			std::string sanitizedFileName = requestedFileName;
-			while (!sanitizedFileName.empty() && (sanitizedFileName[0] == '/' || sanitizedFileName[0] == '\\'))
-			{
-				sanitizedFileName.erase(sanitizedFileName.begin());
-			}
-
-			const std::filesystem::path requestedPath = std::filesystem::u8path(sanitizedFileName);
-
-			if (requestedPath.is_absolute() || requestedPath.has_root_name())
-			{
-				context.SetResult(nullptr);
-				return;
-			}
-
-			const std::filesystem::path absoluteRequestedPath = std::filesystem::weakly_canonical(std::filesystem::absolute(resourceRoot / requestedPath));
-
-			if (!IsPathWithinResourceRoot(resourceRoot, absoluteRequestedPath))
-			{
-				context.SetResult(nullptr);
-				return;
-			}
-		}
-		catch (const std::filesystem::filesystem_error&)
+		if (!IsResourceFilePathAllowed(rootPath, requestedFileName))
 		{
 			context.SetResult(nullptr);
 			return;
@@ -264,14 +275,24 @@ static InitFunction initFunction([] ()
 			return;
 		}
 
-		if (!fx::ScriptingFilesystemAllowWrite("@" + resource->GetName() + "/" + context.CheckArgument<const char*>(1)))
+		const char* requestedFileName = context.CheckArgument<const char*>(1);
+
+		// the name is joined onto the resource path further down without being resolved, so it
+		// has to be confined to the resource first. same rule LOAD_RESOURCE_FILE applies.
+		if (!IsResourceFilePathAllowed(resource->GetPath(), requestedFileName))
+		{
+			context.SetResult(nullptr);
+			return;
+		}
+
+		if (!fx::ScriptingFilesystemAllowWrite("@" + resource->GetName() + "/" + requestedFileName))
 		{
 			context.SetResult(nullptr);
 			return;
 		}
 
 		// try opening a writable file in the resource's home directory
-		const std::string filePath = resource->GetPath() + "/" + context.CheckArgument<const char*>(1);
+		const std::string filePath = resource->GetPath() + "/" + requestedFileName;
 
 		fwRefContainer<vfs::Device> device = vfs::GetDevice(filePath);
 		auto handle = device->Create(filePath);
