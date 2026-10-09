@@ -556,7 +556,8 @@ void NUIWindow::UpdateFrame()
 		}
 	}
 
-	if (!GetTexture().GetRef())
+	auto nuiTexture = GetTexture();
+	if (!nuiTexture.GetRef())
 	{
 		return;
 	}
@@ -646,7 +647,7 @@ void NUIWindow::UpdateFrame()
 					ID3D11Device* rawDevice;
 				}* deviceStuff = (decltype(deviceStuff))g_nuiGi->GetD3D11Device();
 
-				auto nativeTexture = GetParentTexture(CefRenderHandler::PaintElementType::PET_VIEW)->GetNativeTexture();
+				auto nativeTexture = texture->GetNativeTexture();
 
 				if (nativeTexture)
 				{
@@ -669,12 +670,7 @@ void NUIWindow::UpdateFrame()
 											   m_lastDirtyRect.bottom,
 											   1);
 
-					ID3D11Resource* nativeTexture = nullptr;
-
-					if (auto texture = GetTexture(); texture.GetRef())
-					{
-						nativeTexture = (ID3D11Resource*)texture->GetNativeTexture();
-					}
+					ID3D11Resource* nativeTexture = (ID3D11Resource*)nuiTexture->GetNativeTexture();
 
 					if (m_swapTexture && m_swapRtv && m_swapSrv && nativeTexture)
 					{
@@ -698,11 +694,6 @@ void NUIWindow::UpdateFrame()
 							g_nuiGi->GetD3D11Device()->CreateVertexShader(quadVS, sizeof(quadVS), nullptr, &vs);
 							g_nuiGi->GetD3D11Device()->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
 						});
-
-						Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> pPerf;
-						deviceContext->QueryInterface(IID_PPV_ARGS(&pPerf));
-
-						pPerf->BeginEvent(L"DRAWSHIT");
 
 						ID3D11RenderTargetView* oldRtv = nullptr;
 						ID3D11DepthStencilView* oldDsv = nullptr;
@@ -814,8 +805,6 @@ void NUIWindow::UpdateFrame()
 						{
 							oldLayout->Release();
 						}
-
-						pPerf->EndEvent();
 					}
 
 					memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
@@ -833,12 +822,12 @@ void NUIWindow::UpdateFrame()
 
 			nui::GILockedTexture lockedTexture;
 
-			if (GetTexture()->Map(0, 0, &lockedTexture, nui::GILockFlags::Write))
+			if (nuiTexture->Map(0, 0, &lockedTexture, nui::GILockFlags::Write))
 			{
 				pBits = lockedTexture.pBits;
 				pitch = lockedTexture.pitch;
 			}
-			else if (GetTexture()->Map(0, 0, &lockedTexture, nui::GILockFlags::WriteDiscard))
+			else if (nuiTexture->Map(0, 0, &lockedTexture, nui::GILockFlags::WriteDiscard))
 			{
 				pBits = lockedTexture.pBits;
 				pitch = lockedTexture.pitch;
@@ -891,7 +880,7 @@ void NUIWindow::UpdateFrame()
 					memcpy(pBits, m_renderBuffer, static_cast<size_t>(m_height) * pitch);
 				}
 
-				GetTexture()->Unmap(&lockedTexture);
+				nuiTexture->Unmap(&lockedTexture);
 			}
 		}
 	}
