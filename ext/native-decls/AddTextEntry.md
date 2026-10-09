@@ -13,3 +13,7 @@ void ADD_TEXT_ENTRY(char* entryKey, char* entryText);
 * **entryKey**: 
 * **entryText**: 
 
+## Examples
+```lua
+AddTextEntry("TEXT_KEY_1", "Text Key 1")
+```
