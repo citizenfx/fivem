@@ -425,15 +425,15 @@ namespace fx
 			auto divSize = fmt::sprintf("%.1f", size / 1024.0 / 1024.0);
 			int warnColor = 0;
 
-			if (size > (64 * 1024 * 1024))
+			if (size > (80 * 1024 * 1024))
 			{
 				warnColor = 1;
 			}
-			else if (size > (32 * 1024 * 1024))
+			else if (size > (48 * 1024 * 1024))
 			{
 				warnColor = 3;
 			}
-			else if (size > (16 * 1024 * 1024))
+			else if (size > (32 * 1024 * 1024))
 			{
 				warnColor = 4;
 			}
@@ -443,7 +443,7 @@ namespace fx
 				console::Printf(fmt::sprintf("resources:%s:stream", m_resource->GetName()),
 					"^%dAsset %s/%s uses %s MiB of %s memory.%s^7\n",
 					warnColor, m_resource->GetName(), name, divSize, why,
-					(size > (48 * 1024 * 1024))
+					(size > (64 * 1024 * 1024))
 						? " Oversized assets can and WILL lead to streaming issues (such as models not loading/rendering)."
 						: "");
 
