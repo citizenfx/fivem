@@ -662,6 +662,10 @@ ServerGameState::ServerGameState()
 
 fx::sync::SyncEntityPtr ServerGameState::GetEntity(uint8_t playerId, uint16_t objectId)
 {
+	// .size() needs to be read under the lock too - m_entitiesById can be resized by another thread between
+	// this check and the shared_lock below otherwise.
+	std::shared_lock _lock(m_entitiesByIdMutex);
+
 	if (objectId >= m_entitiesById.size() || objectId < 0)
 	{
 		return {};
@@ -670,7 +674,6 @@ fx::sync::SyncEntityPtr ServerGameState::GetEntity(uint8_t playerId, uint16_t ob
 	uint16_t objIdAlias = objectId;
 	debug::Alias(&objIdAlias);
 
-	std::shared_lock _lock(m_entitiesByIdMutex);
 	return m_entitiesById[objectId].lock();
 }
 
@@ -1444,22 +1447,28 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		const auto& clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 		
 		// if any relevant entities are getting deleted, add them to our removal list and remove them from the relevancy list.
+		// ReassignEntityInner writes into this same syncedEntities map (under selfMutex, via GetClientData) whenever
+		// another client's tick task reassigns an entity we're relevant to, so our own walk/erase here needs the
+		// same lock or the two can hit this eastl::fixed_map from two different TBB threads at once.
 		auto& syncedEntities = clientDataUnlocked->syncedEntities;
 		auto& entitiesToDestroy = clientDataUnlocked->entitiesToDestroy;
-		for (auto entityIt = syncedEntities.begin(), entityEnd = syncedEntities.end(); entityIt != entityEnd;)
 		{
-			auto [identPair, syncData] = *entityIt;
-			auto oldIt = entityIt;
-
-			++entityIt;
-
-			auto& entity = syncData.entity;
-
-			if (entity->deleting)
+			std::unique_lock _(clientDataUnlocked->selfMutex);
+			for (auto entityIt = syncedEntities.begin(), entityEnd = syncedEntities.end(); entityIt != entityEnd;)
 			{
-				GS_LOG("deleting [obj:%d:%d] because it's deleting\n", entity->handle, entity->uniqifier);
-				entitiesToDestroy[identPair] = { entity, { false, false } };
-				syncedEntities.erase(oldIt);
+				auto [identPair, syncData] = *entityIt;
+				auto oldIt = entityIt;
+
+				++entityIt;
+
+				auto& entity = syncData.entity;
+
+				if (entity->deleting)
+				{
+					GS_LOG("deleting [obj:%d:%d] because it's deleting\n", entity->handle, entity->uniqifier);
+					entitiesToDestroy[identPair] = { entity, { false, false } };
+					syncedEntities.erase(oldIt);
+				}
 			}
 		}
 
@@ -1622,6 +1631,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			auto& entity = syncData.entity;
 			auto& forceUpdate = syncData.forceUpdate;
 
+			// same syncedEntities map as the deletion scan above - needs the same selfMutex ReassignEntityInner
+			// already takes via GetClientData when another client's tick task reaches in. dropped below around
+			// calls that can loop back into GetClientData(this, client) for this exact client, since selfMutex
+			// isn't recursive and self-relocking it would deadlock this tick thread against itself.
+			std::unique_lock selfLock(clientDataUnlocked->selfMutex);
+
 			// relevant entity owned by nobody, or wants a reassign? try to yoink it
 			// (abuse clientMutex for wantsReassign safety)
 			{
@@ -1630,13 +1645,23 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				if (!cl || (entity->wantsReassign && cl->GetNetId() != client->GetNetId()))
 				{
 					entity->wantsReassign = false;
+
+					// ReassignEntity -> ReassignEntityInner notifies every client relevant to this entity,
+					// which includes us if we're relevant - that path calls GetClientData(this, client) for us.
+					selfLock.unlock();
 					ReassignEntity(entity->handle, client, std::move(_)); // transfer the lock inside
+					selfLock.lock();
 				}
 			}
 
 			if (!syncData.hasCreated)
 			{
 				bool canCreate = true;
+
+				// GetClientData(this, client) a few lines down (BigMode player-scope bookkeeping) targets this
+				// same client - same self-relock risk as the reassign above.
+				selfLock.unlock();
+
 				if (fx::IsBigMode())
 				{
 					if (entity->type == sync::NetObjEntityType::Player)
@@ -1724,6 +1749,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						}
 					}
 				}
+
+				selfLock.lock();
 
 				if (!canCreate)
 				{
@@ -4186,12 +4213,10 @@ void ServerGameState::SendArrayData(const fx::ClientSharedPtr& client)
 {
 	auto data = GetClientDataUnlocked(this, client);
 
-	decltype(m_arrayHandlers)::iterator arrayRef;
-
-	{
-		std::shared_lock s(m_arrayHandlersMutex);
-		arrayRef = m_arrayHandlers.find(data->routingBucket);
-	}
+	// m_arrayHandlers holds unique_ptrs, so we can't copy a handler out and unlock early - keep the shared_lock
+	// held for as long as we're using arrayRef, otherwise a concurrent erase (2340) can free it out from under us.
+	std::shared_lock s(m_arrayHandlersMutex);
+	auto arrayRef = m_arrayHandlers.find(data->routingBucket);
 
 	if (arrayRef != m_arrayHandlers.end())
 	{
