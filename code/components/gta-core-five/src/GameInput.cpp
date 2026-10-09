@@ -438,6 +438,8 @@ public:
 private:
 	void Unmap();
 
+	void RunCommands(bool isDownEvent, bool isUpEvent);
+
 private:
 	rage::ioValue m_value;
 
@@ -460,6 +462,13 @@ Binding::Binding(const std::string& command)
 
 Binding::~Binding()
 {
+	if (m_wasDown)
+	{
+		m_wasDown = false;
+
+		RunCommands(false, true);
+	}
+
 	Unmap();
 }
 
@@ -529,6 +538,11 @@ void Binding::Update()
 
 	m_wasDown = down;
 
+	RunCommands(isDownEvent, isUpEvent);
+}
+
+void Binding::RunCommands(bool isDownEvent, bool isUpEvent)
+{
 	if (isDownEvent || isUpEvent)
 	{
 		std::string_view commandString = m_command;
