@@ -20,6 +20,7 @@
 
 #include <folly/IPAddress.h>
 #include <folly/String.h>
+#include <ServerInstanceBase.h>
 
 class NetworkList
 {
@@ -194,15 +195,18 @@ bool DLL_EXPORT IsProxyAddress(const net::PeerAddress& ep)
 
 static InitFunction initFunction([]()
 {
-	static ConVar<NetworkList> allowedIpCidr("sv_proxyIPRanges", ConVar_None, NetworkList{ "10.0.0.0/8 127.0.0.0/8 192.168.0.0/16 172.16.0.0/12" });
-	static auto allowedIpCidrVar = &allowedIpCidr;
-
-	auto update = [](auto)
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
-		std::unique_lock _(g_networkListMutex);
-		g_networkList = allowedIpCidrVar->GetValue();
-	};
+		static auto allowedIpCidr = instance->AddVariable<NetworkList>("sv_proxyIPRanges", ConVar_None, NetworkList{ "10.0.0.0/8 127.0.0.0/8 192.168.0.0/16 172.16.0.0/12" });
+		static auto allowedIpCidrVar = &allowedIpCidr;
 
-	allowedIpCidr.GetHelper()->SetChangeCallback(update);
-	update(nullptr);
+		auto update = [](auto)
+		{
+			std::unique_lock _(g_networkListMutex);
+			g_networkList = (*allowedIpCidrVar)->GetValue();
+		};
+
+		allowedIpCidr->GetHelper()->SetChangeCallback(update);
+		update(nullptr);
+	});
 });
