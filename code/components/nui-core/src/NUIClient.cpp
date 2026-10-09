@@ -659,6 +659,11 @@ CefRefPtr<CefContextMenuHandler> NUIClient::GetContextMenuHandler()
 	return this;
 }
 
+CefRefPtr<CefDialogHandler> NUIClient::GetDialogHandler()
+{
+	return this;
+}
+
 CefRefPtr<CefLoadHandler> NUIClient::GetLoadHandler()
 {
 	return this;

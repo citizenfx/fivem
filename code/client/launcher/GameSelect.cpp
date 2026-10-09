@@ -447,4 +447,405 @@ std::optional<int> EnsureGamePath()
 
 	return {};
 }
+
+// Out-of-process file dialog server for the game process.
+//
+// The game process cannot show IFileDialog itself: shell extension creation deadlocks on
+// the shell's own worker pool inside the hooked/hand-mapped game process (see
+// nui-core/src/NUIFileDialog.cpp). nui-core spawns a clean copy of this exe with
+// "-filedialog:<mappingHandle>:<eventHandle>" (inherited-handle-as-integer convention,
+// like -dumpserver/-switchcl) and reads the result back from the mapping. A helper that
+// hangs is simply killed by the game - that containment is the point of the design.
+//
+// Lives in GameSelect.cpp because this file is already main-personality-only and already
+// hosts the launcher's other IFileDialog use.
+
+#include <FileDialogIPC.h>
+
+namespace
+{
+class FileDialogServerEvents : public IFileDialogEvents
+{
+public:
+	explicit FileDialogServerEvents(fdipc::Response* response)
+		: m_response(response)
+	{
+	}
+
+	// IUnknown
+	IFACEMETHODIMP QueryInterface(REFIID riid, void** ppv) override
+	{
+		if (!ppv)
+		{
+			return E_POINTER;
+		}
+
+		if (riid == IID_IUnknown || riid == IID_IFileDialogEvents)
+		{
+			*ppv = static_cast<IFileDialogEvents*>(this);
+			AddRef();
+			return S_OK;
+		}
+
+		*ppv = nullptr;
+		return E_NOINTERFACE;
+	}
+
+	IFACEMETHODIMP_(ULONG) AddRef() override
+	{
+		return InterlockedIncrement(&m_refCount);
+	}
+
+	IFACEMETHODIMP_(ULONG) Release() override
+	{
+		auto refCount = InterlockedDecrement(&m_refCount);
+
+		if (!refCount)
+		{
+			delete this;
+		}
+
+		return refCount;
+	}
+
+	// IFileDialogEvents
+	IFACEMETHODIMP OnFolderChange(IFileDialog* dialog) override
+	{
+		// first event fired once the dialog window exists: report that to the game (so it
+		// knows the helper isn't wedged) and pull the window in front of the game (the
+		// game granted us foreground rights via AllowSetForegroundWindow before spawning)
+		InterlockedExchange(&m_response->windowCreated, 1);
+
+		if (!m_raised)
+		{
+			m_raised = true;
+
+			WRL::ComPtr<IOleWindow> oleWindow;
+
+			if (SUCCEEDED(dialog->QueryInterface(IID_PPV_ARGS(&oleWindow))))
+			{
+				HWND window = nullptr;
+
+				if (SUCCEEDED(oleWindow->GetWindow(&window)) && window)
+				{
+					// The game spawned us in the background while it holds the foreground, so a
+					// bare SetForegroundWindow is usually denied and the dialog opens behind the
+					// game - where the user's next click dismisses it (ERROR_CANCELLED). Defeat the
+					// foreground lock (same idiom as glue/ConnectToNative.cpp) and toggle topmost to
+					// force z-order to the front even if the activation grant is still refused.
+					LockSetForegroundWindow(LSFW_UNLOCK);
+
+					SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+					SetWindowPos(window, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
+					BringWindowToTop(window);
+					SetForegroundWindow(window);
+				}
+			}
+		}
+
+		return S_OK;
+	}
+
+	IFACEMETHODIMP OnFolderChanging(IFileDialog*, IShellItem*) override
+	{
+		return S_OK;
+	}
+
+	IFACEMETHODIMP OnFileOk(IFileDialog*) override
+	{
+		return S_OK;
+	}
+
+	IFACEMETHODIMP OnSelectionChange(IFileDialog*) override
+	{
+		return S_OK;
+	}
+
+	IFACEMETHODIMP OnShareViolation(IFileDialog*, IShellItem*, FDE_SHAREVIOLATION_RESPONSE*) override
+	{
+		return S_OK;
+	}
+
+	IFACEMETHODIMP OnTypeChange(IFileDialog*) override
+	{
+		return S_OK;
+	}
+
+	IFACEMETHODIMP OnOverwrite(IFileDialog*, IShellItem*, FDE_OVERWRITE_RESPONSE*) override
+	{
+		return S_OK;
+	}
+
+private:
+	virtual ~FileDialogServerEvents() = default;
+
+	fdipc::Response* m_response;
+	bool m_raised = false;
+	LONG m_refCount = 1;
+};
+
+// The helper is a separate short-lived process, so launcher trace() (which targets the launcher's
+// own log) is no use for diagnosing it in the field. Append the outcome to a small dedicated file
+// next to CitizenFX.log. Narrow throughout to keep %s unambiguous (paths passed as ToNarrow()).
+static void FDLog(const char* fmt, ...)
+{
+	static FILE* f = _wfopen(MakeRelativeCitPath(L"CitizenFX_FileDialog.log").c_str(), L"a");
+
+	if (!f)
+	{
+		return;
+	}
+
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(f, fmt, ap);
+	va_end(ap);
+
+	fflush(f);
+}
+
+static void AppendResultPath(fdipc::Response* response, IShellItem* item)
+{
+	PWSTR filePath = nullptr;
+
+	if (FAILED(item->GetDisplayName(SIGDN_FILESYSPATH, &filePath)) || !filePath)
+	{
+		return;
+	}
+
+	// strings are packed back to back, terminators included
+	size_t length = wcslen(filePath) + 1;
+
+	if (response->resultChars + length <= fdipc::kMaxResultChars)
+	{
+		memcpy(&response->results[response->resultChars], filePath, length * sizeof(wchar_t));
+		response->resultChars += static_cast<uint32_t>(length);
+		response->numFiles++;
+	}
+
+	CoTaskMemFree(filePath);
+}
+
+static void RunFileDialogServer(fdipc::SharedBlock* block)
+{
+	auto& request = block->request;
+	auto response = &block->response;
+
+	if (request.version != fdipc::kVersion)
+	{
+		return;
+	}
+
+	ScopedCoInitialize coInit(COINIT_APARTMENTTHREADED);
+
+	if (!coInit)
+	{
+		return;
+	}
+
+	const CLSID dialogClsid = (request.mode == fdipc::kModeSave) ? CLSID_FileSaveDialog : CLSID_FileOpenDialog;
+
+	WRL::ComPtr<IFileDialog> dialog;
+
+	if (FAILED(CoCreateInstance(dialogClsid, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog))))
+	{
+		return;
+	}
+
+	FILEOPENDIALOGOPTIONS options = 0;
+	dialog->GetOptions(&options);
+
+	options |= FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR;
+
+	switch (request.mode)
+	{
+		case fdipc::kModeOpen:
+			options |= FOS_FILEMUSTEXIST;
+			break;
+		case fdipc::kModeOpenMultiple:
+			options |= FOS_FILEMUSTEXIST | FOS_ALLOWMULTISELECT;
+			break;
+		case fdipc::kModeOpenFolder:
+			options |= FOS_PICKFOLDERS;
+			break;
+		case fdipc::kModeSave:
+			options |= FOS_OVERWRITEPROMPT;
+			break;
+	}
+
+	dialog->SetOptions(options);
+
+	if (request.title[0])
+	{
+		dialog->SetTitle(request.title);
+	}
+
+	// default path: split into folder (SetFolder) and file name (SetFileName)
+	if (request.defaultPath[0])
+	{
+		std::wstring normalized = request.defaultPath;
+		std::replace(normalized.begin(), normalized.end(), L'/', L'\\');
+
+		auto separator = normalized.find_last_of(L'\\');
+
+		std::wstring folder;
+		std::wstring fileName;
+
+		if (separator == std::wstring::npos)
+		{
+			fileName = normalized;
+		}
+		else
+		{
+			folder = normalized.substr(0, separator);
+			fileName = normalized.substr(separator + 1);
+		}
+
+		if (!folder.empty())
+		{
+			WRL::ComPtr<IShellItem> folderItem;
+
+			if (SUCCEEDED(SHCreateItemFromParsingName(folder.c_str(), nullptr, IID_PPV_ARGS(&folderItem))))
+			{
+				dialog->SetFolder(folderItem.Get());
+			}
+		}
+
+		if (!fileName.empty())
+		{
+			dialog->SetFileName(fileName.c_str());
+		}
+	}
+
+	if (request.numFilters > 0 && request.mode != fdipc::kModeOpenFolder)
+	{
+		uint32_t numFilters = (std::min)(request.numFilters, static_cast<uint32_t>(fdipc::kMaxFilters));
+
+		std::vector<COMDLG_FILTERSPEC> specs(numFilters);
+
+		for (uint32_t i = 0; i < numFilters; i++)
+		{
+			specs[i].pszName = request.filterNames[i];
+			specs[i].pszSpec = request.filterSpecs[i];
+		}
+
+		dialog->SetFileTypes(numFilters, specs.data());
+		dialog->SetFileTypeIndex(1);
+
+		if (request.mode == fdipc::kModeSave)
+		{
+			// first spec is "*.ext" or "*.ext;*.ext2" - take the leading extension
+			std::wstring pattern = specs[0].pszSpec;
+
+			if (auto end = pattern.find(L';'); end != std::wstring::npos)
+			{
+				pattern.resize(end);
+			}
+
+			if (auto dot = pattern.find(L'.'); dot != std::wstring::npos)
+			{
+				dialog->SetDefaultExtension(pattern.substr(dot + 1).c_str());
+			}
+		}
+	}
+
+	DWORD adviseCookie = 0;
+	WRL::ComPtr<IFileDialogEvents> events;
+	events.Attach(new FileDialogServerEvents(response));
+	dialog->Advise(events.Get(), &adviseCookie);
+
+	// unowned on purpose: an owner HWND from another process would get EnableWindow(FALSE)'d,
+	// and a disabled game window is unrecoverable from here. The events sink raises us instead.
+	const HRESULT hr = dialog->Show(nullptr);
+
+	if (adviseCookie)
+	{
+		dialog->Unadvise(adviseCookie);
+	}
+
+	if (FAILED(hr))
+	{
+		// ERROR_CANCELLED lands here - plain cancel
+		FDLog("[fd] Show hr=0x%08x (0x800704C7 = cancelled)\n", (unsigned)hr);
+		return;
+	}
+
+	if (request.mode == fdipc::kModeOpenMultiple)
+	{
+		WRL::ComPtr<IFileOpenDialog> openDialog;
+		WRL::ComPtr<IShellItemArray> items;
+
+		if (SUCCEEDED(dialog.As(&openDialog)) && SUCCEEDED(openDialog->GetResults(&items)))
+		{
+			DWORD count = 0;
+			items->GetCount(&count);
+
+			for (DWORD i = 0; i < count; i++)
+			{
+				WRL::ComPtr<IShellItem> item;
+
+				if (SUCCEEDED(items->GetItemAt(i, &item)))
+				{
+					AppendResultPath(response, item.Get());
+				}
+			}
+		}
+	}
+	else
+	{
+		WRL::ComPtr<IShellItem> item;
+
+		if (SUCCEEDED(dialog->GetResult(&item)))
+		{
+			AppendResultPath(response, item.Get());
+		}
+	}
+
+	response->succeeded = (response->numFiles > 0) ? 1 : 0;
+
+	FDLog("[fd] done succeeded=%u numFiles=%u\n", (unsigned)response->succeeded, (unsigned)response->numFiles);
+}
+}
+
+bool InitializeFileDialogServer()
+{
+	auto commandLine = GetCommandLineW();
+	auto argument = wcsstr(commandLine, L"-filedialog:");
+
+	if (!argument)
+	{
+		return false;
+	}
+
+	// -filedialog:<mappingHandle>:<eventHandle>, both inherited
+	wchar_t* next = nullptr;
+	HANDLE mapping = reinterpret_cast<HANDLE>(wcstoull(&argument[12], &next, 10));
+	HANDLE doneEvent = (next && *next == L':') ? reinterpret_cast<HANDLE>(wcstoull(next + 1, nullptr, 10)) : nullptr;
+
+	auto block = reinterpret_cast<fdipc::SharedBlock*>(MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, 0));
+
+	if (block)
+	{
+		// SEH so a crash mid-extract is diagnosed rather than silently exiting with succeeded=0
+		__try
+		{
+			RunFileDialogServer(block);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			FDLog("[fd] EXCEPTION 0x%08x during RunFileDialogServer\n", (unsigned)GetExceptionCode());
+		}
+
+		UnmapViewOfFile(block);
+	}
+
+	if (doneEvent)
+	{
+		SetEvent(doneEvent);
+	}
+
+	// handled - the process should exit without doing anything else
+	return true;
+}
 #endif

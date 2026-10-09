@@ -136,7 +136,8 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 
 	if (GetFileAttributes(outPath.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
-		if (processType != L"DumpServer")
+		// these helpers can run from the original exe just fine if the copy failed
+		if (processType != L"DumpServer" && processType != L"FileDialog.exe")
 		{
 			__debugbreak();
 		}
