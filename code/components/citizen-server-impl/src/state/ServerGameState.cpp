@@ -528,6 +528,75 @@ void ServerGameState::ForAllEntities(const std::function<void(sync::Entity*)>& c
 	}
 }
 
+std::vector<StateEntityDebugInfo> ServerGameState::GetEntityDebugInfoList()
+{
+	std::vector<StateEntityDebugInfo> result;
+
+	std::shared_lock _(m_entityListMutex);
+	result.reserve(m_entityList.size());
+
+	for (auto& entity : m_entityList)
+	{
+		if (!entity)
+		{
+			continue;
+		}
+
+		StateEntityDebugInfo info{};
+
+		info.id = entity->handle;
+		info.netId = entity->handle;
+		info.routingBucket = entity->routingBucket;
+
+		auto owner = entity->GetClient();
+		info.ownerClientID = owner ? owner->GetNetId() : 0xFFFF;
+
+		auto firstOwner = entity->GetFirstOwner();
+		info.firstOwningClientID = firstOwner ? firstOwner->GetNetId() : 0xFFFF;
+
+		auto lastOwner = entity->GetLastOwner();
+		info.lastOwningClientID = lastOwner ? lastOwner->GetNetId() : 0xFFFF;
+
+		info.firstOwnerDropped = entity->firstOwnerDropped;
+		info.type = static_cast<int>(entity->type);
+		info.uniquer = entity->uniqifier;
+		info.scriptHash = entity->GetScriptHash();
+		info.ownedByScript = entity->IsOwnedByScript();
+		info.ownedByServerScript = entity->IsOwnedByServerScript();
+		info.shouldServerKeepEntity = entity->ShouldServerKeepEntity();
+
+		{
+			std::shared_lock guidLock(entity->guidMutex);
+			info.relevant = entity->relevantTo.any();
+		}
+
+		info.createdAt = entity->createdAt.count();
+		info.frameIndex = entity->frameIndex;
+		info.lastFrameIndex = entity->lastFrameIndex;
+		info.timestamp = entity->timestamp;
+		info.creationToken = entity->creationToken;
+		info.lastMigratedAt = entity->lastMigratedAt.count();
+
+		info.hasStateBag = entity->HasStateBag();
+		if (info.hasStateBag)
+		{
+			info.stateBagName = fmt::sprintf("entity:%d", entity->handle & 0xFFFF);
+		}
+
+		info.hasPosition = false;
+		info.position[0] = info.position[1] = info.position[2] = 0.0f;
+		if (entity->syncTree)
+		{
+			entity->syncTree->GetPosition(info.position);
+			info.hasPosition = true;
+		}
+
+		result.push_back(std::move(info));
+	}
+
+	return result;
+}
+
 uint32_t ServerGameState::MakeScriptHandle(const fx::sync::SyncEntityPtr& ptr)
 {
 	// only one unique lock here since we can't upgrade from reader to writer
