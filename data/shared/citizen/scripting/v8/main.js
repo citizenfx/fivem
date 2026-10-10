@@ -281,6 +281,13 @@ const EXT_LOCALFUNCREF = 11;
 		global.emitNet = (name, source, ...args) => {
 			const dataSerialized = pack(args);
 
+			if (Array.isArray(source)) {
+				const targetsSerialized = pack(source);
+
+				TriggerMulticastClientEventInternal(name, targetsSerialized, targetsSerialized.length, dataSerialized, dataSerialized.length);
+				return;
+			}
+
 			TriggerClientEventInternal(name, source, dataSerialized, dataSerialized.length);
 		};
 

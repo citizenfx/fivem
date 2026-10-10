@@ -38,6 +38,10 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <EASTL/fixed_vector.h>
+
+#include <algorithm>
+
 #if defined(_DEBUG) && defined(_WIN32)
 #include <shellapi.h>
 #endif
@@ -851,7 +855,7 @@ static InitFunction initFunction([]()
 #include <ScriptEngine.h>
 #include <optional>
 
-void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc)
+static net::Buffer BuildClientEventBuffer(const std::string_view& eventName, const void* data, size_t dataLen)
 {
 	// 1+MB
 	if (dataLen >= 1000000)
@@ -881,6 +885,13 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 	// payload
 	outBuffer.Write(data, dataLen);
 
+	return outBuffer;
+}
+
+void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc)
+{
+	net::Buffer outBuffer = BuildClientEventBuffer(eventName, data, dataLen);
+
 	// get the game server and client registry
 	auto gameServer = m_instance->GetComponent<fx::GameServer>();
 	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
@@ -907,6 +918,40 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 		{
 			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 		});
+	}
+}
+
+void fx::ServerEventComponent::TriggerMulticastClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::vector<uint32_t>& targetNetIds)
+{
+	if (targetNetIds.empty())
+	{
+		return;
+	}
+
+	net::Buffer outBuffer = BuildClientEventBuffer(eventName, data, dataLen);
+
+	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
+
+	// deduplicate the targets, only sending to each client once
+	eastl::fixed_vector<uint32_t, 128, true> targets(targetNetIds.data(), targetNetIds.data() + targetNetIds.size());
+	std::sort(targets.begin(), targets.end());
+	targets.erase(std::unique(targets.begin(), targets.end()), targets.end());
+
+	for (uint32_t targetNetId : targets)
+	{
+		auto client = clientRegistry->GetClientByNetID(targetNetId);
+
+		if (!client)
+		{
+			continue;
+		}
+
+		if (client->GetNetId() != targetNetId)
+		{
+			fx::WarningDeprecationf<ScriptDeprecations::CLIENT_EVENT_OLD_NET_ID>("natives", "TRIGGER_MULTICAST_CLIENT_EVENT_INTERNAL: client %d is not the same as the target %d. This happens when the oldId from the playerJoining event is used. Use source instead.\n", client->GetNetId(), targetNetId);
+		}
+
+		client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 	}
 }
 
@@ -966,13 +1011,42 @@ static InitFunction initFunction2([]()
 		const void* data = context.GetArgument<const void*>(2);
 		uint32_t dataLen = context.GetArgument<uint32_t>(3);
 
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		instance->GetComponent<fx::ServerEventComponent>()->TriggerClientEvent(eventName, data, dataLen, targetSrc);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_MULTICAST_CLIENT_EVENT_INTERNAL", [](fx::ScriptContext& context)
+	{
+		std::string_view eventName = context.CheckArgument<const char*>(0);
+
+		const void* targetsData = context.GetArgument<const void*>(1);
+		uint32_t targetsLength = context.GetArgument<uint32_t>(2);
+
+		const void* data = context.GetArgument<const void*>(3);
+		uint32_t dataLen = context.GetArgument<uint32_t>(4);
+
+		std::vector<uint32_t> targetNetIds;
+
+		if (!fx::DecodeClientEventTargets(targetsData, targetsLength, targetNetIds))
+		{
+			fx::scripting::Warningf("natives", "TRIGGER_MULTICAST_CLIENT_EVENT_INTERNAL: eventTargets is not a msgpack array of player net IDs (accepted: unsigned integers and decimal strings, -1 entries are ignored). The event was not sent.\n");
+			return;
+		}
+
+		if (targetNetIds.empty())
+		{
+			return;
+		}
+
 		// get the current resource manager
 		auto resourceManager = fx::ResourceManager::GetCurrent();
 
 		// get the owning server instance
 		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 
-		instance->GetComponent<fx::ServerEventComponent>()->TriggerClientEvent(eventName, data, dataLen, targetSrc);
+		instance->GetComponent<fx::ServerEventComponent>()->TriggerMulticastClientEvent(eventName, data, dataLen, targetNetIds);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_CLIENT_EVENT_INTERNAL", TriggerDisabledLatentClientEventInternal);

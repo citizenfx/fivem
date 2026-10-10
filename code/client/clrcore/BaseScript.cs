@@ -244,6 +244,39 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
+		/// Sends an event to a set of players.
+		/// </summary>
+		/// <param name="players">The players to send the event to.</param>
+		/// <param name="eventName">The name of the event.</param>
+		/// <param name="args">Arguments to pass to the event.</param>
+		public static void TriggerClientEvent(IEnumerable<Player> players, string eventName, params object[] args)
+		{
+			if (players == null)
+			{
+				throw new ArgumentNullException(nameof(players));
+			}
+
+			var targets = players.Select(player => player.Handle).ToArray();
+
+			if (targets.Length == 0)
+			{
+				return;
+			}
+
+			var targetsSerialized = MsgPackSerializer.Serialize(targets);
+			var argsSerialized = MsgPackSerializer.Serialize(args);
+
+			unsafe
+			{
+				fixed (byte* serializedTargets = &targetsSerialized[0])
+				fixed (byte* serialized = &argsSerialized[0])
+				{
+					Function.Call(Hash.TRIGGER_MULTICAST_CLIENT_EVENT_INTERNAL, eventName, serializedTargets, targetsSerialized.Length, serialized, argsSerialized.Length);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Broadcasts an event to all connected players.
 		/// </summary>
 		/// <param name="eventName">The name of the event.</param>
