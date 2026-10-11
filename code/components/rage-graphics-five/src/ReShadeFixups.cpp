@@ -202,6 +202,10 @@ void ScanForReshades()
 		L"d3d10.dll",
 		L"d3d10_1.dll",
 		L"d3d11.dll",
+#ifdef IS_RDR3
+		L"d3d12.dll",
+		L"vulkan-1.dll"
+#endif
 		L"dxgi.dll" };
 
 	// try loading all dll files *from plugins/*
