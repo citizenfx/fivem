@@ -12,8 +12,8 @@ Creates a DUI browser. This can be used to draw on a runtime texture using CREAT
 
 ## Parameters
 * **url**: The initial URL to load in the browser.
-* **width**: The width of the backing surface.
-* **height**: The height of the backing surface.
+* **width**: The width of the backing surface, between 1 and 16384.
+* **height**: The height of the backing surface, between 1 and 16384.
 
 ## Return value
 A DUI object.

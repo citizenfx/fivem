@@ -180,6 +180,14 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
+			// the backing texture can't be empty, and D3D11 doesn't allow textures larger than this
+			constexpr int kMaxDuiSize = 16384;
+
+			if (width <= 0 || height <= 0 || width > kMaxDuiSize || height > kMaxDuiSize)
+			{
+				throw std::runtime_error(fmt::sprintf("Invalid DUI size %dx%d, width and height have to be between 1 and %d.", width, height, kMaxDuiSize));
+			}
+
 			auto url = CleanURL(urlArg);
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
