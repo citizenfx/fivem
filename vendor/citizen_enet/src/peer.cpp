@@ -11,6 +11,307 @@
 #define ENET_BUILDING_LIB 1
 #include "enet/enet.h"
 
+enum
+{
+    ENET_RELIABLE_COMMAND_STATE_NONE = 0,
+    ENET_RELIABLE_COMMAND_STATE_OUTGOING = 1,
+    ENET_RELIABLE_COMMAND_STATE_SENT = 2,
+    ENET_RELIABLE_COMMAND_LOOKUP_INITIAL_BUCKETS = 64
+};
+
+static size_t
+enet_peer_reliable_command_bucket (enet_uint16 reliableSequenceNumber, enet_uint8 channelID, size_t bucketCount)
+{
+    enet_uint32 key = ((enet_uint32) channelID << 16) | reliableSequenceNumber;
+
+    key ^= key >> 16;
+    key *= 0x7FEB352DU;
+    key ^= key >> 15;
+    key *= 0x846CA68BU;
+    key ^= key >> 16;
+
+    return key & (bucketCount - 1);
+}
+
+static int
+enet_peer_initialize_reliable_command_lookup (ENetPeer * peer)
+{
+    if (peer -> reliableCommandLookup != NULL)
+      return 0;
+
+    if (peer -> reliableCommandLookupDisabled)
+      return -1;
+
+    peer -> reliableCommandLookup = (ENetOutgoingCommand **) enet_malloc (
+        ENET_RELIABLE_COMMAND_LOOKUP_INITIAL_BUCKETS * sizeof (ENetOutgoingCommand *));
+    if (peer -> reliableCommandLookup == NULL)
+    {
+       peer -> reliableCommandLookupDisabled = 1;
+       return -1;
+    }
+
+    peer -> reliableCommandLookupBucketCount = ENET_RELIABLE_COMMAND_LOOKUP_INITIAL_BUCKETS;
+    memset (peer -> reliableCommandLookup, 0,
+        peer -> reliableCommandLookupBucketCount * sizeof (ENetOutgoingCommand *));
+    return 0;
+}
+
+static void
+enet_peer_grow_reliable_command_lookup (ENetPeer * peer)
+{
+    ENetOutgoingCommand ** newLookup;
+    size_t newBucketCount;
+
+    if (peer -> reliableCommandLookup == NULL ||
+        peer -> reliableCommandCount < 2 * peer -> reliableCommandLookupBucketCount)
+      return;
+
+    newBucketCount = 2 * peer -> reliableCommandLookupBucketCount;
+    newLookup = (ENetOutgoingCommand **) enet_malloc (newBucketCount * sizeof (ENetOutgoingCommand *));
+    if (newLookup == NULL)
+      return;
+
+    memset (newLookup, 0, newBucketCount * sizeof (ENetOutgoingCommand *));
+
+    for (size_t bucket = 0; bucket < peer -> reliableCommandLookupBucketCount; ++ bucket)
+    {
+       ENetOutgoingCommand * outgoingCommand = peer -> reliableCommandLookup [bucket];
+       while (outgoingCommand != NULL)
+       {
+          ENetOutgoingCommand * nextCommand = outgoingCommand -> reliableCommandLookupNext;
+          size_t newBucket = enet_peer_reliable_command_bucket (
+              outgoingCommand -> reliableSequenceNumber,
+              outgoingCommand -> command.header.channelID,
+              newBucketCount);
+
+          outgoingCommand -> reliableCommandLookupNext = newLookup [newBucket];
+          newLookup [newBucket] = outgoingCommand;
+          outgoingCommand = nextCommand;
+       }
+    }
+
+    enet_free (peer -> reliableCommandLookup);
+    peer -> reliableCommandLookup = newLookup;
+    peer -> reliableCommandLookupBucketCount = newBucketCount;
+}
+
+static void
+enet_peer_track_reliable_command (ENetPeer * peer, ENetOutgoingCommand * outgoingCommand)
+{
+    outgoingCommand -> reliableCommandState = ENET_RELIABLE_COMMAND_STATE_OUTGOING;
+    outgoingCommand -> reliableCommandLookupNext = NULL;
+
+    ++ peer -> reliableCommandCount;
+    ++ peer -> outgoingReliableCommandCount;
+    if (peer -> peakReliableCommandCount < peer -> reliableCommandCount)
+      peer -> peakReliableCommandCount = peer -> reliableCommandCount;
+
+    if (enet_peer_initialize_reliable_command_lookup (peer) < 0)
+      return;
+
+    enet_peer_grow_reliable_command_lookup (peer);
+
+    size_t bucket = enet_peer_reliable_command_bucket (
+        outgoingCommand -> reliableSequenceNumber,
+        outgoingCommand -> command.header.channelID,
+        peer -> reliableCommandLookupBucketCount);
+    outgoingCommand -> reliableCommandLookupNext = peer -> reliableCommandLookup [bucket];
+    peer -> reliableCommandLookup [bucket] = outgoingCommand;
+}
+
+ENetOutgoingCommand *
+enet_peer_find_reliable_command (ENetPeer * peer, enet_uint16 reliableSequenceNumber, enet_uint8 channelID, int * wasSent)
+{
+    ENetOutgoingCommand * outgoingMatch = NULL;
+
+    ++ peer -> host -> reliableCommandLookups;
+
+    if (peer -> reliableCommandLookup != NULL && ! peer -> reliableCommandLookupDisabled)
+    {
+       size_t bucket = enet_peer_reliable_command_bucket (
+           reliableSequenceNumber, channelID, peer -> reliableCommandLookupBucketCount);
+
+       for (ENetOutgoingCommand * outgoingCommand = peer -> reliableCommandLookup [bucket];
+            outgoingCommand != NULL;
+            outgoingCommand = outgoingCommand -> reliableCommandLookupNext)
+       {
+          ++ peer -> host -> reliableCommandLookupProbes;
+
+          if (outgoingCommand -> reliableSequenceNumber != reliableSequenceNumber ||
+              outgoingCommand -> command.header.channelID != channelID)
+            continue;
+
+          if (outgoingCommand -> reliableCommandState == ENET_RELIABLE_COMMAND_STATE_SENT)
+          {
+             * wasSent = 1;
+             return outgoingCommand;
+          }
+
+          if (outgoingCommand -> reliableCommandState == ENET_RELIABLE_COMMAND_STATE_OUTGOING &&
+              outgoingCommand -> sendAttempts > 0)
+            outgoingMatch = outgoingCommand;
+       }
+
+       if (outgoingMatch != NULL)
+       {
+          * wasSent = 0;
+          return outgoingMatch;
+       }
+
+       ++ peer -> host -> reliableCommandLookupMisses;
+       return NULL;
+    }
+
+    ++ peer -> host -> reliableCommandLookupFallbacks;
+
+    for (ENetListIterator currentCommand = enet_list_begin (& peer -> sentReliableCommands);
+         currentCommand != enet_list_end (& peer -> sentReliableCommands);
+         currentCommand = enet_list_next (currentCommand))
+    {
+       ENetOutgoingCommand * outgoingCommand = (ENetOutgoingCommand *) currentCommand;
+       ++ peer -> host -> reliableCommandLookupProbes;
+
+       if (outgoingCommand -> reliableSequenceNumber == reliableSequenceNumber &&
+           outgoingCommand -> command.header.channelID == channelID)
+       {
+          * wasSent = 1;
+          return outgoingCommand;
+       }
+    }
+
+    for (ENetListIterator currentCommand = enet_list_begin (& peer -> outgoingReliableCommands);
+         currentCommand != enet_list_end (& peer -> outgoingReliableCommands);
+         currentCommand = enet_list_next (currentCommand))
+    {
+       ENetOutgoingCommand * outgoingCommand = (ENetOutgoingCommand *) currentCommand;
+       ++ peer -> host -> reliableCommandLookupProbes;
+
+       if (outgoingCommand -> sendAttempts < 1)
+         break;
+
+       if (outgoingCommand -> reliableSequenceNumber == reliableSequenceNumber &&
+           outgoingCommand -> command.header.channelID == channelID)
+       {
+          * wasSent = 0;
+          return outgoingCommand;
+       }
+    }
+
+    ++ peer -> host -> reliableCommandLookupMisses;
+    return NULL;
+}
+
+void
+enet_peer_untrack_reliable_command (ENetPeer * peer, ENetOutgoingCommand * outgoingCommand)
+{
+    if (outgoingCommand -> reliableCommandState == ENET_RELIABLE_COMMAND_STATE_NONE)
+      return;
+
+    peer -> reliableCommandScanCursor = NULL;
+    peer -> reliableCommandScanBlocked = 0;
+
+    if (outgoingCommand -> reliableCommandState == ENET_RELIABLE_COMMAND_STATE_SENT &&
+        peer -> reliableCommandTimeoutCursor == outgoingCommand)
+    {
+       ENetListIterator nextCommand = enet_list_next (& outgoingCommand -> outgoingCommandList);
+       peer -> reliableCommandTimeoutCursor = nextCommand != enet_list_end (& peer -> sentReliableCommands) ?
+           (ENetOutgoingCommand *) nextCommand : NULL;
+    }
+
+    if (peer -> reliableCommandLookup != NULL && ! peer -> reliableCommandLookupDisabled)
+    {
+       size_t bucket = enet_peer_reliable_command_bucket (
+           outgoingCommand -> reliableSequenceNumber,
+           outgoingCommand -> command.header.channelID,
+           peer -> reliableCommandLookupBucketCount);
+       ENetOutgoingCommand ** link = & peer -> reliableCommandLookup [bucket];
+
+       while (* link != NULL && * link != outgoingCommand)
+         link = & (* link) -> reliableCommandLookupNext;
+
+       if (* link == outgoingCommand)
+         * link = outgoingCommand -> reliableCommandLookupNext;
+    }
+
+    if (outgoingCommand -> reliableCommandState == ENET_RELIABLE_COMMAND_STATE_SENT)
+      -- peer -> sentReliableCommandCount;
+    else
+      -- peer -> outgoingReliableCommandCount;
+
+    -- peer -> reliableCommandCount;
+    outgoingCommand -> reliableCommandState = ENET_RELIABLE_COMMAND_STATE_NONE;
+    outgoingCommand -> reliableCommandLookupNext = NULL;
+}
+
+void
+enet_peer_mark_reliable_command_sent (ENetPeer * peer, ENetOutgoingCommand * outgoingCommand)
+{
+    if (outgoingCommand -> reliableCommandState != ENET_RELIABLE_COMMAND_STATE_OUTGOING)
+      return;
+
+    outgoingCommand -> reliableCommandState = ENET_RELIABLE_COMMAND_STATE_SENT;
+    -- peer -> outgoingReliableCommandCount;
+    ++ peer -> sentReliableCommandCount;
+}
+
+void
+enet_peer_mark_reliable_command_outgoing (ENetPeer * peer, ENetOutgoingCommand * outgoingCommand)
+{
+    if (outgoingCommand -> reliableCommandState != ENET_RELIABLE_COMMAND_STATE_SENT)
+      return;
+
+    outgoingCommand -> reliableCommandState = ENET_RELIABLE_COMMAND_STATE_OUTGOING;
+    -- peer -> sentReliableCommandCount;
+    ++ peer -> outgoingReliableCommandCount;
+    peer -> reliableCommandScanCursor = NULL;
+    peer -> reliableCommandScanBlocked = 0;
+}
+
+void
+enet_peer_reset_reliable_command_lookup (ENetPeer * peer)
+{
+    if (peer -> reliableCommandLookup != NULL)
+      enet_free (peer -> reliableCommandLookup);
+
+    peer -> reliableCommandLookup = NULL;
+    peer -> reliableCommandLookupBucketCount = 0;
+    peer -> reliableCommandCount = 0;
+    peer -> outgoingReliableCommandCount = 0;
+    peer -> sentReliableCommandCount = 0;
+    peer -> peakReliableCommandCount = 0;
+    peer -> reliableCommandScanCursor = NULL;
+    peer -> reliableCommandTimeoutCursor = NULL;
+    peer -> reliableCommandLookupDisabled = 0;
+    peer -> reliableCommandScanBlocked = 0;
+    peer -> reliableCommandScansThisPass = 0;
+}
+
+int
+enet_host_consume_reliable_command_scan (ENetHost * host, size_t * peerScans)
+{
+    if (host -> reliableCommandScansRemaining == 0)
+    {
+       if (! host -> reliableCommandScanBudgetExhausted)
+       {
+          host -> reliableCommandScanBudgetExhausted = 1;
+          ++ host -> reliableCommandScanBudgetExhaustions;
+       }
+       return 0;
+    }
+
+    if (host -> maximumReliableCommandScansPerPeer != 0 &&
+        * peerScans >= host -> maximumReliableCommandScansPerPeer)
+    {
+       ++ host -> reliableCommandPeerScanDeferrals;
+       return 0;
+    }
+
+    -- host -> reliableCommandScansRemaining;
+    ++ host -> reliableCommandScans;
+    ++ * peerScans;
+    return 1;
+}
+
 /** @defgroup peer ENet peer functions 
     @{
 */
@@ -328,6 +629,7 @@ enet_peer_reset_queues (ENetPeer * peer)
     enet_peer_reset_outgoing_commands (& peer -> sentUnreliableCommands);
     enet_peer_reset_outgoing_commands (& peer -> outgoingReliableCommands);
     enet_peer_reset_outgoing_commands (& peer -> outgoingUnreliableCommands);
+    enet_peer_reset_reliable_command_lookup (peer);
     enet_peer_reset_incoming_commands (& peer -> dispatchedCommands);
 
     if (peer -> channels != NULL && peer -> channelCount > 0)
@@ -627,7 +929,8 @@ enet_peer_queue_acknowledgement (ENetPeer * peer, const ENetProtocol * command, 
 void
 enet_peer_setup_outgoing_command (ENetPeer * peer, ENetOutgoingCommand * outgoingCommand)
 {
-    ENetChannel * channel = & peer -> channels [outgoingCommand -> command.header.channelID];
+    ENetChannel * channel = outgoingCommand -> command.header.channelID < peer -> channelCount ?
+        & peer -> channels [outgoingCommand -> command.header.channelID] : NULL;
     
     peer -> outgoingDataTotal += enet_protocol_command_size (outgoingCommand -> command.header.command) + outgoingCommand -> fragmentLength;
 
@@ -685,7 +988,10 @@ enet_peer_setup_outgoing_command (ENetPeer * peer, ENetOutgoingCommand * outgoin
     }
 
     if (outgoingCommand -> command.header.command & ENET_PROTOCOL_COMMAND_FLAG_ACKNOWLEDGE)
+    {
       enet_list_insert (enet_list_end (& peer -> outgoingReliableCommands), outgoingCommand);
+      enet_peer_track_reliable_command (peer, outgoingCommand);
+    }
     else
       enet_list_insert (enet_list_end (& peer -> outgoingUnreliableCommands), outgoingCommand);
 }

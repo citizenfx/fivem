@@ -170,6 +170,7 @@ typedef struct _ENetAcknowledgement
 typedef struct _ENetOutgoingCommand
 {
    ENetListNode outgoingCommandList;
+   struct _ENetOutgoingCommand * reliableCommandLookupNext;
    enet_uint16  reliableSequenceNumber;
    enet_uint16  unreliableSequenceNumber;
    enet_uint32  sentTime;
@@ -178,6 +179,7 @@ typedef struct _ENetOutgoingCommand
    enet_uint32  fragmentOffset;
    enet_uint16  fragmentLength;
    enet_uint16  sendAttempts;
+   enet_uint8   reliableCommandState;
    ENetProtocol command;
    ENetPacket * packet;
 } ENetOutgoingCommand;
@@ -220,6 +222,8 @@ enum
    ENET_HOST_DEFAULT_MTU                  = 1400,
    ENET_HOST_DEFAULT_MAXIMUM_PACKET_SIZE  = 32 * 1024 * 1024,
    ENET_HOST_DEFAULT_MAXIMUM_WAITING_DATA = 32 * 1024 * 1024,
+   ENET_HOST_DEFAULT_MAXIMUM_RELIABLE_COMMAND_SCANS_PER_PASS = 64 * 1024,
+   ENET_PEER_DEFAULT_MAXIMUM_RELIABLE_COMMAND_SCANS_PER_PASS = 2 * 1024,
 
    ENET_PEER_DEFAULT_ROUND_TRIP_TIME      = 500,
    ENET_PEER_DEFAULT_PACKET_THROTTLE      = 32,
@@ -329,6 +333,17 @@ typedef struct _ENetPeer
    enet_uint32   unsequencedWindow [ENET_PEER_UNSEQUENCED_WINDOW_SIZE / 32]; 
    enet_uint32   eventData;
    size_t        totalWaitingData;
+   ENetOutgoingCommand ** reliableCommandLookup;
+   size_t        reliableCommandLookupBucketCount;
+   size_t        reliableCommandCount;
+   size_t        outgoingReliableCommandCount;
+   size_t        sentReliableCommandCount;
+   size_t        peakReliableCommandCount;
+   ENetOutgoingCommand * reliableCommandScanCursor;
+   ENetOutgoingCommand * reliableCommandTimeoutCursor;
+   enet_uint8    reliableCommandLookupDisabled;
+   enet_uint8    reliableCommandScanBlocked;
+   size_t        reliableCommandScansThisPass;
 } ENetPeer;
 
 /** An ENet packet compressor for compressing UDP packets before socket sends or receives.
@@ -405,6 +420,21 @@ typedef struct _ENetHost
    size_t               duplicatePeers;              /**< optional number of allowed peers from duplicate IPs, defaults to ENET_PROTOCOL_MAXIMUM_PEER_ID */
    size_t               maximumPacketSize;           /**< the maximum allowable packet size that may be sent or received on a peer */
    size_t               maximumWaitingData;          /**< the maximum aggregate amount of buffer space a peer may use waiting for packets to be delivered */
+   size_t               maximumReliableCommandScansPerPass;
+   size_t               maximumReliableCommandScansPerPeer;
+   size_t               reliableCommandScansRemaining;
+   size_t               reliableCommandScanPeerCursor;
+   size_t               reliableCommandLookups;
+   size_t               reliableCommandLookupProbes;
+   size_t               reliableCommandLookupMisses;
+   size_t               reliableCommandLookupFallbacks;
+   size_t               reliableCommandScans;
+   size_t               reliableCommandTimeoutScans;
+   size_t               reliableCommandSendScans;
+   size_t               reliableCommandScanBudgetExhaustions;
+   size_t               reliableCommandPeerScanDeferrals;
+   size_t               reliableCommandTimeouts;
+   enet_uint8           reliableCommandScanBudgetExhausted;
 
    void                 (*peerTimeoutCb)(_ENetHost* host, ENetPeer* peer);
    bool                 (*validateDataCb)(_ENetHost* host, const ENetAddress* address, enet_uint32 data);
@@ -588,6 +618,12 @@ ENET_API void                enet_peer_throttle_configure (ENetPeer *, enet_uint
 extern int                   enet_peer_throttle (ENetPeer *, enet_uint32);
 extern void                  enet_peer_reset_queues (ENetPeer *);
 extern void                  enet_peer_setup_outgoing_command (ENetPeer *, ENetOutgoingCommand *);
+extern ENetOutgoingCommand * enet_peer_find_reliable_command (ENetPeer *, enet_uint16, enet_uint8, int *);
+extern void                  enet_peer_untrack_reliable_command (ENetPeer *, ENetOutgoingCommand *);
+extern void                  enet_peer_mark_reliable_command_sent (ENetPeer *, ENetOutgoingCommand *);
+extern void                  enet_peer_mark_reliable_command_outgoing (ENetPeer *, ENetOutgoingCommand *);
+extern void                  enet_peer_reset_reliable_command_lookup (ENetPeer *);
+extern int                   enet_host_consume_reliable_command_scan (ENetHost *, size_t *);
 extern ENetOutgoingCommand * enet_peer_queue_outgoing_command (ENetPeer *, const ENetProtocol *, ENetPacket *, enet_uint32, enet_uint16);
 extern ENetIncomingCommand * enet_peer_queue_incoming_command (ENetPeer *, const ENetProtocol *, const void *, size_t, enet_uint32, enet_uint32);
 extern ENetAcknowledgement * enet_peer_queue_acknowledgement (ENetPeer *, const ENetProtocol *, enet_uint16);
@@ -608,4 +644,3 @@ extern size_t enet_protocol_command_size (enet_uint8);
 #endif
 
 #endif /* __ENET_ENET_H__ */
-
