@@ -16,6 +16,7 @@ uint32_t dynamicEntityComponentOffset = 0;
 uint32_t animDirectorOffset = 0;
 std::once_flag traceOnceFlag;
 std::once_flag traceOnceFlag2;
+std::once_flag traceOnceFlag3;
 
 uint32_t parachuteObjectOffset = 0;
 uint32_t drawHandlerOffset = 0;
@@ -233,6 +234,31 @@ static void SerialiseUnsignedHook(void* serializer, uint32_t* value, int64_t num
 	}
 }
 
+static hook::cdecl_stub<void(void* object, void** reference)> removeKnownRef([]()
+{
+	return hook::get_call(hook::get_pattern("74 20 48 85 C9 74 08", 10));
+});
+
+uint64_t (*g_CTaskParachute_ProcessParachuteObject)(hook::FlexStruct* self);
+uint64_t CTaskParachute_ProcessParachuteObject(hook::FlexStruct* self)
+{
+	void** reference = &self->At<void*>(parachuteObjectOffset);
+	hook::FlexStruct* parachuteObject = static_cast<hook::FlexStruct*>(*reference);
+
+	if (parachuteObject && parachuteObject->Get<uint8_t>(0x28) != 5)
+	{
+		std::call_once(traceOnceFlag3, []()
+		{
+			trace("Non-object entity resolved as parachute object prevented\n");
+		});
+
+		removeKnownRef(parachuteObject, reference);
+		*reference = nullptr;
+	}
+
+	return g_CTaskParachute_ProcessParachuteObject(self);
+}
+
 static HookFunction hookFunction([]
 {
 	// ClonedTakeOffPedVariationInfo - Serialise - Patch serializer for prop model
@@ -278,6 +304,10 @@ static HookFunction hookFunction([]
 			ResetWhitelists();
 		});
 	}
+	
+	auto processParachuteObjectLocation = hook::get_pattern<uint8_t>("40 53 48 83 EC ? F6 81 ? ? ? ? ? 48 8B D9 74 ? E8 ? ? ? ? 48 8B 43 ? 48 85 C0 74 ? 48 8B 88 ? ? ? ? 48 85 C9 74 ? 80 79 ? ? 74 ? 48 83 BB");
+	parachuteObjectOffset = *(uint32_t*)(processParachuteObjectLocation + 53);
+	g_CTaskParachute_ProcessParachuteObject = hook::trampoline(processParachuteObjectLocation, &CTaskParachute_ProcessParachuteObject);
 
 	if (xbr::IsGameBuildOrGreater<3407>())
 	{
@@ -291,7 +321,6 @@ static HookFunction hookFunction([]
 	dynamicEntityComponentOffset = *hook::get_pattern<uint8_t>("48 8B 43 ? 48 85 C0 74 ? 48 8B 78 ? 48 8B CF E8 ? ? ? ? 48 8B D5", 3);
 	animDirectorOffset = *hook::get_pattern<uint8_t>("48 8B 78 ? 48 8B CF E8 ? ? ? ? 48 8B D5", 3);
 
-	parachuteObjectOffset = *hook::get_pattern<uint32_t>("48 8B 81 ? ? ? ? 48 8B D9 48 85 C0 74 ? 48 8B 40 ? 48 8B 78", 3);
 	drawHandlerOffset = *hook::get_pattern<uint8_t>("48 8B 40 ? 48 8B 78", 3);
 
 	taskTakeOffPedVariationPropOffset = *hook::get_pattern<uint32_t>("48 8B 81 ? ? ? ? 33 C9 48 85 C0 74 ? 48 8B 40 ? 48 85 C0", 3);
