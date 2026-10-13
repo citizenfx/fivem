@@ -196,6 +196,7 @@ static void netEventMgr_PopulateEventBlacklist()
 
 	BlacklistEvent("GIVE_CONTROL_EVENT"); // don't give control using events!
 	BlacklistEvent("BLOW_UP_VEHICLE_EVENT"); // used only during migration
+	BlacklistEvent("SCRIPT_WORLD_STATE_EVENT"); // not relevant in onesync
 	BlacklistEvent("KICK_VOTES_EVENT");
 	BlacklistEvent("NETWORK_CRC_HASH_CHECK_EVENT");
 	BlacklistEvent("NETWORK_CHECK_EXE_SIZE_EVENT");
@@ -235,6 +236,7 @@ static void netEventMgr_PopulateEventBlacklistV2()
 
 	BlacklistEvent("GIVE_CONTROL_EVENT"); // don't give control using events!
 	BlacklistEvent("BLOW_UP_VEHICLE_EVENT"); // used only during migration
+	BlacklistEvent("SCRIPT_WORLD_STATE_EVENT"); // not relevant in onesync
 	BlacklistEvent("KICK_VOTES_EVENT");
 	BlacklistEvent("NETWORK_CRC_HASH_CHECK_EVENT");
 	BlacklistEvent("NETWORK_CHECK_EXE_SIZE_EVENT");
