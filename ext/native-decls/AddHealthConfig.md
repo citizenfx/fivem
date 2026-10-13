@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: client
+    apiset:    j client                                       
 game: gta5
 ---
 ## ADD_HEALTH_CONFIG
