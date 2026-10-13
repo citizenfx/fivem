@@ -104,7 +104,7 @@ namespace CitizenFX.Core.Native
 				var expectString = (stringMask & bit) != 0;
 				var arg = arguments[index];
 				var value = arg?.Value;
-				if (IsNullPointer(value) || (arg != null && arg.IsCritical) || value is OutputArgument || (expectString && value is string))
+				if (IsNullPointer(value) || (arg != null && arg.IsCritical) || arg is OutputArgument || (expectString && value is string))
 				{
 					continue;
 				}
