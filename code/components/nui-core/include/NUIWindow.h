@@ -81,6 +81,10 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_swapSrv;
 
+	int m_pendingSwapFrames = 0;
+
+	ID3D11Resource* m_lastSwapTarget = nullptr;
+
 	std::map<CefRenderHandler::PaintElementType, HANDLE> m_lastParentHandle;
 
 	bool m_dereferencedNuiTexture;

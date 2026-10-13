@@ -9,6 +9,21 @@
 
 static InitFunction initFunction([]
 {
+	OnShouldTriggerGameEvent.Connect([](const char* eventName, bool ext)
+	{
+		static const std::string gameEventTriggered = "gameEventTriggered";
+
+		auto resman = Instance<fx::ResourceManager>::Get();
+		auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
+
+		if (!ext)
+		{
+			return rec->HasResourceHandledEvent(gameEventTriggered);
+		}
+
+		return rec->HasResourceHandledEvent(std::string{ eventName });
+	});
+
 	OnTriggerGameEventExt.Connect([](const GameEventData& data)
 	{
 		auto resman = Instance<fx::ResourceManager>::Get();

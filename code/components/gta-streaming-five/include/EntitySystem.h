@@ -892,6 +892,8 @@ struct GameEventData
 
 STREAMING_EXPORT extern fwEvent<const GameEventData&> OnTriggerGameEventExt;
 
+STREAMING_EXPORT extern fwEvent<const char*, bool> OnShouldTriggerGameEvent;
+
 struct DamageEventMetaData
 {
 	rage::fwEntity* victim;
