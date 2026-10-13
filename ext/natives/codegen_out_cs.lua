@@ -622,7 +622,7 @@ for _, v in pairs(_natives) do
 
 		for i, argument in ipairs(v.arguments) do
 			local isPointer = pointerOverrides[('%s/%s/%s'):format(v.ns, v.name, i - 1)] == true
-			local isString = false
+			local isString = isPointer
 
 			if not isPointer then
 				isString = argument.type.name == 'charPtr' or argument.type.name == 'func' or (gApiSet == 'server' and argument.type.name == 'Player')
