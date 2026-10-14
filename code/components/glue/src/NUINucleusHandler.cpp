@@ -11,7 +11,7 @@
 class NucleusResourceHandler : public CefResourceHandler
 {
 public:
-	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override
+	virtual bool Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) override
 	{
 		CefRefPtr<NucleusResourceHandler> self = this;
 
@@ -120,10 +120,11 @@ public:
 				callback->Continue();
 			});
 
+		handle_request = false;
 		return true;
 	}
 
-	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& responseLength, CefString& redirectUrl) override
+	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& responseLength, CefString& redirectUrl) override
 	{
 		response->SetStatus(m_statusCode);
 		response->SetStatusText(m_statusText);
@@ -150,24 +151,24 @@ public:
 
 		response->SetHeaderMap(headers);
 
-		responseLength = static_cast<int64>(m_responseBody.size());
+		responseLength = static_cast<int64_t>(m_responseBody.size());
 	}
 
-	virtual bool ReadResponse(void* dataOut, int bytesToRead, int& bytesRead, CefRefPtr<CefCallback> callback) override
+    virtual bool Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback) override
 	{
 		if (m_readOffset >= m_responseBody.size())
 		{
-			bytesRead = 0;
+			bytes_read = 0;
 			return false;
 		}
 
 		size_t remaining = m_responseBody.size() - m_readOffset;
-		size_t toRead = std::min(remaining, static_cast<size_t>(bytesToRead));
-		memcpy(dataOut, m_responseBody.data() + m_readOffset, toRead);
+		size_t toRead = std::min(remaining, static_cast<size_t>(bytes_to_read));
+		memcpy(data_out, m_responseBody.data() + m_readOffset, toRead);
 		m_readOffset += toRead;
-		bytesRead = static_cast<int>(toRead);
+		bytes_read = static_cast<int>(toRead);
 
-		return bytesRead > 0;
+		return bytes_read > 0;
 	}
 
 	virtual void Cancel() override

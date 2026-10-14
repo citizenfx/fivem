@@ -95,7 +95,7 @@ GetWindowScaleInfo(const fwRefContainer<NUIWindow>& window)
 void TranslateWindowRect(const fwRefContainer<NUIWindow>& window, CRect* rect)
 {
 	auto scale = GetWindowScaleInfo(window);
-	*rect = CRect(scale.offsetX, scale.offsetY + scale.outY, scale.offsetX + scale.outX, scale.offsetY);
+	*rect = CRect(scale.offsetX, scale.offsetY, scale.offsetX + scale.outX, scale.offsetY + scale.outY);
 }
 
 template<typename T>
@@ -558,8 +558,8 @@ static HookFunction initFunction([] ()
 			MouseEvent(-1, x, y, true);
 		}
 
-		int lastX;
-		int lastY;
+		int lastX = 0;
+		int lastY = 0;
 
 	} inputTarget;
 
@@ -641,7 +641,7 @@ static HookFunction initFunction([] ()
 					pass = false;
 				}
 			};
-
+			
 			switch (msg)
 			{
 			case WM_XBUTTONUP: {
@@ -749,7 +749,11 @@ static HookFunction initFunction([] ()
 				suppressInput();
 			} break;
 
-			case WM_MOUSEWHEEL: {
+			case WM_MOUSEWHEEL:
+			{
+				// Smooth scrolling while using OSR.
+				// See https://magpcss.org/ceforum/viewtopic.php?p=47550#p47550 for original issue and fix.
+#if defined(CEF_OSR_NATIVE_MOUSE_EVENT)
 				int x = GET_X_LPARAM(lParam);
 				int y = GET_Y_LPARAM(lParam);
 
@@ -777,7 +781,7 @@ static HookFunction initFunction([] ()
 				{
 					browser->GetHost()->SendMouseWheelEventNative(&m);
 				}
-
+#endif
 				suppressInput();
 				break;
 			}
@@ -874,8 +878,7 @@ static HookFunction initFunction([] ()
 						// Send the text to the browser. The |replacement_range| and
 						// |relative_cursor_pos| params are not used on Windows, so provide
 						// default invalid values.
-						browser->GetHost()->ImeCommitText(cTextStr,
-						CefRange(UINT32_MAX, UINT32_MAX), 0);
+						browser->GetHost()->ImeCommitText(cTextStr, CefRange::InvalidRange(), 0);
 						g_imeHandler->ResetComposition();
 						// Continue reading the composition string - Japanese IMEs send both
 						// GCS_RESULTSTR and GCS_COMPSTR.
@@ -887,18 +890,19 @@ static HookFunction initFunction([] ()
 					if (g_imeHandler->GetComposition(lParam, cTextStr, underlines,
 						composition_start))
 					{
+						int cursor_pos = static_cast<int>(composition_start + cTextStr.length());
+
 						// Send the composition string to the browser. The |replacement_range|
 						// param is not used on Windows, so provide a default invalid value.
 						browser->GetHost()->ImeSetComposition(
-						cTextStr, underlines, CefRange(UINT32_MAX, UINT32_MAX),
-						CefRange(composition_start,
-						static_cast<int>(composition_start + cTextStr.length())));
+						cTextStr, underlines, CefRange::InvalidRange(),
+						CefRange(cursor_pos, cursor_pos));
 
 						// Update the Candidate Window position. The cursor is at the end so
 						// subtract 1. This is safe because IMM32 does not support non-zero-width
 						// in a composition. Also,  negative values are safely ignored in
 						// MoveImeWindow
-						g_imeHandler->UpdateCaretPosition(composition_start - 1);
+						g_imeHandler->UpdateCaretPosition(cursor_pos);
 					}
 					else
 					{

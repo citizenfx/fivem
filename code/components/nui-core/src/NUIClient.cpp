@@ -26,6 +26,8 @@
 
 #include <sstream>
 #include <regex>
+#include <NUIDevtools.h>
+#include <unordered_set>
 
 extern nui::GameInterface* g_nuiGi;
 bool shouldHaveRootWindow;
@@ -65,6 +67,21 @@ static bool IsTrustedEntitlementFrame(const std::string& frameUrl)
 	}
 
 	return false;
+}
+
+static bool IsSupportedScheme(const std::string& scheme)
+{
+	static const std::unordered_set<std::string> kAllowedSchemes = {
+		"https",
+		"http",
+		"wss",
+		"ws",
+		"blob",
+		"data",
+		"nui"
+	};
+
+	return kAllowedSchemes.count(scheme);
 }
 
 namespace nui
@@ -126,6 +143,7 @@ void NUIClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> f
 		m_loadedMainFrame = false;
 	}
 
+	browser->GetHost()->AddDevToolsMessageObserver(g_devToolsObserver);
 	if (g_audioSink)
 	{
 		browser->GetHost()->SetAudioMuted(true);
@@ -144,7 +162,8 @@ extern void TriggerLoadEnd(const std::string& name);
 void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode)
 {
 	auto url = frame->GetURL();
-	TriggerLoadEnd((url == "nui://game/ui/root.html") ? "__root" : frame->GetName());
+	auto name = frame->GetName();
+	TriggerLoadEnd((url == "nui://game/ui/root.html") ? "__root" : name);
 
 	if (auto parent = frame->GetParent(); parent && parent->IsMain())
 	{
@@ -255,6 +274,24 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 	}
 }
 
+void NUIClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, ErrorCode errorCode, const CefString& errorText, const CefString& failedUrl)
+{
+	if (errorCode == ERR_ABORTED)
+	{
+		return;
+	}
+
+	// Restore alloy runtime (<M128) behaviour of not displaying anything should an page error occur.
+	// currently, with the chrome runtime it will display an error page which can block game view and cause confusion
+	// as you are not able to focus on to it to see the error it self.
+	// instead, we'll replace any pages (usually iframes) that fail to load with about:blank.
+	// with chrome runtime it will, by default, display an generic chromium error page.
+	frame->LoadURL("about:blank");
+#ifdef _DEBUG
+	trace("Failed to load page because of errorcode %i", errorCode);
+#endif
+}
+
 void NUIClient::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 {
 	m_browser = browser;
@@ -264,19 +301,22 @@ void NUIClient::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 
 bool NUIClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
 {
-	auto handler = m_processMessageHandlers.find(message->GetName());
+	if (source_process != PID_RENDERER)
+	{
+		trace("NUI recieved a message from an invalid process. process = %i\n", source_process);
+		return false;
+	}
+
+	const auto& name = message->GetName();
+	auto handler = m_processMessageHandlers.find(name);
 	bool success = false;
 
-	if (handler != m_processMessageHandlers.end())
+	if (handler == m_processMessageHandlers.end())
 	{
-		success = handler->second(browser, message);
+		trace("Unknown NUI process message: %s\n", name.ToString().c_str());
+		return false;
 	}
-	else
-	{
-		trace("Unknown NUI process message: %s\n", message->GetName().ToString().c_str());
-	}
-
-	return success;
+	return handler->second(browser, frame, message);
 }
 
 void NUIClient::OnBeforeContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefContextMenuParams> params, CefRefPtr<CefMenuModel> model)
@@ -315,6 +355,14 @@ bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity
 		return false;
 	}
 
+	// Suppress "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing." errors from being shown.
+	// allow-scripts and allow-same-origin is required for compatability and we are aware of the risks that it may pose.
+	// The console warning has no value being shown to the end user and only serves to cause confusion/fear.
+	if (messageStr.find(L"both allow-scripts and allow-same-origin") != std::string::npos)
+	{
+		return true;
+	}
+
 	std::string channel = "nui:console";
 
 	if (sourceStr.find(L"nui://") == 0)
@@ -347,6 +395,7 @@ bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity
 
 auto NUIClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 	CefRefPtr<CefFrame> frame,
+	int popup_id,
 	const CefString& target_url,
 	const CefString& target_frame_name,
 	CefLifeSpanHandler::WindowOpenDisposition target_disposition,
@@ -358,26 +407,63 @@ auto NUIClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 	CefRefPtr<CefDictionaryValue>& extra_info,
 	bool* no_javascript_access) -> bool
 {
-	if (target_disposition == WOD_NEW_FOREGROUND_TAB || target_disposition == WOD_NEW_BACKGROUND_TAB || target_disposition == WOD_NEW_POPUP || target_disposition == WOD_NEW_WINDOW )
+	if (target_disposition == CEF_WOD_CURRENT_TAB)
 	{
-		return true;
+		return false;
 	}
-	return false;
+
+	return true;
 }
 
 auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) -> ReturnValue
 {
 	auto url = request->GetURL().ToString();
 
-	if (boost::algorithm::to_lower_copy(url).find("file://") != std::string::npos)
+	CefURLParts urlParts;
+	if (!CefParseURL(request->GetURL(), urlParts))
 	{
 		return RV_CANCEL;
 	}
 
-	CefURLParts urlParts;
-	if (!CefParseURL(request->GetURL(), urlParts))
+	std::string scheme = CefString(&urlParts.scheme).ToString();
+	if (!IsSupportedScheme(scheme))
 	{
-		return RV_CONTINUE;
+		return RV_CANCEL;
+	}
+
+	// Requests made in services workers should still contain a frame reference
+	// All checks below this always made the assumption that frame shall not be null
+	// So there shouldn't be too much risk in cancelling requests from null frames.
+	if (!frame)
+	{
+		trace("Blocking request for '%s as its missing an frame origin\n", url);
+		return RV_CANCEL;
+	}
+
+	// With versions of Chromium after >m103 stricter requirements for Origin have been added
+	// as a result requests made through 'insecure' protocols such as http or ws will no longer have an Origin
+	// This results in requests from an unknown location being sent to NUI, breaking NUI strict mode.
+	// Introduce a compatability shim for resources using manifest version 'bodacious' and http:// callbacks
+	// to work the same as before. https:// for nui callbacks is uneffected.
+	if (scheme == "http" && request->GetMethod() == "POST")
+	{
+		CefString origin = request->GetHeaderByName("Origin");
+		if (origin.empty() || origin == "null")
+		{
+			CefURLParts frameParts;
+			if (!CefParseURL(frame->GetURL(), frameParts))
+			{
+				// Somehow frame isn't a valid URL?
+				return RV_CANCEL;
+			}
+
+			CefString scheme = CefString(&frameParts.scheme);
+			if (scheme == "nui")
+			{
+				std::string hostString = CefString(&frameParts.host).ToString();
+				request->SetHeaderByName("Origin", "nui://" + hostString, true);
+			}
+		}
 	}
 
 	std::string hostString = CefString(&urlParts.host).ToString();
@@ -416,7 +502,6 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 			return RV_CONTINUE;
 		}
 	}
-
 
 	// DiscordApp breaks as of late and affects end users, tuning the headers seems to fix it
 	if (boost::algorithm::ends_with(hostString, "discordapp.com") ||
@@ -466,7 +551,7 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 					return RV_CANCEL;
 				}
 			}
-			catch (std::exception& e)
+			catch (std::exception&)
 			{
 			}
 		}
@@ -513,9 +598,10 @@ CefRefPtr<CefResourceHandler> NUIClient::GetResourceHandler(CefRefPtr<CefBrowser
 
 void NUIClient::AddProcessMessageHandler(std::string key, TProcessMessageHandler handler)
 {
-	m_processMessageHandlers[key] = handler;
+	m_processMessageHandlers.emplace(std::move(key), std::move(handler));
 }
 
+#ifdef NUI_WITH_AUDIO_SINKS
 void NUIClient::OnAudioCategoryConfigure(const std::string& frame, const std::string& category)
 {
 	m_audioFrameCategories[frame] = category;
@@ -543,7 +629,6 @@ void NUIClient::OnAudioCategoryConfigure(const std::string& frame, const std::st
 	}
 }
 
-#if 0
 void NUIClient::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int audio_stream_id, int channels, ChannelLayout channel_layout, int sample_rate, int frames_per_buffer)
 {
 	if (g_audioSink)
@@ -618,8 +703,24 @@ void NUIClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 
 extern bool g_shouldCreateRootWindow;
 
-void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status)
+void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status, int error_code, const CefString& error_string)
 {
+	switch (status)
+	{
+		case TS_PROCESS_CRASHED:
+			trace("CEF renderer process was killed, error_code = %i,%s\n", error_code, error_string.ToString());
+			break;
+		case TS_PROCESS_WAS_KILLED:
+			trace("CEF renderer was killed, error_code = %i,%s\n", error_code, error_string.ToString());
+			break;
+		case TS_PROCESS_OOM:
+			trace("CEF renderer ran out of memory, error_code %i, %s\n", error_code, error_string.ToString());
+			break;
+		case TS_ABNORMAL_TERMINATION:
+			trace("CEF renderer was abnormally terminated, error_code %i, %s\n", error_code, error_string.ToString());
+			break;
+	}
+
 	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html" || (m_windowValid && m_window && m_window->GetName() == "nui_mpMenu"))
 	{
 		browser->GetHost()->CloseBrowser(true);
@@ -630,48 +731,26 @@ void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, Termina
 
 bool NUIClient::OnOpenURLFromTab(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& target_url, CefRequestHandler::WindowOpenDisposition target_disposition, bool user_gesture)
 {
-	// Discards middle mouse clicks / ctrl-clicks of links
+	// Discards middle mouse clicks / shift-click / ctrl-clicks of links. Also discard opening links from devtools
 	// Default behavior is to open them in a new tab and switch to it, with no back button the player had no way to go back to CfxUI
-	if (target_disposition == CefRequestHandler::WindowOpenDisposition::WOD_NEW_BACKGROUND_TAB && user_gesture)
+	if ((target_disposition == CefRequestHandler::WindowOpenDisposition::CEF_WOD_NEW_BACKGROUND_TAB 
+		|| target_disposition == CefRequestHandler::WindowOpenDisposition::CEF_WOD_NEW_FOREGROUND_TAB
+		|| target_disposition == CefRequestHandler::WindowOpenDisposition::CEF_WOD_NEW_WINDOW
+	) && user_gesture)
 	{
 		return true;
 	}
 	return false;
 }
 
+bool NUIClient::OnChromeCommand(CefRefPtr<CefBrowser> browser, int command_id, cef_window_open_disposition_t disposition)
+{
+	return true;
+}
+
 void NUIClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 {
 	m_browser = nullptr;
-}
-
-CefRefPtr<CefLifeSpanHandler> NUIClient::GetLifeSpanHandler()
-{
-	return this;
-}
-
-CefRefPtr<CefDisplayHandler> NUIClient::GetDisplayHandler()
-{
-	return this;
-}
-
-CefRefPtr<CefContextMenuHandler> NUIClient::GetContextMenuHandler()
-{
-	return this;
-}
-
-CefRefPtr<CefLoadHandler> NUIClient::GetLoadHandler()
-{
-	return this;
-}
-
-CefRefPtr<CefRequestHandler> NUIClient::GetRequestHandler()
-{
-	return this;
-}
-
-CefRefPtr<CefRenderHandler> NUIClient::GetRenderHandler()
-{
-	return m_renderHandler;
 }
 
 extern nui::GameInterface* g_nuiGi;
@@ -701,9 +780,18 @@ bool NUIClient::OnRequestMediaAccessPermission(CefRefPtr<CefBrowser> browser, Ce
 	});
 }
 
-CefRefPtr<CefPermissionHandler> NUIClient::GetPermissionHandler()
+bool NUIClient::OnShowPermissionPrompt(CefRefPtr<CefBrowser> browser, uint64_t prompt_id, const CefString& requesting_origin, uint32_t requested_permissions, CefRefPtr<CefPermissionPromptCallback> callback)
 {
-	return this;
+	// With the default of Chrome runtime in M128+
+	// Permission Prompts for tasks such as allowing sharing geolocation or multiple downloads
+	// would attempt to show an chrome style permission popup, which in OSR will not behave properly
+	// As such, restore alloy behaviour by denying all permission prompts.
+	callback->Continue(CEF_PERMISSION_RESULT_DENY);
+	return true;
+}
+
+void NUIClient::OnDismissPermissionPrompt(CefRefPtr<CefBrowser> browser, uint64_t prompt_id, cef_permission_request_result_t result)
+{
 }
 #endif
 

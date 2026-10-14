@@ -10,6 +10,7 @@
 
 #include "NUIClient.h"
 #include "NUIWindowManager.h"
+#include "DUIShaders.h"
 
 #include <Error.h>
 
@@ -34,16 +35,19 @@ static bool nuiFixedSizeEnabled;
 namespace nui
 {
 extern bool g_rendererInit;
-
+extern bool g_hasFirstRender;
 extern void AddSchemeHandlerFactories(CefRefPtr<CefRequestContext> rc);
 }
 
 NUIWindow::NUIWindow(bool rawBlit, int width, int height, const std::string& windowContext)
-	: m_rawBlit(rawBlit), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_popupTexture(nullptr), m_swapTexture(nullptr),
-	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_dereferencedNuiTexture(false), m_lastFrameTime(0), m_lastMessageTime(0), m_roundedHeight(0), m_roundedWidth(0),
-	  m_syncKey(0), m_paintType(NUIPaintTypeDummy), m_windowContext(windowContext)
+	: m_isPrimary(rawBlit), m_width(width), m_height(height), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_popupTexture(nullptr),
+	  m_lastFrameTime(0), m_lastMessageTime(0), m_paintType(NUIPaintTypeDummy), m_windowContext(windowContext)
+#ifdef GTA_FIVE
+	  ,m_swapTexture(nullptr), m_swapRtv(nullptr)
+#endif
 {
-	memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
+	memset(&m_sharedResourceTexturesCreated, 0, sizeof(m_sharedResourceTexturesCreated));
+	memset(&m_pendingTextureCreation, 0, sizeof(m_pendingTextureCreation));
 
 	Instance<NUIWindowManager>::Get()->AddWindow(this);
 }
@@ -62,23 +66,26 @@ NUIWindow::~NUIWindow()
 		nuiClient->SetWindowValid(false);
 		nuiClient->ClearWindow();
 
-		std::unique_lock _(nuiClient->GetWindowLock());
-		if (nuiClient->GetBrowser() && nuiClient->GetBrowser()->GetHost())
+		CefRefPtr<CefBrowser> browser;
+		{
+			std::unique_lock _(nuiClient->GetWindowLock());
+			if (nuiClient->GetBrowser() && nuiClient->GetBrowser()->GetHost())
+			{
+				browser = nuiClient->GetBrowser();
+			}
+		}
+
+		if (browser)
 		{
 			if (!CefCurrentlyOn(TID_UI))
 			{
-				CefPostTask(TID_UI, base::BindOnce(&::CloseBrowser, scoped_refptr(nuiClient->GetBrowser())));
+				CefPostTask(TID_UI, base::BindOnce(&::CloseBrowser, scoped_refptr(browser)));
 			}
 			else
 			{
-				nuiClient->GetBrowser()->GetHost()->CloseBrowser(true);
+				browser->GetHost()->CloseBrowser(true);
 			}
 		}
-	}
-
-	if (m_renderBuffer)
-	{
-		delete[] m_renderBuffer;
 	}
 
 	Instance<NUIWindowManager>::Get()->RemoveWindow(this);
@@ -108,238 +115,74 @@ void NUIWindow::DeferredCreate()
 	}
 }
 
-#pragma region shaders
-/*
-// fxc /T ps_4_0 /E PSMain /Qstrip_reflect /Fo test.cso /Fh test.h test.hlsl
+#include <dxgi1_6.h>
 
-Texture2D tx : register(t0);
-SamplerState sm : register(s0);
+#pragma comment(lib, "dxgi.lib")
 
-float4 PSMain(in float4 pos : SV_Position, in float2 uv : TEXCOORD0): SV_TARGET {
-    float4 color = tx.Sample(sm, uv);
-    color.rgb /= color.a;
-    return color;
+static uint64_t GetPrimaryGPUVRAM()
+{
+	namespace WRL = Microsoft::WRL;
+	WRL::ComPtr<IDXGIFactory1> factory;
+	if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory))))
+	{
+		return 0;
+	}
+
+	auto hardwareVram = [](IDXGIAdapter1* adapter) -> uint64_t
+	{
+		DXGI_ADAPTER_DESC1 desc;
+		if (FAILED(adapter->GetDesc1(&desc)) || (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE))
+		{
+			return 0;
+		}
+		return desc.DedicatedVideoMemory;
+	};
+
+	WRL::ComPtr<IDXGIFactory6> factory6;
+	if (SUCCEEDED(factory.As(&factory6)))
+	{
+		WRL::ComPtr<IDXGIAdapter1> adapter;
+		for (UINT i = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter))); ++i)
+		{
+			if (uint64_t vram = hardwareVram(adapter.Get()))
+			{
+				return vram;
+			}
+		}
+	}
+
+	uint64_t best = 0;
+	WRL::ComPtr<IDXGIAdapter1> adapter;
+	for (UINT i = 0; factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i)
+	{
+		best = std::max(best, hardwareVram(adapter.Get()));
+	}
+	return best;
 }
-*/
 
-const BYTE quadPS[] =
+static int GetPrimaryMonitorRefreshRate()
 {
-     68,  88,  66,  67, 143,   7,
-    231, 175,  20,  94, 243, 235,
-    204,  15,  80,  20, 247, 182,
-    206,  11,   1,   0,   0,   0,
-     92,   1,   0,   0,   3,   0,
-      0,   0,  44,   0,   0,   0,
-    132,   0,   0,   0, 184,   0,
-      0,   0,  73,  83,  71,  78,
-     80,   0,   0,   0,   2,   0,
-      0,   0,   8,   0,   0,   0,
-     56,   0,   0,   0,   0,   0,
-      0,   0,   1,   0,   0,   0,
-      3,   0,   0,   0,   0,   0,
-      0,   0,  15,   0,   0,   0,
-     68,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,
-      3,   0,   0,   0,   1,   0,
-      0,   0,   3,   3,   0,   0,
-     83,  86,  95,  80, 111, 115,
-    105, 116, 105, 111, 110,   0,
-     84,  69,  88,  67,  79,  79,
-     82,  68,   0, 171, 171, 171,
-     79,  83,  71,  78,  44,   0,
-      0,   0,   1,   0,   0,   0,
-      8,   0,   0,   0,  32,   0,
-      0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   3,   0,
-      0,   0,   0,   0,   0,   0,
-     15,   0,   0,   0,  83,  86,
-     95,  84,  65,  82,  71,  69,
-     84,   0, 171, 171,  83,  72,
-     68,  82, 156,   0,   0,   0,
-     64,   0,   0,   0,  39,   0,
-      0,   0,  90,   0,   0,   3,
-      0,  96,  16,   0,   0,   0,
-      0,   0,  88,  24,   0,   4,
-      0, 112,  16,   0,   0,   0,
-      0,   0,  85,  85,   0,   0,
-     98,  16,   0,   3,  50,  16,
-     16,   0,   1,   0,   0,   0,
-    101,   0,   0,   3, 242,  32,
-     16,   0,   0,   0,   0,   0,
-    104,   0,   0,   2,   1,   0,
-      0,   0,  69,   0,   0,   9,
-    242,   0,  16,   0,   0,   0,
-      0,   0,  70,  16,  16,   0,
-      1,   0,   0,   0,  70, 126,
-     16,   0,   0,   0,   0,   0,
-      0,  96,  16,   0,   0,   0,
-      0,   0,  14,   0,   0,   7,
-    114,  32,  16,   0,   0,   0,
-      0,   0,  70,   2,  16,   0,
-      0,   0,   0,   0, 246,  15,
-     16,   0,   0,   0,   0,   0,
-     54,   0,   0,   5, 130,  32,
-     16,   0,   0,   0,   0,   0,
-     58,   0,  16,   0,   0,   0,
-      0,   0,  62,   0,   0,   1
-};
+	DEVMODE devMode = {};
+	devMode.dmSize = sizeof(DEVMODE);
 
-const BYTE quadVS[] =
-{
-	68,  88,  66,  67, 203, 141,
-	78, 146,   5, 246, 239, 246,
-	166,  36, 242, 232,  80,   1,
-	231, 115,   1,   0,   0,   0,
-	208,   2,   0,   0,   5,   0,
-	0,   0,  52,   0,   0,   0,
-	128,   0,   0,   0, 180,   0,
-	0,   0,  12,   1,   0,   0,
-	84,   2,   0,   0,  82,  68,
-	69,  70,  68,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	28,   0,   0,   0,   0,   4,
-	254, 255,   0,   1,   0,   0,
-	28,   0,   0,   0,  77, 105,
-	99, 114, 111, 115, 111, 102,
-	116,  32,  40,  82,  41,  32,
-	72,  76,  83,  76,  32,  83,
-	104,  97, 100, 101, 114,  32,
-	67, 111, 109, 112, 105, 108,
-	101, 114,  32,  49,  48,  46,
-	49,   0,  73,  83,  71,  78,
-	44,   0,   0,   0,   1,   0,
-	0,   0,   8,   0,   0,   0,
-	32,   0,   0,   0,   0,   0,
-	0,   0,   6,   0,   0,   0,
-	1,   0,   0,   0,   0,   0,
-	0,   0,   1,   1,   0,   0,
-	83,  86,  95,  86,  69,  82,
-	84,  69,  88,  73,  68,   0,
-	79,  83,  71,  78,  80,   0,
-	0,   0,   2,   0,   0,   0,
-	8,   0,   0,   0,  56,   0,
-	0,   0,   0,   0,   0,   0,
-	1,   0,   0,   0,   3,   0,
-	0,   0,   0,   0,   0,   0,
-	15,   0,   0,   0,  68,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   3,   0,
-	0,   0,   1,   0,   0,   0,
-	3,  12,   0,   0,  83,  86,
-	95,  80,  79,  83,  73,  84,
-	73,  79,  78,   0,  84,  69,
-	88,  67,  79,  79,  82,  68,
-	0, 171, 171, 171,  83,  72,
-	68,  82,  64,   1,   0,   0,
-	64,   0,   1,   0,  80,   0,
-	0,   0,  96,   0,   0,   4,
-	18,  16,  16,   0,   0,   0,
-	0,   0,   6,   0,   0,   0,
-	103,   0,   0,   4, 242,  32,
-	16,   0,   0,   0,   0,   0,
-	1,   0,   0,   0, 101,   0,
-	0,   3,  50,  32,  16,   0,
-	1,   0,   0,   0, 104,   0,
-	0,   2,   2,   0,   0,   0,
-	54,   0,   0,   8, 194,  32,
-	16,   0,   0,   0,   0,   0,
-	2,  64,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	128,  63,   1,   0,   0,   7,
-	18,   0,  16,   0,   0,   0,
-	0,   0,  10,  16,  16,   0,
-	0,   0,   0,   0,   1,  64,
-	0,   0,   1,   0,   0,   0,
-	85,   0,   0,   7, 130,   0,
-	16,   0,   0,   0,   0,   0,
-	10,  16,  16,   0,   0,   0,
-	0,   0,   1,  64,   0,   0,
-	1,   0,   0,   0,  86,   0,
-	0,   5,  50,   0,  16,   0,
-	0,   0,   0,   0, 198,   0,
-	16,   0,   0,   0,   0,   0,
-	0,   0,   0,  10,  50,   0,
-	16,   0,   1,   0,   0,   0,
-	70,   0,  16,   0,   0,   0,
-	0,   0,   2,  64,   0,   0,
-	0,   0,   0, 191,   0,   0,
-	0, 191,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   8,  66,   0,  16,   0,
-	0,   0,   0,   0,  26,   0,
-	16, 128,  65,   0,   0,   0,
-	0,   0,   0,   0,   1,  64,
-	0,   0,   0,   0, 128,  63,
-	54,   0,   0,   5,  50,  32,
-	16,   0,   1,   0,   0,   0,
-	134,   0,  16,   0,   0,   0,
-	0,   0,   0,   0,   0,   7,
-	18,  32,  16,   0,   0,   0,
-	0,   0,  10,   0,  16,   0,
-	1,   0,   0,   0,  10,   0,
-	16,   0,   1,   0,   0,   0,
-	56,   0,   0,   7,  34,  32,
-	16,   0,   0,   0,   0,   0,
-	26,   0,  16,   0,   1,   0,
-	0,   0,   1,  64,   0,   0,
-	0,   0,   0, 192,  62,   0,
-	0,   1,  83,  84,  65,  84,
-	116,   0,   0,   0,  10,   0,
-	0,   0,   2,   0,   0,   0,
-	0,   0,   0,   0,   3,   0,
-	0,   0,   4,   0,   0,   0,
-	0,   0,   0,   0,   2,   0,
-	0,   0,   1,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   2,   0,   0,   0,
-	0,   0,   0,   0,   1,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0,
-	0,   0,   0,   0,   0,   0
-}; 
-#pragma endregion
+	// For GPU's that are limited by VRAM.
+	// Cap the frame rate of CEF window updates in order to avoid 
+	// allocating textures that may negatively impact user experience.
+	if (GetPrimaryGPUVRAM() < 4096)
+	{
+		return 60;
+	}
 
-static auto roundUp(int x, int y)
-{
-	return x + (y - (x % y));
+	if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &devMode))
+	{
+		return devMode.dmDisplayFrequency;
+	}
+
+	return 240;
 }
 
 void NUIWindow::Initialize(CefString url)
 {
-#if defined(GTA_NY)
-	static bool nuiSharedResourcesEnabled = false;
-#else
-	static bool nuiSharedResourcesEnabled = true;
-	static ConVar<bool> nuiSharedResources("nui_useSharedResources", ConVar_Archive, true, &nuiSharedResourcesEnabled);
-#endif
-
-	// Vulkan/D3D12(on7) don't support shared resources before Windows 10
-#if defined(IS_RDR3)
-	if (!IsWindows10OrGreater())
-	{
-		nuiSharedResourcesEnabled = false;
-	}
-#endif
-
-	if (m_renderBuffer)
-	{
-		delete[] m_renderBuffer;
-	}
-
-	// create the temporary backing store
-	m_roundedHeight = roundUp(m_height, 16);
-	m_roundedWidth = roundUp(m_width, 16);
-
 	InitializeRenderBacking();
 
 	// create the client/browser instance
@@ -352,7 +195,7 @@ void NUIWindow::Initialize(CefString url)
 
 	CefWindowInfo info;
 	info.SetAsWindowless(NULL);
-	info.shared_texture_enabled = (!CfxIsWine() && nuiSharedResourcesEnabled);
+	info.shared_texture_enabled = true;
 	info.bounds.x = 0;
 	info.bounds.y = 0;
 	info.bounds.width = m_width;
@@ -360,7 +203,7 @@ void NUIWindow::Initialize(CefString url)
 
 	CefBrowserSettings settings;
 	settings.javascript_close_windows = STATE_DISABLED;
-	settings.windowless_frame_rate = 240;
+	settings.windowless_frame_rate = GetPrimaryMonitorRefreshRate(); // 240;
 	CefString(&settings.default_encoding).FromString("utf-8");
 
 	CefRefPtr<CefRequestContext> rc;
@@ -382,11 +225,6 @@ void NUIWindow::Initialize(CefString url)
 	}
 
 	CefBrowserHost::CreateBrowser(info, m_client, url, settings, {}, rc);
-
-	if (!info.shared_texture_enabled)
-	{
-		m_renderBuffer = new char[4 * m_roundedWidth * m_roundedHeight];
-	}
 }
 
 void NUIWindow::InitializeRenderBacking()
@@ -402,7 +240,8 @@ void NUIWindow::InitializeRenderBacking()
 		m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
 	}
 
-	if (!m_rawBlit)
+#ifdef GTA_FIVE
+	if (!m_isPrimary)
 	{
 		D3D11_TEXTURE2D_DESC tgtDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_B8G8R8A8_UNORM, m_width, m_height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 
@@ -413,18 +252,19 @@ void NUIWindow::InitializeRenderBacking()
 			ID3D11Device* rawDevice;
 		}* deviceStuff = (decltype(deviceStuff))d3d;
 
-		if (SUCCEEDED(deviceStuff->rawDevice->CreateTexture2D(&tgtDesc, nullptr, &m_swapTexture)))
+		auto hr = deviceStuff->rawDevice->CreateTexture2D(&tgtDesc, nullptr, &m_swapTexture);
+		if (SUCCEEDED(hr))
 		{
 			D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(m_swapTexture.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
 			deviceStuff->rawDevice->CreateRenderTargetView(m_swapTexture.Get(), &rtDesc, &m_swapRtv);
 		}
+		else
+		{
+			trace("Failed to create DUI texture, height: %i, width: %i, error: 0x%x\n", m_width, m_height, hr);
+			m_swapTexture = nullptr;
+		}
 	}
-
-}
-
-void NUIWindow::AddDirtyRect(const CefRect& rect)
-{
-	m_dirtyRects.push(rect);
+#endif
 }
 
 CefBrowser* NUIWindow::GetBrowser()
@@ -438,90 +278,6 @@ CefBrowser* NUIWindow::GetBrowser()
 }
 
 extern void NUI_AcceptTexture(uint64_t handle);
-
-void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects, CefRenderHandler::PaintElementType type)
-{
-	if (!sharedHandle)
-	{
-		return;
-	}
-
-	if (!m_rawBlit && type != CefRenderHandler::PaintElementType::PET_VIEW)
-	{
-		return;
-	}
-
-	if (!m_nuiTexture.GetRef())
-	{
-		// hope we'll resize soon
-		return;
-	}
-
-	HANDLE parentHandle = (void*)sharedHandle;
-	m_syncKey = syncKey;
-	
-	{
-		if (sharedHandle != m_lastParentHandle[type])
-		{
-			m_lastParentHandle[type] = parentHandle;
-
-			auto& texRef = (type == CefRenderHandler::PaintElementType::PET_VIEW) ? m_nuiTexture : m_popupTexture;
-
-			int w, h;
-
-			if (type == CefRenderHandler::PaintElementType::PET_VIEW)
-			{
-				w = m_width;
-				h = m_height;
-			}
-			else
-			{
-				w = m_popupRect.width;
-				h = m_popupRect.height;
-			}
-
-			if (!m_rawBlit)
-			{
-				auto oldRef = m_parentTextures[type];
-
-				auto fakeTexRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
-				SetParentTexture(type, fakeTexRef);
-				m_swapSrv = nullptr;
-			}
-			else
-			{
-				std::lock_guard<std::shared_mutex> _(m_textureMutex);
-
-				texRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
-				SetParentTexture(type, texRef);
-			}
-
-			NUI_AcceptTexture((uint64_t)parentHandle);
-		}
-	}
-
-	for (auto& rect : rects)
-	{
-		int x = rect.x;
-		int y = rect.y;
-		int width = rect.width;
-		int height = rect.height;
-
-		RECT newRect;
-		newRect.left = x;
-		newRect.right = x + width;
-		newRect.top = GetHeight() - y - height;
-		newRect.bottom = GetHeight() - y;
-		//newRect.top = y;
-		//newRect.bottom = y + height;
-		
-		RECT oldRect = m_lastDirtyRect;
-
-		UnionRect(&m_lastDirtyRect, &newRect, &oldRect);
-	}
-
-	MarkRenderBufferDirty();
-}
 
 #include <d3d11_1.h>
 #include <mmsystem.h>
@@ -561,7 +317,7 @@ void NUIWindow::UpdateFrame()
 		return;
 	}
 
-	if (m_rawBlit)
+	if (m_isPrimary)
 	{		
 		int resX, resY;
 		g_nuiGi->GetGameResolution(&resX, &resY);
@@ -576,26 +332,15 @@ void NUIWindow::UpdateFrame()
 		{
 			m_width = resX;
 			m_height = resY;
-
-			{
-				auto _ = GetRenderBufferLock();
-				m_roundedHeight = roundUp(m_height, 16);
-				m_roundedWidth = roundUp(m_width, 16);
-
-				if (m_renderBuffer)
-				{
-					delete[] m_renderBuffer;
-					m_renderBuffer = new char[4 * m_roundedWidth * m_roundedHeight];
-				}
-			}
-
 			if (m_client)
 			{
 				if (!m_nuiTexture.GetRef())
 				{
-					std::unique_lock _(m_textureMutex);
-					m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
+					InitializeRenderBacking();
 				}
+
+				memset(m_sharedResourceTexturesCreated, 0, sizeof(m_sharedResourceTexturesCreated));
+				memset(&m_pendingTextureCreation, 0, sizeof(m_pendingTextureCreation));
 
 				auto client = ((NUIClient*)m_client.get());
 				auto browser = client->GetBrowser();
@@ -603,12 +348,14 @@ void NUIWindow::UpdateFrame()
 				if (browser)
 				{
 					browser->GetHost()->WasResized();
+					browser->GetHost()->NotifyScreenInfoChanged();
 				}
 				else
 				{
 					client->OnClientCreated.Connect([this](NUIClient* client)
 					{
 						client->GetBrowser()->GetHost()->WasResized();
+						client->GetBrowser()->GetHost()->NotifyScreenInfoChanged();
 					});
 				}
 			}
@@ -636,22 +383,15 @@ void NUIWindow::UpdateFrame()
 
 	if (texture.GetRef())
 	{
-		if (!m_rawBlit)
+#ifdef GTA_FIVE
+		if (!m_isPrimary)
 		{
-			if (!m_swapSrv)
+			ID3D11Resource* nativeTexture = nullptr;
+			ID3D11ShaderResourceView* nativeSrv = nullptr;
+			if (auto texture = GetTexture(); texture.GetRef())
 			{
-				struct
-				{
-					void* vtbl;
-					ID3D11Device* rawDevice;
-				}* deviceStuff = (decltype(deviceStuff))g_nuiGi->GetD3D11Device();
-
-				auto nativeTexture = GetParentTexture(CefRenderHandler::PaintElementType::PET_VIEW)->GetNativeTexture();
-
-				if (nativeTexture)
-				{
-					deviceStuff->rawDevice->CreateShaderResourceView((ID3D11Resource*)nativeTexture, nullptr, &m_swapSrv);
-				}
+				nativeTexture = (ID3D11Resource*)texture->GetNativeTexture();
+				nativeSrv = (ID3D11ShaderResourceView*)texture->GetNativeSRV();
 			}
 
 			{
@@ -662,21 +402,13 @@ void NUIWindow::UpdateFrame()
 					ID3D11DeviceContext* deviceContext = g_nuiGi->GetD3D11DeviceContext();
 					assert(deviceContext);
 
-					D3D11_BOX box = CD3D11_BOX(m_lastDirtyRect.left,
-											   m_lastDirtyRect.top,
-											   0,
-											   m_lastDirtyRect.right,
-											   m_lastDirtyRect.bottom,
-											   1);
-
 					ID3D11Resource* nativeTexture = nullptr;
-
 					if (auto texture = GetTexture(); texture.GetRef())
 					{
 						nativeTexture = (ID3D11Resource*)texture->GetNativeTexture();
 					}
 
-					if (m_swapTexture && m_swapRtv && m_swapSrv && nativeTexture)
+					if (m_swapTexture && m_swapRtv && nativeSrv && nativeTexture)
 					{
 						//
 						// LOTS of D3D11 garbage to flip a texture...
@@ -695,14 +427,14 @@ void NUIWindow::UpdateFrame()
 							D3D11_BLEND_DESC bd = CD3D11_BLEND_DESC(CD3D11_DEFAULT());
 							g_nuiGi->GetD3D11Device()->CreateBlendState(&bd, &bs);
 
-							g_nuiGi->GetD3D11Device()->CreateVertexShader(quadVS, sizeof(quadVS), nullptr, &vs);
-							g_nuiGi->GetD3D11Device()->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
+							g_nuiGi->GetD3D11Device()->CreateVertexShader(fx::shaders::quadVS, sizeof(fx::shaders::quadVS), nullptr, &vs);
+							g_nuiGi->GetD3D11Device()->CreatePixelShader(fx::shaders::quadPS, sizeof(fx::shaders::quadPS), nullptr, &ps);
 						});
 
 						Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> pPerf;
 						deviceContext->QueryInterface(IID_PPV_ARGS(&pPerf));
 
-						pPerf->BeginEvent(L"DRAWSHIT");
+						pPerf->BeginEvent(L"DrawDUI");
 
 						ID3D11RenderTargetView* oldRtv = nullptr;
 						ID3D11DepthStencilView* oldDsv = nullptr;
@@ -744,7 +476,7 @@ void NUIWindow::UpdateFrame()
 						deviceContext->PSSetShader(ps, nullptr, 0);
 						deviceContext->PSSetSamplers(0, 1, &ss);
 
-						ID3D11ShaderResourceView* srv[] = { m_swapSrv.Get() };
+						ID3D11ShaderResourceView* srv[] = { nativeSrv };
 						deviceContext->PSSetShaderResources(0, std::size(srv), srv);
 
 						deviceContext->VSSetShader(vs, nullptr, 0);
@@ -817,83 +549,10 @@ void NUIWindow::UpdateFrame()
 
 						pPerf->EndEvent();
 					}
-
-					memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 				}
 			}
 		}
-	}
-	else if (m_renderBuffer)
-	{
-		if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
-		{
-			void* pBits = nullptr;
-			int pitch;
-			bool discarded = false;
-
-			nui::GILockedTexture lockedTexture;
-
-			if (GetTexture()->Map(0, 0, &lockedTexture, nui::GILockFlags::Write))
-			{
-				pBits = lockedTexture.pBits;
-				pitch = lockedTexture.pitch;
-			}
-			else if (GetTexture()->Map(0, 0, &lockedTexture, nui::GILockFlags::WriteDiscard))
-			{
-				pBits = lockedTexture.pBits;
-				pitch = lockedTexture.pitch;
-
-				discarded = true;
-			}
-			else
-			{
-				// really
-				pBits = nullptr;
-			}
-
-			if (pBits)
-			{
-				if (!discarded)
-				{
-					while (!m_dirtyRects.empty())
-					{
-						auto _ = GetRenderBufferLock();
-						CefRect rect = m_dirtyRects.front();
-						m_dirtyRects.pop();
-
-						if (pitch >= (rect.width * 4))
-						{
-							int height = m_height;
-
-							// ignore invalid height/width
-							if (((rect.y + rect.height) > height) || ((rect.x + rect.width) > m_roundedWidth))
-							{
-								continue;
-							}
-
-							for (int y = rect.y; y < (rect.y + rect.height); y++)
-							{
-								int dy = height - y - 1;
-
-								int* src = &((int*)(m_renderBuffer))[(y * m_roundedWidth) + rect.x];
-								int* dest = &((int*)(pBits))[(dy * (pitch / 4)) + rect.x];
-
-								memcpy(dest, src, (rect.width * 4));
-							}
-						}
-					}
-				}
-				else
-				{
-					auto _ = GetRenderBufferLock();
-					m_dirtyRects = std::queue<CefRect>();
-
-					memcpy(pBits, m_renderBuffer, static_cast<size_t>(m_height) * pitch);
-				}
-
-				GetTexture()->Unmap(&lockedTexture);
-			}
-		}
+#endif
 	}
 }
 
@@ -909,9 +568,10 @@ void NUIWindow::HandlePopupShow(bool show)
 {
 	if (!show)
 	{
-		if (m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP].GetRef())
+		auto popupTex = GetParentTexture(CefRenderHandler::PaintElementType::PET_POPUP);
+		if (popupTex.GetRef())
 		{
-			m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP] = nullptr;
+			popupTex = nullptr;	
 
 			std::lock_guard<std::shared_mutex> _(m_textureMutex);
 			m_popupTexture = nullptr;
@@ -920,6 +580,93 @@ void NUIWindow::HandlePopupShow(bool show)
 }
 
 extern void TranslateWindowRect(const fwRefContainer<NUIWindow>& window, CRect* rect);
+
+void NUIWindow::UpdateSharedResource(CefRenderHandler::PaintElementType type)
+{
+	// mpMenu may start queuing up frames before the game has had change to begin rendering.
+	// CEF/Chromium has a limit of inflight frames and as we are responsible for releasing frames.
+	// in some cases we can execeed the max limit leading to frames being flushed and putting the renderer into a weird state.
+	if (!nui::g_hasFirstRender)
+	{
+		return;
+	}
+
+	// PET_POPUP is not currently supported in DUI.
+	if (!IsPrimary() && type == PET_POPUP)
+	{
+		return;
+	}
+
+	auto& texRef = type == PET_VIEW ? m_nuiTexture : m_popupTexture;
+	if (!texRef.GetRef())
+	{
+		return;
+	}
+	
+	auto frame = this->LockFrame(type);
+	if (!frame)
+	{
+		return;
+	}
+
+	if (!frame->shared_handle)
+	{
+		this->ReleaseFrame(type, frame->frame_seq);
+		return;
+	}
+
+	auto sharedHandle = frame->shared_handle;
+
+	int w = frame->width;
+	int h = frame->height;
+
+	{
+		std::unique_lock<std::shared_mutex> textureLock(m_textureMutex, std::defer_lock);
+		if (IsPrimary())
+		{
+			textureLock.lock();
+		}
+
+		if (!m_sharedResourceTexturesCreated[type] && !m_pendingTextureCreation[type])
+		{
+			m_pendingTextureCreation[type] = true;
+			auto frameSequence = frame->frame_seq - 1;
+			auto cb = [this, type, frameSequence]()
+			{
+				m_sharedResourceTexturesCreated[type] = true;
+				m_pendingTextureCreation[type] = false;
+				ReleaseFrame(type, frameSequence);
+			};
+
+			if (IsPrimary())
+			{
+				texRef = g_nuiGi->CreateTextureFromShareHandle(sharedHandle, w, h, cb);
+				SetParentTexture(type, texRef);
+			}
+#ifdef GTA_FIVE
+			else
+			{
+				auto faketexRef = g_nuiGi->CreateTextureFromShareHandle(sharedHandle, w, h, cb);
+				SetParentTexture(type, faketexRef);
+			}
+#endif
+		}
+		else
+		{
+			auto frameSeq = frame->frame_seq;
+			CefRefPtr<CefBrowserHost> host = GetBrowser() ? GetBrowser()->GetHost() : nullptr;
+			g_nuiGi->UpdateTexture(sharedHandle, texRef, w, h, std::make_pair(frame->token_high, frame->token_low), [frameSeq, host, type]()
+			{
+				if (host)
+				{
+					host->ReleaseFrame(type, frameSeq);
+					return false;
+				}
+				return true;
+			});
+		}
+	}
+}
 
 CefRect NUIWindow::GetPopupRect()
 {
@@ -953,11 +700,6 @@ void NUIWindow::SetPopupRect(const CefRect& rect)
 void NUIWindow::SetPaintType(NUIPaintType type)
 {
 	m_paintType = type;
-}
-
-void NUIWindow::Invalidate()
-{
-	((NUIClient*)m_client.get())->GetBrowser()->GetHost()->Invalidate(PET_VIEW);
 }
 
 bool NUIWindow::IsFixedSizeWindow() const

@@ -11,6 +11,11 @@ extern OsrDragHandlerWin g_dragHandler;
 
 #include "memdbgon.h"
 
+namespace nui
+{
+bool g_hasFirstRender;
+}
+
 extern bool g_shouldHideCursor;
 extern POINT g_cursorPos;
 
@@ -49,37 +54,48 @@ static HookFunction initFunction([] ()
 		});
 
 		// collect all post-render windows
-		std::map<std::string, fwRefContainer<NUIWindow>> renderWindows;
+		static std::unordered_map<std::string, fwRefContainer<NUIWindow>> renderWindows;
+		renderWindows.clear();
 
-		Instance<NUIWindowManager>::Get()->ForAllWindows([&renderWindows](fwRefContainer<NUIWindow> window)
-		{
-			if (window->GetPaintType() != NUIPaintTypePostRender)
-			{
-				return;
-			}
-
-			renderWindows.insert({ window->GetName(), window });
-		});
-
-		std::list<std::string> windowOrder =
-		{
-			"nui_mpMenu",
+		static const std::vector<std::string> windowOrder = {
 			"root",
+			"nui_mpMenu",
 		};
 
-		// show on top = render last
-		std::reverse(windowOrder.begin(), windowOrder.end());
+		static bool initPostWindows = false;
+		if (!initPostWindows)
+		{
+			renderWindows.reserve(windowOrder.size());
+			initPostWindows = true;
+		}
+
+		Instance<NUIWindowManager>::Get()->ForAllWindows([&](fwRefContainer<NUIWindow> window)
+		{
+			if (window->GetPaintType() == NUIPaintTypePostRender)
+			{
+				renderWindows.insert({ window->GetName(), window });
+			}
+		});
+		
+		if (!nui::g_hasFirstRender)
+		{
+			nui::g_hasFirstRender = true;
+		}
 
 		for (const auto& windowName : windowOrder)
 		{
-			auto& window = renderWindows[windowName];
+			auto it = renderWindows.find(windowName);
+			if (it == renderWindows.end())
+			{
+				continue;
+			}
 
+			auto& window = it->second;
 			if (!window.GetRef())
 			{
 				continue;
 			}
 
-			// does the window have a full-screen surface? if so, draw it
 			if (window->GetTexture().GetRef())
 			{
 				g_nuiGi->SetTexture(window->GetTexture(), true);
@@ -90,8 +106,8 @@ static HookFunction initFunction([] ()
 				nui::ResultingRectangle rr;
 				rr.color = CRGBA(0xff, 0xff, 0xff, 0xff);
 
-				// the texture is usually upside down (GL->DX coord system), so we draw it as such
-				rr.rectangle = CRect(0, resY, resX, 0);
+				// formerly flipped upside down (CRect(0, 0, resX, resY)) to account for GL->DX coord system Y axis differences, now we have native DX
+				rr.rectangle = CRect(0, 0, resX, resY);
 
 				if (window->IsFixedSizeWindow())
 				{
@@ -113,11 +129,10 @@ static HookFunction initFunction([] ()
 				nui::ResultingRectangle rr;
 				rr.color = CRGBA(0xff, 0xff, 0xff, 0xff);
 
-				// also upside down here
-				rr.rectangle = CRect(rect.x, rect.y + rect.height, rect.x + rect.width, rect.y);
+				// formerly flipped upside down (CRect(0, 0, resX, resY)) to account for GL->DX coord system Y axis differences, now we have native DX
+				rr.rectangle = CRect(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height);
 
 				g_nuiGi->DrawRectangles(1, &rr);
-
 				g_nuiGi->UnsetTexture();
 			}
 		}

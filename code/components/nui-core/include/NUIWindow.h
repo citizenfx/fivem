@@ -11,6 +11,7 @@
 #include <shared_mutex>
 
 #include <include/cef_client.h>
+#include <include/internal/cef_types.h>
 #include <include/cef_v8.h>
 
 #include <concurrent_queue.h>
@@ -44,24 +45,17 @@ public:
 	NUIWindow(bool primary, int width, int height, const std::string& windowContext);
 
 private:
+	// Tied to CefRenderHandler::PaintElementType/cef_paint_element_type_t
+	static constexpr int kMaxPaintElements = 2;
+
 	std::string m_windowContext;
 
-	bool m_rawBlit;
+	bool m_isPrimary;
 	int m_width;
 	int m_height;
 
-	int m_roundedWidth;
-	int m_roundedHeight;
-
 	uint32_t m_lastFrameTime;
 	uint32_t m_lastMessageTime;
-
-	unsigned long m_dirtyFlag;
-	RECT m_lastDirtyRect;
-	std::shared_mutex m_renderBufferLock;
-	char* m_renderBuffer;
-
-	std::queue<CefRect> m_dirtyRects;
 
 	std::set<std::string> m_pollQueue;
 
@@ -71,35 +65,25 @@ private:
 
 	NUIPaintType m_paintType;
 
-	uint64_t m_syncKey;
+	fwRefContainer<nui::GITexture> m_parentTextures[kMaxPaintElements];
 
-	std::map<CefRenderHandler::PaintElementType, fwRefContainer<nui::GITexture>> m_parentTextures;
-
+	// DUI/non-primary windows are only supported in FiveM/D3D11 currently
+#ifdef GTA_FIVE
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_swapTexture;
 
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_swapRtv;
-
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_swapSrv;
-
-	std::map<CefRenderHandler::PaintElementType, HANDLE> m_lastParentHandle;
-
-	bool m_dereferencedNuiTexture;
+#endif
 
 	CefRect m_popupRect;
 
 	std::shared_mutex m_textureMutex;
 
+	bool m_sharedResourceTexturesCreated[kMaxPaintElements];
+	
+	bool m_pendingTextureCreation[kMaxPaintElements];
 public:
-	inline int		GetWidth() { return m_width; }
-	inline int		GetHeight() { return m_height; }
-
-	inline auto GetRenderBufferLock()
-	{
-		return std::unique_lock{ m_renderBufferLock };
-	}
-
-	inline void*	GetRenderBuffer() { return m_renderBuffer; }
-	inline int		GetRoundedWidth() { return m_roundedWidth; }
+	inline int GetWidth() const { return m_width; }
+	inline int GetHeight() const { return m_height; }
 
 	void TouchMessage();
 
@@ -115,9 +99,9 @@ public:
 		m_name = name;
 	}
 
-	inline bool IsPrimary()
+	inline bool IsPrimary() const
 	{
-		return m_rawBlit;
+		return m_isPrimary;
 	}
 
 	inline void ProcessLoadQueue()
@@ -139,11 +123,6 @@ private:
 	std::string m_name;
 
 public:
-	void			AddDirtyRect(const CefRect& rect);
-
-	inline void		MarkRenderBufferDirty() { InterlockedIncrement(&m_dirtyFlag); }
-
-public:
 	static fwRefContainer<NUIWindow> Create(bool primary, int width, int height, CefString url, bool instant, const std::string& context = {});
 
 	void DeferredCreate();
@@ -152,21 +131,16 @@ private:
 	CefString m_initUrl;
 
 	bool m_isMuted = false;
-
 public:
 	~NUIWindow();
 
 	void UpdateFrame();
-
-	void Invalidate();
 
 	void SetPaintType(NUIPaintType type);
 
 	CefBrowser* GetBrowser();
 
 	void SignalPoll(std::string& argument);
-
-	void UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects, CefRenderHandler::PaintElementType type);
 
 	inline void SetClientContextCreated(void(__cdecl* cb)(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context))
 	{
@@ -187,13 +161,35 @@ public:
 		return m_nuiTexture;
 	}
 
+#ifdef CEF_OSR_LOCK_FRAME
+	inline cef_lock_frame_info_t* LockFrame(cef_paint_element_type_t type)
+	{
+		if (GetBrowser() && GetBrowser()->GetHost())
+		{
+			return (cef_lock_frame_info_t*)GetBrowser()->GetHost()->LockFrame(type);
+		}
+		return nullptr;
+	}
+
+	inline void ReleaseFrame(cef_paint_element_type_t type, int sequence_id)
+	{
+		if (GetBrowser() && GetBrowser()->GetHost())
+		{
+			GetBrowser()->GetHost()->ReleaseFrame(type, sequence_id);
+		}
+	}
+
+	void UpdateSharedResource(CefRenderHandler::PaintElementType type);
+#endif
+
+
 	inline fwRefContainer<nui::GITexture> GetPopupTexture()
 	{
 		std::shared_lock<std::shared_mutex> _(m_textureMutex);
 		return m_popupTexture;
 	}
 
-	inline NUIPaintType GetPaintType() { return m_paintType; }
+	inline NUIPaintType GetPaintType() const { return m_paintType; }
 
 	inline fwRefContainer<nui::GITexture> GetParentTexture(CefRenderHandler::PaintElementType type)
 	{

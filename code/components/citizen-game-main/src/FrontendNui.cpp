@@ -14,6 +14,7 @@
 #include <RelativeDevice.h>
 
 #include <wrl.h>
+#include <d3d11_1.h>
 
 #include <tbb/concurrent_queue.h>
 
@@ -111,6 +112,11 @@ public:
 		return NULL;
 	}
 
+	virtual void* GetNativeSRV() override
+	{
+		return NULL;
+	}
+
 	virtual void* GetHostTexture() override
 	{
 		return &m_texture;
@@ -141,6 +147,8 @@ private:
 	citizen::GameWindow* m_window;
 
 	HANDLE m_lastShareHandle;
+
+	ID3D11Device1* m_d3d11Device1 = nullptr;
 
 public:
 	void Initialize(citizen::GameWindow* window);
@@ -178,23 +186,33 @@ public:
 		});
 	}
 
-	virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle) override
+	virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, std::function<void()> cb = nullptr) override
 	{
 		m_lastShareHandle = shareHandle;
 
-		auto texture = new FrontendNuiTexture([this, shareHandle](FrontendNuiTexture* self)
+		auto texture = new FrontendNuiTexture([this, cb, shareHandle](FrontendNuiTexture* self)
 		{
 			if (shareHandle != m_lastShareHandle)
 			{
+				if (cb)
+				{
+					cb();
+				}
+
 				return bgfx::TextureHandle{ bgfx::kInvalidHandle };
 			}
 
 			WRL::ComPtr<ID3D11Texture2D> sharedTexture;
 
-			HRESULT hr = GetD3D11Device()->OpenSharedResource(shareHandle, __uuidof(ID3D11Texture2D), (void**)sharedTexture.GetAddressOf());
+			HRESULT hr = GetD3D11Device1()->OpenSharedResource1(shareHandle, __uuidof(ID3D11Texture2D), (void**)sharedTexture.GetAddressOf());
 
 			if (FAILED(hr))
 			{
+				if (cb)
+				{
+					cb();
+				}
+				trace("CreateTextureFromShareHandle: Failed to open share handle hresult: %x\n", hr);
 				return bgfx::TextureHandle{bgfx::kInvalidHandle};
 			}
 
@@ -222,6 +240,30 @@ public:
 		});
 
 		return texture;
+	}
+
+	virtual void UpdateTexture(HANDLE shareHandle, fwRefContainer<GITexture> texture, int width, int height, std::pair<uint64_t, uint64_t> key, nui::GameInterface::UpdateTextureCB cb = nullptr) override
+	{
+		WRL::ComPtr<ID3D11Texture2D> sharedTexture;
+		HRESULT hr = GetD3D11Device1()->OpenSharedResource1(shareHandle, __uuidof(ID3D11Texture2D), (void**)sharedTexture.GetAddressOf());
+
+		if (FAILED(hr))
+		{
+			cb();
+			return;
+		}
+
+		auto nuiTexture = static_cast<FrontendNuiTexture*>(texture.GetRef());
+		if (!nuiTexture)
+		{
+			cb();
+			return;
+		}
+
+        auto bgfxHandle = nuiTexture->GetTexture();
+		nuiTexture->native = sharedTexture;
+		bgfx::overrideInternal(bgfxHandle, (uintptr_t)sharedTexture.Get());
+		cb();
 	}
 
 	virtual void SetTexture(fwRefContainer<GITexture> texture, bool pm = false) override
@@ -322,6 +364,23 @@ public:
 	virtual ID3D11Device* GetD3D11Device() override
 	{
 		return ((ID3D11Device*)bgfx::getInternalData()->context);
+	}
+
+	virtual ID3D11Device1* GetD3D11Device1()
+	{
+#ifdef GTA_FIVE
+		if (!m_d3d11Device1)
+		{
+			auto device = GetD3D11Device();
+			if (device)
+			{
+				device->QueryInterface(IID_PPV_ARGS(&m_d3d11Device1));
+			}
+		}
+		return m_d3d11Device1;
+#else
+		return nullptr;
+#endif
 	}
 
 	virtual ID3D11DeviceContext* GetD3D11DeviceContext() override

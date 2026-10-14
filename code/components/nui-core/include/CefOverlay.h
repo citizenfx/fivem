@@ -94,6 +94,8 @@ namespace nui
 
 		virtual void* GetNativeTexture() = 0;
 
+		virtual void* GetNativeSRV() = 0;
+
 		virtual void* GetHostTexture() = 0;
 
 		virtual bool Map(int numSubLevels, int subLevel, GILockedTexture* lockedTexture, GILockFlags flags) = 0;
@@ -158,12 +160,16 @@ namespace nui
 
 		virtual fwRefContainer<GITexture> CreateTextureBacking(int width, int height, GITextureFormat format) = 0;
 
-		virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle) = 0;
+		virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, std::function<void()> cb = nullptr) = 0;
 
-		virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height)
+		virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height, std::function<void()> cb = nullptr)
 		{
 			return CreateTextureFromShareHandle(shareHandle);
 		}
+
+		using UpdateTextureCB = std::function<bool()>;
+
+		virtual void UpdateTexture(HANDLE shareHandle, fwRefContainer<GITexture> texture, int width, int height, std::pair<uint64_t, uint64_t> key, UpdateTextureCB cb = nullptr) = 0;
 
 		virtual void SetTexture(fwRefContainer<GITexture> texture, bool pm = false) = 0;
 

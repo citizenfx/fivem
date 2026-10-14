@@ -10,10 +10,12 @@
 #include "CefOverlay.h"
 #include <CoreConsole.h>
 #include "memdbgon.h"
+#include "NUIDummyClient.h"
 #include <CrossBuildRuntime.h>
 #include <PureModeState.h>
 
 #include <include/cef_parser.h>
+#include <EpoxyScript.h>
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.System.UserProfile.h>
@@ -49,6 +51,45 @@ bool NUIApp::GetLocalizedString(int messageID, CefString& string)
 
 void NUIApp::OnContextInitialized()
 {
+	CefRefPtr<CefRequestContext> requestContext = CefRequestContext::GetGlobalContext();
+
+	constexpr std::array<std::string_view, 21> kDisabledPreferences{
+		"translate",
+		"autologin.enabled",
+		"printing.enabled",
+		"shopping_list_enabled",
+		"search.suggest_enabled",
+		"side_panel.google_search_side_panel_enabled",
+		"side_search.enabled",
+		"signin.allowed",
+		"signin.allowed_on_next_startup",
+		"url_keyed_anonymized_data_collection.enabled",
+		"autofill.credit_card_enabled",
+		"autofill.enabled",
+		"autofill.iban_enabled",
+		"autofill.payment_card_benefits",
+		"autofill.payment_cvc_storage",
+		"autofill.profile_enabled",
+		"browser_labs_enabled",
+		"credentials_enable_autosignin",
+		"credentials_enable_service",
+		"payments.can_make_payment_enabled",
+		"browser.enable_spellchecking"
+	};
+
+	CefRefPtr<CefValue> featureOption = CefValue::Create();
+	featureOption->SetBool(false);
+
+	CefString errorMessage;
+	for (std::string_view feature : kDisabledPreferences)
+	{
+		requestContext->SetPreference(feature.data(), featureOption.get(), errorMessage);
+	}
+
+	featureOption->SetBool(true);
+	// Extra toggles to further disable extensions
+	requestContext->SetPreference("extensions.block_external_extensions", featureOption.get(), errorMessage);
+	requestContext->SetPreference("extensions.disabled", featureOption.get(), errorMessage);
 }
 
 void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
@@ -59,59 +100,39 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 	window->SetValue("registerFrameFunction", CefV8Value::CreateFunction("registerFrameFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("registerPushFunction", CefV8Value::CreateFunction("registerPushFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 
-	if (!IsWindows10OrGreater())
+	// register epoxy functions in order to provide CORS compliant messaging between game root and resource windows without breaking backwards compatibility.
+	window->SetValue("sendEpoxyMessage", CefV8Value::CreateFunction("sendEpoxyMessage", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+	window->SetValue("registerEpoxyHandler", CefV8Value::CreateFunction("registerEpoxyHandler", this), V8_PROPERTY_ATTRIBUTE_NONE);
+
+    // Load epoxy on context creation (and not devtools)
+	if (auto parent = frame->GetParent(); parent && parent->IsMain())
 	{
-		ULONG langs = 0;
-		ULONG langSize = 0;
-		GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &langs, NULL, &langSize);
+		frame->ExecuteJavaScript(fmt::sprintf(g_epoxyScript, frame->GetName().ToString()), "nui://epoxy", 0);
+	}	                     
+	frame->ExecuteJavaScript(g_gameViewScript, "nui://game-view-wrapper", 0);
 
-		std::vector<wchar_t> uiLangs(langSize);
-		if (GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &langs, uiLangs.data(), &langSize))
-		{
-			std::vector<std::wstring_view> langList;
-			wchar_t* ptr = &uiLangs[0];
-
-			for (ULONG i = 0; i < langs; i++)
-			{
-				auto len = wcslen(ptr);
-				langList.emplace_back(ptr, len);
-
-				ptr += len + 1;
-			}
-
-			auto languages = CefV8Value::CreateArray(langList.size());
-
-			for (size_t i = 0; i < langList.size(); i++)
-			{
-				languages->SetValue(i, CefV8Value::CreateString(CefString{ langList[i].data(), langList[i].length(), true }));
-			}
-
-			window->SetValue("nuiSystemLanguages", languages, V8_PROPERTY_ATTRIBUTE_READONLY);
-		}
-	}
-	else
 	{
 		winrt::init_apartment();
 
 		std::vector<std::wstring> langList;
-
 		for (const auto& lang : GlobalizationPreferences::Languages())
 		{
 			langList.push_back(std::wstring{ lang });
 		}
 
-		auto languages = CefV8Value::CreateArray(langList.size());
-
+		auto languages = CefV8Value::CreateArray(int(langList.size()));
 		for (size_t i = 0; i < langList.size(); i++)
 		{
-			languages->SetValue(i, CefV8Value::CreateString(CefString{ langList[i].data(), langList[i].length(), true }));
+			languages->SetValue(int(i), CefV8Value::CreateString(CefString{ (char16_t*)langList[i].data(), langList[i].length(), true }));
 		}
 
 		window->SetValue("nuiSystemLanguages", languages, V8_PROPERTY_ATTRIBUTE_READONLY);
 	}
 
 	window->SetValue("invokeNative", CefV8Value::CreateFunction("invokeNative", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+#ifdef NUI_WITH_AUDIO_SINKS
 	window->SetValue("nuiSetAudioCategory", CefV8Value::CreateFunction("nuiSetAudioCategory", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+#endif
 	window->SetValue("nuiTargetGame", CefV8Value::CreateString(
 #ifdef IS_LAUNCHER
 		"launcher"
@@ -127,7 +148,6 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 	), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("nuiTargetGameBuild", CefV8Value::CreateInt(xbr::GetRequestedGameBuild()), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("nuiTargetGamePureLevel", CefV8Value::CreateInt(fx::client::GetPureLevel()), V8_PROPERTY_ATTRIBUTE_READONLY);
-
 
 	// FxDK API
 	{
@@ -165,7 +185,7 @@ void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame
 		handler(context);
 	}
 }
-
+	
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
 	static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, true);
@@ -185,91 +205,160 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 		}
 	}
 
+	// GPU Flags
 	if (nuiUseInProcessGpu.GetValue())
 	{
+		// In process GPU also disables the GPU watchdog.
 		command_line->AppendSwitch("in-process-gpu");
 	}
 
-	command_line->AppendSwitch("enable-experimental-web-platform-features");
-	command_line->AppendSwitch("ignore-gpu-blacklist");
-	command_line->AppendSwitch("ignore-gpu-blocklist"); // future proofing for when Google disables the above
-	command_line->AppendSwitch("disable-direct-composition");
+	// FxDK makes use of the Views Framework within CEF
+	// which depends on direct composition in order to draw.
+	if (!launch::IsSDK())
+	{
+		command_line->AppendSwitch("disable-direct-composition");
+	}
+	command_line->AppendSwitch("ignore-gpu-blocklist");
 	command_line->AppendSwitch("disable-gpu-driver-bug-workarounds");
+	command_line->AppendSwitch("enable-gpu-rasterization");
+	command_line->AppendSwitch("disable-gpu-process-crash-limit");
+	// some GPUs are in the GPU blacklist as 'forcing D3D9'
+	// this just forces D3D11 anyway.
+	command_line->AppendSwitchWithValue("use-angle", "d3d11");
+	//
+
+	// Previously we would enable *all* experimental features 
+	// that were bundled with the chromium version
+	// This shouldn't have been the case, rather any experimental features 
+	// should be added on a case-by-case basis.
+	//command_line->AppendSwitch("enable-experimental-web-platform-features");
+
+	command_line->AppendSwitchWithValue("disable-blink-features", 
+		// These experimental features are currently broken as of M144 (October 2026 build)
+		// While experimental web features are disabled, it's worth keeping a list of ones that **are** broken in NUI.
+		"WidthAndHeightAsPresentationAttributesOnNestedSvg,"  // Breaks SVG's with custom height/width.
+															  // see https://issues.chromium.org/issues/449170647 
+		"SelectionAndFocusedVisiblePositionMatch,"			  // Known bad feature, can lead to UI/GPU process hangs
+															  // Issue details are currently private.
+
+		// Other functionality that aren't required in NUI.
+		"SpellcheckAPI,"                                      // Breaks assumptions made by a majority of FiveM resources
+		                                                      // As pre-m144 Spellcheck did not work as intended.
+		"DocumentPictureInPictureAPI,"                        // Not needed in NUI
+
+	);
+
+	// Disable features that aren't desired in NUI.
+	command_line->AppendSwitchWithValue("disable-features", 
+		"HardwareMediaKeyHandling," // Don't let NUI hijack hardware media key handling from other processes
+		"PrintCompositor," // NUI don't need print compositor (for printing pages)
+		"AutofillServerCommunication," // NUI doesn't need autofill
+		"AutofillEnableAccountWalletStorage," // NUI also doesn't need google wallet autofill
+		"CalculateNativeWinOcclusion," // Not relevant in OSR
+		"WebUSB," // NUI contexts shouldn't have access to USB API's
+	    "WebBluetooth," // Same with WebBluetooth API's
+		"WebHID," // Same with HID API's
+		"SerialAPI," // Same with SerialAPI
+		"OptimizationHints," // fetch hints for preloading don't work in NUI and make no sense being enabled
+		"OptimizationHintsFetching," // ^, should already be partially no-op in CEF. But disable it anyway
+		"MediaRouter," // NUI does not need anything related to presentation or casting to a TV.
+		"DialMediaRouteProvider," // ^
+		"MetricsReporting,"
+		"SpellcheckService,"
+		"Spellcheck,"
+		"GCMDriver,"
+		"StorageNotificationService,"// Shows a popup when running low on cache space.
+									 // See https://github.com/chromiumembedded/cef/issues/3966
+		"LiveCaption," // This doesn't work in CEF. Disable it so NUI resources are aware.
+		"ComputePressure," // Disables PressureObserver API in Chromium. Introduced in M125
+						   // https://developer.mozilla.org/en-US/docs/Web/API/PressureObserver
+		"CpuPerformanceProbe," // Causes CEF to give misleading errors.
+		                       // PressureObserver depends on this so that has to be disabled as well.
+	);
+
+
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
 	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
-	command_line->AppendSwitchWithValue("disable-features", "HardwareMediaKeyHandling");
+	// For lower end systems with fewer cores we want to limit the amount of threads.
+	// On lower end systems in busy scenarios could lead to a negative impact on the game performance
+	{
+		constexpr int kMinRasterThreads = 1;
+		constexpr int kMaxRasterThreads = 4;
 
-#if !GTA_NY
-	command_line->AppendSwitch("enable-gpu-rasterization");
-#else
-	command_line->AppendSwitch("disable-gpu-vsync");
-#endif
+		int totalCores = std::thread::hardware_concurrency();
 
-	command_line->AppendSwitch("disable-gpu-process-crash-limit");
+		if (totalCores < 8)
+		{
+			// For a majority of the work, Rasterisation is handled on the GPU.
+			// However according to https://www.chromium.org/developers/design-documents/chromium-graphics/how-to-get-gpu-rasterization/
+			// it can veto it self and force rasterisation work to be handled on the CPU.
+			command_line->AppendSwitchWithValue("num-raster-threads", std::to_string(std::clamp<int>(totalCores / 4, kMinRasterThreads, kMaxRasterThreads)));
+		}
+	}
+	
+	// null-route urls that we don't want in CEF (tied to chrome services)
+	command_line->AppendSwitchWithValue("connectivity-check-url", "http://0.0.0.0");
+	command_line->AppendSwitchWithValue("lso-url", "http://0.0.0.0");
+	command_line->AppendSwitchWithValue("sync-url", "http://0.0.0.0");
+	command_line->AppendSwitchWithValue("crash-server-url", "http://0.0.0.0");
+
+	// Disable features forced into CEF by Chrome runtime/bootstrap
+	command_line->AppendSwitch("disable-gaia-services");
+	command_line->AppendSwitch("disable-sync");
+	command_line->AppendSwitch("disable-extensions");
+	command_line->AppendSwitch("disable-spell-checking");
+	command_line->AppendSwitch("disable-autocorrect");
+	command_line->AppendSwitch("no-spell-check-suggestions");
+	command_line->AppendSwitch("hide-crash-restore-bubble");
+
+	// Block NUI from having presentation api. https://developer.mozilla.org/en-US/docs/Web/API/Presentation_API
+	command_line->AppendSwitch("disable-presentation-api");
+
+	// Don't allow accidental zooming in on a trackpad
+	command_line->AppendSwitch("disable-pinch");
 
 	// important switch to prevent users from mentioning 'why are there 50 chromes again'
 	command_line->AppendSwitch("disable-site-isolation-trials");
 
-	// some GPUs are in the GPU blacklist as 'forcing D3D9'
-	// this just forces D3D11 anyway.
-	command_line->AppendSwitchWithValue("use-angle", "d3d11");
-
-	// CORB is not handled by CEF CefAddCrossOriginWhitelistEntry, disable CORS entirely
+	// TODO: remove this flag in the future
 	command_line->AppendSwitch("disable-web-security");
-
-	// disable accelerated video decoding, something in M91 upgrade broke this (instant hang when playing Twitter video)
-	command_line->AppendSwitch("disable-accelerated-video-decode");
-	command_line->AppendSwitch("disable-accelerated-video-encode");
-	command_line->AppendSwitch("disable-accelerated-mjpeg-decode");
-
-	// prevent widewine from downloading
-	command_line->AppendSwitch("disable-component-update");
-	command_line->AppendSwitchWithValue("js-flags", "--jitless");
-	// register the CitizenFX game view plugin
-#if !GTA_NY
-	command_line->AppendSwitchWithValue("register-pepper-plugins", fmt::sprintf("%s;application/x-cfx-game-view", ToNarrow(MakeRelativeCitPath(L"bin\\d3d_rendering.dll"))));
-#endif
 }
 
 bool NUIApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
 {
 	auto handler = m_processMessageHandlers.find(message->GetName());
-	bool success = false;
-
-	if (handler != m_processMessageHandlers.end())
-	{
-		success = handler->second(browser, message);
-	}
-	else
+	if (handler == m_processMessageHandlers.end())
 	{
 		trace("Unknown NUI process message: %s\n", message->GetName().ToString().c_str());
+		return false;
 	}
 
-	return success;
+	return handler->second(browser, message);
 }
 
-CefRefPtr<CefRenderProcessHandler> NUIApp::GetRenderProcessHandler()
+CefRefPtr<CefClient> NUIApp::GetDefaultClient()
 {
-	return this;
+	static CefRefPtr<NUIDummyClient> dummyClient;
+	if (!dummyClient)
+	{
+		dummyClient = new NUIDummyClient();
+	}
+
+	// If anything tries to call GetDefaultClient they will get a dummy client that will exit immediately
+	return dummyClient;
 }
 
 bool NUIApp::Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception)
 {
 	auto handler = m_v8Handlers.find(name);
-	bool success = false;
-
-	if (handler != m_v8Handlers.end())
-	{
-		retval = handler->second(arguments, exception);
-
-		success = true;
-	}
-	else
+	if (handler == m_v8Handlers.end())
 	{
 		trace("Unknown NUI function: %s\n", name.ToString().c_str());
+		return false;
 	}
 
-	return success;
+	retval = handler->second(arguments, exception);
+	return true;
 }
 
 void NUIApp::AddProcessMessageHandler(std::string key, TProcessMessageHandler handler)

@@ -8,86 +8,90 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "include/wrapper/cef_helpers.h"
+
 BytesWriteHandler::BytesWriteHandler(size_t grow)
-	: grow_(grow), datasize_(grow), offset_(0) {
-	DCHECK_GT(grow, 0U);
-	data_ = malloc(grow);
-	DCHECK(data_ != NULL);
+    : grow_(grow), datasize_(grow) {
+  DCHECK_GT(grow, 0U);
+  data_ = malloc(grow);
+  DCHECK(data_ != nullptr);
 }
 
 BytesWriteHandler::~BytesWriteHandler() {
-	if (data_)
-		free(data_);
+  if (data_) {
+    free(data_);
+  }
 }
 
 size_t BytesWriteHandler::Write(const void* ptr, size_t size, size_t n) {
-	std::unique_lock<std::recursive_mutex> lock_scope(lock_);
-	size_t rv;
-	if (offset_ + static_cast<int64>(size * n) >= datasize_ &&
-		Grow(size * n) == 0) {
-		rv = 0;
-	}
-	else {
-		memcpy(reinterpret_cast<char*>(data_) + offset_, ptr, size * n);
-		offset_ += size * n;
-		rv = n;
-	}
+  base::AutoLock lock_scope(lock_);
+  size_t rv;
+  if (offset_ + static_cast<int64_t>(size * n) >= datasize_ &&
+      Grow(size * n) == 0) {
+    rv = 0;
+  } else {
+    memcpy(reinterpret_cast<char*>(data_) + offset_, ptr, size * n);
+    offset_ += size * n;
+    rv = n;
+  }
 
-	return rv;
+  return rv;
 }
 
-int BytesWriteHandler::Seek(int64 offset, int whence) {
-	int rv = -1L;
-	std::unique_lock<std::recursive_mutex> lock_scope(lock_);
-	switch (whence) {
-	case SEEK_CUR:
-		if (offset_ + offset > datasize_ || offset_ + offset < 0)
-			break;
-		offset_ += offset;
-		rv = 0;
-		break;
-	case SEEK_END: {
-		int64 offset_abs = std::abs(offset);
-		if (offset_abs > datasize_)
-			break;
-		offset_ = datasize_ - offset_abs;
-		rv = 0;
-		break;
-	}
-	case SEEK_SET:
-		if (offset > datasize_ || offset < 0)
-			break;
-		offset_ = offset;
-		rv = 0;
-		break;
-	}
+int BytesWriteHandler::Seek(int64_t offset, int whence) {
+  int rv = -1L;
+  base::AutoLock lock_scope(lock_);
+  switch (whence) {
+    case SEEK_CUR:
+      if (offset_ + offset > datasize_ || offset_ + offset < 0) {
+        break;
+      }
+      offset_ += offset;
+      rv = 0;
+      break;
+    case SEEK_END: {
+      int64_t offset_abs = std::abs(offset);
+      if (offset_abs > datasize_) {
+        break;
+      }
+      offset_ = datasize_ - offset_abs;
+      rv = 0;
+      break;
+    }
+    case SEEK_SET:
+      if (offset > datasize_ || offset < 0) {
+        break;
+      }
+      offset_ = offset;
+      rv = 0;
+      break;
+  }
 
-	return rv;
+  return rv;
 }
 
-int64 BytesWriteHandler::Tell() {
-	std::unique_lock<std::recursive_mutex> lock_scope(lock_);
-	return offset_;
+int64_t BytesWriteHandler::Tell() {
+  base::AutoLock lock_scope(lock_);
+  return offset_;
 }
 
 int BytesWriteHandler::Flush() {
-	return 0;
+  return 0;
 }
 
 size_t BytesWriteHandler::Grow(size_t size) {
-	std::unique_lock<std::recursive_mutex> lock_scope(lock_);
-	size_t rv;
-	size_t s = (size > grow_ ? size : grow_);
-	void* tmp = realloc(data_, datasize_ + s);
-	DCHECK(tmp != NULL);
-	if (tmp) {
-		data_ = tmp;
-		datasize_ += s;
-		rv = datasize_;
-	}
-	else {
-		rv = 0;
-	}
+  lock_.AssertAcquired();
+  size_t rv;
+  size_t s = (size > grow_ ? size : grow_);
+  void* tmp = realloc(data_, datasize_ + s);
+  DCHECK(tmp != nullptr);
+  if (tmp) {
+    data_ = tmp;
+    datasize_ += s;
+    rv = datasize_;
+  } else {
+    rv = 0;
+  }
 
-	return rv;
+  return rv;
 }

@@ -230,3 +230,79 @@ void MigrateCacheFormat202105()
 		}
 	}
 }
+
+#include <filesystem>
+
+void MigrateNUIProfileStorage()
+{
+	namespace fs = std::filesystem;
+
+	fs::path root((std::wstring)MakeRelativeCitPath(L"data/nui-storage"));
+	fs::path defaultPath = root / L"Default";
+	fs::path localPrefs = root / L"LocalPrefs.json";
+
+	if (fs::exists(root / ".cfx_profile_migration") || !fs::exists(localPrefs))
+	{
+		return;
+	}
+
+	if (fs::exists(defaultPath))
+	{
+		fs::remove_all(defaultPath);
+	}
+
+	fs::create_directories(defaultPath);
+
+	const std::wstring files[] = {
+		L"LOG",
+		L"LOCK",
+		L"Visited Links"
+	};
+
+	for (const auto& file : files)
+	{
+		fs::path src = root / file;
+		fs::path dst = defaultPath / file;
+
+		if (fs::exists(src) && !fs::exists(dst))
+			fs::copy_file(src, dst, fs::copy_options::overwrite_existing);
+	}
+
+	const std::wstring dirs[] = {
+		L"Cache",
+		L"Code Cache",
+		L"DawnGraphiteCache",
+		L"DawnWebGPUCache",
+		L"GPUCache",
+		L"Local Storage",
+		L"Network",
+		L"Session Storage",
+		L"Shared Dictionary",
+		L"IndexedDB"
+	};
+
+	for (const auto& dir : dirs)
+	{
+		fs::path src = root / dir;
+		fs::path dst = defaultPath / dir;
+
+		if (fs::exists(src))
+		{
+			fs::create_directories(dst.parent_path());
+			fs::copy(src, dst, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
+		}
+	}
+
+	fs::path localState = root / L"Local State";
+
+	if (fs::exists(localPrefs) && !fs::exists(localState))
+	{
+		fs::copy_file(localPrefs, localState, fs::copy_options::overwrite_existing);
+	}
+
+	FILE* f = _wfopen(MakeRelativeCitPath("data\\nui-storage\\.cfx_profile_migration").c_str(), L"wb");
+	if (f)
+	{
+		fclose(f);
+	}
+}

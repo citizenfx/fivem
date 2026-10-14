@@ -49,8 +49,11 @@ struct GameRenderData
 	int height;
 	bool requested;
 
+	bool requestedFlipped;
+	HANDLE flippedHandle;
+
 	GameRenderData()
-		: requested(false)
+		: requested(false), requestedFlipped(false)
 	{
 	}
 };
@@ -138,11 +141,12 @@ static void CreateTextures(int width, int height)
 		// error handling code
 	}
 
+	handleData->flippedHandle = sharedHandle;
 	handleData->handle = sharedHandle;
 }
 
 void InitRender()
-{
+{ 
 	// set the platform info
 	bgfx::PlatformData pd;
 	pd.nwh = NULL;

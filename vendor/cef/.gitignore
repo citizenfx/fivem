@@ -3,6 +3,13 @@ include/
 libcef_dll/
 Release/
 Resources/
+bazel/
+WORKSPACE
+.bazelrc
+.bazelversion
+BUILD.bazel
+CREDITS.html
+MODULE.bazel
 CMakeLists.txt
 LICENSE.txt
 README.txt

@@ -49,12 +49,12 @@ class FeatureStorage : private Traits
 public:
 	static constexpr auto GetStage()
 	{
-		return kStage;
+		return Traits::kStage;
 	}
 
 	static constexpr auto GetId()
 	{
-		return kId;
+		return Traits::kId;
 	}
 
 	auto& GetFeatureStateCache()
@@ -318,7 +318,7 @@ namespace nui
 			else
 			{
 				std::unique_lock _(g_processMessageQueueMutex);
-				g_processMessageQueue[(type != "rootCall") ? processMessage->GetArgumentList()->GetString(0) : "__root"].push_back(processMessage);
+				g_processMessageQueue[(type != "rootCall") ? argumentList->GetString(0) : "__root"].push_back(processMessage);
 			}
 		});
 
@@ -437,7 +437,6 @@ namespace nui
 		std::unique_lock<std::shared_mutex> lock(windowListMutex);
 
 		auto windowIt = windowList.find(windowName);
-
 		if (windowIt != windowList.end())
 		{
 			Instance<NUIWindowManager>::Get()->RemoveWindow(windowIt->second.GetRef());
@@ -567,15 +566,13 @@ namespace nui
 
 	__declspec(dllexport) void DestroyFrame(const std::string& frameName)
 	{
-		if (frameName == "mpMenu" && Feature_TopLevelMPMenu::RunIfEnabled([&frameName]
+		if (frameName == "mpMenu")
 		{
 			auto winName = fmt::sprintf("nui_%s", frameName);
 			DestroyNUIWindow(winName);
 
 			std::unique_lock<std::shared_mutex> lock(frameListMutex);
 			frameList.erase(frameName);
-		}))
-		{
 			return;
 		}
 
@@ -639,6 +636,7 @@ namespace nui
 	__declspec(dllexport) void SignalPoll(fwString frameName)
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
-		rootWindow->SignalPoll(std::string(frameName.c_str()));
+		std::string frame = frameName.c_str();
+		rootWindow->SignalPoll(frame);
 	}
 }

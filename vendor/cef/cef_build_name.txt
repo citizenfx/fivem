@@ -1,1 +1,1 @@
-cef_binary_103.0.0-cfx-m103.2605+g1316dae+chromium-103.0.5060.141_windows64_minimal
+cef_binary_144.19.61-cfx-m144-osr.3461+gcbe8fd0+chromium-144.0.7559.264_windows64_minimal

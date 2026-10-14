@@ -4,6 +4,8 @@
 #include <CrossBuildRuntime.h>
 #include <XBRVirtual.h>
 
+#include <atArray.h>
+
 #define _HAS_GRCTEXTURE_MAP 1
 
 #ifdef COMPILING_RAGE_GRAPHICS_FIVE
@@ -222,6 +224,17 @@ public:
 	size_t GetTotalPhysicalMemory();
 
 	size_t _getAndUpdateAvailableMemory(bool virt, bool spare);
+};
+
+
+class grcRenderTargetDX11 : public grcTexture
+{
+public:
+	char m_pad[136 - sizeof(grcTexture)];
+	ID3D11ShaderResourceView* m_srv2;
+	void* m_pad2;
+	ID3D11Resource* m_resource2;
+	atArray<ID3D11ShaderResourceView*> m_rtvs;
 };
 }
 

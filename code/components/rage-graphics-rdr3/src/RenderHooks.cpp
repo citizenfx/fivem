@@ -12,7 +12,7 @@
 
 #pragma comment(lib, "vulkan-1.lib")
 
-static VkInstance g_vkInstance = nullptr;
+VkInstance g_vkInstance = nullptr;
 static bool g_enableVulkanValidation = false;
 
 // Function to print the output of the validation layers
@@ -192,7 +192,7 @@ static VkResult __stdcall vkCreateInstanceHook(VkInstanceCreateInfo* pCreateInfo
 
 	if (result != VK_SUCCESS)
 	{
-		trace("Vulkan instance creation returned: %s\n", ResultToString(result));
+		trace("Vulkan instance creation returned: %s\n", vk::ResultToString(result));
 	}
 
 	g_vkInstance = *pInstance;
@@ -276,17 +276,37 @@ static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreat
 
 	if (result != VK_SUCCESS)
 	{
-		trace("Vulkan device creation returned: %s\n", ResultToString(result));
+		trace("Vulkan device creation returned: %s\n", vk::ResultToString(result));
 	}
 
 	return result;
 }
+
+fwEvent<> OnBackbufferCreation;
+
+static void* (*g_d3d12CreateBackBuffer)(void*);
+static void* _d3d12CreateBackBuffer(void* driver)
+{
+	OnBackbufferCreation();
+	return g_d3d12CreateBackBuffer(driver);
+}
+
+static void* (*g_vkCreateBackbuffer)(void*);
+static void* _vkCreateBuffer(void* driver)
+{
+	OnBackbufferCreation();
+	return g_vkCreateBackbuffer(driver);
+}
+
+#include <Hooking.Stubs.h>
 
 static HookFunction hookFunction([]()
 {
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 	g_enableVulkanValidation = static_cast<bool>(GetPrivateProfileInt(L"Game", L"EnableVulkanValidation", 0, fpath.c_str()));
 
+	g_d3d12CreateBackBuffer = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8B 01 48 8B F9 FF 90 ? ? ? ? 33 DB 39 1D"), _d3d12CreateBackBuffer);
+	g_vkCreateBackbuffer = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 E8 ? ? ? ? 48 8B C8 E8 ? ? ? ? 8B 1D"), _vkCreateBuffer);
 	// Vulkan create instance hook
 	{
 		auto location = hook::get_pattern("FF D0 8B F0 89 84 24", -7);

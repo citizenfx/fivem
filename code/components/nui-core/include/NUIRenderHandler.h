@@ -21,11 +21,7 @@ public:
 private:
 	NUIClient* m_owner;
 
-	// used to prevent infinite recursion when redrawing the popup rectangle
-	bool m_paintingPopup;
-
 	CefRect m_popupRect;
-
 protected:
 	virtual void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
 
@@ -45,17 +41,14 @@ protected:
 	void UpdateDragCursor(CefRefPtr<CefBrowser> browser,
 		CefRenderHandler::DragOperation operation) override;
 
-	virtual void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle) override;
+	virtual void OnFrameCaptured(CefRefPtr<CefBrowser> browser, PaintElementType type) override;
+	
+#if 0
+    virtual bool GetScreenInfo(CefRefPtr<CefBrowser> browser, CefScreenInfo& screen_info) override;
 
-	virtual void OnAcceleratedPaint2(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, bool new_texture) override;
-
+	virtual bool GetScreenPoint(CefRefPtr<CefBrowser> browser, int viewX, int viewY, int& screenX, int& screenY) override;
+#endif
 private:
-	void PaintView(const RectList& dirtyRects, const void* buffer, int width, int height);
-
-	void PaintPopup(const void* buffer, int width, int height);
-
-	void UpdatePopup();
-
 	IMPLEMENT_REFCOUNTING(NUIRenderHandler);
 
 private:
