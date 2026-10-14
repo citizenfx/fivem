@@ -612,7 +612,7 @@ static HookFunction initFunction([]()
 		auto posZ = context.GetArgument<float>(5);
 
 		CMloPortalDef* portalDef = GetInteriorPortalDef(interiorId, portalId);
-		if (portalDef == nullptr)
+		if (portalDef == nullptr || cornerIndex < 0 || cornerIndex >= portalDef->corners.GetCount())
 		{
 			return false;
 		}

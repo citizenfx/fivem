@@ -804,25 +804,22 @@ struct atArrayBase
 	void* offset;
 	TIndex count;
 	TIndex size;
-
-	atArrayBase(int count, int size)
-		: count(count), size(size)
-	{
-		offset = rage::GetAllocator()->allocate(static_cast<size_t>(count) * size, 16, 0);
-	}
-
-	~atArrayBase()
-	{
-		if (offset)
-		{
-			rage::GetAllocator()->free(offset);
-			offset = nullptr;
-		}
-	}
 };
 
 using atArray_16 = atArrayBase<uint16_t>;
 using atArray_32 = atArrayBase<uint32_t>;
+
+template<typename TArray>
+static char* InitAtArrayInPlace(void* ptr, size_t count, size_t elemSize)
+{
+	auto arr = static_cast<TArray*>(ptr);
+	arr->count = static_cast<decltype(arr->count)>(count);
+	arr->size = static_cast<decltype(arr->size)>(elemSize);
+	arr->offset = (count > 0)
+		? rage::GetAllocator()->allocate(count * elemSize, 16, 0)
+		: nullptr;
+	return static_cast<char*>(arr->offset);
+}
 
 static bool SetFromMsgPack(rage::parMember* memberBase, void* structVal, const msgpack::object& value);
 
@@ -842,8 +839,7 @@ static bool SetArray(void* ptr, const msgpack::object& value, rage::parMember* m
 	switch (member->m_definition->arrayType)
 	{
 	case rage::parArrayType::atArray:
-		*(atArray_16*)ptr = atArray_16{int(arrayData.size()), int(member->m_definition->arrayElemSize)};
-		arrayBase = (char*)(((atArray_16*)ptr)->offset);
+		arrayBase = InitAtArrayInPlace<atArray_16>(ptr, arrayData.size(), member->m_definition->arrayElemSize);
 		arrayElemSize = member->m_definition->arrayElemSize;
 
 		break;
@@ -862,8 +858,7 @@ static bool SetArray(void* ptr, const msgpack::object& value, rage::parMember* m
 		arrayElemSize = member->m_definition->arrayElemSize;
 		break;
 	case rage::parArrayType::atArray32:
-		*(atArray_32*)ptr = atArray_32{ int(arrayData.size()), int(member->m_definition->arrayElemSize) };
-		arrayBase = (char*)(((atArray_32*)ptr)->offset);
+		arrayBase = InitAtArrayInPlace<atArray_32>(ptr, arrayData.size(), member->m_definition->arrayElemSize);
 		arrayElemSize = member->m_definition->arrayElemSize;
 
 		break;
