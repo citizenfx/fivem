@@ -1,8 +1,12 @@
 #include "StdInc.h"
 
 #include <vulkan/vulkan.h>
+#include <d3d12.h>
+#include <dxgi1_4.h>
+#include <wrl.h>
 
 #include <Hooking.h>
+#include <Hooking.Stubs.h>
 #include <Error.h>
 
 #include <CoreConsole.h>
@@ -14,6 +18,13 @@
 
 static VkInstance g_vkInstance = nullptr;
 static bool g_enableVulkanValidation = false;
+
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "dxguid.lib")
+
+namespace WRL = Microsoft::WRL;
+static WRL::ComPtr<IDXGIFactory1> g_dxgiFactory;
 
 // Function to print the output of the validation layers
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
@@ -252,7 +263,6 @@ static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreat
 	if (g_enableVulkanValidation)
 	{
 		// force validation layers for vulkan, but dont replace the original layers
-
 		for (size_t i = 0; i < originalLayers.size(); i++)
 		{
 			originalLayers[i] = pCreateInfo->ppEnabledLayerNames[i];
@@ -282,6 +292,43 @@ static HRESULT vkCreateDeviceHook(VkPhysicalDevice physicalDevice, VkDeviceCreat
 	return result;
 }
 
+struct fwuiSystemSettingsCollection
+{
+	char pad[292];
+	uint32_t m_adapterIndex;
+	uint32_t m_outputIndex;
+};
+
+static fwuiSystemSettingsCollection* g_systemSettings;
+
+bool (*g_filterResolution)(uint32_t, uint32_t, float);
+static bool _filterResolutions(uint32_t width, uint32_t height, float refreshRate)
+{
+	IDXGIAdapter1* pAdapter = nullptr;
+	g_dxgiFactory->EnumAdapters1(g_systemSettings->m_adapterIndex, &pAdapter);
+	IDXGIOutput* pOutput = nullptr;
+	pAdapter->EnumOutputs(g_systemSettings->m_outputIndex, &pOutput);
+
+	DXGI_OUTPUT_DESC desc;
+	pOutput->GetDesc(&desc);
+
+	MONITORINFOEX mix{};
+	mix.cbSize = sizeof(mix);
+	GetMonitorInfo(desc.Monitor, (LPMONITORINFO)&mix);
+
+	DEVMODEW current{};
+	current.dmSize = sizeof(current);
+	EnumDisplaySettingsW(mix.szDevice, ENUM_CURRENT_SETTINGS, &current);
+
+	// Don't allow the game to pick a resolution higher then what the monitor is set to.
+	if (width > current.dmPelsWidth || height > current.dmPelsHeight)
+	{ 
+		return false;
+	}
+
+	return g_filterResolution(width, height, refreshRate);
+}
+
 static HookFunction hookFunction([]()
 {
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
@@ -300,4 +347,17 @@ static HookFunction hookFunction([]()
 		hook::nop(location, 6);
 		hook::call(location, vkCreateDeviceHook);
 	}
+
+	// Game window setup, filter out resolutions that are greater then what the monitor natively supports.
+	// Fixes cases where resolutions from NVIDIA DSR (Dynamic Super Resolution) would be used and treated as the monitors native resolution.
+	{
+		g_systemSettings = hook::get_address<fwuiSystemSettingsCollection*>(hook::get_pattern("48 8D 0D ? ? ? ? 48 8B F8 E8 ? ? ? ? 45 33 ED", 3));
+
+		g_filterResolution = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 8B DA 8B F9 81 FA"), _filterResolutions);
+	}
+});
+
+static InitFunction initFunction([]()
+{
+	CreateDXGIFactory1(IID_IDXGIFactory1, &g_dxgiFactory);
 });
