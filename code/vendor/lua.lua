@@ -32,7 +32,7 @@ return {
 			'NOMINMAX',
 
 			--[[ Lua Flags ]]
-			'LUA_COMPAT_5_3',
+			'LUA_COMPAT_MATHLIB',
 			-- 'LUA_NO_BYTECODE', -- Disables the usage of lua_load with binary chunks
 
 			--[[ Lua Extensions ]]
