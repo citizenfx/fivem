@@ -94,7 +94,7 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 		}
 		else
 		{
-			frame.allow = "microphone; camera; autoplay; payment 'none'; geolocation 'none';";
+			frame.allow = "microphone *; camera *; autoplay; payment 'none'; geolocation 'none';";
 		}
 		frame.sandbox = 'allow-forms allow-scripts allow-same-origin';
 		frame.src = frameUrl;
@@ -121,7 +121,12 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 				}
 			}, 32);
 		}
-                
+
+		if (frameName === 'loadingScreen') {
+			frame.contentWindow.nuiHandoverData = handoverBlob || {};
+			frame.contentWindow.nuiHandoverData.serverAddress = serverAddress;
+		}
+		
 		frame.addEventListener('load', function() {
 			if (frameName === 'loadingScreen') {
 				frame.contentWindow.nuiHandoverData = handoverBlob || {};

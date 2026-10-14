@@ -274,6 +274,7 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 						   // https://developer.mozilla.org/en-US/docs/Web/API/PressureObserver
 		"CpuPerformanceProbe," // Causes CEF to give misleading errors.
 		                       // PressureObserver depends on this so that has to be disabled as well.
+		"ThirdPartyStoragePartitioning" // This breaks migration of NUI localStorage and similar from M103
 	);
 
 
@@ -310,6 +311,13 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	command_line->AppendSwitch("disable-autocorrect");
 	command_line->AppendSwitch("no-spell-check-suggestions");
 	command_line->AppendSwitch("hide-crash-restore-bubble");
+
+	// disable accelerated video encoding.
+	// In M91 this caused hanging when playing media.
+	// In M144 it causes inconsistent stuttering/performance issues
+	command_line->AppendSwitch("disable-accelerated-video-decode");
+	command_line->AppendSwitch("disable-accelerated-video-encode");
+	command_line->AppendSwitch("disable-accelerated-mjpeg-decode");
 
 	// Block NUI from having presentation api. https://developer.mozilla.org/en-US/docs/Web/API/Presentation_API
 	command_line->AppendSwitch("disable-presentation-api");

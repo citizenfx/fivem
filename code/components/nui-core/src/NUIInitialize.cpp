@@ -239,12 +239,15 @@ static void BindGameRenderHandle(bool flipTexture = true)
 
 	static HostSharedData<GameRenderData> handleData(launch::IsSDK() ? "CfxGameRenderHandleFxDK" : "CfxGameRenderHandle");
 
-	// not existent yet, but we will retry this later on
-	if (!handleData->handle
 #ifdef GTA_FIVE
-		|| !handleData->flippedHandle
+	// V has the less efficent game-view capture to be accounted for
+	HANDLE shareHandle = flipTexture ? handleData->flippedHandle : handleData->handle;
+#else
+	HANDLE shareHandle = handleData->handle;
 #endif
-	)
+
+	// not existent yet, but we will retry this later on
+	if (!shareHandle)
 	{
 		return;
 	}
@@ -267,13 +270,17 @@ static void BindGameRenderHandle(bool flipTexture = true)
 	EGLSurface pbuffer = _eglCreatePbufferFromClientBuffer(
 	m_display,
 	EGL_D3D_TEXTURE_2D_SHARE_HANDLE_ANGLE,
-#if GTA_FIVE
-	(EGLClientBuffer)(flipTexture ? handleData->flippedHandle : handleData->handle),
-#else
-	(EGLClientBuffer)handleData->handle,
-#endif
+	shareHandle,
 	config,
 	pbuffer_attributes);
+
+	if (pbuffer == EGL_NO_SURFACE)
+	{
+		EGLint err = _eglGetError();
+		trace("Failed to initialize EGL for game-view capture %i\n", err);
+		return;
+	}
+
 
 	if (g_pbuffers.find(g_curGlTexture) != g_pbuffers.end())
 	{

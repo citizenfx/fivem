@@ -62,14 +62,14 @@ public:
 
 	virtual fwRefContainer<GITexture> CreateTextureBacking(int width, int height, GITextureFormat format) override;
 
-	virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, std::function<void()> cb = nullptr) override
+	virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, nui::GameInterface::UpdateTextureCB cb = nullptr) override
 	{
 		assert(!"don't do that on vulkan games");
 
 		return nullptr;
 	}
 
-	virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height, std::function<void()> cb = nullptr) override;
+	virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height, nui::GameInterface::UpdateTextureCB cb = nullptr) override;
 
 	virtual void UpdateTexture(HANDLE shareHandle, fwRefContainer<GITexture> texture, int width, int height, std::pair<uint64_t, uint64_t> key, nui::GameInterface::UpdateTextureCB cb = nullptr) override;
 
@@ -821,38 +821,27 @@ return new GtaNuiTexture([width, height](GtaNuiTexture*)
 #pragma comment(lib, "vulkan-1.lib")
 
 
-fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height, std::function<void()> cb)
+fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height, nui::GameInterface::UpdateTextureCB cb)
 {
 #ifndef GTA_NY
 	rage::sysMemAllocator::UpdateAllocatorValue();
 #endif
 
 #ifdef GTA_FIVE
-	WRL::ComPtr<ID3D11Device1> device = GetD3D11Device1();
-	if (!device)
+	return new GtaNuiTexture([this, shareHandle, cb](GtaNuiTexture* texture) -> rage::grcTexture*
 	{
-		if (cb)
+		WRL::ComPtr<ID3D11Device1> device = GetD3D11Device1();
+
+		WRL::ComPtr<ID3D11Texture2D> resource;
+		auto hr = device->OpenSharedResource1(shareHandle, IID_PPV_ARGS(&resource));
+
+		if (FAILED(hr) || !resource)
 		{
+			trace("Failed to open shared resource for NUI texture creation 0x%x\n", hr);
 			cb();
+			return nullptr;
 		}
-		return new GtaNuiTexture(nullptr);
-	}
 
-
-	WRL::ComPtr<ID3D11Texture2D> resource;
-	auto hr = device->OpenSharedResource1(shareHandle, IID_PPV_ARGS(&resource));
-	if (FAILED(hr) || !resource)
-	{
-		trace("Failed to open shared resource for NUI texture creation 0x%x\n", hr);
-		if (cb)
-		{
-			cb();
-		}
-		return new GtaNuiTexture(nullptr);
-	}
-
-	return new GtaNuiTexture([this, device, resource, cb](GtaNuiTexture* texture)
-	{
 		D3D11_TEXTURE2D_DESC desc;
 		resource->GetDesc(&desc);
 
@@ -895,31 +884,29 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 
 		texture->MarkOverriddenSRV();
 		texture->MarkOverriddenTexture();
-
-		if (cb)
+		
+		auto previous = std::move(texture->GetTextureRelease());
+		texture->GetTextureRelease() = std::move(cb);
+		if (previous)
 		{
-			cb();
+			previous();
 		}
+
 		return texRef;
 	});
 #else
 	if (GetCurrentGraphicsAPI() == GraphicsAPI::D3D12)
 	{
-		ID3D12Device* device = (ID3D12Device*)GetGraphicsDriverHandle();
-		ID3D12Resource* resource = nullptr;
-		if (FAILED(device->OpenSharedHandle(shareHandle, __uuidof(ID3D12Resource), (void**)&resource)))
-		{
-			if (cb)
-			{
-				cb();
-			}
-			return new GtaNuiTexture(nullptr);
-		}
-
-		return new GtaNuiTexture([device, resource, cb](GtaNuiTexture* texture)
+		return new GtaNuiTexture([shareHandle, cb](GtaNuiTexture* texture) -> rage::grcTexture*
 		{
 			ID3D12Resource* oldTexture = nullptr;
-
+			ID3D12Device* device = (ID3D12Device*)GetGraphicsDriverHandle();
+			ID3D12Resource* resource = nullptr;
+			if (FAILED(device->OpenSharedHandle(shareHandle, __uuidof(ID3D12Resource), (void**)&resource)))
+			{
+				cb();
+				return nullptr;
+			}
 			auto desc = resource->GetDesc();
 
 			auto width = desc.Width;
@@ -948,9 +935,11 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 				rage::sga::Driver_Create_ShaderResourceView(texRef, srvDesc);
 			}
 
-			if (cb)
+			auto previous = std::move(texture->GetTextureRelease());
+			texture->GetTextureRelease() = std::move(cb);
+			if (previous)
 			{
-				cb();
+				previous();
 			}
 
 			return (rage::grcTexture*)texRef;
@@ -958,14 +947,13 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 	}
 	else if (GetCurrentGraphicsAPI() == GraphicsAPI::Vulkan)
 	{
-		VkDevice device = (VkDevice)GetGraphicsDriverHandle();
-
-		VkImage Image = {};
-		VkDeviceMemory ImageMemory = {};
-		vk::CreateImageFromShareHandle(device, shareHandle, width, height, Image, ImageMemory, true);
-
-		return new GtaNuiTexture([shareHandle, width, height, Image, ImageMemory, cb](GtaNuiTexture* texture)
+		return new GtaNuiTexture([shareHandle, width, height, cb](GtaNuiTexture* texture)
 		{
+			VkDevice device = (VkDevice)GetGraphicsDriverHandle();
+			VkImage Image = {};
+			VkDeviceMemory ImageMemory = {};
+			vk::CreateImageFromShareHandle(device, shareHandle, width, height, Image, ImageMemory, true);
+
 			rage::grcManualTextureDef textureDef;
 			memset(&textureDef, 0, sizeof(textureDef));
 			textureDef.isStaging = 0;
@@ -996,9 +984,11 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 				rage::sga::Driver_Create_ShaderResourceView(texRef, srvDesc);
 			}
 
-			if (cb)
+			auto previous = std::move(texture->GetTextureRelease());
+			texture->GetTextureRelease() = std::move(cb);
+			if (previous)
 			{
-				cb();
+				previous();
 			}
 			return (rage::grcTexture*)texRef;
 		});

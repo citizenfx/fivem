@@ -47,8 +47,6 @@ NUIWindow::NUIWindow(bool rawBlit, int width, int height, const std::string& win
 #endif
 {
 	memset(&m_sharedResourceTexturesCreated, 0, sizeof(m_sharedResourceTexturesCreated));
-	memset(&m_pendingTextureCreation, 0, sizeof(m_pendingTextureCreation));
-
 	Instance<NUIWindowManager>::Get()->AddWindow(this);
 }
 
@@ -340,7 +338,6 @@ void NUIWindow::UpdateFrame()
 				}
 
 				memset(m_sharedResourceTexturesCreated, 0, sizeof(m_sharedResourceTexturesCreated));
-				memset(&m_pendingTextureCreation, 0, sizeof(m_pendingTextureCreation));
 
 				auto client = ((NUIClient*)m_client.get());
 				auto browser = client->GetBrowser();
@@ -619,7 +616,6 @@ void NUIWindow::UpdateSharedResource(CefRenderHandler::PaintElementType type)
 
 	int w = frame->width;
 	int h = frame->height;
-
 	{
 		std::unique_lock<std::shared_mutex> textureLock(m_textureMutex, std::defer_lock);
 		if (IsPrimary())
@@ -627,15 +623,19 @@ void NUIWindow::UpdateSharedResource(CefRenderHandler::PaintElementType type)
 			textureLock.lock();
 		}
 
-		if (!m_sharedResourceTexturesCreated[type] && !m_pendingTextureCreation[type])
+		auto frameSeq = frame->frame_seq;
+		CefRefPtr<CefBrowserHost> host = GetBrowser() ? GetBrowser()->GetHost() : nullptr;
+		if (!m_sharedResourceTexturesCreated[type])
 		{
-			m_pendingTextureCreation[type] = true;
-			auto frameSequence = frame->frame_seq - 1;
-			auto cb = [this, type, frameSequence]()
+			auto cb = [host, type, frameSeq]()
 			{
-				m_sharedResourceTexturesCreated[type] = true;
-				m_pendingTextureCreation[type] = false;
-				ReleaseFrame(type, frameSequence);
+				if (host)
+				{
+					host->ReleaseFrame(type, frameSeq);
+					return false;
+				}
+
+				return true;
 			};
 
 			if (IsPrimary())
@@ -650,11 +650,10 @@ void NUIWindow::UpdateSharedResource(CefRenderHandler::PaintElementType type)
 				SetParentTexture(type, faketexRef);
 			}
 #endif
+			m_sharedResourceTexturesCreated[type] = true;
 		}
 		else
 		{
-			auto frameSeq = frame->frame_seq;
-			CefRefPtr<CefBrowserHost> host = GetBrowser() ? GetBrowser()->GetHost() : nullptr;
 			g_nuiGi->UpdateTexture(sharedHandle, texRef, w, h, std::make_pair(frame->token_high, frame->token_low), [frameSeq, host, type]()
 			{
 				if (host)

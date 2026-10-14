@@ -186,7 +186,7 @@ public:
 		});
 	}
 
-	virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, std::function<void()> cb = nullptr) override
+	virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, nui::GameInterface::UpdateTextureCB cb = nullptr) override
 	{
 		m_lastShareHandle = shareHandle;
 

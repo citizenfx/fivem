@@ -154,20 +154,20 @@ namespace nui
 	class OVERLAY_DECL GameInterface
 	{
 	public:
+		using UpdateTextureCB = std::function<bool()>;
+
 		virtual void GetGameResolution(int* width, int* height) = 0;
 
 		virtual fwRefContainer<GITexture> CreateTexture(int width, int height, GITextureFormat format, void* pixelData) = 0;
 
 		virtual fwRefContainer<GITexture> CreateTextureBacking(int width, int height, GITextureFormat format) = 0;
 
-		virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, std::function<void()> cb = nullptr) = 0;
+		virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, UpdateTextureCB cb = nullptr) = 0;
 
-		virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height, std::function<void()> cb = nullptr)
+		virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height, UpdateTextureCB cb = nullptr)
 		{
 			return CreateTextureFromShareHandle(shareHandle);
 		}
-
-		using UpdateTextureCB = std::function<bool()>;
 
 		virtual void UpdateTexture(HANDLE shareHandle, fwRefContainer<GITexture> texture, int width, int height, std::pair<uint64_t, uint64_t> key, UpdateTextureCB cb = nullptr) = 0;
 
