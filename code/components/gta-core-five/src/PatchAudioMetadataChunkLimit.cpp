@@ -1,6 +1,5 @@
 #include <StdInc.h>
 #include <Hooking.h>
-#include <Hooking.Stubs.h>
 
 #include <atArray.h>
 
@@ -66,17 +65,21 @@ static bool SearchForObjectRef(audMetadataManager* self, uint32_t hash, uint32_t
 	return true;
 }
 
-static void* (*g_origGetObjectMetadataPtr)(audMetadataManager* self, uint32_t ref);
-
 static void* GetObjectMetadataPtr(audMetadataManager* self, uint32_t ref)
 {
-	if ((ref & kExtendedRefFlag) == 0 || ref == ~0U)
+	if (ref == 0 || ref == ~0U)
 	{
-		return g_origGetObjectMetadataPtr(self, ref);
+		return nullptr;
 	}
 
-	uint32_t chunkId = kFirstExtendedChunk + ((ref & ~kExtendedRefFlag) >> kExtendedOffsetBits);
-	uint32_t offset = ref & kExtendedOffsetMask;
+	uint32_t chunkId = ref >> 24;
+	uint32_t offset = ref & 0xFFFFFF;
+
+	if (ref & kExtendedRefFlag)
+	{
+		chunkId = kFirstExtendedChunk + ((ref & ~kExtendedRefFlag) >> kExtendedOffsetBits);
+		offset = ref & kExtendedOffsetMask;
+	}
 
 	if (chunkId >= self->chunks.GetCount())
 	{
@@ -108,5 +111,5 @@ static HookFunction hookFunction([]
 	}
 
 	// the whole function, so a change to the audMetadataChunk layout fails here instead of at runtime
-	g_origGetObjectMetadataPtr = hook::trampoline(hook::get_pattern("8D 42 01 4C 8B C1 A9 FE FF FF FF 75 03 33 C0 C3 41 0F B7 40 08 8B CA C1 E9 18 3B C8 73 EF 4D 8B 00 48 6B C9 78 42 80 7C 01 71 00 74 E0 81 E2 FF FF FF 00 42 3B 54 01 18 73 D3 8B C2 4A 03 44 01 10"), GetObjectMetadataPtr);
+	hook::jump(hook::get_pattern("8D 42 01 4C 8B C1 A9 FE FF FF FF 75 03 33 C0 C3 41 0F B7 40 08 8B CA C1 E9 18 3B C8 73 EF 4D 8B 00 48 6B C9 78 42 80 7C 01 71 00 74 E0 81 E2 FF FF FF 00 42 3B 54 01 18 73 D3 8B C2 4A 03 44 01 10"), GetObjectMetadataPtr);
 });
