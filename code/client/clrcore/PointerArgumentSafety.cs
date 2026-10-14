@@ -102,12 +102,14 @@ namespace CitizenFX.Core.Native
 				}
 
 				var expectString = (stringMask & bit) != 0;
-				var value = arguments[index]?.Value;
-				if (IsNullPointer(value) || value is OutputArgument || (expectString && value is string))
+				var arg = arguments[index];
+				var value = arg?.Value;
+				if (IsNullPointer(value) || (arg != null && arg.IsCritical) || arg is OutputArgument || (expectString && value is string))
 				{
 					continue;
 				}
 
+				Debug.WriteLine($"native {hash:X16}: arg[{index}] expected a managed pointer " + (expectString ? "or string " : ""));
 				throw new ArgumentException($"native {hash:X16}: arg[{index}] expected a managed pointer " + (expectString ? "or string " : ""));
 			}
 #endif
