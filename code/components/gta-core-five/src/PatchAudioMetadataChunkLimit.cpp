@@ -5,9 +5,11 @@
 
 //
 // Audio metadata references are packed as `chunkId:8 | offset:24`, so a metadata manager can only address 256
-// chunks. Every AUDIO_SOUNDDATA file is a chunk, and once there are more than 256 of them, references from the
-// newer ones alias older chunks and their sounds break. Chunks from 128 onwards use `1:1 | chunkId - 128:9 | offset:22`
-// instead, which addresses 640 chunks of up to 4 MiB each (the base game's own sounds.dat54 is ~3 MiB).
+// chunks. Every AUDIO_SOUNDDATA, AUDIO_GAMEDATA and AUDIO_SYNTHDATA file is a chunk of its type's manager, and once
+// there are more than 256 of one type, references from the newer ones alias older chunks and their sounds break.
+// Chunks from 128 onwards instead get a range of a shared 2 GiB address space and are referenced as `1:1 |
+// address:31`. A table maps every 64 KiB block of that space back to its chunk, so these chunks can still be as
+// large as the 16 MiB a 24-bit offset allowed.
 //
 
 struct audMetadataChunk
@@ -32,9 +34,27 @@ struct audMetadataManager
 
 constexpr uint32_t kExtendedRefFlag = 0x80000000;
 constexpr uint32_t kFirstExtendedChunk = 128;
-constexpr uint32_t kExtendedOffsetBits = 22;
-constexpr uint32_t kExtendedOffsetMask = (1 << kExtendedOffsetBits) - 1;
-constexpr uint32_t kMaxExtendedChunks = 1 << (31 - kExtendedOffsetBits);
+constexpr uint32_t kBlockBits = 16;
+constexpr uint32_t kBlockMask = (1 << kBlockBits) - 1;
+constexpr uint32_t kBlockCount = 1 << (31 - kBlockBits);
+
+struct ExtendedBlock
+{
+	uint16_t chunkId;
+	uint16_t chunkBlock;
+};
+
+struct ExtendedRange
+{
+	uint32_t firstBlock;
+	uint32_t blockCount;
+};
+
+// unassigned blocks name chunk 0xFFFF, which is never loaded, so they decode to null like the reference 0xFFFFFFFF
+static ExtendedBlock g_extendedBlocks[kBlockCount];
+static std::map<std::pair<audMetadataManager*, uint32_t>, ExtendedRange> g_extendedRanges;
+static uint32_t g_nextExtendedBlock;
+static std::mutex g_extendedMutex;
 
 static bool (*g_origSearchForObjectFromHash)(audMetadataManager* self, uint32_t hash, uint32_t* chunkId, uint32_t* offset);
 
@@ -51,14 +71,36 @@ static bool SearchForObjectRef(audMetadataManager* self, uint32_t hash, uint32_t
 		return true;
 	}
 
-	uint32_t extendedChunk = *chunkId - kFirstExtendedChunk;
+	uint32_t dataSize = self->chunks.m_offset[*chunkId].dataSize;
+	uint32_t blockCount = uint32_t((uint64_t(dataSize) + kBlockMask) >> kBlockBits);
 
-	if (extendedChunk >= kMaxExtendedChunks || *offset > kExtendedOffsetMask)
+	if (*offset >= dataSize)
 	{
 		return false;
 	}
 
-	uint32_t ref = kExtendedRefFlag | (extendedChunk << kExtendedOffsetBits) | *offset;
+	std::lock_guard lock(g_extendedMutex);
+	auto& range = g_extendedRanges[{ self, *chunkId }];
+
+	// a chunk that was reloaded larger moves to a new range, and the old one keeps resolving to it like before
+	if (range.blockCount < blockCount)
+	{
+		// the last block is kept unassigned for the null reference
+		if (blockCount > kBlockCount - 1 - g_nextExtendedBlock)
+		{
+			return false;
+		}
+
+		range = { g_nextExtendedBlock, blockCount };
+		g_nextExtendedBlock += blockCount;
+
+		for (uint32_t i = 0; i < blockCount; i++)
+		{
+			g_extendedBlocks[range.firstBlock + i] = { uint16_t(*chunkId), uint16_t(i) };
+		}
+	}
+
+	uint32_t ref = kExtendedRefFlag | ((range.firstBlock << kBlockBits) + *offset);
 	*chunkId = ref >> 24;
 	*offset = ref & 0xFFFFFF;
 
@@ -67,18 +109,18 @@ static bool SearchForObjectRef(audMetadataManager* self, uint32_t hash, uint32_t
 
 static void* GetObjectMetadataPtr(audMetadataManager* self, uint32_t ref)
 {
-	if (ref == 0 || ref == ~0U)
-	{
-		return nullptr;
-	}
-
 	uint32_t chunkId = ref >> 24;
 	uint32_t offset = ref & 0xFFFFFF;
 
 	if (ref & kExtendedRefFlag)
 	{
-		chunkId = kFirstExtendedChunk + ((ref & ~kExtendedRefFlag) >> kExtendedOffsetBits);
-		offset = ref & kExtendedOffsetMask;
+		auto block = g_extendedBlocks[(ref & ~kExtendedRefFlag) >> kBlockBits];
+		chunkId = block.chunkId;
+		offset = (uint32_t(block.chunkBlock) << kBlockBits) | (ref & kBlockMask);
+	}
+	else if (ref == 0)
+	{
+		return nullptr;
 	}
 
 	if (chunkId >= self->chunks.GetCount())
@@ -98,6 +140,8 @@ static void* GetObjectMetadataPtr(audMetadataManager* self, uint32_t ref)
 
 static HookFunction hookFunction([]
 {
+	std::fill(std::begin(g_extendedBlocks), std::end(g_extendedBlocks), ExtendedBlock{ 0xFFFF, 0 });
+
 	// BuildObjectMap, BuildObjectMap_External and GetObjectMetadataRefFromHash
 	for (auto pattern : {
 		"E8 ? ? ? ? 84 C0 75 05 83 0B FF EB 15 8B 85 68 01 00 00 8B 4D 00 C1 E1 18",
