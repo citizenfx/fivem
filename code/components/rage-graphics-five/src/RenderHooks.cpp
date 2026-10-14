@@ -1,6 +1,7 @@
 #include "StdInc.h"
 
 #include <array>
+#include <atomic>
 #include <mutex>
 
 #include <d3d11_1.h>
@@ -67,6 +68,7 @@ static void* g_lastBackbufTexture;
 static bool g_useFlipModel = false;
 
 static bool g_overrideVsync;
+static std::atomic<int> g_vsyncFrameRate;
 
 static void CaptureBufferOutput();
 static void CaptureInternalScreenshot();
@@ -1436,6 +1438,34 @@ void CaptureBufferOutput()
 extern void RootCheckPresented(int& flags);
 extern void RootSetPresented();
 
+static void UpdateVsyncFrameRate(int syncInterval)
+{
+	using namespace std::chrono_literals;
+
+	static std::chrono::steady_clock::time_point lastCheck;
+	static int refreshRate = 0;
+
+	if (auto now = std::chrono::steady_clock::now(); now - lastCheck >= 1s)
+	{
+		lastCheck = now;
+		refreshRate = 0;
+
+		MONITORINFOEXW monitorInfo{};
+		monitorInfo.cbSize = sizeof(monitorInfo);
+
+		DEVMODEW displayMode{};
+		displayMode.dmSize = sizeof(displayMode);
+
+		if (GetMonitorInfoW(MonitorFromWindow(CoreGetGameWindow(), MONITOR_DEFAULTTONEAREST), &monitorInfo) &&
+			EnumDisplaySettingsW(monitorInfo.szDevice, ENUM_CURRENT_SETTINGS, &displayMode) && displayMode.dmDisplayFrequency > 1)
+		{
+			refreshRate = displayMode.dmDisplayFrequency;
+		}
+	}
+
+	g_vsyncFrameRate = (syncInterval > 0) ? refreshRate / syncInterval : 0;
+}
+
 void D3DPresent(int syncInterval, int flags)
 {
 #if __has_include(<ENBApi.h>)
@@ -1481,6 +1511,8 @@ void D3DPresent(int syncInterval, int flags)
 	{
 		(*g_dxgiSwapChain)->Present(syncInterval, flags);
 	}
+
+	UpdateVsyncFrameRate(syncInterval);
 
 	static auto icgi = Instance<ICoreGameInit>::Get();
 	if (icgi->HasVariable("gameMinimized"))
@@ -1747,6 +1779,11 @@ void RemoveTextureOverride(rage::grcTexture* orig)
 void GfxForceVsync(bool enabled)
 {
 	g_overrideVsync = enabled;
+}
+
+int GfxGetVsyncFrameRate()
+{
+	return g_vsyncFrameRate;
 }
 
 static HWND g_gtaWindow;
