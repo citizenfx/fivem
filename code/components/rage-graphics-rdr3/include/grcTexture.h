@@ -257,8 +257,6 @@ namespace sga
 
 	void GFX_EXPORT Driver_Destroy_Texture(Texture* texture);
 	
-	void GFX_EXPORT Driver_Destroy_DefereredTexture(void* texture);
-
 	struct BackBufferData
 	{
 		void* vtbl;
@@ -269,6 +267,11 @@ namespace sga
 	};
 
 	BackBufferData* Driver_GetBackBuffer();
+
+namespace extensions
+{
+	void GFX_EXPORT DestroyShaderResourceViewDX(uint64_t handle);
+}
 }
 
 // rage::grcImage, in reality

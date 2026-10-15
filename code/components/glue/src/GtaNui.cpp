@@ -339,11 +339,18 @@ namespace nui
 			else
 			{
 				auto resource = static_cast<ID3D12Resource*>(entry.m_texture);
-				g_earlyOnRenderQueue.emplace([resource]()
+				auto srv = (uint64_t)entry.m_srv;
+
+				g_earlyOnRenderQueue.emplace([resource, srv]()
 				{
 					if (resource)
 					{
 						resource->Release();
+					}
+
+					if (srv)
+					{
+						rage::sga::extensions::DestroyShaderResourceViewDX(srv);
 					}
 				});
 			}
