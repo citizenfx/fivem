@@ -3,6 +3,10 @@
 #include <ClientRegistry.h>
 #include <OneSyncVars.h>
 
+#include <cstdint>
+#include <string>
+#include <vector>
+
 #define GLM_ENABLE_EXPERIMENTAL
 
 #if defined(_M_IX86) || defined(_M_AMD64) || defined(__x86_64__) || defined(__i386__)
@@ -57,6 +61,34 @@ public:
 
 class StateBag;
 
+struct StateEntityDebugInfo
+{
+	uint32_t id;
+	uint32_t netId;
+	uint32_t routingBucket;
+	uint32_t ownerClientID;
+	uint32_t firstOwningClientID;
+	bool firstOwnerDropped;
+	uint32_t lastOwningClientID;
+	int type;
+	uint16_t uniquer;
+	uint32_t scriptHash;
+	bool ownedByScript;
+	bool ownedByServerScript;
+	bool shouldServerKeepEntity;
+	bool relevant;
+	int64_t createdAt;
+	uint64_t frameIndex;
+	uint64_t lastFrameIndex;
+	uint32_t timestamp;
+	uint32_t creationToken;
+	int64_t lastMigratedAt;
+	bool hasStateBag;
+	std::string stateBagName;
+	bool hasPosition;
+	float position[3];
+};
+
 class ServerGameStatePublic : public fwRefCountable
 {
 public:
@@ -75,6 +107,8 @@ public:
 	virtual void ParseGameStatePacket(const fx::ClientSharedPtr& client, const net::packet::ClientRoute& packetData) = 0;
 
 	virtual void ForAllEntities(const std::function<void(sync::Entity*)>& cb) = 0;
+
+	virtual std::vector<StateEntityDebugInfo> GetEntityDebugInfoList() = 0;
 
 	virtual bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<StateBag>()> createStateBag) = 0;
 

@@ -5,6 +5,7 @@
 
 #include <shared_mutex>
 #include <unordered_set>
+#include <unordered_map>
 
 //#include <EASTL/fixed_set.h>
 #include <EASTL/fixed_vector.h>
@@ -54,6 +55,18 @@ public:
 	{
 		m_role = role;
 	}
+
+	virtual size_t GetStateBagCount() override;
+	virtual size_t GetActiveStateBagCount() override;
+	virtual size_t GetExpiredStateBagCount() override;
+	virtual size_t GetTargetCount() override;
+	virtual size_t GetPreCreatedStateBagCount() override;
+	virtual size_t GetErasureListCount() override;
+	virtual size_t GetPreCreatePrefixCount() override;
+	virtual std::vector<int> GetRegisteredTargets() override;
+	virtual size_t GetStateBagCountForTarget(int target) override;
+	virtual std::vector<std::pair<std::string, bool>> GetPreCreatePrefixes() override;
+	virtual std::optional<StateBagDetails> GetStateBagDetails(const std::string& id) override;
 
 	void UnregisterStateBag(std::string_view id);
 
@@ -111,6 +124,7 @@ private:
 
 class StateBagImpl : public StateBag
 {
+	friend class StateBagComponentImpl;
 public:
 	StateBagImpl(StateBagComponentImpl* parent, std::string_view id, bool useParentTargets = false);
 
@@ -829,6 +843,210 @@ void StateBagComponentImpl::Reset()
 		std::unique_lock _(m_preCreatedStateBagsMutex);
 		m_preCreatedStateBags.clear();
 	}
+}
+
+size_t StateBagComponentImpl::GetStateBagCount()
+{
+	std::shared_lock lock(m_mapMutex);
+	return m_stateBags.size();
+}
+
+size_t StateBagComponentImpl::GetActiveStateBagCount()
+{
+	std::shared_lock lock(m_mapMutex);
+	size_t count = 0;
+	for (const auto& [id, weakBag] : m_stateBags)
+	{
+		if (!weakBag.expired())
+			count++;
+	}
+	return count;
+}
+
+size_t StateBagComponentImpl::GetExpiredStateBagCount()
+{
+	std::shared_lock lock(m_mapMutex);
+	size_t count = 0;
+	for (const auto& [id, weakBag] : m_stateBags)
+	{
+		if (weakBag.expired())
+			count++;
+	}
+	return count;
+}
+
+size_t StateBagComponentImpl::GetTargetCount()
+{
+	std::shared_lock lock(m_mapMutex);
+	return m_targets.size();
+}
+
+size_t StateBagComponentImpl::GetPreCreatedStateBagCount()
+{
+	std::shared_lock lock(m_preCreatedStateBagsMutex);
+	return m_preCreatedStateBags.size();
+}
+
+size_t StateBagComponentImpl::GetErasureListCount()
+{
+	std::shared_lock lock(m_erasureMutex);
+	return m_erasureList.size();
+}
+
+size_t StateBagComponentImpl::GetPreCreatePrefixCount()
+{
+	std::shared_lock lock(m_preCreatePrefixMutex);
+	return m_preCreatePrefixes.size();
+}
+
+
+
+std::vector<int> StateBagComponentImpl::GetRegisteredTargets()
+{
+	std::shared_lock lock(m_mapMutex);
+	std::vector<int> targets;
+	targets.reserve(m_targets.size());
+	for (int target : m_targets)
+	{
+		targets.push_back(target);
+	}
+	return targets;
+}
+
+size_t StateBagComponentImpl::GetStateBagCountForTarget(int target)
+{
+	std::shared_lock lock(m_mapMutex);
+	size_t count = 0;
+	for (const auto& [id, weakBag] : m_stateBags)
+	{
+		if (auto bag = weakBag.lock())
+		{
+			auto bagImpl = std::static_pointer_cast<StateBagImpl>(bag);
+			std::shared_lock routingLock(bagImpl->m_routingTargetsMutex);
+			if (bagImpl->m_routingTargets.count(target) > 0)
+				count++;
+		}
+	}
+	return count;
+}
+
+std::vector<std::pair<std::string, bool>> StateBagComponentImpl::GetPreCreatePrefixes()
+{
+	std::shared_lock lock(m_preCreatePrefixMutex);
+	return m_preCreatePrefixes;
+}
+
+std::optional<StateBagComponent::StateBagDetails> StateBagComponentImpl::GetStateBagDetails(const std::string& id)
+{
+	std::shared_lock lock(m_mapMutex);
+	auto it = m_stateBags.find(id);
+	
+	if (it == m_stateBags.end())
+	{
+		return std::nullopt;
+	}
+	
+	auto bag = it->second.lock();
+	if (!bag)
+	{
+		StateBagComponent::StateBagDetails details;
+		details.id = id;
+		details.isExpired = true;
+		details.useParentTargets = false;
+		details.replicationEnabled = false;
+		details.owningPeer = std::nullopt;
+		return details;
+	}
+	
+	auto bagImpl = std::static_pointer_cast<StateBagImpl>(bag);
+	
+	StateBagComponent::StateBagDetails details;
+	details.id = id;
+	details.isExpired = false;
+	details.useParentTargets = bagImpl->m_useParentTargets;
+	details.replicationEnabled = bagImpl->m_replicationEnabled.load();
+	details.owningPeer = bagImpl->GetOwningPeer();
+	
+	{
+		std::shared_lock routingLock(bagImpl->m_routingTargetsMutex);
+		details.routingTargets.reserve(bagImpl->m_routingTargets.size());
+		for (int target : bagImpl->m_routingTargets)
+		{
+			details.routingTargets.push_back(target);
+		}
+	}
+	
+	{
+		std::shared_lock dataLock(bagImpl->m_dataMutex);
+		for (const auto& [key, value] : bagImpl->m_data)
+		{
+			try
+			{
+				msgpack::unpacked up = msgpack::unpack(value.data(), value.size());
+				const auto& obj = up.get();
+				std::string jsonStr;
+
+				if (obj.type == msgpack::type::EXT)
+				{
+					const auto& ext = obj.via.ext;
+					const int8_t extType = ext.type();
+					std::ostringstream oss;
+					oss.precision(7);
+
+					if (extType == 20 && ext.size == 8) // vector2
+					{
+						float x = *(float*)(ext.data() + 0);
+						float y = *(float*)(ext.data() + 4);
+						oss << "{\"x\":" << x << ",\"y\":" << y << "}";
+					}
+					else if (extType == 21 && ext.size == 12) // vector3
+					{
+						float x = *(float*)(ext.data() + 0);
+						float y = *(float*)(ext.data() + 4);
+						float z = *(float*)(ext.data() + 8);
+						oss << "{\"x\":" << x << ",\"y\":" << y << ",\"z\":" << z << "}";
+					}
+					else if ((extType == 22 || extType == 23) && ext.size == 16) // vector4/quat
+					{
+						float x = *(float*)(ext.data() + 0);
+						float y = *(float*)(ext.data() + 4);
+						float z = *(float*)(ext.data() + 8);
+						float w = *(float*)(ext.data() + 12);
+						oss << "{\"x\":" << x << ",\"y\":" << y << ",\"z\":" << z << ",\"w\":" << w << "}";
+					}
+					else
+					{
+						oss << "\"EXT(type:" << static_cast<int>(extType) << ",size:" << ext.size << ")\"";
+					}
+					jsonStr = oss.str();
+				}
+				else
+				{
+					std::ostringstream oss;
+					oss << obj;
+					jsonStr = oss.str();
+				}
+
+				if (jsonStr.length() > 500)
+					jsonStr = jsonStr.substr(0, 497) + "...";
+				details.storedData[key] = jsonStr;
+			}
+			catch (...)
+			{
+				details.storedData[key] = "[" + std::to_string(value.size()) + " bytes]";
+			}
+		}
+	}
+	
+	{
+		std::unique_lock replicateLock(bagImpl->m_replicateDataMutex);
+		for (const auto& [key, value] : bagImpl->m_replicateData)
+		{
+			details.queuedData[key] = value.size();
+		}
+	}
+	
+	return details;
 }
 
 fwRefContainer<StateBagComponent> StateBagComponent::Create(StateBagRole role)
