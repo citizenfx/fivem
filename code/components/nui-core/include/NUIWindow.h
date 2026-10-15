@@ -79,8 +79,6 @@ private:
 	std::shared_mutex m_textureMutex;
 
 	bool m_sharedResourceTexturesCreated[kMaxPaintElements];
-	
-	bool m_pendingTextureCreation[kMaxPaintElements];
 public:
 	inline int GetWidth() const { return m_width; }
 	inline int GetHeight() const { return m_height; }

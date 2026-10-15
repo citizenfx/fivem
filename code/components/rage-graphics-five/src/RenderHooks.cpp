@@ -768,6 +768,8 @@ void WrapCreateBackbuffer(void* tf)
 
 	g_lastBackbufTexture = NULL;
 
+	OnBackbufferCreation();
+
 	g_origCreateBackbuffer(tf);
 
 	trace("Done creating backbuffer.\n");
