@@ -18,11 +18,16 @@ void NUIWindowManager::AddWindow(NUIWindow* window)
 
 void NUIWindowManager::ForAllWindows(std::function<void(fwRefContainer<NUIWindow>)> callback)
 {
-	decltype(m_nuiWindows) windowsCopy;
+	// This runs from render/frame hot paths. Reuse the snapshot allocation per
+	// thread instead of allocating a new vector every frame, while still keeping
+	// callbacks outside the manager lock so window creation/destruction cannot
+	// deadlock the iteration.
+	thread_local decltype(m_nuiWindows) windowsCopy;
+	windowsCopy.clear();
 
 	{
 		auto lock = std::unique_lock<std::mutex>(m_nuiWindowMutex);
-		windowsCopy = m_nuiWindows;
+		windowsCopy.assign(m_nuiWindows.begin(), m_nuiWindows.end());
 	}
 
 	for (auto& window : windowsCopy)
