@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <string.h>
 #undef min
 #undef max
 
@@ -99,9 +100,7 @@ public:
 
 	MumbleCrypto()
 	{
-		memset(m_key.data(), 0, AES_BLOCK_SIZE);
-		memset(m_clientNonce.data(), 0, AES_BLOCK_SIZE);
-		memset(m_serverNonce.data(), 0, AES_BLOCK_SIZE);
+		Reset();
 	}
 private:
 	std::array<uint8_t, 16> m_key;
@@ -110,13 +109,35 @@ private:
 
 	bool m_init;
 
-	uint8_t m_decryptHistory[0x100];
+	uint8_t m_decryptHistory[0x100]{};
 
 	std::unique_ptr<Botan::BlockCipher> m_cipher;
 
 private:
 	void OCBEncrypt(const unsigned char *plain, unsigned char *encrypted, unsigned int len, const unsigned char *nonce, unsigned char *tag);
 	void OCBDecrypt(const unsigned char *encrypted, unsigned char *plain, unsigned int len, const unsigned char *nonce, unsigned char *tag);
+
+public:
+	void Reset()
+	{
+		m_init = false;
+		memset(m_key.data(), 0, AES_BLOCK_SIZE);
+		memset(m_clientNonce.data(), 0, AES_BLOCK_SIZE);
+		memset(m_serverNonce.data(), 0, AES_BLOCK_SIZE);
+		memset(m_decryptHistory, 0, sizeof(m_decryptHistory));
+
+		m_remoteGood = 0;
+		m_remoteLate = 0;
+		m_remoteLost = 0;
+		m_remoteResync = 0;
+
+		m_localGood = 0;
+		m_localLate = 0;
+		m_localLost = 0;
+		m_localResync = 0;
+
+		m_lastGoodUdp = {};
+	}
 };
 
 class MumbleClient : public IMumbleClient, public Botan::TLS::Callbacks
@@ -294,6 +315,42 @@ public:
 	void HandleVoice(const uint8_t* data, size_t size);
 
 	void HandleUDP(const uint8_t* buf, size_t size);
+
+	void Reset()
+	{
+		m_tcpPingAverage = 0.0;
+		m_tcpPingVariance = 0.0;
+
+		m_tcpPingCount = 0;
+		memset(m_tcpPings, 0, sizeof(m_tcpPings));
+
+		m_udpPingAverage = 0.0;
+		m_udpPingVariance = 0.0;
+
+		m_udpPingCount = 0;
+		memset(m_udpPings, 0, sizeof(m_udpPings));
+
+		m_inFlightTcpPings = 0;
+
+		m_hasUdp = false;
+
+		m_udpTimedOut = false;
+
+		if (m_curManualChannel.empty())
+		{
+			m_curManualChannel = "Root";
+		}
+		else
+		{
+			m_lastManualChannel = "Root";
+		}
+
+		m_curChannelListens.clear();
+		m_lastChannelListens.clear();
+		m_pendingVoiceTargetUpdates.clear();
+
+		m_crypto.Reset();
+	}
 
 	// Botan::TLS::Callbacks
 public:

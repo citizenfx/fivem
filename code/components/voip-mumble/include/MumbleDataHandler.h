@@ -11,6 +11,13 @@
 #include <MumbleMessageHandler.h>
 #include <WS2tcpip.h>
 
+enum IncomingDataFailReason : uint8_t {
+	Success = 0,
+	InvalidHeader = 1,
+	
+	InvalidMessageSize = 5
+};
+
 class MumbleDataHandler
 {
 private:
@@ -27,5 +34,5 @@ private:
 public:
 	void Reset();
 
-	void HandleIncomingData(const uint8_t* data, size_t length);
+	IncomingDataFailReason HandleIncomingData(const uint8_t* data, size_t length);
 };
