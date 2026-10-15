@@ -119,6 +119,13 @@ public:
 	void AddResourceHandledEvent(const std::string& resourceName, const std::string& eventName);
 
 	//
+	// An event to observe which events resources subscribe to, so that expensive event sources
+	// can cache whether producing an event is worth it.
+	// Arguments: eventName, resourceName
+	//
+	fwEvent<const std::string&, const std::string&> OnResourceHandledEvent;
+
+	//
 	// An event to handle event execution externally.
 	// Arguments: eventName, eventPayload, eventSource, eventCanceled
 	//
