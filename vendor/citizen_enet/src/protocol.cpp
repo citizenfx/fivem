@@ -1529,12 +1529,9 @@ enet_protocol_send_reliable_outgoing_commands (ENetHost * host, ENetPeer * peer)
                  channel -> usedReliableWindows & ((((1 << ENET_PEER_FREE_RELIABLE_WINDOWS) - 1) << reliableWindow) | 
                    (((1 << ENET_PEER_FREE_RELIABLE_WINDOWS) - 1) >> (ENET_PEER_RELIABLE_WINDOWS - reliableWindow)))))
              windowWrap = 1;
+          // #CFXCHANGE: stop at a full window, walking the rest of the queue on every send pass is quadratic
           if (windowWrap)
-          {
-             currentCommand = enet_list_next (currentCommand);
- 
-             continue;
-          }
+             break;
        }
  
        if (outgoingCommand -> packet != NULL)
@@ -1547,11 +1544,7 @@ enet_protocol_send_reliable_outgoing_commands (ENetHost * host, ENetPeer * peer)
                windowExceeded = 1;
           }
           if (windowExceeded)
-          {
-             currentCommand = enet_list_next (currentCommand);
-
-             continue;
-          }
+             break;
        }
 
        canPing = 0;
