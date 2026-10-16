@@ -292,7 +292,7 @@ public:
 
 		responseBuffer.Seek(writer.GetOffset());
 
-		client->SendPacket(1, responseBuffer);
+		client->SendPacket(1, responseBuffer, NetPacketType_UnreliableFragment);
 	}
 
 	bool LimitEvent(const int source) override

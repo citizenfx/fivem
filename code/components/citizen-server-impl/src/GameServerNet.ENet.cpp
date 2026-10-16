@@ -486,7 +486,7 @@ namespace fx
 			}
 
 			// fewer allocations!!
-			auto flags = ENET_PACKET_FLAG_NO_ALLOCATE | ((type == NetPacketType_Reliable) ? ENET_PACKET_FLAG_RELIABLE : (ENetPacketFlag)0);
+			auto flags = ENET_PACKET_FLAG_NO_ALLOCATE | ((type == NetPacketType_Reliable) ? ENET_PACKET_FLAG_RELIABLE : (ENetPacketFlag)0) | ((type == NetPacketType_UnreliableFragment) ? ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT : (ENetPacketFlag)0);
 			auto packet = enet_packet_create(bufferBytes, bufferLength, flags);
 
 			using NetBufferSharedPtr = std::shared_ptr<std::vector<uint8_t>>;
