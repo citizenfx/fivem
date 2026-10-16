@@ -32,6 +32,7 @@
 #include <CrossBuildRuntime.h>
 
 #include <CustomRtti.h>
+#include <Streaming.h>
 
 #if __has_include(<StatusText.h>)
 #include <StatusText.h>
@@ -727,25 +728,6 @@ static std::vector<std::string> g_defaultMetas;
 static std::vector<std::string> g_gtxdFiles;
 static std::vector<std::pair<std::string, std::string>> g_dataFiles;
 static std::vector<std::pair<std::string, std::string>> g_loadedDataFiles;
-
-class CDataFileMgr
-{
-public:
-	struct DataFile
-	{
-		char name[128];
-		char pad[16]; // 128
-		int32_t type; // 140
-		int32_t index; // 148
-		bool locked; // 152
-		bool flag2; // 153
-		bool flag3; // 154
-		bool disabled; // 155
-		bool persistent; // 156
-		bool overlay;
-		char pad2[10];
-	};
-};
 
 namespace DataFileType
 {
