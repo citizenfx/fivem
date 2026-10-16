@@ -399,15 +399,13 @@ public:
 			return true;
 		}
 
-		std::vector<TFunc> snapshot;
-		for (auto cb = m_callbacks.get(); cb; cb = cb->next.get())
-		{
-			snapshot.emplace_back(cb->function);
-		}
+		decltype(m_callbacks.get()) next = {};
 
-		for (auto& fn : snapshot)
+		for (auto cb = m_callbacks.get(); cb; cb = next)
 		{
-			if (!std::invoke(fn, args...))
+			next = cb->next.get();
+
+			if (!std::invoke(cb->function, args...))
 			{
 				return false;
 			}
