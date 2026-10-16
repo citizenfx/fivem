@@ -14,7 +14,6 @@ public:
 	{
 		using namespace std::chrono_literals;
 
-		// high resolution waitable timers are only supported from Windows 10 1803 onwards
 		m_timer = CreateWaitableTimerExW(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
 		m_spinTime = 1ms;
 
@@ -49,7 +48,6 @@ public:
 		const auto frameTime = std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(1.0 / fpsLimit));
 		const auto now = Clock::now();
 
-		// a deadline set by a previous (lower) limit, or before the limit got disabled, shouldn't delay this frame
 		m_nextFrame = std::min(m_nextFrame, now + frameTime);
 
 		if (now >= m_nextFrame)
@@ -86,7 +84,6 @@ private:
 	{
 		using namespace std::chrono_literals;
 
-		// follow increases right away as they make us miss the deadline, but decreases slowly
 		const auto target = std::clamp<Clock::duration>(wakeupLatency + 100us, 100us, 4ms);
 
 		if (target > m_spinTime)

@@ -395,7 +395,6 @@
 			</MenuDisplayOptions>
 		</Item>
 
-		<!-- unused by the game, reused for the frame rate limit (see PatchFrameRateLimit.cpp) -->
 		<Item>
 			<MenuOption>MENU_OPTION_GFX_WATER</MenuOption>
 
@@ -2210,7 +2209,6 @@
 
 		<Item> <cTextId>GFX_TXAA</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_TXAA</MenuPref> 					<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ALL*,GFX_SUPPORT_TXAA</Contexts> </Item>
 				<Item> <cTextId>VID_VSYNC</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_VSYNC</MenuPref> 				<MenuOption>MENU_OPTION_VID_VSYNC</MenuOption>			<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
-				<!-- unused by the game, reused for the frame rate limit (see PatchFrameRateLimit.cpp) -->
 				<Item> <cTextId>CFX_FPS_LIMIT</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_STEREO_SEPARATION</MenuPref>		<MenuOption>MENU_OPTION_GFX_WATER</MenuOption>			<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>MO_STER</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_STEREO</MenuPref>				<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ANY*,VID_STEREO</Contexts></Item>
 				<!--<Item> <cTextId>STE_SEPAR</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_STEREO_SEPARATION</MenuPref>		<MenuOption>MENU_OPTION_SLIDER</MenuOption>				<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ANY*,VID_STEREO</Contexts></Item>-->

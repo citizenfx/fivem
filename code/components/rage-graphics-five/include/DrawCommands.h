@@ -180,7 +180,6 @@ uint32_t GFXSPEC_EXPORT GetStockStateIdentifier(StateType state);
 
 void GFXSPEC_EXPORT GfxForceVsync(bool enabled);
 
-// refresh rate divided by the sync interval, 0 if vsync is off
 int GFXSPEC_EXPORT GfxGetVsyncFrameRate();
 
 void GFXSPEC_EXPORT SetWorldMatrix(const float* matrix);
