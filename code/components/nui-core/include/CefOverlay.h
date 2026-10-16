@@ -386,6 +386,10 @@ namespace nui
 
 	void OVERLAY_DECL PostRootMessage(const std::string& jsonData);
 
+	void OVERLAY_DECL SetHandoverData(const std::string& jsonData);
+
+	void OVERLAY_DECL SetServerAddress(const std::string& serverAddress);
+
 #ifdef WANT_CEF_INTERNALS
 	OVERLAY_DECL CefBrowser* GetBrowser();
 

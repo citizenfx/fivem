@@ -21,6 +21,7 @@
 /// "epoxy" provides backwards compatability for behaviour/functions/features that have changed as a result of a newer CEF/Chromium version
 /// Currently consisting of:
 /// GetParentResourceName/window.GetParentResourceName
+/// nuiHandoverData compatability
 /// application/x-cfx-game-view
 /// 
 static std::string g_epoxyScript = R"(
@@ -29,6 +30,20 @@ GetParentResourceName = function()
   return "%s";
 }
 window.GetParentResourceName = GetParentResourceName;
+
+if (GetParentResourceName() == "loadingScreen")
+{
+	let handoverBlob = %s;
+	try
+	{
+		window.nuiHandoverData = handoverBlob ? JSON.parse(handoverBlob) : {};
+	} 
+    catch(e)
+    {
+		window.nuiHandoverData = {}
+    }
+	window.nuiHandoverData.serverAddress = "%s";
+}
 
 // Epoxy handling
 registerEpoxyHandler(function(type, data)
@@ -39,9 +54,6 @@ registerEpoxyHandler(function(type, data)
 			break;
 		case "denyRefocus":
             shouldNotifyBlur = false;
-            break;
-        case "setHandoverData":
-            window.nuiHandoverData = data.handoverData;
             break;
 	}
 });

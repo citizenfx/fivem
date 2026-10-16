@@ -317,8 +317,9 @@ namespace nui
 			}
 			else
 			{
+				bool useRoot = (type == "rootCall" || type == "setHandoverData" || type == "setServerAddress");
 				std::unique_lock _(g_processMessageQueueMutex);
-				g_processMessageQueue[(type != "rootCall") ? argumentList->GetString(0) : "__root"].push_back(processMessage);
+				g_processMessageQueue[useRoot ? "__root" : argumentList->GetString(0)].push_back(processMessage);
 			}
 		});
 
@@ -328,6 +329,16 @@ namespace nui
 	__declspec(dllexport) void PostRootMessage(const std::string& jsonData)
 	{
 		PostJSEvent("rootCall", { jsonData });
+	}
+
+	__declspec(dllexport) void SetHandoverData(const std::string& jsonData)
+	{
+		PostJSEvent("setHandoverData", { jsonData });
+	}
+
+	__declspec(dllexport) void SetServerAddress(const std::string& serverAddress)
+	{
+		PostJSEvent("setServerAddress", { serverAddress });
 	}
 
 	DLL_EXPORT void PostFrameMessage(const std::string& frame, const std::string& jsonData)

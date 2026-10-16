@@ -615,8 +615,7 @@ static InitFunction initFunction([] ()
 		netLibrary->OnConnectOKReceived.Connect([](NetAddress)
 		{
 			auto peerAddress = netLibrary->GetCurrentPeer().ToString();
-
-			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
+			nui::SetServerAddress(peerAddress);
 		});
 
 		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel, std::wstring poolSizesIncreaseSetting, int defaultBuild)
