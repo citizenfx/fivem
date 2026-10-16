@@ -9,11 +9,17 @@
 #include <mono/metadata/exception.h>
 #include <mono/metadata/mono-debug.h>
 #include <mono/metadata/mono-gc.h>
+#include <mono/metadata/image.h>
 
 #ifndef IS_FXSERVER
 extern "C" {
 #include <mono/metadata/security-core-clr.h>
 }
+#endif
+
+#if !defined(IS_FXSERVER) && defined(_WIN32)
+#include <cerrno>
+#include <MinHook.h>
 #endif
 
 #ifdef _WIN32
@@ -65,6 +71,126 @@ extern "C" void mono_handle_native_crash_nop(const char* signal, void* sigctx, v
 }
 #endif
 
+#if !defined(IS_FXSERVER) && defined(_WIN32)
+// Keep this rule in sync with audit/path_gate.py.
+// Resolve the path, then prefix-match. Do not stat or open the target.
+static bool IsAllowedClientAssemblyPath(const char* fname)
+{
+	if (!fname || !fname[0])
+	{
+		return false;
+	}
+
+	wchar_t fullPath[MAX_PATH];
+	if (GetFullPathNameW(ToWide(fname).c_str(), _countof(fullPath), fullPath, nullptr) == 0)
+	{
+		return false;
+	}
+
+	std::wstring root = GetAbsoluteCitPath();
+	if (root.empty())
+	{
+		return false;
+	}
+
+	if (root.back() != L'\\' && root.back() != L'/')
+	{
+		root.push_back(L'\\');
+	}
+
+	return _wcsnicmp(fullPath, root.c_str(), root.size()) == 0;
+}
+
+static void DenyAssemblyPath(MonoImageOpenStatus* status)
+{
+	if (status)
+	{
+		*status = MONO_IMAGE_ERROR_ERRNO;
+	}
+
+	errno = ENOENT;
+}
+
+static MonoImage* (*g_origImageOpen)(const char*, MonoImageOpenStatus*);
+static MonoImage* (*g_origImageOpenFull)(const char*, MonoImageOpenStatus*, mono_bool);
+static MonoImage* (*g_origPeFileOpen)(const char*, MonoImageOpenStatus*);
+static MonoAssembly* (*g_origAssemblyOpen)(const char*, MonoImageOpenStatus*);
+static MonoAssembly* (*g_origAssemblyOpenFull)(const char*, MonoImageOpenStatus*, mono_bool);
+
+static MonoImage* GateImageOpen(const char* fname, MonoImageOpenStatus* status)
+{
+	if (!IsAllowedClientAssemblyPath(fname))
+	{
+		DenyAssemblyPath(status);
+		return nullptr;
+	}
+
+	return g_origImageOpen(fname, status);
+}
+
+static MonoImage* GateImageOpenFull(const char* fname, MonoImageOpenStatus* status, mono_bool refonly)
+{
+	if (!IsAllowedClientAssemblyPath(fname))
+	{
+		DenyAssemblyPath(status);
+		return nullptr;
+	}
+
+	return g_origImageOpenFull(fname, status, refonly);
+}
+
+static MonoImage* GatePeFileOpen(const char* fname, MonoImageOpenStatus* status)
+{
+	if (!IsAllowedClientAssemblyPath(fname))
+	{
+		DenyAssemblyPath(status);
+		return nullptr;
+	}
+
+	return g_origPeFileOpen(fname, status);
+}
+
+static MonoAssembly* GateAssemblyOpen(const char* fname, MonoImageOpenStatus* status)
+{
+	if (!IsAllowedClientAssemblyPath(fname))
+	{
+		DenyAssemblyPath(status);
+		return nullptr;
+	}
+
+	return g_origAssemblyOpen(fname, status);
+}
+
+static MonoAssembly* GateAssemblyOpenFull(const char* fname, MonoImageOpenStatus* status, mono_bool refonly)
+{
+	if (!IsAllowedClientAssemblyPath(fname))
+	{
+		DenyAssemblyPath(status);
+		return nullptr;
+	}
+
+	return g_origAssemblyOpenFull(fname, status, refonly);
+}
+
+static void InstallClientAssemblyPathGate()
+{
+	static bool installed = false;
+	if (installed)
+	{
+		return;
+	}
+
+	installed = true;
+	MH_Initialize();
+	MH_CreateHook(reinterpret_cast<void*>(mono_image_open), reinterpret_cast<void*>(GateImageOpen), reinterpret_cast<void**>(&g_origImageOpen));
+	MH_CreateHook(reinterpret_cast<void*>(mono_image_open_full), reinterpret_cast<void*>(GateImageOpenFull), reinterpret_cast<void**>(&g_origImageOpenFull));
+	MH_CreateHook(reinterpret_cast<void*>(mono_pe_file_open), reinterpret_cast<void*>(GatePeFileOpen), reinterpret_cast<void**>(&g_origPeFileOpen));
+	MH_CreateHook(reinterpret_cast<void*>(mono_assembly_open), reinterpret_cast<void*>(GateAssemblyOpen), reinterpret_cast<void**>(&g_origAssemblyOpen));
+	MH_CreateHook(reinterpret_cast<void*>(mono_assembly_open_full), reinterpret_cast<void*>(GateAssemblyOpenFull), reinterpret_cast<void**>(&g_origAssemblyOpenFull));
+	MH_EnableHook(MH_ALL_HOOKS);
+}
+#endif
+
 void MonoComponentHostShared::Initialize()
 {
 	// TODO: remove this particular mutex lock
@@ -98,8 +224,16 @@ void MonoComponentHostShared::Initialize()
 
 #ifndef IS_FXSERVER
 		mono_security_enable_core_clr();
-		mono_security_core_clr_set_options((MonoSecurityCoreCLROptions)(MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_DELEGATE | MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_REFLECTION));
+		// RELAX_DELEGATE stays. BaseScript [Tick]/events and Newtonsoft need CreateDelegate.
+		// Taking it out is what broke scripts in #3138.
+		// RELAX_REFLECTION is extra attack surface for other Critical APIs. It is not
+		// what makes Assembly.LoadFrom callable; that method is SecuritySafeCritical
+		// in the shipped mscorlib. The path gate below is what stops the disk probe.
+		mono_security_core_clr_set_options((MonoSecurityCoreCLROptions)(MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_DELEGATE));
 		mono_security_set_core_clr_platform_callback(CoreCLRIsTrustedCode);
+#ifdef _WIN32
+		InstallClientAssemblyPathGate();
+#endif
 
 		mono_profiler_install(&s_monoProfiler, ProfilerShutDown);
 		mono_profiler_install_gc(gc_event, gc_resize);
