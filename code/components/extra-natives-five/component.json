@@ -15,7 +15,10 @@
 		"net",
 		"voip:mumble",
 		"vendor:directxtex",
-		"vendor:im3d"
+		"vendor:im3d",
+		"citizen:legacy-net:resources",
+		"gta:net:five",
+		"vendor:tinyxml2-dll"
 	],
 	"provides": []
 }
