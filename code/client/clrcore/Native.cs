@@ -23,9 +23,36 @@ namespace CitizenFX.Core.Native
             InvokeInternal(hash, typeof(void), arguments);
         }
 
-		private static unsafe object InvokeInternal(Hash nativeHash, Type returnType, InputArgument[] args)
+		/// <summary>
+		/// Like <see cref="Call{T}(Hash, InputArgument[])"/>, but skips <see cref="PointerArgumentSafety.CheckArguments"/>.
+		/// Only for CitizenFX.Core itself, when it passes pointers to buffers it pinned on its own
+		/// (e.g. the serialized event payload in <see cref="BaseScript"/>). Never expose this to user scripts.
+		/// </summary>
+		internal static T CallUnchecked<T>(Hash hash, params InputArgument[] arguments)
 		{
-			PointerArgumentSafety.CheckArguments((ulong)nativeHash, args);
+			object obj = InvokeInternal(hash, typeof(T), arguments, checkPointerArguments: false);
+
+			if (PointerArgumentSafety.ShouldClean((ulong)hash, typeof(T)))
+			{
+				return default;
+			}
+
+			return (T)obj;
+		}
+
+		/// <inheritdoc cref="CallUnchecked{T}(Hash, InputArgument[])"/>
+		internal static void CallUnchecked(Hash hash, params InputArgument[] arguments)
+		{
+			InvokeInternal(hash, typeof(void), arguments, checkPointerArguments: false);
+		}
+
+		private static unsafe object InvokeInternal(Hash nativeHash, Type returnType, InputArgument[] args, bool checkPointerArguments = true)
+		{
+			if (checkPointerArguments)
+			{
+				PointerArgumentSafety.CheckArguments((ulong)nativeHash, args);
+			}
+
 			ScriptContext.Reset();
 
 			foreach (var arg in args)
