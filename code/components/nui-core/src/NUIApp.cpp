@@ -219,7 +219,6 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 		command_line->AppendSwitch("disable-direct-composition");
 	}
 	command_line->AppendSwitch("ignore-gpu-blocklist");
-	command_line->AppendSwitch("disable-gpu-driver-bug-workarounds");
 	command_line->AppendSwitch("enable-gpu-rasterization");
 	command_line->AppendSwitch("disable-gpu-process-crash-limit");
 	// some GPUs are in the GPU blacklist as 'forcing D3D9'

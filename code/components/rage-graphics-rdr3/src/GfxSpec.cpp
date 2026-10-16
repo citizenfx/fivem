@@ -620,6 +620,41 @@ GraphicsContext* GraphicsContext::GetCurrent()
 }
 }
 
+struct DX12HeapList
+{
+	char pad[8];
+	uint64_t m_descHandles;
+	char pad1[8];
+	int32_t* m_data;
+	int32_t m_head;
+	int32_t m_incrementSize;
+	char pad2[4];
+};
+
+static DX12HeapList* g_dx12HeapList;
+static LPCRITICAL_SECTION g_dx12HeapCrit;
+
+namespace rage::sga::extensions
+{
+void GFX_EXPORT rage::sga::extensions::DestroyShaderResourceViewDX(uint64_t handle)
+{
+	int32_t slot = (handle - g_dx12HeapList->m_descHandles) / g_dx12HeapList->m_incrementSize;
+	if (g_dx12HeapCrit->DebugInfo)
+	{
+		EnterCriticalSection(g_dx12HeapCrit);
+	}
+
+	g_dx12HeapList->m_data[slot] = g_dx12HeapList->m_head;
+	g_dx12HeapList->m_head = slot;
+
+	if (g_dx12HeapCrit->DebugInfo)
+	{
+		LeaveCriticalSection(g_dx12HeapCrit);
+	}
+	return;
+}
+}
+
 static hook::thiscall_stub<int(rage::sga::ext::DynamicResource*)> _dynamicResource_GetResourceIdx([]()
 {
 	return hook::get_call(hook::get_pattern("0F B7 56 6A 8B C0 4C 8B 04 C3 65", -5));
@@ -757,6 +792,9 @@ static HookFunction hookFunction([]()
 	g_d3d12Device = hook::get_address<decltype(g_d3d12Device)>(hook::get_pattern("48 8B 01 FF 50 78 48 8B 0B 48 8D", -7));
 	g_vkHandle = hook::get_address<decltype(g_vkHandle)>(hook::get_pattern("8D 50 41 8B CA 44 8B C2 F3 48 AB 48 8B 0D", 14));
 	g_vkPhysicalDevice = hook::get_address<decltype(g_vkPhysicalDevice)>(hook::get_pattern("48 8B 0D ? ? ? ? 45 33 C9 83 65", 3));
+
+	g_dx12HeapCrit = hook::get_address<RTL_CRITICAL_SECTION*>(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 8B 1D ? ? ? ? 48 8D 0D ? ? ? ? 48 8B 05 ? ? ? ? 8B 14 98 89 15 ? ? ? ? E8 ? ? ? ? 0F AF 1D", 3));
+	g_dx12HeapList = hook::get_address<DX12HeapList*>(hook::get_pattern("48 8D 0D ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 45 33 C9 44 88 64 24", 3));
 
 	{
 		auto location = hook::get_pattern<char>("83 25 ? ? ? ? 00 83 25 ? ? ? ? 00 D1 F8 89 05", -0x26);
