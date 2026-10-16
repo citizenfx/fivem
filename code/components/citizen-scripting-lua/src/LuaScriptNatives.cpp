@@ -354,7 +354,7 @@ int Lua_GetNativeHandler(lua_State* L)
 {
 	uint64_t hash = lua_tointeger(L, 1); // TODO: Use luaL_checkinteger
 
-	// TOOD: Store the handler pointer directly? Not sure if we can trust userdata
+	// TODO: Store the handler pointer directly? Not sure if we can trust userdata
 	size_t index = ScriptNativeHandler::FromHash(hash).cache_index;
 	lua_pushinteger(L, index);
 
