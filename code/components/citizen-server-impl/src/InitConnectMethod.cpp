@@ -49,6 +49,8 @@
 
 #include <utf8.h>
 
+#include <PlayerName.h>
+
 #include "NetBitVersion.h"
 
 #include <HttpClient.h>
@@ -611,27 +613,11 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			// limit name length
-			if (name.length() >= 200)
+			// limit name length and replace invalid UTF8 sequences in name
+			if (!fx::NormalizePlayerName(name))
 			{
-				name = name.substr(0, 200);
-			}
-
-			// replace invalid UTF8 sequences in name
-			{
-				std::string validName;
-
-				try
-				{
-					utf8::replace_invalid(name.begin(), name.end(), std::back_inserter(validName));
-				}
-				catch (std::exception& e)
-				{
-					sendError("Parsing name failed.");
-					return;
-				}
-
-				name = validName;
+				sendError("Parsing name failed.");
+				return;
 			}
 
 			TicketData ticketData;
