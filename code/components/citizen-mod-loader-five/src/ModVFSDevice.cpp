@@ -158,6 +158,9 @@ public:
 
 	bool Flush(THandle handle) override;
 
+	// 'mp_m_freemode_01/head_000_r.ydd' -> 'mp_m_freemode_01^head_000_r.ydd'
+	static std::string StreamName(std::string tgtFile);
+
 private:
 	std::string MapFileName(const std::string& fn);
 
@@ -233,8 +236,20 @@ ModVFSDevice::ModVFSDevice(const std::shared_ptr<ModPackage>& package)
 			{
 				m_entries["common/" + tgtFile] = srcFile;
 			}
+			else if (entry.archiveRoots.size() >= 2 && tgtFile.find('/') != std::string::npos)
+			{
+				// subdir entry in a streaming rpf (e.g. mp_m_freemode_01/head_000_r.ydd): the game slot
+				// is dir-prefixed, so expose it under the dir^file name the streaming loader maps back
+				m_entries["stream/" + StreamName(tgtFile)] = srcFile;
+			}
 		}
 	}
+}
+
+std::string ModVFSDevice::StreamName(std::string tgtFile)
+{
+	std::replace(tgtFile.begin(), tgtFile.end(), '/', '^');
+	return tgtFile;
 }
 
 bool ModVFSDevice::ShouldMountCommon()
@@ -423,18 +438,21 @@ void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
 			// if only one path is there, as well
 			auto slashCount = std::count(tgtFile.begin(), tgtFile.end(), '/');
 
-			if (slashCount == 0 || isCoreTexture)
+			// probably a streaming file
+			std::string fn = modPackage->GetRootPath() + "content/" + entry.sourceFile;
+			std::replace(fn.begin(), fn.end(), '\\', '/');
+
+			GetRagePageFlagsExtension data;
+			data.fileName = fn.c_str();
+			parentDevice->ExtensionCtl(VFS_GET_RAGE_PAGE_FLAGS, &data, sizeof(data));
+
+			if (slashCount > 0 && !isCoreTexture)
 			{
-				// probably a streaming file
-				std::string fn = modPackage->GetRootPath() + "content/" + entry.sourceFile;
-				std::replace(fn.begin(), fn.end(), '\\', '/');
-
-				GetRagePageFlagsExtension data;
-				data.fileName = fn.c_str();
-				parentDevice->ExtensionCtl(VFS_GET_RAGE_PAGE_FLAGS, &data, sizeof(data));
-
-				CfxCollection_AddStreamingFileByTag("mod_" + modPackage->GetGuidString(), fn, data.flags);
+				// subdir entry: register the dir^file name mapped by ModVFSDevice so the slot name keeps its directory
+				fn = fmt::sprintf("modVfs_%s:/stream/%s", modPackage->GetGuidString(), ModVFSDevice::StreamName(tgtFile));
 			}
+
+			CfxCollection_AddStreamingFileByTag("mod_" + modPackage->GetGuidString(), fn, data.flags);
 		}
 	}
 
