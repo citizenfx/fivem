@@ -286,11 +286,11 @@ static void ConnectTo(const std::string& hostnameStr, bool fromUI = false, const
 
 	if (!hostnameStr.empty() && hostnameStr[0] == '-')
 	{
-		netLibrary->ConnectToServer("cfx.re/join/" + hostnameStr.substr(1));
+		netLibrary->PrecheckServer("cfx.re/join/" + hostnameStr.substr(1));
 	}
 	else
 	{
-		netLibrary->ConnectToServer(hostnameStr);
+		netLibrary->PrecheckServer(hostnameStr);
 	}
 }
 
