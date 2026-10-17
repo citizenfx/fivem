@@ -1,6 +1,9 @@
 #include <StdInc.h>
 
-#if __has_include(<EntitySystem.h>) && defined(GTA_FIVE)
+// The entity extension container exists on both games; only the vtable slot of the id accessor
+// differs (see each component's EntitySystem.h), so the implementation below is shared and the
+// bag is released together with the entity.
+#if __has_include(<EntitySystem.h>) && (defined(GTA_FIVE) || defined(IS_RDR3))
 #include <ResourceManager.h>
 #include <StateBagComponent.h>
 #include <EntitySystem.h>
