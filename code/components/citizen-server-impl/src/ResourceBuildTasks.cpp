@@ -1,5 +1,7 @@
 #include "StdInc.h"
 
+#include <set>
+
 #include <ResourceManager.h>
 #include <ResourceEventComponent.h>
 #include <ResourceMetaDataComponent.h>
@@ -119,21 +121,43 @@ static void UnregisterBuildTaskFactory(const std::string& id)
 	buildTaskFactories.erase(id);
 }
 
-template<typename TIterator>
-static void TriggerBuildSequence(Resource* resource, TIterator first, TIterator last)
+struct BuildMap : public fwRefCountable
 {
-	if (first != last)
+	std::vector<std::shared_ptr<BuildTaskProvider>> buildingProviders;
+};
+
+// resources with a build sequence in flight
+//
+// every start attempt runs a build check, so a resource can get a second one while it's still building (a dependency
+// cascade will do this). that second check must not start another sequence: the running one restarts the resource
+// once it's done.
+static std::set<Resource*> g_buildingResources;
+static std::mutex g_buildingResourcesMutex;
+
+static void FinishBuildSequence(Resource* resource)
+{
+	std::lock_guard lock(g_buildingResourcesMutex);
+	g_buildingResources.erase(resource);
+}
+
+// the build map is passed along by reference so the provider list outlives the sequence walking it, no matter what
+// happens to the component on the resource itself
+static void TriggerBuildSequence(Resource* resource, const fwRefContainer<BuildMap>& buildMap, size_t index)
+{
+	if (index < buildMap->buildingProviders.size())
 	{
-		std::shared_ptr<BuildTaskProvider> provider = (*first);
-		provider->Build(resource->GetName(), [resource, first, last](bool success, const std::string& result)
+		std::shared_ptr<BuildTaskProvider> provider = buildMap->buildingProviders[index];
+		provider->Build(resource->GetName(), [resource, buildMap, index](bool success, const std::string& result)
 		{
 			if (success)
 			{
 				// if succeeded, continue iteration
-				TriggerBuildSequence(resource, first + 1, last);
+				TriggerBuildSequence(resource, buildMap, index + 1);
 			}
 			else
 			{
+				FinishBuildSequence(resource);
+
 				trace("Building resource %s failed.\n", resource->GetName());
 				trace("Error data: %s\n", result);
 			}
@@ -141,6 +165,8 @@ static void TriggerBuildSequence(Resource* resource, TIterator first, TIterator 
 	}
 	else
 	{
+		FinishBuildSequence(resource);
+
 		// at the end, try to start the resource again
 		trace("Build tasks completed - starting resource %s.\n", resource->GetName());
 
@@ -148,13 +174,18 @@ static void TriggerBuildSequence(Resource* resource, TIterator first, TIterator 
 	}
 }
 
-struct BuildMap : public fwRefCountable
-{
-	std::vector<std::shared_ptr<BuildTaskProvider>> buildingProviders;
-};
-
 static bool TriggerBuild(Resource* resource)
 {
+	{
+		std::lock_guard lock(g_buildingResourcesMutex);
+
+		if (g_buildingResources.find(resource) != g_buildingResources.end())
+		{
+			// already building, don't start the resource yet
+			return false;
+		}
+	}
+
 	// gather providers
 	std::vector<std::shared_ptr<BuildTaskProvider>> providers;
 
@@ -187,13 +218,18 @@ static bool TriggerBuild(Resource* resource)
 
 	trace("Running build tasks on resource %s - it'll restart once completed.\n", resource->GetName());
 
-	resource->SetComponent(new BuildMap());
+	{
+		std::lock_guard lock(g_buildingResourcesMutex);
+		g_buildingResources.insert(resource);
+	}
 
-	auto buildMap = resource->GetComponent<BuildMap>();
+	fwRefContainer<BuildMap> buildMap = new BuildMap();
 	buildMap->buildingProviders = std::move(buildingProviders);
 
+	resource->SetComponent(buildMap);
+
 	// kick off a build sequence
-	TriggerBuildSequence(resource, std::begin(buildMap->buildingProviders), std::end(buildMap->buildingProviders));
+	TriggerBuildSequence(resource, buildMap, 0);
 
 	return false;
 }
