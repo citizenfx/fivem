@@ -972,14 +972,81 @@ static InitFunction initFunction([]()
 
 		if (ImGui::Begin("Loaded pgRawStreamer assets", &m_enabledPgRawStreamerStats))
 		{
+			auto streamers = streaming::GetRawStreamerInfos();
+
+			// with bucket streamers, add a summary + selector
+			static int selectedStreamer = 0;
+			bool multiStreamer = streamers.size() > 1;
+
+			if (multiStreamer)
+			{
+				uint32_t grandTotal = 0;
+				for (auto& s : streamers)
+				{
+					grandTotal += s.count;
+				}
+				ImGui::LabelText("Assets total", "%u across %d streamer(s)", grandTotal, (int)streamers.size());
+
+				ImGuiTableFlags summaryFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY;
+				if (ImGui::BeginTable("Streamers", 3, summaryFlags, ImVec2(0, 120)))
+				{
+					ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 40);
+					ImGui::TableSetupColumn("Streamer", ImGuiTableColumnFlags_WidthStretch);
+					ImGui::TableSetupColumn("Assets", ImGuiTableColumnFlags_WidthFixed, 120);
+					ImGui::TableHeadersRow();
+
+					for (auto& s : streamers)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						ImGui::Text("%d", s.index);
+						ImGui::TableNextColumn();
+						ImGui::Text("%s", s.label.c_str());
+						ImGui::TableNextColumn();
+						ImGui::Text("%u/65535", s.count);
+					}
+
+					ImGui::EndTable();
+				}
+
+				std::string preview = "streamer 0";
+				for (auto& s : streamers)
+				{
+					if (s.index == selectedStreamer)
+					{
+						preview = fmt::sprintf("streamer %d (%s)", s.index, s.label);
+						break;
+					}
+				}
+
+				if (ImGui::BeginCombo("Show streamer", preview.c_str()))
+				{
+					for (auto& s : streamers)
+					{
+						std::string item = fmt::sprintf("streamer %d (%s) - %u", s.index, s.label, s.count);
+						if (ImGui::Selectable(item.c_str(), s.index == selectedStreamer))
+						{
+							selectedStreamer = s.index;
+						}
+					}
+					ImGui::EndCombo();
+				}
+			}
+			else
+			{
+				selectedStreamer = 0;
+			}
+
 			static char search[100] = "";
 			ImGui::InputText("Search", search, IM_ARRAYSIZE(search));
-			auto assets = rage::GetPgRawStreamerEntries();
+			auto assets = rage::GetPgRawStreamerEntriesByIndex((uint16_t)selectedStreamer);
 			ImGui::LabelText("Assets total", "%d/65535", assets.GetCount());
 
-			ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable;
-			if (ImGui::BeginTable("Assets", 2, tableFlags))
+			// list fills the remaining space and scrolls
+			ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable | ImGuiTableFlags_ScrollY;
+			if (ImGui::BeginTable("Assets", 2, tableFlags, ImVec2(0, 0)))
 			{
+				ImGui::TableSetupScrollFreeze(0, 1);
 				ImGui::TableSetupColumn("Asset path", ImGuiTableColumnFlags_WidthStretch);
 				ImGui::TableSetupColumn("Add timestamp", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
 				ImGui::TableHeadersRow();

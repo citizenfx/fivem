@@ -1,6 +1,9 @@
 #pragma once
 
 #include <atArray.h>
+#include <string>
+#include <utility>
+#include <vector>
 
 #if defined(COMPILING_GTA_STREAMING_FIVE) || defined(COMPILING_GTA_STREAMING_RDR3)
 #define STREAMING_EXPORT DLL_EXPORT
@@ -272,6 +275,8 @@ public:
 
 	STREAMING_EXPORT uint32_t* RegisterRawStreamingFile(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed);
 
+	STREAMING_EXPORT uint32_t* RegisterRawStreamingFileWithTag(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed, const std::string& tag);
+
 	STREAMING_EXPORT StreamingPackfileEntry* GetStreamingPackfileForEntry(StreamingDataEntry* entry);
 
 	// are we trying to shut down?
@@ -280,7 +285,19 @@ public:
 	atArray<StreamingPackfileEntry>& GetStreamingPackfileArray();
 
 	STREAMING_EXPORT int GetRawStreamerForFile(const char* fileName, rage::fiCollection** collection);
+	STREAMING_EXPORT int GetRawStreamerForFileWithTag(const char* fileName, const std::string& tag, rage::fiCollection** collection);
 	STREAMING_EXPORT rage::fiCollection* GetRawStreamerByIndex(uint16_t idx);
+
+	STREAMING_EXPORT std::vector<std::pair<std::string, int>> GetRawStreamerTagMap();
+
+	struct RawStreamerInfo
+	{
+		int index;
+		std::string label; // "game" or a bucket summary
+		uint32_t count;
+	};
+
+	STREAMING_EXPORT std::vector<RawStreamerInfo> GetRawStreamerInfos();
 
 	inline uint16_t GetCollectionIndex(uint32_t handle)
 	{
@@ -292,9 +309,11 @@ public:
 		return handle & 0xFFFF;
 	}
 
+	STREAMING_EXPORT bool IsRawStreamerCollection(uint16_t idx);
+
 	inline bool IsRawHandle(uint32_t handle)
 	{
-		return GetCollectionIndex(handle) < 2;
+		return IsRawStreamerCollection(GetCollectionIndex(handle));
 	}
 }
 
@@ -310,6 +329,7 @@ namespace rage
 namespace rage
 {
 	STREAMING_EXPORT const chunkyArray<rage::fiCollection::RawEntry, 1024, 64>& GetPgRawStreamerEntries();
+	STREAMING_EXPORT const chunkyArray<rage::fiCollection::RawEntry, 1024, 64>& GetPgRawStreamerEntriesByIndex(uint16_t idx);
 }
 
 #if 0
