@@ -3653,7 +3653,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 
 		// update all clients' lists so the system knows that this entity is valid and should not be deleted anymore
 		// (otherwise embarrassing things happen like a new player's ped having the same object ID as a pending-removed entity, and the game trying to remove it)
-		gscomms_execute_callback_on_main_thread([this, entity]()
+		gscomms_execute_callback_on_main_thread([this, entity, client]()
 		{
 			auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
 
@@ -3667,7 +3667,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			 #/
 			declare function entityCreating(handle: number): void;
 			*/
-			if (!evComponent->TriggerEvent2("entityCreating", { }, MakeScriptHandle(entity)))
+			if (!evComponent->TriggerEvent2("entityCreating", { fmt::sprintf("internal-net:%d", client->GetNetId()) }, MakeScriptHandle(entity)))
 			{
 				if (entity->type != sync::NetObjEntityType::Player)
 				{
@@ -3690,7 +3690,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			 #/
 			declare function entityCreated(handle: number): void;
 			*/
-			evComponent->QueueEvent2("entityCreated", { }, MakeScriptHandle(entity));
+			evComponent->QueueEvent2("entityCreated", { fmt::sprintf("internal-net:%d", client->GetNetId()) }, MakeScriptHandle(entity));
 		});
 	}
 	else
