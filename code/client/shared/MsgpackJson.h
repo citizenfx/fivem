@@ -3,6 +3,8 @@
 #include <msgpack.hpp>
 #include <rapidjson/document.h>
 
+#include <CoreConsole.h>
+
 inline void ConvertToMsgPack(const rapidjson::Value& json, msgpack::object& object, msgpack::zone& zone)
 {
 	switch (json.GetType())
@@ -143,35 +145,56 @@ inline void ConvertToJSON(const msgpack::object& object, rapidjson::Value& value
 
 		case msgpack::type::MAP:
 		{
-			std::map<std::string, msgpack::object> list;
+			value.SetObject();
 
 			if (object.via.map.ptr)
 			{
-				if (object.via.map.ptr->key.type == msgpack::type::STR)
+				auto p = object.via.map.ptr;
+				const auto pend = p + object.via.map.size;
+
+				for (; p < pend; ++p)
 				{
-					object.convert(list);
-				}
-				else
-				{
-					auto intList = object.as<std::map<int, msgpack::object>>();
-					for (auto& [key, value] : intList)
+					std::string key;
+
+					if (p->key.type == msgpack::type::POSITIVE_INTEGER || p->key.type == msgpack::type::NEGATIVE_INTEGER)
 					{
-						list[std::to_string(key)] = std::move(value);
+						try
+						{
+							key = std::to_string(p->key.as<int>());
+						}
+						catch (const msgpack::type_error&)
+						{
+							console::PrintError("msgpack-json", "Key out of integer range\n");
+							value.SetObject();
+							break;
+						}
 					}
+					else if (p->key.type == msgpack::type::STR || p->key.type == msgpack::type::BIN)
+					{
+						key = p->key.as<std::string>();
+					}
+					else
+					{
+						console::PrintError("msgpack-json", "Unsupported key type: %d\n", p->key.type);
+						value.SetObject();
+						break;
+					}
+
+					rapidjson::Value name;
+					name.SetString(key.c_str(), key.size(), allocator);
+
+					if (value.HasMember(name))
+					{
+						console::PrintError("msgpack-json", "Duplicate key: %s\n", key);
+						value.SetObject();
+						break;
+					}
+
+					rapidjson::Value inValue;
+					ConvertToJSON(p->val, inValue, allocator);
+
+					value.AddMember(name, inValue, allocator);
 				}
-			}
-
-			value.SetObject();
-
-			for (auto& entry : list)
-			{
-				rapidjson::Value inValue;
-				ConvertToJSON(entry.second, inValue, allocator);
-
-				rapidjson::Value name;
-				name.SetString(entry.first.c_str(), entry.first.size(), allocator);
-
-				value.AddMember(name, inValue, allocator);
 			}
 
 			break;
