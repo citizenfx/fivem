@@ -1269,6 +1269,54 @@ static HookFunction hookFunction([]()
 			}
 		}));
 
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_SELF_MUTED", MakeMumbleNative([](fx::ScriptContext& context)
+		{
+			auto muted = context.GetArgument<bool>(0);
+
+			g_mumbleClient->SetSelfMuted(muted);
+		}));
+		
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_SELF_DEAFENED", MakeMumbleNative([](fx::ScriptContext& context)
+		{
+			auto muted = context.GetArgument<bool>(0);
+
+			g_mumbleClient->SetSelfDeafened(muted);
+		}));
+
+		
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_PLAYER_MUTED_LOCALLY", MakeMumbleNative([](fx::ScriptContext& context)
+		{
+			auto playerId = context.GetArgument<int>(0);
+			auto muted = context.GetArgument<bool>(1);
+
+			if (auto playerName = getMumbleName(playerId))
+			{
+				const auto session = g_mumbleClient->GetPlayerSessionFromName(*playerName);
+				if (session != 0)
+				{
+					g_mumbleClient->MutePlayerLocally(session, muted);
+				}
+			}
+		}));
+		
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_PLAYER_MUTED_LOCALLY_BY_SERVER_ID", MakeMumbleNative([](fx::ScriptContext& context)
+		{
+			auto serverId = context.GetArgument<int>(0);
+			auto muted = context.GetArgument<bool>(1);
+
+			auto playerName = g_mumbleClient->GetPlayerNameFromServerId(serverId);
+			if (playerName.empty())
+			{
+				return;
+			}
+			
+			const auto session = g_mumbleClient->GetPlayerSessionFromName(playerName);
+			if (session != 0)
+			{
+				g_mumbleClient->MutePlayerLocally(session, muted);
+			}
+		}));
+
 		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_VOICE_TARGET", MakeMumbleNative([](fx::ScriptContext& context)
 		{
 			auto id = context.GetArgument<int>(0);
