@@ -3,7 +3,7 @@ defines { "_ENABLE_EXTENDED_ALIGNED_STORAGE" }
 
 if os.istarget('windows') then
 	filter { "configurations:Release" }
-		flags { "LinkTimeOptimization" }
+		linktimeoptimization "On"
 	
 	filter {}
 		buildoptions '/fp:fast'
