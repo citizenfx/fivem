@@ -21,6 +21,7 @@ static int PedOffset = 0x10;
 static int CurrentPitchOffset = 0x1CC;
 static int NetworkObjectOffset = 0xD0;
 static int IsCloneOffset = 0x4B;
+static int RangeOffset = 0x28C;
 
 static uint16_t* g_weaponCount;
 static uint64_t** g_weaponList;
@@ -458,6 +459,25 @@ static HookFunction hookFunction([]()
 		{
 			float weaponSpreadAccuracy = context.GetArgument<float>(1);
 			reinterpret_cast<hook::FlexStruct*>(weapon)->Set<float>(WeaponSpreadOffset, weaponSpreadAccuracy);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_RANGE", [](fx::ScriptContext& context)
+	{
+		float weaponRange = 0.0f;
+		if (uintptr_t weapon = getWeaponFromHash(context))
+		{
+			weaponRange = reinterpret_cast<hook::FlexStruct*>(weapon)->Get<float>(RangeOffset);
+		}
+		context.SetResult<float>(weaponRange);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_WEAPON_RANGE", [](fx::ScriptContext& context)
+	{
+		if (uintptr_t weapon = getWeaponFromHash(context))
+		{
+			float weaponRange = context.GetArgument<float>(1);
+			reinterpret_cast<hook::FlexStruct*>(weapon)->Set<float>(RangeOffset, weaponRange);
 		}
 	});
 
