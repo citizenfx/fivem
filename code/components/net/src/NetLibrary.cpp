@@ -133,7 +133,16 @@ void NetLibrary::AddSendTick()
 	AddTimeoutTick(g_sendDataTicks);
 }
 
-static uint32_t m_tempGuid = GetTickCount();
+static uint64_t GenerateRandomNumber()
+{
+	std::random_device rd;
+	std::mt19937_64 gen(rd());
+	std::uniform_int_distribution<std::uint64_t> dist(0, UINT64_MAX);
+
+	return dist(gen);
+}
+
+static uint64_t s_tempGuid = GenerateRandomNumber();
 
 uint16_t NetLibrary::GetServerNetID()
 {
@@ -560,7 +569,7 @@ static std::mutex g_netFrameMutex;
 
 inline uint64_t GetGUID()
 {
-	return (uint64_t)(0x210000100000000 | m_tempGuid);
+	return s_tempGuid;
 }
 
 uint64_t NetLibrary::GetGUID()
@@ -847,7 +856,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	std::string ruRef = rootUrl;
 
 	// increment the GUID so servers won't race to remove us
-	m_tempGuid++;
+	s_tempGuid++;
 
 	auto urlRef = co_await ResolveUrl(ruRef);
 
