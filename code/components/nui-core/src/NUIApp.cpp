@@ -25,6 +25,16 @@ using namespace winrt;
 using namespace Windows::Foundation;
 using namespace Windows::System::UserProfile;
 
+std::string g_handoverJson = "null";
+std::string g_handoverServerAddress = "127.0.0.1:30120";
+
+static std::string ToJsString(const std::string& s)
+{
+	auto v = CefValue::Create();
+	v->SetString(s);
+	return CefWriteJSON(v, JSON_WRITER_DEFAULT).ToString();
+}
+
 void NUIApp::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar)
 {
 	// add the 'nui://' internal scheme
@@ -107,7 +117,9 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     // Load epoxy on context creation (and not devtools)
 	if (auto parent = frame->GetParent(); parent && parent->IsMain())
 	{
-		frame->ExecuteJavaScript(fmt::sprintf(g_epoxyScript, frame->GetName().ToString()), "nui://epoxy", 0);
+		frame->ExecuteJavaScript(fmt::sprintf(g_epoxyScript,
+								 frame->GetName().ToString(), ToJsString(g_handoverJson), g_handoverServerAddress),
+		"nui://epoxy", 0);
 	}	                     
 	frame->ExecuteJavaScript(g_gameViewScript, "nui://game-view-wrapper", 0);
 
@@ -310,6 +322,9 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	command_line->AppendSwitch("disable-autocorrect");
 	command_line->AppendSwitch("no-spell-check-suggestions");
 	command_line->AppendSwitch("hide-crash-restore-bubble");
+	command_line->AppendSwitch("disable-background-networking");
+	command_line->AppendSwitch("disable-default-apps");
+	command_line->AppendSwitchWithValue("allow-browser-signin", "false");
 
 	// disable accelerated video encoding.
 	// In M91 this caused hanging when playing media.

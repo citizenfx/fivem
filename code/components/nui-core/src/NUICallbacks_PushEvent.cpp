@@ -2,6 +2,11 @@
 #include "NUIApp.h"
 #include "memdbgon.h"
 
+#include <include/cef_parser.h>
+
+extern std::string g_handoverServerAddress;
+extern std::string g_handoverJson;
+
 class PushCallbacks
 {
 private:
@@ -13,6 +18,23 @@ public:
 	{
 		auto pushCB = [&](CefRefPtr<CefBrowser> browser, CefRefPtr<CefProcessMessage> message)
 		{
+			auto argList = message->GetArgumentList();
+			std::string event = argList->GetSize() > 0 ? argList->GetString(0).ToString() : "";
+
+			if (event == "setServerAddress" && argList->GetSize() >= 2)
+			{
+				g_handoverServerAddress = argList->GetString(1).ToString();
+				return true;
+			}
+			else if (event == "setHandoverData" && argList->GetSize() >= 2)
+			{
+				auto parsed = CefParseJSON(argList->GetString(1), JSON_PARSER_RFC);
+				g_handoverJson = (parsed && parsed->GetType() == VTYPE_DICTIONARY)
+								 ? CefWriteJSON(parsed, JSON_WRITER_DEFAULT).ToString()
+								 : "null";
+				return true;
+			}
+
 			auto it = m_pushCallbacks.find(browser->GetIdentifier());
 			if (it == m_pushCallbacks.end())
 			{
@@ -21,7 +43,6 @@ public:
 			auto& [context, callback] = it->second;
 
 			CefV8ValueList arguments;
-			auto argList = message->GetArgumentList();
 			for (size_t arg = 0; arg < argList->GetSize(); arg++)
 			{
 				arguments.push_back(CefV8Value::CreateString(argList->GetString(arg)));

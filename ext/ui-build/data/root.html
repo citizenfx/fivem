@@ -37,12 +37,7 @@ let zStack = [];
  */
 let focusStack = [];
 
-let handoverBlob = {};
-let serverAddress = '';
 let frameEscapeFunctions = {};
-
-const SendEpoxyMessage = sendEpoxyMessage;
-sendEpoxyMessage = null;
 
 registerPushFunction(function(type, ...args) {
 	switch (type) {
@@ -54,10 +49,6 @@ registerPushFunction(function(type, ...args) {
 				focusFrame(data.frameName);
 			} else if (data.type == 'blurFrame') {
 				blurFrame(data.frameName);
-			} else if (data.type == 'setHandover') {
-				handoverBlob = data.data;
-			} else if (data.type == 'setServerAddress') {
-				serverAddress = data.data;
 			} else if (data.type == 'setZIndex') {
 				const { frameName, zIndex } = data;
 				if (frameName in citFrames) {
@@ -121,17 +112,8 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 				}
 			}, 32);
 		}
-
-		if (frameName === 'loadingScreen') {
-			frame.contentWindow.nuiHandoverData = handoverBlob || {};
-			frame.contentWindow.nuiHandoverData.serverAddress = serverAddress;
-		}
 		
 		frame.addEventListener('load', function() {
-			if (frameName === 'loadingScreen') {
-				frame.contentWindow.nuiHandoverData = handoverBlob || {};
-				frame.contentWindow.nuiHandoverData.serverAddress = serverAddress;
-			}
 		    frame.style.visibility = 'visible';
         });
 	}

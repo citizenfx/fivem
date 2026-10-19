@@ -383,14 +383,6 @@ void NUIWindow::UpdateFrame()
 #ifdef GTA_FIVE
 		if (!m_isPrimary)
 		{
-			ID3D11Resource* nativeTexture = nullptr;
-			ID3D11ShaderResourceView* nativeSrv = nullptr;
-			if (auto texture = GetTexture(); texture.GetRef())
-			{
-				nativeTexture = (ID3D11Resource*)texture->GetNativeTexture();
-				nativeSrv = (ID3D11ShaderResourceView*)texture->GetNativeSRV();
-			}
-
 			{
 				ID3D11Device* device = g_nuiGi->GetD3D11Device();
 
@@ -404,7 +396,7 @@ void NUIWindow::UpdateFrame()
 					{
 						nativeTexture = (ID3D11Resource*)texture->GetNativeTexture();
 					}
-
+					ID3D11ShaderResourceView* nativeSrv = (ID3D11ShaderResourceView*)texture->GetNativeSRV();
 					if (m_swapTexture && m_swapRtv && nativeSrv && nativeTexture)
 					{
 						//
@@ -418,21 +410,47 @@ void NUIWindow::UpdateFrame()
 						static std::once_flag of;
 						std::call_once(of, []()
 						{
+							HRESULT hr;
 							D3D11_SAMPLER_DESC sd = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
-							g_nuiGi->GetD3D11Device()->CreateSamplerState(&sd, &ss);
+							hr = g_nuiGi->GetD3D11Device()->CreateSamplerState(&sd, &ss);
+							if (FAILED(hr))
+							{
+								trace("DUI CreateSamplerState failed 0x%08x\n", hr);
+								return;
+							}
 
 							D3D11_BLEND_DESC bd = CD3D11_BLEND_DESC(CD3D11_DEFAULT());
-							g_nuiGi->GetD3D11Device()->CreateBlendState(&bd, &bs);
+							hr = g_nuiGi->GetD3D11Device()->CreateBlendState(&bd, &bs);
+							if (FAILED(hr))
+							{
+								trace("DUI CreateBlendState failed 0x%08x\n", hr);
+								return;
+							}
 
-							g_nuiGi->GetD3D11Device()->CreateVertexShader(fx::shaders::quadVS, sizeof(fx::shaders::quadVS), nullptr, &vs);
-							g_nuiGi->GetD3D11Device()->CreatePixelShader(fx::shaders::quadPS, sizeof(fx::shaders::quadPS), nullptr, &ps);
+							hr = g_nuiGi->GetD3D11Device()->CreateVertexShader(fx::shaders::quadVS, sizeof(fx::shaders::quadVS), nullptr, &vs);
+							if (FAILED(hr))
+							{
+								trace("DUI CreateVertexShader failed 0x%08x\n", hr);
+								return;
+							}
+							hr = g_nuiGi->GetD3D11Device()->CreatePixelShader(fx::shaders::quadPS, sizeof(fx::shaders::quadPS), nullptr, &ps);
+							if (FAILED(hr))
+							{
+								trace("DUI CreatePixelShader failed 0x%08x\n", hr);
+								return;
+							}
 						});
 
+						if (!ps || !vs)
+						{
+							return;
+						}
+
+#ifdef _DEBUG
 						Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> pPerf;
 						deviceContext->QueryInterface(IID_PPV_ARGS(&pPerf));
-
 						pPerf->BeginEvent(L"DrawDUI");
-
+#endif
 						ID3D11RenderTargetView* oldRtv = nullptr;
 						ID3D11DepthStencilView* oldDsv = nullptr;
 						deviceContext->OMGetRenderTargets(1, &oldRtv, &oldDsv);
@@ -544,7 +562,9 @@ void NUIWindow::UpdateFrame()
 							oldLayout->Release();
 						}
 
+#ifdef _DEBUG
 						pPerf->EndEvent();
+#endif
 					}
 				}
 			}
@@ -617,11 +637,7 @@ void NUIWindow::UpdateSharedResource(CefRenderHandler::PaintElementType type)
 	int w = frame->width;
 	int h = frame->height;
 	{
-		std::unique_lock<std::shared_mutex> textureLock(m_textureMutex, std::defer_lock);
-		if (IsPrimary())
-		{
-			textureLock.lock();
-		}
+		std::unique_lock<std::shared_mutex> textureLock(m_textureMutex);
 
 		auto frameSeq = frame->frame_seq;
 		CefRefPtr<CefBrowserHost> host = GetBrowser() ? GetBrowser()->GetHost() : nullptr;
@@ -646,24 +662,23 @@ void NUIWindow::UpdateSharedResource(CefRenderHandler::PaintElementType type)
 #ifdef GTA_FIVE
 			else
 			{
-				auto faketexRef = g_nuiGi->CreateTextureFromShareHandle(sharedHandle, w, h, cb);
-				SetParentTexture(type, faketexRef);
+				auto duiTexRef = g_nuiGi->CreateTextureFromShareHandle(sharedHandle, w, h, cb);
+				SetParentTexture(type, duiTexRef);
 			}
 #endif
 			m_sharedResourceTexturesCreated[type] = true;
+			return;
 		}
-		else
+
+		g_nuiGi->UpdateTexture(sharedHandle, GetParentTexture(type), w, h, std::make_pair(frame->token_high, frame->token_low), [frameSeq, host, type]()
 		{
-			g_nuiGi->UpdateTexture(sharedHandle, texRef, w, h, std::make_pair(frame->token_high, frame->token_low), [frameSeq, host, type]()
+			if (host)
 			{
-				if (host)
-				{
-					host->ReleaseFrame(type, frameSeq);
-					return false;
-				}
-				return true;
-			});
-		}
+				host->ReleaseFrame(type, frameSeq);
+				return false;
+			}
+			return true;
+		});
 	}
 }
 

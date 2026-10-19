@@ -683,7 +683,11 @@ static InitFunction initFunction([] ()
 
 		if (icgi->GetData("handoverBlob", &handoverBlob))
 		{
-			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setHandover", "data": %s })", handoverBlob));
+			nui::SetHandoverData(handoverBlob);
+		}
+		else
+		{
+			nui::SetHandoverData("");
 		}
 
 		if (loadingScreens.size() == 1)

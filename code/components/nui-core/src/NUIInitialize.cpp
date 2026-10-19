@@ -1001,6 +1001,7 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 
 	if (ppDevice && ppImmediateContext && can && *ppDevice && *ppImmediateContext)
 	{
+		return;
 		auto vtbl = **(intptr_t***)ppDevice;
 		auto vtblCxt = **(intptr_t***)ppImmediateContext;
 
@@ -1566,6 +1567,18 @@ void Initialize(nui::GameInterface* gi)
 		cSettings.log_severity = LOGSEVERITY_DEFAULT;
 		cSettings.background_color = 0;
 
+		// Disable google oAuth from being checked/used
+		static const wchar_t* kEnvVars[] = {
+			L"GOOGLE_API_KEY",
+			L"GOOGLE_DEFAULT_CLIENT_ID",
+			L"GOOGLE_DEFAULT_CLIENT_SECRET",
+		};
+
+		for (auto name : kEnvVars)
+		{
+			SetEnvironmentVariableW(name, nullptr);
+		}
+
 		// read the platform version
 		FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
 		int version = 0;
@@ -1673,7 +1686,7 @@ void Initialize(nui::GameInterface* gi)
 			{
 				CefWindowInfo wi;
 				wi.SetAsPopup(NULL, "NUI DevTools");
-
+				wi.runtime_style = CEF_RUNTIME_STYLE_ALLOY; 
 				CefRefPtr<NUIDevtoolsClient> client = new NUIDevtoolsClient();
 				CefBrowserSettings s;
 
@@ -1701,7 +1714,7 @@ void Initialize(nui::GameInterface* gi)
 		{
 			CefWindowInfo wi;
 			wi.SetAsPopup(NULL, fmt::sprintf("NUI DevTools - %s", windowName));
-
+			wi.runtime_style = CEF_RUNTIME_STYLE_ALLOY; 
 			CefRefPtr<NUIDevtoolsClient> client = new NUIDevtoolsClient();
 			CefBrowserSettings s;
 

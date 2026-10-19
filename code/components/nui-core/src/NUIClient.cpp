@@ -420,7 +420,7 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 	auto url = request->GetURL().ToString();
 
 	CefURLParts urlParts;
-	if (!CefParseURL(request->GetURL(), urlParts))
+	if (url.empty() || !CefParseURL(request->GetURL(), urlParts))
 	{
 		return RV_CANCEL;
 	}
@@ -451,7 +451,7 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 		if (origin.empty() || origin == "null")
 		{
 			CefURLParts frameParts;
-			if (!CefParseURL(frame->GetURL(), frameParts))
+			if (frame->GetURL().empty() || !CefParseURL(frame->GetURL(), frameParts))
 			{
 				// Somehow frame isn't a valid URL?
 				return RV_CANCEL;
