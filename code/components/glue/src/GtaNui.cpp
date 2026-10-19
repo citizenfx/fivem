@@ -884,14 +884,21 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 			if (texRef->srv)
 			{
 				texRef->srv->Release();
+				texRef->srv = nullptr;
 			}
 
-			deviceStuff->rawDevice->CreateShaderResourceView(resource.Get(), nullptr, &texRef->srv);
+			hr = deviceStuff->rawDevice->CreateShaderResourceView(resource.Get(), nullptr, &texRef->srv);
+
+			if (FAILED(hr))
+			{
+				trace("Failed to create shader resource view for NUI texture 0x%x\n", hr);
+			}
+
+			// only mark as overridden if we actually own the resources, as ~GtaNuiTexture dereferences the texture
+			texture->MarkOverriddenSRV();
+			texture->MarkOverriddenTexture();
 		}
 
-		texture->MarkOverriddenSRV();
-		texture->MarkOverriddenTexture();
-		
 		auto previous = std::move(texture->GetTextureRelease());
 		texture->GetTextureRelease() = std::move(cb);
 		if (previous)
