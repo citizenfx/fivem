@@ -420,6 +420,14 @@ class GtaNuiTextureBase : public nui::GITexture
 {
 public:
 	virtual rage::grcTexture* GetTexture() = 0;
+
+	nui::GameInterface::UpdateTextureCB& GetTextureRelease()
+	{
+		return m_releaseCB;
+	}
+
+protected:
+	nui::GameInterface::UpdateTextureCB m_releaseCB;
 };
 
 class GtaNuiTexture final : public GtaNuiTextureBase
@@ -431,7 +439,6 @@ private:
 
 	bool m_overriddenSRV;
 
-	nui::GameInterface::UpdateTextureCB m_releaseCB;
 public:
 	explicit GtaNuiTexture(rage::grcTexture* texture)
 		: m_texture(texture), m_overriddenTexture(false), m_overriddenSRV(false)
@@ -503,11 +510,6 @@ public:
 			nui::g_texCache.ReleaseTexture(self);
 			delete texture;
 		});
-	}
-
-	nui::GameInterface::UpdateTextureCB& GetTextureRelease()
-	{
-		return m_releaseCB;
 	}
 
 	inline void MarkOverriddenTexture()
@@ -654,9 +656,15 @@ public:
 	{
 		auto texture = m_texture;
 		m_texture = nullptr;
-
-		g_onRenderQueue.push([texture]()
+		if (m_releaseCB)
 		{
+			m_releaseCB();
+			m_releaseCB = nullptr;
+		}
+
+		g_onRenderQueue.push([texture, self = static_cast<nui::GITexture*>(this)]()
+		{
+			nui::g_texCache.ReleaseTexture(self);
 			delete texture;
 		});
 	}
@@ -886,7 +894,10 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 				texRef->srv->Release();
 			}
 
-			deviceStuff->rawDevice->CreateShaderResourceView(resource.Get(), nullptr, &texRef->srv);
+			if (FAILED(deviceStuff->rawDevice->CreateShaderResourceView(resource.Get(), nullptr, &texRef->srv)))
+			{
+				FatalError("Unable to create NUI resource");
+			}
 		}
 
 		texture->MarkOverriddenSRV();

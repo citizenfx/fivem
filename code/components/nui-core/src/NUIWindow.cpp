@@ -592,6 +592,9 @@ void NUIWindow::HandlePopupShow(bool show)
 
 			std::lock_guard<std::shared_mutex> _(m_textureMutex);
 			m_popupTexture = nullptr;
+#ifdef IS_RDR3
+			m_sharedResourceTexturesCreated[PET_POPUP] = false;
+#endif
 		}
 	}
 }
@@ -670,7 +673,7 @@ void NUIWindow::UpdateSharedResource(CefRenderHandler::PaintElementType type)
 			return;
 		}
 
-		g_nuiGi->UpdateTexture(sharedHandle, GetParentTexture(type), w, h, std::make_pair(frame->token_high, frame->token_low), [frameSeq, host, type]()
+		g_nuiGi->UpdateTexture(sharedHandle, !IsPrimary() ? GetParentTexture(type) : texRef, w, h, std::make_pair(frame->token_high, frame->token_low), [frameSeq, host, type]()
 		{
 			if (host)
 			{
