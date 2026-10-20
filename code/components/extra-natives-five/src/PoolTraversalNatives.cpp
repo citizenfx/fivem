@@ -308,4 +308,21 @@ static HookFunction hookFunction([]()
 {
 	g_vehiclePool = hook::get_address<decltype(g_vehiclePool)>(hook::get_pattern("48 8B 05 ? ? ? ? F3 0F 59 F6 48 8B 08", 3));
 });
+
+void ForAllVehicles(const std::function<void(fwEntity*)>& fn)
+{
+	if (!g_vehiclePool || !*g_vehiclePool || !**g_vehiclePool)
+	{
+		return;
+	}
+
+	auto pool = VehiclePoolTraits::GetPool();
+	for (int i = 0; i < pool->GetSize(); i++)
+	{
+		if (auto entry = pool->GetAt(i))
+		{
+			fn(entry);
+		}
+	}
+}
 #endif
