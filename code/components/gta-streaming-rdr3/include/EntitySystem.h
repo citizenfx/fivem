@@ -76,6 +76,48 @@ public:
 	void RemoveKnownRef(void** ref) const;
 };
 
+class STREAMING_EXPORT fwExtension
+{
+public:
+	// id +0, category +8, destructor +10h, init extensions +18h and +20h
+	virtual int GetExtensionId() const = 0;
+
+	// 2 for extensions on an entity
+	virtual int GetCategoryId() const
+	{
+		return 2;
+	}
+
+	virtual ~fwExtension() = default;
+
+	virtual void InitEntityExtensionFromDefinition(const void* extensionDef, ::fwEntity* entity)
+	{
+	}
+
+	virtual void InitArchetypeExtensionFromDefinition(const void* extensionDef, ::fwArchetype* archetype)
+	{
+	}
+};
+
+class STREAMING_EXPORT fwExtensionList
+{
+public:
+	// Nodes are allocated by Add; the list only keeps the head.
+	struct Node
+	{
+		rage::fwExtension* extension; // +0
+		Node* next; // +8
+	};
+
+	void Add(rage::fwExtension* extension);
+
+	void* Get(uint32_t id);
+
+private:
+	Node* m_extensions; // +0, head of the list
+	uint32_t m_identifiers[2]; // +8, bitmask used to skip the walk for ids below 62
+};
+
 class STREAMING_EXPORT fwScriptGuid
 {
 public:
@@ -166,8 +208,25 @@ public:
 		return m_archetype;
 	}
 
+	inline void* GetExtension(uint32_t id)
+	{
+		return m_extensionList.Get(id);
+	}
+
+	inline void AddExtension(rage::fwExtension* extension)
+	{
+		return m_extensionList.Add(extension);
+	}
+
+	template<typename T>
+	inline T* GetExtension()
+	{
+		return reinterpret_cast<T*>(GetExtension(typename T::GetClassId()));
+	}
+
 private:
-	char m_pad[24]; // +8
+	char m_pad[8]; // +8
+	rage::fwExtensionList m_extensionList; // +16, fwEntity::InitExtensionsFromDefinition passes +0x10
 	fwArchetype* m_archetype; // +32
 	char m_pad2[8]; // +40
 	uint8_t m_entityType; // +48
