@@ -63,31 +63,7 @@ public:
 			path = CefString(&parts.path);
 
 			std::string reqFilename;
-
-			if (hostname == L"game" || hostname == L"nui-game-internal")
-			{
-				if (launch::IsSDKGuest() && path.find(L"sdk-root/shell/mpMenu.html") != std::string::npos)
-				{
-					reqFilename = "sdk-root:/shell/mpMenu.html";
-				}
-				else
-				{
-					reqFilename = "citizen:/";
-
-					if (path == L"/ui/app/")
-					{
-						path += L"index.html";
-					}
-
-					if (path.find(L"/ui/app/") != std::string::npos && path.find(L"index.html") == std::string::npos)
-					{
-						canCache_ = true;
-					}
-
-					reqFilename += ToNarrow(path).substr(1);
-				}
-			}
-			else
+			if (hostname != L"game" && hostname != L"nui-game-internal")
 			{
 				if (hostname.find(L"cfx-nui-") == 0)
 				{
@@ -103,6 +79,41 @@ public:
 					reqFilename = "resources:/";
 					reqFilename += ToNarrow(hostname) + "/";
 					reqFilename += ToNarrow(path);
+				}
+			}
+			else
+			{
+				if ((!launch::IsSDK() && !nui::HasMainUI()) && hostname == L"nui-game-internal")
+				{
+					handle_request = true;
+					return true;
+				}
+				
+				if (launch::IsSDKGuest() && path.find(L"sdk-root/shell/mpMenu.html") != std::string::npos)
+				{
+					reqFilename = "sdk-root:/shell/mpMenu.html";
+				}
+				else
+				{
+					if (path.rfind(L"/ui/", 0) != 0 || (!nui::HasMainUI() && path.rfind(L"/ui/app/", 0) == 0))
+					{
+						handle_request = true;
+						file_ = vfs::Device::InvalidHandle;
+						return true;
+					}
+
+					if (nui::HasMainUI() && path == L"/ui/app/")
+					{
+						path += L"index.html";
+					}
+
+					reqFilename = "citizen:/ui/";
+					if (path.find(L"/ui/app/") != std::string::npos && path.find(L"index.html") == std::string::npos)
+					{
+						canCache_ = true;
+					}
+
+					reqFilename += ToNarrow(path).substr(4);
 				}
 			}
 
