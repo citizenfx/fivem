@@ -1032,13 +1032,6 @@ void GtaNuiInterface::UpdateTexture(HANDLE shareHandle, fwRefContainer<GITexture
 	}
 #endif
 
-	auto texRef = (rage::grcTexture*)texture->GetHostTexture();
-	if (!texRef)
-	{
-		cb();
-		return;
-	}
-
 	auto replaced = nui::g_textureUpdate.Put(std::make_unique<nui::NUITextureUpdate>(texture, shareHandle, cb, key, width, height));
 	if (replaced && replaced->cb)
 	{
