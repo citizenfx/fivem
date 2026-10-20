@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#include "GameViewCapture.h"
 
 #include <array>
 #include <mutex>
@@ -32,7 +33,7 @@ struct GameRenderData
 	HANDLE flippedHandle;
 };
 
-static auto GetInvariantD3D11Device()
+WRL::ComPtr<ID3D11Device> GetInvariantD3D11Device()
 {
 	WRL::ComPtr<IDXGIDevice> realDeviceDxgi;
 	WRL::ComPtr<ID3D11Device> realDevice = nullptr;
@@ -46,7 +47,7 @@ static auto GetInvariantD3D11Device()
 	return realDevice;
 }
 
-static auto GetInvariantD3D11DeviceContext()
+WRL::ComPtr<ID3D11DeviceContext> GetInvariantD3D11DeviceContext()
 {
 	WRL::ComPtr<IUnknown> realDeviceContextUnk;
 	WRL::ComPtr<ID3D11DeviceContext> realDeviceContext;
@@ -59,7 +60,7 @@ static auto GetInvariantD3D11DeviceContext()
 
 static rage::grcRenderTargetDX11** g_backBuffer;
 
-static auto GetBackbuf()
+rage::grcRenderTargetDX11* GetBackbuf()
 {
 	return *g_backBuffer;
 }
