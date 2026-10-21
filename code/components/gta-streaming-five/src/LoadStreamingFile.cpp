@@ -1926,7 +1926,7 @@ static void LoadStreamingFiles(LoadType loadType)
 			int collectionId = 0;
 
 #ifdef GTA_FIVE
-			if (auto idx = streaming::GetRawStreamerForFileWithTag(file.c_str(), tag, &rawStreamer))
+			if (auto idx = streaming::GetRawStreamerForFile(file.c_str(), &rawStreamer))
 			{
 				collectionId = idx;
 			}
@@ -1967,7 +1967,7 @@ static void LoadStreamingFiles(LoadType loadType)
 			else
 			{
 				fileId = -1;
-				streaming::RegisterRawStreamingFileWithTag(&fileId, file.c_str(), true, baseName.c_str(), false, tag);
+				streaming::RegisterRawStreamingFile(&fileId, file.c_str(), true, baseName.c_str(), false);
 
 				if (fileId != -1)
 				{
@@ -3315,7 +3315,11 @@ void* chunkyArrayAppend(hook::FlexStruct* self)
 		AddCrashometry("asset_stats", ss.str());
 
 		AddCrashometry("pgRawStreamer", std::to_string(g_GetRawStreamer()->m_entries.count));
-
+#ifdef GTA_FIVE
+		AddCrashometry("pgRawStreamer(ytd)", std::to_string(streaming::GetRawStreamerByIndex(1)->m_entries.count));
+		AddCrashometry("pgRawStreamer(mod)", std::to_string(streaming::GetRawStreamerByIndex(2)->m_entries.count));
+#endif
+		
 		FatalError("ERR_STR_FAILURE: trying to add more assets to pgRawStreamer when it's already full (65535).");
 	}
 
@@ -3333,27 +3337,14 @@ static ConsoleCommand pgRawStreamer_AssetsCountCmd("assetscount", []()
 	trace("Total loaded assets in pgRawStreamer - %d/65535\n", g_GetRawStreamer()->m_entries.count);
 
 #ifdef GTA_FIVE
-	for (const auto& [tag, idx] : streaming::GetRawStreamerTagMap())
-	{
-		trace("  pgRawStreamer(%d) [%s] - %d/65535\n", idx, tag.c_str(), streaming::GetRawStreamerByIndex((uint16_t)idx)->m_entries.count);
-	}
+	trace("Total loaded assets in pgRawStreamer(ytd) - %d/65535\n", streaming::GetRawStreamerByIndex(1)->m_entries.count);
+	trace("Total loaded assets in pgRawStreamer(mod) - %d/65535\n", streaming::GetRawStreamerByIndex(2)->m_entries.count);
 #endif
 });
 
 const rage::chunkyArray<rage::fiCollection::RawEntry, 1024, 64>& rage::GetPgRawStreamerEntries()
 {
 	return g_GetRawStreamer()->m_entries;
-}
-
-const rage::chunkyArray<rage::fiCollection::RawEntry, 1024, 64>& rage::GetPgRawStreamerEntriesByIndex(uint16_t idx)
-{
-	// fall back to the game streamer if the slot isn't a streamer
-	auto streamer = streaming::GetRawStreamerByIndex(idx);
-	if (!streamer)
-	{
-		return g_GetRawStreamer()->m_entries;
-	}
-	return streamer->m_entries;
 }
 
 #endif

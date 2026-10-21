@@ -61,7 +61,7 @@ static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, 
 	auto spf = streaming::GetStreamingPackfileByIndex(collectionIndex);
 	auto collection = (rage::fiCollection*)(spf ? spf->packfile : nullptr);
 
-	if (!collection && streaming::IsRawStreamerCollection(collectionIndex))
+	if (!collection && collectionIndex < 2)
 	{
 		collection = streaming::GetRawStreamerByIndex(collectionIndex);
 	}
@@ -79,7 +79,7 @@ static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, 
 	{
 		name = collection->GetEntryName(fileIndex);
 
-		if (streaming::IsRawStreamerCollection(collectionIndex))
+		if (collectionIndex < 2)
 		{
 			// get the _raw_ file name
 			char fileNameBuffer[1024];
