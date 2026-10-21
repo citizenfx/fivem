@@ -1042,6 +1042,17 @@ NTSTATUS NTAPI NtQueryVirtualMemoryHook(
 static const DWORD bigOne = 1;
 static auto ntdllRef = GetModuleHandleW(L"ntdll.dll");
 
+static bool IsCallerInModule(void* caller, const wchar_t* moduleName)
+{
+	PVOID base = nullptr;
+	if (!caller || !RtlPcToFileHeader(caller, &base) || !base)
+	{
+		return false;
+	}
+
+	return base == GetModuleHandleW(moduleName);
+}
+
 FARPROC WINAPI GetProcAddressStub(HMODULE hModule, LPCSTR lpProcName, void* caller)
 {
 	if (!IS_INTRESOURCE(lpProcName))
@@ -1051,6 +1062,12 @@ FARPROC WINAPI GetProcAddressStub(HMODULE hModule, LPCSTR lpProcName, void* call
 #ifdef _M_AMD64
 			if (hModule == ntdllRef && _stricmp(lpProcName, "NtQueryInformationProcess") == 0)
 			{
+				// Skip this hook for CFG compiled dlls.
+				if (IsCallerInModule(caller, L"libcef.dll") || IsCallerInModule(caller, L"Chrome_Elf.dll"))
+				{
+					return g_origGetProcAddress(hModule, lpProcName, caller);
+				}
+
 				char* ntdll = (char*)ntdllRef;
 				auto ntdllImage = (PIMAGE_DOS_HEADER)ntdll;
 				auto ntdllPE = (PIMAGE_NT_HEADERS)(ntdll + ntdllImage->e_lfanew);
