@@ -1826,15 +1826,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 
-							if (pureLevelChanged && pureLevel <= fx::client::GetPureLevel() && !buildChanged && !poolSizesChanged && !executableChanged)
-							{
-								if (!OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw), effectiveDefaultBuild, true))
-								{
-									m_connectionState = CS_IDLE;
-									return;
-								}
-							}
-							else
+							if (!pureLevelChanged || pureLevel > fx::client::GetPureLevel() || buildChanged || poolSizesChanged || executableChanged)
 							{
 								OnRequestBuildSwitch(buildRef, pureLevel, ToWide(poolSizesIncreaseRaw), effectiveDefaultBuild, false);
 								m_connectionState = CS_IDLE;
