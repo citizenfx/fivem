@@ -79,6 +79,8 @@ class CfxGameViewRenderer {
     #texture;
     #animationFrame;
     #vao;
+    #destroyed = false;
+    #canvas = null;
 
     constructor(canvas) {
         const gl = canvas.getContext('webgl2', {
@@ -89,6 +91,8 @@ class CfxGameViewRenderer {
             desynchronized: true,
             powerPreference: 'high-performance',
         });
+
+        this.#canvas = canvas;
 
         if (!gl) {
             throw new Error('Failed to acquire webgl2 context for GameViewRenderer');
@@ -216,20 +220,41 @@ class CfxGameViewRenderer {
     }
 
     resize(width, height) {
+        if (this.#destroyed) {
+           return;
+        }
         this.#gl.viewport(0, 0, width, height);
         this.#gl.canvas.width = width;
         this.#gl.canvas.height = height;
     }
 
     destroy() {
+        if (this.#destroyed) {
+           return;
+        }
+        this.#destroyed = true;
         if (this.#animationFrame) {
             cancelAnimationFrame(this.#animationFrame);
+			this.#animationFrame = 0;
         }
         this.#texture = null;
         this.#vao = null;
+
+        if (this.#canvas && this.#canvas.parentNode) {
+			this.#canvas.parentNode.removeChild(canvas);
+        }
+        this.#canvas = null;
+
+        const ext = this.#gl.getExtension("WEBGL_lose_context");
+        if (ext) {
+			ext.loseContext();
+        }
     }
 
     #render = () => {
+        if (this.#destroyed) {
+           return;
+        }
         const gl = this.#gl;
         if (gl) {
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
