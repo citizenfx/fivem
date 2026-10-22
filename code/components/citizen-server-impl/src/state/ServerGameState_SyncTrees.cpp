@@ -1,5 +1,8 @@
 #include "StdInc.h"
 #include <state/SyncTrees.h>
+#if defined(STATE_FIVE) && defined(_WIN32)
+#include <state/PedSyncTreePool.h>
+#endif
 
 namespace fx
 {
@@ -21,7 +24,11 @@ std::shared_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectTy
 	case sync::NetObjEntityType::Object:
 		return std::make_shared<sync::CObjectSyncTree>();
 	case sync::NetObjEntityType::Ped:
+	#ifdef _WIN32
+		return std::allocate_shared<sync::CPedSyncTree>(sync::tree_pool::Allocator<sync::CPedSyncTree>{});
+	#else
 		return std::make_shared<sync::CPedSyncTree>();
+	#endif
 	case sync::NetObjEntityType::Pickup:
 		return std::make_shared<sync::CPickupSyncTree>();
 	case sync::NetObjEntityType::PickupPlacement:
