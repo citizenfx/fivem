@@ -3539,6 +3539,10 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 				int oldHealth = hadHealth ? healthNode->health : 0;
 				int oldArmour = hadHealth ? healthNode->armour : 0;
 
+				auto attachment = syncTree->GetAttachment();
+				bool wasAttached = attachment && attachment->attached;
+				uint16_t oldAttachedTo = wasAttached ? attachment->attachedTo : 0;
+
 				syncTree->ParseSync(state);
 
 				entity->hasSynced = true;
@@ -3546,6 +3550,11 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 				if (hadHealth)
 				{
 					HandlePedHealthUpdate(entity, healthNode, oldHealth, oldArmour);
+				}
+
+				if (attachment)
+				{
+					HandleAttachmentUpdate(client, entity, attachment, wasAttached, oldAttachedTo);
 				}
 			}
 			else if (parsingType == 1)
@@ -3679,7 +3688,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 
 		// update all clients' lists so the system knows that this entity is valid and should not be deleted anymore
 		// (otherwise embarrassing things happen like a new player's ped having the same object ID as a pending-removed entity, and the game trying to remove it)
-		gscomms_execute_callback_on_main_thread([this, entity]()
+		gscomms_execute_callback_on_main_thread([this, entity, sourceNetId = client->GetNetId()]()
 		{
 			auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
 
@@ -3717,6 +3726,15 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			declare function entityCreated(handle: number): void;
 			*/
 			evComponent->QueueEvent2("entityCreated", { }, MakeScriptHandle(entity));
+
+			// an entity can already be attached in its creation data, which the sync path never sees as a change
+			if (entity->syncTree && (m_entityEventFlags.load(std::memory_order_relaxed) & EntityEventAttached) != 0)
+			{
+				if (auto attachment = entity->syncTree->GetAttachment(); attachment && attachment->attached)
+				{
+					TriggerEntityAttachedEvent(sourceNetId, entity, attachment->attachedTo);
+				}
+			}
 		});
 	}
 	else
@@ -3808,6 +3826,64 @@ void ServerGameState::HandlePedHealthUpdate(const fx::sync::SyncEntityPtr& entit
 			*/
 			evComponent->TriggerEvent2("onPedDeath", {}, ped, attacker, weaponHash);
 		}
+	});
+}
+
+void ServerGameState::HandleAttachmentUpdate(const fx::ClientSharedPtr& client, const fx::sync::SyncEntityPtr& entity, fx::sync::CBaseAttachNodeData* attachment, bool wasAttached, uint16_t oldAttachedTo)
+{
+	// detaching is not reported
+	if (!attachment->attached)
+	{
+		return;
+	}
+
+	// only a new attachment or a move to another parent, not every resend of the same one
+	if (wasAttached && attachment->attachedTo == oldAttachedTo)
+	{
+		return;
+	}
+
+	// don't pay for events nobody is listening to
+	if ((m_entityEventFlags.load(std::memory_order_relaxed) & EntityEventAttached) == 0)
+	{
+		return;
+	}
+
+	TriggerEntityAttachedEvent(client->GetNetId(), entity, attachment->attachedTo);
+}
+
+void ServerGameState::TriggerEntityAttachedEvent(uint32_t sourceNetId, const fx::sync::SyncEntityPtr& entity, uint16_t attachedTo)
+{
+	gscomms_execute_callback_on_main_thread([this, sourceNetId, entity, attachedTo]()
+	{
+		if (!entity->passedFilter)
+		{
+			return;
+		}
+
+		// the parent is resolved through the server's entity list, so an attachment to anything
+		// that isn't a networked entity known to the server is not reported
+		auto parent = GetEntity(0, attachedTo);
+
+		if (!parent || parent == entity)
+		{
+			return;
+		}
+
+		auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+
+		/*NETEV onEntityAttached SERVER
+		/#*
+		 * Triggered when a client syncs an attachment of a networked entity to another networked entity.
+		 * Re-syncing an unchanged attachment and detaching do not trigger it.
+		 *
+		 * @param source - The server id of the player that sent the attachment.
+		 * @param entity - The handle of the entity that is being attached.
+		 * @param parent - The handle of the entity it is being attached to.
+		 #/
+		declare function onEntityAttached(source: number, entity: number, parent: number): void;
+		*/
+		evComponent->TriggerEvent2("onEntityAttached", { fmt::sprintf("internal-net:%d", sourceNetId) }, sourceNetId, MakeScriptHandle(entity), MakeScriptHandle(parent));
 	});
 }
 
@@ -4694,6 +4770,11 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 		if (flags)
 		{
 			m_pedEventFlags.fetch_or(flags, std::memory_order_relaxed);
+		}
+
+		if (eventName == "onEntityAttached" || eventName == "*")
+		{
+			m_entityEventFlags.fetch_or(EntityEventAttached, std::memory_order_relaxed);
 		}
 	});
 
