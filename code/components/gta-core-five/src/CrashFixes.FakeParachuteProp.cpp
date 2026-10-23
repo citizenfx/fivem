@@ -26,6 +26,21 @@ uint32_t taskTakeOffPedVariationPropOffset = 0;
 std::unordered_set<uint32_t> g_ParachuteModelWhitelist;
 std::unordered_set<uint32_t> g_ParachutePackModelWhitelist;
 
+bool IsParachuteEntityObject(hook::FlexStruct* entity)
+{
+	if (entity && entity->Get<uint8_t>(0x28) != 5)
+	{
+		std::call_once(traceOnceFlag3, []()
+		{
+			trace("Fake parachute object crash prevented: entity is not a CObject\n");
+		});
+
+		return false;
+	}
+
+	return true;
+}
+
 template<bool UseTaskPropEntity>
 bool IsTaskFSMEntityAnimDirectorValid(hook::FlexStruct* self)
 {
@@ -35,6 +50,14 @@ bool IsTaskFSMEntityAnimDirectorValid(hook::FlexStruct* self)
 	// as entity creation might be deferred for tasks such as CTaskParachuteObject
 	if (taskEntity)
 	{
+		if constexpr (!UseTaskPropEntity)
+		{
+			if (!IsParachuteEntityObject(taskEntity))
+			{
+				return false;
+			}
+		}
+
 		hook::FlexStruct* dynamicEntityComponent = taskEntity->Get<hook::FlexStruct*>(dynamicEntityComponentOffset);
 
 		if (!dynamicEntityComponent)
@@ -234,31 +257,6 @@ static void SerialiseUnsignedHook(void* serializer, uint32_t* value, int64_t num
 	}
 }
 
-static hook::cdecl_stub<void(void* object, void** reference)> removeKnownRef([]()
-{
-	return hook::get_call(hook::get_pattern("74 20 48 85 C9 74 08", 10));
-});
-
-uint64_t (*g_CTaskParachute_ProcessParachuteObject)(hook::FlexStruct* self);
-uint64_t CTaskParachute_ProcessParachuteObject(hook::FlexStruct* self)
-{
-	void** reference = &self->At<void*>(parachuteObjectOffset);
-	hook::FlexStruct* parachuteObject = static_cast<hook::FlexStruct*>(*reference);
-
-	if (parachuteObject && parachuteObject->Get<uint8_t>(0x28) != 5)
-	{
-		std::call_once(traceOnceFlag3, []()
-		{
-			trace("Non-object entity resolved as parachute object prevented\n");
-		});
-
-		removeKnownRef(parachuteObject, reference);
-		*reference = nullptr;
-	}
-
-	return g_CTaskParachute_ProcessParachuteObject(self);
-}
-
 static HookFunction hookFunction([]
 {
 	// ClonedTakeOffPedVariationInfo - Serialise - Patch serializer for prop model
@@ -305,22 +303,19 @@ static HookFunction hookFunction([]
 		});
 	}
 	
-	auto processParachuteObjectLocation = hook::get_pattern<uint8_t>("40 53 48 83 EC ? F6 81 ? ? ? ? ? 48 8B D9 74 ? E8 ? ? ? ? 48 8B 43 ? 48 85 C0 74 ? 48 8B 88 ? ? ? ? 48 85 C9 74 ? 80 79 ? ? 74 ? 48 83 BB");
-	parachuteObjectOffset = *(uint32_t*)(processParachuteObjectLocation + 53);
-	g_CTaskParachute_ProcessParachuteObject = hook::trampoline(processParachuteObjectLocation, &CTaskParachute_ProcessParachuteObject);
+	g_CTaskParachuteObject_UpdateFSM = hook::trampoline(hook::get_pattern<void>("48 83 EC ? 85 D2 0F 88 ? ? ? ? 75 ? 45 85 C0 75 ? 48 8B 41"), &CTaskParachuteObject_UpdateFSM);
+	taskEntityOffset = *hook::get_pattern<uint8_t>("48 8B 79 ? 48 8B F1 48 85 FF 74 ? 0F BE 41", 3);
+	dynamicEntityComponentOffset = *hook::get_pattern<uint8_t>("48 8B 43 ? 48 85 C0 74 ? 48 8B 78 ? 48 8B CF E8 ? ? ? ? 48 8B D5", 3);
+	animDirectorOffset = *hook::get_pattern<uint8_t>("48 8B 78 ? 48 8B CF E8 ? ? ? ? 48 8B D5", 3);
 
 	if (xbr::IsGameBuildOrGreater<3407>())
 	{
 		return;
 	}
 
-	g_CTaskParachuteObject_UpdateFSM = hook::trampoline(hook::get_pattern<void>("48 83 EC ? 85 D2 0F 88 ? ? ? ? 75 ? 45 85 C0 75 ? 48 8B 41"), &CTaskParachuteObject_UpdateFSM);
 	g_CTaskParachute_SetParachuteTintIndex = hook::trampoline(hook::get_pattern<void>("48 89 5C 24 ? 57 48 83 EC ? 48 8B 81 ? ? ? ? 48 8B D9 48 85 C0 74 ? 48 8B 40"), &CTaskParachute_SetParachuteTintIndex);
 
-	taskEntityOffset = *hook::get_pattern<uint8_t>("48 8B 5E ? 4C 8D 05", 3);
-	dynamicEntityComponentOffset = *hook::get_pattern<uint8_t>("48 8B 43 ? 48 85 C0 74 ? 48 8B 78 ? 48 8B CF E8 ? ? ? ? 48 8B D5", 3);
-	animDirectorOffset = *hook::get_pattern<uint8_t>("48 8B 78 ? 48 8B CF E8 ? ? ? ? 48 8B D5", 3);
-
+	parachuteObjectOffset = *hook::get_pattern<uint32_t>("48 8B 81 ? ? ? ? 48 8B D9 48 85 C0 74 ? 48 8B 40 ? 48 8B 78", 3);
 	drawHandlerOffset = *hook::get_pattern<uint8_t>("48 8B 40 ? 48 8B 78", 3);
 
 	taskTakeOffPedVariationPropOffset = *hook::get_pattern<uint32_t>("48 8B 81 ? ? ? ? 33 C9 48 85 C0 74 ? 48 8B 40 ? 48 85 C0", 3);
