@@ -18,6 +18,8 @@ namespace rage
 
 	GTA_CORE_EXPORT void PoolRelease(atPoolBase* pool, void* entry);
 
+	GTA_CORE_EXPORT std::string GetPoolName(uint32_t hash);
+
 	inline atPoolBase* GetPoolBase(const char* hashString)
 	{
 		return GetPoolBase(HashString(hashString));
