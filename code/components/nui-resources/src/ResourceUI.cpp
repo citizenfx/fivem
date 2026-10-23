@@ -244,38 +244,35 @@ static InitFunction initFunction([] ()
 	{
 		manager->OnTick.Connect([]()
 		{
-			auto pop = []() -> std::function<void()>
+			std::queue<std::function<void()>> callbacks;
 			{
 				std::unique_lock _(g_nuiCallbackMutex);
-				if (!g_nuiCallbackQueue.empty())
-				{
-					auto fn = std::move(g_nuiCallbackQueue.front());
-					g_nuiCallbackQueue.pop();
+				callbacks.swap(g_nuiCallbackQueue);
+			}
 
-					return std::move(fn);
-				}
-
-				return {};
-			};
-
-			while (auto fn = pop())
+			while (!callbacks.empty())
 			{
+				auto fn = std::move(callbacks.front());
+				callbacks.pop();
 				fn();
 			}
 		}, INT32_MAX);
 
 		nui::SetResourceLookupFunction([manager](const std::string& resourceName, const std::string& fileName) -> std::string
 		{
-			fwRefContainer<fx::Resource> resource;
+			// try an exact match first, then fall back to a case-insensitive scan
+			fwRefContainer<fx::Resource> resource = manager->GetResource(resourceName, false);
 
-			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
-			resourceManager->ForAllResources([&resourceName, &resource](const fwRefContainer<fx::Resource>& resourceRef)
+			if (!resource.GetRef())
 			{
-				if (_stricmp(resourceRef->GetName().c_str(), resourceName.c_str()) == 0)
+				manager->ForAllResources([&resourceName, &resource](const fwRefContainer<fx::Resource>& resourceRef)
 				{
-					resource = resourceRef;
-				}
-			});
+					if (_stricmp(resourceRef->GetName().c_str(), resourceName.c_str()) == 0)
+					{
+						resource = resourceRef;
+					}
+				});
+			}
 
 			if (resource.GetRef())
 			{
@@ -287,22 +284,19 @@ static InitFunction initFunction([] ()
 				}
 
 				// check if it's a client script of any sorts
-				std::stringstream normalFileName;
+				std::string nfn;
+				nfn.reserve(fileName.size());
 				char lastC = '/';
 
-				for (size_t i = 0; i < fileName.length(); i++)
+				for (char c : fileName)
 				{
-					char c = fileName[i];
-
 					if (c != '/' || lastC != '/')
 					{
-						normalFileName << c;
+						nfn.push_back(c);
 					}
 
 					lastC = c;
 				}
-
-				auto nfn = normalFileName.str();
 
 				auto mdComponent = resource->GetComponent<fx::ResourceMetaDataComponent>();
 				bool valid = false;
