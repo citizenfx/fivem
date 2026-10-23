@@ -42,6 +42,17 @@ constexpr float kFrameBottom = -1.2f;
 constexpr float kFrameTop = 1.0f;
 constexpr float kFrameWidth = 0.8f;
 
+constexpr float kFrameCentre = (kFrameTop + kFrameBottom) * 0.5f;
+
+constexpr float kDegToRad = 0.017453292f;
+constexpr float kRadToDeg = 57.29578f;
+
+constexpr float kMinCameraFov = 5.0f;
+constexpr float kMaxCameraFov = 120.0f;
+constexpr float kMinCameraZoom = 0.25f;
+constexpr float kMaxCameraZoom = 10.0f;
+constexpr float kMaxCameraFocus = 10.0f;
+
 // native hashes
 constexpr uint64_t CLONE_PED = 0xEF29A16337FACADB;
 constexpr uint64_t DOES_ENTITY_EXIST = 0x7239B21A38F536BA;
@@ -107,6 +118,21 @@ struct UISceneObjectPatchedData
 	char pad_5C[4];
 };
 
+struct Mat33
+{
+	float m[3][3];
+};
+
+struct ScreenPedCamera
+{
+	float fov = 0.0f; // degrees, 0 = the scene camera FOV
+	float pitch = 0.0f; // degrees, orbit around the focus
+	float roll = 0.0f;
+	float yaw = 0.0f;
+	float zoom = 1.0f; // 1 = auto-fit
+	Vec4 focus = { 0.0f, 0.0f, kFrameCentre, 0.0f }; // ped-local metres
+};
+
 struct ScreenPed
 {
 	bool used = false;
@@ -121,6 +147,8 @@ struct ScreenPed
 
 	Vec4 offset = { 0.0f, 0.0f, 0.0f, 0.0f };
 	Vec4 rotation = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+	ScreenPedCamera camera;
 };
 
 
@@ -139,6 +167,7 @@ uint8_t g_pedPhaseVisibilityOffset;
 void (*g_origPreRender)(char* self);
 void (*g_origAddToDrawList)(char* self);
 void (*g_origCompositeToBackbuffer)(rage::grcRenderTarget* src, const float* rect, float alpha);
+void (*g_origViewportPerspective)(void* viewport, float fov, float aspect, float zNear, float zFar);
 
 void (*g_changeVisibilityMask)(void* entity, uint16_t flags, bool value, bool processChildAttachments);
 
@@ -155,6 +184,12 @@ UISceneObjectData g_templateElement;
 bool g_haveTemplate;
 bool g_claimed;
 uint32_t g_assignedSlots;
+
+std::array<float, kMaxSlots> g_slotFov;
+std::array<float, kMaxSlots> g_viewportFovs;
+int g_viewportCount;
+int g_viewportIndex;
+bool g_overrideViewports;
 
 // render thread state
 struct CompositeCapture
@@ -209,6 +244,7 @@ static bool ValidateLayout()
 	} expected[] = {
 		{ "position", offsetof(UISceneObjectData, position) },
 		{ "position_43", offsetof(UISceneObjectData, position43) },
+		{ "rotationXYZ", offsetof(UISceneObjectData, rotationXYZ) },
 		{ "bgRectXYWH", offsetof(UISceneObjectData, bgRectXYWH) },
 		{ "bgRectXYWH_43", offsetof(UISceneObjectData, bgRectXYWH43) },
 		{ "bgRectColor", offsetof(UISceneObjectData, bgRectColor) },
@@ -302,7 +338,78 @@ static bool EnsureTemplate(char* manager)
 	return true;
 }
 
-static void BuildElement(int slot, const ScreenPed& entry, const UI3DCamera& camera, float aspect)
+static Mat33 Multiply(const Mat33& a, const Mat33& b)
+{
+	Mat33 result;
+
+	for (int row = 0; row < 3; row++)
+	{
+		for (int column = 0; column < 3; column++)
+		{
+			result.m[row][column] = a.m[row][0] * b.m[0][column] + a.m[row][1] * b.m[1][column] + a.m[row][2] * b.m[2][column];
+		}
+	}
+
+	return result;
+}
+
+static Vec4 Transform(const Mat33& a, const Vec4& v)
+{
+	return {
+		a.m[0][0] * v.x + a.m[0][1] * v.y + a.m[0][2] * v.z,
+		a.m[1][0] * v.x + a.m[1][1] * v.y + a.m[1][2] * v.z,
+		a.m[2][0] * v.x + a.m[2][1] * v.y + a.m[2][2] * v.z,
+		0.0f
+	};
+}
+
+static Mat33 AxisAngle(float x, float y, float z, float degrees)
+{
+	float c = cosf(degrees * kDegToRad);
+	float s = sinf(degrees * kDegToRad);
+	float t = 1.0f - c;
+
+	return { {
+		{ t * x * x + c, t * x * y - s * z, t * x * z + s * y },
+		{ t * x * y + s * z, t * y * y + c, t * y * z - s * x },
+		{ t * x * z - s * y, t * y * z + s * x, t * z * z + c },
+	} };
+}
+
+static Mat33 FromEulersYXZ(const Vec4& degrees)
+{
+	return Multiply(AxisAngle(0.0f, 0.0f, 1.0f, degrees.z), Multiply(AxisAngle(1.0f, 0.0f, 0.0f, degrees.x), AxisAngle(0.0f, 1.0f, 0.0f, degrees.y)));
+}
+
+static Vec4 ToEulersYXZ(const Mat33& a)
+{
+	// column 1 is (-cosX sinZ, cosX cosZ, sinX)
+	float cosX = sqrtf(a.m[0][1] * a.m[0][1] + a.m[1][1] * a.m[1][1]);
+
+	Vec4 result;
+	result.x = atan2f(a.m[2][1], cosX);
+	result.w = 0.0f;
+
+	if (cosX > 1e-4f)
+	{
+		result.y = atan2f(-a.m[2][0], a.m[2][2]);
+		result.z = atan2f(-a.m[0][1], a.m[1][1]);
+	}
+	else
+	{
+		// gimbal lock, fold Y into Z
+		result.y = 0.0f;
+		result.z = atan2f(a.m[1][0], a.m[0][0]);
+	}
+
+	result.x *= kRadToDeg;
+	result.y *= kRadToDeg;
+	result.z *= kRadToDeg;
+
+	return result;
+}
+
+static void BuildElement(int slot, const ScreenPed& entry, const UI3DCamera& camera, float aspect, Vec4& patchedRotation)
 {
 	UISceneObjectData& element = g_preset.elements[slot];
 	memcpy(&element, &g_templateElement, sizeof(element));
@@ -328,11 +435,21 @@ static void BuildElement(int slot, const ScreenPed& entry, const UI3DCamera& cam
 		fov = 40.0f;
 	}
 
-	float tanHalfFov = tanf(fov * 0.5f * 0.017453292f);
+	const ScreenPedCamera& view = entry.camera;
+
+	if (view.fov > 0.0f)
+	{
+		fov = view.fov;
+	}
+
+	g_slotFov[slot] = view.fov;
+
+	float tanHalfFov = tanf(fov * 0.5f * kDegToRad);
 	float shownHeight = std::min(entry.h, aspect * 0.5f);
 	float shownWidth = std::min(entry.w * aspect, 0.5f);
 
 	float distance = std::max((kFrameTop - kFrameBottom) / (4.0f * tanHalfFov * shownHeight), kFrameWidth / (4.0f * tanHalfFov * shownWidth));
+	distance /= view.zoom;
 
 	float dirX = g_templateElement.position.x - camera.position.x;
 	float dirY = g_templateElement.position.y - camera.position.y;
@@ -349,10 +466,35 @@ static void BuildElement(int slot, const ScreenPed& entry, const UI3DCamera& cam
 		dirY = -1.0f;
 	}
 
+	Vec4 rotation = g_templateElement.rotationXYZ;
+	rotation.x += entry.rotation.x;
+	rotation.y += entry.rotation.y;
+	rotation.z += entry.rotation.z;
+
+	Mat33 orientation = Multiply(AxisAngle(0.0f, 0.0f, 1.0f, -view.yaw), FromEulersYXZ(rotation));
+
+	if (view.pitch == 0.0f && view.roll == 0.0f)
+	{
+		element.rotationXYZ.z -= view.yaw;
+		patchedRotation = entry.rotation;
+	}
+	else
+	{
+		// right = forward x up
+		orientation = Multiply(AxisAngle(dirY, -dirX, 0.0f, view.pitch), orientation);
+		orientation = Multiply(AxisAngle(dirX, dirY, 0.0f, -view.roll), orientation);
+
+		element.rotationXYZ = ToEulersYXZ(orientation);
+		element.rotationXYZ.w = g_templateElement.rotationXYZ.w;
+		patchedRotation = { 0.0f, 0.0f, 0.0f, 0.0f };
+	}
+
+	Vec4 focus = Transform(orientation, view.focus);
+
 	Vec4 position;
-	position.x = camera.position.x + dirX * distance;
-	position.y = camera.position.y + dirY * distance;
-	position.z = camera.position.z - (kFrameTop + kFrameBottom) * 0.5f;
+	position.x = camera.position.x + dirX * distance - focus.x;
+	position.y = camera.position.y + dirY * distance - focus.y;
+	position.z = camera.position.z - focus.z;
 	position.w = g_templateElement.position.w;
 
 	element.position = position;
@@ -465,9 +607,10 @@ static bool TryClaim(char* manager)
 		*reinterpret_cast<uint8_t*>(ped + g_pedAiLodByteOffset) |= 0x40;
 		*reinterpret_cast<uint32_t*>(ped + g_pedAiLodFlagsOffset) |= 0xC0;
 
-		BuildElement(slot, entry, camera, aspect);
+		Vec4 patchedRotation;
+		BuildElement(slot, entry, camera, aspect, patchedRotation);
 
-		if (g_assignPedToSlot(manager, slot, ped, &entry.offset, &entry.rotation, 1.0f))
+		if (g_assignPedToSlot(manager, slot, ped, &entry.offset, &patchedRotation, 1.0f))
 		{
 			PatchedData(manager)[slot].globalLightIntensity = 1.0f;
 			g_assignedSlots |= (1 << slot);
@@ -509,6 +652,41 @@ static void SetCapturing(uintptr_t enable, uintptr_t)
 	}
 }
 
+static void ViewportPerspectiveHook(void* viewport, float fov, float aspect, float zNear, float zFar)
+{
+	if (g_overrideViewports && g_viewportIndex < g_viewportCount)
+	{
+		float slotFov = g_viewportFovs[g_viewportIndex];
+		g_viewportIndex++;
+
+		if (slotFov > 0.0f)
+		{
+			fov = slotFov;
+		}
+	}
+
+	g_origViewportPerspective(viewport, fov, aspect, zNear, zFar);
+}
+
+static void PrepareSlotViewports(char* manager)
+{
+	auto patched = PatchedData(manager);
+
+	g_viewportCount = 0;
+	g_viewportIndex = 0;
+
+	for (uint32_t slot = 0; slot < g_preset.elementCount && slot < kMaxSlots; slot++)
+	{
+		if (g_preset.elements[slot].enabled && patched[slot].ped)
+		{
+			g_viewportFovs[g_viewportCount] = g_slotFov[slot];
+			g_viewportCount++;
+		}
+	}
+
+	g_overrideViewports = true;
+}
+
 static void AddToDrawListHook(char* self)
 {
 	if (self != GetManager())
@@ -521,12 +699,16 @@ static void AddToDrawListHook(char* self)
 
 	if (ours)
 	{
+		PrepareSlotViewports(self);
+
 		uintptr_t enable = 1;
 		uintptr_t unused = 0;
 		EnqueueGenericDrawCommand(SetCapturing, &enable, &unused);
 	}
 
 	g_origAddToDrawList(self);
+
+	g_overrideViewports = false;
 
 	if (ours)
 	{
@@ -769,6 +951,10 @@ static HookFunction hookFunction([]()
 
 	auto compositeToBackbuffer = hook::get_address<void*>(hook::get_pattern("48 8D 0D ? ? ? ? 33 D2 48 89 44 24 20 E8 ? ? ? ? 48 8D 4D ? E8", 3));
 
+	auto slotPerspective = hook::get_pattern("F3 0F 10 88 ? ? ? ? 48 8D 4D ? 41 0F 28 D0 F3 0F 11 44 24 20 E8", 22);
+	hook::set_call(&g_origViewportPerspective, slotPerspective);
+	hook::call(slotPerspective, ViewportPerspectiveHook);
+
 	g_origPreRender = hook::trampoline(hook::get_call(preRenderCall + 7), PreRenderHook);
 	g_origAddToDrawList = hook::trampoline(addToDrawList, AddToDrawListHook);
 	g_origCompositeToBackbuffer = hook::trampoline(compositeToBackbuffer, CompositeToBackbufferHook);
@@ -978,6 +1164,102 @@ static InitFunction initFunction([]()
 		auto& entry = g_screenPeds[slot];
 		entry.offset = { values[0], values[1], values[2], 0.0f };
 		entry.rotation = { values[3], values[4], values[5], 0.0f };
+
+		context.SetResult<bool>(true);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_SCREEN_PED_CAMERA_FOV", [](fx::ScriptContext& context)
+	{
+		context.SetResult<bool>(false);
+
+		int slot = FindSlotByHandle(context.GetArgument<int>(0));
+		float fov = context.GetArgument<float>(1);
+
+		if (slot < 0 || !std::isfinite(fov))
+		{
+			return;
+		}
+
+		g_screenPeds[slot].camera.fov = std::clamp(fov, kMinCameraFov, kMaxCameraFov);
+
+		context.SetResult<bool>(true);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_SCREEN_PED_CAMERA_ROTATION", [](fx::ScriptContext& context)
+	{
+		context.SetResult<bool>(false);
+
+		int slot = FindSlotByHandle(context.GetArgument<int>(0));
+		float pitch = context.GetArgument<float>(1);
+		float roll = context.GetArgument<float>(2);
+		float yaw = context.GetArgument<float>(3);
+
+		if (slot < 0 || !std::isfinite(pitch) || !std::isfinite(roll) || !std::isfinite(yaw))
+		{
+			return;
+		}
+
+		auto& camera = g_screenPeds[slot].camera;
+		camera.pitch = fmodf(pitch, 360.0f);
+		camera.roll = fmodf(roll, 360.0f);
+		camera.yaw = fmodf(yaw, 360.0f);
+
+		context.SetResult<bool>(true);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_SCREEN_PED_CAMERA_FOCUS", [](fx::ScriptContext& context)
+	{
+		context.SetResult<bool>(false);
+
+		int slot = FindSlotByHandle(context.GetArgument<int>(0));
+		float x = context.GetArgument<float>(1);
+		float y = context.GetArgument<float>(2);
+		float z = context.GetArgument<float>(3);
+
+		if (slot < 0 || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
+		{
+			return;
+		}
+
+		g_screenPeds[slot].camera.focus = {
+			std::clamp(x, -kMaxCameraFocus, kMaxCameraFocus),
+			std::clamp(y, -kMaxCameraFocus, kMaxCameraFocus),
+			std::clamp(z, -kMaxCameraFocus, kMaxCameraFocus),
+			0.0f
+		};
+
+		context.SetResult<bool>(true);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_SCREEN_PED_CAMERA_ZOOM", [](fx::ScriptContext& context)
+	{
+		context.SetResult<bool>(false);
+
+		int slot = FindSlotByHandle(context.GetArgument<int>(0));
+		float zoom = context.GetArgument<float>(1);
+
+		if (slot < 0 || !std::isfinite(zoom))
+		{
+			return;
+		}
+
+		g_screenPeds[slot].camera.zoom = std::clamp(zoom, kMinCameraZoom, kMaxCameraZoom);
+
+		context.SetResult<bool>(true);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("RESET_SCREEN_PED_CAMERA", [](fx::ScriptContext& context)
+	{
+		context.SetResult<bool>(false);
+
+		int slot = FindSlotByHandle(context.GetArgument<int>(0));
+
+		if (slot < 0)
+		{
+			return;
+		}
+
+		g_screenPeds[slot].camera = {};
 
 		context.SetResult<bool>(true);
 	});
