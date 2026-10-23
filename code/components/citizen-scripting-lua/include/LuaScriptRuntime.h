@@ -368,6 +368,8 @@ public:
 
 	void SchedulePendingBookmarks();
 
+	bool RemoveBookmark(uint64_t bookmark);
+
 public:
 	NS_DECL_ISCRIPTRUNTIME;
 
