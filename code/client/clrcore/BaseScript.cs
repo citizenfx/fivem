@@ -295,7 +295,7 @@ namespace CitizenFX.Core
 			{
 				fixed (byte* serialized = &argsSerialized[0])
 				{
-					Function.Call(nativeHash, eventName, serialized, argsSerialized.Length, bytesPerSecond);
+					Function.CallUnchecked(nativeHash, eventName, serialized, argsSerialized.Length, bytesPerSecond);
 				}
 			}
 		}
@@ -324,7 +324,7 @@ namespace CitizenFX.Core
 				{
 					fixed (byte* serialized = &argsSerialized[0])
 					{
-						Function.Call(nativeHash, eventName, serialized, argsSerialized.Length);
+						Function.CallUnchecked(nativeHash, eventName, serialized, argsSerialized.Length);
 					}
 				}
 
