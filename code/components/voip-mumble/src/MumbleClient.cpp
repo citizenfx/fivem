@@ -26,6 +26,7 @@ using namespace std::chrono_literals;
 
 constexpr auto kPingInterval = 1000ms;
 constexpr uint16_t kMaxUdpPacket = 1024;
+constexpr uint8_t kUdpHeaderSize = 4;
 
 inline std::chrono::milliseconds msec()
 {
@@ -115,7 +116,7 @@ void MumbleClient::Initialize()
 				// don't start idle timer here - it should only start after TLS handshake is done!
 
 				m_timeSinceJoin = msec();
-				m_inFlightTcpPings = 0;
+				Reset();
 				m_connectionInfo.isConnected = true;
 			});
 
@@ -403,22 +404,6 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::P
 {
 	m_connectionInfo.address = address;
 	m_connectionInfo.username = userName;
-
-	if (m_curManualChannel.empty())
-	{
-		m_curManualChannel = "Root";
-	}
-	else
-	{
-		m_lastManualChannel = "Root";
-	}
-
-	m_tcpPingAverage = 0.0f;
-	m_tcpPingVariance = 0.0f;
-
-	m_tcpPingCount = 0;
-
-	memset(m_tcpPings, 0, sizeof(m_tcpPings));
 
 	m_state.SetClient(this);
 	m_state.SetUsername(userName);
@@ -729,7 +714,7 @@ void MumbleClient::SendUDP(const char* buf, size_t size)
 		return;
 	}
 
-	if (size > kMaxUdpPacket)
+	if (size > (kMaxUdpPacket - kUdpHeaderSize))
 	{
 		trace("We tried to send a packet that was too large for mumble, max packet size is %d bytes, tried to send %d bytes\n", kMaxUdpPacket, size);
 		return;
@@ -1088,7 +1073,11 @@ void MumbleClient::OnReceive(const uint8_t buf[], size_t length)
 {
 	g_currentMumbleClient = this;
 
-	m_handler.HandleIncomingData(buf, length);
+	if (m_handler.HandleIncomingData(buf, length) >= IncomingDataFailReason::InvalidMessageSize)
+	{
+		g_currentMumbleClient->DisconnectAsync();
+		return;
+	}
 }
 
 bool MumbleClient::OnHandshake(const Botan::TLS::Session& session)
