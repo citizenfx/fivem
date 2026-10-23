@@ -156,7 +156,7 @@ private:
 	uintptr_t arguments[32];
 	ArgumentType types[32];
 
-	// Numver of arguments
+	// Number of arguments
 	size_t numArguments = 0;
 
 	// Are all arguments trivial (no pointers)?

@@ -53,7 +53,7 @@ namespace fx
 						// behavior seems to be that out of band messages are always returning true when they have the -1 prefix.
 						return true;
 					}
-					// when keyEnd is npos the message does not contain the \n seperator an the data is empty
+					// when keyEnd is npos the message does not contain the \n separator and the data is empty
 					if (keyEnd == std::string::npos)
 					{
 						keyEnd = len;
