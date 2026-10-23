@@ -114,4 +114,41 @@ static InitFunction initFunction([]()
 
 		context.SetResult<bool>(result);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_CAN_SPAWN_PEDS", [](fx::ScriptContext& context)
+	{
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+		bool canSpawnPeds = context.GetArgument<bool>(1);
+
+		if (entity)
+		{
+			auto address = (char*)entity;
+			// CEntityFlags is at offset 0xC0, bWillSpawnPeds is bit 10
+			DWORD* flags = (DWORD*)(address + 0xC0);
+			if (canSpawnPeds)
+			{
+				*flags |= (1 << 10);
+			}
+			else
+			{
+				*flags &= ~(1 << 10);
+			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_CAN_SPAWN_PEDS", [](fx::ScriptContext& context)
+	{
+		bool result = false;
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
+		if (entity)
+		{
+			auto address = (char*)entity;
+			// CEntityFlags is at offset 0xC0, bWillSpawnPeds is bit 10
+			DWORD flags = *(DWORD*)(address + 0xC0);
+			result = (flags & (1 << 10)) != 0;
+		}
+
+		context.SetResult<bool>(result);
+	});
 });
