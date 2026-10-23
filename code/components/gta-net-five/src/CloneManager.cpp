@@ -167,6 +167,11 @@ public:
 		}
 	}
 
+	virtual const std::map<int, rage::netObject*>& GetPlayerObjects(uint8_t playerId) override
+	{
+		return m_netObjects[playerId];
+	}
+
 	void HandleCloneSync(const char* data, size_t len) override;
 	void HandleCloneAcks(const char* data, size_t len) override;
 
@@ -1006,7 +1011,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// owner ID (forced to be remote so we can call ChangeOwner later)
 	auto isRemote = true;
 	auto owner = 31;
-
+	
 	// create the object
 	auto obj = rage::CreateCloneObject(msg.GetEntityType(), msg.GetObjectId(), owner, 0, 32);
 

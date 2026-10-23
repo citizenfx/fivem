@@ -726,7 +726,7 @@ namespace fx
 
 					auto host = m_clientRegistry->GetHost();
 
-					uint32_t bigModeSlot = (m_instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5) ? 128 : 16;
+					uint32_t bigModeSlot = (m_instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5) ? 128 : 128;
 
 					auto outStr = fmt::sprintf(
 						" %d %d %d %d %lld",
