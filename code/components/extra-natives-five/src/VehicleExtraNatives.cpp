@@ -68,6 +68,11 @@ static hook::cdecl_stub<void(void*, int)> setTrainState([]
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 4C 89 AF ? ? ? ? 49 8B 0F"));
 });
 
+static hook::cdecl_stub<float(void*, bool)> getVehicleAudioOpenness([]
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 0D ? ? ? ? F3 0F 10 15 ? ? ? ? 0F 28 C8"));
+});
+
 struct PatternPair
 {
 	std::string_view pattern;
@@ -339,6 +344,8 @@ static int TrainSpeedOffset;
 constexpr int TrainStopAtStationsFlag = 4;
 
 static int VehicleRepairMethodVtableOffset;
+
+static int VehicleAudioEntityOffset;
 
 static std::unordered_set<fwEntity*> g_deletionTraces;
 static std::unordered_set<void*> g_deletionTraces2;
@@ -644,6 +651,7 @@ static HookFunction initFunction([]()
 		TrainCruiseSpeedOffset = *hook::get_pattern<uint32_t>("C7 87 ? ? ? ? ? ? ? ? E8 ? ? ? ? 4C 89 AF", 2);
 		TrainSpeedOffset = *hook::get_pattern<uint32_t>("4C 89 AF ? ? ? ? 44 89 AF ? ? ? ? 4C 89 AF ? ? ? ? 49 8B 0E", 3);
 		TrainTrackIndexOffset = *hook::get_pattern<uint32_t>("8A 8F ? ? ? ? F3 41 0F 58 CB", 2);
+		VehicleAudioEntityOffset = *hook::get_pattern<uint32_t>("49 8B 8D ? ? ? ? 33 D2 E8", 3);
 	}
 
 	{
@@ -2005,6 +2013,21 @@ static HookFunction initFunction([]()
 
 			context.SetResult<bool>(getWheelBroken(vehicle, wheelIndex));
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_AUDIO_OPENNESS", [](fx::ScriptContext& context)
+	{
+		float result = -1.0f;
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_AUDIO_OPENNESS"))
+		{
+			if (auto audioEntity = readValue<void*>(vehicle, VehicleAudioEntityOffset))
+			{
+				result = getVehicleAudioOpenness(audioEntity, false);
+			}
+		}
+
+		context.SetResult<float>(result);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_FUEL_CONSUMPTION_STATE", [](fx::ScriptContext& context)
