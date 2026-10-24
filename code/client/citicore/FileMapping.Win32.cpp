@@ -104,11 +104,14 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return origFileName;
 	}
 
-	for (const auto& fileName : g_socialClubDlls)
+	if (StrStrIW(origFileName, L"Social Club\\") != NULL)
 	{
-		if (StrStrIW(origFileName, fileName.c_str()) != NULL)
+		for (const auto& fileName : g_socialClubDlls)
 		{
-			return MakeRelativeCitPath(L"bin\\libEGL.dll");
+			if (StrStrIW(origFileName, fileName.c_str()) != NULL)
+			{
+				return MakeRelativeCitPath(L"bin\\libEGL.dll");
+			}
 		}
 	}
 
