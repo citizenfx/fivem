@@ -814,8 +814,17 @@ static InitFunction initFunction([]()
 
 		if (taskMgrEnabled && resourceMonitor)
 		{
+			// closing through the convar (not just the tracked bool), so the Tools menu checkmark follows
+			bool windowOpen = true;
+			bool windowVisible = ImGui::Begin("Resource Monitor", &windowOpen);
+
+			if (!windowOpen)
+			{
+				taskMgrVar.GetHelper()->SetRawValue(false);
+			}
+
 			// the table scrolls by itself, so the profiler buttons below it stay visible
-			if (ImGui::Begin("Resource Monitor", &taskMgrEnabled) && ImGui::BeginTable("##resmon", 8, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable | ImGuiTableFlags_ScrollY, ImVec2(0.0f, -ImGui::GetFrameHeightWithSpacing())))
+			if (windowVisible && ImGui::BeginTable("##resmon", 8, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable | ImGuiTableFlags_ScrollY, ImVec2(0.0f, -ImGui::GetFrameHeightWithSpacing())))
 			{
 				ImGui::TableSetupScrollFreeze(0, 1);
 				ImGui::TableSetupColumn("Resource");
