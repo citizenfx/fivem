@@ -27,6 +27,8 @@
 #include <ResourceManager.h>
 #include "ResourceMonitor.h"
 
+#include <ScriptLineProfiler.h>
+
 DLL_IMPORT ImFont* GetConsoleFontTiny();
 
 using namespace std::chrono_literals;
@@ -115,6 +117,249 @@ static ImVec4 GetColorForRange(float min, float max, float num)
 	{
 		return ImVec4(((num - min) * scale), 1.0f, 0.0f, 1.0f);
 	}
+}
+
+struct SqlStats
+{
+	double msPerSec = 0.0; // query time (send until result) per second of recording
+	double queriesPerSec = 0.0;
+};
+
+// per-resource MySQL query time from the line profiler
+static std::unordered_map<std::string, SqlStats> GetSqlStats()
+{
+	std::unordered_map<std::string, SqlStats> stats;
+
+	double seconds = fx::lineprof::GetRecordedNs() / 1e9;
+
+	if (seconds <= 0.0)
+	{
+		return stats;
+	}
+
+	for (auto& profile : fx::lineprof::GetResourceProfiles())
+	{
+		uint64_t waitNs, waitCount;
+		profile->GetWaitTotals(waitNs, waitCount);
+
+		if (waitCount > 0)
+		{
+			stats[profile->GetName()] = { waitNs / 1e6 / seconds, waitCount / seconds };
+		}
+	}
+
+	return stats;
+}
+
+// per-resource bytes allocated by json.encode/json.decode, per second of recording
+static std::unordered_map<std::string, double> GetJsonAllocRates()
+{
+	std::unordered_map<std::string, double> rates;
+
+	double seconds = fx::lineprof::GetRecordedNs() / 1e9;
+
+	if (seconds <= 0.0)
+	{
+		return rates;
+	}
+
+	for (auto& profile : fx::lineprof::GetResourceProfiles())
+	{
+		uint64_t alloc[size_t(fx::lineprof::SampleKind::Count)];
+		profile->GetKindAlloc(alloc);
+
+		if (auto json = alloc[size_t(fx::lineprof::SampleKind::Json)]; json > 0)
+		{
+			rates[profile->GetName()] = json / seconds;
+		}
+	}
+
+	return rates;
+}
+
+enum class TooltipMode
+{
+	Cpu, // lines by CPU time
+	Sql, // queries by time until the result came back
+	Json, // json.encode/decode calls by bytes allocated
+	Memory, // lines by bytes allocated
+};
+
+static std::string FormatBytes(double bytes)
+{
+	std::string out;
+	BytesToHumanReadable(out, int(std::min(bytes, double(INT_MAX))));
+
+	return out;
+}
+
+// tooltip listing what costs the most in a resource, according to `mode`
+static void ShowTopLinesTooltip(const std::string& resourceName, TooltipMode mode)
+{
+	namespace lp = fx::lineprof;
+
+	static std::string cachedKey;
+	static std::chrono::steady_clock::time_point cachedAt;
+	static std::vector<lp::SampleEntry> cachedTop;
+	static double cachedTotal;
+
+	auto metric = [mode](const lp::SampleStats& stats) -> double
+	{
+		switch (mode)
+		{
+			case TooltipMode::Sql:
+				return double(stats.waitNs);
+			case TooltipMode::Json:
+			case TooltipMode::Memory:
+				return double(stats.allocBytes);
+			default:
+				return double(stats.selfNs);
+		}
+	};
+
+	auto key = fmt::sprintf("%s:%d", resourceName, int(mode));
+	auto now = std::chrono::steady_clock::now();
+
+	if (key != cachedKey || now - cachedAt > 500ms)
+	{
+		std::vector<lp::SampleEntry> entries;
+
+		for (auto& profile : lp::GetResourceProfiles())
+		{
+			if (profile->GetName() == resourceName)
+			{
+				profile->Snapshot(entries);
+				break;
+			}
+		}
+
+		entries.erase(std::remove_if(entries.begin(), entries.end(), [mode, &metric](const lp::SampleEntry& entry)
+		{
+			if (mode == TooltipMode::Sql && entry.info.kind != lp::SampleKind::MySQL)
+			{
+				return true;
+			}
+
+			if (mode == TooltipMode::Json && entry.info.kind != lp::SampleKind::Json)
+			{
+				return true;
+			}
+
+			return metric(entry.stats) <= 0.0;
+		}),
+		entries.end());
+
+		cachedTotal = 0.0;
+
+		for (const auto& entry : entries)
+		{
+			cachedTotal += metric(entry.stats);
+		}
+
+		auto count = std::min<size_t>(entries.size(), 12);
+
+		std::partial_sort(entries.begin(), entries.begin() + count, entries.end(), [&metric](const lp::SampleEntry& a, const lp::SampleEntry& b)
+		{
+			return metric(a.stats) > metric(b.stats);
+		});
+
+		entries.resize(count);
+
+		cachedTop = std::move(entries);
+		cachedKey = key;
+		cachedAt = now;
+	}
+
+	double seconds = lp::GetRecordedNs() / 1e9;
+
+	// the CPU graph adds its own sample value to the same tooltip
+	ImGui::BeginTooltip();
+	ImGui::Separator();
+
+	if (mode == TooltipMode::Memory)
+	{
+		ImGui::TextDisabled("Lua memory allocated per line (high and steady = check for leaks)");
+	}
+
+	if (cachedTop.empty())
+	{
+		const char* text = "Nothing recorded for this resource yet.";
+
+		if (!lp::g_enabled && lp::GetRecordedNs() == 0)
+		{
+			text = "Press 'Start Profiler Record' to see which lines are responsible.";
+		}
+		else if (mode == TooltipMode::Sql)
+		{
+			text = "No query results received yet.";
+		}
+		else if (mode == TooltipMode::Json)
+		{
+			text = "No json.encode/json.decode calls recorded yet.";
+		}
+
+		ImGui::TextUnformatted(text);
+	}
+	else
+	{
+		for (const auto& [info, stats] : cachedTop)
+		{
+			ImVec4 color = ImVec4(0.4f, 0.8f, 0.4f, 1.0f);
+
+			if (info.kind == lp::SampleKind::MySQL)
+			{
+				color = ImVec4(1.0f, 0.6f, 0.2f, 1.0f);
+			}
+			else if (info.kind == lp::SampleKind::Json)
+			{
+				color = ImVec4(1.0f, 0.85f, 0.3f, 1.0f);
+			}
+			else if (info.kind != lp::SampleKind::Lua)
+			{
+				color = ImVec4(0.35f, 0.6f, 1.0f, 1.0f);
+			}
+
+			double value = metric(stats);
+
+			ImGui::TextColored(color, "%5.1f%%  %-7s", cachedTotal > 0.0 ? value * 100.0 / cachedTotal : 0.0, lp::GetKindName(info.kind));
+			ImGui::SameLine();
+
+			if (info.line > 0)
+			{
+				ImGui::Text("%s:%d  %s [%d-%d]", info.source.c_str(), info.line, info.function.c_str(), info.lineDefined, info.lastLineDefined);
+			}
+			else
+			{
+				ImGui::Text("%s  %s", info.source.c_str(), info.function.c_str());
+			}
+
+			if (!info.detail.empty() && mode != TooltipMode::Json)
+			{
+				ImGui::SameLine();
+				ImGui::TextDisabled("-> %.120s", info.detail.c_str());
+			}
+
+			ImGui::SameLine();
+
+			switch (mode)
+			{
+				case TooltipMode::Sql:
+					ImGui::TextDisabled("(%llu queries, avg %.1f ms, max %.1f ms)", stats.waitCount, stats.waitCount ? stats.waitNs / 1e6 / stats.waitCount : 0.0, stats.maxWaitNs / 1e6);
+					break;
+				case TooltipMode::Json:
+					ImGui::TextDisabled("%s  (%llu calls, %s/s, avg %s per call)", info.detail.c_str(), stats.count, FormatBytes(seconds > 0.0 ? value / seconds : 0.0).c_str(), FormatBytes(stats.count ? value / stats.count : 0.0).c_str());
+					break;
+				case TooltipMode::Memory:
+					ImGui::TextDisabled("(%s/s)", FormatBytes(seconds > 0.0 ? value / seconds : 0.0).c_str());
+					break;
+				default:
+					ImGui::NewLine();
+					break;
+			}
+		}
+	}
+
+	ImGui::EndTooltip();
 }
 
 // tuple slice from https://stackoverflow.com/a/40836163/10995747
@@ -569,13 +814,17 @@ static InitFunction initFunction([]()
 
 		if (taskMgrEnabled && resourceMonitor)
 		{
-			if (ImGui::Begin("Resource Monitor", &taskMgrEnabled) && ImGui::BeginTable("##resmon", 6, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
+			// the table scrolls by itself, so the profiler buttons below it stay visible
+			if (ImGui::Begin("Resource Monitor", &taskMgrEnabled) && ImGui::BeginTable("##resmon", 8, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable | ImGuiTableFlags_ScrollY, ImVec2(0.0f, -ImGui::GetFrameHeightWithSpacing())))
 			{
+				ImGui::TableSetupScrollFreeze(0, 1);
 				ImGui::TableSetupColumn("Resource");
 				ImGui::TableSetupColumn("CPU msec", ImGuiTableColumnFlags_PreferSortDescending);
+				ImGui::TableSetupColumn("SQL ms/s", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableSetupColumn("Time %", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableSetupColumn("CPU (inclusive)", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableSetupColumn("Memory", ImGuiTableColumnFlags_PreferSortDescending);
+				ImGui::TableSetupColumn("JSON mem/s", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableSetupColumn("Streaming", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableHeadersRow();
 
@@ -600,7 +849,61 @@ static InitFunction initFunction([]()
 				ImGui::TableSetColumnIndex(1);
 				ImGui::Text("%.2f", avgScriptMs);
 
+				// SQL ms/s: time queries took (send until result) per second, while the profiler records
+				auto sqlStats = GetSqlStats();
+				SqlStats totalSql;
+
+				for (const auto& [name, stats] : sqlStats)
+				{
+					totalSql.msPerSec += stats.msPerSec;
+					totalSql.queriesPerSec += stats.queriesPerSec;
+				}
+
+				auto getSqlMs = [&sqlStats](const std::string& resourceName)
+				{
+					auto it = sqlStats.find(resourceName);
+					return (it != sqlStats.end()) ? it->second.msPerSec : -1.0;
+				};
+
 				ImGui::TableSetColumnIndex(2);
+
+				if (sqlStats.empty())
+				{
+					ImGui::Text("-");
+				}
+				else
+				{
+					ImGui::Text("%.2f (%.1f q/s)", totalSql.msPerSec, totalSql.queriesPerSec);
+				}
+
+				// JSON mem/s: bytes allocated by json.encode/json.decode per second, while the profiler records
+				auto jsonRates = GetJsonAllocRates();
+
+				auto getJsonRate = [&jsonRates](const std::string& resourceName)
+				{
+					auto it = jsonRates.find(resourceName);
+					return (it != jsonRates.end()) ? it->second : -1.0;
+				};
+
+				ImGui::TableSetColumnIndex(6);
+
+				if (jsonRates.empty())
+				{
+					ImGui::Text("-");
+				}
+				else
+				{
+					double totalJson = 0.0;
+
+					for (const auto& [name, rate] : jsonRates)
+					{
+						totalJson += rate;
+					}
+
+					ImGui::Text("%s", FormatBytes(totalJson).c_str());
+				}
+
+				ImGui::TableSetColumnIndex(3);
 
 				if (avgFrameMs == 0.0f)
 				{
@@ -616,7 +919,7 @@ static InitFunction initFunction([]()
 
 					if (sortSpecs && sortSpecs->SpecsCount > 0)
 					{
-						std::sort(resourceDatas.begin(), resourceDatas.end(), [sortSpecs](const auto& left, const auto& right)
+						std::sort(resourceDatas.begin(), resourceDatas.end(), [sortSpecs, &getSqlMs, &getJsonRate](const auto& left, const auto& right)
 						{
 							auto compare = [](const auto& left, const auto& right)
 							{
@@ -642,13 +945,19 @@ static InitFunction initFunction([]()
 										delta = compare(std::get<1>(left), std::get<1>(right));
 										break;
 									case 2:
-										delta = compare(std::get<2>(left), std::get<2>(right));
+										delta = compare(getSqlMs(std::get<0>(left)), getSqlMs(std::get<0>(right)));
 										break;
 									case 3:
-										delta = compare(std::get<6>(left), std::get<6>(right));
+										delta = compare(std::get<2>(left), std::get<2>(right));
 										break;
 									case 4:
+										delta = compare(std::get<6>(left), std::get<6>(right));
+										break;
+									case 5:
 										delta = compare(std::get<3>(left), std::get<3>(right));
+										break;
+									case 6:
+										delta = compare(getJsonRate(std::get<0>(left)), getJsonRate(std::get<0>(right)));
 										break;
 								}
 								if (delta > 0)
@@ -705,6 +1014,11 @@ static InitFunction initFunction([]()
 							100.0f,
 							ImGui::GetTextLineHeight()
 						));
+
+						if (ImGui::IsItemHovered())
+						{
+							ShowTopLinesTooltip(resourceName, TooltipMode::Cpu);
+						}
 					}
 					else
 					{
@@ -712,6 +1026,22 @@ static InitFunction initFunction([]()
 					}
 
 					ImGui::TableSetColumnIndex(2);
+
+					if (auto it = sqlStats.find(resourceName); it != sqlStats.end())
+					{
+						ImGui::TextColored(GetColorForRange(10.0f, 200.0f, it->second.msPerSec), "%.2f (%.1f q/s)", it->second.msPerSec, it->second.queriesPerSec);
+
+						if (ImGui::IsItemHovered())
+						{
+							ShowTopLinesTooltip(resourceName, TooltipMode::Sql);
+						}
+					}
+					else
+					{
+						ImGui::Text("-");
+					}
+
+					ImGui::TableSetColumnIndex(3);
 
 					if (avgFrameFraction < 0.0f)
 					{
@@ -722,7 +1052,7 @@ static InitFunction initFunction([]()
 						ImGui::Text("%.2f%%", avgFrameFraction * 100.0);
 					}
 
-					ImGui::TableSetColumnIndex(3);
+					ImGui::TableSetColumnIndex(4);
 
 					if (avgTotalMs >= 0.0)
 					{
@@ -733,7 +1063,7 @@ static InitFunction initFunction([]()
 						ImGui::Text("-");
 					}
 
-					ImGui::TableSetColumnIndex(4);
+					ImGui::TableSetColumnIndex(5);
 
 					int64_t totalBytes = memorySize;
 
@@ -749,7 +1079,28 @@ static InitFunction initFunction([]()
 						ImGui::Text("%s+", humanSize.c_str());
 					}
 
-					ImGui::TableSetColumnIndex(5);
+					if (ImGui::IsItemHovered())
+					{
+						ShowTopLinesTooltip(resourceName, TooltipMode::Memory);
+					}
+
+					ImGui::TableSetColumnIndex(6);
+
+					if (auto it = jsonRates.find(resourceName); it != jsonRates.end())
+					{
+						ImGui::Text("%s", FormatBytes(it->second).c_str());
+
+						if (ImGui::IsItemHovered())
+						{
+							ShowTopLinesTooltip(resourceName, TooltipMode::Json);
+						}
+					}
+					else
+					{
+						ImGui::Text("-");
+					}
+
+					ImGui::TableSetColumnIndex(7);
 
 					if (streamingUsage > 0)
 					{
@@ -765,6 +1116,32 @@ static InitFunction initFunction([]()
 				}
 
 				ImGui::EndTable();
+
+				// line profiler: feeds the SQL and JSON columns and the CPU/memory tooltips
+				if (fx::lineprof::g_enabled)
+				{
+					if (ImGui::Button("Stop Profiler Record"))
+					{
+						fx::lineprof::SetEnabled(false);
+					}
+
+					ImGui::SameLine();
+					ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Recording %.0fs - hover the CPU graph to see the costly lines", fx::lineprof::GetRecordedNs() / 1e9);
+				}
+				else
+				{
+					if (ImGui::Button("Start Profiler Record"))
+					{
+						fx::lineprof::Reset();
+						fx::lineprof::SetEnabled(true);
+					}
+
+					if (auto recordedNs = fx::lineprof::GetRecordedNs(); recordedNs > 0)
+					{
+						ImGui::SameLine();
+						ImGui::TextDisabled("Showing last record (%.0fs)", recordedNs / 1e9);
+					}
+				}
 			}
 
 			ImGui::End();
