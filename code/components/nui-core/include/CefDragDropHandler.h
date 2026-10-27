@@ -8,7 +8,86 @@
 
 #if defined(CEF_USE_ATL)
 
+#if __has_include(<atlcomcli.h>)
 #include <atlcomcli.h>
+#else
+#include <cassert>
+#include <utility>
+
+template<class T>
+class CComPtr {
+public:
+	T* p;
+
+	constexpr CComPtr() noexcept : p(nullptr) {}
+	CComPtr(T* lp) : p(lp) { if (p) p->AddRef(); }
+	CComPtr(const CComPtr<T>& lp) : p(lp.p) { if (p) p->AddRef(); }
+	CComPtr(CComPtr<T>&& lp) noexcept : p(lp.p) { lp.p = nullptr; }
+
+	~CComPtr() {
+		if (p) {
+			p->Release();
+			p = nullptr;
+		}
+	}
+
+	operator T*() const noexcept { return p; }
+	T& operator*() const noexcept { return *p; }
+	T* operator->() const noexcept { return p; }
+	bool operator!() const noexcept { return p == nullptr; }
+
+	T** operator&() noexcept {
+		assert(p == nullptr && "Address of non-null CComPtr requested; potential COM reference leak");
+		return &p;
+	}
+
+	CComPtr<T>& operator=(T* lp) {
+		if (p != lp) {
+			if (lp) lp->AddRef();
+			if (p) p->Release();
+			p = lp;
+		}
+		return *this;
+	}
+
+	CComPtr<T>& operator=(const CComPtr<T>& lp) {
+		return operator=(lp.p);
+	}
+
+	CComPtr<T>& operator=(CComPtr<T>&& lp) noexcept {
+		if (p != lp.p) {
+			if (p) p->Release();
+			p = lp.p;
+			lp.p = nullptr;
+		}
+		return *this;
+	}
+
+	void Attach(T* lp) noexcept {
+		if (p) p->Release();
+		p = lp;
+	}
+
+	T* Detach() noexcept {
+		T* pt = p;
+		p = nullptr;
+		return pt;
+	}
+
+	void Release() noexcept {
+		if (p) {
+			T* pt = p;
+			p = nullptr;
+			pt->Release();
+		}
+	}
+
+	bool operator==(T* lp) const noexcept { return p == lp; }
+	bool operator!=(T* lp) const noexcept { return p != lp; }
+	bool operator==(const CComPtr<T>& lp) const noexcept { return p == lp.p; }
+	bool operator!=(const CComPtr<T>& lp) const noexcept { return p != lp.p; }
+};
+#endif
 #include <objidl.h>
 #include <stdio.h>
 

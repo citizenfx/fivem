@@ -91,6 +91,14 @@ bool ScriptingFilesystemAllowWrite(const std::string& path, fx::Resource* resour
 		return false;
 	}
 
+	for (const auto& part : resourceFilePath.lexically_normal())
+	{
+		if (part == "..")
+		{
+			return false;
+		}
+	}
+
 	std::string currentResourceName{};
 	fx::Resource* currentResource = nullptr;
 	if (resourceOverride != nullptr)
