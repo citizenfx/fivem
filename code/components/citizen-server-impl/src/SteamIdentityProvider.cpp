@@ -74,12 +74,6 @@ static InitFunction initFunction([]()
 
 			if (it == postMap.end())
 			{
-				if (g_enforceSteamAuth->GetValue())
-				{
-					cb(boost::optional<std::string>{ "No Steam authentication ticket provided while this server enforces authentication with Steam." });
-					return;
-				}
-
 				cb({});
 				return;
 			}
