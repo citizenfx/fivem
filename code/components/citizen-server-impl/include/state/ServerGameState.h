@@ -1300,6 +1300,11 @@ public:
 	{
 		syncedEntities.emplace_back(handle, clientEntityData);
 	}
+
+	void Reserve(size_t count)
+	{
+		syncedEntities.reserve(count);
+	}
 	
 	void Sort()
 	{
@@ -1366,6 +1371,11 @@ struct SyncedEntityData
 
 constexpr auto maxSavedClientFrames = 650; // enough for ~8-9 seconds, after 5 we'll start using worst-case frames
 constexpr auto maxSavedClientFramesWorstCase = (60000 / 15); // enough for ~60 seconds
+
+inline bool ShouldUseWorstCaseFrameBacklog(const std::chrono::milliseconds now, const std::chrono::milliseconds lastSeen)
+{
+	return now > lastSeen && (now - lastSeen) > 5s;
+}
 
 struct GameStateClientData
 {

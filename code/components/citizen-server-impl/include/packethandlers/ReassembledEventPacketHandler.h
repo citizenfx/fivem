@@ -29,6 +29,7 @@ namespace ServerDecorators
 			net::packet::ReassembledEventV2, HashRageString("msgReassembledEventV2")>
 	{
 		fwRefContainer<fx::EventReassemblyComponent> m_rac;
+		std::shared_ptr<ConVar<bool>> m_debugAcks;
 
 	public:
 		COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) ReassembledEventV2PacketHandler(fx::ServerInstanceBase* instance);
