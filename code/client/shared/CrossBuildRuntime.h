@@ -45,12 +45,12 @@ inline int GetDefaultRDR3Build()
 // This can be bumped independently of GetDefaultGTA5Build()/GetDefaultRDR3Build() (the client floor).
 inline int GetMandatedDefaultGTA5Build()
 {
-	return 3258;
+	return 3889;
 }
 
 inline const char* GetMandatedDefaultGTA5BuildString()
 {
-	return "3258";
+	return "3889";
 }
 
 inline int GetMandatedDefaultRDR3Build()
