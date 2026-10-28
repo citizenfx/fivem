@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2024-2026 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -7,10 +7,10 @@
  * https://www.openssl.org/source/license.html
  */
 #ifndef OSSL_POLL_BUILDER_H
-# define OSSL_POLL_BUILDER_H
+#define OSSL_POLL_BUILDER_H
 
-# include "poll_method.h"
-# include "internal/time.h"
+#include "poll_method.h"
+#include "internal/time.h"
 
 /*
  * RIO_POLL_BUILDER
@@ -23,19 +23,19 @@
  * FDs.
  */
 typedef struct rio_poll_builder_st {
-# if RIO_POLL_METHOD == RIO_POLL_METHOD_NONE
-    int             unused_dummy; /* make microsoft compiler happy */
-# elif RIO_POLL_METHOD == RIO_POLL_METHOD_SELECT
-    fd_set          rfd, wfd, efd;
-    int             hwm_fd;
-# elif RIO_POLL_METHOD == RIO_POLL_METHOD_POLL
-#  define RIO_NUM_STACK_PFDS  32
-    struct pollfd   *pfd_heap;
-    struct pollfd   pfds[RIO_NUM_STACK_PFDS];
-    size_t          pfd_num, pfd_alloc;
-# else
-#  error Unknown RIO poll method
-# endif
+#if RIO_POLL_METHOD == RIO_POLL_METHOD_NONE
+    int unused_dummy; /* make microsoft compiler happy */
+#elif RIO_POLL_METHOD == RIO_POLL_METHOD_SELECT
+    fd_set rfd, wfd, efd;
+    int hwm_fd;
+#elif RIO_POLL_METHOD == RIO_POLL_METHOD_POLL
+#define RIO_NUM_STACK_PFDS 32
+    struct pollfd *pfd_heap;
+    struct pollfd pfds[RIO_NUM_STACK_PFDS];
+    size_t pfd_num, pfd_alloc;
+#else
+#error Unknown RIO poll method
+#endif
 } RIO_POLL_BUILDER;
 
 /*
@@ -62,7 +62,7 @@ void ossl_rio_poll_builder_cleanup(RIO_POLL_BUILDER *rpb);
  * Returns 1 on success and 0 on failure.
  */
 int ossl_rio_poll_builder_add_fd(RIO_POLL_BUILDER *rpb, int fd,
-                                 int want_read, int want_write);
+    int want_read, int want_write);
 
 /*
  * Polls the set of file descriptors added to a poll builder. deadline is a
@@ -75,5 +75,18 @@ int ossl_rio_poll_builder_poll(RIO_POLL_BUILDER *rpb, OSSL_TIME deadline);
  * TODO(RIO): No support currently for readout of what was readable/writeable as
  * it is currently not needed.
  */
+
+#ifndef OPENSSL_NO_QUIC
+/*
+ * Test instrumentation only. If set, poll_translate() (see poll_immediate.c)
+ * calls this with the index of each item immediately before translating it,
+ * once all earlier items (if any) have finished translation. This lets
+ * tests inject a readiness change into the gap between translation of
+ * consecutive items, in order to deterministically exercise the
+ * abort-blocking path. Always NULL in production use.
+ */
+extern void (*ossl_quic_poll_translate_test_step_cb)(size_t idx, void *arg);
+extern void *ossl_quic_poll_translate_test_step_cb_arg;
+#endif
 
 #endif
