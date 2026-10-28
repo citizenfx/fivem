@@ -27,7 +27,6 @@
 #include "shared/RefFunctions.h"
 
 #include "JavaScriptEnvironmentCode.h"
-#include "NodeScopeHandler.h"
 #include "UvLoopTimer.h"
 #include "VFSDevice.h"
 #include "VFSManager.h"
