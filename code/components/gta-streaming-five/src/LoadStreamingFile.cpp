@@ -1559,10 +1559,14 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 		strcpy_s(entry.name, fileName.c_str());
 		entry.type = LookupDataFileType(typeName);
 
+		std::unique_lock lock(streaming::GetDataFileMountMutex());
+
 		bool result = SafeCall([&]()
 		{
 			return fn(mounter, entry);
 		}, va("%s of %s in data file mounter %s", op, fileName, className));
+
+		lock.unlock();
 
 		if (result)
 		{
@@ -2812,6 +2816,12 @@ namespace streaming
 	bool IsStreamerShuttingDown()
 	{
 		return g_unloadingCfx;
+	}
+
+	std::recursive_mutex& GetDataFileMountMutex()
+	{
+		static std::recursive_mutex mutex;
+		return mutex;
 	}
 }
 
