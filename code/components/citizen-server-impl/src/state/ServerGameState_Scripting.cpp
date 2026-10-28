@@ -2157,6 +2157,41 @@ static void Init()
 		return handle;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ATTACHMENT_OFFSET", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		scrVector resultVec = { 0 };
+
+		auto attachment = entity->syncTree->GetAttachment();
+
+		if (attachment && attachment->attached && attachment->hasOffset)
+		{
+			resultVec.x = attachment->x;
+			resultVec.y = attachment->y;
+			resultVec.z = attachment->z;
+		}
+
+		return resultVec;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ATTACHMENT_BONE_INDEX", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto attachment = entity->syncTree->GetAttachment();
+
+		if (attachment && attachment->attached && attachment->attachBone != 0xFFFF)
+		{
+			return (int)attachment->attachBone;
+		}
+
+		return -1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ATTACHMENT_FLAGS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto attachment = entity->syncTree->GetAttachment();
+
+		return (attachment && attachment->attached) ? (int)attachment->attachmentFlags : 0;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_MAIN_ROTOR_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto heliHealth = entity->syncTree->GetHeliHealth();
