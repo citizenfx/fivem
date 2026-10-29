@@ -192,7 +192,7 @@ public:
 				{
 					response->SetStatusCode(state[0].as<int>());
 				}
-				else
+				else if (state.size() > 1 && state[1].type == msgpack::type::MAP)
 				{
 					net::HeaderMap headers;
 
@@ -210,6 +210,10 @@ public:
 
 					response->SetStatusCode(state[0].as<int>());
 				}
+				else
+				{
+					response->SetStatusCode(state[0].as<int>());
+				}
 
 				if (request->GetHttpVersion() != std::pair<int, int>{ 1, 0 })
 				{
@@ -221,7 +225,7 @@ public:
 			{
 				auto state = unpacked.get().as<std::vector<msgpack::object>>();
 
-				if (state.empty())
+				if (state.empty() || state[0].is_nil())
 				{
 					response->End();
 				}
