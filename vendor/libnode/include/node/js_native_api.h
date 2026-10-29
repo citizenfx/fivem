@@ -5,22 +5,6 @@
 #include <stdbool.h>  // NOLINT(modernize-deprecated-headers)
 #include <stddef.h>   // NOLINT(modernize-deprecated-headers)
 
-// Use INT_MAX, this should only be consumed by the pre-processor anyway.
-#define NAPI_VERSION_EXPERIMENTAL 2147483647
-#ifndef NAPI_VERSION
-#ifdef NAPI_EXPERIMENTAL
-#define NAPI_VERSION NAPI_VERSION_EXPERIMENTAL
-#else
-// The baseline version for N-API.
-// The NAPI_VERSION controls which version will be used by default when
-// compilling a native addon. If the addon developer specifically wants to use
-// functions available in a new version of N-API that is not yet ported in all
-// LTS versions, they can set NAPI_VERSION knowing that they have specifically
-// depended on that version.
-#define NAPI_VERSION 8
-#endif
-#endif
-
 #include "js_native_api_types.h"
 
 // If you need __declspec(dllimport), either include <node_api.h> instead, or
@@ -436,6 +420,16 @@ napi_create_external_arraybuffer(napi_env env,
                                  node_api_basic_finalize finalize_cb,
                                  void* finalize_hint,
                                  napi_value* result);
+#ifdef NAPI_EXPERIMENTAL
+#define NODE_API_EXPERIMENTAL_HAS_CREATE_EXTERNAL_SHAREDARRAYBUFFER
+NAPI_EXTERN napi_status NAPI_CDECL
+node_api_create_external_sharedarraybuffer(napi_env env,
+                                           void* external_data,
+                                           size_t byte_length,
+                                           node_api_noenv_finalize finalize_cb,
+                                           void* finalize_hint,
+                                           napi_value* result);
+#endif  // NAPI_EXPERIMENTAL
 #endif  // NODE_API_NO_EXTERNAL_BUFFERS_ALLOWED
 NAPI_EXTERN napi_status NAPI_CDECL napi_get_arraybuffer_info(
     napi_env env, napi_value arraybuffer, void** data, size_t* byte_length);
