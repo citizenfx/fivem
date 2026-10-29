@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: server
+apiset: shared
 ---
 ## GET_PLAYER_PEER_STATISTICS
 
@@ -38,12 +38,14 @@ enum PeerStatistics
 
 These statistics only update once every 10 seconds.
 
+On the client, only the local player is supported.
+
 ## Parameters
-* **playerSrc**: The player to get the stats of
+* **playerSrc**: The player to get the stats of. On the client, `nil`/`null` for the local player.
 * **peerStatistic**: The statistic to get, this will error if its out of range
 
 ## Return value
-See `ENetStatisticType` for what this will return.
+See `ENetStatisticType` for what this will return. Returns 0 if the player has no connection.
 
 ## Examples
 ```js
@@ -76,4 +78,12 @@ setInterval(() => {
 	console.log(`lastRttVariance: ${lastRttVariance}`);
 	console.log(`packetThrottleEpoch: ${packetThrottleEpoch}`);
 }, 10000)
+```
+
+```lua
+-- client
+local packetLoss = GetPlayerPeerStatistics(nil, 0 --[[ PacketLoss ]])
+local rtt = GetPlayerPeerStatistics(nil, 3 --[[ RoundTripTime ]])
+
+print(('packetLoss: %.2f%%, rtt: %dms'):format(packetLoss / 65536 * 100, rtt))
 ```
