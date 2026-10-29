@@ -1712,20 +1712,32 @@ static std::set<std::string> g_pedsToRegister;
 
 static std::unordered_set<int> g_ourIndexes;
 
-static std::string GetBaseName(const std::string& name)
+static bool IsModTag(const std::string& tag)
+{
+	return tag.find("mod_") == 0 || tag.find("faux_pack") == 0;
+}
+
+// isMod: local mods/ content gets subdir mapping without the server policy (there is no server at startup)
+static std::string GetBaseName(const std::string& name, bool isMod = false)
 {
 	std::string retval = name;
 
 	std::string policyVal;
 
-	if (Instance<ICoreGameInit>::Get()->GetData("policy", &policyVal))
+	bool allowSubdir = isMod;
+
+	if (!allowSubdir && Instance<ICoreGameInit>::Get()->GetData("policy", &policyVal))
 	{
 #ifndef _DEBUG
-		if (policyVal.find("[subdir_file_mapping]") != std::string::npos)
+		allowSubdir = policyVal.find("[subdir_file_mapping]") != std::string::npos;
+#else
+		allowSubdir = true;
 #endif
-		{
-			std::replace(retval.begin(), retval.end(), '^', '/');
-		}
+	}
+
+	if (allowSubdir)
+	{
+		std::replace(retval.begin(), retval.end(), '^', '/');
 	}
 
 	// is this trying to override a file extant in platform:/textures/?
@@ -1774,7 +1786,7 @@ static void LoadStreamingFiles(LoadType loadType)
 	{
 		auto [file, tag] = *it;
 
-		bool isMod = tag.find("mod_") == 0 || tag.find("faux_pack") == 0;
+		bool isMod = IsModTag(tag);
 
 		if (loadType == LoadType::Startup || loadType == LoadType::BeforeMapLoad || loadType == LoadType::AfterSessionEarlyStage)
 		{
@@ -1802,7 +1814,7 @@ static void LoadStreamingFiles(LoadType loadType)
 			continue;
 		}
 
-		auto baseName = GetBaseName(std::string(slashPos + 1));
+		auto baseName = GetBaseName(std::string(slashPos + 1), isMod);
 		auto nameWithoutExt = baseName.substr(0, baseName.find_last_of('.'));
 
 #ifdef GTA_FIVE
@@ -2543,7 +2555,7 @@ void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, cons
 		start = it + 1;
 	}
 
-	auto baseName = GetBaseName(fileName.substr(start));
+	auto baseName = GetBaseName(fileName.substr(start), IsModTag(tag));
 
 	if (baseName.find(".ymf") == baseName.length() - 4)
 	{
@@ -2594,7 +2606,7 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 			start = it + 1;
 		}
 
-		auto baseName = GetBaseName(file.substr(start));
+		auto baseName = GetBaseName(file.substr(start), IsModTag(tag));
 		auto nameWithoutExt = baseName.substr(0, baseName.find_last_of('.'));
 
 		// get dot position and skip if no dot
