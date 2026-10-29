@@ -14,7 +14,10 @@ take effect on the next frame; resolution, window mode and similar changes reset
 
 Like the pause menu, changes the game only picks up on restart (such as `TextureQuality` or `ShaderQuality`, see
 [GET_GAME_SETTING_REQUIRES_RESTART](#_0x0329588A)) are not applied live. If any staged change requires a restart, none
-of the staged changes are applied, and they only take effect after a restart if `save` is set.
+of the staged changes are applied live, and the result is `2`.
+
+Restart-only changes therefore need `save` to have any effect: they're picked up from `settings.xml` when the game
+starts. Without `save`, they're discarded.
 
 The staged changes are discarded, and nothing is applied or saved, if the resulting resolution is not one of
 [GET_AVAILABLE_SCREEN_RESOLUTIONS](#_0x095DBFD7) for the target monitor.
