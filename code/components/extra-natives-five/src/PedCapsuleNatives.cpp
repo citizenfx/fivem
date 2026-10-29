@@ -61,6 +61,17 @@ static void RequestMoverCapsuleRebuild(fwEntity* ped)
 	reinterpret_cast<hook::FlexStruct*>(ped)->Set<float>(g_pedCapsuleZOffsetOffset, -FLT_MAX);
 }
 
+static fwEntity* GetPedFromHandle(int handle, const char* nativeName)
+{
+	if (!g_origRebuildMoverCapsule)
+	{
+		throw std::runtime_error(fmt::sprintf("%s is not supported on this game build.", nativeName));
+	}
+
+	fwEntity* ped = rage::fwScriptGuid::GetBaseFromGuid(handle);
+	return (ped && ped->IsOfType<CPed>()) ? ped : nullptr;
+}
+
 static HookFunction hookFunction([]()
 {
 	auto rebuildMoverCapsule = hook::pattern("48 85 D2 0F 84 ? ? ? ? 48 8B C4 48 89 58 08 48 89 70 10 48 89 78 18 55 41 56 41 57 48 8D 68 B1");
@@ -80,17 +91,29 @@ static HookFunction hookFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_PED_CAPSULE_HEIGHT_OVERRIDE", [](fx::ScriptContext& context)
 	{
-		if (!g_origRebuildMoverCapsule)
-		{
-			throw std::runtime_error("SET_PED_CAPSULE_HEIGHT_OVERRIDE is not supported on this game build.");
-		}
-
 		int handle = context.GetArgument<int>(0);
 		float height = context.GetArgument<float>(1);
 
-		fwEntity* ped = rage::fwScriptGuid::GetBaseFromGuid(handle);
+		fwEntity* ped = GetPedFromHandle(handle, "SET_PED_CAPSULE_HEIGHT_OVERRIDE");
 
-		if (!ped || !ped->IsOfType<CPed>())
+		if (!ped || !std::isfinite(height) || height <= 0.0f)
+		{
+			return;
+		}
+
+		{
+			std::lock_guard _(g_capsuleOverridesMutex);
+			g_capsuleOverrides[ped] = { handle, height };
+		}
+
+		RequestMoverCapsuleRebuild(ped);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("CLEAR_PED_CAPSULE_HEIGHT_OVERRIDE", [](fx::ScriptContext& context)
+	{
+		fwEntity* ped = GetPedFromHandle(context.GetArgument<int>(0), "CLEAR_PED_CAPSULE_HEIGHT_OVERRIDE");
+
+		if (!ped)
 		{
 			return;
 		}
@@ -98,13 +121,9 @@ static HookFunction hookFunction([]()
 		{
 			std::lock_guard _(g_capsuleOverridesMutex);
 
-			if (std::isfinite(height) && height > 0.0f)
+			if (!g_capsuleOverrides.erase(ped))
 			{
-				g_capsuleOverrides[ped] = { handle, height };
-			}
-			else
-			{
-				g_capsuleOverrides.erase(ped);
+				return;
 			}
 		}
 
