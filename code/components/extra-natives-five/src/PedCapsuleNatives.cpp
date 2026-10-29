@@ -13,7 +13,6 @@
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
-#include <stdexcept>
 #include <unordered_map>
 
 //
@@ -165,45 +164,28 @@ static void ApplyPedGameStateData(void* netObjInterface, void* node)
 	}
 }
 
-static fwEntity* GetPedFromHandle(int handle, const char* nativeName)
+static fwEntity* GetPedFromHandle(int handle)
 {
-	if (!g_origRebuildMoverCapsule)
-	{
-		throw std::runtime_error(fmt::sprintf("%s is not supported on this game build.", nativeName));
-	}
-
 	fwEntity* ped = rage::fwScriptGuid::GetBaseFromGuid(handle);
 	return (ped && ped->IsOfType<CPed>()) ? ped : nullptr;
 }
 
 static HookFunction hookFunction([]()
 {
-	auto rebuildMoverCapsule = hook::pattern("48 85 D2 0F 84 ? ? ? ? 48 8B C4 48 89 58 08 48 89 70 10 48 89 78 18 55 41 56 41 57 48 8D 68 B1");
-	auto zOffsetStore = hook::pattern("F3 44 0F 11 83 ? ? ? ? 41 83 C8 FF");
+	g_pedCapsuleZOffsetOffset = *hook::get_pattern<uint32_t>("F3 44 0F 11 83 ? ? ? ? 41 83 C8 FF", 5);
+	g_origRebuildMoverCapsule = hook::trampoline(hook::get_pattern("48 85 D2 0F 84 ? ? ? ? 48 8B C4 48 89 58 08 48 89 70 10 48 89 78 18 55 41 56 41 57 48 8D 68 B1"), RebuildMoverCapsule);
 
-	if (rebuildMoverCapsule.size() == 1 && zOffsetStore.size() == 1)
-	{
-		g_pedCapsuleZOffsetOffset = *zOffsetStore.get_first<uint32_t>(5);
-		g_origRebuildMoverCapsule = hook::trampoline(rebuildMoverCapsule.get_first(), RebuildMoverCapsule);
+	// CPedGameStateDataNode sync
+	auto apply = hook::get_pattern<char>("48 8B C4 48 89 58 08 48 89 70 10 48 89 78 18 4C 89 60 20 55 41 56 41 57 48 8D 68 A1 48 81 EC D0 00 00 00 48 8B B9 ? ? ? ? 45 33 E4");
+	g_pedGameStateInterfacePedOffset = *(int32_t*)(apply + 38);
 
-		// CPedGameStateDataNode sync
-		auto extract = hook::pattern("40 53 48 83 EC 20 48 8B 02 4C 8B C2 48 8B D9 48 8B D1 49 8B C8 FF 50 60");
-		auto serialise = hook::pattern("48 89 5C 24 20 55 56 57 41 54 41 55 41 56 41 57 48 8B EC 48 83 EC 30 48 8B 02 48 8B FA 48 8D 91 55 01 00 00");
-		auto apply = hook::pattern("48 8B C4 48 89 58 08 48 89 70 10 48 89 78 18 4C 89 60 20 55 41 56 41 57 48 8D 68 A1 48 81 EC D0 00 00 00 48 8B B9 ? ? ? ? 45 33 E4");
-
-		if (extract.size() == 1 && serialise.size() == 1 && apply.size() == 1)
-		{
-			g_pedGameStateInterfacePedOffset = *apply.get_first<int32_t>(38);
-
-			g_origExtractPedGameStateData = hook::trampoline(extract.get_first(), ExtractPedGameStateData);
-			g_origSerialisePedGameStateData = hook::trampoline(serialise.get_first(), SerialisePedGameStateData);
-			g_origApplyPedGameStateData = hook::trampoline(apply.get_first(), ApplyPedGameStateData);
-		}
-	}
+	g_origExtractPedGameStateData = hook::trampoline(hook::get_pattern("40 53 48 83 EC 20 48 8B 02 4C 8B C2 48 8B D9 48 8B D1 49 8B C8 FF 50 60"), ExtractPedGameStateData);
+	g_origSerialisePedGameStateData = hook::trampoline(hook::get_pattern("48 89 5C 24 20 55 56 57 41 54 41 55 41 56 41 57 48 8B EC 48 83 EC 30 48 8B 02 48 8B FA 48 8D 91 55 01 00 00"), SerialisePedGameStateData);
+	g_origApplyPedGameStateData = hook::trampoline(apply, ApplyPedGameStateData);
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_PED_CAPSULE_HEIGHT_OVERRIDE", [](fx::ScriptContext& context)
 	{
-		fwEntity* ped = GetPedFromHandle(context.GetArgument<int>(0), "SET_PED_CAPSULE_HEIGHT_OVERRIDE");
+		fwEntity* ped = GetPedFromHandle(context.GetArgument<int>(0));
 		float height = context.GetArgument<float>(1);
 
 		if (ped && std::isfinite(height) && height > 0.0f)
@@ -214,7 +196,7 @@ static HookFunction hookFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("CLEAR_PED_CAPSULE_HEIGHT_OVERRIDE", [](fx::ScriptContext& context)
 	{
-		if (fwEntity* ped = GetPedFromHandle(context.GetArgument<int>(0), "CLEAR_PED_CAPSULE_HEIGHT_OVERRIDE"))
+		if (fwEntity* ped = GetPedFromHandle(context.GetArgument<int>(0)))
 		{
 			SetCapsuleHeightOverride(ped, 0.0f);
 		}
