@@ -244,7 +244,7 @@ namespace nui
 	fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName)
 	{
 		{
-			std::unique_lock<std::shared_mutex> lock(windowListMutex);
+			std::shared_lock<std::shared_mutex> lock(windowListMutex);
 			auto windowIt = windowList.find(windowName);
 
 			if (windowIt == windowList.end())
