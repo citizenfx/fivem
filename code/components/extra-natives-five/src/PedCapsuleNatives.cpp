@@ -58,7 +58,7 @@ static void RebuildMoverCapsule(fwEntity* ped, void* capsuleInfo, float headHeig
 static void RequestMoverCapsuleRebuild(fwEntity* ped)
 {
 	// the game rebuilds the capsule on its next update when the cached offset doesn't match the current one
-	*(float*)((char*)ped + g_pedCapsuleZOffsetOffset) = -FLT_MAX;
+	reinterpret_cast<hook::FlexStruct*>(ped)->Set<float>(g_pedCapsuleZOffsetOffset, -FLT_MAX);
 }
 
 static HookFunction hookFunction([]()
