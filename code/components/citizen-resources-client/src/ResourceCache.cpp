@@ -14,6 +14,7 @@
 #include <msgpack.hpp>
 
 #include <Error.h>
+#include <CoreConsole.h>
 
 #include <tbb/concurrent_unordered_map.h>
 
@@ -216,7 +217,63 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 		m_entryCache[key] = {};
 	}
 
-	trace("ResourceCache::AddEntry: Saved cache:v1:%s to the index cache.\n", hashString);
+	console::DPrintf("citizen:resources:client", "ResourceCache::AddEntry: Saved cache:v1:%s to the index cache.\n", hashString);
+}
+
+static std::string GetVerifiedStampKey(const std::array<uint8_t, 20>& hash)
+{
+	return "verify:v1:" + std::string(reinterpret_cast<const char*>(hash.data()), hash.size());
+}
+
+std::optional<ResourceCache::VerifiedFileStamp> ResourceCache::GetVerifiedStamp(const std::array<uint8_t, 20>& hash)
+{
+	std::string value;
+	leveldb::Status status = m_indexDatabase->Get(leveldb::ReadOptions{}, GetVerifiedStampKey(hash), &value);
+
+	if (!status.ok())
+	{
+		return {};
+	}
+
+	// anything unparsable is treated as if there was no record at all
+	try
+	{
+		msgpack::unpacked msg = msgpack::unpack(value.c_str(), value.size());
+
+		VerifiedFileStamp stamp;
+		msg.get().convert(stamp);
+
+		if (!stamp.fileId.empty() && !stamp.hash.empty())
+		{
+			return stamp;
+		}
+	}
+	catch (const std::exception&)
+	{
+	}
+
+	return {};
+}
+
+void ResourceCache::SetVerifiedStamp(const std::array<uint8_t, 20>& hash, const VerifiedFileStamp& stamp)
+{
+	msgpack::sbuffer buffer;
+	msgpack::pack(buffer, stamp);
+
+	leveldb::WriteOptions options;
+	options.sync = false;
+
+	m_indexDatabase->Put(options, GetVerifiedStampKey(hash), leveldb::Slice(buffer.data(), buffer.size()));
+}
+
+void ResourceCache::RemoveVerifiedStamp(const std::string& hashString)
+{
+	if (hashString.size() != 40 || hashString.find_first_not_of("0123456789abcdefABCDEF") != std::string::npos)
+	{
+		return;
+	}
+
+	m_indexDatabase->Delete(leveldb::WriteOptions{}, GetVerifiedStampKey(ParseHexString<20>(hashString.c_str())));
 }
 
 std::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::array<uint8_t, 20>& hash)

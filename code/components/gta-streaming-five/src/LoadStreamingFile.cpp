@@ -1015,6 +1015,7 @@ static hook::cdecl_stub<void()> _initFuncCoverPointManagerSessionReload([]()
 static bool g_reloadMapStore = false;
 
 static std::set<std::string> loadedCollisions;
+static ConVar<int>* g_collisionPreloadBatchCount;
 
 int GetDummyCollectionIndexByTag(const std::string& tag);
 extern std::unordered_map<int, std::string> g_handlesToTag;
@@ -1086,7 +1087,8 @@ static void ReloadMapStore()
 	}
 
 	auto mgr = streaming::Manager::GetInstance();
-
+	auto ybnModule = mgr->moduleMgr.GetStreamingModule("ybn");
+	const uint32_t ybnBaseIdx = ybnModule ? ybnModule->baseIdx : 0;
 
 	// Find collision files that need reloading
 	ForAllStreamingFiles([&](const std::string& file)
@@ -1107,7 +1109,7 @@ static void ReloadMapStore()
 			return;
 		}
 
-		auto relId = obj - streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn")->baseIdx;
+		auto relId = obj - ybnBaseIdx;
 
 		if (
 			_isResourceNotCached(mgr, obj)
@@ -1123,33 +1125,49 @@ static void ReloadMapStore()
 		}
 		else
 		{
-			trace("Skipped %s - it's cached! (id %d)\n", file.c_str(), relId);
+			console::DPrintf("gta:streaming", "Skipped %s - it's cached! (id %d)\n", file.c_str(), relId);
 		}
 	});
 
+	static constexpr size_t kMaxBatchBytes = 32 * 1024 * 1024;
+	const size_t maxBatchCount = (size_t)std::clamp(g_collisionPreloadBatchCount ? g_collisionPreloadBatchCount->GetValue() : 64, 1, 256);
 
-	static constexpr uint8_t batchSize = 4;
-
-	for (int count = 0; count < collisionFiles.size(); count += batchSize)
+	for (size_t start = 0; start < collisionFiles.size();)
 	{
-		int end = std::min((count + batchSize), (int)collisionFiles.size());
+		size_t end = start;
+		size_t batchBytes = 0;
 
-		for (int i = count; i < end; i++)
+		while (end < collisionFiles.size() && (end - start) < maxBatchCount)
 		{
-			mgr->RequestObject(collisionFiles[i].second, 0);
-			trace("Loaded %s (id %d)\n", collisionFiles[i].first.c_str(), (collisionFiles[i].second - mgr->moduleMgr.GetStreamingModule("ybn")->baseIdx));
+			auto obj = collisionFiles[end].second;
+			auto& strEntry = mgr->Entries[obj];
+			size_t fileBytes = strEntry.ComputeVirtualSize(obj, nullptr, false) + strEntry.ComputePhysicalSize(obj);
+
+			if (end > start && (batchBytes + fileBytes) > kMaxBatchBytes)
+			{
+				break;
+			}
+
+			batchBytes += fileBytes;
+
+			mgr->RequestObject(obj, 0);
+			console::DPrintf("gta:streaming", "Loaded %s (id %d)\n", collisionFiles[end].first.c_str(), obj - ybnBaseIdx);
+
+			++end;
 		}
 
 #if __has_include(<StatusText.h>)
-		ActivateStatusText(va("Preloading collisions (%.0f%%)", (count / (double)collisionFiles.size()) * 100.0), 5, 2);
+		ActivateStatusText(va("Preloading collisions (%.0f%%)", (start / (double)collisionFiles.size()) * 100.0), 5, 2);
 #endif
 
 		streaming::LoadObjectsNow(0);
 
-		for (int i = count; i < end; i++)
+		for (size_t i = start; i < end; i++)
 		{
 			mgr->ReleaseObject(collisionFiles[i].second);
 		}
+
+		start = end;
 	}
 
 #if __has_include(<StatusText.h>)
@@ -1967,6 +1985,11 @@ static void LoadStreamingFiles(LoadType loadType)
 			else
 			{
 				fileId = -1;
+
+#ifdef GTA_FIVE
+				const uint32_t rawEntryCountBefore = rawStreamer->m_entries.GetCount();
+#endif
+
 				streaming::RegisterRawStreamingFile(&fileId, file.c_str(), true, baseName.c_str(), false);
 
 				if (fileId != -1)
@@ -1978,11 +2001,16 @@ static void LoadStreamingFiles(LoadType loadType)
 					if (streaming::IsRawHandle(entry.handle))
 					{
 #ifdef GTA_FIVE
-						if (auto rawEntry = rawStreamer->GetEntry(streaming::GetEntryIndex(entry.handle)))
+						auto rawIndex = streaming::GetEntryIndex(entry.handle);
+						bool isFreshEntry = streaming::GetCollectionIndex(entry.handle) == collectionId && rawIndex >= rawEntryCountBefore;
+
+						if (!isFreshEntry)
 						{
-							// if timestamp is 0 then GetEntry triggers the invalidation as well
-							rawEntry->timestamp = 0;
-							rawStreamer->GetEntry(streaming::GetEntryIndex(entry.handle));
+							if (auto rawEntry = rawStreamer->GetEntry(rawIndex))
+							{
+								rawEntry->timestamp = 0;
+								rawStreamer->GetEntry(rawIndex);
+							}
 						}
 #else
 						rage::pgRawStreamerInvalidateEntry(streaming::GetEntryIndex(entry.handle));
@@ -2001,7 +2029,9 @@ static void LoadStreamingFiles(LoadType loadType)
 			// verify whether the file is a zlib'd file from a real backing RPF7
 			// (length and resource value mismatching)
 #ifdef GTA_FIVE
-			auto device = rage::fiDevice::GetDevice(file.c_str(), true);
+			bool isResourceCacheFile = strncmp(file.c_str(), "cache:/", 7) == 0 || strncmp(file.c_str(), "cache_nb:/", 10) == 0;
+
+			rage::fiDevice* device = isResourceCacheFile ? nullptr : rage::fiDevice::GetDevice(file.c_str(), true);
 
 			if (device && fileId != -1)
 			{
@@ -3506,6 +3536,8 @@ static void CleanupStreaming()
 
 static HookFunction hookFunction([]()
 {
+	g_collisionPreloadBatchCount = new ConVar<int>("str_collisionPreloadBatchSize", ConVar_None, 64);
+
 #ifdef GTA_FIVE
 	g_GetRawStreamer = (decltype(g_GetRawStreamer))hook::get_pattern<uint8_t>("48 83 EC ? 48 8B 05 ? ? ? ? 48 85 C0 75 ? 8D 50");
 	auto chunkyArrayAppendLoc = hook::get_pattern<uint8_t>("40 53 48 83 EC ? F7 81 ? ? ? ? ? ? ? ? 48 8B D9 75");

@@ -11,6 +11,7 @@
 
 #include <ResourceCache.h>
 #include <ResourceCacheDevice.h>
+#include <ResourceCacheDeviceV2.h>
 
 #include <ResourceManager.h>
 
@@ -133,6 +134,37 @@ void CachedResourceMounter::AddStatusCallback(const std::string& resourceName, c
 	g_statusCallbacks[path] = callback;
 }
 
+void CachedResourceMounter::RemoveStatusCallback(const std::string& resourceName)
+{
+	auto path = FormatPath(resourceName, "resource.rpf");
+
+	std::unique_lock<std::mutex> lock(g_statusCallbacksMutex);
+	g_statusCallbacks.erase(path);
+}
+
+void CachedResourceMounter::ForgetFileVerification(const fwRefContainer<fx::Resource>& resource, const std::string& basename)
+{
+	auto entry = resource->GetComponent<ResourceCacheEntryList>()->GetEntry(basename);
+
+	if (!entry)
+	{
+		return;
+	}
+
+	if (m_resourceCache)
+	{
+		m_resourceCache->RemoveVerifiedStamp(entry->get().referenceHash);
+	}
+
+	auto path = FormatPath(resource->GetName(), basename);
+	auto device = vfs::GetDevice(path);
+
+	if (auto rcd = dynamic_cast<resources::ResourceCacheDeviceV2*>(device.GetRef()))
+	{
+		rcd->UnfetchEntry(path);
+	}
+}
+
 pplx::task<fwRefContainer<fx::Resource>> CachedResourceMounter::LoadResource(const std::string& uri)
 {
 	return LoadResourceFallback(uri);
@@ -156,6 +188,11 @@ pplx::task<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>>
 				{
 					std::unique_lock<std::mutex> lock(g_statusCallbacksMutex);
 					g_statusCallbacks.erase(FormatPath(resource->GetName(), "resource.rpf"));
+				};
+
+				auto dropVerification = [this, resource]()
+				{
+					ForgetFileVerification(resource, "resource.rpf");
 				};
 
 				m_manager->MakeCurrent();
@@ -198,12 +235,14 @@ pplx::task<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>>
 					}
 
 					dropCallback();
+					dropVerification();
 
 					return tl::make_unexpected(fx::ResourceManagerError{ fmt::sprintf("Couldn't load resource %s from %s: %s", resource->GetName(), resourceRoot, errorState) });
 				}
 
 				dropCallback();
-				
+				dropVerification();
+
 				return tl::make_unexpected(packfileResult.error());
 			}, pplx::task_options(g_schedulerWrap));
 		}
@@ -264,6 +303,8 @@ bool CachedResourceMounter::MountOverlay(const std::string& resourceName, const 
 					return packfileResult.value();
 				}
 
+				ForgetFileVerification(resource, overlayFile);
+
 				return tl::make_unexpected(packfileResult.error());
 			}
 
@@ -299,7 +340,7 @@ bool CachedResourceMounter::MountOverlay(const std::string& resourceName, const 
 	return success;
 }
 
-void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size, const std::map<std::string, std::string>& extData)
+void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size, std::map<std::string, std::string> extData)
 {
 	{
 		std::unique_lock _(g_referenceHashListMutex);
@@ -310,7 +351,66 @@ void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, co
 	
 	refUrl += "?hash=" + referenceHash;
 
-	m_resourceEntries.insert({ resourceName, ResourceFileEntry{basename, referenceHash, refUrl, size, extData} });
+	m_resourceEntries.emplace(resourceName, ResourceFileEntry{ basename, referenceHash, std::move(refUrl), size, std::move(extData) });
+}
+
+pplx::task<void> CachedResourceMounter::PrefetchResource(const std::string& resourceName, const pplx::cancellation_token& token)
+{
+	const ResourceFileEntry* packfileEntry = nullptr;
+
+	for (auto& entry : GetIteratorView(m_resourceEntries.equal_range(resourceName)))
+	{
+		if (boost::algorithm::iequals(entry.second.basename, "resource.rpf"))
+		{
+			packfileEntry = &entry.second;
+		}
+	}
+
+	if (!packfileEntry || packfileEntry->referenceHash.empty())
+	{
+		return pplx::task_from_result();
+	}
+
+	auto device = vfs::GetDevice(FormatPath(resourceName, "resource.rpf"));
+	auto rcd = dynamic_cast<resources::ResourceCacheDeviceV2*>(device.GetRef());
+
+	if (!rcd)
+	{
+		return pplx::task_from_result();
+	}
+
+	ResourceCacheEntryList::Entry entry{ resourceName, packfileEntry->basename, packfileEntry->remoteUrl, packfileEntry->referenceHash, packfileEntry->size, packfileEntry->extData };
+	std::string referenceHash = entry.referenceHash;
+
+	rcd->UnfetchFailedEntry(referenceHash);
+
+	auto prefetchTask = rcd->FetchEntryDirect(entry, true);
+
+	if (token.is_cancelable())
+	{
+		token.register_callback([device, rcd, referenceHash, prefetchTask]()
+		{
+			rcd->AbortFetch(referenceHash, prefetchTask);
+		});
+	}
+
+	return prefetchTask.then([device, rcd, referenceHash, token](pplx::task<resources::RcdFetchResult> fetchTask)
+	{
+		try
+		{
+			fetchTask.get();
+		}
+		catch (...)
+		{
+			if (token.is_cancelable())
+			{
+				token.register_callback([device, rcd, referenceHash]()
+				{
+					rcd->UnfetchFailedEntry(referenceHash);
+				});
+			}
+		}
+	});
 }
 
 void CachedResourceMounter::RemoveResourceEntries(const std::string& resourceName)
@@ -384,9 +484,10 @@ static InitFunction initFunction([]()
 
 		if (it != g_statusCallbacks.end())
 		{
+			auto callback = it->second;
 			lock.unlock();
 
-			it->second(type, done, total);
+			callback(type, done, total);
 		}
 	};
 
