@@ -21,9 +21,10 @@ The override stays in place until it is removed with [CLEAR_PED_CAPSULE_HEIGHT_O
 deleted or the player leaves the server. Removing it while there's an obstacle above the ped will push the ped out of
 it, so scripts should check for headroom before standing a ped back up.
 
-The override only affects the local game: it doesn't change hit detection for weapons (which uses the ped's skeleton),
-and it isn't synchronized to other players. To have other players collide with the lowered capsule, sync the height
-yourself (for example through a state bag) and set it on every client.
+The override is synchronized to other players along with the ped, so they collide with the lowered capsule as well
+(on servers that support it). For peds owned by another player, their override is used, and any override set locally
+is replaced when the ped is next synchronized. It doesn't change hit detection for weapons, which uses the ped's
+skeleton.
 
 ## Parameters
 * **ped**: The ped to change.
