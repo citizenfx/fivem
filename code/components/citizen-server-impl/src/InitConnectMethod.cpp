@@ -690,7 +690,7 @@ static InitFunction initFunction([]()
 			json data = json::object();
 			data["protocol"] = 5;
 
-			data["bitVersion"] = net::NetBitVersion::netVersion5;
+			data["bitVersion"] = net::NetBitVersion::netVersion6;
 
 			data["pure"] = pureVar->GetValue();
 			data["sH"] = shVar->GetValue();
