@@ -523,22 +523,49 @@ result_t NodeScriptRuntime::Destroy()
 	m_callRefRoutine = TCallRefRoutine();
 	m_deleteRefRoutine = TDeleteRefRoutine();
 	m_duplicateRefRoutine = TDuplicateRefRoutine();
+	m_stackTraceRoutine = TStackTraceRoutine();
+	m_unhandledPromiseRejectionRoutine = TUnhandledPromiseRejectionRoutine();
 
 	g_loopTimer.RemoveRuntime(this);
-	SharedPushEnvironment pushed(this);
-	// seems like creating and destroying an isolate in the same tick causes a crash in some cases
-	uv_run(m_uvLoop, UV_RUN_NOWAIT);
 
-	node::EmitProcessBeforeExit(m_nodeEnvironment);
-	node::EmitProcessExit(m_nodeEnvironment);
-	node::Stop(m_nodeEnvironment);
-	node::FreeEnvironment(m_nodeEnvironment);
-	node::FreeIsolateData(m_isolateData);
+	{
+		SharedPushEnvironment pushed(this);
+		// seems like creating and destroying an isolate in the same tick causes a crash in some cases
+		uv_run(m_uvLoop, UV_RUN_NOWAIT);
+
+		node::EmitProcessBeforeExit(m_nodeEnvironment);
+		node::EmitProcessExit(m_nodeEnvironment);
+		node::Stop(m_nodeEnvironment);
+		node::FreeEnvironment(m_nodeEnvironment);
+		node::FreeIsolateData(m_isolateData);
+
+		m_context.Reset();
+	}
+
+	// the isolate has to be unregistered and disposed before its loop gets freed, otherwise
+	// the platform keeps posting tasks for it (e.g. wasm code GC) to the freed loop
+	m_taskQueue.reset();
+	runtimeMap.erase(m_isolate);
+
+	bool platformFinished = false;
+	g_nodeEnv.GetPlatform()->AddIsolateFinishedCallback(m_isolate, [](void* data)
+	{
+		*static_cast<bool*>(data) = true;
+	},
+	&platformFinished);
+	g_nodeEnv.GetPlatform()->UnregisterIsolate(m_isolate);
+	m_isolate->Dispose();
+	m_isolate = nullptr;
+
+	// let the platform close the handles it owns on our loop
+	while (!platformFinished)
+	{
+		uv_run(m_uvLoop, UV_RUN_ONCE);
+	}
 
 	uv_loop_close(m_uvLoop);
 	delete m_uvLoop;
-
-	m_context.Reset();
+	m_uvLoop = nullptr;
 
 	// clean up the per-resource temp directory
 	if (!m_tempDir.empty())
