@@ -111,7 +111,10 @@ lua_State* fx::LuaStateHolder::lua_rpmalloc_state(void*& opaque)
 			rpmalloc_heap_free(heap, ptr);
 			return NULL;
 		}
-		else if (ptr == NULL)
+
+		fx::lineprof::lua::OnAlloc(ptr, osize, nsize);
+
+		if (ptr == NULL)
 		{
 			return rpmalloc_heap_aligned_alloc(heap, 16, nsize);
 		}
@@ -613,6 +616,13 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 	size_t argLength;
 	const char* argString = luaL_checklstring(L, 2, &argLength);
 
+	fx::lineprof::lua::CallScope _lineProfile(L);
+
+	if (_lineProfile)
+	{
+		_lineProfile.SetFunctionReference(luaL_checkstring(L, 1), argString, argLength);
+	}
+
 	// invoke
 	fx::OMPtr<IScriptBuffer> retvalBuffer;
 	if (FX_FAILED(scriptHost->InvokeFunctionReference(const_cast<char*>(luaL_checkstring(L, 1)), const_cast<char*>(argString), argLength, retvalBuffer.GetAddressOf())))
@@ -755,6 +765,22 @@ static int Lua_GetPointerField(lua_State* L)
 	return 1;
 }
 
+// json.encode/json.decode wrapper, upvalue 1 is the original C function
+template<bool Encode>
+static int Lua_JsonProfiled(lua_State* L)
+{
+	auto original = lua_tocfunction(L, lua_upvalueindex(1));
+
+	fx::lineprof::lua::CallScope lineProfile(L);
+
+	if (lineProfile)
+	{
+		lineProfile.SetJson(Encode);
+	}
+
+	return original(L);
+}
+
 static int Lua_Require(lua_State* L)
 {
 	const char* name = luaL_checkstring(L, 1);
@@ -836,7 +862,7 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 	// -- profiler meta (name)
 	bool hadProfiler = g_hadProfiler;
 
-	if (hadProfiler)
+	if (hadProfiler || fx::lineprof::g_enabled)
 	{
 		lua_pop(L, 1);
 		// Lua stack: [t]
@@ -910,6 +936,12 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 
 		m_scriptHost->SubmitBoundaryStart((char*)&b, sizeof(b));
 	}
+
+	// copied, as the bookmark table holding the name may be unreferenced before the scope ends
+	std::string lineProfileName{ fx::lineprof::g_enabled ? name : std::string_view{} };
+
+	std::optional<fx::lineprof::lua::EntryScope> lineProfile;
+	lineProfile.emplace(this, m_lineProfile, thread, lineProfileName, thread);
 
 	int nrv;
 	int resumeValue = lua_resume(thread, L, 0, &nrv);
@@ -987,6 +1019,9 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 
 		luaL_unref(L, LUA_REGISTRYINDEX, bookmark);
 	}
+
+	// before the thread ref is dropped, as the tail sample reads the thread's stack
+	lineProfile.reset();
 
 	// Boundary and registry cleaned after resume of script
 	m_scriptHost->SubmitBoundaryStart(nullptr, 0);
@@ -1378,6 +1413,34 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 		// 0
 	}
 
+	// time and allocations of json.encode/decode, for the resource monitor
+	{
+		lua_getglobal(m_state, "json");
+
+		if (lua_istable(m_state, -1))
+		{
+			auto wrap = [this](const char* name, lua_CFunction wrapper)
+			{
+				lua_getfield(m_state, -1, name);
+
+				if (lua_iscfunction(m_state, -1))
+				{
+					lua_pushcclosure(m_state, wrapper, 1);
+					lua_setfield(m_state, -2, name);
+				}
+				else
+				{
+					lua_pop(m_state, 1);
+				}
+			};
+
+			wrap("encode", Lua_JsonProfiled<true>);
+			wrap("decode", Lua_JsonProfiled<false>);
+		}
+
+		lua_pop(m_state, 1);
+	}
+
 	// register the 'Citizen' library
 	lua_newtable(m_state);
 	luaL_setfuncs(m_state, g_citizenLib, 0);
@@ -1631,6 +1694,7 @@ result_t LuaScriptRuntime::LoadSystemFileInternal(char* scriptFile)
 result_t LuaScriptRuntime::RunFileInternal(char* scriptName, std::function<result_t(char*)> loadFunction)
 {
 	LuaPushEnvironment pushed(this);
+	fx::lineprof::lua::EntryScope lineProfile(this, m_lineProfile, m_state, scriptName);
 	lua_pushcfunction(m_state, GetDbTraceback());
 
 	int eh = lua_gettop(m_state);
@@ -1718,6 +1782,7 @@ result_t LuaScriptRuntime::TriggerEvent(char* eventName, char* eventPayload, uin
 	if (m_eventRoutine)
 	{
 		LuaPushEnvironment pushed(this);
+		fx::lineprof::lua::EntryScope lineProfile(this, m_lineProfile, m_state, eventName);
 
 		m_eventRoutine(eventName, eventPayload, payloadSize, eventSource);
 	}
@@ -1732,6 +1797,11 @@ result_t LuaScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_
 	if (m_callRefRoutine)
 	{
 		LuaPushEnvironment pushed(this);
+
+		// a MySQL result arriving: closes the query's round-trip time
+		fx::lineprof::lua::OnRefCalled(m_lineProfile, refIdx);
+
+		fx::lineprof::lua::EntryScope lineProfile(this, m_lineProfile, m_state, "function reference call");
 
 		auto rv = m_callRefRoutine(refIdx, argsSerialized, argsLength);
 		return rv.CopyTo(retval);
