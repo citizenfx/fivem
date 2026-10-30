@@ -20,6 +20,6 @@ Returns the convar value if it can be found, otherwise it returns the assigned `
 ## Examples
 ```lua
 if GetConvarBool('dev_mode', false) then
-    print("Dev Mode is eanbled, load dev mode menus")
+    print("Dev Mode is enabled, load dev mode menus")
 end
 ```
