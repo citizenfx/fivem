@@ -21,6 +21,7 @@
 #include "ComponentHolder.h"
 
 #include <NetAddress.h>
+#include <atomic>
 #include <shared_mutex>
 
 // hacky include path to not conflict with our own NetBuffer.h
@@ -129,7 +130,7 @@ private:
 	std::shared_ptr<NetLibraryImplBase> m_impl;
 	std::shared_mutex m_implMutex;
 
-	uint16_t m_serverNetID;
+	std::atomic<uint16_t> m_serverNetID;
 
 	uint16_t m_serverSlotID;
 
@@ -393,6 +394,8 @@ public:
 	int32_t GetPing();
 
 	int32_t GetVariance();
+
+	bool GetPeerStatistic(NetPeerStatistic statistic, uint32_t* outValue);
 
 	void SetMetricSink(fwRefContainer<INetMetricSink>& sink);
 

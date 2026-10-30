@@ -161,7 +161,7 @@ void NetLibrary::HandleConnected(int serverNetID, int hostNetID, int hostBase, i
 	m_reconnectAttempts = 0;
 	m_lastReconnect = 0;
 
-	trace("^2Received connectOK: ServerID %d, SlotID %d, HostID %d\n", m_serverNetID, m_serverSlotID, m_hostNetID);
+	trace("^2Received connectOK: ServerID %d, SlotID %d, HostID %d\n", serverNetID, m_serverSlotID, m_hostNetID);
 
 	OnConnectOKReceived(m_currentServer);
 
@@ -2177,6 +2177,16 @@ int32_t NetLibrary::GetVariance()
 	}
 
 	return -1;
+}
+
+bool NetLibrary::GetPeerStatistic(NetPeerStatistic statistic, uint32_t* outValue)
+{
+	if (auto impl = GetImpl())
+	{
+		return impl->GetPeerStatistic(statistic, outValue);
+	}
+
+	return false;
 }
 
 void NetLibrary::SetRichError(const std::string& data /* = "{}" */)
