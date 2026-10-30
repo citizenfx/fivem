@@ -9,7 +9,12 @@
 #include <DirectXMath.h>
 #include <CrossBuildRuntime.h>
 #include <GameInit.h>
+#include <Pool.h>
 
+#include <unordered_map>
+#include <unordered_set>
+
+#include "EntityExtensions.h"
 #include "GameValueStub.h"
 
 #define DECLARE_ACCESSOR(x) \
@@ -86,9 +91,10 @@ struct CMloPortalDef
 struct CMloEntitySet
 {
 	void* vtable; // +0
-	uint64_t name; // +8
-	atArray<int32_t> locations; // +12
-	atArray<iCEntityDef> entities; // +28
+	uint32_t name; // +8
+	char pad[4]; // +12
+	atArray<uint32_t> locations; // +16, room index or (portal index | (1 << 31))
+	atArray<iCEntityDef*> entities; // +32
 };
 
 struct CMloTimeCycleModifier
@@ -190,16 +196,14 @@ static CInteriorProxy<Build>* GetInteriorProxy(int handle)
 	return (*g_interiorProxyPool<Build>)->GetAtHandle<CInteriorProxy<Build>>(handle);
 }
 
-static CMloModelInfo* GetInteriorArchetype(int interiorId)
+static CInteriorInst* GetInteriorInstance(int interiorId)
 {
-	CInteriorInst* instance = nullptr;
-
 	if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
 		if (proxy)
 		{
-			instance = proxy->instance;
+			return proxy->instance;
 		}
 	}
 	else
@@ -207,9 +211,16 @@ static CMloModelInfo* GetInteriorArchetype(int interiorId)
 		CInteriorProxy<1604>* proxy = GetInteriorProxy<1604>(interiorId);
 		if (proxy)
 		{
-			instance = proxy->instance;
+			return proxy->instance;
 		}
 	}
+
+	return nullptr;
+}
+
+static CMloModelInfo* GetInteriorArchetype(int interiorId)
+{
+	CInteriorInst* instance = GetInteriorInstance(interiorId);
 
 	if (instance && instance->mloModel)
 	{
@@ -306,6 +317,226 @@ static int GetInteriorRoomIdByHash(CMloModelInfo* arch, int searchHash)
 	return -1;
 }
 
+struct SEntitySet
+{
+	uint32_t name;
+	int32_t limit;
+	uint32_t tintIdx;
+};
+
+class InteriorEntitySetExtension : public rage::fwExtension
+{
+public:
+	InteriorEntitySetExtension(CInteriorInst* interior, uint32_t entitySet, uint8_t tintIdx) : interior(interior), entitySet(entitySet), tintIdx(tintIdx)
+	{
+		//
+	}
+
+	virtual int GetExtensionId() const override
+	{
+		return GetClassId();
+	}
+
+	static int GetClassId()
+	{
+		return static_cast<int>(EntityExtensionClassId::InteriorEntitySet);
+	}
+
+	CInteriorInst* interior;
+	uint32_t entitySet;
+	uint8_t tintIdx;
+};
+
+// only set during a CreateInteriorEntity call, for ConstructInteriorEntity to tag the entity (CInteriorInst::CreateEntity doesn't return it)
+static InteriorEntitySetExtension g_entitySetEntityBeingCreated{ nullptr, 0, 0 };
+
+static int32_t g_activeEntitySetsOffset;
+static int32_t g_interiorPopulatedOffset;
+static uint8_t g_interiorPopulatedMask;
+
+static void (*g_createInteriorEntity)(CInteriorInst* self, iCEntityDef* entityDef, rage::fwInteriorLocation location, bool intersectsModelSwap, bool addToShellRequests, uint8_t tintIdx);
+static rage::fwEntity* (*g_origConstructEntity)(fwEntityDef* entityDef, int mapDataIdx, rage::fwArchetype* archetype, void* modelId);
+
+static hook::cdecl_stub<void(fwEntity* entity, bool ignorePhysicsWorld, bool skipPostRemove)> CGameWorld_Remove([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 40 84 ED 74 ? 8A 43 28"));
+});
+
+static hook::cdecl_stub<void(fwEntity* object, bool convertedToDummy)> CObjectPopulation_DestroyObject([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 85 FF 74 ? F7 87"));
+});
+
+class DeletableEntity : XBR_VIRTUAL_BASE_2802(0)
+{
+public:
+	XBR_VIRTUAL_DTOR(DeletableEntity)
+};
+
+static bool IsInteriorPopulated(CInteriorInst* interior)
+{
+	return (reinterpret_cast<uint8_t*>(interior)[g_interiorPopulatedOffset] & g_interiorPopulatedMask) != 0;
+}
+
+static void CreateInteriorEntity(CInteriorInst* interior, uint32_t entitySet, iCEntityDef* entityDef, rage::fwInteriorLocation location, bool intersectsModelSwap, uint8_t tintIdx)
+{
+	g_entitySetEntityBeingCreated = { interior, entitySet, tintIdx };
+	g_createInteriorEntity(interior, entityDef, location, intersectsModelSwap, false, tintIdx);
+	g_entitySetEntityBeingCreated.interior = nullptr;
+}
+
+static void CreateEntitySetEntity(CInteriorInst* self, iCEntityDef* entityDef, rage::fwInteriorLocation location, bool intersectsModelSwap, bool addToShellRequests, uint8_t tintIdx)
+{
+	for (CMloEntitySet& entitySet : *self->mloModel->entitySets)
+	{
+		if (std::find(entitySet.entities.begin(), entitySet.entities.end(), entityDef) != entitySet.entities.end())
+		{
+			return CreateInteriorEntity(self, entitySet.name, entityDef, location, intersectsModelSwap, tintIdx);
+		}
+	}
+
+	g_createInteriorEntity(self, entityDef, location, intersectsModelSwap, addToShellRequests, tintIdx);
+}
+
+static rage::fwEntity* ConstructInteriorEntity(fwEntityDef* entityDef, int mapDataIdx, rage::fwArchetype* archetype, void* modelId)
+{
+	rage::fwEntity* entity = g_origConstructEntity(entityDef, mapDataIdx, archetype, modelId);
+	if (entity && g_entitySetEntityBeingCreated.interior)
+	{
+		entity->AddExtension(new InteriorEntitySetExtension(g_entitySetEntityBeingCreated));
+	}
+
+	return entity;
+}
+
+static std::unordered_map<uint32_t, std::vector<fwEntity*>> GetEntitySetEntities(CInteriorInst* interior)
+{
+	std::unordered_map<uint32_t, std::vector<fwEntity*>> entities;
+
+	// the entity types fwMapData::ConstructEntity creates
+	for (const char* poolName : { "Building", "AnimatedBuilding", "Dummy Object", "CompEntity" })
+	{
+		atPool<fwEntity>* pool = rage::GetPool<fwEntity>(poolName);
+
+		for (int i = 0; i < pool->GetSize(); i++)
+		{
+			fwEntity* entity = pool->GetAt(i);
+			InteriorEntitySetExtension* extension = entity ? entity->GetExtension<InteriorEntitySetExtension>() : nullptr;
+
+			if (extension && extension->interior == interior)
+			{
+				entities[extension->entitySet].push_back(entity);
+			}
+		}
+	}
+
+	return entities;
+}
+
+static void RemoveEntitySetEntities(const std::vector<fwEntity*>& entities)
+{
+	atPool<fwEntity>* objectPool = rage::GetPool<fwEntity>("Object");
+	std::unordered_set<fwEntity*> keep;
+
+	for (int i = 0; i < objectPool->GetSize(); i++)
+	{
+		fwEntity* object = objectPool->GetAt(i);
+		DummyObjectRefExtension* dummyRef = object ? object->GetExtension<DummyObjectRefExtension>() : nullptr;
+
+		if (!dummyRef || std::find(entities.begin(), entities.end(), dummyRef->GetObjectRef()) == entities.end())
+		{
+			continue;
+		}
+
+		fwEntity* dummy = dummyRef->GetObjectRef();
+
+		if (object->GetOwnedBy() != 4) // entity owned by script
+		{
+			CObjectPopulation_DestroyObject(object, false);
+		}
+
+		if (objectPool->GetAt(i) == object)
+		{
+			keep.insert(dummy);
+		}
+	}
+
+	for (fwEntity* entity : entities)
+	{
+		if (keep.find(entity) == keep.end())
+		{
+			CGameWorld_Remove(entity, false, false);
+			delete reinterpret_cast<DeletableEntity*>(entity);
+		}
+	}
+}
+
+static void AddEntitySetEntities(CInteriorInst* interior, uint16_t interiorIndex, CMloEntitySet& entitySet, uint8_t tintIdx)
+{
+	constexpr uint32_t kPortalLocation = 1u << 31;
+
+	for (uint16_t i = 0; i < entitySet.entities.GetCount(); i++)
+	{
+		uint32_t locationId = entitySet.locations[i];
+		rage::fwInteriorLocation location(interiorIndex, (locationId & kPortalLocation) != 0, static_cast<uint16_t>(locationId & ~kPortalLocation));
+		CreateInteriorEntity(interior, entitySet.name, entitySet.entities[i], location, true, tintIdx);
+	}
+}
+
+static bool RefreshInteriorEntitySets(int interiorId)
+{
+	char* proxy = xbr::IsGameBuildOrGreater<2060>() ? reinterpret_cast<char*>(GetInteriorProxy<2060>(interiorId)) : reinterpret_cast<char*>(GetInteriorProxy<1604>(interiorId));
+	if (!proxy)
+	{
+		return false;
+	}
+	
+	CInteriorInst* instance = GetInteriorInstance(interiorId);
+	if (!instance || !IsInteriorPopulated(instance) || !instance->mloModel || !instance->mloModel->entitySets)
+	{
+		return false;
+	}
+
+	atArray<SEntitySet>& activeEntitySets = *reinterpret_cast<atArray<SEntitySet>*>(proxy + g_activeEntitySetsOffset);
+	std::unordered_map<uint32_t, std::vector<fwEntity*>> instantiatedEntities = GetEntitySetEntities(instance);
+
+	std::vector<std::pair<CMloEntitySet*, uint8_t>> entitySetsToAdd;
+	std::vector<fwEntity*> entitiesToRemove;
+
+	for (CMloEntitySet& entitySet : *instance->mloModel->entitySets)
+	{
+		SEntitySet* activeEntitySet = std::find_if(activeEntitySets.begin(), activeEntitySets.end(), [&entitySet](const SEntitySet& set)
+		{
+			return set.name == entitySet.name;
+		});
+
+		bool isActive = activeEntitySet != activeEntitySets.end();
+		uint8_t tintIdx = isActive ? static_cast<uint8_t>(activeEntitySet->tintIdx) : 0;
+		std::vector<fwEntity*>& entities = instantiatedEntities[entitySet.name];
+
+		if (isActive && !entities.empty() && entities[0]->GetExtension<InteriorEntitySetExtension>()->tintIdx == tintIdx)
+		{
+			continue;
+		}
+
+		entitiesToRemove.insert(entitiesToRemove.end(), entities.begin(), entities.end());
+
+		if (isActive)
+		{
+			entitySetsToAdd.emplace_back(&entitySet, tintIdx);
+		}
+	}
+
+	RemoveEntitySetEntities(entitiesToRemove);
+
+	for (const std::pair<CMloEntitySet*, uint8_t>& entitySet : entitySetsToAdd)
+	{
+		AddEntitySetEntities(instance, static_cast<uint16_t>(interiorId >> 8), *entitySet.first, entitySet.second);
+	}
+
+	return true;
+}
+
 static GameValueStub<float> g_emitterAudioEntityProbeLength;
 static float g_interiorProbeLengthOverride = 0.0;
 
@@ -349,6 +580,26 @@ static HookFunction initFunction([]()
 			g_interiorProxyPool<1604> = hook::get_address<decltype(g_interiorProxyPool<1604>)>(location);
 		}
 	}
+
+	{
+		void* location = hook::get_pattern("E8 ? ? ? ? 0F B7 47 28 41 FF C7 44 3B F8");
+		hook::set_call(&g_createInteriorEntity, location);
+		hook::call(location, CreateEntitySetEntity);
+	}
+
+	{
+		void* location = hook::get_pattern("E8 ? ? ? ? 48 8B D8 48 85 C0 0F 84 ? ? ? ? 48 8D 4D 60");
+		hook::set_call(&g_origConstructEntity, location);
+		hook::call(location, ConstructInteriorEntity);
+	}
+
+	{
+		char* location = hook::get_pattern<char>("F6 81 ? ? ? ? 04 0F 29 70 A8 48 8B D9");
+		g_interiorPopulatedOffset = *reinterpret_cast<int32_t*>(location + 2);
+		g_interiorPopulatedMask = *reinterpret_cast<uint8_t*>(location + 6);
+	}
+
+	g_activeEntitySetsOffset = *hook::get_pattern<int32_t>("49 8B 85 ? ? ? ? 44 8B 64 88 08", 3);
 
 #ifdef _DEBUG
 	fx::ScriptEngine::RegisterNativeHandler("INTERIOR_DEBUG", [=](fx::ScriptContext& context)
@@ -920,6 +1171,11 @@ static HookFunction initFunction([]()
 		*context.GetArgument<float*>(6) = entityDef->rotation.w;
 
 		return true;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("REFRESH_INTERIOR_ENTITY_SETS", [=](fx::ScriptContext& context)
+	{
+		context.SetResult<bool>(RefreshInteriorEntitySets(context.GetArgument<int>(0)));
 	});
 
 	// Sharing OnKillNetworkDone for probe lengths
