@@ -61,6 +61,10 @@ namespace streaming
 #if defined(IS_RDR3)
 	// RDR3 only: Set the path for a train track XML file to load instead of the default one.
 	void SetTrainTrackOverridePath(const std::string& path);
+
+	// RDR3 only: Set the path for catalog_mp/catalog_award_mp catalog files to be loaded instead of the default one.
+	void SetCatalogOverridePath(const std::string& path);
+	void SetAwardCatalogOverridePath(const std::string& path);
 #endif
 }
 #endif
@@ -198,6 +202,17 @@ static InitFunction initFunction([] ()
 			for (auto& meta : metaData->GetEntries("replace_traintrack_file"))
 			{
 				streaming::SetTrainTrackOverridePath(resourceRoot + meta.second);
+			}
+
+			// RDR3 only: allow a creator to replace the default catalog_mp with a custom one.
+			for (auto& meta : metaData->GetEntries("replace_catalog_file"))
+			{
+				streaming::SetCatalogOverridePath(resourceRoot + meta.second);
+			}
+
+			for (auto& meta : metaData->GetEntries("replace_award_catalog_file"))
+			{
+				streaming::SetAwardCatalogOverridePath(resourceRoot + meta.second);
 			}
 #endif
 
