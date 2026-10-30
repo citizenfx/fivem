@@ -167,6 +167,8 @@ public:
 
 	virtual std::shared_ptr<RcdBulkStream> OpenBulkStream(const std::string& fileName, uint64_t* ptr) override;
 
+	virtual uint32_t GetAttributes(const std::string& fileName) override;
+
 	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
 
 	virtual size_t GetLength(const std::string& fileName) override;
