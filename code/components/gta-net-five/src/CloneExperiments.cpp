@@ -2836,7 +2836,7 @@ static InitFunction initFunction([]()
 			if (netObjectMgr)
 			{
 				rage::netObject* obj = netObjectMgr->GetNetworkObject(parsedEntityId, true);
-				if (obj)
+				if (obj && obj->GetGameObject())
 				{
 					int guid = getScriptGuidForEntity((fwEntity*)obj->GetGameObject());
 					if (guid)
