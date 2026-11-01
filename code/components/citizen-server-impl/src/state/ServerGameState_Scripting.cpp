@@ -903,7 +903,7 @@ static void Init()
 			return false;
 		}
 		
-		const int neonIndex = context.GetArgument<int>(0);
+		const int neonIndex = context.GetArgument<int>(1);
 		
 		switch (neonIndex)
 		{
