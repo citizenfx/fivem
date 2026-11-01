@@ -1998,7 +1998,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				size_t thisMaxBacklog = maxSavedClientFrames;
 
-				if (ShouldUseWorstCaseFrameBacklog(curTime, client->GetLastSeen()))
+				if (ShouldUseWorstCaseFrameBacklog(curTime, client->GetLastUpdate()))
 				{
 					thisMaxBacklog = maxSavedClientFramesWorstCase;
 				}
@@ -4123,7 +4123,7 @@ void ServerGameState::ParseClonePacket(const fx::ClientSharedPtr& client, net::B
 
 	{
 		auto [lock, clientData] = GetClientData(this, client);
-
+		client->TouchUpdate();
 		clientData->ackBuffer = std::move(ackPacket);
 	}
 }
@@ -4411,7 +4411,7 @@ void ServerGameState::HandleGameStateNAck(fx::ServerInstanceBase* instance, cons
 			}
 			else
 			{
-				instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverOneSyncDropResourceName, fx::ClientDropReason::ONE_SYNC_TOO_MANY_MISSED_FRAMES, "Timed out after 60 seconds (1, %d)", lastMissingFrame - firstMissingFrame);
+				instance->GetComponent<fx::GameServer>()->DropClientWithReason(client, fx::serverOneSyncDropResourceName, fx::ClientDropReason::ONE_SYNC_TOO_MANY_MISSED_FRAMES, "Timed out after 60 seconds (1, %d, %lld)", lastMissingFrame - firstMissingFrame, (long long)(msec() - client->GetLastUpdate()).count());
 				return;
 			}
 		}
@@ -4432,6 +4432,7 @@ void ServerGameState::HandleGameStateNAck(fx::ServerInstanceBase* instance, cons
 	}
 
 	auto [lock, clientData] = GetClientData(this, client);
+	client->TouchUpdate();
 	auto& states = clientData->frameStates;
 
 	if (auto frameIt = states.find(thisFrame); frameIt != states.end())
@@ -4510,6 +4511,7 @@ void ServerGameState::HandleGameStateAck(fx::ServerInstanceBase* instance, const
 			
 	const auto& ref = clientData->frameStates[frameIndex];
 	const ClientEntityState& clientEntityState = ref;
+	client->TouchUpdate();
 
 	{
 		for (const uint16_t objectId : packet.GetRecreateList())

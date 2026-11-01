@@ -5,7 +5,7 @@
 namespace fx
 {
 	Client::Client(const std::string& guid)
-	: m_guid(guid), m_netId(0xFFFF), m_previousNetId(0xFFFF), m_netBase(-1), m_lastSeen(0), m_hasRouted(false), m_slotId(-1), m_dropping(false), 
+	: m_guid(guid), m_netId(0xFFFF), m_previousNetId(0xFFFF), m_netBase(-1), m_lastSeen(0), m_lastUpdate(msec()), m_hasRouted(false), m_slotId(-1), m_dropping(false), 
 	  m_firstSeen(msec()), m_clientNetworkMetricsSendCallback(nullptr), m_clientNetworkMetricsRecvCallback(nullptr)
 	{
 
@@ -39,6 +39,11 @@ namespace fx
 	void Client::Touch()
 	{
 		m_lastSeen = msec();
+	}
+
+	void Client::TouchUpdate()
+	{
+		m_lastUpdate = msec();
 	}
 
 	bool Client::IsDead()
