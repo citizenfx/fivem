@@ -3,9 +3,16 @@ pwsh ./fxd.ps1 get-chrome
 
 pwsh ./fxd.ps1 gen -game $PROGRAM
 
+MSBUILD=$(./code/tools/ci/vswhere.exe -latest -prerelease -products '*' -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | head -n 1 | tr -d '\r')
+
+if [[ -z "$MSBUILD" ]]; then
+	echo "::error::Could not find MSBuild"
+	exit 1
+fi
+
 cd code/build/$PROGRAM/$([[ $PROGRAM = server ]] && echo windows || echo '')
 
-"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MsBuild.exe" CitizenMP.sln -t:build -restore -p:RestorePackagesConfig=true -p:preferredtoolarchitecture=x64 -p:configuration=release -maxcpucount:4 -v:q -fl1 "-flp1:logfile=errors.log;errorsonly"
+"$MSBUILD" CitizenMP.sln -t:build -restore -p:RestorePackagesConfig=true -p:preferredtoolarchitecture=x64 -p:configuration=release -maxcpucount:4 -v:q -fl1 "-flp1:logfile=errors.log;errorsonly"
 MSBUILD_ERROR=$?
 
 if [[ $MSBUILD_ERROR -eq 0 ]]; then
