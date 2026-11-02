@@ -673,7 +673,7 @@ int Client_write(client_t* client)
 		client->txsize = client->txcount = 0;
 	}
 
-	if (client->txsize == 0 && !list_empty(&client->txMsgQueue))
+	while (client->txsize == 0 && !list_empty(&client->txMsgQueue))
 	{
 		message_t* msg;
 		msg = list_get_entry(list_get_first(&client->txMsgQueue), message_t, node);
@@ -716,7 +716,11 @@ int Client_send_message(client_t* client, message_t* msg)
 	{
 		int len;
 		len = Msg_messageToNetwork(msg, client->txbuf);
-		doAssert(len < BUFSIZE);
+		if (len <= 0 || len > BUFSIZE)
+		{
+			Msg_free(msg);
+			return -1;
+		}
 
 		client->txsize = len;
 		client->txcount = 0;

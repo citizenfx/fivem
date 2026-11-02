@@ -80,7 +80,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.version->SerializeToArray(bufptr, len);
@@ -89,7 +89,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (msg->payload.UDPTunnel->packet().size() > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			len = msg->payload.UDPTunnel->packet().size();
 			Msg_addPreamble(buffer, msg->messageType, msg->payload.UDPTunnel->packet().size());
@@ -100,7 +100,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.authenticate->SerializeToArray(bufptr, len);
@@ -110,7 +110,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.ping->SerializeToArray(bufptr, len);
@@ -120,7 +120,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.reject->SerializeToArray(bufptr, len);
@@ -130,7 +130,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.serverSync->SerializeToArray(bufptr, len);
@@ -140,7 +140,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.textMessage->SerializeToArray(bufptr, len);
@@ -150,7 +150,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.permissionDenied->SerializeToArray(bufptr, len);
@@ -160,7 +160,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.cryptSetup->SerializeToArray(bufptr, len);
@@ -170,7 +170,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.userList->SerializeToArray(bufptr, len);
@@ -180,7 +180,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.userState->SerializeToArray(bufptr, len);
@@ -190,7 +190,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.userRemove->SerializeToArray(bufptr, len);
@@ -200,7 +200,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.channelState->SerializeToArray(bufptr, len);
@@ -210,7 +210,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.voiceTarget->SerializeToArray(bufptr, len);
@@ -220,7 +220,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.codecVersion->SerializeToArray(bufptr, len);
@@ -230,7 +230,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.permissionQuery->SerializeToArray(bufptr, len);
@@ -240,7 +240,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.channelRemove->SerializeToArray(bufptr, len);
@@ -251,7 +251,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.userStats->SerializeToArray(bufptr, len);
@@ -262,7 +262,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			msg->payload.serverConfig->SerializeToArray(bufptr, len);
@@ -273,7 +273,7 @@ int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 			if (len > MAX_MSGSIZE)
 			{
 				Log_warn("Too big tx message. Discarding");
-				break;
+				return -1;
 			}
 			Msg_addPreamble(buffer, msg->messageType, len);
 			Log_debug("Msg_MessageToNetwork: BanList size %d", len);

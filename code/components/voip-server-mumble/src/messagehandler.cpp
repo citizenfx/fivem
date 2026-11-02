@@ -468,6 +468,8 @@ void Mh_handle_message(client_t* client, message_t* msg)
 			break;
 		case UserState:
 		{
+			msg->payload.userState->clear_name();
+
 			target = NULL;
 			/* Only allow state changes for for the self user unless an admin is issuing */
 			if (msg->payload.userState->has_session() && msg->payload.userState->session() != client->sessionId && !client->isAdmin)
