@@ -136,6 +136,9 @@ namespace fx
 		// updates the last-seen timer
 		void Touch();
 
+		// updates the last-update timer. Used for the worst case frame check
+		void TouchUpdate();
+
 		bool IsDead();
 
 		inline bool HasNetId() const
@@ -235,6 +238,11 @@ namespace fx
 		inline std::chrono::milliseconds GetLastSeen()
 		{
 			return m_lastSeen;
+		}
+
+		inline std::chrono::milliseconds GetLastUpdate()
+		{
+			return m_lastUpdate;
 		}
 
 		inline unsigned int GetSecondsOnline()
@@ -413,6 +421,9 @@ namespace fx
 
 		// when the client was last seen (time since Epoch)
 		std::chrono::milliseconds m_lastSeen;
+
+		// when the client last sent an update/acknowledgment (time since epoch)
+		std::chrono::milliseconds m_lastUpdate;
 
 		// the client's primary GUID
 		std::string m_guid;
