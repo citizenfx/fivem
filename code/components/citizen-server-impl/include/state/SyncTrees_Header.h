@@ -394,6 +394,7 @@ struct NodeWrapper : public NodeBase
 			if constexpr (ShouldParseNode<TNode>(0))
 			{
 				state.buffer.SetCurrentBit(endBit);
+				state.nodeEndBit = endBit + length;
 				node.Parse(state);
 
 				state.buffer.SetCurrentBit(endBit + length);

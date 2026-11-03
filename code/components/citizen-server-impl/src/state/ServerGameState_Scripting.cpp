@@ -2121,6 +2121,45 @@ static void Init()
 		return ped ? ped->relationShip : 0;
 	}));
 
+#ifdef STATE_FIVE
+	auto getPedDecorations = makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		std::vector<std::array<uint32_t, 2>> decorations;
+
+		if (auto appearance = entity->syncTree->GetPlayerAppearance(); appearance && appearance->hasDecorationList)
+		{
+			decorations.reserve(appearance->decorations.size());
+
+			for (const auto& decoration : appearance->decorations)
+			{
+				decorations.push_back({ decoration.collectionHash, decoration.presetHash });
+			}
+		}
+
+		return fx::SerializeObject(decorations);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_DECORATIONS", [getPedDecorations](fx::ScriptContext& context)
+	{
+		if (!fx::IsPlayerDecorationSyncFixEnabled())
+		{
+			static std::once_flag warnOnce;
+			std::call_once(warnOnce, []()
+			{
+				console::PrintWarning("server", "GET_PED_DECORATIONS only returns data when game_enablePlayerDecorationSyncFix is enabled, which it is not on this server.\n");
+			});
+		}
+
+		if (!context.GetArgument<uint32_t>(0))
+		{
+			context.SetResult(fx::SerializeObject(std::vector<int>{}));
+			return;
+		}
+
+		getPedDecorations(context);
+	});
+#endif
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_SPEED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto v = entity->syncTree->GetVelocity();

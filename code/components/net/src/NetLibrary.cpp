@@ -955,6 +955,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	postMap["gameName"] = gameName;
 
+#ifdef GTA_FIVE
+	postMap["playerDecorationSyncFix"] = "1";
+#endif
+
 	static std::function<void()> performRequest;
 
 	postMap["guid"] = va("%lld", GetGUID());
@@ -1282,6 +1286,15 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								AddCrashometry("onesync_population", "false");
 								Instance<ICoreGameInit>::Get()->ClearVariable("onesync_population");
 							}
+						}
+
+						if (!node["playerDecorationSyncFix"].is_null() && node["playerDecorationSyncFix"].get<bool>())
+						{
+							Instance<ICoreGameInit>::Get()->SetVariable("playerDecorationSyncFix");
+						}
+						else
+						{
+							Instance<ICoreGameInit>::Get()->ClearVariable("playerDecorationSyncFix");
 						}
 
 						auto maxClients = (!node["maxClients"].is_null()) ? node["maxClients"].get<int>() : 64;

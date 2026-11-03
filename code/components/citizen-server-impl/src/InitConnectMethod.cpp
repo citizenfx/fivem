@@ -382,6 +382,7 @@ std::optional<TicketData> VerifyTicketEx(const std::string& ticket, const Botan:
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 fx::GameBuild g_enforcedGameBuild;
+bool g_playerDecorationSyncFix;
 
 static InitFunction initFunction([]()
 {
@@ -404,6 +405,8 @@ static InitFunction initFunction([]()
 
 		g_enforcedGameBuild = xbr::GetMandatedDefaultGTA5BuildString();
 		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, xbr::GetMandatedDefaultGTA5BuildString(), &g_enforcedGameBuild);
+
+		static auto playerDecorationSyncFixVar = instance->AddVariable<bool>("game_enablePlayerDecorationSyncFix", ConVar_ReadOnly, false, &g_playerDecorationSyncFix);
 
 		// sv_defaultGameBuild mandates the default game executable build that clients must use.
 		// This allows the server to control which executable clients run without requiring all clients to update simultaneously.
@@ -613,6 +616,15 @@ static InitFunction initFunction([]()
 				return;
 			}
 
+			const bool playerDecorationSyncFix = fx::IsPlayerDecorationSyncFixEnabled() && gameServer->GetGameName() == fx::GameName::GTA5;
+
+			if (playerDecorationSyncFix && postMap.find("playerDecorationSyncFix") == postMap.end())
+			{
+				console::PrintWarning("server", "Rejected connection from %s: their client doesn't support game_enablePlayerDecorationSyncFix, which is enabled on this server.\n", name);
+				sendError("This server requires a newer game client. Restart your game client to update.");
+				return;
+			}
+
 			// limit name length and replace invalid UTF8 sequences in name
 			if (!fx::NormalizePlayerName(name))
 			{
@@ -699,6 +711,7 @@ static InitFunction initFunction([]()
 			data["onesync_big"] = fx::IsBigMode();
 			data["onesync_lh"] = fx::IsLengthHack();
 			data["onesync_population"] = fx::IsOneSyncPopulation();
+			data["playerDecorationSyncFix"] = playerDecorationSyncFix;
 
 			data["token"] = token;
 			data["gamename"] = gameName;

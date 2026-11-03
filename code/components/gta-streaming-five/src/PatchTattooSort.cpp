@@ -5,7 +5,10 @@
 
 #include <Hooking.h>
 
+#include <PedDecorationSort.h>
+
 static bool g_stableOverlaySort;
+static uint32_t g_overlaySerializerGeneration;
 
 class PedDecorationCollection
 {
@@ -48,7 +51,14 @@ public:
 static void (*g_origTattooSort)(char*, size_t, size_t, int (*)(const void*, const void*));
 static void TattooSort(char* ptr, size_t count, size_t size, int (*comp)(const void*, const void*))
 {
+	g_overlaySerializerGeneration++;
+
 	g_origTattooSort(ptr, count, size, g_stableOverlaySort ? PedDecorationManager::Comparator : comp);
+}
+
+uint32_t fx::GetOverlaySerializerGeneration()
+{
+	return g_overlaySerializerGeneration;
 }
 
 static HookFunction hookFunction([]()
