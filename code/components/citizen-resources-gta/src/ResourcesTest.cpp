@@ -62,6 +62,11 @@ namespace streaming
 	// RDR3 only: Set the path for a train track XML file to load instead of the default one.
 	void SetTrainTrackOverridePath(const std::string& path);
 #endif
+
+#if defined(GTA_FIVE)
+	// GTA_FIVE only: Set the path of a ptxclipregions.dat file to load instead of the default one.
+	void SetPtxClipRegionsOverridePath(const std::string& path);
+#endif
 }
 #endif
 
@@ -198,6 +203,14 @@ static InitFunction initFunction([] ()
 			for (auto& meta : metaData->GetEntries("replace_traintrack_file"))
 			{
 				streaming::SetTrainTrackOverridePath(resourceRoot + meta.second);
+			}
+#endif
+
+#if defined(GTA_FIVE)
+			// GTA_FIVE only: allow a creator to replace the default particle clip regions with custom ones.
+			for (auto& meta : metaData->GetEntries("replace_ptxclipregions_file"))
+			{
+				streaming::SetPtxClipRegionsOverridePath(resourceRoot + meta.second);
 			}
 #endif
 
