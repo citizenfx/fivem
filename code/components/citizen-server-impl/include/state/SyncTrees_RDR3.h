@@ -1510,6 +1510,11 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 		return nullptr;
 	}
 
+	virtual CPlayerAppearanceNodeData* GetPlayerAppearance() override
+	{
+		return nullptr;
+	}
+
 	virtual void CalculatePosition() override
 	{
 		// TODO: cache it?

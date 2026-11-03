@@ -771,6 +771,21 @@ struct CPedAINodeData
 	int decisionMaker;
 };
 
+struct CPlayerAppearanceNodeData
+{
+	static constexpr size_t kMaxDecorations = 64;
+
+	struct Decoration
+	{
+		uint32_t collectionHash;
+		uint32_t presetHash;
+	};
+
+	bool hasDecorationList = false;
+	int32_t crewEmblemVariation = 0;
+	eastl::fixed_vector<Decoration, kMaxDecorations, false> decorations;
+};
+
 struct CPedVehicleNodeData
 {
 	bool inVehicle;
@@ -879,6 +894,8 @@ public:
 	virtual CPedMovementGroupNodeData* GetPedMovementGroup() = 0;
 
 	virtual CPedAINodeData* GetPedAI() = 0;
+
+	virtual CPlayerAppearanceNodeData* GetPlayerAppearance() = 0;
 
 	virtual void CalculatePosition() = 0;
 
@@ -1087,6 +1104,8 @@ struct SyncParseState
 	SyncEntityPtr entity;
 
 	uint64_t frameIndex;
+
+	uint32_t nodeEndBit = 0;
 
 	inline SyncParseState(rl::MessageBuffer&& buffer, uint32_t timestamp, const SyncEntityPtr& entity, uint64_t frameIndex)
 		: buffer(std::move(buffer)), timestamp(timestamp), entity(entity), frameIndex(frameIndex)

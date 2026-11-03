@@ -381,6 +381,7 @@ namespace fx
 	SVIMP_EXPORT bool IsOneSync();
 	SVIMP_EXPORT bool IsLengthHack();
 	SVIMP_EXPORT bool IsOneSyncPopulation();
+	SVIMP_EXPORT bool IsPlayerDecorationSyncFixEnabled();
 	SVIMP_EXPORT void SetOneSyncGetCallback(bool (*cb)());
 	SVIMP_EXPORT void SetBigModeHack(bool bigMode, bool lengthHack);
 	SVIMP_EXPORT void SetOneSyncPopulation(bool population);

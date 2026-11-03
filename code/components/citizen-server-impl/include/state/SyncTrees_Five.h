@@ -3320,9 +3320,18 @@ struct CPlayerAppearanceDataNode
 {
 	uint32_t model;
 
+	CPlayerAppearanceNodeData data;
+
 	bool Parse(SyncParseState& state)
 	{
 		model = state.buffer.Read<uint32_t>(32);
+
+		if (!fx::IsPlayerDecorationSyncFixEnabled() || !ParseDecorationList(state))
+		{
+			data.hasDecorationList = false;
+			data.crewEmblemVariation = 0;
+			data.decorations.clear();
+		}
 
 #if 0
 		uint32_t voiceGroup = state.buffer.Read<uint32_t>(32);
@@ -3412,6 +3421,106 @@ struct CPlayerAppearanceDataNode
 			uint32_t damagePackName = state.buffer.Read<uint32_t>(32);
 		}
 #endif
+
+		return true;
+	}
+
+	// count:7 [lastCollectionIndex:6 collectionHash:32*n (collectionIndex:ceil(log2(n)) presetHash:32)*count] hasEmblem:1 [emblem:32] extensionBits:16
+	bool ParseDecorationList(SyncParseState& state)
+	{
+		constexpr uint32_t kTrailerBits = 16;
+		constexpr uint32_t kMinExtensionBits = 7 + 1;
+
+		const uint32_t startBit = state.buffer.GetCurrentBit();
+		const uint32_t endBit = state.nodeEndBit;
+
+		if (endBit < startBit + kTrailerBits + kMinExtensionBits)
+		{
+			return false;
+		}
+
+		const uint32_t trailerBit = endBit - kTrailerBits;
+		uint32_t extensionBits = 0;
+
+		state.buffer.SetCurrentBit(trailerBit);
+
+		if (!state.buffer.Read(kTrailerBits, &extensionBits) || extensionBits < kMinExtensionBits || extensionBits > trailerBit - startBit)
+		{
+			return false;
+		}
+
+		state.buffer.SetCurrentBit(trailerBit - extensionBits);
+
+		uint32_t count = 0;
+
+		if (!state.buffer.Read(7, &count) || count > CPlayerAppearanceNodeData::kMaxDecorations)
+		{
+			return false;
+		}
+
+		data.decorations.clear();
+
+		if (count > 0)
+		{
+			uint32_t lastCollectionIndex = 0;
+
+			if (!state.buffer.Read(6, &lastCollectionIndex) || lastCollectionIndex >= count)
+			{
+				return false;
+			}
+
+			const uint32_t collectionCount = lastCollectionIndex + 1;
+			std::array<uint32_t, CPlayerAppearanceNodeData::kMaxDecorations> collections;
+
+			for (uint32_t i = 0; i < collectionCount; i++)
+			{
+				if (!state.buffer.Read(32, &collections[i]))
+				{
+					return false;
+				}
+			}
+
+			uint32_t indexBits = 0;
+
+			while ((1u << indexBits) < collectionCount)
+			{
+				indexBits++;
+			}
+
+			for (uint32_t i = 0; i < count; i++)
+			{
+				uint32_t collectionIndex = 0;
+				uint32_t presetHash = 0;
+
+				if ((indexBits > 0 && !state.buffer.Read(indexBits, &collectionIndex)) || collectionIndex >= collectionCount)
+				{
+					return false;
+				}
+
+				if (!state.buffer.Read(32, &presetHash) || presetHash == 0)
+				{
+					return false;
+				}
+
+				data.decorations.push_back({ collections[collectionIndex], presetHash });
+			}
+		}
+
+		uint8_t hasEmblem = 0;
+		uint32_t emblem = 0;
+
+		if (!state.buffer.Read(1, &hasEmblem) || (hasEmblem && !state.buffer.Read(32, &emblem)))
+		{
+			return false;
+		}
+
+		if (state.buffer.GetCurrentBit() != trailerBit)
+		{
+			return false;
+		}
+
+		data.crewEmblemVariation = static_cast<int32_t>(emblem);
+		data.hasDecorationList = true;
 
 		return true;
 	}
@@ -4109,6 +4218,13 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 		return hasNode ? &node->data : nullptr;
 	}
 
+	virtual CPlayerAppearanceNodeData* GetPlayerAppearance() override
+	{
+		auto [hasNode, node] = this->template GetData<CPlayerAppearanceDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
 	virtual void CalculatePosition() override
 	{
 		// TODO: cache it?
@@ -4777,7 +4893,7 @@ using CPlayerSyncTree = SyncTree<
 			NodeWrapper<NodeIds<127, 127, 0>, CPedHealthDataNode, 17>,
 			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementGroupDataNode, 26>,
 			NodeWrapper<NodeIds<127, 127, 1>, CPedAIDataNode, 9>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode, 561>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode, 1024>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerPedGroupDataNode, 19>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerAmbientModelStreamingNode, 5>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode, 370>,

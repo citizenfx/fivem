@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: client
+apiset: shared
 game: gta5
 ---
 ## GET_PED_DECORATIONS
@@ -16,7 +16,9 @@ The data returned adheres to the following layout:
 [ [ collectionHash1, overlayHash1 ], ..., [c ollectionHashN, overlayHashN ] ]
 ```
 
-This command will return undefined data if invoked on a remote player ped.
+On the client, this command will return undefined data if invoked on a remote player ped.
+
+On the server, this only works on players and not on other peds, and requires `game_enablePlayerDecorationSyncFix` to be enabled. An empty list is returned otherwise.
 
 ## Parameters
 * **ped**: The ped you want to retrieve data for.

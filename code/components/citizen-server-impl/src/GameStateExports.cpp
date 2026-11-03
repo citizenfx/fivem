@@ -10,6 +10,7 @@ static bool g_oneSyncPopulation;
 static bool(*g_onesync)();
 
 extern fx::GameBuild g_enforcedGameBuild;
+extern bool g_playerDecorationSyncFix;
 
 namespace fx
 {
@@ -36,6 +37,11 @@ bool IsOneSync()
 bool IsOneSyncPopulation()
 {
 	return g_oneSyncPopulation;
+}
+
+bool IsPlayerDecorationSyncFixEnabled()
+{
+	return g_playerDecorationSyncFix && IsOneSync();
 }
 
 void SetOneSyncGetCallback(bool (*cb)())
