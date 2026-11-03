@@ -163,22 +163,22 @@ RegisterRawNuiCallback('chatResult', function(requestData, cb)
 end)
 
 local function refreshCommands()
-  if GetRegisteredCommands then
-    local registeredCommands = GetRegisteredCommands()
+  local registeredCommands = GetRegisteredCommands()
+  if not next(registeredCommands) then return end
 
-    local suggestions = {}
+  local suggestions = {}
 
-    for _, command in ipairs(registeredCommands) do
-        if IsAceAllowed(('command.%s'):format(command.name)) and command.name ~= 'toggleChat' then
-            table.insert(suggestions, {
-                name = '/' .. command.name,
-                help = ''
-            })
-        end
+  for i = 1, #registeredCommands do
+    local command = registeredCommands[i]
+    if IsAceAllowed(('command.%s'):format(command.name)) and command.name ~= 'openChat' then
+      suggestions[#suggestions + 1] = {
+        name = '/' .. command.name,
+        help = ''
+      }
     end
-
-    TriggerEvent('chat:addSuggestions', suggestions)
   end
+
+  TriggerEvent('chat:addSuggestions', suggestions)
 end
 
 local function refreshThemes()
@@ -208,18 +208,26 @@ local function refreshThemes()
   })
 end
 
-AddEventHandler('onClientResourceStart', function(resName)
-  Wait(500)
+local commandsRefreshScheduled = false
 
-  refreshCommands()
-  refreshThemes()
+local function scheduleCommandsRefresh()
+  if commandsRefreshScheduled then return end
+
+  commandsRefreshScheduled = true
+
+  SetTimeout(500, function()
+    commandsRefreshScheduled = false
+    refreshCommands()
+    refreshThemes()
+  end)
+end
+
+AddEventHandler('onClientResourceStart', function(_)
+  scheduleCommandsRefresh()
 end)
 
-AddEventHandler('onClientResourceStop', function(resName)
-  Wait(500)
-
-  refreshCommands()
-  refreshThemes()
+AddEventHandler('onClientResourceStop', function(_)
+  scheduleCommandsRefresh()
 end)
 
 RegisterNUICallback('loaded', function(data, cb)
