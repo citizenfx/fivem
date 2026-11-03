@@ -164,6 +164,10 @@ public:
 static tbb::concurrent_queue<std::function<void()>> g_onRenderQueue;
 static tbb::concurrent_queue<std::function<void()>> g_earlyOnRenderQueue;
 
+#ifdef IS_RDR3
+void QueueDelayedRelease(std::function<void()> fn);
+#endif
+
 namespace nui
 {
 	struct NUITextureUpdate
@@ -185,9 +189,6 @@ namespace nui
 		virtual ~NUITextureUpdate() = default;
 	};
 
-	///
-	///
-	///
 	class TextureUpdates
 	{
 	public:
@@ -232,22 +233,31 @@ namespace nui
 	};
 	static TextureUpdates g_textureUpdate;
 
-	///
-	/// 
-	///
 	class TextureCache
 	{
 	public:
 		using Key = std::pair<uint64_t, uint64_t>;
 
+#ifdef IS_RDR3
+		struct VKFrame
+		{
+			VkImage m_image;
+			VkImageView m_imageView;
+			VkDeviceMemory m_deviceMemory;
+			VkDevice m_deviceHandle;
+		};
+
+		struct DX12Frame
+		{
+			ID3D12Resource* m_texture;
+			uint64_t m_handle;
+		};
+#endif
+
 		struct CachedEntry
 		{
 #ifdef IS_RDR3
-			// RedM supports vulkan and dx12.
-			// TODO: improve
-			void* m_texture; // VK image
-			void* m_srv; // VK imageView
-			VkDeviceMemory m_deviceMemory; // VK
+			std::variant<VKFrame, DX12Frame> m_frame;
 #else
 			WRL::ComPtr<ID3D11Texture2D> m_texture;
 			WRL::ComPtr<ID3D11ShaderResourceView> m_srv;
@@ -316,13 +326,23 @@ namespace nui
 #elif IS_RDR3
 			if (GetCurrentGraphicsAPI() == GraphicsAPI::Vulkan)
 			{
-				g_earlyOnRenderQueue.emplace([entry]()
+				auto vk = std::get_if<VKFrame>(&entry.m_frame);
+				if (!vk)
+				{
+					return;
+				}
+
+				QueueDelayedRelease([entry = *vk]()
 				{
 					auto device = (VkDevice)GetGraphicsDriverHandle();
-
-					if (entry.m_texture)
+					if (!device || device != entry.m_deviceHandle)
 					{
-						vkDestroyImage(device, (VkImage)entry.m_texture, nullptr);
+						return;
+					}
+
+					if (entry.m_image)
+					{
+						vkDestroyImage(device, (VkImage)entry.m_image, nullptr);
 					}
 
 					if (entry.m_deviceMemory)
@@ -330,18 +350,21 @@ namespace nui
 						vkFreeMemory(device, entry.m_deviceMemory, nullptr);
 					}
 
-					if (entry.m_srv)
+					if (entry.m_imageView)
 					{
-						vkDestroyImageView(device, (VkImageView)entry.m_srv, nullptr);
+						vkDestroyImageView(device, entry.m_imageView, nullptr);
 					}
 				});
 			}
 			else
 			{
-				auto resource = static_cast<ID3D12Resource*>(entry.m_texture);
-				auto srv = (uint64_t)entry.m_srv;
+				auto dx = std::get_if<DX12Frame>(&entry.m_frame);
+				if (!dx)
+				{
+					return;
+				}
 
-				g_earlyOnRenderQueue.emplace([resource, srv]()
+				QueueDelayedRelease([resource = dx->m_texture, srv = dx->m_handle]()
 				{
 					if (resource)
 					{
@@ -358,19 +381,28 @@ namespace nui
 		}
 
 		/// 
-		/// 
+		/// Releases all entries usually when the window/device is recreated 
+		/// and the cached textures are now invalid and not to be used.
+		/// For Vulkan the device has killed the resources
+		/// when this is called.
 		///
 		void Clear()
 		{
-			for (auto& [key, entry] : m_entries)
+#ifdef IS_RDR3
+			if (GetCurrentGraphicsAPI() == GraphicsAPI::D3D12)
+#endif
 			{
-				ReleaseCache(entry);
+				for (auto& [key, entry] : m_entries)
+				{
+					ReleaseCache(entry);
+				}
 			}
 			m_entries.clear();
 			m_textures.clear();
 		}
 	private:
 		// How many frames should be cached per GITexture
+		// libcef keeps 4 frames constantly alive.
 		static constexpr size_t kMaxFramesPerSource = 6;
 
 		void Evict(nui::GITexture* texture)
@@ -1311,12 +1343,18 @@ static void UpdateTextureVK(std::unique_ptr<nui::NUITextureUpdate>& texture)
 	bool sameFrame = false;
 	if (auto entry = nui::g_texCache.GetEntry(texture->key))
 	{
-		sameFrame = texRef->image->image == (VkImage)entry->m_texture;
+		auto vk = std::get_if<nui::TextureCache::VKFrame>(&entry->m_frame);
+		if (!vk)
+		{
+			return;
+		}
+
+		sameFrame = texRef->image->image == vk->m_image;
 		if (!sameFrame)
 		{
-			texRef->image->image = (VkImage)entry->m_texture;
-			texRef->image->memory = (VkDeviceMemory)entry->m_deviceMemory;
-			texRef->data->imageView = (VkImageView)entry->m_srv;
+			texRef->image->image = vk->m_image;
+			texRef->image->memory = vk->m_deviceMemory;
+			texRef->data->imageView = vk->m_imageView;
 			texRef->data->imageViewType = 2;
 		}
 	}
@@ -1336,7 +1374,7 @@ static void UpdateTextureVK(std::unique_ptr<nui::NUITextureUpdate>& texture)
 		srvDesc.dimension = 4;
 		srvDesc.arraySize = 1;
 		rage::sga::Driver_Create_ShaderResourceView(texRef, srvDesc);
-		nui::g_texCache.AddEntry(texture->key, texture->texture.GetRef(), nui::TextureCache::CachedEntry{ image, texRef->data->imageView, memory, texture->width, texture->height });
+		nui::g_texCache.AddEntry(texture->key, texture->texture.GetRef(), nui::TextureCache::CachedEntry{ nui::TextureCache::VKFrame{ image, texRef->data->imageView, memory, device }, texture->width, texture->height });
 	}
 
 	auto nuiTex = static_cast<GtaNuiTexture*>(texture->texture.GetRef());
@@ -1373,8 +1411,14 @@ static void UpdateTextureDX(std::unique_ptr<nui::NUITextureUpdate>& texture)
 
 	if (auto entry = nui::g_texCache.GetEntry(texture->key))
 	{
-		resource = static_cast<ID3D12Resource*>(entry->m_texture);
-		cachedSrv = (size_t)entry->m_srv;
+		auto dx = std::get_if<nui::TextureCache::DX12Frame>(&entry->m_frame);
+		if (!dx)
+		{
+			return;
+		}
+
+		resource = dx->m_texture;
+		cachedSrv = dx->m_handle;
 	}
 	else
 	{
@@ -1410,7 +1454,7 @@ static void UpdateTextureDX(std::unique_ptr<nui::NUITextureUpdate>& texture)
 			srvDesc.arraySize = 1;
 			rage::sga::Driver_Create_ShaderResourceView(texRef, srvDesc);
 
-			nui::g_texCache.AddEntry(texture->key, texture->texture.GetRef(), nui::TextureCache::CachedEntry{ (void*)opened.Detach(), (void*)texRef->data->handle.ptr, nullptr, 0, 0 });
+			nui::g_texCache.AddEntry(texture->key, texture->texture.GetRef(), nui::TextureCache::CachedEntry{ nui::TextureCache::DX12Frame{ opened.Detach(), texRef->data->handle.ptr }, 0, 0 });
 		}
 		else
 		{
