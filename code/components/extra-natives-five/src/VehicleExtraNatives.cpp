@@ -254,6 +254,9 @@ static GameValueStub<float> SnowGripFactor;
 static int StreamRenderGfxPtrOffset;
 static int HandlingDataPtrOffset;
 static int DrawHandlerPtrOffset;
+static int DrawHandlerShaderEffectOffset;
+static int ShaderEffectTypeOffset;
+static int ShaderEffectTypeColourSlotsOffset;
 static int ModelInfoPtrOffset;
 static int WheelsPtrOffset;
 
@@ -536,6 +539,34 @@ bool DoesVehicleUseFuel(fwEntity* vehicle)
 	return true;
 }
 
+// Colour slots supported by the materials of the drawn model (the high detail model once it is streamed in), as read
+// by GET_VEHICLE_COLOURS_WHICH_CAN_BE_SET: bit N + 1 is set when colour slot N can be set.
+static uint32_t GetVehicleColourSlotFlags(fwEntity* vehicle)
+{
+	auto drawHandler = readValue<char*>(vehicle, DrawHandlerPtrOffset);
+
+	if (!drawHandler)
+	{
+		return 0;
+	}
+
+	auto shaderEffect = *(char**)(drawHandler + DrawHandlerShaderEffectOffset);
+
+	if (!shaderEffect)
+	{
+		return 0;
+	}
+
+	auto shaderEffectType = *(char**)(shaderEffect + ShaderEffectTypeOffset);
+
+	if (!shaderEffectType)
+	{
+		return 0;
+	}
+
+	return *(uint16_t*)(shaderEffectType + ShaderEffectTypeColourSlotsOffset);
+}
+
 void SetVehicleFuelLevel(fwEntity* vehicle, float fuelLevel)
 {
 	writeValue<float>(vehicle, FuelLevelOffset, fuelLevel);
@@ -773,6 +804,15 @@ static HookFunction initFunction([]()
 
 		DrawHandlerPtrOffset = *(uint8_t*)(location + 4);
 		HandlingDataPtrOffset = *(uint32_t*)(location - 35);
+	}
+
+	{
+		// GET_VEHICLE_COLOURS_WHICH_CAN_BE_SET, testing the flags of colour slots 1 to 5
+		auto location = hook::get_pattern<char>("48 8B 40 ? 48 8B 40 ? 48 85 C0 74 ? 48 8B 80 ? ? ? ? 8A 50 ? 8D 41 01 F6 C2 04");
+
+		DrawHandlerShaderEffectOffset = *(uint8_t*)(location + 7);
+		ShaderEffectTypeOffset = *(uint32_t*)(location + 16);
+		ShaderEffectTypeColourSlotsOffset = *(uint8_t*)(location + 22);
 	}
 
 	{
@@ -2033,6 +2073,32 @@ static HookFunction initFunction([]()
 		{
 			context.SetResult<bool>(DoesVehicleUseFuel(vehicle));
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DOES_VEHICLE_SUPPORT_INTERIOR_COLOUR", [](fx::ScriptContext& context)
+	{
+		bool result = false;
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "DOES_VEHICLE_SUPPORT_INTERIOR_COLOUR"))
+		{
+			// colour slot 6
+			result = (GetVehicleColourSlotFlags(vehicle) & (1 << 7)) != 0;
+		}
+
+		context.SetResult<bool>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DOES_VEHICLE_SUPPORT_DASHBOARD_COLOUR", [](fx::ScriptContext& context)
+	{
+		bool result = false;
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "DOES_VEHICLE_SUPPORT_DASHBOARD_COLOUR"))
+		{
+			// colour slot 7
+			result = (GetVehicleColourSlotFlags(vehicle) & (1 << 8)) != 0;
+		}
+
+		context.SetResult<bool>(result);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("ADD_AUTHORIZED_PARACHUTE_MODEL", [](fx::ScriptContext& context)
