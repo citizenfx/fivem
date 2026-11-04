@@ -91,6 +91,21 @@ bool ScriptingFilesystemAllowWrite(const std::string& path, fx::Resource* resour
 		return false;
 	}
 
+	// the part after the resource name has to stay inside that resource, otherwise '..' would
+	// resolve past it and the permission check below would be answering for the wrong resource
+	if (resourceFilePath.is_absolute() || resourceFilePath.has_root_name())
+	{
+		return false;
+	}
+
+	for (const auto& part : resourceFilePath)
+	{
+		if (part == "..")
+		{
+			return false;
+		}
+	}
+
 	std::string currentResourceName{};
 	fx::Resource* currentResource = nullptr;
 	if (resourceOverride != nullptr)
