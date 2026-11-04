@@ -64,7 +64,7 @@ static constexpr int kNetObjectTypeBitLength = 5;
 static uint32_t g_objectCreatedByOffset = 0;
 #endif
 
-static constexpr int kSyncPacketMaxLength = 4000;
+static constexpr int kSyncPacketMaxLength = 2400;
 
 void ObjectIds_AddObjectId(int objectId);
 void ObjectIds_StealObjectId(int objectId);
@@ -2145,6 +2145,10 @@ void CloneManagerLocal::WriteUpdates()
 		}
 #endif
 
+		// allocate a RAGE buffer
+		uint8_t packetStub[kSyncPacketMaxLength] = { 0 };
+		rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
+
 		// if we want to delete this object
 		if (object->syncData.wantsToDelete)
 		{
@@ -2295,10 +2299,6 @@ void CloneManagerLocal::WriteUpdates()
 			{
 				++syncCount2;
 			}
-
-			// allocate a RAGE buffer
-			uint8_t packetStub[kSyncPacketMaxLength] = { 0 };
-			rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
 
 			// write tree
 			g_curNetObject = object;

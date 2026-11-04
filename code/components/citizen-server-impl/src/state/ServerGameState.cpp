@@ -50,7 +50,7 @@ static constexpr int kNetObjectTypeBitLength = 4;
 static constexpr int kNetObjectTypeBitLength = 5;
 #endif
 
-static constexpr int kSyncPacketMaxLength = 4000;
+static constexpr int kSyncPacketMaxLength = 2400;
 static constexpr int kPacketWarnLength = 1300;
 
 namespace rl
