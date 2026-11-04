@@ -29,6 +29,8 @@
 #include <PoolSizesState.h>
 #include <CoreConsole.h>
 
+#include <ConsoleHost.h>
+
 #include <CfxLocale.h>
 
 #include <json.hpp>
@@ -134,6 +136,8 @@ void NetLibrary::AddSendTick()
 }
 
 static uint32_t m_tempGuid = GetTickCount();
+
+static std::atomic<uint32_t> g_connectionAttempt{ 0 };
 
 uint16_t NetLibrary::GetServerNetID()
 {
@@ -390,18 +394,6 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 				));
 
 				richPresenceSetValue(1, "Connecting...");
-
-				auto fullPresenceStr = "Playing on: " + std::string(cleaned);
-
-				cfx::legitimacy::SetSteamRichPresenceWrapper("status", fmt::sprintf(
-																	   "%s%s",
-																	   std::string(fullPresenceStr).substr(0, 110),
-																	   (strlen(fullPresenceStr.c_str()) > 110) ? "..." : ""));
-				cfx::legitimacy::SetSteamRichPresenceWrapper("serverName", fmt::sprintf(
-																		   "%s",
-																		   std::string(cleaned).substr(0, 110),
-																		   (strlen(fullPresenceStr.c_str()) > 110) ? "..." : ""));
-				cfx::legitimacy::SetSteamRichPresenceWrapper("steam_display", "#Status_InMultiplayer");
 			}
 
 			// until map reloading is in existence
@@ -833,6 +825,8 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 
 void NetLibrary::OnConnectionError(const std::string& errorString, const std::string& metaData /* = "{}" */)
 {
+	ConHost::ClearConfirmationModal();
+
 	OnConnectionErrorEvent(errorString.c_str());
 	OnConnectionErrorRichEvent(errorString, metaData);
 }
@@ -868,6 +862,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	{
 		Disconnect("Connecting to another server.");
 	}
+
+	const uint32_t connectionAttempt = ++g_connectionAttempt;
+	ConHost::ClearConfirmationModal();
 
 	Instance<ICoreGameInit>::Get()->SetData("serverId", "");
 
@@ -926,6 +923,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	static fwMap<fwString, fwString> postMap;
 	postMap["method"] = "initConnect";
+	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
 
 #if defined(IS_RDR3)
@@ -954,8 +952,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	}
 
 	postMap["gameName"] = gameName;
-
-	static std::function<void()> performRequest;
 
 	postMap["guid"] = va("%lld", GetGUID());
 
@@ -1456,8 +1452,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 											{
 											}
 
-											cfx::legitimacy::SetSteamRichPresenceWrapper("steam_player_group", val);
-
 											m_httpClient->DoGetRequest(fmt::sprintf("%sapi/policy/%s", POLICY_LIVE_ENDPOINT, val), [=](bool success, const char* data, size_t size)
 											{
 												std::string fact;
@@ -1629,7 +1623,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 		return true;
 	};
 
-	std::function<void()> continueRequest;
+	std::function<void()> performRequest;
 
 	performRequest = [=]()
 	{
@@ -1655,50 +1649,13 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 		}), handleCardResult);
 	};
 
-	static std::string requestSteamTicket = "on";
-	static bool enforceSteamAuth = false;
-
-	continueRequest = [=]()
-	{
-		if (requestSteamTicket == "on")
-		{
-			OnConnectionProgress("Obtaining Steam ticket...", 0, 100, false);
-
-			auto authCallback = [=](std::pair<std::string, std::string> authResult)
-			{
-				if (!authResult.first.empty())
-				{
-					OnConnectionError(va("Failed to obtain Steam ticket, %s.", authResult.first));
-				}
-				else if (authResult.second.empty() && enforceSteamAuth)
-				{
-					OnConnectionError(va("Failed to obtain Steam ticket, ticket response is empty."));
-				}
-				else
-				{
-					postMap["name"] = GetPlayerName();
-
-					if (!authResult.second.empty())
-					{
-						postMap["authTicket"] = authResult.second;
-					}
-
-					performRequest();
-				}
-			};
-
-			cfx::legitimacy::GetSteamAuthTicketWrapper(authCallback, enforceSteamAuth);
-		}
-		else
-		{
-			postMap["name"] = GetPlayerName();
-
-			performRequest();
-		}
-	};
-	
 	auto initiateRequest = [=]()
 	{
+		if (connectionAttempt != g_connectionAttempt.load())
+		{
+			return;
+		}
+
 		OnConnectionProgress("Requesting server variables...", 0, 100, true);
 
 		HttpRequestOptions options;
@@ -1711,8 +1668,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 			std::string licenseKeyToken;
 
+			bool enforceSteamAuth = false;
+
 			// We got a response way later than we wanted - user has canceled connection or joined another server
-			if (m_connectionState != CS_INITING)
+			if (m_connectionState != CS_INITING || connectionAttempt != g_connectionAttempt.load())
 			{
 				return;
 			}
@@ -1743,6 +1702,14 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 			{
 				json info = json::parse(data);
 #if defined(GTA_FIVE) || defined(IS_RDR3)
+				if (info.is_object())
+				{
+					if (auto it = info.find("enforceSteamAuth"); it != info.end() && it->is_boolean())
+					{
+						enforceSteamAuth = it->get<bool>();
+					}
+				}
+
 				if (info.is_object() && info["vars"].is_object())
 				{
 					int pureLevel = 0;
@@ -1843,8 +1810,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 							OnConnectionError(va("Server specified an invalid default game build (%d).", serverDefaultBuild), json::object({
 								{ "fault", "server" },
 								{ "action", "#ErrorAction_ContactOwner" },
-							})
-							.dump());
+								})
+								.dump());
 							m_connectionState = CS_IDLE;
 							return;
 						}
@@ -1861,9 +1828,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						licenseKeyToken = ival;
 					}
-
-					requestSteamTicket = info.value("requestSteamTicket", "on");
-					enforceSteamAuth = info.value("enforceSteamAuth", false);
 				}
 #endif
 			}
@@ -1871,25 +1835,78 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 			{
 			}
 
-			if (OnInterceptConnectionForAuth(url, licenseKeyToken, [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
-				{
-					if (success)
-					{
-						for (const auto& entry : additionalPostData)
-						{
-							postMap[entry.first] = entry.second;
-						}
-
-						continueRequest();
-					}
-					else
-					{
-						m_connectionState = CS_IDLE;
-					}
-				}))
+			auto interceptConnection = [=](std::string steamAccessToken = "")
 			{
-				continueRequest();
+				if (OnInterceptConnectionForAuth(url, licenseKeyToken, steamAccessToken, [this, performRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
+					{
+						if (success)
+						{
+							for (const auto& entry : additionalPostData)
+							{
+								postMap[entry.first] = entry.second;
+							}
+
+							performRequest();
+						}
+						else
+						{
+							m_connectionState = CS_IDLE;
+						}
+					}))
+				{
+					performRequest();
+				}
+			};
+
+			if (cfx::legitimacy::IsSteamLinked() || !enforceSteamAuth)
+			{
+				interceptConnection();
+				return;
 			}
+
+			auto isStale = [this, connectionAttempt]()
+			{
+				return m_connectionState != CS_INITING || connectionAttempt != g_connectionAttempt.load();
+			};
+
+			auto authCallback = [=](std::pair<std::string, std::string> authResult)
+			{
+				if (isStale())
+				{
+					return;
+				}
+
+				if (!authResult.first.empty())
+				{
+					OnConnectionError(va("Linking Steam failed, %s.", authResult.first));
+					m_connectionState = CS_IDLE;
+				}
+				else
+				{
+					interceptConnection(authResult.second);
+				}
+			};
+
+			ConHost::SetConfirmationModal("Steam authentication required.", "You need to link a Steam account to " PRODUCT_NAME " in order to play on this server.", [=](bool val)
+			{
+				m_mainFrameQueue.push([=]()
+				{
+					if (isStale())
+					{
+						return;
+					}
+
+					if (!val)
+					{
+						OnConnectionError("A linked Steam account is required to connect to this server.");
+						m_connectionState = CS_IDLE;
+						return;
+					}
+
+					OnConnectionProgress("Opening a new window to authenticate with Steam.", 0, 100, true);
+					cfx::legitimacy::AttemptSteamAuth(authCallback, enforceSteamAuth);
+				});
+			});
 		});
 
 		request->Start();
@@ -1923,6 +1940,9 @@ void NetLibrary::CancelDeferredConnection()
 	{
 		m_connectionState = CS_IDLE;
 	}
+
+	g_connectionAttempt++;
+	ConHost::ClearConfirmationModal();
 }
 
 static std::mutex g_disconnectionMutex;
@@ -1963,11 +1983,6 @@ void NetLibrary::Disconnect(const char* reason)
 
 		m_connectionState = CS_IDLE;
 		m_currentServer = NetAddress();
-
-		if (reason != std::string_view{ "Exiting" })
-		{
-			cfx::legitimacy::ResetSteamRichPresenceWrapper();
-		}
 	}
 }
 
@@ -2011,30 +2026,12 @@ static const std::string kNicknameAnimals[]{"Ant", "Bat", "Beetle", "Cat", "Crab
 
 static ConVar<std::string>* g_extNicknameVar;
 
-static std::string g_steamPersonaName;
-
 const char* NetLibrary::GetPlayerName()
 {
 	// if a higher-level component set a name, use that name instead
 	if (!m_playerName.empty())
 	{
 		return m_playerName.c_str();
-	}
-
-	if (g_steamPersonaName.empty())
-	{
-		auto steamUsername = cfx::legitimacy::GetSteamUsernameWrapper(); 
-		if (!steamUsername.empty())
-		{
-			g_steamPersonaName = steamUsername;
-			g_extNicknameVar->GetHelper()->SetRawValue(steamUsername);
-		}
-	}
-
-	// do we have a Steam name?
-	if (!g_steamPersonaName.empty())
-	{
-		return g_steamPersonaName.c_str();
 	}
 
 	static ConVar<std::string> defaultNicknameVar("cl_nickname", ConVar_Archive | ConVar_UserPref | ConVar_ScriptRestricted, "");
@@ -2131,8 +2128,6 @@ __declspec(dllexport) fwEvent<> NetLibrary::OnBuildMessage;
 
 NetLibrary* NetLibrary::Create()
 {
-	cfx::legitimacy::InitSteamSDKConnection();
-
 	auto lib = new NetLibrary();
 
 	lib->CreateResources();
@@ -2149,12 +2144,7 @@ NetLibrary* NetLibrary::Create()
 		}
 	});
 
-	if (auto steamUsername = cfx::legitimacy::GetSteamUsernameWrapper(); !steamUsername.empty())
-	{
-		g_steamPersonaName = steamUsername;
-	}
-
-	g_extNicknameVar = new ConVar<std::string>("ui_extNickname", ConVar_ReadOnly, g_steamPersonaName);
+	g_extNicknameVar = new ConVar<std::string>("ui_extNickname", ConVar_ReadOnly, "");
 
 	return lib;
 }

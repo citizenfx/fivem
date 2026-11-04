@@ -81,9 +81,28 @@ extern bool g_cursorFlag;
 int g_scrollTop;
 int g_bufferHeight;
 
+#include <ConfirmationModal.h>
+
+bool IsConfirmationModalVisible()
+{
+	if (!g_confirmationModal.IsActive())
+	{
+		return false;
+	}
+
+#ifdef WITH_NUI
+	if (!nui::HasMainUI())
+	{
+		return false;
+	}
+#endif
+
+	return true;
+}
+
 bool ConsoleHasAnything()
 {
-	return g_consoleFlag || g_cursorFlag || nui::g_showUrlConfirmModal.load();
+	return g_consoleFlag || g_cursorFlag || nui::g_showUrlConfirmModal.load() || IsConfirmationModalVisible();
 }
 
 bool ConsoleHasMouse()
@@ -316,6 +335,7 @@ void DrawConsole();
 void DrawDevGui();
 
 void DrawUrlConfirmationModal();
+void DrawConfirmationModal();
 
 static std::recursive_mutex g_conHostMutex;
 ImFont* consoleFontSmall;
@@ -412,7 +432,10 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 	ConHost::OnShouldDrawGui(&shouldDrawGui);
 
-	if (!g_cursorFlag && !g_consoleFlag && !shouldDrawGui && !g_winConsole && !nui::g_showUrlConfirmModal.load())
+	// NOTE: every modal drawn below must be part of this check, otherwise it will only
+	// show up when something else (F8 console, cl_drawFPS, minicon, ...) happens to
+	// force an ImGui frame.
+	if (!g_cursorFlag && !g_consoleFlag && !shouldDrawGui && !g_winConsole && !nui::g_showUrlConfirmModal.load() && !IsConfirmationModalVisible())
 	{
 		// if not drawing the gui, we're also not owning the cursor
 #ifdef WITH_NUI
@@ -428,10 +451,19 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 	HandleFxDKInput(io);
 
-	io.MouseDrawCursor = ConsoleHasMouse();
+	bool drawImGuiCursor = ConsoleHasMouse();
 
 #ifdef WITH_NUI
-	nui::SetHideCursor(io.MouseDrawCursor);
+	if (drawImGuiCursor && !g_consoleFlag && !g_cursorFlag && nui::HasCursor())
+	{
+		drawImGuiCursor = false;
+	}
+#endif
+
+	io.MouseDrawCursor = drawImGuiCursor;
+
+#ifdef WITH_NUI
+	nui::SetHideCursor(drawImGuiCursor);
 #endif
 
 	{
@@ -503,6 +535,8 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	{
 		ImGui::PopFont();
 	}
+
+	DrawConfirmationModal();
 
 	DrawUrlConfirmationModal();
 

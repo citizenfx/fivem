@@ -7,7 +7,8 @@
 		"pool-sizes-state",
 		"vendor:cpp-url",
 		"net:base",
-		"net:packet"
+		"net:packet",
+		"conhost"
 	],
 	"provides": []
 }
