@@ -54,7 +54,7 @@ fwRefContainer<TcpServer> TcpServerManager::CreateServer(const PeerAddress& bind
 		}
 		else
 		{
-			trace("net-tcp-server failed to create server: couldn't listen\n");
+			trace("net-tcp-server failed to create server: couldn't listen on %s\n", bindAddress.ToString().c_str());
 		}
 	});
 
