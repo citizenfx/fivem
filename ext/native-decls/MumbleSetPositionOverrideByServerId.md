@@ -10,7 +10,7 @@ void MUMBLE_SET_POSITION_OVERRIDE_BY_SERVER_ID(int serverId, float x, float y, f
 
 Plays a player's voice from a fixed world position for the local client only, instead of from the player's ped. This can be used for speakers, intercoms or PA systems.
 
-While the override is set, `range` replaces the player's own talker proximity for hearing distance and falloff, and the player stays audible even when they are outside of the local player's scope. Only one position is supported per player. Volume overrides set with [MUMBLE_SET_VOLUME_OVERRIDE_BY_SERVER_ID](#_0xCE8E25B4) disable positional audio, so do not combine the two for the same player.
+While the override is set, `range` replaces the player's own talker proximity for hearing distance and falloff, and the player stays audible even when they are outside of the local player's scope. Only one position is supported per player, so this replaces any override set with [MUMBLE_SET_POSITION_OVERRIDE_TO_PLAYER_BY_SERVER_ID](#_0x1F84414C). Volume overrides set with [MUMBLE_SET_VOLUME_OVERRIDE_BY_SERVER_ID](#_0xCE8E25B4) disable positional audio, so do not combine the two for the same player.
 
 The override is applied on the next voice packet received from the player. Use [MUMBLE_CLEAR_POSITION_OVERRIDE_BY_SERVER_ID](#_0x291C4CE8) to remove it.
 

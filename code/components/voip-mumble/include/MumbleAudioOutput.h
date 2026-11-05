@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <array>
 #include <atomic>
 #include <map>
 #include <mutex>
@@ -20,6 +19,7 @@
 #include <wrl.h>
 
 #include <MumbleAudioSink.h>
+#include <MumbleClient.h>
 
 #define XAUDIO2_HELPER_FUNCTIONS
 #include <xaudio2.h>
@@ -55,7 +55,7 @@ public:
 
 	void HandleClientVolumeOverride(const MumbleUser& user, float volume);
 
-	void HandleClientPositionOverride(const MumbleUser& user, const std::optional<std::array<float, 3>>& position, float range);
+	void HandleClientPositionOverride(const MumbleUser& user, const std::optional<MumblePositionOverride>& positionOverride);
 
 	void HandleClientVoiceData(const MumbleUser& user, uint64_t sequence, const uint8_t* data, size_t size, bool hasTerminator);
 
@@ -128,8 +128,9 @@ private:
 		float position[3];
 		float distance;
 		float overrideVolume;
-		// position (Mumble axis order) and range used instead of the talker's own while positionOverridden is set
+		// range, and position when hasFixedPosition (Mumble axis order), used instead of the talker's own while positionOverridden is set
 		float positionOverride[3] = { 0.0f, 0.0f, 0.0f };
+		bool hasFixedPosition = false;
 		float rangeOverride = 0.0f;
 		std::atomic<bool> positionOverridden{ false };
 		bool isAudible = true;
@@ -174,7 +175,7 @@ private:
 		{
 		}
 
-		virtual void OnPositionOverrideChanged(bool overridden)
+		virtual void OnPositionOverrideChanged(bool overridden, int sourceServerId)
 		{
 		}
 
@@ -210,7 +211,7 @@ private:
 
 		virtual void PushPosition(MumbleAudioOutput* baseIo, float position[3]) override;
 
-		virtual void OnPositionOverrideChanged(bool overridden) override;
+		virtual void OnPositionOverrideChanged(bool overridden, int sourceServerId) override;
 
 		virtual bool IsTalking() override;
 

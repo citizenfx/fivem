@@ -53,6 +53,17 @@ struct VoiceTargetConfig
 	std::set<std::string> channels;
 };
 
+struct MumblePositionOverride
+{
+	// fixed position in Mumble axis order (x, z, y); when unset, the position from the position hook is used
+	std::optional<std::array<float, 3>> position;
+
+	// server id of the player whose ped native audio follows while position is unset, or -1
+	int sourceServerId = -1;
+
+	float range = 0.0f;
+};
+
 class IMumbleClient : public fwRefCountable
 {
 public:
@@ -79,8 +90,8 @@ public:
 
 	virtual void SetClientVolumeOverrideByServerId(uint32_t serverId, float volume) = 0;
 
-	// position is in Mumble axis order (x, z, y); std::nullopt clears the override
-	virtual void SetClientPositionOverrideByServerId(uint32_t serverId, const std::optional<std::array<float, 3>>& position, float range) = 0;
+	// std::nullopt clears the override
+	virtual void SetClientPositionOverrideByServerId(uint32_t serverId, const std::optional<MumblePositionOverride>& positionOverride) = 0;
 
 	virtual std::string GetPlayerNameFromServerId(uint32_t serverId) = 0;
 
