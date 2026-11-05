@@ -40,7 +40,7 @@ return {
             ('../vendor/v8/%s/tag.txt'):format(baseVersion)
         }
 
-        local baseURL = ('https://content.cfx.re/mirrors/vendor/v8/%s'):format(baseVersion)
+        local baseURL = ('https://cfx-content.akamaized.net/mirrors/vendor/v8/%s'):format(baseVersion)
         local v8LibDir = (path.getabsolute('../') .. '/vendor/v8/%s/lib'):format(baseVersion)
 
         if os.istarget('windows') then

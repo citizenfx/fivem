@@ -6,10 +6,10 @@ SET UI_BUNDLE=cfx-ui-%GAME%.zip
 SET UI_BIG_BUNDLE=cfx-ui-%GAME%_big.zip
 
 :: ui-build 96
-set URL_FIVE=https://downloads.cfx-services.net/prod/01a19bdd-e17d-74c9-8883-335306fdb082/cfx-ui-five.zip
-set URL_FIVE_BIG=https://downloads.cfx-services.net/prod/01a19bdd-eb2a-7bc7-a62e-3043755d2688/cfx-ui-five_big.zip
-set URL_RDR3=https://downloads.cfx-services.net/prod/01a19bdd-ee96-745d-abe7-05622da40675/cfx-ui-rdr3.zip
-set URL_RDR3_BIG=https://downloads.cfx-services.net/prod/01a19bdd-f16a-7ad6-8c9f-1378d508c6c3/cfx-ui-rdr3_big.zip
+set URL_FIVE=https://cfx-downloads.akamaized.net/prod/01a19bdd-e17d-74c9-8883-335306fdb082/cfx-ui-five.zip
+set URL_FIVE_BIG=https://cfx-downloads.akamaized.net/prod/01a19bdd-eb2a-7bc7-a62e-3043755d2688/cfx-ui-five_big.zip
+set URL_RDR3=https://cfx-downloads.akamaized.net/prod/01a19bdd-ee96-745d-abe7-05622da40675/cfx-ui-rdr3.zip
+set URL_RDR3_BIG=https://cfx-downloads.akamaized.net/prod/01a19bdd-f16a-7ad6-8c9f-1378d508c6c3/cfx-ui-rdr3_big.zip
 
 if "%GAME%"=="five" (
     set UI_URL=%URL_FIVE%

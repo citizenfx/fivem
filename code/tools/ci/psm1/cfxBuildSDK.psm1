@@ -14,7 +14,7 @@ function Invoke-BuildSDK {
     # Workaround that by reusing already built FXCode version since we're not updating FXCode itself anymore
     Push-Location $Context.getPathInProject("ext\sdk\resources\sdk-root\fxcode")
         if (!(Test-Path "out-fxdk-pkg")) {
-            curl.exe -Lo ".\out-fxdk-pkg.zip" "https://content.cfx.re/mirrors/vendor/fxcode/out-fxdk-pkg.zip"
+            curl.exe -Lo ".\out-fxdk-pkg.zip" "https://cfx-content.akamaized.net/mirrors/vendor/fxcode/out-fxdk-pkg.zip"
 
             & $Tools.tar -C .\ -xf ".\out-fxdk-pkg.zip"
 

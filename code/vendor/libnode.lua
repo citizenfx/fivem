@@ -9,10 +9,10 @@ local soName = ('libnode%s.so'):format(majorVersion)
 local linuxShortName = ('node%s'):format(majorVersion)
 
 local depotURLs = {
-	[dllName] = 'https://downloads.cfx-services.net/prod/01a1825b-1ef5-71a5-8068-b4c46a3833b7/libnode22.dll',
-	[libName] = 'https://downloads.cfx-services.net/prod/01a1825b-3432-7e80-aaf4-b18f1dee3f76/libnode22.lib',
-	[pdbName] = 'https://downloads.cfx-services.net/prod/01a1825b-3b2f-7202-91f1-41e147059a2d/libnode22.pdb',
-	[soName]  = 'https://downloads.cfx-services.net/prod/01a1825b-8f97-71c7-b6ae-0bd82df2973a/libnode22.so',
+	[dllName] = 'https://cfx-downloads.akamaized.net/prod/01a1825b-1ef5-71a5-8068-b4c46a3833b7/libnode22.dll',
+	[libName] = 'https://cfx-downloads.akamaized.net/prod/01a1825b-3432-7e80-aaf4-b18f1dee3f76/libnode22.lib',
+	[pdbName] = 'https://cfx-downloads.akamaized.net/prod/01a1825b-3b2f-7202-91f1-41e147059a2d/libnode22.pdb',
+	[soName]  = 'https://cfx-downloads.akamaized.net/prod/01a1825b-8f97-71c7-b6ae-0bd82df2973a/libnode22.so',
 }
 
 local function download(curl, dir, name)
