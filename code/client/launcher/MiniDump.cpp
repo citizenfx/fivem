@@ -324,7 +324,7 @@ static auto GetMinidumpGamePath() -> std::wstring
 
 		const wchar_t* pathKey = L"IVPath";
 
-		if (wcsstr(GetCommandLine(), L"cl2"))
+		if (IsCL2())
 		{
 			pathKey = L"PathCL2";
 		}

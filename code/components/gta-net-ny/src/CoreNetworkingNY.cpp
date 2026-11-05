@@ -7,6 +7,7 @@
 #include <CoreConsole.h>
 #include <CoreNetworking.h>
 #include <NetLibrary.h>
+#include <CL2LaunchMode.h>
 
 #include <nutsnbolts.h>
 
@@ -98,7 +99,7 @@ int __stdcall CfxBind(SOCKET s, sockaddr* addr, int addrlen)
 
 	if (htons(addrIn->sin_port) == 6672)
 	{
-		if (wcsstr(GetCommandLine(), L"cl2"))
+		if (IsCL2())
 		{
 			addrIn->sin_port = htons(6673);
 		}
@@ -208,7 +209,7 @@ bool __cdecl GetLocalPeerAddressHook(rage::netPeerAddress* address)
 		auto a = htonl(inet_addr(getenv("ROS_TEMP_LAN_IP")));;
 		auto b = 6672;
 
-		if (wcsstr(GetCommandLine(), L"cl2"))
+		if (IsCL2())
 		{
 			a = htonl(inet_addr("127.0.0.1"));
 			b = 6673;

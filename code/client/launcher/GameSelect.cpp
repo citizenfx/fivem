@@ -139,7 +139,7 @@ std::optional<int> EnsureGamePath()
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 	const wchar_t* pathKey = L"IVPath";
 
-	if (wcsstr(GetCommandLine(), L"cl2"))
+	if (IsCL2())
 	{
 		pathKey = L"PathCL2";
 	}
