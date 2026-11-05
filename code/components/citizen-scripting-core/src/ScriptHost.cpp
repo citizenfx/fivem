@@ -466,7 +466,7 @@ static std::deque<BoundaryPair> ms_boundaryStack;
 
 static std::recursive_mutex ms_runtimeMutex;
 
-static bool g_suppressErrors;
+static size_t g_suppressErrorsBelow;
 
 result_t TestScriptHost::SubmitBoundaryStart(char* boundaryData, int boundarySize)
 {
@@ -599,7 +599,7 @@ result_t ScriptRuntimeHandler::PopRuntime(IScriptRuntime* runtime)
 
 	if (ms_runtimeStack.empty())
 	{
-		g_suppressErrors = false;
+		g_suppressErrorsBelow = 0;
 	}
 
 	ms_runtimeMutex.unlock();
@@ -688,13 +688,17 @@ static InitFunction initFunction([]()
 		auto topLevelStackBlob = context.GetArgument<char*>(0);
 		auto topLevelStackSize = context.GetArgument<uint32_t>(1);
 
-		if (fx::g_suppressErrors && topLevelStackBlob != nullptr)
+		// an error in a runtime below the last one to report is most likely its call into that runtime failing, so it was reported already
+		auto depth = fx::ms_runtimeStack.size();
+
+		if (depth < fx::g_suppressErrorsBelow && topLevelStackBlob != nullptr)
 		{
+			fx::g_suppressErrorsBelow = depth;
 			context.SetResult(nullptr);
 			return;
 		}
 
-		fx::g_suppressErrors = true;
+		fx::g_suppressErrorsBelow = depth;
 
 		auto vis = fx::MakeNew<StringifyingStackVisitor>();
 
