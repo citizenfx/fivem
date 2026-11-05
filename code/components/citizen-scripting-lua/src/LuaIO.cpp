@@ -463,6 +463,29 @@ int LuaIOReadDir(lua_State* L)
 		device->FindClose(handle);
 	}
 
+	// directory enumeration order is filesystem-specific (NTFS sorts, ext4 doesn't): sort like NTFS so every OS returns the same order
+	files.sort([](const std::string& left, const std::string& right)
+	{
+		// ASCII-only upper-casing, independent of the C locale
+		auto foldedLess = [](unsigned char a, unsigned char b)
+		{
+			auto upper = [](unsigned char c) { return (c >= 'a' && c <= 'z') ? c - ('a' - 'A') : c; };
+			return upper(a) < upper(b);
+		};
+
+		if (std::lexicographical_compare(left.begin(), left.end(), right.begin(), right.end(), foldedLess))
+		{
+			return true;
+		}
+
+		if (std::lexicographical_compare(right.begin(), right.end(), left.begin(), left.end(), foldedLess))
+		{
+			return false;
+		}
+
+		return left < right;
+	});
+
 	LuaIODirectory* luaDirectory = LuaIONewDirectoryContent(L);
 	luaDirectory->size = files.size();
 	luaDirectory->directory = static_cast<LuaIODirectoryFile*>(calloc(files.size(), sizeof(LuaIODirectoryFile)));
