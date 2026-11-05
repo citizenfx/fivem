@@ -307,6 +307,8 @@ public:
 
 	void SetHost(uint16_t netID, uint32_t base);
 
+	void SetPeerTimeout(uint32_t timeout);
+
 	void DownloadsComplete();
 
 	bool IsPendingInGameReconnect();
