@@ -79,6 +79,9 @@ public:
 
 	virtual void SetClientVolumeOverrideByServerId(uint32_t serverId, float volume) = 0;
 
+	// position is in Mumble axis order (x, z, y); std::nullopt clears the override
+	virtual void SetClientPositionOverrideByServerId(uint32_t serverId, const std::optional<std::array<float, 3>>& position, float range) = 0;
+
 	virtual std::string GetPlayerNameFromServerId(uint32_t serverId) = 0;
 
 	virtual std::string GetVoiceChannelFromServerId(uint32_t serverId) = 0;

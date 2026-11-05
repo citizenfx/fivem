@@ -607,6 +607,17 @@ void MumbleClient::SetClientVolumeOverrideByServerId(uint32_t serverId, float vo
 	});
 }
 
+void MumbleClient::SetClientPositionOverrideByServerId(uint32_t serverId, const std::optional<std::array<float, 3>>& position, float range)
+{
+	m_state.ForAllUsers([this, serverId, &position, range](const std::shared_ptr<MumbleUser>& user)
+	{
+		if (user->GetServerId() == serverId)
+		{
+			GetOutput().HandleClientPositionOverride(*user, position, range);
+		}
+	});
+}
+
 std::string MumbleClient::GetPlayerNameFromServerId(uint32_t serverId)
 {
 	std::string retName;

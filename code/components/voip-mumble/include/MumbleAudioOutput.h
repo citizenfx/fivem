@@ -7,8 +7,11 @@
 
 #pragma once
 
+#include <array>
+#include <atomic>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <shared_mutex>
 #include <thread>
 
@@ -51,6 +54,8 @@ public:
 	void HandleClientPosition(const MumbleUser& user, float position[3]);
 
 	void HandleClientVolumeOverride(const MumbleUser& user, float volume);
+
+	void HandleClientPositionOverride(const MumbleUser& user, const std::optional<std::array<float, 3>>& position, float range);
 
 	void HandleClientVoiceData(const MumbleUser& user, uint64_t sequence, const uint8_t* data, size_t size, bool hasTerminator);
 
@@ -123,6 +128,10 @@ private:
 		float position[3];
 		float distance;
 		float overrideVolume;
+		// position (Mumble axis order) and range used instead of the talker's own while positionOverridden is set
+		float positionOverride[3] = { 0.0f, 0.0f, 0.0f };
+		float rangeOverride = 0.0f;
+		std::atomic<bool> positionOverridden{ false };
 		bool isAudible = true;
 		uint32_t lastTime;
 
@@ -165,6 +174,10 @@ private:
 		{
 		}
 
+		virtual void OnPositionOverrideChanged(bool overridden)
+		{
+		}
+
 		virtual bool IsTalking()
 		{
 			if (auto is = GetInnerState())
@@ -196,6 +209,8 @@ private:
 		virtual void PushSound(int16_t* voiceBuffer, int len) override;
 
 		virtual void PushPosition(MumbleAudioOutput* baseIo, float position[3]) override;
+
+		virtual void OnPositionOverrideChanged(bool overridden) override;
 
 		virtual bool IsTalking() override;
 

@@ -1050,6 +1050,31 @@ static HookFunction hookFunction([]()
 			g_mumbleClient->SetClientVolumeOverrideByServerId(serverId, volume);
 		}));
 
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_POSITION_OVERRIDE_BY_SERVER_ID", MakeMumbleNative([](fx::ScriptContext& context)
+		{
+			int serverId = context.GetArgument<int>(0);
+			float x = context.GetArgument<float>(1);
+			float y = context.GetArgument<float>(2);
+			float z = context.GetArgument<float>(3);
+			float range = context.GetArgument<float>(4);
+
+			if (range <= 0.0f)
+			{
+				fx::scripting::Warningf("mumble", "MUMBLE_SET_POSITION_OVERRIDE_BY_SERVER_ID: range must be greater than 0");
+				return;
+			}
+
+			// Mumble positions use (x, z, y), matching PositionHook
+			g_mumbleClient->SetClientPositionOverrideByServerId(serverId, std::array<float, 3>{ x, z, y }, range);
+		}));
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_CLEAR_POSITION_OVERRIDE_BY_SERVER_ID", MakeMumbleNative([](fx::ScriptContext& context)
+		{
+			int serverId = context.GetArgument<int>(0);
+
+			g_mumbleClient->SetClientPositionOverrideByServerId(serverId, std::nullopt, 0.0f);
+		}));
+
 		static VoiceTargetConfig vtConfigs[31];
 
 

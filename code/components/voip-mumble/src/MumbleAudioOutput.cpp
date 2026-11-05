@@ -628,6 +628,11 @@ void MumbleAudioOutput::ExternalAudioState::PushPosition(MumbleAudioOutput* base
 	sink->SetPosition(position, distance, client->overrideVolume);
 }
 
+void MumbleAudioOutput::ExternalAudioState::OnPositionOverrideChanged(bool overridden)
+{
+	sink->SetPositionOverridden(overridden);
+}
+
 void MumbleAudioOutput::ExternalAudioState::PushSound(int16_t* voiceBuffer, int len)
 {
 	// 48kHz = 48 samples/msec, 30ms to account for ticking anomaly
@@ -1138,7 +1143,7 @@ void MumbleAudioOutput::HandleClientDistance(const MumbleUser& user, float dista
 
 	if (client)
 	{
-		client->distance = distance;
+		client->distance = (client->positionOverridden) ? client->rangeOverride : distance;
 	}
 }
 
@@ -1162,6 +1167,43 @@ void MumbleAudioOutput::HandleClientVolumeOverride(const MumbleUser& user, float
 	}
 }
 
+void MumbleAudioOutput::HandleClientPositionOverride(const MumbleUser& user, const std::optional<std::array<float, 3>>& position, float range)
+{
+	std::shared_ptr<BaseAudioState> client;
+
+	{
+		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
+		auto it = m_clients.find(user.GetSessionId());
+
+		if (it != m_clients.end())
+		{
+			client = it->second;
+		}
+	}
+
+	if (!client)
+	{
+		return;
+	}
+
+	if (position)
+	{
+		client->positionOverride[0] = (*position)[0];
+		client->positionOverride[1] = (*position)[1];
+		client->positionOverride[2] = (*position)[2];
+		client->rangeOverride = range;
+		client->distance = range;
+		client->positionOverridden = true;
+	}
+	else
+	{
+		// position and range return to the talker's own on their next voice packet
+		client->positionOverridden = false;
+	}
+
+	client->OnPositionOverrideChanged(client->positionOverridden);
+}
+
 void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float position[3])
 {
 	std::shared_ptr<BaseAudioState> client;
@@ -1178,6 +1220,13 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 
 	if (client)
 	{
+		if (client->positionOverridden)
+		{
+			float overridePosition[3] = { client->positionOverride[0], client->positionOverride[1], client->positionOverride[2] };
+			client->PushPosition(this, overridePosition);
+			return;
+		}
+
 		client->PushPosition(this, position);
 	}
 }

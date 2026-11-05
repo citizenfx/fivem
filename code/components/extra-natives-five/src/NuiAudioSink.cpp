@@ -19,6 +19,7 @@
 
 #include <CoreConsole.h>
 
+#include <atomic>
 #include <regex>
 
 #include <MumbleAudioSink.h>
@@ -1839,6 +1840,7 @@ public:
 	virtual void SetPosition(float position[3], float distance, float overrideVolume) override;
 	virtual void PushAudio(int16_t* pcm, int len) override;
 	virtual bool IsTalkingAt(float distance) override;
+	virtual void SetPositionOverridden(bool overridden) override;
 
 	void Reset();
 
@@ -1856,6 +1858,8 @@ private:
 	float m_distance;
 	float m_overrideVolume;
 	float m_lastOverrideVolume = -1.0f;
+
+	std::atomic<bool> m_positionOverridden{ false };
 
 	int m_lastSubmixId = -1;
 	int m_lastPed = -1;
@@ -1932,6 +1936,11 @@ void MumbleAudioSink::SetPosition(float position[3], float distance, float overr
 	m_overrideVolume = overrideVolume;
 }
 
+void MumbleAudioSink::SetPositionOverridden(bool overridden)
+{
+	m_positionOverridden = overridden;
+}
+
 void MumbleAudioSink::PushAudio(int16_t* pcm, int len)
 {
 	std::lock_guard _(m_entity_mutex);
@@ -2004,14 +2013,18 @@ void MumbleAudioSink::Process()
 
 	// @TODO: Refactor logic to reduce lock scope. Only required at MInit at the moment
 	std::lock_guard _(m_entity_mutex);
-	if (isNoPlayer && m_overrideVolume <= 0.0f)
+	const bool positionOverridden = m_positionOverridden;
+
+	// a position override keeps the talker audible even when they are outside our player scope
+	if (isNoPlayer && m_overrideVolume <= 0.0f && !positionOverridden)
 	{
 		m_entity = {};
 		m_lastPed = -1;
 	}
 	else
 	{
-		auto ped = (!isNoPlayer) ? FxNativeInvoke::Invoke<int>(getPlayerPed, playerId) : 0;
+		// no backing ped while overridden, so the entity plays at the override position instead of following the ped
+		auto ped = (!isNoPlayer && !positionOverridden) ? FxNativeInvoke::Invoke<int>(getPlayerPed, playerId) : 0;
 
 		// pre-initialize ped
 		if (m_lastPed == -1)
