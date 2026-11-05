@@ -1872,11 +1872,26 @@ static HookFunction initFunction([]()
 
 		static struct : jitasm::Frontend
 		{
+
+			int32_t coneRGBOffset;
+			int32_t coneARGBOffset;
+			int32_t colorPreset1Offset;
+			int32_t colorPreset2Offset;
+
+			void Init(int32_t coneRGBOffset, int32_t coneARGBOffset, int32_t colorPreset1Offset, int32_t colorPreset2Offset)
+ 			{
+				this->coneRGBOffset = coneRGBOffset;
+				this->coneARGBOffset = coneARGBOffset;
+				this->colorPreset1Offset = colorPreset1Offset;
+				this->colorPreset2Offset = colorPreset2Offset;
+ 			}
+ 
+
 			virtual void InternalMain() override
 			{
 				// original code
-				movss(dword_ptr[rbp - 0x74], xmm2);
-				movss(dword_ptr[rbp - 0x78], xmm1);
+				movss(dword_ptr[rbp - colorPreset1Offset], xmm2);
+				movss(dword_ptr[rbp - colorPreset2Offset], xmm1);
 
 				// save registers
 				push(rax);
@@ -1887,9 +1902,9 @@ static HookFunction initFunction([]()
 				sub(rsp, 0x28);
 
 				// prepare arguments
-				mov(rcx, rsi); // vehicle
-				lea(rdx, dword_ptr[rbp - 0x80]); // float rgb for light cones
-				lea(r8, dword_ptr[rbp - 0x34]); // uint argb for light flares
+				mov(rcx, xbr::IsGameBuildOrGreater<3889>() ? rdi : rsi); // vehicle
+				lea(rdx, dword_ptr[rbp + coneRGBOffset]); // float rgb for light cones
+				lea(r8, dword_ptr[rbp + coneARGBOffset]); // uint argb for light flares
 
 				mov(rax, (uintptr_t)OverrideVehicleXenonColor);
 				call(rax);
@@ -1907,7 +1922,11 @@ static HookFunction initFunction([]()
 		} vehicleHighbeamsColorStub;
 
 		{
-			auto location = hook::get_pattern("F3 0F 11 55 ? 0F C6 CA ? 0F C6 D2", 13);
+			auto location = (uintptr_t)hook::get_pattern("F3 0F 11 55 ? 0F C6 CA ? 0F C6 D2");
+			int8_t coneRGBOffset = *(int8_t*)(location + 4);
+			int8_t coneARGBOffset = *hook::get_pattern<int8_t>("66 0F 6E 82 ? ? ? ? 8B 82 ? ? ? ? 89 45", 16);
+			location += 13;
+			vehicleHighbeamsColorStub.Init(coneRGBOffset, coneARGBOffset, *(int8_t*)(location + 4), *(int8_t*)(location + 9));
 			hook::nop(location, 10);
 			hook::call(location, vehicleHighbeamsColorStub.GetCode());
 		}
