@@ -586,3 +586,37 @@ TEST_CASE("V2 catch-up is globally bounded and rotates pending events")
 		return countEventPackets(eventId) > eventCountsBeforeFirstCatchUp[eventId];
 	}));
 }
+
+TEST_CASE("Reassembly v2 completed event too short for the name-length field")
+{
+	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
+	auto resourceManager = fx::ResourceManagerInstance::Create();
+	serverInstance->SetComponent<fx::ResourceManager>(resourceManager);
+	resourceManager->SetComponent<fx::ResourceEventManagerComponent>(new fx::ResourceEventManagerComponent());
+	serverInstance->SetComponent(new fx::ClientRegistry());
+
+	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
+	client->SetNetId(1);
+
+	auto reassembly = fx::EventReassemblyComponent::Create();
+	resourceManager->SetComponent(reassembly);
+
+	TestEventReassemblySink sink;
+	reassembly->SetSink(&sink);
+	reassembly->RegisterTarget(client->GetNetId(), 0xFF);
+
+	bool eventFired = false;
+	serverInstance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>()->OnQueueEvent.Connect([&eventFired](const std::string&, const std::string&, const std::string&) {
+		eventFired = true;
+		});
+	uint8_t payload = 0x00;
+	net::packet::ReassembledEventV2 reassembledEvent{};
+	reassembledEvent.eventId = 1;
+	reassembledEvent.packetIdx = 0;
+	reassembledEvent.totalPackets = 1;
+	reassembledEvent.data.SetValue({ &payload, 1 });
+
+	reassembly->HandlePacketV2(client->GetNetId(), reassembledEvent);
+
+	REQUIRE(eventFired == false);
+}

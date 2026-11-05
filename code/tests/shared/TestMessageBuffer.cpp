@@ -593,3 +593,20 @@ TEST_CASE("bit buffer benchmark")
 		}
 	};
 }
+
+TEST_CASE("rl::MessageBuffer::Clone allocates ceil(bits/8) bytes and copies the data")
+{
+	std::vector<uint8_t> data(10);
+	for (size_t i = 0; i < data.size(); ++i)
+	{
+		data[i] = static_cast<uint8_t>(0xA3 + i);
+	}
+
+	rl::MessageBuffer buffer{ data };
+	buffer.SetCurrentBit(0);
+
+	rl::MessageBuffer clone = buffer.Clone();
+
+	REQUIRE(clone.GetBuffer().size() == 10);
+	REQUIRE(clone.GetBuffer() == data);
+}

@@ -549,7 +549,7 @@ public:
 	inline MessageBufferBase Clone()
 	{
 		auto s = m_maxBit - std::min(m_curBit, m_maxBit);
-		auto c = (s / 8) + (s % 8 != 0) ? 1 : 0;
+		auto c = (s / 8) + ((s % 8 != 0) ? 1 : 0);
 
 		std::vector<uint8_t> newData(c);
 		ReadBits(newData.data(), s);
