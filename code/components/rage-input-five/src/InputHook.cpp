@@ -41,12 +41,39 @@ static std::shared_ptr<GlobalInputHandler> GetGlobalInput()
 	return handler;
 }
 
+struct AbsoluteMouseState
+{
+	bool valid = false;
+	POINT last{};
+};
+
+// absolute devices (tablets, remote desktop) report a normalized 0..65535 position instead of a delta
+static POINT AbsoluteMouseDelta(AbsoluteMouseState& state, LONG absX, LONG absY, int width, int height)
+{
+	const POINT pos{ LONG(int64_t(absX) * width / 65535), LONG(int64_t(absY) * height / 65535) };
+	const POINT delta = state.valid ? POINT{ pos.x - state.last.x, pos.y - state.last.y } : POINT{ 0, 0 };
+
+	state.valid = true;
+	state.last = pos;
+
+	return delta;
+}
+
 static void UpdateMouseMovement(const RAWMOUSE& mouse)
 {
 	if (mouse.usButtonFlags != RI_MOUSE_WHEEL && !(mouse.usFlags & MOUSE_MOVE_ABSOLUTE))
 	{
 		g_mouseMovement.x += mouse.lLastX;
 		g_mouseMovement.y += mouse.lLastY;
+	}
+	else if (mouse.usButtonFlags != RI_MOUSE_WHEEL)
+	{
+		static AbsoluteMouseState absoluteState;
+		const bool virtualDesktop = (mouse.usFlags & MOUSE_VIRTUAL_DESKTOP) != 0;
+		const POINT delta = AbsoluteMouseDelta(absoluteState, mouse.lLastX, mouse.lLastY, GetSystemMetrics(virtualDesktop ? SM_CXVIRTUALSCREEN : SM_CXSCREEN), GetSystemMetrics(virtualDesktop ? SM_CYVIRTUALSCREEN : SM_CYSCREEN));
+
+		g_mouseMovement.x += delta.x;
+		g_mouseMovement.y += delta.y;
 	}
 }
 
