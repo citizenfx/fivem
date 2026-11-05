@@ -1591,6 +1591,10 @@ private:
 
 	void HandlePedHealthUpdate(const fx::sync::SyncEntityPtr& entity, fx::sync::CPedHealthNodeData* healthNode, int oldHealth, int oldArmour);
 
+	void HandleAttachmentUpdate(const fx::ClientSharedPtr& client, const fx::sync::SyncEntityPtr& entity, fx::sync::CBaseAttachNodeData* attachment, bool wasAttached, uint16_t oldAttachedTo);
+
+	void TriggerEntityAttachedEvent(uint32_t sourceNetId, const fx::sync::SyncEntityPtr& entity, uint16_t attachedTo);
+
 public:
 	std::unordered_set<uint32_t> blockedEvents;
 	std::shared_mutex blockedEventsMutex;
@@ -1619,6 +1623,14 @@ private:
 	// updated when a resource registers a handler, so the sync parse path only needs an
 	// atomic read instead of a lookup in the event registry
 	std::atomic<uint32_t> m_pedEventFlags{ 0 };
+
+	enum EntityEventFlags : uint32_t
+	{
+		EntityEventAttached = 1 << 0,
+	};
+
+	// same as m_pedEventFlags, for entity events raised from the sync parse path
+	std::atomic<uint32_t> m_entityEventFlags{ 0 };
 
 #ifdef USE_ASYNC_SCL_POSTING
 	std::unique_ptr<ThreadPool> m_tg;
