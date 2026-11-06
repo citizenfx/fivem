@@ -9,6 +9,8 @@
 #include <mmsystem.h>
 #include <CoreConsole.h>
 
+#include <atomic>
+
 #pragma comment(lib, "winmm.lib")
 
 class NetLibraryImplV2 : public NetLibraryImplBase
@@ -44,8 +46,12 @@ public:
 
 	virtual int32_t GetVariance() override;
 
+	virtual bool GetPeerStatistic(NetPeerStatistic statistic, uint32_t* outValue) override;
+
 private:
 	void ProcessPacket(const uint8_t* data, size_t size, NetPacketMetrics& metrics, ENetPacketFlag flags);
+
+	void UpdatePeerStatistics();
 
 private:
 	std::string m_connectData;
@@ -59,14 +65,23 @@ private:
 	bool m_timedOut;
 
 	uint32_t m_lastKeepaliveSent;
+
+	std::atomic<uint32_t> m_peerStatistics[size_t(NetPeerStatistic::Max)];
+
+	std::atomic<bool> m_hasPeerStatistics;
 };
 
 static int g_maxMtu = 1300;
 static std::shared_ptr<ConVar<int>> g_maxMtuVar;
 
 NetLibraryImplV2::NetLibraryImplV2(INetLibraryInherit* base)
-	: m_base(base), m_host(nullptr), m_timedOut(false), m_serverPeer(nullptr), m_lastKeepaliveSent(0)
+	: m_base(base), m_host(nullptr), m_timedOut(false), m_serverPeer(nullptr), m_lastKeepaliveSent(0), m_hasPeerStatistics(false)
 {
+	for (auto& statistic : m_peerStatistics)
+	{
+		statistic = 0;
+	}
+
 	CreateResources();
 
 	Reset();
@@ -248,6 +263,8 @@ void NetLibraryImplV2::RunFrame()
 		}
 		}
 	}
+
+	UpdatePeerStatistics();
 
 	if (m_serverPeer && !m_timedOut)
 	{
@@ -481,6 +498,42 @@ int32_t NetLibraryImplV2::GetVariance()
 	}
 
 	return -1;
+}
+
+void NetLibraryImplV2::UpdatePeerStatistics()
+{
+	if (!m_serverPeer || m_serverPeer->state != ENET_PEER_STATE_CONNECTED)
+	{
+		m_hasPeerStatistics = false;
+		return;
+	}
+
+	auto setStatistic = [this](NetPeerStatistic statistic, uint32_t value)
+	{
+		m_peerStatistics[size_t(statistic)] = value;
+	};
+
+	setStatistic(NetPeerStatistic::PacketLoss, m_serverPeer->packetLoss);
+	setStatistic(NetPeerStatistic::PacketLossVariance, m_serverPeer->packetLossVariance);
+	setStatistic(NetPeerStatistic::PacketLossEpoch, m_serverPeer->packetLossEpoch);
+	setStatistic(NetPeerStatistic::RoundTripTime, m_serverPeer->roundTripTime);
+	setStatistic(NetPeerStatistic::RoundTripTimeVariance, m_serverPeer->roundTripTimeVariance);
+	setStatistic(NetPeerStatistic::LastRoundTripTime, m_serverPeer->lastRoundTripTime);
+	setStatistic(NetPeerStatistic::LastRoundTripTimeVariance, m_serverPeer->lastRoundTripTimeVariance);
+	setStatistic(NetPeerStatistic::PacketThrottleEpoch, m_serverPeer->packetThrottleEpoch);
+
+	m_hasPeerStatistics = true;
+}
+
+bool NetLibraryImplV2::GetPeerStatistic(NetPeerStatistic statistic, uint32_t* outValue)
+{
+	if (statistic >= NetPeerStatistic::Max || !m_hasPeerStatistics)
+	{
+		return false;
+	}
+
+	*outValue = m_peerStatistics[size_t(statistic)];
+	return true;
 }
 
 static InitFunction initFunction([]()

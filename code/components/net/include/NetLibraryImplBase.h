@@ -16,6 +16,20 @@ struct RoutingPacket
 	RoutingPacket();
 };
 
+enum class NetPeerStatistic : uint8_t
+{
+	PacketLoss = 0,
+	PacketLossVariance = 1,
+	PacketLossEpoch = 2,
+	RoundTripTime = 3,
+	RoundTripTimeVariance = 4,
+	LastRoundTripTime = 5,
+	LastRoundTripTimeVariance = 6,
+	PacketThrottleEpoch = 7,
+
+	Max
+};
+
 class NetLibraryImplBase
 {
 public:
@@ -52,6 +66,8 @@ public:
 	virtual int32_t GetPing() = 0;
 
 	virtual int32_t GetVariance() = 0;
+
+	virtual bool GetPeerStatistic(NetPeerStatistic statistic, uint32_t* outValue) = 0;
 };
 
 class INetLibraryInherit
