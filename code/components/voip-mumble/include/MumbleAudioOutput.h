@@ -7,8 +7,10 @@
 
 #pragma once
 
+#include <atomic>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <shared_mutex>
 #include <thread>
 
@@ -17,6 +19,7 @@
 #include <wrl.h>
 
 #include <MumbleAudioSink.h>
+#include <MumbleClient.h>
 
 #define XAUDIO2_HELPER_FUNCTIONS
 #include <xaudio2.h>
@@ -51,6 +54,8 @@ public:
 	void HandleClientPosition(const MumbleUser& user, float position[3]);
 
 	void HandleClientVolumeOverride(const MumbleUser& user, float volume);
+
+	void HandleClientPositionOverride(const MumbleUser& user, const std::optional<MumblePositionOverride>& positionOverride);
 
 	void HandleClientVoiceData(const MumbleUser& user, uint64_t sequence, const uint8_t* data, size_t size, bool hasTerminator);
 
@@ -123,6 +128,11 @@ private:
 		float position[3];
 		float distance;
 		float overrideVolume;
+		// range, and position when hasFixedPosition (Mumble axis order), used instead of the talker's own while positionOverridden is set
+		float positionOverride[3] = { 0.0f, 0.0f, 0.0f };
+		bool hasFixedPosition = false;
+		float rangeOverride = 0.0f;
+		std::atomic<bool> positionOverridden{ false };
 		bool isAudible = true;
 		uint32_t lastTime;
 
@@ -165,6 +175,10 @@ private:
 		{
 		}
 
+		virtual void OnPositionOverrideChanged(bool overridden, int sourceServerId)
+		{
+		}
+
 		virtual bool IsTalking()
 		{
 			if (auto is = GetInnerState())
@@ -196,6 +210,8 @@ private:
 		virtual void PushSound(int16_t* voiceBuffer, int len) override;
 
 		virtual void PushPosition(MumbleAudioOutput* baseIo, float position[3]) override;
+
+		virtual void OnPositionOverrideChanged(bool overridden, int sourceServerId) override;
 
 		virtual bool IsTalking() override;
 
