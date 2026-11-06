@@ -171,6 +171,21 @@ public:
 	void HandleCloneAcks(const char* data, size_t len) override;
 
 private:
+	inline void EraseSavedEntityVec(rage::netObject* object)
+	{
+		if (auto it = m_savedEntityIndices.find(object); it != m_savedEntityIndices.end())
+		{
+			auto idx = it->second;
+			auto back = m_savedEntityVec.back();
+
+			m_savedEntityVec[idx] = back;
+			m_savedEntityIndices[back] = idx;
+
+			m_savedEntityVec.pop_back();
+			m_savedEntityIndices.erase(object);
+		}
+	}
+
 	void WriteUpdates();
 
 	void SendUpdates(rl::MessageBuffer& buffer, uint32_t msgType);
@@ -245,6 +260,11 @@ private:
 		uint16_t pendingClientId;
 		uint32_t dontSyncBefore;
 
+		// cached result of the (fairly expensive) per-object visibility sphere
+		// checks in WriteUpdates, refreshed at most every ~100ms
+		uint32_t nextVisibilityCheck = 0;
+		bool lastVisible = true;
+
 		inline ExtendedCloneData()
 			: clientId(0), pendingClientId(-1), dontSyncBefore(0)
 		{
@@ -266,6 +286,11 @@ private:
 	std::unordered_set<rage::netObject*> m_savedEntitySet;
 
 	std::vector<rage::netObject*> m_savedEntityVec;
+
+	// maps a netObject to its index in m_savedEntityVec, so removal is O(1)
+	// (swap-and-pop) instead of O(n); note this makes the order of
+	// m_savedEntityVec arbitrary rather than insertion-ordered
+	std::unordered_map<rage::netObject*, size_t> m_savedEntityIndices;
 
 	std::unordered_map<uint16_t, ExtendedCloneData> m_extendedData;
 
@@ -333,7 +358,7 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 	m_savedEntities.erase(netObject->GetObjectId());
 	m_savedEntitySet.erase(netObject);
 
-	m_savedEntityVec.erase(std::remove(m_savedEntityVec.begin(), m_savedEntityVec.end(), netObject), m_savedEntityVec.end());
+	EraseSavedEntityVec(netObject);
 }
 
 void CloneManagerLocal::SendPacket(int peer, net::packet::StateBagPacket& packet)
@@ -935,6 +960,19 @@ rage::netObject* CloneManagerLocal::GetNetworkObject(uint16_t id)
 	return GetNetObject(id);
 }
 
+// limit for expensive game-object creations per game frame: when many
+// entities enter scope at once (e.g. approaching a building full of
+// players), creating every clone in a single frame causes a long hitch
+// (ped creation + clothing/variation streaming). Creates over budget are
+// NAck'd (via the 'recreate' list) and resent by the server on a later
+// frame. 0 = unlimited (vanilla behavior).
+static int g_maxCloneCreatesPerFrame = 5;
+
+static InitFunction initFunctionCloneCreateBudget([]()
+{
+	static ConVar<int> maxCloneCreatesPerFrameVar("onesync_maxCloneCreatesPerFrame", ConVar_Archive | ConVar_UserPref, 5, &g_maxCloneCreatesPerFrame);
+});
+
 bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 {
 	auto ackPacket = [&]()
@@ -990,6 +1028,27 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 		ackPacket();
 
 		return true;
+	}
+
+	// per-frame creation budget: defer creations over budget to later frames
+	if (g_maxCloneCreatesPerFrame > 0)
+	{
+		static uint32_t lastFrameTime;
+		static int createsThisFrame;
+
+		if (*rage__s_NetworkTimeThisFrameStart != lastFrameTime)
+		{
+			lastFrameTime = *rage__s_NetworkTimeThisFrameStart;
+			createsThisFrame = 0;
+		}
+
+		if (createsThisFrame >= g_maxCloneCreatesPerFrame)
+		{
+			// over budget: don't ack, the server will resend this create
+			return false;
+		}
+
+		++createsThisFrame;
 	}
 
 	m_extendedData[msg.GetObjectId()] = { msg.GetClientId() };
@@ -1767,7 +1826,19 @@ static HookFunction hookFunctionOrigin([]()
 static void (*fwSceneUpdate__AddToSceneUpdate)(void*, uint32_t);
 static void (*fwSceneUpdate__RemoveFromSceneUpdate)(void*, uint32_t, bool);
 
-static std::map<fwEntity*, uint32_t> removedFlags;
+// the tracking hooks below run for *every* scene update add/remove the game
+// performs, so this needs to be a hash map rather than an ordered map
+static std::unordered_map<fwEntity*, uint32_t> removedFlags;
+
+// if enabled, remote entities beyond 150m that are not on screen only get
+// scene updates (animation/skeleton/AI post-update) 1 out of every 4 frames,
+// staggered per object ID
+static bool g_sceneUpdateThrottling = false;
+
+static InitFunction initFunctionSceneUpdateThrottling([]()
+{
+	static ConVar<bool> sceneUpdateThrottlingVar("game_sceneUpdateThrottling", ConVar_Archive | ConVar_UserPref, false, &g_sceneUpdateThrottling);
+});
 
 static void fwSceneUpdate__AddToSceneUpdate_Track(fwEntity* entity, uint32_t what)
 {
@@ -1791,6 +1862,8 @@ static void fwSceneUpdate__RemoveFromSceneUpdate_Track(fwEntity* entity, uint32_
 
 static HookFunction hookFunctionSceneUpdateWorkaround([]()
 {
+	removedFlags.reserve(2048);
+
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4F 8D 04 49 41 FF", -0x42), fwSceneUpdate__AddToSceneUpdate_Track, (void**)&fwSceneUpdate__AddToSceneUpdate);
 	MH_CreateHook(hook::get_pattern("F7 D3 21 58 10 0F", -0x3F), fwSceneUpdate__RemoveFromSceneUpdate_Track, (void**)&fwSceneUpdate__RemoveFromSceneUpdate);
@@ -1804,6 +1877,24 @@ static HookFunction hookFunctionModifySyncTrees([]()
 	hook::put<uint32_t>(xbr::IsGameBuildOrGreater<3407>() ? hook::get_pattern("45 8D 47 ? 49 8D 96 ? ? ? ? 45 33 C9") : hook::get_pattern("44 8D 46 ? 45 33 C9 49 8B D4"), 0x90C38B44);
 });
 #endif
+
+static hook::cdecl_stub<bool(const Vector3* position, float radius)> _isSphereVisibleForLocalPlayer([]()
+{
+#ifdef GTA_FIVE
+	return hook::get_pattern("48 85 C9 74 2B F3 0F 10 58 08", -0x12);
+#elif IS_RDR3
+	return hook::get_pattern("48 85 C9 74 ? 0F 10 08 48 83", -0x15);
+#endif
+});
+
+static hook::cdecl_stub<bool(const Vector3* position, float radius, float maxDistance, CNetGamePlayer** firstPlayer)> _isSphereVisibleForAnyRemotePlayer([]()
+{
+#ifdef GTA_FIVE
+	return hook::get_call(hook::get_pattern("0F 29 4C 24 30 0F 28 C8 E8", 8));
+#elif IS_RDR3
+	return hook::get_pattern("44 0F 28 C2 4C 8B F9 4D 85 C9 74", -0x30);
+#endif
+});
 
 void CloneManagerLocal::Update()
 {
@@ -1823,7 +1914,7 @@ void CloneManagerLocal::Update()
 	alignas(16) float centerOfWorld[4];
 	getCoordsFromOrigin(origin, centerOfWorld);
 
-	auto origin = DirectX::XMVectorSet(centerOfWorld[0], centerOfWorld[1], centerOfWorld[2], 1.0f);
+	auto originVec = DirectX::XMVectorSet(centerOfWorld[0], centerOfWorld[1], centerOfWorld[2], 1.0f);
 	static uint32_t frameCount = 0;
 #endif
 
@@ -1840,15 +1931,55 @@ void CloneManagerLocal::Update()
 				if (clone.second->syncData.isRemote)
 				{
 					auto ent = (fwEntity*)(clone.second->GetGameObject());
-					auto vtbl = *(char**)ent;
 
 					{
 						auto posData = ent->GetPosition();
 						auto pos = DirectX::XMLoadFloat3(&posData);
 
+						auto distSq = DirectX::XMVectorGetX(DirectX::XMVector2LengthSq(DirectX::XMVectorSubtract(pos, originVec)));
+
+						// scene update throttling:
+						// - beyond 424m (the default OneSync cull radius), entities only
+						//   get scene updates for 2 out of every 50 frames
+						// - optionally (game_sceneUpdateThrottling), entities beyond 150m
+						//   that are *not on screen* get scene updates for 1 out of every
+						//   4 frames; visible entities are never throttled, as skipping
+						//   scene updates also skips network position blending and causes
+						//   visible warping
+						uint32_t interval = 0;
+						uint32_t activeFrames = 0;
+
+						if (distSq >= (424.f * 424.f))
+						{
+							interval = 50;
+							activeFrames = 2;
+						}
+						else if (g_sceneUpdateThrottling && distSq >= (150.f * 150.f))
+						{
+							auto& extData = m_extendedData[clone.first];
+
+							// refresh the cached visibility roughly every 10 frames,
+							// staggered by object ID
+							if (((frameCount + clone.first) % 10) == 0)
+							{
+								extData.lastVisible = _isSphereVisibleForLocalPlayer(&posData, ent->GetRadius());
+							}
+
+							if (!extData.lastVisible)
+							{
+								// off-screen: quarter rate
+								interval = 4;
+								activeFrames = 1;
+							}
+						}
+
 						auto it = removedFlags.find(ent);
 
-						if (DirectX::XMVectorGetX(DirectX::XMVector2LengthSq(DirectX::XMVectorSubtract(pos, origin))) < (424.f * 424.f))
+						// stagger the active frames by object ID: previously, all
+						// throttled entities were re-added to the scene update on the
+						// same frames (frameCount % 50 < 2), causing a periodic frame
+						// time spike proportional to the number of culled entities
+						if (interval == 0 || ((frameCount + clone.first) % interval) < activeFrames)
 						{
 							if (it != removedFlags.end())
 							{
@@ -1868,17 +1999,11 @@ void CloneManagerLocal::Update()
 									flags = ext->GetUpdateFlags();
 								}
 
-								it = removedFlags.emplace(ent, flags).first;
+								removedFlags.emplace(ent, flags);
 
 								fwSceneUpdate__RemoveFromSceneUpdate(ent, -1, true);
 							}
 
-							if ((frameCount % 50) < 2)
-							{
-								fwSceneUpdate__AddToSceneUpdate(ent, it->second);
-
-								removedFlags.erase(it);
-							}
 						}
 					}
 				}
@@ -1938,6 +2063,7 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 
 	m_savedEntities[object->GetObjectId()] = object;
 	m_savedEntitySet.insert(object);
+	m_savedEntityIndices[object] = m_savedEntityVec.size();
 	m_savedEntityVec.push_back(object);
 
 #ifdef GTA_FIVE
@@ -1963,9 +2089,26 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 		g_curNetObjectSelection = nullptr;
  	}
 
-	for (auto& objectList : m_netObjects)
+	// an object is only ever inserted into its owner's list or list 31
+	// (RegisterNetworkObject/ChangeOwner), so erase from those directly instead
+	// of iterating all 256 lists; fall back to a full sweep if not found
 	{
-		objectList.erase(object->GetObjectId());
+		size_t erasedFromLists = 0;
+
+		if (object->syncData.ownerId < m_netObjects.size())
+		{
+			erasedFromLists += m_netObjects[object->syncData.ownerId].erase(object->GetObjectId());
+		}
+
+		erasedFromLists += m_netObjects[31].erase(object->GetObjectId());
+
+		if (!erasedFromLists)
+		{
+			for (auto& objectList : m_netObjects)
+			{
+				objectList.erase(object->GetObjectId());
+			}
+		}
 	}
 
 	// these are not actually to be deleted, don't ask the server to delete them
@@ -1985,7 +2128,7 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 
 	g_objectIdToCreationToken.erase(object->GetObjectId());
 
-	m_savedEntityVec.erase(std::remove(m_savedEntityVec.begin(), m_savedEntityVec.end(), object), m_savedEntityVec.end());
+	EraseSavedEntityVec(object);
 }
 
 void CloneManagerLocal::ChangeOwner(rage::netObject* object, int oldOwnerId, CNetGamePlayer* player, int migrationType)
@@ -1999,24 +2142,6 @@ void CloneManagerLocal::ChangeOwner(rage::netObject* object, int oldOwnerId, CNe
 	m_netObjects[oldOwnerId].erase(object->GetObjectId());
 	m_netObjects[player->physicalPlayerIndex()][object->GetObjectId()] = object;
 }
-
-static hook::cdecl_stub<bool(const Vector3* position, float radius)> _isSphereVisibleForLocalPlayer([]()
-{
-#ifdef GTA_FIVE
-	return hook::get_pattern("48 85 C9 74 2B F3 0F 10 58 08", -0x12);
-#elif IS_RDR3
-	return hook::get_pattern("48 85 C9 74 ? 0F 10 08 48 83", -0x15);
-#endif
-});
-
-static hook::cdecl_stub<bool(const Vector3* position, float radius, float maxDistance, CNetGamePlayer** firstPlayer)> _isSphereVisibleForAnyRemotePlayer([]()
-{
-#ifdef GTA_FIVE
-	return hook::get_call(hook::get_pattern("0F 29 4C 24 30 0F 28 C8 E8", 8));
-#elif IS_RDR3
-	return hook::get_pattern("44 0F 28 C2 4C 8B F9 4D 85 C9 74", -0x30);
-#endif
-});
 
 static hook::cdecl_stub<void(rage::netObjectMgr*, rage::netObject*)> _processRemoveAck([]()
 {
@@ -2051,6 +2176,10 @@ void CloneManagerLocal::WriteUpdates()
 
 	auto ts = *rage__s_NetworkTimeLastFrameStart;
 
+	// hoisted out of the per-object callback: high_resolution_clock::now() is
+	// not free and sub-frame precision is irrelevant here
+	auto now = msec();
+
 	auto touchTimestamp = [&hitTimestamp, ts, this]()
 	{
 		if (hitTimestamp)
@@ -2084,17 +2213,23 @@ void CloneManagerLocal::WriteUpdates()
 	// on each object...
 	auto objectCb = [&](rage::netObject* object)
 	{
+		// look up the extended data once per object instead of once per use
+		// (GiveObjectToClient does not mutate m_extendedData, so the reference
+		// stays valid throughout)
+		auto objectId = object->GetObjectId();
+		auto& extData = m_extendedData[objectId];
+
 		// skip remote objects
 		if (object->syncData.isRemote)
 		{
-			if (m_extendedData[object->GetObjectId()].clientId == m_netLibrary->GetServerNetID())
+			if (extData.clientId == m_netLibrary->GetServerNetID())
 			{
 				console::DPrintf("onesync", "%s: got a remote object (%s) that's meant to be ours. telling the server so again.\n", __func__, object->ToString());
 				Log("%s: got a remote object (%s) that's meant to be ours. telling the server so again.\n", __func__, object->ToString());
 
 				GiveObjectToClient(object, m_netLibrary->GetServerNetID());
 
-				m_extendedData[object->GetObjectId()].clientId = -1;
+				extData.clientId = -1;
 			}
 
 			return;
@@ -2107,11 +2242,11 @@ void CloneManagerLocal::WriteUpdates()
 
 		if (object->syncData.nextOwnerId != 0xFF)
 		{
-			GiveObjectToClient(object, m_extendedData[object->GetObjectId()].pendingClientId);
+			GiveObjectToClient(object, extData.pendingClientId);
 		}
 
 		// don't sync created entities for the initial part of their life
-		if (*rage__s_NetworkTimeThisFrameStart < m_extendedData[object->GetObjectId()].dontSyncBefore)
+		if (*rage__s_NetworkTimeThisFrameStart < extData.dontSyncBefore)
 		{
 			return;
 		}
@@ -2128,7 +2263,6 @@ void CloneManagerLocal::WriteUpdates()
 
 		// get basic object data
 		auto objectType = object->GetObjectType();
-		auto objectId = object->GetObjectId();
 
 		// store a reference to the object tracking data
 		auto& objectData = m_trackedObjects[objectId];
@@ -2144,10 +2278,6 @@ void CloneManagerLocal::WriteUpdates()
 			}
 		}
 #endif
-
-		// allocate a RAGE buffer
-		uint8_t packetStub[kSyncPacketMaxLength] = { 0 };
-		rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
 
 		// if we want to delete this object
 		if (object->syncData.wantsToDelete)
@@ -2200,10 +2330,20 @@ void CloneManagerLocal::WriteUpdates()
 
 		if (object->GetGameObject())
 		{
-			auto entity = (fwEntity*)object->GetGameObject();
-			auto entityPos = entity->GetPosition();
+			// the visibility sphere checks (especially the remote-player one, which
+			// iterates all remote physical players) are too expensive to run for
+			// every object every frame just to pick a sync latency; cache the
+			// result for ~100-160ms, staggered by object ID
+			if (ts >= extData.nextVisibilityCheck)
+			{
+				auto entity = (fwEntity*)object->GetGameObject();
+				auto entityPos = entity->GetPosition();
 
-			if (!_isSphereVisibleForLocalPlayer(&entityPos, entity->GetRadius()) && !_isSphereVisibleForAnyRemotePlayer(&entityPos, entity->GetRadius(), 250.0f, nullptr))
+				extData.lastVisible = _isSphereVisibleForLocalPlayer(&entityPos, entity->GetRadius()) || _isSphereVisibleForAnyRemotePlayer(&entityPos, entity->GetRadius(), 250.0f, nullptr);
+				extData.nextVisibilityCheck = ts + 100 + (objectId % 64);
+			}
+
+			if (!extData.lastVisible)
 			{
 				syncLatency = 250ms;
 			}
@@ -2251,7 +2391,7 @@ void CloneManagerLocal::WriteUpdates()
 			// clone create
 			syncType = 1;
 		}
-		else if ((msec() - objectData.lastSyncTime) >= syncLatency)
+		else if ((now - objectData.lastSyncTime) >= syncLatency)
 		{
 			if (objectData.lastSyncAck == 0ms)
 			{
@@ -2289,6 +2429,12 @@ void CloneManagerLocal::WriteUpdates()
 		// if we should sync
 		if (syncType != 0)
 		{
+			// allocate a RAGE buffer; done here (rather than at the top of the
+			// callback) so the 2.4KB zero-init only runs for objects that are
+			// actually about to sync, not for every object every frame
+			uint8_t packetStub[kSyncPacketMaxLength] = { 0 };
+			rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
+
 			auto& netBuffer = m_sendBuffer;
 
 			if (syncType == 1)
@@ -2381,7 +2527,7 @@ void CloneManagerLocal::WriteUpdates()
 					AttemptFlushCloneBuffer();
 
 					objectData.lastResendTime = ts;
-					objectData.lastSyncTime = msec();
+					objectData.lastSyncTime = now;
 				}
 			}
 		}
