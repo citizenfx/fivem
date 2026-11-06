@@ -35,9 +35,15 @@ static int* g_currentDrawBucket;
 
 static CRGBA outlineColor{ 255, 0, 255, 255 };
 
+static CRGBA g_renderColor{ 255, 0, 255, 255 };
+
 constexpr const char* DEFAULT_SHADER_TECHNIQUE_GROUP = "unlit";
 static std::string g_shaderTechniqueGroupId = DEFAULT_SHADER_TECHNIQUE_GROUP;
 
+inline static uint32_t PackARGB(const CRGBA& color)
+{
+	return (uint32_t(color.alpha) << 24) | (uint32_t(color.red) << 16) | (uint32_t(color.green) << 8) | uint32_t(color.blue);
+}
 
 class OutlineRenderer
 {
@@ -120,9 +126,9 @@ protected:
 	inline void SetColorNoAlpha(int parameter)
 	{
 		float colorF[4] = {
-			outlineColor.red / 255.0f,
-			outlineColor.green / 255.0f,
-			outlineColor.blue / 255.0f,
+			g_renderColor.red / 255.0f,
+			g_renderColor.green / 255.0f,
+			g_renderColor.blue / 255.0f,
 			1.0f
 		};
 		
@@ -132,10 +138,10 @@ protected:
 	inline void SetColor(int parameter)
 	{
 		float colorF[4] = {
-			outlineColor.red / 255.0f,
-			outlineColor.green / 255.0f,
-			outlineColor.blue / 255.0f,
-			outlineColor.alpha / 255.0f,
+			g_renderColor.red / 255.0f,
+			g_renderColor.green / 255.0f,
+			g_renderColor.blue / 255.0f,
+			g_renderColor.alpha / 255.0f,
 		};
 		
 		SetColor(parameter, colorF);
@@ -381,121 +387,6 @@ static hook::cdecl_stub<int(const char*)> _getTechniqueDrawName([]()
 	return hook::get_pattern("E8 ? ? ? ? 33 DB 48 8D 4C 24 20 44 8D", -0x11);
 });
 
-static InitFunction initFunctionBuffers([]()
-{
-	OnSetUpRenderBuffers.Connect([](int w, int h)
-	{
-		maskRenderTarget = CreateRenderTarget(0, "outlineMaskRT", 3, w, h, 32, nullptr, true, maskRenderTarget);
-		tempRenderTarget = CreateRenderTarget(0, "outlineTempRT", 3, w, h, 32, nullptr, true, tempRenderTarget);
-	});
-
-	OnDrawSceneEnd.Connect([]()
-	{
-		static int last;
-		static int lastZ;
-		static int lastBlend;
-		uintptr_t a = 0, b = 0;
-
-		if (outlineEntities.empty())
-		{
-			return;
-		}
-
-		static auto init = ([]()
-		{
-			for (auto renderer : g_renderers)
-			{
-				renderer->Init();
-			}
-
-			return true;
-		})();
-
-		if (!GetRenderer())
-		{
-			return;
-		}
-
-		EnqueueGenericDrawCommand([](uintptr_t bucket, uintptr_t)
-		{
-			rage::grcTextureFactory::getInstance()->PushRenderTarget(nullptr, maskRenderTarget, nullptr, 0, true, 0);
-			ClearRenderTarget(true, 0, false, 0.0f, false, 0);
-		},
-		&a, &b);
-
-		for (int bucket = 0; bucket < 4; bucket++)
-		{
-			a = bucket;
-
-			EnqueueGenericDrawCommand([](uintptr_t bucket, uintptr_t)
-			{
-				lastZ = GetDepthStencilState();
-				SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
-
-				lastBlend = GetBlendState();
-				SetBlendState(GetStockStateIdentifier(BlendStateDefault));
-
-				last = *currentShader;
-				*currentShader = _getTechniqueDrawName(g_shaderTechniqueGroupId.c_str());
-
-				// draw bucket 0 pls, not 1
-				// #TODO: set via DC?
-				*g_currentDrawBucket = bucket;
-			},
-			&a, &b);
-
-			for (auto ent : outlineEntities)
-			{
-				if (ent)
-				{
-					auto drawHandler = *(CEntityDrawHandler**)((char*)ent + 72);
-
-					// support smooth transition of outlined dummy to instantiated
-					if (auto ext = ent->GetExtension<InstantiatedObjectRefExtension>())
-					{
-						if (auto instantiatedEntity = ext->GetObjectRef())
-						{
-							if (auto newDrawHandler = *(CEntityDrawHandler**)((char*)instantiatedEntity + 72))
-							{
-								drawHandler = newDrawHandler;
-								ent = instantiatedEntity;
-							}
-						}
-					}
-
-					if (drawHandler)
-					{
-						uint8_t meh[64] = { 0, 1, 0 };
-						drawHandler->Draw(ent, &meh);
-					}
-				}
-			}
-
-			EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
-			{
-				*currentShader = last;
-
-				SetDepthStencilState(lastZ);
-				SetBlendState(lastBlend);
-			},
-			&a, &b);
-		}
-
-		EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
-		{
-			rage::grcTextureFactory::getInstance()->PopRenderTarget(nullptr, nullptr);
-
-			auto renderer = GetRenderer();
-			if (renderer)
-			{
-				renderer->DrawScreenSpace();
-			}
-		},
-		&a, &b);
-	});
-});
-
-
 // this extension will remove it's entity from the outlineEntities list if entity gets removed
 class OutlineSentinelExtension : public rage::fwExtension
 {
@@ -534,9 +425,199 @@ public:
 		ref = nullptr;
 	}
 
+	void SetColorOverride(const CRGBA& color)
+	{
+		colorOverride = color;
+		hasColorOverride = true;
+	}
+
+	void ResetColorOverride()
+	{
+		hasColorOverride = false;
+	}
+
+	const CRGBA& GetColor() const
+	{
+		return hasColorOverride ? colorOverride : outlineColor;
+	}
+
 private:
 	fwEntity* ref = nullptr;
+	CRGBA colorOverride;
+	bool hasColorOverride = false;
 };
+
+struct OutlineGroup
+{
+	uint32_t color;
+	std::vector<fwEntity*> entities;
+};
+
+static std::vector<OutlineGroup> g_outlineGroups;
+
+static size_t CollectOutlineGroups()
+{
+	size_t count = 0;
+
+	for (auto ent : outlineEntities)
+	{
+		if (!ent)
+		{
+			continue;
+		}
+
+		auto ext = ent->GetExtension<OutlineSentinelExtension>();
+		uint32_t color = PackARGB(ext ? ext->GetColor() : outlineColor);
+
+		OutlineGroup* group = nullptr;
+
+		for (size_t i = 0; i < count; i++)
+		{
+			if (g_outlineGroups[i].color == color)
+			{
+				group = &g_outlineGroups[i];
+				break;
+			}
+		}
+
+		if (!group)
+		{
+			if (count == g_outlineGroups.size())
+			{
+				g_outlineGroups.emplace_back();
+			}
+
+			group = &g_outlineGroups[count++];
+			group->color = color;
+			group->entities.clear();
+		}
+
+		group->entities.push_back(ent);
+	}
+
+	return count;
+}
+
+static InitFunction initFunctionBuffers([]()
+{
+	OnSetUpRenderBuffers.Connect([](int w, int h)
+	{
+		maskRenderTarget = CreateRenderTarget(0, "outlineMaskRT", 3, w, h, 32, nullptr, true, maskRenderTarget);
+		tempRenderTarget = CreateRenderTarget(0, "outlineTempRT", 3, w, h, 32, nullptr, true, tempRenderTarget);
+	});
+
+	OnDrawSceneEnd.Connect([]()
+	{
+		static int last;
+		static int lastZ;
+		static int lastBlend;
+		uintptr_t a = 0, b = 0;
+
+		if (outlineEntities.empty())
+		{
+			return;
+		}
+
+		static auto init = ([]()
+		{
+			for (auto renderer : g_renderers)
+			{
+				renderer->Init();
+			}
+
+			return true;
+		})();
+
+		if (!GetRenderer())
+		{
+			return;
+		}
+
+		size_t groupCount = CollectOutlineGroups();
+
+		for (size_t groupIndex = 0; groupIndex < groupCount; groupIndex++)
+		{
+			auto& group = g_outlineGroups[groupIndex];
+
+			EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
+			{
+				rage::grcTextureFactory::getInstance()->PushRenderTarget(nullptr, maskRenderTarget, nullptr, 0, true, 0);
+				ClearRenderTarget(true, 0, false, 0.0f, false, 0);
+			},
+			&a, &b);
+
+			for (int bucket = 0; bucket < 4; bucket++)
+			{
+				a = bucket;
+
+				EnqueueGenericDrawCommand([](uintptr_t bucket, uintptr_t)
+				{
+					lastZ = GetDepthStencilState();
+					SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
+
+					lastBlend = GetBlendState();
+					SetBlendState(GetStockStateIdentifier(BlendStateDefault));
+
+					last = *currentShader;
+					*currentShader = _getTechniqueDrawName(g_shaderTechniqueGroupId.c_str());
+
+					// draw bucket 0 pls, not 1
+					// #TODO: set via DC?
+					*g_currentDrawBucket = bucket;
+				},
+				&a, &b);
+
+				for (auto ent : group.entities)
+				{
+					auto drawHandler = *(CEntityDrawHandler**)((char*)ent + 72);
+
+					// support smooth transition of outlined dummy to instantiated
+					if (auto ext = ent->GetExtension<InstantiatedObjectRefExtension>())
+					{
+						if (auto instantiatedEntity = ext->GetObjectRef())
+						{
+							if (auto newDrawHandler = *(CEntityDrawHandler**)((char*)instantiatedEntity + 72))
+							{
+								drawHandler = newDrawHandler;
+								ent = instantiatedEntity;
+							}
+						}
+					}
+
+					if (drawHandler)
+					{
+						uint8_t meh[64] = { 0, 1, 0 };
+						drawHandler->Draw(ent, &meh);
+					}
+				}
+
+				EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
+				{
+					*currentShader = last;
+
+					SetDepthStencilState(lastZ);
+					SetBlendState(lastBlend);
+				},
+				&a, &b);
+			}
+
+			a = group.color;
+
+			EnqueueGenericDrawCommand([](uintptr_t color, uintptr_t)
+			{
+				rage::grcTextureFactory::getInstance()->PopRenderTarget(nullptr, nullptr);
+
+				auto renderer = GetRenderer();
+				if (renderer)
+				{
+					g_renderColor = CRGBA::FromARGB((uint32_t)color);
+					renderer->DrawScreenSpace();
+				}
+			},
+			&a, &b);
+		}
+	});
+});
 
 static HookFunction hookFunction([]()
 {
@@ -555,6 +636,43 @@ static InitFunction initFunctionScriptBind([]()
 		outlineColor.green = std::clamp(context.GetArgument<int>(1), 0, 255);
 		outlineColor.blue = std::clamp(context.GetArgument<int>(2), 0, 255);
 		outlineColor.alpha = std::clamp(context.GetArgument<int>(3), 0, 255);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_DRAW_OUTLINE_COLOR_OVERRIDE", [](fx::ScriptContext& context)
+	{
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+		if (!entity)
+		{
+			return;
+		}
+
+		auto outlineSentinel = entity->GetExtension<OutlineSentinelExtension>();
+
+		if (!outlineSentinel)
+		{
+			outlineSentinel = new OutlineSentinelExtension();
+			entity->AddExtension(outlineSentinel);
+		}
+
+		outlineSentinel->SetColorOverride(CRGBA(
+			std::clamp(context.GetArgument<int>(1), 0, 255),
+			std::clamp(context.GetArgument<int>(2), 0, 255),
+			std::clamp(context.GetArgument<int>(3), 0, 255),
+			std::clamp(context.GetArgument<int>(4), 0, 255)));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("RESET_ENTITY_DRAW_OUTLINE_COLOR_OVERRIDE", [](fx::ScriptContext& context)
+	{
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+		if (!entity)
+		{
+			return;
+		}
+
+		if (auto outlineSentinel = entity->GetExtension<OutlineSentinelExtension>())
+		{
+			outlineSentinel->ResetColorOverride();
+		}
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_DRAW_OUTLINE_SHADER", [](fx::ScriptContext& context)
