@@ -399,7 +399,7 @@ static InitFunction initFunction([]()
 			}
 			else
 			{
-				throw std::runtime_error(va("CREATE_VEHICLE_SERVER_SETTER: Invalid entity type %s", type));
+				throw std::runtime_error("CREATE_VEHICLE_SERVER_SETTER: Invalid entity type " + std::string{ type });
 			}
 
 			switch (typeId)
