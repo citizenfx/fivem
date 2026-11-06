@@ -495,27 +495,45 @@ namespace CitizenFX.Core.UI
 		}
 
 		/// <summary>
-		/// Splits the <paramref name="inputString"/> into an array with each string having 99 characters or less<br />
-		/// This is needed as characters beyond 99 aren't rendered by GTA V, e.g.: with <see cref="Text"/>
+		/// Splits the <paramref name="inputString"/> into an array with each string having 99 bytes (UTF-8) or less<br />
+		/// This is needed as bytes beyond 99 aren't rendered by GTA V, e.g.: with <see cref="Text"/>
 		/// </summary>
-		/// <remarks>arrays of 5 and higher (396+ characters) are known to <i>not</i> being rendered by GTA V</remarks>
+		/// <remarks>arrays of 5 and higher (396+ bytes) are known to <i>not</i> being rendered by GTA V</remarks>
 		/// <param name="inputString">The string to convert.</param>
-		/// <returns>array containing strings each 99 characters or less.</returns>
+		/// <returns>array containing strings each 99 bytes (UTF-8) or less.</returns>
 		public static String[] SplitString(String inputString)
 		{
-			int stringsNeeded = (inputString.Length - 1) / 99 + 1; // division with round up
-
-			String[] outputString = new String[stringsNeeded];
-			for (int i = 0; i < stringsNeeded; i++)
+			if (inputString.Length == 0)
 			{
-#if MONO_V2
-				outputString[i] = inputString.Substring(i * 99, 99);
-#else
-				outputString[i] = inputString.Substring(i * 99, MathUtil.Clamp(inputString.Substring(i * 99).Length, 0, 99));
-#endif
+				return new String[] { inputString };
 			}
 
-			return outputString;
+#if MONO_V2
+			String bytes = inputString; // CString is already UTF-8
+#else
+			byte[] bytes = Encoding.UTF8.GetBytes(inputString); // the game limit is in UTF-8 bytes, not UTF-16 chars
+#endif
+			List<String> outputString = new List<String>();
+			int start = 0;
+			while (start < bytes.Length)
+			{
+				int end = Math.Min(start + 99, bytes.Length);
+
+				// don't cut a multi-byte character in half, step back over its (at most 3) UTF-8 continuation bytes
+				while (end < bytes.Length && end > start + 96 && (bytes[end] & 0xC0) == 0x80)
+				{
+					--end;
+				}
+
+#if MONO_V2
+				outputString.Add(inputString.Substring(start, end - start));
+#else
+				outputString.Add(Encoding.UTF8.GetString(bytes, start, end - start));
+#endif
+				start = end;
+			}
+
+			return outputString.ToArray();
 		}
 	}
 }
