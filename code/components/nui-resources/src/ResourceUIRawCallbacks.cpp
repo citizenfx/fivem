@@ -58,48 +58,62 @@ static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& t
 
 		auto cbComponent = resource->GetManager()->GetComponent<fx::ResourceCallbackComponent>();
 
-		auto resCb = cbComponent->CreateCallback([cb](const msgpack::v1::unpacked& unpacked)
+		auto resCb = cbComponent->CreateCallback([cb, type, resourceName = resource->GetName()](const msgpack::v1::unpacked& unpacked)
 		{
 			auto args = unpacked.get().as<std::vector<msgpack::object>>();
 
 			if (args.size() == 1)
 			{
-				auto outObj = args[0].as<std::map<std::string, msgpack::object>>();
-
 				std::multimap<std::string, std::string> headers;
 				int statusCode = 200;
-				
-				if (auto hit = outObj.find("headers"); hit != outObj.end())
+				std::string body;
+
+				// scripts can pass anything here, a failed conversion must not unwind into the script runtime
+				try
 				{
-					if (hit->second.type != msgpack::type::ARRAY)
+					// Lua packs an empty table as an empty array
+					if (args[0].type != msgpack::type::ARRAY || args[0].via.array.size != 0)
 					{
-						for (auto& pair : hit->second.as<std::map<std::string, msgpack::object>>())
+						auto outObj = args[0].as<std::map<std::string, msgpack::object>>();
+
+						if (auto hit = outObj.find("headers"); hit != outObj.end())
 						{
-							if (pair.second.type == msgpack::type::ARRAY)
+							if (hit->second.type != msgpack::type::ARRAY)
 							{
-								for (const auto& value : pair.second.as<std::vector<std::string>>())
+								for (auto& pair : hit->second.as<std::map<std::string, msgpack::object>>())
 								{
-									headers.emplace(boost::algorithm::to_lower_copy(pair.first), value);
+									if (pair.second.type == msgpack::type::ARRAY)
+									{
+										for (const auto& value : pair.second.as<std::vector<std::string>>())
+										{
+											headers.emplace(boost::algorithm::to_lower_copy(pair.first), value);
+										}
+									}
+									else
+									{
+										headers.emplace(boost::algorithm::to_lower_copy(pair.first), pair.second.as<std::string>());
+									}
 								}
 							}
-							else
-							{
-								headers.emplace(boost::algorithm::to_lower_copy(pair.first), pair.second.as<std::string>());
-							}
+						}
+
+						if (auto sit = outObj.find("status"); sit != outObj.end())
+						{
+							statusCode = sit->second.as<int>();
+						}
+
+						if (auto bit = outObj.find("body"); bit != outObj.end())
+						{
+							body = bit->second.as<std::string>();
 						}
 					}
 				}
-
-				if (auto sit = outObj.find("status"); sit != outObj.end())
+				catch (const std::exception& e)
 				{
-					statusCode = sit->second.as<int>();
-				}
+					trace("REGISTER_RAW_NUI_CALLBACK: callback '%s' in resource %s returned invalid data (%s), expected a table with optional status, headers and body fields\n", type, resourceName, e.what());
 
-				std::string body;
-
-				if (auto bit = outObj.find("body"); bit != outObj.end())
-				{
-					body = bit->second.as<std::string>();
+					cb(500, {}, {});
+					return;
 				}
 
 				cb(statusCode, headers, body);
