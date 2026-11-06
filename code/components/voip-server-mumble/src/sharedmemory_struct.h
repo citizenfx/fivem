@@ -8,7 +8,7 @@ typedef struct
 	char channel[121];
 	char os[121], release[121], os_version[121];
 	int tcp_port, udp_port;
-	bool_t bUDP, authenticated, deaf, mute, self_deaf, self_mute, recording, bOpus;
+	bool_t bUDP, authenticated, deaf, mute, self_deaf, self_mute, recording;
 	int availableBandwidth;
 	uint32_t online_secs, idle_secs;
 	uint8_t hash[20];

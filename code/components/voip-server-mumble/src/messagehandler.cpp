@@ -51,13 +51,7 @@
 // fivem usernames can be 200 characters long + 8 for the max prefix size "[65535] "
 #define MAX_USERNAME 208
 
-#define NO_CELT_MESSAGE "<strong>WARNING:</strong> Your client doesn't support the CELT codec, you won't be able to talk to or hear most clients. Please make sure your client was built with CELT support."
-
 extern channel_t* defaultChan;
-extern int iCodecAlpha, iCodecBeta;
-extern bool_t bPreferAlpha, bOpus;
-
-static bool_t fake_celt_support;
 
 static void sendServerReject(client_t* client, const char* reason, MumbleProto::Reject::RejectType type)
 {
@@ -73,7 +67,7 @@ static void sendPermissionDenied(client_t* client, const char* reason)
 {
 	message_t* msg = Msg_create(PermissionDenied);
 	msg->payload.permissionDenied->set_type(MumbleProto::PermissionDenied_DenyType_Text);
-	msg->payload.permissionDenied->set_reason(strdup(reason));
+	msg->payload.permissionDenied->set_reason(reason);
 	Client_send_message(client, msg);
 }
 
@@ -265,43 +259,12 @@ void Mh_handle_message(client_t* client, message_t* msg)
 			/* Channel stuff */
 			Chan_userJoin(defaultChan, client); /* Join default channel */
 
-			/* Codec version */
-			Log_debug("Client %d has %d CELT codecs", client->sessionId,
-			msg->payload.authenticate->celt_versions_size());
-			if (msg->payload.authenticate->celt_versions_size() > 0)
-			{
-				int i;
-				codec_t* codec_itr;
-				client->codec_count = msg->payload.authenticate->celt_versions_size();
-
-				for (i = 0; i < client->codec_count; i++)
-					Client_codec_add(client, msg->payload.authenticate->celt_versions(i));
-				codec_itr = NULL;
-				while (Client_codec_iterate(client, &codec_itr) != NULL)
-					Log_debug("Client %d CELT codec ver 0x%x", client->sessionId, codec_itr->codec);
-			}
-			else
-			{
-				Client_codec_add(client, (int32_t)0x8000000b);
-				client->codec_count = 1;
-				fake_celt_support = true;
-			}
-			if (msg->payload.authenticate->opus())
-				client->bOpus = true;
-
-			recheckCodecVersions(client);
-
 			sendmsg = Msg_create(CodecVersion);
-			sendmsg->payload.codecVersion->set_alpha(iCodecAlpha);
-			sendmsg->payload.codecVersion->set_beta(iCodecBeta);
-			sendmsg->payload.codecVersion->set_prefer_alpha(bPreferAlpha);
-			sendmsg->payload.codecVersion->set_opus(bOpus);
+			sendmsg->payload.codecVersion->set_alpha(0);
+			sendmsg->payload.codecVersion->set_beta(0);
+			sendmsg->payload.codecVersion->set_prefer_alpha(false);
+			sendmsg->payload.codecVersion->set_opus(true);
 			Client_send_message(client, sendmsg);
-
-			if (!bOpus && client->bOpus && fake_celt_support)
-			{
-				Client_textmessage(client, NO_CELT_MESSAGE);
-			}
 
 			/* Iterate channels and send channel info */
 			ch_itr = NULL;
@@ -462,7 +425,11 @@ void Mh_handle_message(client_t* client, message_t* msg)
 			}
 			else
 			{
-				memcpy(client->cryptState.decrypt_iv, msg->payload.cryptSetup->client_nonce().data(), AES_BLOCK_SIZE);
+				const auto& nonce = msg->payload.cryptSetup->client_nonce();
+				if (nonce.size() != AES_BLOCK_SIZE) {
+					break;
+				}
+				memcpy(client->cryptState.decrypt_iv, nonce.data(), AES_BLOCK_SIZE);
 				client->cryptState.uiResync++;
 			}
 			break;
@@ -644,14 +611,18 @@ void Mh_handle_message(client_t* client, message_t* msg)
 
 			if (msg->payload.userState->has_plugin_context())
 			{
+				const auto& pluginContext = msg->payload.userState->plugin_context();
+
 				if (client->context)
 					free(client->context);
-				client->context = (char*)Memory_safeMalloc(1, msg->payload.userState->plugin_context().size());
-				memcpy(client->context, msg->payload.userState->plugin_context().data(),
-				msg->payload.userState->plugin_context().size());
+
+				client->context = (char*)Memory_safeMalloc(1, pluginContext.size() + 1);
+				memcpy(client->context, pluginContext.data(), pluginContext.size());
+				client->context[pluginContext.size()] = '\0';
 
 				break; /* Don't inform other users about this state */
 			}
+
 			/* Re-use message */
 			Msg_inc_ref(msg);
 
@@ -732,7 +703,8 @@ void Mh_handle_message(client_t* client, message_t* msg)
 
 		case VoiceTarget:
 		{
-			int i, j, count, targetId = msg->payload.voiceTarget->id();
+			uint32_t targetId = msg->payload.voiceTarget->id();
+			int i, j, count = 0;
 			const MumbleProto::VoiceTarget_Target* target;
 
 			if (!targetId || targetId >= 0x1f)
@@ -911,7 +883,6 @@ void Mh_handle_message(client_t* client, message_t* msg)
 		case UserStats:
 		{
 			client_t* target = NULL;
-			codec_t* codec_itr = NULL;
 			int i;
 			bool_t details = true;
 
@@ -967,11 +938,7 @@ void Mh_handle_message(client_t* client, message_t* msg)
 				if (target->os_version)
 					sendmsg->payload.userStats->mutable_version()->set_os_version(target->os_version);
 
-				i = 0;
-				while (Client_codec_iterate(target, &codec_itr) != NULL)
-					sendmsg->payload.userStats->add_celt_versions(codec_itr->codec);
-
-				sendmsg->payload.userStats->set_opus(target->bOpus);
+				sendmsg->payload.userStats->set_opus(true);
 
 				/* Address */
 				/*if (getBoolConf(SHOW_ADDRESSES)) {
