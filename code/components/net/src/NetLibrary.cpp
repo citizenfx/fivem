@@ -953,6 +953,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	postMap["gameName"] = gameName;
 
+#ifdef GTA_FIVE
+	postMap["vehicleGadgetSyncFix"] = "1";
+#endif
+
 	postMap["guid"] = va("%lld", GetGUID());
 
 	static bool isLegacyDeferral;
@@ -1278,6 +1282,15 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								AddCrashometry("onesync_population", "false");
 								Instance<ICoreGameInit>::Get()->ClearVariable("onesync_population");
 							}
+						}
+
+						if (!node["vehicleGadgetSyncFix"].is_null() && node["vehicleGadgetSyncFix"].get<bool>())
+						{
+							Instance<ICoreGameInit>::Get()->SetVariable("vehicleGadgetSyncFix");
+						}
+						else
+						{
+							Instance<ICoreGameInit>::Get()->ClearVariable("vehicleGadgetSyncFix");
 						}
 
 						auto maxClients = (!node["maxClients"].is_null()) ? node["maxClients"].get<int>() : 64;
