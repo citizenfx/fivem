@@ -6,6 +6,8 @@
 #include "Hooking.Stubs.h"
 #include "GamePrimitives.h"
 #include "scrEngine.h"
+#include <nutsnbolts.h>
+#include <DrawCommands.h>
 
 enum ScriptImDrawType : uint32_t
 {
@@ -28,6 +30,9 @@ struct ScriptImRequest
 
 static constexpr int kMaxScriptImRequests = 1024;
 static std::vector<ScriptImRequest> g_scriptImRequests{};
+static std::vector<ScriptImRequest> g_scriptImRenderBuffer{};
+
+static std::atomic<bool> g_scriptImReady{false};
 
 static ScriptImRequest** g_scriptImBuffer;
 static uint16_t* g_scriptImEntriesCount;
@@ -45,12 +50,19 @@ static void RenderScriptIm()
 	// Like if something allocate script im buffer before us, we would need to resize it
 	// and not just rewrite everything without custom stuff.
 
-	if (g_scriptImRequests.empty())
+	// Wait until the main thread is done for this frame before pushing new requests
+	if (g_scriptImReady.load(std::memory_order_acquire))
+	{
+		g_scriptImRenderBuffer.clear();
+		std::swap(g_scriptImRequests, g_scriptImRenderBuffer);
+	}
+
+	if (g_scriptImRenderBuffer.empty())
 	{
 		return;
 	}
 
-	*g_scriptImEntriesCount = g_scriptImRequests.size();
+	*g_scriptImEntriesCount = g_scriptImRenderBuffer.size();
 
 	// If the buffer isn't allocated, let's do it.
 	if (!*g_scriptImBuffer)
@@ -66,11 +78,9 @@ static void RenderScriptIm()
 	}
 
 	// Move stuff from our temp vector to the in-game buffer.
-	std::move(g_scriptImRequests.begin(), g_scriptImRequests.end(), *g_scriptImBuffer);
+	std::copy(g_scriptImRenderBuffer.begin(), g_scriptImRenderBuffer.end(), *g_scriptImBuffer);
 
 	g_origRenderScriptIm();
-
-	g_scriptImRequests.clear();
 	*g_scriptImEntriesCount = 0;
 }
 
@@ -88,12 +98,13 @@ struct DrawOriginStore
 	char pad_404[12];
 };
 
-static bool (*isGamePaused)();
-
-static int* g_frameDrawIndex1;
-static int* g_frameDrawIndex2;
+static int* g_renderBufferIndex;
+static int* g_updateBufferIndex;
 static DrawOriginStore* g_drawOriginStore;
 static uint32_t* g_scriptDrawOriginIndex;
+
+static int g_updateDrawOriginCount = 0;
+static DrawOriginData g_updateDrawOrigin[32];
 
 struct WorldhorizonManager
 {
@@ -124,11 +135,9 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern<char>("48 69 D0 10 04 00 00 48 8D 05 ? ? ? ? 48 03");
 
-		g_frameDrawIndex1 = hook::get_address<int*>(location - 20);
-		g_frameDrawIndex2 = hook::get_address<int*>(location - 7);
+		g_renderBufferIndex = hook::get_address<int*>(location - 20);
+		g_updateBufferIndex = hook::get_address<int*>(location - 7);
 		g_drawOriginStore = hook::get_address<DrawOriginStore*>(location + 10);
-
-		hook::set_call(&isGamePaused, location - 27);
 	}
 
 	{
@@ -155,14 +164,26 @@ static HookFunction hookFunction([]()
 		g_screenHeight = hook::get_address<int*>(location + 8);
 	}
 
+	OnMainGameFrame.Connect([]()
+	{
+		g_scriptImReady.store(false, std::memory_order_relaxed);
+	});
+
+	OnPostFrontendRender.Connect([]()
+	{
+		g_scriptImReady.store(true, std::memory_order_release);
+		if (g_updateDrawOriginCount)
+		{
+			auto drawIndex = *g_updateBufferIndex;
+			std::move(g_updateDrawOrigin, g_updateDrawOrigin + g_updateDrawOriginCount, g_drawOriginStore[drawIndex].m_items);
+			g_drawOriginStore[drawIndex].m_count = g_updateDrawOriginCount;
+			g_updateDrawOriginCount = 0;
+		}
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_DRAW_ORIGIN", [](fx::ScriptContext& context)
 	{
-		auto drawIndex = *(isGamePaused() ? g_frameDrawIndex2 : g_frameDrawIndex1);
-
-		auto& store = g_drawOriginStore[drawIndex];
-		const auto index = store.m_count;
-
-		if (index >= 32)
+		if (g_updateDrawOriginCount >= 32)
 		{
 			return;
 		}
@@ -173,10 +194,9 @@ static HookFunction hookFunction([]()
 		data.m_pos.z = context.GetArgument<float>(2);
 		data.m_is2d = context.GetArgument<bool>(3);
 
-		store.m_items[index] = data;
-		store.m_count += 1;
-
-		*g_scriptDrawOriginIndex = index;
+		g_updateDrawOrigin[g_updateDrawOriginCount] = data;
+		*g_scriptDrawOriginIndex = g_updateDrawOriginCount;
+		g_updateDrawOriginCount += 1;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("CLEAR_DRAW_ORIGIN", [](fx::ScriptContext& context)
