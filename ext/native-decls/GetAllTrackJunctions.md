@@ -17,4 +17,3 @@ The data returned adheres to the following structure:
 
 ## Return value
 An object containing a list of track junctions ids.
-```
