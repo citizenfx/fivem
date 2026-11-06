@@ -386,7 +386,7 @@
 						</Item>
 						<Item>
 							<PoolName>CWeaponComponentInfo</PoolName>
-							<PoolSize value="2048"/>
+							<PoolSize value="4096"/>
 						</Item>
 						<Item>
 							<PoolName>phInstGta</PoolName>
@@ -902,7 +902,7 @@
 					<MaxWeaponModelInfos value="115"/>
 					<MaxExtraPedModelInfos value="1044"/>
 					<MaxExtraVehicleModelInfos value="2068"/>
-					<MaxExtraWeaponModelInfos value="2048"/>
+					<MaxExtraWeaponModelInfos value="4096"/>
 				</ConfigModelInfo>
 
 				<ConfigExtensions>
