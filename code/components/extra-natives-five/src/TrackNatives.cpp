@@ -444,7 +444,6 @@ static InitFunction initFunction([]()
 
 		context.SetResult<int>(junctionIndex);
 		g_trackJunctions[junctionIndex] = CTrainJunction(trackIndex, trackNode, newTrackIndex, newTrackNode, direction);
-		
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("REMOVE_TRACK_JUNCTION", [](fx::ScriptContext& context)
@@ -475,13 +474,105 @@ static InitFunction initFunction([]()
 
 		if (!IsTrackJunctionIdValid(junctionIndex))
 		{
-			fx::scripting::Warningf("natives", "SET_TRACK_JUNCTION_ACTIVE: Invalid junction id (%i) provided.", junctionIndex);
+			fx::scripting::Warningf("natives", "SET_TRACK_JUNCTION_ACTIVE: Invalid junction id (%i) provided.\n", junctionIndex);
 			context.SetResult<bool>(false);
 			return;
 		}
 
 		g_trackJunctions[junctionIndex].isActive = state;
 		context.SetResult<bool>(true);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_TRACK_JUNCTION_ACTIVE", [](fx::ScriptContext& context)
+	{
+		int junctionIndex = context.GetArgument<int>(0);
+
+		const std::lock_guard _(g_trackJunctionLock);
+
+		if (!IsTrackJunctionIdValid(junctionIndex))
+		{
+			fx::scripting::Warningf("natives", "IS_TRACK_JUNCTION_ACTIVE: Invalid junction id (%i) provided.\n", junctionIndex);
+			context.SetResult<bool>(false);
+			return;
+		}
+
+		*context.GetArgument<bool*>(1) = g_trackJunctions[junctionIndex].isActive;
+		context.SetResult<bool>(true);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRACK_JUNCTION_INFO", [](fx::ScriptContext& context)
+	{
+		int junctionIndex = context.GetArgument<int>(0);
+
+		const std::lock_guard _(g_trackJunctionLock);
+
+		if (!IsTrackJunctionIdValid(junctionIndex))
+		{
+			fx::scripting::Warningf("natives", "GET_TRACK_JUNCTION_INFO: Invalid junction id (%i) provided.\n", junctionIndex);
+			context.SetResult<bool>(false);
+			return;
+		}
+
+		const CTrainJunction& junction = g_trackJunctions[junctionIndex];
+
+		*context.GetArgument<int*>(1) = junction.onTrack;
+		*context.GetArgument<uint32_t*>(2) = junction.onNode;
+		*context.GetArgument<int*>(3) = junction.newTrack;
+		*context.GetArgument<uint32_t*>(4) = junction.newNode;
+		*context.GetArgument<bool*>(5) = junction.direction;
+		context.SetResult<bool>(true);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRACK_JUNCTION_FROM_NODES", [](fx::ScriptContext& context)
+	{
+		rage::CTrainTrack* testOnTrack = GetAndCheckTrack<0>(context, "GET_TRACK_JUNCTION_FROM_NODES");
+		if (!testOnTrack)
+		{
+			context.SetResult<int>(-1);
+			return;
+		}
+
+		rage::CTrainTrack* testNewTrack = GetAndCheckTrack<2>(context, "GET_TRACK_JUNCTION_FROM_NODES");
+		if (!testNewTrack)
+		{
+			context.SetResult<int>(-1);
+			return;
+		}
+
+		int8_t onTrack = context.GetArgument<int8_t>(0);
+		uint32_t onNode = context.GetArgument<uint32_t>(1);
+		int8_t newTrack = context.GetArgument<int8_t>(2);
+		uint32_t newNode = context.GetArgument<uint32_t>(3);
+		bool direction = context.GetArgument<bool>(4);
+
+		if (!GetAndCheckTrackNode(testOnTrack, onTrack, onNode, "GET_TRACK_JUNCTION_FROM_NODES"))
+		{
+			context.SetResult<int>(-1);
+			return;
+		}
+
+		if (!GetAndCheckTrackNode(testNewTrack, newTrack, newNode, "GET_TRACK_JUNCTION_FROM_NODES"))
+		{
+			context.SetResult<int>(-1);
+			return;
+		}
+
+		const std::lock_guard _(g_trackJunctionLock);
+
+		for (const auto& [index, junction] : g_trackJunctions)
+		{
+			if (junction.onTrack == onTrack
+				&& junction.onNode == onNode
+				&& junction.newTrack == newTrack
+				&& junction.newNode == newNode
+				&& junction.direction == direction)
+			{
+				context.SetResult<int>(index);
+				return;
+			}
+		}
+
+		context.SetResult<int>(-1);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_TRACK_NODE_COORDS", [](fx::ScriptContext& context)
