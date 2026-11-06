@@ -424,7 +424,7 @@ int LuaIOReadDir(lua_State* L)
 {
 	const char* directoryPathString = luaL_checkstring(L, 1);
 	std::filesystem::path directoryPath = directoryPathString;
-	// ensure that the path ends with a path seperator
+	// ensure that the path ends with a path separator
 	directoryPath /= "";
 
 	fwRefContainer<vfs::Device> device = vfs::GetDevice(directoryPath.generic_string());

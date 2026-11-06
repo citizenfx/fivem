@@ -56,7 +56,7 @@ static bool g_permissionModifyAllowed{true};
 
 static std::unordered_map<std::tuple<ResourceName, ConVarName>, ConVarPermission, ResourceTupleHash, ResourceTupleEqual>
 g_permissions{};
-// for compatibility reasons only convars that get permissions setted are restricted
+// for compatibility reasons only convars that get permissions set are restricted
 // so they get added to this set for fast check if permission check is required
 static std::unordered_set<ConVarName> g_restrictedConVars {};
 }
