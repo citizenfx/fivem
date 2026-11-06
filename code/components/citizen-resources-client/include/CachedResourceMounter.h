@@ -57,8 +57,8 @@ namespace fx
 			size_t size;
 			std::map<std::string, std::string> extData;
 
-			inline ResourceFileEntry(const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0, const std::map<std::string, std::string>& extData = {})
-				: basename(basename), referenceHash(referenceHash), remoteUrl(remoteUrl), size(size), extData(extData)
+			inline ResourceFileEntry(const std::string& basename, const std::string& referenceHash, std::string remoteUrl, size_t size = 0, std::map<std::string, std::string> extData = {})
+				: basename(basename), referenceHash(referenceHash), remoteUrl(std::move(remoteUrl)), size(size), extData(std::move(extData))
 			{
 
 			}
@@ -68,6 +68,8 @@ namespace fx
 		virtual fwRefContainer<fx::Resource> InitializeLoad(const std::string& uri, skyr::url* parsedUri);
 
 		virtual tl::expected<fwRefContainer<vfs::Device>, ResourceManagerError> OpenResourcePackfile(const fwRefContainer<fx::Resource>& resource);
+
+		void ForgetFileVerification(const fwRefContainer<fx::Resource>& resource, const std::string& basename);
 
 	protected:
 		std::multimap<std::string, ResourceFileEntry> m_resourceEntries;
@@ -82,11 +84,15 @@ namespace fx
 	public:
 		virtual void RemoveResourceEntries(const std::string& resourceName);
 
-		virtual void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0, const std::map<std::string, std::string>& extData = {});
+		virtual void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0, std::map<std::string, std::string> extData = {});
 
 		virtual std::string FormatPath(const std::string& resourceName, const std::string& basename);
 
 		virtual void AddStatusCallback(const std::string& resourceName, const std::function<void(StatusType, int, int)>& callback);
+
+		void RemoveStatusCallback(const std::string& resourceName);
+		
+		pplx::task<void> PrefetchResource(const std::string& resourceName, const pplx::cancellation_token& token);
 	};
 
 
