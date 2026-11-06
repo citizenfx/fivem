@@ -198,6 +198,28 @@ static hook::cdecl_stub<void(int idx, int, int)> _updatePref([]()
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 83 3D ? ? ? ? ? 44 8B C3"));
 });
 
+// nullptr until the profile settings are loaded
+int* GetProfilePref(uint32_t prefHash)
+{
+	if (!*g_profileSettings || !**(void***)g_profileSettings)
+	{
+		return nullptr;
+	}
+
+	auto structureField = rage::GetStructureDefinition(0xA0063C79);
+	auto enumeration = structureField->m_members[2]->m_definition->enumData;
+
+	for (auto field = enumeration->fields; field->index != -1 || field->hash != 0; field++)
+	{
+		if (field->hash == prefHash)
+		{
+			return &g_prefs[field->index];
+		}
+	}
+
+	return nullptr;
+}
+
 void ProfileSettingsInit()
 {
 	OnGameFrame.Connect([]()
@@ -214,6 +236,12 @@ void ProfileSettingsInit()
 
 			for (auto field = enumeration->fields; field->index != -1 || field->hash != 0; field++)
 			{
+				// the frame rate limit pref is synced with its own convar (see PatchFrameRateLimit.cpp)
+				if (field->hash == HashRageString("PREF_VID_STEREO_SEPARATION"))
+				{
+					continue;
+				}
+
 				auto name = fmt::sprintf("0x%08x", field->hash);
 
 				if (_profileSettingNames.find(field->hash) != _profileSettingNames.end())
