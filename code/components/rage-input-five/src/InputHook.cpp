@@ -243,6 +243,199 @@ bool InputHook::IsKeyDown(int vk_keycode)
 	return g_gameKeyArray[vk_keycode] & 0x80;
 }
 
+// high polling rate mice (4000/8000 Hz) queue one WM_INPUT message per report, and the game
+// reads each of them separately with GetRawInputData, after the message pump and our window
+// procedure have handled it. Instead, on the first WM_INPUT, read all raw input still pending
+// with GetRawInputBuffer (which removes it from the queue), merge runs of relative mouse
+// movement, and hand the game one WM_INPUT per merged event. The game's GetRawInputData call
+// for these messages is answered from our copy.
+//
+// the game also pumps messages until the queue is empty. At 8000 Hz a new report arrives every
+// 125 us, and every pump iteration takes the window manager lock several times, which other
+// processes reacting to the same mouse contend for, so an iteration can take longer than that
+// and the pump keeps going for most of the frame. Once a batch has been handed to the game, raw
+// input and mouse messages arriving later in the same pump pass are left for the next frame.
+static decltype(&GetRawInputData) g_origGetRawInputData;
+static decltype(&PeekMessageW) g_origPeekMessageW;
+
+static HRAWINPUT g_rawInputOverrideHandle;
+static const RAWINPUT* g_rawInputOverride;
+
+static thread_local bool g_rawInputHandledThisPass;
+
+static BOOL WINAPI PeekMessageWWrap(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
+{
+	if (g_rawInputHandledThisPass && wMsgFilterMin == 0 && wMsgFilterMax == 0)
+	{
+		static constexpr std::pair<UINT, UINT> ranges[] = {
+			{ 0, WM_INPUT - 1 },
+			{ WM_INPUT + 1, WM_MOUSEFIRST - 1 },
+			{ WM_MOUSELAST + 1, UINT_MAX },
+		};
+
+		for (auto [min, max] : ranges)
+		{
+			if (g_origPeekMessageW(lpMsg, hWnd, min, max, wRemoveMsg))
+			{
+				return TRUE;
+			}
+		}
+
+		// the pass is over
+		g_rawInputHandledThisPass = false;
+		return FALSE;
+	}
+
+	return g_origPeekMessageW(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
+}
+
+static UINT WINAPI GetRawInputDataWrap(HRAWINPUT hRawInput, UINT uiCommand, LPVOID pData, PUINT pcbSize, UINT cbSizeHeader)
+{
+	if (g_rawInputOverride && hRawInput == g_rawInputOverrideHandle && (uiCommand == RID_INPUT || uiCommand == RID_HEADER) && pcbSize && cbSizeHeader == sizeof(RAWINPUTHEADER))
+	{
+		UINT size = (uiCommand == RID_INPUT) ? g_rawInputOverride->header.dwSize : sizeof(RAWINPUTHEADER);
+
+		if (!pData)
+		{
+			*pcbSize = size;
+			return 0;
+		}
+
+		if (*pcbSize < size)
+		{
+			SetLastError(ERROR_INSUFFICIENT_BUFFER);
+			return (UINT)-1;
+		}
+
+		memcpy(pData, g_rawInputOverride, size);
+		return size;
+	}
+
+	return g_origGetRawInputData(hRawInput, uiCommand, pData, pcbSize, cbSizeHeader);
+}
+
+static bool IsMergeableMouseMove(const RAWINPUT& input)
+{
+	return input.header.dwType == RIM_TYPEMOUSE &&
+		!(input.data.mouse.usFlags & (MOUSE_MOVE_ABSOLUTE | MOUSE_VIRTUAL_DESKTOP | MOUSE_ATTRIBUTES_CHANGED)) &&
+		input.data.mouse.usButtonFlags == 0;
+}
+
+static bool HandleRawInputBatch(HWND hwnd, WPARAM wParam, LPARAM lParam, bool passToGame, LRESULT& lresult)
+{
+	static bool inBatch;
+
+	if (!g_origGetRawInputData || inBatch)
+	{
+		return false;
+	}
+
+	inBatch = true;
+
+	RAWINPUT pending;
+	bool hasPending = false;
+
+	auto dispatch = [&](const RAWINPUT* input)
+	{
+		g_rawInputOverride = input;
+		g_rawInputOverrideHandle = reinterpret_cast<HRAWINPUT>(lParam);
+
+		lresult = origWndProc(hwnd, WM_INPUT, input->header.wParam, lParam);
+
+		g_rawInputOverride = nullptr;
+	};
+
+	auto flushPending = [&]()
+	{
+		if (hasPending)
+		{
+			hasPending = false;
+			dispatch(&pending);
+		}
+	};
+
+	auto add = [&](const RAWINPUT* input)
+	{
+		if (!IsMergeableMouseMove(*input))
+		{
+			flushPending();
+			dispatch(input);
+			return;
+		}
+
+		if (hasPending && pending.header.hDevice == input->header.hDevice && pending.header.wParam == input->header.wParam && pending.data.mouse.usFlags == input->data.mouse.usFlags)
+		{
+			pending.data.mouse.lLastX += input->data.mouse.lLastX;
+			pending.data.mouse.lLastY += input->data.mouse.lLastY;
+			pending.data.mouse.ulRawButtons = input->data.mouse.ulRawButtons;
+			pending.data.mouse.ulExtraInformation = input->data.mouse.ulExtraInformation;
+			return;
+		}
+
+		flushPending();
+		pending = *input;
+		hasPending = true;
+	};
+
+	if (passToGame)
+	{
+		RAWINPUT first;
+		UINT size = sizeof(first);
+		UINT copied = g_origGetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, &first, &size, sizeof(RAWINPUTHEADER));
+
+		if (copied != 0 && copied != (UINT)-1 && IsMergeableMouseMove(first))
+		{
+			pending = first;
+			hasPending = true;
+		}
+		else
+		{
+			// not a plain mouse move (or larger than a RAWINPUT), let the game read it as usual
+			lresult = origWndProc(hwnd, WM_INPUT, wParam, lParam);
+		}
+	}
+
+	// if the game doesn't get this message, it wouldn't get any of the pending ones either, so
+	// they're read and dropped
+	alignas(8) static uint8_t buffer[16 * 1024];
+
+	// bounded, so a steady stream of input can't keep us in here
+	for (int attempt = 0; attempt < 8; attempt++)
+	{
+		UINT size = sizeof(buffer);
+		UINT count = GetRawInputBuffer(reinterpret_cast<RAWINPUT*>(buffer), &size, sizeof(RAWINPUTHEADER));
+
+		if (count == 0 || count == (UINT)-1)
+		{
+			break;
+		}
+
+		if (passToGame)
+		{
+			auto input = reinterpret_cast<RAWINPUT*>(buffer);
+
+			for (UINT i = 0; i < count; i++)
+			{
+				add(input);
+
+				// NEXTRAWINPUTBLOCK, spelled out as QWORD isn't defined here
+				auto next = reinterpret_cast<uintptr_t>(input) + input->header.dwSize;
+				input = reinterpret_cast<RAWINPUT*>((next + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
+			}
+		}
+	}
+
+	flushPending();
+
+	if (g_origPeekMessageW)
+	{
+		g_rawInputHandledThisPass = true;
+	}
+
+	inBatch = false;
+	return true;
+}
+
 LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	// inform the game of being minimized
@@ -364,8 +557,18 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 		if (!shouldPassAnyway)
 		{
+			if (uMsg == WM_INPUT)
+			{
+				HandleRawInputBatch(hwnd, wParam, lParam, false, lresult);
+			}
+
 			return lresult;
 		}
+	}
+
+	if (uMsg == WM_INPUT && HandleRawInputBatch(hwnd, wParam, lParam, true, lresult))
+	{
+		return lresult;
 	}
 
 	//return CallWindowProc(origWndProc, hwnd, uMsg, wParam, lParam);
@@ -736,6 +939,9 @@ static HookFunction hookFunction([]()
 	{
 		g_antiLagPresentConVar->GetHelper()->SetRawValue(true);
 	}
+
+	g_origGetRawInputData = hook::iat("user32.dll", GetRawInputDataWrap, "GetRawInputData");
+	g_origPeekMessageW = hook::iat("user32.dll", PeekMessageWWrap, "PeekMessageW");
 
 	static int* captureCount = hook::get_address<int*>(hook::get_pattern("48 3B 05 ? ? ? ? 0F 45 CA 89 0D ? ? ? ? 48 83 C4 28", 12));
 
