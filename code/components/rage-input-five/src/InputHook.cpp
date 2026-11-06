@@ -230,7 +230,7 @@ static bool GlobalInputIsDown(int vKey)
 
 bool InputHook::IsKeyDown(int vk_keycode)
 {
-	if (vk_keycode < 0 || vk_keycode > 255)
+	if (vk_keycode <= 0 || vk_keycode > 255)
 	{
 		return false;
 	}
