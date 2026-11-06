@@ -28,6 +28,7 @@
 #include <lua.hpp>
 
 #include "ComponentExport.h"
+#include "LuaLineProfiler.h"
 
 // Linkage specified in lua.hpp to include/link-against internal structure
 // definitions. Note, for ELF builds LUAI_FUNC will mark the function as hidden.
@@ -198,6 +199,8 @@ private:
 	std::unordered_set<uint32_t> m_nonExistentNatives;
 
 	std::list<std::tuple<uint64_t, int>> m_pendingBookmarks;
+
+	fx::lineprof::LuaRuntimeState m_lineProfile; // resprof line profiler data
 
 public:
 	LuaScriptRuntime()
