@@ -101,14 +101,13 @@ static void UpdateLocalPedVehicle(rage::fwEntity* ped)
 		return;
 	}
 
-	// no exit for a vehicle that no longer exists
-	if (oldVehicle != 0 && rage::fwScriptGuid::GetBaseFromGuid(oldVehicle))
+	if (oldVehicle != 0)
 	{
 		/*NETEV playerLeftVehicle CLIENT
 		/#*
 		 * An event that is triggered when the local player leaves a vehicle.
 		 *
-		 * @param vehicle - The vehicle the player left.
+		 * @param vehicle - The vehicle the player left, it may no longer exist if it was deleted while the player was inside.
 		 * @param seat - The seat the player was in (-1 is the driver).
 		 #/
 		declare function playerLeftVehicle(vehicle: number, seat: number): void;
