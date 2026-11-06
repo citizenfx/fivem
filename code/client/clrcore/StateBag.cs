@@ -21,7 +21,7 @@ namespace CitizenFX.Core
 			{
 				fixed (byte* serialized = &dataSerialized[0])
 				{
-					Function.Call(Hash.SET_STATE_BAG_VALUE, m_bagName, key, serialized, dataSerialized.Length, replicated);
+					Function.CallUnchecked(Hash.SET_STATE_BAG_VALUE, m_bagName, key, serialized, dataSerialized.Length, replicated);
 				}
 			}
 		}

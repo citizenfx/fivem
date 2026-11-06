@@ -438,7 +438,7 @@ namespace CitizenFX.Core
 				unsafe
 				{
 					DlcWeaponData weaponData;
-					if (Function.Call<bool>(Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
+					if (Function.CallUnchecked<bool>(Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
 					{
 						if (weaponData.Hash == hash)
 						{
@@ -447,7 +447,7 @@ namespace CitizenFX.Core
 							for (int j = 0; j < maxComp; j++)
 							{
 								DlcWeaponComponentData componentData;
-								if (Function.Call<bool>(Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
+								if (Function.CallUnchecked<bool>(Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
 								{
 									if (componentData.Hash == component)
 									{
@@ -1164,7 +1164,7 @@ namespace CitizenFX.Core
 				unsafe
 				{
 					DlcWeaponData weaponData;
-					if (Function.Call<bool>(Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
+					if (Function.CallUnchecked<bool>(Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
 					{
 						if (weaponData.Hash == hash)
 						{
@@ -1173,7 +1173,7 @@ namespace CitizenFX.Core
 							for (int j = 0; j < maxComp; j++)
 							{
 								DlcWeaponComponentData componentData;
-								if (Function.Call<bool>(Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
+								if (Function.CallUnchecked<bool>(Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
 								{
 									if (componentData.Hash == componentHash)
 									{
