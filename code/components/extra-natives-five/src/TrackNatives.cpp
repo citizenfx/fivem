@@ -189,7 +189,7 @@ static std::vector<scrTrackNodeInfo> GetTrackNodesInRadius(const float& x, const
 	{
 		rage::CTrainTrack* track = CTrainTrack__getTrainTrack(i);
 
-		if (!track || (includeDisabledTracks && !track->m_enabled))
+		if (!track || (!includeDisabledTracks && !track->m_enabled))
 		{
 			continue;
 		}
