@@ -21,6 +21,8 @@
 #include <utf8.h>
 #include <regex>
 
+#include "ResourceEventComponent.h"
+
 using namespace std::chrono_literals;
 
 static int utf8str_codepoint_len(char const* s, int utf8len)
@@ -371,6 +373,10 @@ static InitFunction initFunction([]()
 					if (exit)
 					{
 						con->AddToBuffer(fmt::sprintf("quit \"Ctrl-C pressed in server console.\"\n"));
+						instance
+							->GetComponent<fx::ResourceManager>()
+							->GetComponent<fx::ResourceEventManagerComponent>()
+							->TriggerEvent2("onServerStop", {});
 						break;
 					}
 					else if (!result)
