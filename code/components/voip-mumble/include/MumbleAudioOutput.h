@@ -56,7 +56,7 @@ public:
 
 	void HandleClientDisconnect(const MumbleUser& user);
 
-	void SetAudioDevice(const std::string& deviceId);
+	void SetAudioDevice(const std::string& deviceId, bool force = false);
 
 	void SetVolume(float volume);
 
