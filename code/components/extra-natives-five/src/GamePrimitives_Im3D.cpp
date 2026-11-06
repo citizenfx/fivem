@@ -352,6 +352,24 @@ static InitFunction initFunction([]()
 
 static int cursorModeRefCount;
 
+void AcquireCursorMode()
+{
+	if (cursorModeRefCount++ == 0)
+	{
+		ConHost::SetCursorMode(true);
+		InputHook::SetControlBypasses(0x3D, { InputHook::ControlBypass{ true, 0 }, InputHook::ControlBypass{ true, 1 }, InputHook::ControlBypass{ true, 2 }, InputHook::ControlBypass{ true, 3 }, InputHook::ControlBypass{ true, 4 } });
+	}
+}
+
+void ReleaseCursorMode()
+{
+	if (cursorModeRefCount-- == 1)
+	{
+		ConHost::SetCursorMode(false);
+		InputHook::SetControlBypasses(0x3D, {});
+	}
+}
+
 static InitFunction initFunctionScriptBind([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("DRAW_GIZMO", [](fx::ScriptContext& context)
@@ -371,20 +389,12 @@ static InitFunction initFunctionScriptBind([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("ENTER_CURSOR_MODE", [](fx::ScriptContext& context)
 	{
-		if (cursorModeRefCount++ == 0)
-		{
-			ConHost::SetCursorMode(true);
-			InputHook::SetControlBypasses(0x3D, { InputHook::ControlBypass{ true, 0 }, InputHook::ControlBypass{ true, 1 }, InputHook::ControlBypass{ true, 2 }, InputHook::ControlBypass{ true, 3 }, InputHook::ControlBypass{ true, 4 } });
-		}
+		AcquireCursorMode();
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("LEAVE_CURSOR_MODE", [](fx::ScriptContext& context)
 	{
-		if (cursorModeRefCount-- == 1)
-		{
-			ConHost::SetCursorMode(false);
-			InputHook::SetControlBypasses(0x3D, {});
-		}
+		ReleaseCursorMode();
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("DRAW_IM_NATIVES", [](fx::ScriptContext& context)

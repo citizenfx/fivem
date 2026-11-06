@@ -28,6 +28,10 @@ struct HitFlags
 
 fwEntity* DoMouseHitTest(int mX, int mY, const HitFlags& flags);
 
+// reference-counted cursor mode, shared by ENTER_CURSOR_MODE/LEAVE_CURSOR_MODE and in-game prompts
+void AcquireCursorMode();
+void ReleaseCursorMode();
+
 inline int GetViewportW()
 {
 	int w, h;
