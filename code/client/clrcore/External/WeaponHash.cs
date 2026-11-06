@@ -133,7 +133,11 @@ namespace CitizenFX.Core
 		SnowLauncher = 0x3BF5575,
 		HackingDevice = 0x1CF5FA48,
 		//mp2024_01
-		Stunrod = 0xDAC00025
+		Stunrod = 0xDAC00025,
+		//mp2024_02_g9ec
+		Strickler = 0x8DBEA147,
+		//mp2025_02
+		Newspaper = 0x9EBB7C93
 	}
 
 	public enum VehicleWeaponHash
