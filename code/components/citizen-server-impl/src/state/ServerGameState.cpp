@@ -3541,8 +3541,11 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 				? syncTree->GetPedGameState()
 				: nullptr;
 
-			int oldVehicle = pedStateNode ? pedStateNode->curVehicle : -1;
-			int oldVehicleSeat = pedStateNode ? pedStateNode->curVehicleSeat : -1;
+			// the node only holds defaults until it was parsed for the first time, so a new ped has no previous vehicle
+			bool hadVehicleState = pedStateNode && syncTree->GetPedGameStateFrameIndex() != 0;
+
+			int oldVehicle = hadVehicleState ? pedStateNode->curVehicle : -1;
+			int oldVehicleSeat = hadVehicleState ? pedStateNode->curVehicleSeat : -1;
 #endif
 
 			if (parsingType == 2)
@@ -3578,7 +3581,8 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			}
 
 #ifdef STATE_FIVE
-			if (pedStateNode)
+			// a packet that did not contain the node leaves the defaults in place, which must not be reported
+			if (pedStateNode && syncTree->GetPedGameStateFrameIndex() != 0)
 			{
 				HandlePedVehicleUpdate(entity, oldVehicle, oldVehicleSeat, pedStateNode->curVehicle, pedStateNode->curVehicleSeat);
 			}
