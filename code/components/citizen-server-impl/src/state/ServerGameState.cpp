@@ -3921,20 +3921,25 @@ void ServerGameState::HandlePedVehicleUpdate(const fx::sync::SyncEntityPtr& enti
 
 		if (wantsExit)
 		{
+			// the vehicle may have been deleted while the player was inside, the event is still raised so scripts can clean up
+			uint32_t vehicleHandle = 0;
+
 			if (auto vehicle = GetEntity(0, oldVehicle))
 			{
-				/*NETEV playerLeftVehicle SERVER
-				/#*
-				 * Triggered when a player leaves a vehicle.
-				 *
-				 * @param vehicle - The handle of the vehicle the player left.
-				 * @param player - The server ID of the player.
-				 * @param seat - The seat the player was in (-1 is the driver).
-				 #/
-				declare function playerLeftVehicle(vehicle: number, player: number, seat: number): void;
-				*/
-				evComponent->TriggerEvent2("playerLeftVehicle", {}, MakeScriptHandle(vehicle), serverId, oldSeat - seatOffset);
+				vehicleHandle = MakeScriptHandle(vehicle);
 			}
+
+			/*NETEV playerLeftVehicle SERVER
+			/#*
+			 * Triggered when a player leaves a vehicle.
+			 *
+			 * @param vehicle - The handle of the vehicle the player left, or 0 if the vehicle no longer exists.
+			 * @param player - The server ID of the player.
+			 * @param seat - The seat the player was in (-1 is the driver).
+			 #/
+			declare function playerLeftVehicle(vehicle: number, player: number, seat: number): void;
+			*/
+			evComponent->TriggerEvent2("playerLeftVehicle", {}, vehicleHandle, serverId, oldSeat - seatOffset);
 		}
 
 		if (wantsEnter)
