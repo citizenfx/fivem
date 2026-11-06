@@ -1035,3 +1035,18 @@ private:
 	uint16_t m_innerIndex : 14;
 };
 }
+
+struct PedVehicleEventMetaData
+{
+	enum class Type
+	{
+		StateChanged,
+		RemovedFromSeat
+	};
+
+	rage::fwEntity* ped;
+	rage::fwEntity* vehicle;
+	Type type;
+};
+
+STREAMING_EXPORT extern fwEvent<const PedVehicleEventMetaData&> OnPedVehicleEvent;
