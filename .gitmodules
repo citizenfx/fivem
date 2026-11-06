@@ -457,3 +457,6 @@
 [submodule "vendor/AntiLag2-SDK"]
 	path = vendor/AntiLag2-SDK
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/AntiLag2-SDK
+[submodule "vendor/boost-submodules/boost-pool"]
+	path = vendor/boost-submodules/boost-pool
+	url = https://github.com/boostorg/pool.git
