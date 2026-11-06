@@ -137,6 +137,9 @@ static HookFunction initFunction([] ()
 			}
 		}
 
+		// allow drawing above all NUI windows, but below the cursor
+		nui::OnPostRenderWindows();
+
 		// are we in any situation where we need a cursor?
 		bool needsNuiCursor = (nui::HasCursor()) && !g_shouldHideCursor;
 		g_nuiGi->SetHostCursorEnabled(needsNuiCursor);
