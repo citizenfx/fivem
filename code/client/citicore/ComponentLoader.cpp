@@ -172,27 +172,18 @@ void ComponentLoader::InitializeWithString(std::string_view cacheBuf)
 				continue;
 			}
 
-			if (CfxIsWine() || GetModuleHandleW(L"xtajit64.dll") != nullptr)
+			// Windows on ARM (xtajit64) cannot run the anti-cheat components —
+			// force insecure mode.  Under Wine we now attempt to load Adhesive
+			// normally; DllGameComponent::CreateComponent will fall back to
+			// sticky.dll if Adhesive fails to initialise at runtime.
+			if (GetModuleHandleW(L"xtajit64.dll") != nullptr)
 			{
 				auto cfxState = CfxState::Get();
 				if (cfxState->IsMasterProcess())
 				{
-					std::wstring environmentType;
-
-					if (CfxIsWine())
-					{
-						environmentType = L"Wine";
-					}
-					else if (GetModuleHandleW(L"xtajit64.dll") != nullptr)
-					{
-						environmentType = L"Windows on ARM";
-					}
-
-					MessageBoxW(NULL, 
-						va(
-							L"The game is running in insecure mode because %s is not supported by the anti-cheat components at this time.\n"
-							L"Most servers, as well as some authentication features will be unavailable.",
-							environmentType),
+					MessageBoxW(NULL,
+						L"The game is running in insecure mode because Windows on ARM is not supported by the anti-cheat components at this time.\n"
+						L"Most servers, as well as some authentication features will be unavailable.",
 						L"Cfx.re: Insecure mode", MB_OK | MB_ICONWARNING);
 				}
 

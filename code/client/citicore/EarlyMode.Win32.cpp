@@ -8,8 +8,16 @@
 
 #include <Error.h>
 
+// Declared in WineCompat.Win32.cpp
+void WineCompat_InstallHooks();
+
 extern "C" DLL_EXPORT void EarlyMode_Init()
 {
+	// Install GetProcAddress hook to hide wine_get_version from legitimacy.dll
+	// and adhesive.dll before either DLL is loaded.  Must come first so their
+	// DllMain and static initialisers see a clean environment.
+	WineCompat_InstallHooks();
+
 	ComponentLoader* loader = ComponentLoader::GetInstance();
 
 	putenv("CitizenFX_ToolMode=1");
