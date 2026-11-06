@@ -8,6 +8,7 @@
 #include <CoreNetworking.h>
 #include <CrossBuildRuntime.h>
 #include <Error.h>
+#include <CL2LaunchMode.h>
 
 #include "FramePacketHandler.h"
 #include "IHost.h"
@@ -112,7 +113,7 @@ int __stdcall CfxBind(SOCKET s, sockaddr* addr, int addrlen)
 
 	if (htons(addrIn->sin_port) == 6672)
 	{
-		if (wcsstr(GetCommandLine(), L"cl2"))
+		if (IsCL2())
 		{
 			addrIn->sin_port = htons(6673);
 		}
@@ -129,7 +130,7 @@ int __stdcall CfxGetSockName(SOCKET s, struct sockaddr* name, int* namelen)
 
 	sockaddr_in* addrIn = (sockaddr_in*)name;
 
-	if (s == g_gameSocket && wcsstr(GetCommandLine(), L"cl2"))
+	if (s == g_gameSocket && IsCL2())
 	{
 		addrIn->sin_port = htons(6672);
 	}
