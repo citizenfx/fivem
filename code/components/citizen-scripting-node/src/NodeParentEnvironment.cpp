@@ -28,12 +28,26 @@ result_t NodeParentEnvironment::Initialize()
 	}
 
 	// initialize node process
-	const static std::vector<std::string> args = {
-		"FXServer.exe",
-		"--trace-warnings",
-		"--unhandled-rejections=warn",
-		"--experimental-sqlite"
-	};
+	const static std::vector<std::string> args = []
+	{
+		std::vector<std::string> args = {
+			"FXServer.exe",
+			"--trace-warnings",
+			"--unhandled-rejections=warn",
+			"--experimental-sqlite"
+		};
+
+#ifndef _WIN32
+		// on POSIX, node installs a bare SIGSEGV handler for WebAssembly bounds checking, overwriting the one Mono
+		// installed to turn null dereferences in managed code into catchable NullReferenceExceptions. as components
+		// load in alphabetical order, node always wins, and any managed null deref takes the entire server down.
+		// disabling the trap handler makes V8 emit explicit bounds checks for WASM instead, which is the default
+		// anywhere the handler isn't available anyway.
+		args.emplace_back("--disable-wasm-trap-handler");
+#endif
+
+		return args;
+	}();
 
 	const auto result = node::InitializeOncePerProcess(args);
 	
