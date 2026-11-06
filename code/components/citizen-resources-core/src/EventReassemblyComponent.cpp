@@ -468,7 +468,16 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 	}
 
 	// reassemble the buffer
-	std::vector<uint8_t> eventPayload(event->ackedBits.size() * fragmentSize);
+	std::vector<uint8_t> eventPayload;
+	try
+	{
+		eventPayload.resize(static_cast<size_t>(event->ackedBits.size()) * fragmentSize);
+	}
+	catch (const std::bad_alloc&)
+	{
+		return;
+	}
+
 	size_t readSize = 0;
 
 	for (auto& packet : event->packetData)

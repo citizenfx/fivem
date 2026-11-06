@@ -108,7 +108,7 @@ namespace fx
 
 						if (firstN != bytes.end())
 						{
-							if (*firstN == '\n')
+							if (*firstN == '\n' && std::distance(bytes.begin(), firstR) >= 8)
 							{
 								std::string match(firstR - 8, firstR);
 
