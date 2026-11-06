@@ -1606,6 +1606,36 @@ static void Init()
 		return true;
 	}));
 
+ 	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_CULLING_RELEVANT_PLAYERS", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+ 	{
+ 		if (context.GetArgumentCount() > 1)
+ 		{
+ 			std::bitset<1000000> players;
+ 			if (context.GetArgument<int>(1) != 0)
+ 			{
+ 				for (int i = 1; i < context.GetArgumentCount(); i  )
+ 				{
+ 					int value = context.GetArgument<int>(i);
+ 					players.set(value);
+ 				}
+ 			}
+ 
+ 			// get the current resource manager
+ 			auto resourceManager = fx::ResourceManager::GetCurrent();
+ 
+ 			// get the owning server instance
+ 			auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+ 
+ 			// get the server's game state
+ 			auto gameState = instance->GetComponent<fx::ServerGameState>();
+ 
+ 			auto [lock, clientData] = gameState->ExternalGetClientData(client);
+ 			clientData->playerCullingRelevantPlayers = players;
+ 		}
+ 
+ 		return true;
+ 	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_IGNORE_REQUEST_CONTROL_FILTER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		if (context.GetArgumentCount() > 1)
