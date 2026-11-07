@@ -1931,6 +1931,48 @@ static void Init()
 		return train ? train->direction : false;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_CONFIG_INDEX", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->trainConfigIndex : -1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_DISTANCE_FROM_ENGINE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->distanceFromEngine : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_MISSION_TRAIN", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->isMissionTrain : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("DOES_TRAIN_HAVE_PASSENGER_CARRIAGES", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->hasPassengerCarriages : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_TRAIN_RENDERED_DERAILED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->renderDerailed : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("DOES_TRAIN_FORCE_DOORS_OPEN", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->forceDoorsOpen : false;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_FAKE_WANTED_LEVEL", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto pn = entity->syncTree->GetPlayerWantedAndLOS();
