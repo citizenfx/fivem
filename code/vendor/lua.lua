@@ -19,7 +19,7 @@ return {
 		vectorextensions "SSE2" -- @EXPERIMENT
 		
 		if os.istarget('windows') then
-			flags { "LinkTimeOptimization" }
+			linktimeoptimization "On"
 
 			-- longjmp *should* be exception-safe on Windows non-x86
 			defines { "LUA_USE_LONGJMP" }

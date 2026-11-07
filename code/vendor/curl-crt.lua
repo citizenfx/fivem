@@ -36,7 +36,7 @@ return {
 
 		language "C"
 
-		flags "NoRuntimeChecks"
+		runtimechecks "Off"
 
 		if (not a) or static then
 			if not a then

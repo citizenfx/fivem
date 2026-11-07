@@ -9,7 +9,7 @@ return {
 		kind "StaticLib"
 		
 		if os.istarget('windows') then
-			flags { "LinkTimeOptimization" }
+			linktimeoptimization "On"
 
 			defines { 
 				"ENABLE_THREAD_CACHE=1",
