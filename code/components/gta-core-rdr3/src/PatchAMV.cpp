@@ -1,4 +1,5 @@
 #include <StdInc.h>
+#include <Error.h>
 #include <Hooking.h>
 #include <Hooking.Patterns.h>
 #include <Pool.h>
@@ -62,5 +63,19 @@ static HookFunction hookFunction([]()
 		hook::put<int32_t>(location + 0x14, BitsetNumBytes);
 		hook::put<int32_t>(location + 0x19, BitsetPresentCopyNumIterations);
 		hook::put<int32_t>(location + 0xD, (intptr_t)amvEnabledBitsetReplacement - (intptr_t)location - 0xD - 4);
+
+		// The copy loop's stride is `lea r8d, [rax + 0x7b]`, where rax is the iteration count set
+		// above - the compiler folded the two together, so 0x7b only yields the correct 128 byte
+		// stride at the original count of 5. At any other count the loop drifts (count - 5) bytes
+		// per iteration, skipping bytes as it goes and running off the end of the bitset.
+		constexpr size_t kCopyStride = 32 * sizeof(uint32_t);
+		static_assert(BitsetPresentCopyNumIterations < kCopyStride, "stride displacement would underflow");
+
+		if (location[0x26] != 0x7B)
+		{
+			FatalError("AMVPresentBuffer: expected the copy stride displacement at +0x26, found %02X.", location[0x26]);
+		}
+
+		hook::put<uint8_t>(location + 0x26, (uint8_t)(kCopyStride - BitsetPresentCopyNumIterations));
 	}
 });
