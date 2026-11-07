@@ -1,10 +1,9 @@
 #include <StdInc.h>
-
 #include <CoreConsole.h>
-
 #include <jitasm.h>
 #include <Hooking.h>
 #include <Hooking.Stubs.h>
+#include <CrossBuildRuntime.h>
 
 static int32_t getHeapSize_offset = 0;
 static int32_t getMemoryUsed_offset = 0;
@@ -49,4 +48,37 @@ static HookFunction hookFunction([]
 
 	hook::nop(onAllocationFailed, 33);
 	hook::call(onAllocationFailed, OnAllocationFailed);
+
+	if (xbr::IsGameBuildOrGreater(3751))
+	{
+		auto drawableDestructorLoc = hook::pattern("48 8B 47 10 0F B7 40 30 66 C1 E0 04").count(1).get(0).get<char>(0);
+		if (drawableDestructorLoc)
+		{
+			static struct : jitasm::Frontend
+			{
+				void InternalMain() override
+				{
+					uintptr_t exeBase = (uintptr_t)hook::get_executable_handle();
+					
+					mov(rax, qword_ptr[rdi + 0x10]);
+					
+					cmp(rax, exeBase);
+					jl("validPointer");
+					
+					mov(rcx, exeBase + 0x6000000); 
+					cmp(rax, rcx);
+					jg("validPointer");
+
+					mov(qword_ptr[rdi + 0x10], 0);
+					xor_(rax, rax);
+
+					L("validPointer");
+					ret();
+				}
+			} drawableUnloadFix;
+
+			hook::nop(drawableDestructorLoc, 4);
+			hook::call_rcx(drawableDestructorLoc, drawableUnloadFix.GetCode());
+		}
+	}
 });
