@@ -13,3 +13,7 @@ void ADD_TEXT_ENTRY_BY_HASH(Hash entryKey, char* entryText);
 * **entryKey**: 
 * **entryText**: 
 
+## Examples
+```lua
+AddTextEntryByHash(GetHashKey("TEXT_KEY_1"), "Text Key 1")
+```
