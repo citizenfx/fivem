@@ -533,7 +533,8 @@ namespace fx
 				}
 
 				{
-					auto now = msec().count() - lastTime;
+					const auto currentTime = msec().count();
+					auto now = currentTime - lastTime;
 
 					if (now >= 150)
 					{
@@ -548,7 +549,7 @@ namespace fx
 
 					residualTime += now;
 
-					lastTime = msec().count();
+					lastTime = currentTime;
 
 					// intervals
 					if (residualTime > frameTime)
