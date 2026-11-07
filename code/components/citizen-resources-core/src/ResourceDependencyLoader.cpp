@@ -6,6 +6,56 @@
 #include <ResourceMetaDataComponent.h>
 #include <ResourceManagerConstraintsComponent.h>
 
+// Returns true if installed >= required using numeric segment comparison.
+// Segments are split on '.', compared as integers left-to-right, missing segments treated as 0.
+static bool IsVersionSufficient(const std::string& installed, const std::string& required)
+{
+	auto splitVersion = [](const std::string& ver)
+	{
+		std::vector<int> segments;
+		size_t start = 0;
+
+		while (start < ver.size())
+		{
+			auto dot = ver.find('.', start);
+			if (dot == std::string::npos)
+			{
+				dot = ver.size();
+			}
+
+			try
+			{
+				segments.push_back(std::stoi(ver.substr(start, dot - start)));
+			}
+			catch (...)
+			{
+				segments.push_back(0);
+			}
+
+			start = dot + 1;
+		}
+
+		return segments;
+	};
+
+	auto installedParts = splitVersion(installed);
+	auto requiredParts = splitVersion(required);
+	auto maxLen = std::max(installedParts.size(), requiredParts.size());
+
+	for (size_t i = 0; i < maxLen; i++)
+	{
+		int a = (i < installedParts.size()) ? installedParts[i] : 0;
+		int b = (i < requiredParts.size()) ? requiredParts[i] : 0;
+
+		if (a != b)
+		{
+			return a > b;
+		}
+	}
+
+	return true; // equal
+}
+
 static InitFunction initFunction([]()
 {
 	static std::multimap<std::string, std::string> resourceDependencies;
@@ -53,11 +103,22 @@ static InitFunction initFunction([]()
 						}
 					}
 
-					fwRefContainer<fx::Resource> other = manager->GetResource(dependency.second);
+					// Parse optional version constraint from "resourceName:version" format
+					std::string depName = dependency.second;
+					std::string requiredVersion;
+
+					auto colonPos = depName.find(':');
+					if (colonPos != std::string::npos)
+					{
+						requiredVersion = depName.substr(colonPos + 1);
+						depName = depName.substr(0, colonPos);
+					}
+
+					fwRefContainer<fx::Resource> other = manager->GetResource(depName);
 
 					if (!other.GetRef())
 					{
-						trace("Could not find dependency %s for resource %s.\n", dependency.second, resource->GetName());
+						trace("Could not find dependency %s for resource %s.\n", depName, resource->GetName());
 						return false;
 					}
 
@@ -66,19 +127,50 @@ static InitFunction initFunction([]()
 
 					if (other->GetState() == fx::ResourceState::Starting || other->GetState() == fx::ResourceState::Started)
 					{
-						continue;
+						// already running, skip to version check
+					}
+					else
+					{
+						bool success = other->Start();
+
+						if (!success)
+						{
+							trace("Could not start dependency %s for resource %s.\n", depName, resource->GetName());
+
+							// store for deferred use (e.g. build systems)
+							resourceDependencies.insert({ other->GetName(), resource->GetName() });
+
+							return false;
+						}
 					}
 
-					bool success = other->Start();
-
-					if (!success)
+					// Check minimum version constraint if specified
+					if (!requiredVersion.empty())
 					{
-						trace("Could not start dependency %s for resource %s.\n", dependency.second, resource->GetName());
+						auto otherMetaData = other->GetComponent<fx::ResourceMetaDataComponent>();
+						auto versionEntries = otherMetaData->GetEntries("version");
 
-						// store for deferred use (e.g. build systems)
-						resourceDependencies.insert({ other->GetName(), resource->GetName() });
+						bool hasVersion = false;
+						std::string installedVersion;
 
-						return false;
+						for (const auto& versionEntry : versionEntries)
+						{
+							hasVersion = true;
+							installedVersion = versionEntry.second;
+							break;
+						}
+
+						if (!hasVersion)
+						{
+							trace("Warning: resource %s requires %s ^3v%s^7, but %s does not specify a version.\n",
+								resource->GetName(), depName, requiredVersion, depName);
+						}
+						else if (!IsVersionSufficient(installedVersion, requiredVersion))
+						{
+							trace("Could not start resource %s: requires %s ^2v%s^7 or newer, but ^3v%s^7 is installed.\n",
+								resource->GetName(), depName, requiredVersion, installedVersion);
+							return false;
+						}
 					}
 				}
 
@@ -116,7 +208,7 @@ static InitFunction initFunction([]()
 
 			// copy in case the container gets mutated
 			std::set<std::pair<std::string, std::string>> deps(pendingDeps.first, pendingDeps.second);
-			
+
 			for (auto dep : deps)
 			{
 				auto dependant = manager->GetResource(dep.second);
