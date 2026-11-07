@@ -15,4 +15,22 @@ namespace game
 	GAMEINPUT_EXPORT bool IsControlKeyDown(int control);
 
 	GAMEINPUT_EXPORT void SetKeyMappingHideResources(bool hide);
+
+	struct BindingKeyInfo
+	{
+		std::string command;
+		std::string tag;
+		std::string description;
+		std::string keyName;
+		std::string sourceName;
+		uint32_t parameter;
+		bool found;
+		bool hasKey;
+	};
+
+	GAMEINPUT_EXPORT BindingKeyInfo GetBindingInfo(const std::string& command);
+
+	GAMEINPUT_EXPORT bool RebindCommand(const std::string& command, const std::string& sourceName, const std::string& keyName);
+
+	GAMEINPUT_EXPORT bool UnbindCommand(const std::string& command);
 }
