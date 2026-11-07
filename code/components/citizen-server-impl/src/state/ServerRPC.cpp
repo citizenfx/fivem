@@ -45,6 +45,31 @@ namespace fx
 eastl::fixed_vector<glm::vec3, 5> GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity);
 }
 
+// RPC natives accept a player's server ID in place of an entity handle and act on that player's ped.
+// A player without a ped (still connecting, loading or sitting in a character selection) resolves to 0,
+// which the callers treat the same as any other entity that doesn't exist.
+static int ResolvePlayerEntity(const fwRefContainer<fx::ClientRegistry>& clientRegistry, int entity)
+{
+	if (entity < 0x20000)
+	{
+		auto client = clientRegistry->GetClientByNetID(entity);
+
+		if (client)
+		{
+			try
+			{
+				return fx::AnyCast<uint32_t>(client->GetData("playerEntity"));
+			}
+			catch (std::bad_any_cast&)
+			{
+				return 0;
+			}
+		}
+	}
+
+	return entity;
+}
+
 static tbb::concurrent_unordered_map<uint32_t, std::list<std::tuple<uint64_t, net::Buffer>>> g_replayList;
 
 static InitFunction initFunction([]()
@@ -168,17 +193,7 @@ static InitFunction initFunction([]()
 					}
 					case RpcConfiguration::ArgumentType::Entity:
 					{
-						int cxtEntity = ctx.GetArgument<int>(ctxIdx);
-
-						if (cxtEntity < 0x20000)
-						{
-							auto client = clientRegistry->GetClientByNetID(cxtEntity);
-
-							if (client)
-							{
-								cxtEntity = fx::AnyCast<uint32_t>(client->GetData("playerEntity"));
-							}
-						}
+						int cxtEntity = ResolvePlayerEntity(clientRegistry, ctx.GetArgument<int>(ctxIdx));
 
 						contextId = cxtEntity;
 
@@ -373,20 +388,10 @@ static InitFunction initFunction([]()
 					{
 					case RpcConfiguration::ArgumentType::Entity:
 					{
-						int cxtEntity = ctx.GetArgument<int>(i);
+						int cxtEntity = ResolvePlayerEntity(clientRegistry, ctx.GetArgument<int>(i));
 
 						int entityHandle;
 
-						if (cxtEntity < 0x20000)
-						{
-							auto client = clientRegistry->GetClientByNetID(cxtEntity);
-
-							if (client)
-							{
-								cxtEntity = fx::AnyCast<uint32_t>(client->GetData("playerEntity"));
-							}
-						}
-						
 						fx::ScriptGuid* scriptGuid = g_scriptHandlePool->AtHandle(cxtEntity - 0x20000);
 
 						if (scriptGuid)
@@ -612,17 +617,7 @@ static InitFunction initFunction([]()
 					{
 					case RpcConfiguration::ArgumentType::Entity:
 					{
-						auto cxtEntity = contextRef;
-
-						if (cxtEntity < 0x20000)
-						{
-							auto client = clientRegistry->GetClientByNetID(cxtEntity);
-
-							if (client)
-							{
-								cxtEntity = fx::AnyCast<uint32_t>(client->GetData("playerEntity"));
-							}
-						}
+						auto cxtEntity = ResolvePlayerEntity(clientRegistry, contextRef);
 
 						contextRef = cxtEntity;
 
