@@ -26,6 +26,7 @@ extern nui::GameInterface* g_nuiGi;
 
 static bool g_hasFocus = false;
 static bool g_hasCursor = false;
+static bool g_isCursorHidden = false;
 bool g_keepInput = false;
 static bool g_hasOverriddenFocus = false;
 extern bool g_mainUIFlag;
@@ -140,6 +141,16 @@ namespace nui
 		return g_keepInput;
 	}
 
+	void SetCursorHidden(bool isHidden)
+	{
+		g_isCursorHidden = isHidden;
+	}
+
+	bool IsCursorHidden()
+	{
+		return g_isCursorHidden;
+	}
+
 	void GiveFocus(const std::string& frameName, bool hasFocus, bool hasCursor)
 	{
 		if (!HasFocus() && hasFocus)
@@ -153,6 +164,7 @@ namespace nui
 
 		g_hasFocus = hasFocus;
 		g_hasCursor = hasCursor;
+		g_isCursorHidden = false;
 	}
 
 	void OverrideFocus(bool hasFocus)
