@@ -353,6 +353,15 @@ premake.override(premake.vstudio.dotnetbase, 'debugProps', function(base, cfg)
 	_p(2,'<Optimize>%s</Optimize>', iif(premake.config.isOptimizedBuild(cfg), "true", "false"))
 end)
 
+premake.override(premake.vstudio.vc2010, 'globals', function(base, cfg, cond)
+	base(cfg, cond)
+
+	-- dunno who thought enabling vcpkg by default was a good idea
+	_p(1, '<PropertyGroup Label="Vcpkg">')
+    _p(2, '<VcpkgEnabled>false</VcpkgEnabled>')
+	_p(1, '</PropertyGroup>')
+end)
+
 premake.override(premake.vstudio.vc2010, 'ignoreImportLibrary', function(base, cfg)
 	if cfg.flags.NoImportLib then
 		premake.vstudio.vc2010.element("IgnoreImportLibrary", nil, "true")
