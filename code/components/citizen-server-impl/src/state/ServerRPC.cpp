@@ -132,7 +132,7 @@ static InitFunction initFunction([]()
 		{
 			// deprecated by ServerSetters
 #ifdef STATE_FIVE
-			if (native->GetName() == "CREATE_PED" || native->GetName() == "CREATE_OBJECT_NO_OFFSET")
+			if (native->GetName() == "CREATE_OBJECT_NO_OFFSET")
 			{
 				continue;
 			}
