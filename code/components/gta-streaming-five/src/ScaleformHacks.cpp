@@ -6,6 +6,7 @@
 #include <sfDefinitions.h>
 
 #include <CoreConsole.h>
+#include <GameInit.h>
 #include <Streaming.h>
 #include <CrossBuildRuntime.h>
 
@@ -106,6 +107,16 @@ static hook::cdecl_stub<GFxMovieRoot*(uint32_t movie)> _getScaleformMovie([]()
 
 static std::map<int, std::shared_ptr<GFxValue>> g_overlayClips;
 
+static void DetachMinimapOverlayClips()
+{
+	for (const auto& [swfId, clip] : g_overlayClips)
+	{
+		clip->Detach();
+	}
+
+	g_overlayClips.clear();
+}
+
 class OverlayMethodFunctionHandler : public GFxFunctionHandler
 {
 public:
@@ -118,15 +129,15 @@ public:
 
 		int movieId = static_cast<int>(params.pArgs[0].GetNumber());
 
-		auto& clipVal = g_overlayClips[movieId];
+		auto clipIt = g_overlayClips.find(movieId);
 
-		if (clipVal)
+		if (clipIt != g_overlayClips.end())
 		{
 			const char* fn = params.pArgs[1].GetString();
 
 			GFxValue pTimeline;
 
-			if (clipVal->GetMember("TIMELINE", &pTimeline))
+			if (clipIt->second->GetMember("TIMELINE", &pTimeline))
 			{
 				pTimeline.Invoke(va("%s", fn), params.pRetVal, &params.pArgs[2], params.ArgCount - 2);
 			}
@@ -143,8 +154,10 @@ static uint32_t* g_gfxId;
 static void SetupTerritories()
 {
 	g_origSetupTerritories();
-	
-	overlayRootClip = {};
+
+	DetachMinimapOverlayClips();
+
+	overlayRootClip.Detach();
 
 	g_foregroundOverlay3D->CreateEmptyMovieClip(&overlayRootClip, "asTestClip3D", -1);
 
@@ -167,6 +180,16 @@ struct MinimapOverlayLoadRequest
 static std::map<std::string, MinimapOverlayLoadRequest> g_minimapOverlayLoadQueue;
 static std::set<int> g_minimapOverlayRemoveQueue;
 static int g_minimapOverlaySwfId;
+
+static void ResetMinimapOverlayState()
+{
+	DetachMinimapOverlayClips();
+
+	overlayRootClip.Detach();
+
+	g_minimapOverlayLoadQueue.clear();
+	g_minimapOverlayRemoveQueue.clear();
+}
 
 static hook::cdecl_stub<void(const char*, bool)> _gfxPushString([]()
 {
@@ -218,9 +241,9 @@ namespace sf
 
 	void SetMinimapOverlayDisplay(int minimap, float x, float y, float xScale, float yScale, float alpha)
 	{
-		auto& clip = g_overlayClips[minimap];
+		auto clipIt = g_overlayClips.find(minimap);
 
-		if (clip)
+		if (clipIt != g_overlayClips.end())
 		{
 			GFxValue::DisplayInfo dispInfo;
 			dispInfo.VarsSet = 0x1 | 0x2 | 0x8 | 0x10 | 0x20; // x, y, xscale, yscale, alpha
@@ -230,7 +253,7 @@ namespace sf
 			dispInfo.YScale = yScale;
 			dispInfo.Alpha = alpha;
 
-			clip->SetDisplayInfo(dispInfo);
+			clipIt->second->SetDisplayInfo(dispInfo);
 		}
 	}
 }
@@ -279,42 +302,55 @@ static HookFunction hookFunction([]()
 {
 	OnMainGameFrame.Connect([]()
 	{
-		std::set<std::string> toRemoveFromMinimapOverlayLoadQueue;
-
-		auto cstreaming = streaming::Manager::GetInstance();
-
-		for (const auto& [gfxFileName, request] : g_minimapOverlayLoadQueue)
+		if (overlayRootClip.HasObjectInterface())
 		{
-			auto swf = std::make_shared<GFxValue>();
+			std::set<std::string> toRemoveFromMinimapOverlayLoadQueue;
 
-			auto instanceName = va("id%d", request.sfwId);
+			for (const auto& [gfxFileName, request] : g_minimapOverlayLoadQueue)
+			{
+				auto swf = std::make_shared<GFxValue>();
 
-			overlayRootClip.CreateEmptyMovieClip(swf.get(), instanceName, request.depth);
+				auto instanceName = va("id%d", request.sfwId);
 
-			GFxValue result;
-			GFxValue args(gfxFileName.c_str());
+				overlayRootClip.CreateEmptyMovieClip(swf.get(), instanceName, request.depth);
 
-			swf->Invoke("loadMovie", &result, &args, 1);
+				GFxValue result;
+				GFxValue args(gfxFileName.c_str());
 
-			g_overlayClips[request.sfwId] = swf;
+				swf->Invoke("loadMovie", &result, &args, 1);
 
-			toRemoveFromMinimapOverlayLoadQueue.insert(gfxFileName);
-		}
+				g_overlayClips[request.sfwId] = swf;
 
-		for (const auto& gfxFileName : toRemoveFromMinimapOverlayLoadQueue)
-		{
-			g_minimapOverlayLoadQueue.erase(gfxFileName);
+				toRemoveFromMinimapOverlayLoadQueue.insert(gfxFileName);
+			}
+
+			for (const auto& gfxFileName : toRemoveFromMinimapOverlayLoadQueue)
+			{
+				g_minimapOverlayLoadQueue.erase(gfxFileName);
+			}
 		}
 
 		for (int swfId : g_minimapOverlayRemoveQueue)
 		{
-			if (auto swf = g_overlayClips[swfId]; swf)
+			for (auto it = g_minimapOverlayLoadQueue.begin(); it != g_minimapOverlayLoadQueue.end();)
 			{
-				swf->Invoke("removeMovieClip", nullptr, nullptr, 0);
+				it = (it->second.sfwId == swfId) ? g_minimapOverlayLoadQueue.erase(it) : std::next(it);
+			}
+
+			if (auto clipIt = g_overlayClips.find(swfId); clipIt != g_overlayClips.end())
+			{
+				clipIt->second->Invoke("removeMovieClip", nullptr, nullptr, 0);
+
+				g_overlayClips.erase(clipIt);
 			}
 		}
 
 		g_minimapOverlayRemoveQueue.clear();
+	});
+
+	OnKillNetworkDone.Connect([]()
+	{
+		ResetMinimapOverlayState();
 	});
 
 	{
