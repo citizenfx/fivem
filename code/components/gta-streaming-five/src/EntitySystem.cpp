@@ -301,6 +301,11 @@ static const rage::fwModelId InvalidModelId;
 
 const rage::fwModelId& rage::fwArchetypeManager::LookupModelId(fwArchetype* archetype)
 {
+	if (!archetype)
+	{
+		return InvalidModelId;
+	}
+
 	if (!ValidateArchetype(archetype))
 	{
 		// In a perfect world this would never fail.

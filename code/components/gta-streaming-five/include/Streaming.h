@@ -2,6 +2,8 @@
 
 #include <atArray.h>
 
+#include <mutex>
+
 #if defined(COMPILING_GTA_STREAMING_FIVE) || defined(COMPILING_GTA_STREAMING_RDR3)
 #define STREAMING_EXPORT DLL_EXPORT
 #else
@@ -276,6 +278,9 @@ public:
 
 	// are we trying to shut down?
 	STREAMING_EXPORT bool IsStreamerShuttingDown();
+
+	// held on the main thread while a data file is being mounted or unmounted
+	STREAMING_EXPORT std::recursive_mutex& GetDataFileMountMutex();
 
 	atArray<StreamingPackfileEntry>& GetStreamingPackfileArray();
 
