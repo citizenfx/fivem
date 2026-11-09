@@ -118,7 +118,7 @@ static std::mutex g_trackJunctionLock;
 
 static bool IsTrackJunctionIdValid(int junctionIndex)
 {
-	return junctionIndex > 0 && junctionIndex < g_maxTrackJunctions && g_trackJunctions.find(junctionIndex) != g_trackJunctions.end();
+	return junctionIndex > 0 && junctionIndex <= g_maxTrackJunctions && g_trackJunctions.find(junctionIndex) != g_trackJunctions.end();
 }
 
 static int reserveJunctionID()
@@ -185,11 +185,17 @@ static int32_t FindClosestTrack(rage::Vector3& position, int8_t* outTrack)
 static std::vector<scrTrackNodeInfo> GetTrackNodesInRadius(const float& x, const float& y, const float& z, float radius, bool includeDisabledTracks = false)
 {
 	std::vector<scrTrackNodeInfo> nearbyNodes;
+	if (radius < 0.0f)
+	{
+		return nearbyNodes;
+	}
+	const float radiusSquared = radius * radius;
+
 	for (int8_t i = 0; i < rage::CTrainTrack::kMaxTracks; i++)
 	{
 		rage::CTrainTrack* track = CTrainTrack__getTrainTrack(i);
 
-		if (!track || (includeDisabledTracks && !track->m_enabled))
+		if (!track || (!includeDisabledTracks && !track->m_enabled))
 		{
 			continue;
 		}
@@ -200,7 +206,7 @@ static std::vector<scrTrackNodeInfo> GetTrackNodesInRadius(const float& x, const
 
 			float distance = CalculateDistance(x, y, z, node.m_x, node.m_y, node.m_z);
 
-			if (distance <= radius)
+			if (distance <= radiusSquared)
 			{
 				nearbyNodes.push_back({ n, i });
 			}
@@ -265,7 +271,7 @@ template<int ArgumentIndex>
 static rage::CTrainTrack* GetAndCheckTrack(fx::ScriptContext& context, std::string_view nn)
 {
 	int trackIndex = context.GetArgument<int>(ArgumentIndex);
-	if (trackIndex < 0 || trackIndex > rage::CTrainTrack::kMaxTracks)
+	if (trackIndex < 0 || trackIndex >= rage::CTrainTrack::kMaxTracks)
 	{
 		fx::scripting::Warningf("natives", "%s: Invalid track index %i\n", nn, trackIndex);
 		context.SetResult(0);

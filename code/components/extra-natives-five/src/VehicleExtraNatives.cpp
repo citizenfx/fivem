@@ -1890,8 +1890,8 @@ static HookFunction initFunction([]()
 			virtual void InternalMain() override
 			{
 				// original code
-				movss(dword_ptr[rbp - colorPreset1Offset], xmm2);
-				movss(dword_ptr[rbp - colorPreset2Offset], xmm1);
+				movss(dword_ptr[rbp + colorPreset1Offset], xmm2);
+				movss(dword_ptr[rbp + colorPreset2Offset], xmm1);
 
 				// save registers
 				push(rax);
@@ -1902,7 +1902,7 @@ static HookFunction initFunction([]()
 				sub(rsp, 0x28);
 
 				// prepare arguments
-				mov(rcx, xbr::IsGameBuildOrGreater<3889>() ? rdi : rsi); // vehicle
+				mov(rcx, xbr::IsGameBuildOrGreater<xbr::Build::Patch_2026_1>() ? rdi : rsi); // vehicle
 				lea(rdx, dword_ptr[rbp + coneRGBOffset]); // float rgb for light cones
 				lea(r8, dword_ptr[rbp + coneARGBOffset]); // uint argb for light flares
 
