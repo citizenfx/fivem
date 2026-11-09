@@ -5,6 +5,7 @@
 #include <mmsystem.h>
 
 #include <mutex>
+#include <atomic>
 #include <optional>
 #include <variant>
 #include <charconv>
@@ -858,9 +859,20 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 
 		auto handle = std::make_shared<HandleContainer>(this, data->handle);
 		auto hd = GetHandle(handle->hdl);
-		auto cb = data->onRead;
+		auto stream = hd ? hd->bulkStream : nullptr;
+		auto notified = std::make_shared<std::atomic<bool>>(false);
+		auto cb = [notified, callback = data->onRead](bool success, const std::string& error)
+		{
+			// A ready failed task can throw from EnsureRead and also complete its
+			// continuation. Never notify the loader twice: the first notification
+			// may already have cancelled and recycled its request slot.
+			if (!notified->exchange(true))
+			{
+				callback(success, error);
+			}
+		};
 
-		tp_work work{ [this, handle, hd, cb]()
+		tp_work work{ [this, handle, stream, cb]()
 			{
 				{
 					THandle hdl;
@@ -871,20 +883,30 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 					}
 				}
 
+				if (!stream)
+				{
+					cb(false, "Invalid resource cache bulk handle");
+					return;
+				}
+
 				try
 				{
-					hd->bulkStream->EnsureRead([this, handle, cb](bool success, const std::string& error)
+					if (stream->EnsureRead([handle, cb](bool success, const std::string& error)
 					{
 						cb(success, error);
-					});
+					}))
+					{
+						cb(true, {});
+					}
 				}
-				catch (const resources::RcdFetchFailedException& e)
+				catch (const std::exception& e)
 				{
 					cb(false, e.what());
 				}
 			} };
 
 		work.post();
+		return true;
 	}
 	else if (controlIdx == VFS_GET_DEVICE_LAST_ERROR)
 	{
