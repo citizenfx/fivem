@@ -87,6 +87,11 @@ public:
 		return -1;
 	}
 
+	virtual uint64_t OpenBulkWrap(const char* fileName, uint64_t* ptr, void*) override
+	{
+		return OpenBulk(fileName, ptr);
+	}
+
 	virtual uint32_t GetFileAttributes(const char* path) override
 	{
 		if (IsApproved(path))
