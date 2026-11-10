@@ -145,32 +145,24 @@ public:
 private:
 	void SetKeyInternal(int source, std::string_view key, std::string_view data, bool replicated);
 
-	// calls fn for every peer this state bag replicates to
-	// the data stays locked (shared) for the whole run, so a write can't slip in between what fn reads and what it sends
+	// calls fn with the set of peers this state bag replicates to
+	// the data stays locked (shared) for the whole call, so a write can't slip in between what fn reads and what it sends
 	template<typename TFn>
-	void ForEachTarget(TFn&& fn)
+	void WithTargets(TFn&& fn)
 	{
 		if (m_useParentTargets)
 		{
 			auto [lock, refTargets] = m_parent->GetTargets();
-			auto targets = refTargets.get();
-
 			std::shared_lock dataLock(m_dataMutex);
 
-			for (int target : targets)
-			{
-				fn(target);
-			}
+			fn(refTargets.get());
 		}
 		else
 		{
 			std::shared_lock _(m_routingTargetsMutex);
 			std::shared_lock dataLock(m_dataMutex);
 
-			for (int target : m_routingTargets)
-			{
-				fn(target);
-			}
+			fn(m_routingTargets);
 		}
 	}
 
@@ -370,16 +362,21 @@ void StateBagImpl::SetKeyPrivate(std::string_view key, bool isPrivate)
 	}
 
 	// a value that is already set gets hidden from, or revealed to, everyone but the owning peer
-	ForEachTarget([this, key, isPrivate](int target)
+	WithTargets([this, key, isPrivate](const auto& targets)
 	{
-		if (target == m_owningPeer)
+		const auto it = m_data.find(key);
+
+		if (it == m_data.end())
 		{
 			return;
 		}
 
-		if (auto it = m_data.find(key); it != m_data.end())
+		for (int target : targets)
 		{
-			SendKeyValue(target, key, isPrivate ? std::string_view{ &MsgPackNil, 1 } : std::string_view{ it->second });
+			if (target != m_owningPeer)
+			{
+				SendKeyValue(target, key, isPrivate ? std::string_view{ &MsgPackNil, 1 } : std::string_view{ it->second });
+			}
 		}
 	});
 }
@@ -406,19 +403,29 @@ void StateBagImpl::SetOwningPeer(std::optional<int> peer)
 		}
 	}
 
-	// private keys follow the owner: the new owner learns them, the previous owner forgets them
-	ForEachTarget([&](int target)
+	// private keys follow the owner: the previous owner forgets them, the new owner learns them
+	WithTargets([&](const auto& targets)
 	{
-		if (target != peer && target != oldPeer)
-		{
-			return;
-		}
+		const bool toOldPeer = oldPeer && targets.count(*oldPeer) != 0;
+		const bool toNewPeer = peer && targets.count(*peer) != 0;
 
 		for (const auto& key : m_privateKeys)
 		{
-			if (auto it = m_data.find(key); it != m_data.end())
+			const auto it = m_data.find(key);
+
+			if (it == m_data.end())
 			{
-				SendKeyValue(target, key, (target == peer) ? std::string_view{ it->second } : std::string_view{ &MsgPackNil, 1 });
+				continue;
+			}
+
+			if (toOldPeer)
+			{
+				SendKeyValue(*oldPeer, key, std::string_view{ &MsgPackNil, 1 });
+			}
+
+			if (toNewPeer)
+			{
+				SendKeyValue(*peer, key, it->second);
 			}
 		}
 	});
@@ -492,10 +499,20 @@ void StateBagImpl::SendAllInitial(int target)
 
 void StateBagImpl::SendKeyValueToAllTargets(std::string_view key, std::string_view value)
 {
-	ForEachTarget([this, key, value](int target)
+	WithTargets([this, key, value](const auto& targets)
 	{
-		// a private key only goes to the owning peer
-		if (target == m_owningPeer || m_privateKeys.count(key) == 0)
+		// a private key only goes to the owning peer, and only while the state bag replicates to that peer
+		if (m_privateKeys.count(key) != 0)
+		{
+			if (m_owningPeer && targets.count(*m_owningPeer) != 0)
+			{
+				SendKeyValue(*m_owningPeer, key, value);
+			}
+
+			return;
+		}
+
+		for (int target : targets)
 		{
 			SendKeyValue(target, key, value);
 		}

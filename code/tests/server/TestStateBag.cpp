@@ -274,6 +274,14 @@ TEST_CASE("State Bag private keys")
 		REQUIRE(testInterface.sent == std::vector<SentKey>{ { 2, "public", "two" } });
 	}
 
+	SECTION("a private key is not sent to an owning peer the state bag does not replicate to")
+	{
+		stateBag->SetOwningPeer(5);
+		stateBag->SetKey(0, "secret", "one");
+
+		REQUIRE(testInterface.sent.empty());
+	}
+
 	SECTION("a peer that takes over the ID of a dropped owner does not receive private keys")
 	{
 		stateBag->SetKey(0, "secret", "one");
