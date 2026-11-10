@@ -158,3 +158,119 @@ TEST_CASE("State Bag handler v2 test")
 	REQUIRE(stateBag->HasKey(testKey) == true);
 	REQUIRE(stateBag->GetKey(testKey) == testData);
 }
+
+struct SentKey
+{
+	int peer;
+	std::string key;
+	std::string value;
+
+	bool operator==(const SentKey& other) const
+	{
+		return peer == other.peer && key == other.key && value == other.value;
+	}
+};
+
+// records every key a server state bag sends, and to which peer
+class RecordingInterface : public fx::StateBagGameInterface
+{
+public:
+	std::vector<SentKey> sent;
+
+	void SendPacket(int peer, net::packet::StateBagPacket& packet) override
+	{
+		const std::string_view data = packet.data.data.GetValue();
+		rl::MessageBuffer buffer{ reinterpret_cast<const uint8_t*>(data.data()), data.size() };
+
+		auto readStr = [&buffer]()
+		{
+			uint16_t length = 0;
+			buffer.Read<uint16_t>(16, &length);
+
+			std::string str(length - 1, '\0');
+			buffer.ReadBits(str.data(), str.size() * 8);
+			buffer.Read<uint8_t>(8);
+
+			return str;
+		};
+
+		readStr(); // bag name
+		auto key = readStr();
+
+		std::string value(data.size() - (buffer.GetCurrentBit() / 8), '\0');
+		buffer.ReadBits(value.data(), value.size() * 8);
+
+		sent.push_back({ peer, std::move(key), std::move(value) });
+	}
+
+	void SendPacket(int peer, net::packet::StateBagV2Packet& packet) override
+	{
+	}
+};
+
+TEST_CASE("State Bag private keys")
+{
+	const std::string nil{ "\xc0" };
+
+	auto stateBagComponent = fx::StateBagComponent::Create(fx::StateBagRole::Server);
+	RecordingInterface testInterface;
+	stateBagComponent->SetGameInterface(&testInterface);
+
+	// peer 1 owns the state bag, peer 2 only has it in scope
+	auto stateBag = stateBagComponent->RegisterStateBag("player:1");
+	stateBag->SetOwningPeer(1);
+	stateBag->AddRoutingTarget(1);
+	stateBag->AddRoutingTarget(2);
+
+	stateBag->SetKeyPrivate("secret", true);
+
+	SECTION("a private key is only sent to the owning peer")
+	{
+		stateBag->SetKey(0, "secret", "one");
+		stateBag->SetKey(0, "public", "two");
+
+		REQUIRE(testInterface.sent == std::vector<SentKey>{ { 1, "secret", "one" }, { 1, "public", "two" }, { 2, "public", "two" } });
+	}
+
+	SECTION("a write by the owning peer is not relayed to other peers")
+	{
+		stateBag->SetKey(1, "secret", "one");
+
+		REQUIRE(testInterface.sent == std::vector<SentKey>{ { 1, "secret", "one" } });
+	}
+
+	SECTION("a new routing target does not receive private keys")
+	{
+		stateBag->SetKey(0, "secret", "one");
+		stateBag->SetKey(0, "public", "two");
+		testInterface.sent.clear();
+
+		stateBag->AddRoutingTarget(3);
+
+		REQUIRE(testInterface.sent == std::vector<SentKey>{ { 3, "public", "two" } });
+	}
+
+	SECTION("private keys follow the owning peer")
+	{
+		stateBag->SetKey(0, "secret", "one");
+		testInterface.sent.clear();
+
+		stateBag->SetOwningPeer(2);
+
+		REQUIRE(testInterface.sent == std::vector<SentKey>{ { 1, "secret", nil }, { 2, "secret", "one" } });
+	}
+
+	SECTION("changing the mode of a key with a value hides or reveals it")
+	{
+		stateBag->SetKey(0, "public", "two");
+		testInterface.sent.clear();
+
+		stateBag->SetKeyPrivate("public", true);
+		REQUIRE(testInterface.sent == std::vector<SentKey>{ { 2, "public", nil } });
+
+		testInterface.sent.clear();
+
+		stateBag->SetKeyPrivate("public", false);
+		REQUIRE(testInterface.sent == std::vector<SentKey>{ { 2, "public", "two" } });
+	}
+}

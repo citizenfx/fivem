@@ -120,6 +120,7 @@ public:
 	virtual bool HasKey(std::string_view key) override;
 	virtual std::vector<std::string> GetKeys() override;
 	virtual void SetKey(int source, std::string_view key, std::string_view data, bool replicated = true) override;
+	virtual void SetKeyPrivate(std::string_view key, bool isPrivate) override;
 	virtual void SetRoutingTargets(const std::set<int>& peers) override;
 
 	virtual void AddRoutingTarget(int peer) override;
@@ -143,6 +144,35 @@ public:
 private:
 	void SetKeyInternal(int source, std::string_view key, std::string_view data, bool replicated);
 
+	// calls fn for every peer this state bag replicates to
+	// the data stays locked (shared) for the whole run, so a write can't slip in between what fn reads and what it sends
+	template<typename TFn>
+	void ForEachTarget(TFn&& fn)
+	{
+		if (m_useParentTargets)
+		{
+			auto [lock, refTargets] = m_parent->GetTargets();
+			auto targets = refTargets.get();
+
+			std::shared_lock dataLock(m_dataMutex);
+
+			for (int target : targets)
+			{
+				fn(target);
+			}
+		}
+		else
+		{
+			std::shared_lock _(m_routingTargetsMutex);
+			std::shared_lock dataLock(m_dataMutex);
+
+			for (int target : m_routingTargets)
+			{
+				fn(target);
+			}
+		}
+	}
+
 private:
 	StateBagComponentImpl* m_parent;
 	bool m_useParentTargets;
@@ -152,10 +182,13 @@ private:
 	std::shared_mutex m_routingTargetsMutex;
 	std::set<int> m_routingTargets;
 
-	std::optional<int> m_owningPeer;
+	std::optional<int> m_owningPeer; // guarded by m_dataMutex
 
 	std::shared_mutex m_dataMutex;
 	std::map<std::string, std::string, std::less<>> m_data;
+
+	// keys that are only replicated to the owning peer, guarded by m_dataMutex
+	std::set<std::string, std::less<>> m_privateKeys;
 
 	std::atomic<bool> m_replicationEnabled; //< #TODO: potentially remove this once the throttling system is in place
 	std::mutex m_replicateDataMutex;
@@ -320,14 +353,74 @@ void StateBagImpl::SetKeyInternal(int source, std::string_view key, std::string_
 	}
 }
 
+void StateBagImpl::SetKeyPrivate(std::string_view key, bool isPrivate)
+{
+	{
+		std::unique_lock _(m_dataMutex);
+
+		const bool changed = isPrivate
+			? m_privateKeys.emplace(key).second
+			: m_privateKeys.erase(std::string{ key }) != 0;
+
+		if (!changed)
+		{
+			return;
+		}
+	}
+
+	// a value that is already set gets hidden from, or revealed to, everyone but the owning peer
+	ForEachTarget([this, key, isPrivate](int target)
+	{
+		if (target == m_owningPeer)
+		{
+			return;
+		}
+
+		if (auto it = m_data.find(key); it != m_data.end())
+		{
+			SendKeyValue(target, key, isPrivate ? std::string_view{ &MsgPackNil, 1 } : std::string_view{ it->second });
+		}
+	});
+}
+
 std::optional<int> StateBagImpl::GetOwningPeer()
 {
+	std::shared_lock _(m_dataMutex);
 	return m_owningPeer;
 }
 
 void StateBagImpl::SetOwningPeer(std::optional<int> peer)
 {
-	m_owningPeer = peer;
+	std::optional<int> oldPeer;
+
+	{
+		std::unique_lock _(m_dataMutex);
+
+		oldPeer = m_owningPeer;
+		m_owningPeer = peer;
+
+		if (oldPeer == peer || m_privateKeys.empty())
+		{
+			return;
+		}
+	}
+
+	// private keys follow the owner: the new owner learns them, the previous owner forgets them
+	ForEachTarget([&](int target)
+	{
+		if (target != peer && target != oldPeer)
+		{
+			return;
+		}
+
+		for (const auto& key : m_privateKeys)
+		{
+			if (auto it = m_data.find(key); it != m_data.end())
+			{
+				SendKeyValue(target, key, (target == peer) ? std::string_view{ it->second } : std::string_view{ &MsgPackNil, 1 });
+			}
+		}
+	});
 }
 
 void StateBagImpl::EnableImmediateReplication(bool enabled)
@@ -360,6 +453,12 @@ void StateBagImpl::SendAll(int target)
 
 		for (auto& [ key, value ] : m_data)
 		{
+			// a private key only goes to the owning peer
+			if (target != m_owningPeer && m_privateKeys.count(key) != 0)
+			{
+				continue;
+			}
+
 			SendKeyValue(target, key, value);
 		}
 	}
@@ -380,25 +479,14 @@ void StateBagImpl::SendAllInitial(int target)
 
 void StateBagImpl::SendKeyValueToAllTargets(std::string_view key, std::string_view value)
 {
-	if (m_useParentTargets)
+	ForEachTarget([this, key, value](int target)
 	{
-		auto [lock, refTargets] = m_parent->GetTargets();
-		auto targets = refTargets.get();
-
-		for (int target : targets)
+		// a private key only goes to the owning peer
+		if (target == m_owningPeer || m_privateKeys.count(key) == 0)
 		{
 			SendKeyValue(target, key, value);
 		}
-	}
-	else
-	{
-		std::shared_lock _(m_routingTargetsMutex);
-
-		for (int target : m_routingTargets)
-		{
-			SendKeyValue(target, key, value);
-		}
-	}
+	});
 }
 
 void StateBagImpl::SendKeyValue(int target, std::string_view key, std::string_view value)

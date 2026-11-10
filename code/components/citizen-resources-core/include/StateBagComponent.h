@@ -119,6 +119,11 @@ public:
 	// Returns all the keys that the state bag has data for
 	//
 	virtual std::vector<std::string> GetKeys() = 0;
+
+	//
+	// Marks a key as private or public. A private key is only replicated to the owning peer.
+	//
+	virtual void SetKeyPrivate(std::string_view key, bool isPrivate) = 0;
 };
 
 class CRC_EXPORT StateBagComponent : public fwRefCountable, public IAttached<ResourceManager>
