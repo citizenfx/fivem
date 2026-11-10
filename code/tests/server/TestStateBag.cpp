@@ -273,4 +273,17 @@ TEST_CASE("State Bag private keys")
 		stateBag->SetKeyPrivate("public", false);
 		REQUIRE(testInterface.sent == std::vector<SentKey>{ { 2, "public", "two" } });
 	}
+
+	SECTION("a peer that takes over the ID of a dropped owner does not receive private keys")
+	{
+		stateBag->SetKey(0, "secret", "one");
+
+		// the owner drops, and its ID goes to a new peer while the state bag is still around
+		stateBagComponent->UnregisterTarget(1);
+		testInterface.sent.clear();
+
+		stateBag->AddRoutingTarget(1);
+
+		REQUIRE(testInterface.sent.empty());
+	}
 }

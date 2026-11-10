@@ -128,6 +128,7 @@ public:
 
 	std::optional<int> GetOwningPeer();
 	virtual void SetOwningPeer(std::optional<int> peer) override;
+	void DisownPeer(int peer);
 
 	// #TODO: potentially remove this once the throttling system is in place
 	virtual void EnableImmediateReplication(bool enabled) override;
@@ -423,6 +424,18 @@ void StateBagImpl::SetOwningPeer(std::optional<int> peer)
 	});
 }
 
+void StateBagImpl::DisownPeer(int peer)
+{
+	std::unique_lock _(m_dataMutex);
+
+	// peer IDs get reused, and the next peer with this ID must not inherit the private keys
+	// -1 and not nullopt, as a state bag without an owner accepts writes from every peer
+	if (m_owningPeer == peer)
+	{
+		m_owningPeer = -1;
+	}
+}
+
 void StateBagImpl::EnableImmediateReplication(bool enabled)
 {
 	m_replicationEnabled = enabled;
@@ -688,6 +701,7 @@ void StateBagComponentImpl::UnregisterTarget(int id)
 		if (b)
 		{
 			b->RemoveRoutingTarget(id);
+			b->DisownPeer(id);
 		}
 	}
 }
