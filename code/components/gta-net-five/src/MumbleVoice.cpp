@@ -649,6 +649,9 @@ static std::bitset<256> o_talkers;
 
 static std::unordered_map<std::string, int> g_userNamesToClientIds;
 
+// talker server id -> server id of the player whose ped they are heard from
+static std::unordered_map<int, int> g_positionSourceOverrides;
+
 static auto PositionHook(const std::string& userName) -> std::optional<std::array<float, 3>>
 {
 	auto it = g_userNamesToClientIds.find(userName);
@@ -675,7 +678,14 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 		static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(0x275F255ED201B937);
 #endif
 
-		auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, it->second);
+		int serverId = it->second;
+
+		if (auto sourceIt = g_positionSourceOverrides.find(serverId); sourceIt != g_positionSourceOverrides.end())
+		{
+			serverId = sourceIt->second;
+		}
+
+		auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, serverId);
 
 		if (playerId < 256 && playerId != -1)
 		{
@@ -721,6 +731,7 @@ static HookFunction initFunction([]()
 
 		Mumble_Disconnect();
 		o_talkers.reset();
+		g_positionSourceOverrides.clear();
 
 		g_voiceActiveByScript = true;
 	});
@@ -1056,6 +1067,64 @@ static HookFunction hookFunction([]()
 			float volume = context.GetArgument<float>(1);
 
 			g_mumbleClient->SetClientVolumeOverrideByServerId(serverId, volume);
+		}));
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_POSITION_OVERRIDE_BY_SERVER_ID", MakeMumbleNative([](fx::ScriptContext& context)
+		{
+			int serverId = context.GetArgument<int>(0);
+			float x = context.GetArgument<float>(1);
+			float y = context.GetArgument<float>(2);
+			float z = context.GetArgument<float>(3);
+			float range = context.GetArgument<float>(4);
+
+			if (range <= 0.0f)
+			{
+				fx::scripting::Warningf("mumble", "MUMBLE_SET_POSITION_OVERRIDE_BY_SERVER_ID: range must be greater than 0");
+				return;
+			}
+
+			MumblePositionOverride positionOverride;
+			// Mumble positions use (x, z, y), matching PositionHook
+			positionOverride.position = std::array<float, 3>{ x, z, y };
+			positionOverride.range = range;
+
+			g_positionSourceOverrides.erase(serverId);
+			g_mumbleClient->SetClientPositionOverrideByServerId(serverId, positionOverride);
+		}));
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_POSITION_OVERRIDE_TO_PLAYER_BY_SERVER_ID", MakeMumbleNative([](fx::ScriptContext& context)
+		{
+			int serverId = context.GetArgument<int>(0);
+			int sourceServerId = context.GetArgument<int>(1);
+			float range = context.GetArgument<float>(2);
+
+			if (range <= 0.0f)
+			{
+				fx::scripting::Warningf("mumble", "MUMBLE_SET_POSITION_OVERRIDE_TO_PLAYER_BY_SERVER_ID: range must be greater than 0");
+				return;
+			}
+
+			if (sourceServerId < 0)
+			{
+				fx::scripting::Warningf("mumble", "MUMBLE_SET_POSITION_OVERRIDE_TO_PLAYER_BY_SERVER_ID: invalid source server id");
+				return;
+			}
+
+			MumblePositionOverride positionOverride;
+			positionOverride.sourceServerId = sourceServerId;
+			positionOverride.range = range;
+
+			// PositionHook resolves the source player's ped for the position
+			g_positionSourceOverrides[serverId] = sourceServerId;
+			g_mumbleClient->SetClientPositionOverrideByServerId(serverId, positionOverride);
+		}));
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_CLEAR_POSITION_OVERRIDE_BY_SERVER_ID", MakeMumbleNative([](fx::ScriptContext& context)
+		{
+			int serverId = context.GetArgument<int>(0);
+
+			g_positionSourceOverrides.erase(serverId);
+			g_mumbleClient->SetClientPositionOverrideByServerId(serverId, std::nullopt);
 		}));
 
 		static VoiceTargetConfig vtConfigs[31];

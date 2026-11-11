@@ -19,6 +19,7 @@
 
 #include <CoreConsole.h>
 
+#include <atomic>
 #include <regex>
 
 #include <MumbleAudioSink.h>
@@ -1839,6 +1840,7 @@ public:
 	virtual void SetPosition(float position[3], float distance, float overrideVolume) override;
 	virtual void PushAudio(int16_t* pcm, int len) override;
 	virtual bool IsTalkingAt(float distance) override;
+	virtual void SetPositionOverride(bool overridden, int sourceServerId) override;
 
 	void Reset();
 
@@ -1856,6 +1858,9 @@ private:
 	float m_distance;
 	float m_overrideVolume;
 	float m_lastOverrideVolume = -1.0f;
+
+	std::atomic<bool> m_positionOverridden{ false };
+	std::atomic<int> m_positionSourceServerId{ -1 };
 
 	int m_lastSubmixId = -1;
 	int m_lastPed = -1;
@@ -1932,6 +1937,12 @@ void MumbleAudioSink::SetPosition(float position[3], float distance, float overr
 	m_overrideVolume = overrideVolume;
 }
 
+void MumbleAudioSink::SetPositionOverride(bool overridden, int sourceServerId)
+{
+	m_positionSourceServerId = sourceServerId;
+	m_positionOverridden = overridden;
+}
+
 void MumbleAudioSink::PushAudio(int16_t* pcm, int len)
 {
 	std::lock_guard _(m_entity_mutex);
@@ -2004,14 +2015,33 @@ void MumbleAudioSink::Process()
 
 	// @TODO: Refactor logic to reduce lock scope. Only required at MInit at the moment
 	std::lock_guard _(m_entity_mutex);
-	if (isNoPlayer && m_overrideVolume <= 0.0f)
+	const bool positionOverridden = m_positionOverridden;
+	const int positionSourceServerId = m_positionSourceServerId;
+
+	// a position override keeps the talker audible even when they are outside our player scope
+	if (isNoPlayer && m_overrideVolume <= 0.0f && !positionOverridden)
 	{
 		m_entity = {};
 		m_lastPed = -1;
 	}
 	else
 	{
-		auto ped = (!isNoPlayer) ? FxNativeInvoke::Invoke<int>(getPlayerPed, playerId) : 0;
+		int ped = 0;
+
+		if (!positionOverridden)
+		{
+			ped = (!isNoPlayer) ? FxNativeInvoke::Invoke<int>(getPlayerPed, playerId) : 0;
+		}
+		else if (positionSourceServerId >= 0)
+		{
+			// follow the source player's ped; without one, play at the position from SetPosition
+			auto sourcePlayerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, positionSourceServerId);
+
+			if (sourcePlayerId < 256 && sourcePlayerId != -1)
+			{
+				ped = FxNativeInvoke::Invoke<int>(getPlayerPed, sourcePlayerId);
+			}
+		}
 
 		// pre-initialize ped
 		if (m_lastPed == -1)

@@ -12,6 +12,10 @@ public:
 	virtual void PushAudio(int16_t* pcm, int len) = 0;
 
 	virtual bool IsTalkingAt(float distance) = 0;
+
+	// While overridden, the sink follows the ped of sourceServerId instead of the talker's ped,
+	// or plays at the position given to SetPosition when sourceServerId is -1.
+	virtual void SetPositionOverride(bool overridden, int sourceServerId) = 0;
 };
 
 extern
