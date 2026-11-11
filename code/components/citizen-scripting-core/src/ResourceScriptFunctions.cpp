@@ -392,6 +392,28 @@ static InitFunction initFunction([] ()
 		context.SetResult(false);
 	});
 
+#ifdef IS_FXSERVER
+	fx::ScriptEngine::RegisterNativeHandler("SET_STATE_BAG_KEY_PRIVATE", [](fx::ScriptContext& context)
+	{
+		auto bagName = context.CheckArgument<const char*>(0);
+		auto keyName = context.CheckArgument<const char*>(1);
+		auto isPrivate = context.GetArgument<bool>(2);
+
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		if (auto bag = sbac->GetStateBag(bagName); bag)
+		{
+			bag->SetKeyPrivate(keyName, isPrivate);
+			context.SetResult(true);
+
+			return;
+		}
+
+		context.SetResult(false);
+	});
+#endif
+
 	fx::ScriptEngine::RegisterNativeHandler("ADD_STATE_BAG_CHANGE_HANDLER", [](fx::ScriptContext& context)
 	{
 		fx::OMPtr<IScriptRuntime> runtime;
