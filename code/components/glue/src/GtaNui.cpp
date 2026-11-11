@@ -900,6 +900,11 @@ static InitFunction initFunction([]()
 #endif
 
 		nuiGi.UpdateMouseFocus();
+
+#ifdef GTA_FIVE
+		// NUI forwards WM_MOUSEMOVE/WM_*BUTTON* to CEF, also with SetNuiFocusKeepInput
+		InputHook::SetLegacyMouseRequired(nui::HasFocus() || nui::HasCursor());
+#endif
 	}, -1000);
 
 	rage::fiDevice::OnInitialMount.Connect([]()

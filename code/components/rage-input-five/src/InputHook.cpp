@@ -9,6 +9,7 @@
 
 #include <CrossBuildRuntime.h>
 #include <timeapi.h> // timeGetTime()
+#include <hidusage.h>
 
 #include <ICoreGameInit.h>
 #include <GlobalInput.h>
@@ -152,6 +153,13 @@ static std::atomic<int> g_isFocusStolenCount;
 
 static std::map<int, std::vector<InputHook::ControlBypass>> g_controlBypasses;
 
+static std::atomic<bool> g_legacyMouseRequired;
+
+void InputHook::SetLegacyMouseRequired(bool required)
+{
+	g_legacyMouseRequired = required;
+}
+
 void InputHook::SetGameMouseFocus(bool focus, bool flushMouse)
 {
 	if (focus)
@@ -262,6 +270,68 @@ static HRAWINPUT g_rawInputOverrideHandle;
 static const RAWINPUT* g_rawInputOverride;
 
 static thread_local bool g_rawInputHandledThisPass;
+
+// Even with batched reads, Windows still generates legacy mouse messages (WM_MOUSEMOVE, WM_SETCURSOR,
+// WM_NCHITTEST) for every raw report, which makes each PeekMessage call expensive at high polling rates.
+// While the game itself consumes the mouse, register it with RIDEV_NOLEGACY. Legacy messages are kept
+// whenever something else needs them: the window is inactive (clicking it back into focus), the cursor
+// belongs to the console/NUI, or a NUI frame has focus (also with SetNuiFocusKeepInput).
+static std::shared_ptr<ConVar<bool>> g_mouseNoLegacyVar;
+
+static void SetMouseNoLegacy(bool enable)
+{
+	RAWINPUTDEVICE devices[16];
+	UINT count = std::size(devices);
+	UINT registered = GetRegisteredRawInputDevices(devices, &count, sizeof(RAWINPUTDEVICE));
+
+	if (registered == (UINT)-1)
+	{
+		return;
+	}
+
+	for (UINT i = 0; i < registered; i++)
+	{
+		auto& device = devices[i];
+
+		if (device.usUsagePage != HID_USAGE_PAGE_GENERIC || device.usUsage != HID_USAGE_GENERIC_MOUSE)
+		{
+			continue;
+		}
+
+		DWORD flags = enable ? (device.dwFlags | RIDEV_NOLEGACY) : (device.dwFlags & ~RIDEV_NOLEGACY);
+
+		if (flags != device.dwFlags)
+		{
+			device.dwFlags = flags;
+
+			if (!RegisterRawInputDevices(&device, 1, sizeof(RAWINPUTDEVICE)))
+			{
+				trace("Failed to update mouse raw input flags (error %d).\n", GetLastError());
+				return;
+			}
+
+			trace("Legacy mouse messages %s.\n", enable ? "disabled" : "enabled");
+		}
+	}
+}
+
+static void UpdateMouseNoLegacy()
+{
+	static bool applied = false;
+	static DWORD lastCheck = 0;
+
+	bool wanted = g_mouseNoLegacyVar && g_mouseNoLegacyVar->GetValue() && g_isFocused && !g_isFocusStolen && !g_legacyMouseRequired;
+
+	// also re-check now and then, in case the game registered the mouse again
+	DWORD now = timeGetTime();
+
+	if (wanted != applied || (wanted && now - lastCheck > 1000))
+	{
+		SetMouseNoLegacy(wanted);
+		applied = wanted;
+		lastCheck = now;
+	}
+}
 
 static BOOL WINAPI PeekMessageWWrap(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
 {
@@ -940,6 +1010,7 @@ static HookFunction hookFunction([]()
 		g_antiLagPresentConVar->GetHelper()->SetRawValue(true);
 	}
 
+	g_mouseNoLegacyVar = std::make_shared<ConVar<bool>>("in_mouseNoLegacy", ConVar_Archive | ConVar_UserPref, true);
 	g_origGetRawInputData = hook::iat("user32.dll", GetRawInputDataWrap, "GetRawInputData");
 	g_origPeekMessageW = hook::iat("user32.dll", PeekMessageWWrap, "PeekMessageW");
 
@@ -947,6 +1018,11 @@ static HookFunction hookFunction([]()
 
 	OnGameFrame.Connect([]()
 	{
+		// a pump pass that ended without PeekMessage running dry (e.g. on a message limit) must not
+		// hold back raw input in the next frame
+		g_rawInputHandledThisPass = false;
+
+		UpdateMouseNoLegacy();
 		SetInputWrap(-1, NULL, NULL, NULL);
 
 		int may = 1;
