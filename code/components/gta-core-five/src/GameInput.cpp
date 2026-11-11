@@ -23,6 +23,7 @@
 
 #include <GameInput.h>
 #include <InputHook.h>
+#include <ResourceLabel.h>
 
 namespace rage
 {
@@ -1033,6 +1034,7 @@ static void* GetFunc()
 }
 
 static std::map<std::string, std::tuple<std::string, std::string>> g_registeredBindings;
+static std::map<std::string, std::string> g_tagLabels;
 static bool g_hideAllResourceNames = false;
 
 namespace game
@@ -1063,6 +1065,15 @@ namespace game
 			}
 
 			g_activeTags.erase(tag);
+			g_tagLabels.erase(tag);
+		}
+	}
+
+	void SetBindingTagLabel(const std::string& tag, const std::string& label)
+	{
+		if (auto sanitized = SanitizeResourceLabel(label); !sanitized.empty())
+		{
+			g_tagLabels[tag] = std::move(sanitized);
 		}
 	}
 
@@ -1165,6 +1176,19 @@ static auto GetRegisteredBindingByHash(uint32_t hash)
 	return std::pair<const std::string, std::tuple<std::string, std::string>>{};
 }
 
+static std::string GetTagDisplayName(const std::string& tag)
+{
+	return game::GetResourceDisplayName(tag, g_activeTags, [](const std::string& labelTag) -> std::string
+	{
+		if (auto it = g_tagLabels.find(labelTag); it != g_tagLabels.end())
+		{
+			return it->second;
+		}
+
+		return (labelTag == "monitor") ? "txAdmin" : "";
+	});
+}
+
 static void(*g_origGetMappingCategories)(atArray<uint32_t>& mappingCategories);
 
 static void GetMappingCategories(atArray<uint32_t>& mappingCategories)
@@ -1198,7 +1222,7 @@ static void GetMappingCategoryInputs(uint32_t* categoryId, atArray<uint32_t>& co
         for (const auto& [command, info] : g_registeredBindings)
         {
             const auto& [tag, desc] = info;
-            groupedBindings[tag].push_back({command, info});
+            groupedBindings[GetTagDisplayName(tag)].push_back({command, info});
         }
     	
         std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::tuple<std::string, std::string>>>>> sortedGroups(groupedBindings.begin(), groupedBindings.end());
@@ -1261,14 +1285,9 @@ static const char* GetNameForControl(uint32_t controlId)
 		static std::string str;
 		str = fmt::sprintf("INPUT_%08X", HashString(pair.first.c_str()));
 
-		auto resourceName = std::get<0>(pair.second);
+		auto resourceName = GetTagDisplayName(std::get<0>(pair.second));
 		auto actionName = std::get<1>(pair.second);
 
-		if (resourceName == "monitor")
-		{
-			resourceName = "txAdmin";
-		}
-		
 		std::string displayName;
 		
 		if (g_hideAllResourceNames)
