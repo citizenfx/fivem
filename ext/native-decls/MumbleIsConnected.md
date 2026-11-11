@@ -8,7 +8,7 @@ apiset: client
 BOOL MUMBLE_IS_CONNECTED();
 ```
 
-This native will return true if the user succesfully connected to the voice server.
+This native will return true if the user successfully connected to the voice server.
 If the user disabled the voice-chat setting it will return false.
 
 ## Return value

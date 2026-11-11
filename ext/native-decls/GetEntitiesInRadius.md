@@ -42,7 +42,7 @@ end
 * **z**: The Z coordinate.
 * **radius**: Max distance from coordinate to entity
 * **entityType**: Entity types see list below
-* **sortByDistance**: Sort output entites by distance from nearest to farthest
+* **sortByDistance**: Sort output entities by distance from nearest to farthest
 * **models**: List of allowed models its also optional
 
 ## Return value
