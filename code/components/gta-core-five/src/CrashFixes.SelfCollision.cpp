@@ -22,25 +22,14 @@ namespace rage {
 		{
 		}
 	};
-	struct phBound
-	{
-		uint8_t m_Type;
-		uint8_t m_Flags;
-		uint8_t m_PartIndex;
-		float m_RadiusAroundCentroid;
-	};
 	using Mat34V = DirectX::XMMATRIX;
 
-	struct phBoundComposite : phBound {
-		phBound** m_Bounds;
-		rage::Mat34V* m_CurrentMatrices;
-		rage::Mat34V* m_LastMatrices;
-		rage::Vec3V* m_LocalBoxMinMaxs;
-		uint32_t* m_TypeAndIncludeFlags;
-		uint32_t* m_OwnedTypeAndIncludeFlags;
-		uint16_t m_MaxNumBounds;
-		uint16_t m_NumBounds;
+	struct phBoundComposite
+	{
+		char m_Padding[0x70];
+		void** m_Bounds;
 	};
+	static_assert(offsetof(phBoundComposite, m_Bounds) == 0x70);
 
 	struct phOptimizedBvhNode
 	{
@@ -78,9 +67,8 @@ static rage::ScalarV* CalcClosestLeafDistance(rage::ScalarV* out, rage::Vec3V* p
 {
 	if (!bvh || !bvh->bvhNode)
 	{
-		rage::ScalarV* result = new rage::ScalarV();
-		result->v = DirectX::XMVectorSet(100000.0f, 10000.0f, 10000.0f, 1.0f);
-		return result;
+		out->v = DirectX::XMVectorSet(100000.0f, 10000.0f, 10000.0f, 1.0f);
+		return out;
 	}
 	return g_origCalcClosestLeafDistance(out, point, bvh);
 }

@@ -223,11 +223,15 @@ static bool UnloadHandlingFile(const char* handlingPath)
 		// erase existing stack entry
 		auto& hashData = g_handlingStack[handlingData->GetName()];
 
-		for (auto it = hashData.begin(); it != hashData.end(); ++it)
+		for (auto it = hashData.begin(); it != hashData.end();)
 		{
 			if (*it == idx)
 			{
 				it = hashData.erase(it);
+			}
+			else
+			{
+				++it;
 			}
 		}
 	}

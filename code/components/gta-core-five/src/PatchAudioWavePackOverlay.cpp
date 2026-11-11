@@ -122,7 +122,13 @@ public:
 
 			if (h != -1)
 			{
-				uint64_t rh = Allocate();
+				int rh = Allocate();
+				if (rh == -1)
+				{
+					d->Close(h);
+					return -1;
+				}
+
 				auto dt = &m_handles[rh];
 				dt->device = d;
 				dt->handle = h;
@@ -144,7 +150,13 @@ public:
 
 			if (h != -1)
 			{
-				uint64_t rh = Allocate();
+				int rh = Allocate();
+				if (rh == -1)
+				{
+					d->CloseBulk(h);
+					return -1;
+				}
+
 				auto dt = &m_handles[rh];
 				dt->device = d;
 				dt->handle = h;

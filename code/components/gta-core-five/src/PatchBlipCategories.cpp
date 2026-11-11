@@ -110,14 +110,18 @@ static HookFunction hookFunction([]()
 				mov(rcx, rdi);
 				mov(rax, getBlipName); // Game function to get the blip name
 				call(rax);
-				mov(r8, rax);
+
+				// Preserve the blip name across the next call
+				sub(rsp, 0x30);
+				mov(qword_ptr[rsp + 0x20], rax);
 
 				movsxd(rcx, esi);
 				mov(rax, reinterpret_cast<uintptr_t>(&GetBlipCategoryName)); // BLIP_CAT_X
 				call(rax);
 				mov(rdx, rax);
 
-				mov(rax, r8);
+				mov(rax, qword_ptr[rsp + 0x20]);
+				add(rsp, 0x30);
 
 				// Jump to blip finalization
 				mov(rcx, retFinalize);
