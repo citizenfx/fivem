@@ -30,6 +30,7 @@
 #include <MinHook.h>
 
 #include <CrossBuildRuntime.h>
+#include <InteriorProxyCache.h>
 
 #include <CustomRtti.h>
 
@@ -1391,13 +1392,6 @@ public:
 
 static CfxProxyItypMounter g_proxyDlcItypMounter;
 
-struct CInteriorProxy
-{
-	virtual ~CInteriorProxy() = 0;
-
-	uint32_t mapData;
-};
-
 #ifdef GTA_FIVE
 static hook::thiscall_stub<int(void* store, int* out, uint32_t* inHash)> _getIndexByKey([]()
 {
@@ -1417,6 +1411,40 @@ struct ProxyFile
 
 static atArray<ProxyFile>* g_interiorProxyArray;
 // 1604: 0x142544440;
+
+InteriorProxyCacheLookup<CInteriorProxy> FindInteriorProxyForCache(uint32_t mapData)
+{
+	if (!g_interiorProxyPool || !*g_interiorProxyPool || !g_interiorProxyArray || mapData == UINT32_MAX)
+	{
+		return { InteriorProxyCacheAction::Conflict, nullptr };
+	}
+
+	auto pool = *g_interiorProxyPool;
+	auto mapDataStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");
+	int64_t orderedSlot = -1;
+
+	for (auto& file : *g_interiorProxyArray)
+	{
+		for (uint16_t i = 0; i < file.proxyHashes.GetCount(); ++i)
+		{
+			if (streaming::GetStreamingIndexForLocalHashKey(mapDataStore, file.proxyHashes[i]) == mapData)
+			{
+				orderedSlot = static_cast<int64_t>(file.startAt) + static_cast<int64_t>(i);
+				break;
+			}
+		}
+
+		if (orderedSlot >= 0)
+		{
+			break;
+		}
+	}
+
+	return LookupInteriorProxyForCache<CInteriorProxy>(pool->GetSize(), [pool](size_t i)
+	{
+		return pool->GetAt(static_cast<int>(i));
+	}, mapData, orderedSlot);
+}
 
 class CfxProxyInteriorOrderMounter : public CDataFileMountInterface
 {
