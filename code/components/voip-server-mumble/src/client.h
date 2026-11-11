@@ -53,11 +53,10 @@
 
 #include "StreamByteReader.h"
 
+#define UDP_MAX_PACKET_SIZE 1024
 #define READ_BUFFER_SIZE (8192 + 6 + 4) * 2
-#define BUFSIZE 8192
-#define UDP_BUFSIZE 512
+#define TCP_BUFSIZE 8192
 #define INACTIVITY_TIMEOUT 60 /* Seconds */
-#define MAX_CODECS 10
 #define MAX_TOKENSIZE 64
 #define MAX_TOKENS 32
 #define KEY_LENGTH sizeof(uint16_t) + 4 * sizeof(uint32_t)
@@ -80,16 +79,14 @@ typedef struct
 	net::PeerAddress remote_udp;
 	uint8_t rcvbuf[READ_BUFFER_SIZE];
 	net::StreamByteReader streamByteReader{ rcvbuf, READ_BUFFER_SIZE };
-	uint8_t txbuf[BUFSIZE];
+	uint8_t txbuf[TCP_BUFSIZE];
 	uint32_t rxcount, txcount, txsize;
 	int sessionId;
 	uint8_t key[KEY_LENGTH];
 	char* username;
-	bool_t bUDP, authenticated, deaf, mute, self_deaf, self_mute, recording, bOpus;
+	bool_t bUDP, authenticated, deaf, mute, self_deaf, self_mute, recording;
 	char *os, *release, *os_version;
 	uint32_t version;
-	int codec_count;
-	struct dlist codecs;
 	int availableBandwidth;
 	etimer_t lastActivity, connectTime, idleTime;
 	struct dlist node;
@@ -140,10 +137,6 @@ int Client_send_message_except(client_t* client, message_t* msg);
 int Client_read_udp(int udpsock);
 void Client_disconnect_all();
 int Client_voiceMsg(client_t* client, uint8_t* data, int len);
-void recheckCodecVersions(client_t* connectingClient);
-void Client_codec_add(client_t* client, int codec);
-void Client_codec_free(client_t* client);
-codec_t* Client_codec_iterate(client_t* client, codec_t** codec_itr);
 void Client_textmessage(client_t* client, char* text);
 bool_t Client_token_match(client_t* client, char const* str);
 void Client_token_free(client_t* client);
