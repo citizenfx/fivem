@@ -1567,6 +1567,11 @@ static InitFunction initFunction([]()
 #endif
 
 		nuiGi.UpdateMouseFocus();
+
+#ifdef GTA_FIVE
+		// a NUI cursor while the game keeps its input (SetNuiFocusKeepInput)
+		InputHook::SetUiCursorActive(nui::HasFocus() && nui::HasCursor() && nui::HasFocusKeepInput());
+#endif
 	}, -1000);
 
 	rage::fiDevice::OnInitialMount.Connect([]()
