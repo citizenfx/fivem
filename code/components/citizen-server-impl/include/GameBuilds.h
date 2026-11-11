@@ -40,13 +40,17 @@ struct ConsoleArgumentType<fx::GameBuild>
 
 		try
 		{
-			if (auto intString = std::to_string(std::stoi(inputStr)); intString == inputStr)
+			if (auto intValue = std::stoi(inputStr); intValue >= 0 && std::to_string(intValue) == inputStr)
 			{
-				*out = intString;
+				*out = inputStr;
 				return true;
 			}
 		}
 		catch (std::invalid_argument&)
+		{
+			// nothing
+		}
+		catch (std::out_of_range&)
 		{
 			// nothing
 		}
