@@ -33,6 +33,7 @@
 
 #include <CustomRtti.h>
 
+
 #if __has_include(<StatusText.h>)
 #include <StatusText.h>
 #include <nutsnbolts.h>
@@ -1015,6 +1016,7 @@ static hook::cdecl_stub<void()> _initFuncCoverPointManagerSessionReload([]()
 static bool g_reloadMapStore = false;
 
 static std::set<std::string> loadedCollisions;
+static ConVar<int>* g_collisionPreloadBatchCount;
 
 int GetDummyCollectionIndexByTag(const std::string& tag);
 extern std::unordered_map<int, std::string> g_handlesToTag;
@@ -1086,7 +1088,8 @@ static void ReloadMapStore()
 	}
 
 	auto mgr = streaming::Manager::GetInstance();
-
+	auto ybnModule = mgr->moduleMgr.GetStreamingModule("ybn");
+	const uint32_t ybnBaseIdx = ybnModule ? ybnModule->baseIdx : 0;
 
 	// Find collision files that need reloading
 	ForAllStreamingFiles([&](const std::string& file)
@@ -1107,7 +1110,7 @@ static void ReloadMapStore()
 			return;
 		}
 
-		auto relId = obj - streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn")->baseIdx;
+		auto relId = obj - ybnBaseIdx;
 
 		if (
 			_isResourceNotCached(mgr, obj)
@@ -1123,33 +1126,49 @@ static void ReloadMapStore()
 		}
 		else
 		{
-			trace("Skipped %s - it's cached! (id %d)\n", file.c_str(), relId);
+			console::DPrintf("gta:streaming", "Skipped %s - it's cached! (id %d)\n", file.c_str(), relId);
 		}
 	});
 
+	static constexpr size_t kMaxBatchBytes = 32 * 1024 * 1024;
+	const size_t maxBatchCount = (size_t)std::clamp(g_collisionPreloadBatchCount ? g_collisionPreloadBatchCount->GetValue() : 64, 1, 256);
 
-	static constexpr uint8_t batchSize = 4;
-
-	for (int count = 0; count < collisionFiles.size(); count += batchSize)
+	for (size_t start = 0; start < collisionFiles.size();)
 	{
-		int end = std::min((count + batchSize), (int)collisionFiles.size());
+		size_t end = start;
+		size_t batchBytes = 0;
 
-		for (int i = count; i < end; i++)
+		while (end < collisionFiles.size() && (end - start) < maxBatchCount)
 		{
-			mgr->RequestObject(collisionFiles[i].second, 0);
-			trace("Loaded %s (id %d)\n", collisionFiles[i].first.c_str(), (collisionFiles[i].second - mgr->moduleMgr.GetStreamingModule("ybn")->baseIdx));
+			auto obj = collisionFiles[end].second;
+			auto& strEntry = mgr->Entries[obj];
+			size_t fileBytes = strEntry.ComputeVirtualSize(obj, nullptr, false) + strEntry.ComputePhysicalSize(obj);
+
+			if (end > start && (batchBytes + fileBytes) > kMaxBatchBytes)
+			{
+				break;
+			}
+
+			batchBytes += fileBytes;
+
+			mgr->RequestObject(obj, 0);
+			console::DPrintf("gta:streaming", "Loaded %s (id %d)\n", collisionFiles[end].first.c_str(), obj - ybnBaseIdx);
+
+			++end;
 		}
 
 #if __has_include(<StatusText.h>)
-		ActivateStatusText(va("Preloading collisions (%.0f%%)", (count / (double)collisionFiles.size()) * 100.0), 5, 2);
+		ActivateStatusText(va("Preloading collisions (%.0f%%)", (start / (double)collisionFiles.size()) * 100.0), 5, 2);
 #endif
 
 		streaming::LoadObjectsNow(0);
 
-		for (int i = count; i < end; i++)
+		for (size_t i = start; i < end; i++)
 		{
 			mgr->ReleaseObject(collisionFiles[i].second);
 		}
+
+		start = end;
 	}
 
 #if __has_include(<StatusText.h>)
@@ -1540,7 +1559,7 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 
 	std::tie(typeName, fileName) = dataFile;
 
-	trace("%s %s %s.\n", op, typeName, fileName);
+	console::DPrintf("gta:streaming", "%s %s %s.\n", op, typeName, fileName);
 
 	CDataFileMountInterface* mounter = LookupDataFileMounter(typeName);
 
@@ -1552,7 +1571,18 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 
 	if (mounter)
 	{
-		std::string className = SearchTypeName(mounter);
+		// the name depends only on the mounter's vtable, and there are far fewer
+		// mounters than data files
+		static std::unordered_map<CDataFileMountInterface*, std::string> classNameCache;
+
+		auto classNameIt = classNameCache.find(mounter);
+
+		if (classNameIt == classNameCache.end())
+		{
+			classNameIt = classNameCache.emplace(mounter, SearchTypeName(mounter)).first;
+		}
+
+		const std::string& className = classNameIt->second;
 
 		CDataFileMgr::DataFile entry;
 		memset(&entry, 0, sizeof(entry));
@@ -1566,7 +1596,7 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 
 		if (result)
 		{
-			trace("done %s %s in data file mounter %s.\n", op, fileName, className);
+			console::DPrintf("gta:streaming", "done %s %s in data file mounter %s.\n", op, fileName, className);
 		}
 		else
 		{
@@ -1712,6 +1742,54 @@ static std::set<std::string> g_pedsToRegister;
 
 static std::unordered_set<int> g_ourIndexes;
 
+#ifdef GTA_FIVE
+struct PlatformTextureIndex
+{
+	std::unordered_set<std::string> names;
+	bool hasSubdirectories = false;
+};
+
+static const PlatformTextureIndex& GetPlatformTextureIndex()
+{
+	static const PlatformTextureIndex index = []
+	{
+		PlatformTextureIndex result;
+
+		auto device = rage::fiDevice::GetDevice("platform:/textures/", true);
+
+		if (device)
+		{
+			rage::fiFindData fd;
+			auto handle = device->FindFirst("platform:/textures/", &fd);
+
+			if (handle != static_cast<uint64_t>(-1))
+			{
+				do
+				{
+					if (fd.fileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+					{
+						if (strcmp(fd.fileName, ".") != 0 && strcmp(fd.fileName, "..") != 0)
+						{
+							result.hasSubdirectories = true;
+						}
+					}
+					else
+					{
+						result.names.insert(boost::algorithm::to_lower_copy(std::string(fd.fileName)));
+					}
+				} while (device->FindNext(handle, &fd));
+
+				device->FindClose(handle);
+			}
+		}
+
+		return result;
+	}();
+
+	return index;
+}
+#endif
+
 static std::string GetBaseName(const std::string& name)
 {
 	std::string retval = name;
@@ -1729,12 +1807,31 @@ static std::string GetBaseName(const std::string& name)
 	}
 
 	// is this trying to override a file extant in platform:/textures/?
-	auto texturesName = fmt::sprintf("platform:/textures/%s", retval);
+#ifdef GTA_FIVE
+	// enumerating platform:/textures/ is not safe on RDR3 at the point streaming
+	// files are first registered, so only five takes the indexed path
+	const auto& index = GetPlatformTextureIndex();
 
-	if (auto device = rage::fiDevice::GetDevice(texturesName.c_str(), true); device && device->GetFileAttributes(texturesName.c_str()) != -1)
+	// subdir_file_mapping turns '^' into '/', and a nested name can only resolve
+	// if platform:/textures/ actually has subdirectories
+	const bool nested = retval.find('/') != std::string::npos;
+
+	if (index.names.empty() || (nested && index.hasSubdirectories))
+#endif
 	{
-		retval = texturesName;
+		auto texturesName = fmt::sprintf("platform:/textures/%s", retval);
+
+		if (auto device = rage::fiDevice::GetDevice(texturesName.c_str(), true); device && device->GetFileAttributes(texturesName.c_str()) != -1)
+		{
+			retval = texturesName;
+		}
 	}
+#ifdef GTA_FIVE
+	else if (!nested && index.names.find(boost::algorithm::to_lower_copy(retval)) != index.names.end())
+	{
+		retval = "platform:/textures/" + retval;
+	}
+#endif
 
 	return retval;
 }
@@ -1764,10 +1861,13 @@ static void (*g_assetOverridesCb)(uint32_t, const char*) = nullptr;
 
 static void (*g_assetOverridesRemovalCb)(uint32_t) = nullptr;
 
+
 static void LoadStreamingFiles(LoadType loadType)
 {
+
 	auto cstreaming = streaming::Manager::GetInstance();
 	std::vector<std::tuple<int, std::string>> newGfx;
+	std::map<std::string, size_t> unregisterableByTag;
 
 	// register any custom streaming assets
 	for (auto it = g_customStreamingFiles.begin(); it != g_customStreamingFiles.end(); )
@@ -1872,13 +1972,11 @@ static void LoadStreamingFiles(LoadType loadType)
 		it = g_customStreamingFiles.erase(it);
 
 		// check if the file even exists
-		{
-			auto holderDevice = rage::fiDevice::GetDevice(file.c_str(), true);
+		auto fileDevice = rage::fiDevice::GetDevice(file.c_str(), true);
 
-			if (holderDevice->GetFileAttributes(file.c_str()) == INVALID_FILE_ATTRIBUTES)
-			{
-				continue;
-			}
+		if (!fileDevice || fileDevice->GetFileAttributes(file.c_str()) == INVALID_FILE_ATTRIBUTES)
+		{
+			continue;
 		}
 
 		auto strModule = cstreaming->moduleMgr.GetStreamingModule(ext.c_str());
@@ -1967,6 +2065,11 @@ static void LoadStreamingFiles(LoadType loadType)
 			else
 			{
 				fileId = -1;
+
+#ifdef GTA_FIVE
+				const uint32_t rawEntryCountBefore = rawStreamer->m_entries.GetCount();
+#endif
+
 				streaming::RegisterRawStreamingFile(&fileId, file.c_str(), true, baseName.c_str(), false);
 
 				if (fileId != -1)
@@ -1978,11 +2081,16 @@ static void LoadStreamingFiles(LoadType loadType)
 					if (streaming::IsRawHandle(entry.handle))
 					{
 #ifdef GTA_FIVE
-						if (auto rawEntry = rawStreamer->GetEntry(streaming::GetEntryIndex(entry.handle)))
+						auto rawIndex = streaming::GetEntryIndex(entry.handle);
+						bool isFreshEntry = streaming::GetCollectionIndex(entry.handle) == collectionId && rawIndex >= rawEntryCountBefore;
+
+						if (!isFreshEntry)
 						{
-							// if timestamp is 0 then GetEntry triggers the invalidation as well
-							rawEntry->timestamp = 0;
-							rawStreamer->GetEntry(streaming::GetEntryIndex(entry.handle));
+							if (auto rawEntry = rawStreamer->GetEntry(rawIndex))
+							{
+								rawEntry->timestamp = 0;
+								rawStreamer->GetEntry(rawIndex);
+							}
 						}
 #else
 						rage::pgRawStreamerInvalidateEntry(streaming::GetEntryIndex(entry.handle));
@@ -2001,7 +2109,9 @@ static void LoadStreamingFiles(LoadType loadType)
 			// verify whether the file is a zlib'd file from a real backing RPF7
 			// (length and resource value mismatching)
 #ifdef GTA_FIVE
-			auto device = rage::fiDevice::GetDevice(file.c_str(), true);
+			bool isResourceCacheFile = strncmp(file.c_str(), "cache:/", 7) == 0 || strncmp(file.c_str(), "cache_nb:/", 10) == 0;
+
+			rage::fiDevice* device = isResourceCacheFile ? nullptr : fileDevice;
 
 			if (device && fileId != -1)
 			{
@@ -2032,7 +2142,9 @@ static void LoadStreamingFiles(LoadType loadType)
 		}
 		else if (ext != "ymf")
 		{
-			trace("can't register %s: no streaming module (does this file even belong in stream?)\n", file);
+			console::DPrintf("gta:streaming", "can't register %s: no streaming module (does this file even belong in stream?)\n", file);
+
+			unregisterableByTag[tag]++;
 		}
 
 #ifdef GTA_FIVE
@@ -2042,6 +2154,26 @@ static void LoadStreamingFiles(LoadType loadType)
 			g_pedsToRegister.insert(baseName.substr(0, baseName.find('/')));
 		}
 #endif
+	}
+
+	if (!unregisterableByTag.empty())
+	{
+		size_t total = 0;
+		std::string resourceList;
+
+		for (const auto& [resourceTag, count] : unregisterableByTag)
+		{
+			total += count;
+
+			if (!resourceList.empty())
+			{
+				resourceList += ", ";
+			}
+
+			resourceList += fmt::sprintf("%s (%d)", resourceTag, count);
+		}
+
+		trace("^3%d file(s) in stream/ have no streaming module and were skipped: %s. Set `developer 1` to list them individually.^7\n", total, resourceList);
 	}
 
 #ifdef GTA_FIVE
@@ -2463,7 +2595,22 @@ static void LoadDataFiles()
 	HandleDataFileList(g_dataFiles, [](CDataFileMountInterface* mounter, CDataFileMgr::DataFile& entry)
 	{
 #if __has_include(<StatusText.h>)
-		OnLookAliveFrame();
+		{
+			// this drives a Scaleform frame advance and a streaming progress scan;
+			// once per data file is far more often than a spinner needs
+			static ConVar<int> frameIntervalVar("game_loadDataFileFrameInterval", ConVar_Archive | ConVar_UserPref, 33);
+			static uint64_t lastLookAlive = 0;
+
+			const uint64_t now = GetTickCount64();
+			const int interval = frameIntervalVar.GetValue();
+
+			if (interval <= 0 || (now - lastLookAlive) >= static_cast<uint64_t>(interval))
+			{
+				lastLookAlive = now;
+
+				OnLookAliveFrame();
+			}
+		}
 #endif
 
 		return mounter->LoadDataFile(&entry);
@@ -3506,6 +3653,8 @@ static void CleanupStreaming()
 
 static HookFunction hookFunction([]()
 {
+	g_collisionPreloadBatchCount = new ConVar<int>("str_collisionPreloadBatchSize", ConVar_None, 64);
+
 #ifdef GTA_FIVE
 	g_GetRawStreamer = (decltype(g_GetRawStreamer))hook::get_pattern<uint8_t>("48 83 EC ? 48 8B 05 ? ? ? ? 48 85 C0 75 ? 8D 50");
 	auto chunkyArrayAppendLoc = hook::get_pattern<uint8_t>("40 53 48 83 EC ? F7 81 ? ? ? ? ? ? ? ? 48 8B D9 75");
@@ -3801,7 +3950,6 @@ static HookFunction hookFunction([]()
 #elif IS_RDR3
 	hook::jump(hook::get_pattern("4D 63 C1 81 E2 FF 03 00 00 48 C1 E8 0A 48 8B 84 C1 B0 05 00 00", -8), pgRawStreamer__GetEntryNameToBuffer);
 #endif
-
 
 	{
 		// mapdatastore/maptypesstore 'should async place'

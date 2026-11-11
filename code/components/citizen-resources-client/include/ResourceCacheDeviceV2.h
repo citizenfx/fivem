@@ -3,7 +3,10 @@
 #include <tbb/concurrent_unordered_map.h>
 #include <concurrent_queue.h>
 
+#include <atomic>
+#include <memory>
 #include <optional>
+#include <unordered_map>
 
 #include <ResourceCache.h>
 
@@ -167,6 +170,8 @@ public:
 
 	virtual std::shared_ptr<RcdBulkStream> OpenBulkStream(const std::string& fileName, uint64_t* ptr) override;
 
+	virtual uint32_t GetAttributes(const std::string& fileName) override;
+
 	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
 
 	virtual size_t GetLength(const std::string& fileName) override;
@@ -174,6 +179,12 @@ public:
 	virtual concurrency::task<RcdFetchResult> FetchEntry(const std::string& fileName) override;
 
 	virtual void UnfetchEntry(const std::string& fileName) override;
+
+	concurrency::task<RcdFetchResult> FetchEntryDirect(const ResourceCacheEntryList::Entry& entry, bool limitedScheduler = false);
+
+	void UnfetchFailedEntry(const std::string& referenceHash);
+
+	void AbortFetch(const std::string& referenceHash, const concurrency::task<RcdFetchResult>& task);
 
 	virtual inline bool IsBlocking() override
 	{
@@ -206,7 +217,16 @@ protected:
 	virtual size_t GetRealSize(const ResourceCacheEntryList::Entry& entry);
 
 private:
-	concurrency::task<RcdFetchResult> DoFetch(const ResourceCacheEntryList::Entry& entry);
+	// state of a single running DoFetch
+	struct FetchState
+	{
+		std::atomic<bool> aborted{ false };
+		std::atomic<bool> finished{ false };
+		concurrency::task_completion_event<void> abortEvent;
+		uint32_t tempSuffix = 0;
+	};
+
+	concurrency::task<RcdFetchResult> DoFetch(const ResourceCacheEntryList::Entry& entry, std::shared_ptr<FetchState> state);
 
 private:
 	void StoreHttpRequest(const std::string& hash, const HttpRequestPtr& request);
@@ -224,6 +244,7 @@ private:
 
 protected:
 	static tbb::concurrent_unordered_map<std::string, std::optional<concurrency::task<RcdFetchResult>>> ms_entries;
+	static std::unordered_map<std::string, std::shared_ptr<FetchState>> ms_fetchStates;
 
 	std::shared_ptr<ResourceCache> m_cache;
 	bool m_blocking;

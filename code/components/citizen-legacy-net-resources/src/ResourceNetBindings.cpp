@@ -13,7 +13,9 @@
 #include "fxScripting.h"
 #include "Resource.h"
 
+#include <algorithm>
 #include <mutex>
+#include <optional>
 
 #include <ScriptEngine.h>
 
@@ -84,11 +86,20 @@ static std::string CrackResourceName(const std::string& uri)
 	return "MISSING";
 }
 
-// helper to UrlEncode for server releases that support this
-static auto UrlEncodeWrap(const std::string& base, const std::string& str)
+static std::optional<skyr::url> ParseBaseUrl(const std::string& base)
 {
 	auto baseUrl = skyr::make_url(base);
 
+	if (baseUrl)
+	{
+		return std::move(*baseUrl);
+	}
+
+	return {};
+}
+
+static auto UrlEncodeWrap(const std::string& base, const std::optional<skyr::url>& baseUrl, const std::string& str)
+{
 	if (baseUrl)
 	{
 		std::string strCopy(str);
@@ -108,6 +119,8 @@ static auto UrlEncodeWrap(const std::string& base, const std::string& str)
 static std::mutex progressMutex;
 static std::optional<std::tuple<std::string, int, int, bool>> nextProgress;
 static pplx::cancellation_token_source cts;
+
+static ConVar<int> g_resourceFetchConcurrency("cl_resourceFetchConcurrency", ConVar_None, 4);
 
 static void ThrottledConnectionProgress(const std::string& string, int count, int total, bool cancelable)
 {
@@ -131,13 +144,53 @@ static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::s
 	progressCounter->current = 0;
 	progressCounter->total = requiredResources.size();
 
-	for (auto& resourceUri : requiredResources)
+	auto token = cts.get_token();
+
+	auto addStatusCallback = [manager, progressCounter, token](const std::string& resourceUri, const std::string& resourceName)
 	{
-		if (cts.get_token().is_canceled())
+		auto mounterRef = manager->GetMounterForUri(resourceUri);
+		static_cast<fx::CachedResourceMounter*>(mounterRef.GetRef())->AddStatusCallback(resourceName, [resourceName, progressCounter, token](fx::CachedResourceMounter::StatusType statusType, int downloadCurrent, int downloadTotal)
+		{
+			if (token.is_canceled())
+			{
+				return;
+			}
+			std::string_view statusTypeString = (statusType == fx::CachedResourceMounter::StatusType::Downloading) ? "Downloading" : "Verifying";
+
+			ThrottledConnectionProgress(fmt::sprintf("%s %s (%d of %d - %.2f/%.2f MiB)", statusTypeString, resourceName, progressCounter->current, progressCounter->total,
+				downloadCurrent / 1024.0f / 1024.0f, downloadTotal / 1024.0f / 1024.0f), progressCounter->current, progressCounter->total, true);
+		});
+	};
+
+	const size_t fetchWindow = static_cast<size_t>(std::clamp(g_resourceFetchConcurrency.GetValue(), 1, 64));
+
+	std::vector<std::optional<pplx::task<void>>> prefetchTasks(requiredResources.size());
+	size_t nextPrefetch = 0;
+
+	size_t resourceIdx = 0;
+
+	for (; resourceIdx < requiredResources.size(); resourceIdx++)
+	{
+		if (token.is_canceled())
 		{
 			break;
 		}
+		const auto& resourceUri = requiredResources[resourceIdx];
 		auto resourceName = CrackResourceName(resourceUri);
+
+		if (fetchWindow > 1)
+		{
+			for (; nextPrefetch < requiredResources.size() && nextPrefetch < resourceIdx + fetchWindow; nextPrefetch++)
+			{
+				const auto& prefetchUri = requiredResources[nextPrefetch];
+				auto prefetchName = CrackResourceName(prefetchUri);
+
+				addStatusCallback(prefetchUri, prefetchName);
+
+				auto prefetchMounter = manager->GetMounterForUri(prefetchUri);
+				prefetchTasks[nextPrefetch] = static_cast<fx::CachedResourceMounter*>(prefetchMounter.GetRef())->PrefetchResource(prefetchName, token);
+			}
+		}
 
 		{
 			fwRefContainer<fx::Resource> oldResource = manager->GetResource(resourceName);
@@ -166,22 +219,23 @@ static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::s
 			}
 		}
 
-		auto mounterRef = manager->GetMounterForUri(resourceUri);
-		static_cast<fx::CachedResourceMounter*>(mounterRef.GetRef())->AddStatusCallback(resourceName, [resourceName, progressCounter](fx::CachedResourceMounter::StatusType statusType, int downloadCurrent, int downloadTotal)
+		if (prefetchTasks[resourceIdx])
 		{
-			if (cts.get_token().is_canceled())
-			{
-				return;
-			}
-			std::string_view statusTypeString = (statusType == fx::CachedResourceMounter::StatusType::Downloading) ? "Downloading" : "Verifying";
+			co_await *prefetchTasks[resourceIdx];
 
-			ThrottledConnectionProgress(fmt::sprintf("%s %s (%d of %d - %.2f/%.2f MiB)", statusTypeString, resourceName, progressCounter->current, progressCounter->total,
-				downloadCurrent / 1024.0f / 1024.0f, downloadTotal / 1024.0f / 1024.0f), progressCounter->current, progressCounter->total, true);
-		});
+			if (token.is_canceled())
+			{
+				break;
+			}
+		}
+		else
+		{
+			addStatusCallback(resourceUri, resourceName);
+		}
 
 		auto resource = co_await manager->AddResourceWithError(resourceUri);
 
-		if (cts.get_token().is_canceled())
+		if (token.is_canceled())
 		{
 			break;
 		}
@@ -191,6 +245,14 @@ static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::s
 
 		// return tuple
 		list.emplace_back(resource, resourceName);
+	}
+
+	for (size_t abandonedIdx = resourceIdx; abandonedIdx < nextPrefetch; abandonedIdx++)
+	{
+		const auto& abandonedUri = requiredResources[abandonedIdx];
+		auto abandonedMounter = manager->GetMounterForUri(abandonedUri);
+
+		static_cast<fx::CachedResourceMounter*>(abandonedMounter.GetRef())->RemoveStatusCallback(CrackResourceName(abandonedUri));
 	}
 
 	co_return list;
@@ -464,6 +526,7 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 
 				// ok
 				std::string resourceBaseUrl = fmt::sprintf("%s/%s/", baseUrl, resourceName);
+				auto resourceBaseUrlParsed = ParseBaseUrl(resourceBaseUrl);
 
 				mounter->RemoveResourceEntries(resourceName);
 
@@ -472,7 +535,7 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 				{
 					fwString filename = i->name.GetString();
 
-					mounter->AddResourceEntry(resourceName, filename, i->value.GetString(), UrlEncodeWrap(resourceBaseUrl, filename));
+					mounter->AddResourceEntry(resourceName, filename, i->value.GetString(), UrlEncodeWrap(resourceBaseUrl, resourceBaseUrlParsed, filename));
 				}
 
 				if (resource.HasMember("streamFiles"))
@@ -523,13 +586,13 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 #endif
 						}
 
-						mounter->AddResourceEntry(resourceName, filename, hash, UrlEncodeWrap(resourceBaseUrl, filename), size, {
-																																{ "rscVersion", std::to_string(entry.rscVersion) },
-																																{ "rscPagesPhysical", std::to_string(entry.rscPagesPhysical) },
-																																{ "rscPagesVirtual", std::to_string(entry.rscPagesVirtual) },
-																																{ "rawSize", std::to_string(rawSize) },
-																																{ "e", std::to_string(entry.e) },
-																																});
+						mounter->AddResourceEntry(resourceName, filename, hash, UrlEncodeWrap(resourceBaseUrl, resourceBaseUrlParsed, filename), size, {
+							{ "rscVersion", std::to_string(entry.rscVersion) },
+							{ "rscPagesPhysical", std::to_string(entry.rscPagesPhysical) },
+							{ "rscPagesVirtual", std::to_string(entry.rscPagesVirtual) },
+							{ "rawSize", std::to_string(rawSize) },
+							{ "e", std::to_string(entry.e) },
+							});
 
 						entry.filePath = mounter->FormatPath(resourceName, filename);
 						entry.resourceName = resourceName;
@@ -559,8 +622,10 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 			g_resourceStartRequestSet.erase(updateList);
 		}
 
-		// create download task cancellation token, so we can cancel downloads if we want
-		cts = pplx::cancellation_token_source();
+		if (cts.get_token().is_canceled())
+		{
+			cts = pplx::cancellation_token_source();
+		}
 
 		DownloadResources(requiredResources, m_netLibrary).then([this, doneCb](std::vector<ResultTuple> resources)
 		{
