@@ -43,6 +43,8 @@ public:
 		return (m_curBit / 8) + leftoverBit;
 	}
 
+	bool ReadBit(bool* bit);
+
 	bool ReadInteger(uint32_t* integer, int bits);
 
 	// NOTE: SIGNED
