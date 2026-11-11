@@ -89,6 +89,12 @@ bool UvTcpServer::Listen(std::shared_ptr<uvw::TCPHandle>&& server)
 
 	m_server->listen();
 
+	// a failed listen (e.g. EADDRINUSE) only raises the ErrorEvent above, the handle becomes active once it listens
+	if (!m_server->active())
+	{
+		return false;
+	}
+
 	auto pipe = m_server->loop().resource<uvw::PipeHandle>();
 	pipe->bind(m_pipeName);
 	pipe->listen();
