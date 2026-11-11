@@ -755,6 +755,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 	else
 	{
 		const TASKDIALOG_BUTTON buttons[] = {
+			{ 43, L"Select a different game folder" },
 			{ 42, L"Close" }
 		};
 
@@ -763,7 +764,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 		taskDialogConfig.pszMainInstruction = L"Game files missing";
 		taskDialogConfig.pszContent = va(gettext(L"DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam, Epic Games Launcher or Rockstar Games Launcher and try again. See http://rsg.ms/verify step 4 for more info.\nCurrently, the game installation in '%s' is being used.\nRelevant files: \n%s"), MakeRelativeGamePath(L""), badEntriesWide.c_str());
 
-		taskDialogConfig.cButtons = 1;
+		taskDialogConfig.cButtons = std::size(buttons);
 		taskDialogConfig.dwCommonButtons = 0;
 		taskDialogConfig.pButtons = buttons;
 
@@ -789,7 +790,14 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 	TaskDialogIndirect(&taskDialogConfig, &outButton, nullptr, nullptr);
 #endif
 
-	return (outButton != IDNO && outButton != 42);
+	if (outButton == 43)
+	{
+		WritePrivateProfileString(L"Game", wcsstr(GetCommandLine(), L"cl2") ? L"PathCL2" : L"IVPath", nullptr, MakeRelativeCitPath(L"CitizenFX.ini").c_str());
+
+		MessageBox(UI_GetWindowHandle(), va(gettext(L"The saved game folder has been cleared. Restart %s to select your game folder."), PRODUCT_NAME), PRODUCT_NAME, MB_OK | MB_ICONINFORMATION);
+	}
+
+	return (outButton != IDNO && outButton != 42 && outButton != 43);
 }
 
 static void BumpDownloadCount(const std::shared_ptr<baseDownload>& download, const std::string& key)
