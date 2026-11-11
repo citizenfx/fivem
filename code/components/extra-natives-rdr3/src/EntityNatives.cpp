@@ -61,6 +61,37 @@ static bool CanProcessPendingAttachment(hook::FlexStruct* self, void* currentAtt
 
 static HookFunction hookFunction([]()
 {
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_MATRIX", [](fx::ScriptContext& context)
+	{
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+		if (!entity)
+		{
+			return;
+		}
+
+		const float forwardX = context.GetArgument<float>(1);
+		const float forwardY = context.GetArgument<float>(2);
+		const float forwardZ = context.GetArgument<float>(3);
+		const float rightX = context.GetArgument<float>(4);
+		const float rightY = context.GetArgument<float>(5);
+		const float rightZ = context.GetArgument<float>(6);
+		const float upX = context.GetArgument<float>(7);
+		const float upY = context.GetArgument<float>(8);
+		const float upZ = context.GetArgument<float>(9);
+		const float atX = context.GetArgument<float>(10);
+		const float atY = context.GetArgument<float>(11);
+		const float atZ = context.GetArgument<float>(12);
+
+		DirectX::XMMATRIX matrix(
+			DirectX::XMVectorSet(rightX, rightY, rightZ, 0.0f),
+			DirectX::XMVectorSet(forwardX, forwardY, forwardZ, 0.0f),
+			DirectX::XMVectorSet(upX, upY, upZ, 0.0f),
+			DirectX::XMVectorSet(atX, atY, atZ, 1.0f)
+		);
+
+		entity->SetMatrix(matrix, true);
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITIES_IN_RADIUS", [](fx::ScriptContext& context)
 	{
 		float checkX = context.GetArgument<float>(0);
