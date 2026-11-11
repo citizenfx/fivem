@@ -197,7 +197,11 @@ const EXT_LOCALFUNCREF = 11;
 										msg = err.toString();
 									}
 								}
-								cb(null, msg);
+								try {
+									cb(null, msg);
+								} catch (e) {
+									// the caller can't be reached anymore (e.g. its resource stopped while awaiting this)
+								}
 							}
 						});
 					}}]);
