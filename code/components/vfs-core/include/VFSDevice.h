@@ -115,4 +115,17 @@ struct GetFileIdExtension
 	// out
 	FileId fileId;
 };
+
+#define VFS_GET_FILE_INFO 0x10004
+
+struct GetFileInfoExtension
+{
+	// in
+	Device::THandle handle;
+
+	// out
+	std::time_t mtime;
+	uint64_t size;
+	FileId fileId;
+};
 }

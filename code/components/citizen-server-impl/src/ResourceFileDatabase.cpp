@@ -174,15 +174,27 @@ auto ResourceFileDatabase::GetEntry(const std::string& file) -> Entry
 
 		if (handle != INVALID_DEVICE_HANDLE)
 		{
-			entry.mtime = device->GetModifiedTime(file);
-			entry.size = device->GetLength(handle);
-			
-			vfs::GetFileIdExtension idExt;
-			idExt.handle = handle;
+			vfs::GetFileInfoExtension infoExt;
+			infoExt.handle = handle;
 
-			device->ExtensionCtl(VFS_GET_FILE_ID, &idExt, sizeof(idExt));
+			if (device->ExtensionCtl(VFS_GET_FILE_INFO, &infoExt, sizeof(infoExt)))
+			{
+				entry.mtime = infoExt.mtime;
+				entry.size = infoExt.size;
+				entry.fileId = infoExt.fileId;
+			}
+			else
+			{
+				entry.mtime = device->GetModifiedTime(file);
+				entry.size = device->GetLength(handle);
 
-			entry.fileId = idExt.fileId;
+				vfs::GetFileIdExtension idExt;
+				idExt.handle = handle;
+
+				device->ExtensionCtl(VFS_GET_FILE_ID, &idExt, sizeof(idExt));
+
+				entry.fileId = idExt.fileId;
+			}
 
 			// very important, close the file
 			device->Close(handle);
