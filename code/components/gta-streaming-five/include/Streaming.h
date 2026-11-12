@@ -2,6 +2,9 @@
 
 #include <atArray.h>
 
+#include <functional>
+#include <string>
+
 #if defined(COMPILING_GTA_STREAMING_FIVE) || defined(COMPILING_GTA_STREAMING_RDR3)
 #define STREAMING_EXPORT DLL_EXPORT
 #else
@@ -276,6 +279,15 @@ public:
 
 	// are we trying to shut down?
 	STREAMING_EXPORT bool IsStreamerShuttingDown();
+
+	using DataFileLoadFn = std::function<bool(const char* fileName)>;
+	using DataFileUnloadFn = std::function<void(const char* fileName)>;
+
+	//
+	// Registers a handler for a `data_file` type that is implemented by Cfx code rather than the game.
+	// Load/unload are called with the file path in the same order/lifecycle as game data file mounters.
+	//
+	STREAMING_EXPORT void RegisterDataFileHandler(const std::string& type, DataFileLoadFn load, DataFileUnloadFn unload);
 
 	atArray<StreamingPackfileEntry>& GetStreamingPackfileArray();
 
