@@ -6,8 +6,11 @@
  */
 
 #include "StdInc.h"
+#include "CoreConsole.h"
 #include "MumbleDataHandler.h"
 #include "MumbleMessageHandler.h"
+
+constexpr uint16_t kMaxTcpSize = 8186;
 
 void MumbleDataHandler::Reset()
 {
@@ -27,11 +30,13 @@ void MumbleDataHandler::HandleCurrentPacket()
 	}
 }
 
-void MumbleDataHandler::HandleIncomingData(const uint8_t* data, size_t length)
+IncomingDataFailReason MumbleDataHandler::HandleIncomingData(const uint8_t* data, size_t length)
 {
 	const uint8_t* origin = data;
 	size_t read = length;
 
+	// TODO: Decide if we want to support mumble servers that don't set no delay
+	// currently this will eat packets if there are multiple sent in one payload
 	while (read > 0)
 	{
 		// if this is a new 'packet'
@@ -39,13 +44,19 @@ void MumbleDataHandler::HandleIncomingData(const uint8_t* data, size_t length)
 		{
 			if (read < 6)
 			{
-				return;
+				return IncomingDataFailReason::InvalidHeader;
 			}
 
 			const MumblePacketHeader* header = (const MumblePacketHeader*)origin;
 
 			m_totalBytes = header->GetPacketLength();
 			m_messageType = header->GetPacketType();
+
+			if (m_totalBytes > kMaxTcpSize)
+			{
+				console::PrintWarning("mumble", "Server sent an oversized packet (%u bytes), dropping connection and not attempting reconnection.\n", m_totalBytes);
+				return IncomingDataFailReason::InvalidMessageSize;
+			}
 
 			m_messageBuffer = std::unique_ptr<uint8_t[]>(new uint8_t[m_totalBytes]);
 
@@ -67,4 +78,6 @@ void MumbleDataHandler::HandleIncomingData(const uint8_t* data, size_t length)
 			HandleCurrentPacket();
 		}
 	}
+
+	return IncomingDataFailReason::Success;
 }
