@@ -13,7 +13,9 @@
 
 #include <tinyxml2.h>
 
+#include <algorithm>
 #include <atomic>
+#include <list>
 #include <map>
 #include <set>
 
@@ -85,6 +87,13 @@ struct CustomPlate
 	uint32_t fields = 0;
 	int requestedIndex = -1;
 
+	// the lowercased name, plates without a requested index get their index in this order
+	std::string sortKey;
+
+	// the assigned index, or -1 when none is left
+	int index = -1;
+	bool warnedNoIndex = false;
+
 	uint32_t txdSlot = -1;
 	bool holdsTxdRef = false;
 	bool texturesResolved = false;
@@ -115,7 +124,11 @@ static uint8_t g_drawHandlerOffset;
 
 static void (*g_origSetLicensePlateTexture)(char* effect, int index);
 
-static std::map<int, CustomPlate> g_customPlates;
+// every registered plate, in no particular order (std::list keeps the pointers below stable)
+static std::list<CustomPlate> g_plates;
+
+// registered plates by their assigned index
+static std::map<int, CustomPlate*> g_customPlates;
 
 // the game's own plate array, which we never free
 static PlateTextureSet* g_gameEntries;
@@ -283,7 +296,7 @@ static void ApplyPlates(bool allowShrink)
 	for (int i = g_gameCount; i < newCount; i++)
 	{
 		auto it = g_customPlates.find(i);
-		entries[i] = (it != g_customPlates.end()) ? BuildEntry(it->second) : defaultEntry;
+		entries[i] = (it != g_customPlates.end()) ? BuildEntry(*it->second) : defaultEntry;
 	}
 
 	// the render thread reads entries through this pointer, so publish it only once they're written
@@ -334,12 +347,12 @@ static void SetLicensePlateTextureHook(char* effect, int index)
 		return;
 	}
 
-	if (auto diffuse = it->second.diffuse)
+	if (auto diffuse = it->second->diffuse)
 	{
 		*reinterpret_cast<rage::grcTexture**>(effect + g_effectDiffuseOffset) = diffuse;
 	}
 
-	if (auto normal = it->second.normal)
+	if (auto normal = it->second->normal)
 	{
 		*reinterpret_cast<rage::grcTexture**>(effect + g_effectNormalOffset) = normal;
 	}
@@ -428,12 +441,12 @@ static void ReleaseTextures(CustomPlate& plate)
 
 static void UpdatePendingTextures()
 {
-	for (auto& [index, plate] : g_customPlates)
+	for (auto& plate : g_plates)
 	{
-		if (ResolveTextures(plate))
+		if (plate.index >= 0 && ResolveTextures(plate))
 		{
 			// vehicles that already got this style were missing its textures
-			ForEachPlateEffect([index = index](char* effect)
+			ForEachPlateEffect([index = plate.index](char* effect)
 			{
 				if (GetEffectPlateIndex(effect) == index)
 				{
@@ -450,6 +463,16 @@ static std::string GetChildText(const tinyxml2::XMLElement* element, const char*
 	auto text = (child) ? child->GetText() : nullptr;
 
 	return (text) ? text : "";
+}
+
+static std::string ToLowerString(std::string text)
+{
+	std::transform(text.begin(), text.end(), text.begin(), [](char c)
+	{
+		return ToLower(c);
+	});
+
+	return text;
 }
 
 static bool ReadVector(const tinyxml2::XMLElement* element, const char* name, float* out, std::initializer_list<const char*> components)
@@ -526,6 +549,7 @@ static bool ParsePlateFile(const char* fileName, std::vector<CustomPlate>& plate
 		plate.txd = GetChildText(item, "TextureDictionary");
 		plate.diffuseName = GetChildText(item, "DiffuseMapName");
 		plate.normalName = GetChildText(item, "NormalMapName");
+		plate.sortKey = ToLowerString(plate.name);
 
 		if (plate.name.empty() || plate.txd.empty() || plate.diffuseName.empty())
 		{
@@ -605,35 +629,164 @@ static int FindPlateIndexByName(uint32_t nameHash)
 	return -1;
 }
 
-static int AllocatePlateIndex(const CustomPlate& plate)
+static bool IsNameTaken(uint32_t nameHash)
 {
-	if (plate.requestedIndex >= 0)
+	for (int i = 0; i < g_gameCount; i++)
 	{
-		if (plate.requestedIndex < g_gameCount || plate.requestedIndex >= kMaxPlateCount)
+		if (g_gameEntries[i].textureSetName == nameHash)
 		{
-			trace("Vehicle plate '%s' (%s): Index %d is out of range (%d-%d).\n", plate.name, plate.sourceFile, plate.requestedIndex, g_gameCount, kMaxPlateCount - 1);
-			return -1;
-		}
-
-		if (auto it = g_customPlates.find(plate.requestedIndex); it != g_customPlates.end())
-		{
-			trace("Vehicle plate '%s' (%s): Index %d is already used by '%s' (%s).\n", plate.name, plate.sourceFile, plate.requestedIndex, it->second.name, it->second.sourceFile);
-			return -1;
-		}
-
-		return plate.requestedIndex;
-	}
-
-	for (int i = g_gameCount; i < kMaxPlateCount; i++)
-	{
-		if (g_customPlates.find(i) == g_customPlates.end())
-		{
-			return i;
+			return true;
 		}
 	}
 
-	trace("Vehicle plate '%s' (%s): no free plate index left.\n", plate.name, plate.sourceFile);
-	return -1;
+	for (const auto& plate : g_plates)
+	{
+		if (plate.values.textureSetName == nameHash)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static bool ValidateRequestedIndex(const CustomPlate& plate)
+{
+	if (plate.requestedIndex < 0)
+	{
+		return true;
+	}
+
+	if (plate.requestedIndex < g_gameCount || plate.requestedIndex >= kMaxPlateCount)
+	{
+		trace("Vehicle plate '%s' (%s): Index %d is out of range (%d-%d).\n", plate.name, plate.sourceFile, plate.requestedIndex, g_gameCount, kMaxPlateCount - 1);
+		return false;
+	}
+
+	for (const auto& other : g_plates)
+	{
+		if (other.requestedIndex == plate.requestedIndex)
+		{
+			trace("Vehicle plate '%s' (%s): Index %d is already used by '%s' (%s).\n", plate.name, plate.sourceFile, plate.requestedIndex, other.name, other.sourceFile);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+//
+// Gives every registered plate its index. Plates with an `Index` keep it, and the others get the free indices
+// after the game's plates in order of their name. Plate indices are synced as plain numbers, so this only depends
+// on which plates are registered and not on the order their files were loaded in: every client running the same
+// resources ends up with the same indices, including players that join after a plate resource was restarted.
+//
+// Starting or stopping a plate resource can move other plates to a different index. Vehicles using a moved plate
+// are switched to its new index (a vehicle's owner syncs that to everyone else), and vehicles using a plate in
+// `removedIndices` go back to the default plate.
+//
+static void AssignIndices(const std::set<int>& removedIndices)
+{
+	std::set<int> taken;
+	std::vector<CustomPlate*> automatic;
+
+	for (auto& plate : g_plates)
+	{
+		if (plate.requestedIndex >= 0)
+		{
+			taken.insert(plate.requestedIndex);
+		}
+		else
+		{
+			automatic.push_back(&plate);
+		}
+	}
+
+	std::sort(automatic.begin(), automatic.end(), [](const CustomPlate* left, const CustomPlate* right)
+	{
+		return left->sortKey < right->sortKey;
+	});
+
+	// old index -> new index (-1 if it lost its index)
+	std::map<int, int> moved;
+
+	auto assign = [&moved](CustomPlate& plate, int index)
+	{
+		if (plate.index >= 0 && plate.index != index)
+		{
+			moved[plate.index] = index;
+			trace("Vehicle plate '%s' moved from index %d to %d.\n", plate.name, plate.index, index);
+		}
+
+		plate.index = index;
+
+		if (index >= 0)
+		{
+			g_customPlates[index] = &plate;
+		}
+	};
+
+	g_customPlates.clear();
+
+	for (auto& plate : g_plates)
+	{
+		if (plate.requestedIndex >= 0)
+		{
+			assign(plate, plate.requestedIndex);
+		}
+	}
+
+	int next = g_gameCount;
+
+	for (auto plate : automatic)
+	{
+		while (taken.find(next) != taken.end())
+		{
+			next++;
+		}
+
+		if (next >= kMaxPlateCount)
+		{
+			if (!plate->warnedNoIndex)
+			{
+				trace("Vehicle plate '%s' (%s): no free plate index left.\n", plate->name, plate->sourceFile);
+				plate->warnedNoIndex = true;
+			}
+
+			assign(*plate, -1);
+			continue;
+		}
+
+		assign(*plate, next++);
+	}
+
+	ApplyPlates(false);
+
+	if (!moved.empty() || !removedIndices.empty())
+	{
+		int defaultIndex = GetDefaultPlateIndex();
+
+		// a single pass, as a removed plate's old index may be the new index of a moved one
+		ForEachPlateEffect([&moved, &removedIndices, defaultIndex](char* effect)
+		{
+			int index = GetEffectPlateIndex(effect);
+
+			if (removedIndices.find(index) != removedIndices.end())
+			{
+				ReapplyPlate(effect, defaultIndex);
+			}
+			else if (auto it = moved.find(index); it != moved.end())
+			{
+				ReapplyPlate(effect, (it->second >= 0) ? it->second : defaultIndex);
+			}
+		});
+	}
+
+	// plates moved down or were removed, shrink the array once no vehicle uses the indices past its new end
+	if (auto array = GetPlateArray(); array && GetWantedCount() < array->count)
+	{
+		g_trimAtFrame = g_frameCounter + kDeferFrames;
+	}
 }
 
 static bool LoadPlateFile(const char* fileName)
@@ -651,26 +804,38 @@ static bool LoadPlateFile(const char* fileName)
 		return false;
 	}
 
+	std::vector<CustomPlate*> added;
+
 	for (auto& plate : plates)
 	{
-		if (FindPlateIndexByName(plate.values.textureSetName) >= 0)
+		if (IsNameTaken(plate.values.textureSetName))
 		{
 			trace("Vehicle plate '%s' (%s): a plate with this TextureSetName already exists.\n", plate.name, plate.sourceFile);
 			continue;
 		}
 
-		int index = AllocatePlateIndex(plate);
-
-		if (index < 0)
+		if (!ValidateRequestedIndex(plate))
 		{
 			continue;
 		}
 
-		auto& registered = g_customPlates.emplace(index, std::move(plate)).first->second;
-		ApplyPlates(false);
-		ResolveTextures(registered);
+		added.push_back(&g_plates.emplace_back(std::move(plate)));
+	}
 
-		trace("Registered vehicle plate '%s' as index %d.\n", registered.name, index);
+	if (added.empty())
+	{
+		return true;
+	}
+
+	AssignIndices({});
+
+	for (auto plate : added)
+	{
+		if (plate->index >= 0)
+		{
+			ResolveTextures(*plate);
+			trace("Registered vehicle plate '%s' as index %d.\n", plate->name, plate->index);
+		}
 	}
 
 	return true;
@@ -678,21 +843,24 @@ static bool LoadPlateFile(const char* fileName)
 
 static void UnloadPlateFile(const char* fileName)
 {
-	std::vector<CustomPlate> removed;
+	std::list<CustomPlate> removed;
 	std::set<int> removedIndices;
 
-	for (auto it = g_customPlates.begin(); it != g_customPlates.end();)
+	for (auto it = g_plates.begin(); it != g_plates.end();)
 	{
-		if (it->second.sourceFile == fileName)
+		auto next = std::next(it);
+
+		if (it->sourceFile == fileName)
 		{
-			removedIndices.insert(it->first);
-			removed.push_back(std::move(it->second));
-			it = g_customPlates.erase(it);
+			if (it->index >= 0)
+			{
+				removedIndices.insert(it->index);
+			}
+
+			removed.splice(removed.end(), g_plates, it);
 		}
-		else
-		{
-			++it;
-		}
+
+		it = next;
 	}
 
 	if (removed.empty())
@@ -701,17 +869,7 @@ static void UnloadPlateFile(const char* fileName)
 	}
 
 	// removed indices turn into copies of the default plate until the array can be shrunk
-	ApplyPlates(false);
-
-	int defaultIndex = GetDefaultPlateIndex();
-
-	ForEachPlateEffect([&removedIndices, defaultIndex](char* effect)
-	{
-		if (removedIndices.find(GetEffectPlateIndex(effect)) != removedIndices.end())
-		{
-			ReapplyPlate(effect, defaultIndex);
-		}
-	});
+	AssignIndices(removedIndices);
 
 	// no vehicle points at these textures anymore
 	for (auto& plate : removed)
