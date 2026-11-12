@@ -343,7 +343,7 @@ static HookFunction hookFunction([]()
 	hook::put<uint32_t>(hook::get_pattern("48 8D 99 ? ? ? ? 48 81 EB ? ? ? ? 8B 43", 3), GAMER_TAG_LIMIT * gamerTagSize + magicOffset);	
 
 
-	hook::put<uint32_t>(hook::get_pattern("BD ? ? ? ? 80 7B ? ? 75", 1), GAMER_TAG_LIMIT); // GAMER_INFO::~GAMER_INFO
+	hook::put<uint32_t>(hook::get_pattern("BD ? ? ? ? 80 7B FF 00 75", 1), GAMER_TAG_LIMIT); // GAMER_INFO::~GAMER_INFO
 	LimitPatch(hook::get_pattern("83 FE ? 0F 8C ? ? ? ? 45 84 E4")); // GAMER_INFO::sub_1401D1358
 
 	// GAMER_INFO::sub_1401D1FA4 changes the tag drawing order by the distance

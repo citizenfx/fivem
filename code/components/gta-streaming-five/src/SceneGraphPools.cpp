@@ -159,7 +159,7 @@ static HookFunction hookFunction([]()
 			} stub;
 			stub.continueLocation = (uintptr_t)location + 7;
 			hook::nop(location, 7);
-			hook::jump_reg<3>(location, stub.GetCode());
+			hook::jump_reg<2>(location, stub.GetCode());
 		}
 
 		// fwScanEntities::RunFromDependency

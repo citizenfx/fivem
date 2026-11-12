@@ -29,8 +29,8 @@ struct CConditionalAnimsGroup
 };
 static_assert(sizeof(CConditionalAnimsGroup) == 0x18, "CConditionalAnimsGroup has wrong size!");
 
-void* (*g_CTaskAmbientClipsCtor)(void* memAllocated, uintptr_t unk1, CConditionalAnimsGroup* condGroup, int condAnimChosen, uintptr_t unk3);
-void* CTaskAmbientClipsCtor(void* memAllocated, uintptr_t unk1, CConditionalAnimsGroup* condGroup, int condAnimChosen, uintptr_t unk3)
+void* (*g_CTaskAmbientClipsCtor)(void* memAllocated, uintptr_t unk1, CConditionalAnimsGroup* condGroup, int condAnimChosen, uintptr_t unk3, uint8_t unk4);
+void* CTaskAmbientClipsCtor(void* memAllocated, uintptr_t unk1, CConditionalAnimsGroup* condGroup, int condAnimChosen, uintptr_t unk3, uint8_t unk4)
 {
 	if (!condGroup)
 	{
@@ -49,7 +49,7 @@ void* CTaskAmbientClipsCtor(void* memAllocated, uintptr_t unk1, CConditionalAnim
 		return nullptr;
 	}
 	
-	return g_CTaskAmbientClipsCtor(allocatedMemory, unk1, condGroup, condAnimChosen, unk3);
+	return g_CTaskAmbientClipsCtor(allocatedMemory, unk1, condGroup, condAnimChosen, unk3, unk4);
 }
 
 

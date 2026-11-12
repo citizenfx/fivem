@@ -54,8 +54,8 @@ static HookFunction hookFunction([]()
 			jmp(r11);
 
 			L("fail");
-			mov(rax, failLocation);
-			jmp(rax);
+			mov(r11, failLocation);
+			jmp(r11);
 		}
 	} stub;
 	

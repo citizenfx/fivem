@@ -143,8 +143,9 @@ namespace streaming
 
 		if (selfId != -1)
 		{
-			uint32_t outDeps[50];
-			std::uninitialized_fill(outDeps, &outDeps[50], -1);
+			// TU: increased from 50 in 2612+, keep in sync to avoid dropping dependencies
+			uint32_t outDeps[100];
+			std::uninitialized_fill(std::begin(outDeps), std::end(outDeps), -1);
 
 			auto module = moduleMgr.GetStreamingModule(selfId);
 			int numDeps = module->GetDependencies(selfId - module->baseIdx, outDeps, std::size(outDeps));

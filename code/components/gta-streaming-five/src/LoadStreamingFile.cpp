@@ -3510,7 +3510,7 @@ static HookFunction hookFunction([]()
 	g_GetRawStreamer = (decltype(g_GetRawStreamer))hook::get_pattern<uint8_t>("48 83 EC ? 48 8B 05 ? ? ? ? 48 85 C0 75 ? 8D 50");
 	auto chunkyArrayAppendLoc = hook::get_pattern<uint8_t>("40 53 48 83 EC ? F7 81 ? ? ? ? ? ? ? ? 48 8B D9 75");
 	chunkyArrayCountOffset = *(int32_t*)(chunkyArrayAppendLoc + 8);
-	chunkyArrayOffset = *hook::get_pattern<int32_t>("48 8D 8F ? ? ? ? E8 ? ? ? ? 48 8D 4C 24", 3);
+	chunkyArrayOffset = *hook::get_pattern<int32_t>("74 ? 48 8D 8F ? ? ? ? E8 ? ? ? ? 48 8D 4C 24 ? 48 8B D8", 5);
 	g_chunkyArrayAppend = hook::trampoline(chunkyArrayAppendLoc, &chunkyArrayAppend);
 #elif IS_RDR3
 	g_GetRawStreamer = (decltype(g_GetRawStreamer))hook::get_pattern<uint8_t>("48 83 EC ? 48 8B 05 ? ? ? ? 48 85 C0 75 ? 8D 50 ? B9");
@@ -3632,7 +3632,7 @@ static HookFunction hookFunction([]()
 
 	// level load
 #ifdef GTA_FIVE
-	void* hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B0 01 48 8B D3").count(1).get(0).get<void>(18);
+	void* hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B0 01 48 8B D3 E8 ? ? ? ? E8").count(1).get(0).get<void>(18);
 #elif IS_RDR3
 	void* hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 0D ? ? ? ? 4C 8D 0D ? ? ? ? 41 B0 01 48 8B D3 E8").count(1).get(0).get<void>(25);
 #endif

@@ -276,9 +276,17 @@ static HookFunction hookFunction([]()
 			{
 				mov(byte_ptr[rbx+0xCE1], r9b);
 
+				push(r8);
+				push(r9);
+				sub(rsp, 0x20);
+
 				mov(rcx, rbx);
 				mov(r15, (uintptr_t)VisibilityBegin); // VisibilityBeing(this)
 				call(r15);
+
+				add(rsp, 0x20);
+				pop(r9);
+				pop(r8);
 				
 				mov(r15, continueLocation);
 				jmp(r15);

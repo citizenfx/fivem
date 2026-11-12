@@ -327,16 +327,16 @@ static struct MhInit
 	}
 } mhInit;
 
-bool(*g_origShouldWriteToPlayer)(void* a1, void* a2, int playerIdx, int a4);
+bool(*g_origShouldWriteToPlayer)(void* a1, void* a2, int playerIdx, int a4, int a5, int a6);
 
-static bool ShouldWriteToPlayerWrap(void* a1, void* a2, int playerIdx, int a4)
+static bool ShouldWriteToPlayerWrap(void* a1, void* a2, int playerIdx, int a4, int a5, int a6)
 {
 	if (playerIdx == 31)
 	{
 		//return true;
 	}
 
-	return g_origShouldWriteToPlayer(a1, a2, playerIdx, a4);
+	return g_origShouldWriteToPlayer(a1, a2, playerIdx, a4, a5, a6);
 }
 
 uint32_t(*g_origGetRelevantSectorPosPlayers)(void* a1, void* a2, uint8_t a3);
@@ -421,13 +421,19 @@ static HookFunction hookFunction([] ()
 
 			void InternalMain() override
 			{
-				sub(rsp, 0x38);
+				sub(rsp, 0x48);
 
-				mov(rax, qword_ptr[rsp + 0x38 + 0x28]);
+				mov(rax, qword_ptr[rsp + 0x48 + 0x28]);
 				mov(qword_ptr[rsp + 0x20], rax);
 
-				mov(rax, qword_ptr[rsp + 0x38 + 0x30]);
+				mov(rax, qword_ptr[rsp + 0x48 + 0x30]);
 				mov(qword_ptr[rsp + 0x28], rax);
+
+				mov(rax, qword_ptr[rsp + 0x48 + 0x38]);
+				mov(qword_ptr[rsp + 0x30], rax);
+
+				mov(rax, qword_ptr[rsp + 0x48 + 0x40]);
+				mov(qword_ptr[rsp + 0x38], rax);
 
 				mov(rax, origFn);
 				call(rax);
@@ -442,7 +448,7 @@ static HookFunction hookFunction([] ()
 				mov(rax, (uint64_t)&SetPoolFn);
 				call(rax);
 
-				add(rsp, 0x38);
+				add(rsp, 0x48);
 
 				ret();
 			}

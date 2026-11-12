@@ -423,7 +423,7 @@ static HookFunction hookFunction([]()
 
 		if (xbr::IsGameBuildOrGreater<3095>())
 		{
-			hook::jump(hook::get_pattern("38 ? 54 01 00 00 75 ? 48 8B ", -0x20), ReturnTrue);
+			hook::jump(hook::get_pattern("75 ? 38 ? 54 01 00 00 75 ? 48 8B", -0x1E), ReturnTrue);
 		}
 		else
 		{

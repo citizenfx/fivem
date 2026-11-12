@@ -536,11 +536,11 @@ static int ReturnTrueFromScript(void* a1, void* a2)
 	return true;
 }
 
-static void(*g_CTheScripts__Shutdown)(void);
+static void(*g_CTheScripts__Shutdown)(uint32_t shutdownMode);
 
-static void CTheScripts__Shutdown()
+static void CTheScripts__Shutdown(uint32_t shutdownMode)
 {
-	g_CTheScripts__Shutdown();
+	g_CTheScripts__Shutdown(shutdownMode);
 
 	for (auto& thread : g_ownedThreads)
 	{

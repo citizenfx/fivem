@@ -674,9 +674,16 @@ static HookFunction hookFunction{[] ()
 			// move as argument (doing this inline and using 'call' breaks for some reason)
 			mov(rcx, rdx);
 
-			// jump to the probing function
+			// r9w is the loop's bound and used after we return from our patch
+			push(r9);
+			sub(rsp, 0x20);
+
 			mov(rax, (uintptr_t)ProbePointer);
-			jmp(rax);
+			call(rax);
+
+			add(rsp, 0x20);
+			pop(r9);
+			ret();
 		}
 	} txdFixStub;
 
@@ -1084,7 +1091,11 @@ static HookFunction hookFunction{[] ()
 	MH_CreateHook(hook::get_pattern("EB 08 C7 44 24 20 01 00 00 00 45 33 C9", -0x17), CText__LoadSlotHook, (void**)&g_origCText__LoadSlot);
 
 	// hook to pretend any such slot is loaded
-	MH_CreateHook(hook::get_pattern("75 0D F6 84 08 ? ? 00 00", -0xB), CText__IsSlotLoadedHook, (void**)&g_origCText__IsSlotLoaded);
+	// Fixed in Sec-TU
+	if (!xbr::IsGameBuildOrGreater<xbr::Build::Patch_2026_1>())
+	{
+		MH_CreateHook(hook::get_pattern("75 0D F6 84 08 ? ? 00 00", -0xB), CText__IsSlotLoadedHook, (void**)&g_origCText__IsSlotLoaded);
+	}
 
 	// cache line size can't be 0, breaks Nickel XTA
 	MH_CreateHook(hook::get_pattern("B8 01 00 00 00 0F A2 C1 EB 08", -0x11), GetCacheLineSizeHook, (void**)&g_origGetCacheLineSize);
@@ -1117,13 +1128,12 @@ static HookFunction hookFunction{[] ()
 
 	// don't fastfail from game CRT code
 	{
-		// 5 hits on 2944, but skipping 2 last
-		auto pattern = hook::pattern("B9 ? ? ? ? CD 29").count_hint(3);
+		auto pattern = hook::pattern("74 07 B9 ? 00 00 00 CD 29").count_hint(3);
 
 		for (size_t i = 0; i < pattern.size(); i++)
 		{
 			// replace with a `ud2` instruction
-			hook::put<uint16_t>(pattern.get(i).get<void>(5), 0x0B0F);
+			hook::put<uint16_t>(pattern.get(i).get<void>(7), 0x0B0F);
 		}
 	}
 

@@ -92,13 +92,16 @@ static HookFunction hookFunction([]
 															//        [run original code]
 				mov(rcx, rbx);								//
 															//
+				sub(rsp, 0x28);								//
 				mov(rax, qword_ptr[rax + vtableOffset]);	//
 				call(rax);									//
+				add(rsp, 0x28);								//
+				ret();										//
 				// * original code END                      //
 															//
 															// }
 				L("skip");									//
-															//
+				xor(eax, eax);								//
 				ret();										//
 			}
 

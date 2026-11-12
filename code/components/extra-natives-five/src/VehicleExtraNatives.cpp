@@ -628,7 +628,7 @@ static HookFunction initFunction([]()
 		HighGearOffset = *hook::get_pattern<uint32_t>("88 44 24 20 45 0F 28 D0", -4);
 		HandbrakeOffset = *hook::get_pattern<uint32_t>("8A C2 24 01 C0 E0 04 08 81", 19);
 		EngineTempOffset = *hook::get_pattern<uint32_t>("48 8D 8F ? ? ? ? 45 32 FF", -4);
-		SteeringScaleOffset = *hook::get_pattern<uint32_t>("41 8B 80 ? ? ? ? C1 E8 ? 40 84 C5 74", 18);
+		SteeringScaleOffset = *hook::get_pattern<uint32_t>("41 8B 80 ? ? ? ? C1 E8 ? 40 84 C5 74 ? 48 C7 87", 18);
 		WheelieStateOffset = *hook::get_pattern<uint32_t>("8B 87 ? ? ? ? 48 8B 57 ? 89 87", 39);
 		TrainTrackNodeIndexOffset = *hook::get_pattern<uint32_t>("89 83 ? ? ? ? E8 ? ? ? ? 40 8A F8", 2);
 		StreamRenderGfxPtrOffset = *hook::get_pattern<uint32_t>("4C 8D 48 ? 80 E1 01", -4);

@@ -2237,55 +2237,7 @@ static bool ReadDataNodeStub(void* node, uint32_t serializationMode, uint32_t fl
 	return didRead;
 }
 
-#ifdef GTA_FIVE
-static char(*g_origWriteDataNode)(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk, void* unk2545);
-
-static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk, void* unk2545)
-{
-	if (!icgi->OneSyncEnabled)
-	{
-		return g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk, unk2545);
-	}
-
-	if (playerId != 31 || flags == 4)
-	{
-		return g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk, unk2545);
-	}
-	else
-	{
-		// save position and write a placeholder length frame
-		uint32_t position = buffer->GetPosition();
-		buffer->WriteBit(false);
-		buffer->WriteUns(0, 11);
-
-		bool rv = g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk, unk2545);
-
-		// write the actual length on top of the position
-		uint32_t endPosition = buffer->GetPosition();
-		auto length = endPosition - position - 11 - 1;
-
-		if (length > 1 || flags == 1)
-		{
-			buffer->Seek(position);
-
-			buffer->WriteBit(true);
-			buffer->WriteUns(length, 11);
-			buffer->Seek(endPosition);
-
-			if (g_curNetObject)
-			{
-				g_netObjectNodeMapping[g_curNetObject->GetObjectId()][node] = { 1, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() };
-			}
-		}
-		else
-		{
-			buffer->Seek(position + 1);
-		}
-
-		return rv;
-	}
-}
-#elif IS_RDR3
+#ifdef IS_RDR3
 static char(*g_origWriteDataNode)(void* node, uint32_t flags, uint32_t objectFlags, rage::netObject* object, rage::datBitBuffer* buffer, void* playerObj, char playerId, void* a8, void* unk);
 
 static bool WriteDataNodeStub(void* node, uint32_t flags, uint32_t objectFlags, rage::netObject* object, rage::datBitBuffer* buffer, void* playerObj, char playerId, void* a8, void* unk)
@@ -2430,34 +2382,14 @@ static uint64_t CSyncedVarBase__GetMaxBits(void* self)
 static HookFunction hookFunction2([]()
 {
 	// 2 matches, 1st is data, 2nd is parent
+#if defined(IS_RDR3) && !defined(ONESYNC_CLONING_NATIVES)
 	{
-#ifndef ONESYNC_CLONING_NATIVES
-#ifdef GTA_FIVE
-		char* location;
-
-		if (xbr::IsGameBuildOrGreater<2824>())
-		{
-			location = hook::get_pattern<char>("4C 8D 4C 24 30 4C 8D 86 B0 02 00 00 48 8B D0 48", -0x70);
-			hook::set_call(&g_origWriteDataNode, location + 0x89);
-		}
-		else if (xbr::IsGameBuildOrGreater<2802>())
-		{
-			location = hook::get_pattern<char>("48 89 44 24 20 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x63);
-			hook::set_call(&g_origWriteDataNode, location + 0x68);
-		}
-		else
-		{
-			location = hook::get_pattern<char>("48 89 44 24 20 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x3C);
-			hook::set_call(&g_origWriteDataNode, location + 0x41);
-		}
-#elif IS_RDR3
 		auto location = hook::get_pattern<char>("49 89 43 C8 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x3E);
 		hook::set_call(&g_origWriteDataNode, location + 0x42);
-#endif
 
 		hook::jump(location, WriteDataNodeStub);
-#endif
 	}
+#endif
 
 	{
 		MH_Initialize();
