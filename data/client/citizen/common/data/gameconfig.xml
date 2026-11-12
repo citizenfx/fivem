@@ -900,7 +900,7 @@
 					<MaxTimeModelInfos value="1800"/>
 					<MaxVehicleModelInfos value="1024"/>
 					<MaxWeaponModelInfos value="115"/>
-					<MaxExtraPedModelInfos value="1044"/>
+					<MaxExtraPedModelInfos value="2048"/>
 					<MaxExtraVehicleModelInfos value="2068"/>
 					<MaxExtraWeaponModelInfos value="2048"/>
 				</ConfigModelInfo>
