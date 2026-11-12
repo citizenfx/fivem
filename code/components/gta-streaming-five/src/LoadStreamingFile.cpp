@@ -1272,6 +1272,40 @@ struct IgnoreCaseLess
 	}
 };
 
+// mounter for data file types that are implemented by other components, see streaming::RegisterDataFileHandler
+class CfxCustomTypeMounter : public CDataFileMountInterface
+{
+public:
+	CfxCustomTypeMounter(streaming::DataFileLoadFn load, streaming::DataFileUnloadFn unload)
+		: m_load(std::move(load)), m_unload(std::move(unload))
+	{
+	}
+
+	virtual bool LoadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		return m_load(entry->name);
+	}
+
+	virtual void UnloadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		m_unload(entry->name);
+	}
+
+private:
+	streaming::DataFileLoadFn m_load;
+	streaming::DataFileUnloadFn m_unload;
+};
+
+static std::map<std::string, std::unique_ptr<CfxCustomTypeMounter>, IgnoreCaseLess> g_customTypeMounters;
+
+namespace streaming
+{
+	void STREAMING_EXPORT RegisterDataFileHandler(const std::string& type, DataFileLoadFn load, DataFileUnloadFn unload)
+	{
+		g_customTypeMounters[type] = std::make_unique<CfxCustomTypeMounter>(std::move(load), std::move(unload));
+	}
+}
+
 class CDataFileMount
 {
 public:
@@ -1496,6 +1530,11 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 	if (type == "CFX_PSEUDO_CACHE")
 	{
 		return &g_staticCacheMounter;
+	}
+
+	if (auto it = g_customTypeMounters.find(type); it != g_customTypeMounters.end())
+	{
+		return it->second.get();
 	}
 
 	int fileType = LookupDataFileType(type);

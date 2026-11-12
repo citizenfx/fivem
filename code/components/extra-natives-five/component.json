@@ -16,6 +16,7 @@
 		"voip:mumble",
 		"vendor:directxtex",
 		"vendor:im3d",
+		"vendor:tinyxml2-dll",
 		"gta:net:five"
 	],
 	"provides": []
