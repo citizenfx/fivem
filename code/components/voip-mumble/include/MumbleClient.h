@@ -82,6 +82,8 @@ public:
 	virtual std::string GetPlayerNameFromServerId(uint32_t serverId) = 0;
 
 	virtual std::string GetVoiceChannelFromServerId(uint32_t serverId) = 0;
+	
+	virtual uint32_t GetPlayerSessionFromName(std::string& playerName) = 0;
 
 	virtual void GetTalkers(std::vector<std::string>* names) = 0;
 
@@ -110,6 +112,12 @@ public:
 	virtual bool DoesChannelExist(const std::string& channelName) = 0;
 
 	virtual std::shared_ptr<lab::AudioContext> GetAudioContext(const std::string& name) = 0;
+	
+	virtual void SetSelfMuted(bool muted) = 0;
+	
+	virtual void SetSelfDeafened(bool selfDeafened) = 0;
+	
+	virtual void MutePlayerLocally(uint32_t sessionId, bool muted) = 0;
 
 	// settings
 	virtual void SetActivationMode(MumbleActivationMode mode) = 0;
