@@ -27,6 +27,36 @@
 
 #include <TcpListenManager.h>
 
+#include <CoreConsole.h>
+
+// Script values reach the response callbacks untyped, so an unchecked `as<T>()` throws and terminates the server.
+static std::optional<std::string> ToHttpString(const msgpack::object& value)
+{
+	switch (value.type)
+	{
+		case msgpack::type::STR:
+		case msgpack::type::BIN:
+			return value.as<std::string>();
+		case msgpack::type::POSITIVE_INTEGER:
+			return std::to_string(value.via.u64);
+		case msgpack::type::NEGATIVE_INTEGER:
+			return std::to_string(value.via.i64);
+		case msgpack::type::FLOAT:
+			return fmt::sprintf("%g", value.via.f64);
+		case msgpack::type::BOOLEAN:
+			return std::string{ value.via.boolean ? "true" : "false" };
+		default:
+			return std::nullopt;
+	}
+}
+
+static void WarnInvalidArgument(fx::Resource* resource, const char* function, const char* expected)
+{
+	console::PrintWarning(
+		_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
+		fmt::sprintf("%s: %s expected %s, ignoring the invalid value.\n", resource->GetName(), function, expected));
+}
+
 // HTTP handler
 static auto GetHttpHandler(fx::Resource* resource)
 {
@@ -124,6 +154,11 @@ public:
 			{
 				auto args = unpacked.get().as<std::vector<msgpack::object>>();
 
+				if (args.empty())
+				{
+					return;
+				}
+
 				auto callback = args[0];
 
 				if (callback.type == msgpack::type::EXT)
@@ -147,12 +182,24 @@ public:
 			{
 				auto args = unpacked.get().as<std::vector<msgpack::object>>();
 
+				if (args.empty())
+				{
+					return;
+				}
+
 				auto callback = args[0];
 				bool isBinary = false;
 
 				if (args.size() > 1)
 				{
-					isBinary = (args[1].as<std::string>() == "binary");
+					if (args[1].type == msgpack::type::STR)
+					{
+						isBinary = (args[1].as<std::string>() == "binary");
+					}
+					else if (!args[1].is_nil())
+					{
+						WarnInvalidArgument(m_resource, "req.setDataHandler()", "a string data type");
+					}
 				}
 
 				if (callback.type == msgpack::type::EXT)
@@ -181,34 +228,79 @@ public:
 
 			responseWrap.write = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
 			{
-				response->Write(unpacked.get().as<std::vector<msgpack::object>>()[0].as<std::string>());
+				auto args = unpacked.get().as<std::vector<msgpack::object>>();
+
+				if (args.empty() || args[0].is_nil())
+				{
+					return;
+				}
+
+				if (auto data = ToHttpString(args[0]))
+				{
+					response->Write(*data);
+				}
+				else
+				{
+					WarnInvalidArgument(m_resource, "res.write()", "a string");
+				}
 			});
 
 			responseWrap.writeHead = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
 			{
 				auto state = unpacked.get().as<std::vector<msgpack::object>>();
 
-				if (state.size() == 1)
+				if (state.size() > 1 && state[1].type == msgpack::type::MAP)
 				{
-					response->SetStatusCode(state[0].as<int>());
-				}
-				else
-				{
-					net::HeaderMap headers;
+					const auto& map = state[1].via.map;
 
-					for (auto& pair : state[1].as<std::map<std::string, msgpack::object>>())
+					for (uint32_t i = 0; i < map.size; i++)
 					{
-						if (pair.second.type == msgpack::type::ARRAY)
+						const auto& key = map.ptr[i].key;
+						const auto& value = map.ptr[i].val;
+
+						if (key.type != msgpack::type::STR)
 						{
-							response->SetHeader(net::HeaderString{ pair.first.c_str() }, pair.second.as<std::vector<std::string>>());
+							WarnInvalidArgument(m_resource, "res.writeHead()", "string header names");
+							continue;
+						}
+
+						net::HeaderString headerName{ key.as<std::string>().c_str() };
+
+						if (value.type == msgpack::type::ARRAY)
+						{
+							std::vector<std::string> values;
+
+							for (uint32_t j = 0; j < value.via.array.size; j++)
+							{
+								if (auto headerValue = ToHttpString(value.via.array.ptr[j]))
+								{
+									values.push_back(std::move(*headerValue));
+								}
+							}
+
+							response->SetHeader(headerName, values);
+						}
+						else if (auto headerValue = ToHttpString(value))
+						{
+							response->SetHeader(headerName, *headerValue);
 						}
 						else
 						{
-							response->SetHeader(net::HeaderString{ pair.first.c_str() }, pair.second.as<std::string>());
+							WarnInvalidArgument(m_resource, "res.writeHead()", "string or number header values");
 						}
 					}
+				}
 
-					response->SetStatusCode(state[0].as<int>());
+				if (!state.empty())
+				{
+					if (state[0].type == msgpack::type::POSITIVE_INTEGER && state[0].via.u64 <= 999)
+					{
+						response->SetStatusCode(static_cast<int>(state[0].via.u64));
+					}
+					else
+					{
+						WarnInvalidArgument(m_resource, "res.writeHead()", "a numeric status code");
+					}
 				}
 
 				if (request->GetHttpVersion() != std::pair<int, int>{ 1, 0 })
@@ -221,13 +313,20 @@ public:
 			{
 				auto state = unpacked.get().as<std::vector<msgpack::object>>();
 
-				if (state.empty())
+				if (state.empty() || state[0].is_nil())
 				{
 					response->End();
+					return;
+				}
+
+				if (auto data = ToHttpString(state[0]))
+				{
+					response->End(*data);
 				}
 				else
 				{
-					response->End(state[0].as<std::string>());
+					WarnInvalidArgument(m_resource, "res.send()", "a string");
+					response->End();
 				}
 			});
 
