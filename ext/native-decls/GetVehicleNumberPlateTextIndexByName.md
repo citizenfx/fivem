@@ -18,11 +18,11 @@ This works for both the game's own plate styles and add-on plate styles from `VE
 Resources can add plate styles with a `VEHICLE_PLATES_FILE` data file, in the same format as the `VehiclePlates` node in `carcols.ymt`, with these additions:
 
 * `TextureDictionary` (required): the streamed texture dictionary (`.ytd`) containing the plate textures.
-* `Index` (optional): the plate index to use. When it is left out, the first free index after the game's plate styles is used.
+* `Index` (optional): the plate index to use.
 
 `NormalMapName` and the font settings are optional, and default to the game's default plate style.
 
-Plate indices are synchronized over the network as numbers, so every client needs to assign the same index to the same plate style. Indices that are assigned automatically depend on the order in which plate files are loaded, which can differ for players who join after a plate resource was restarted. Set an `Index` (for example, `100` and up) when plate resources may be restarted while players are connected.
+Plate styles without an `Index` get the free indices after the game's plate styles, in order of their `TextureSetName` (case-insensitive). This only depends on which plate styles are loaded, not on the order they were loaded in, so every client running the same resources assigns the same indices. Starting or stopping a plate resource can move these plate styles to other indices; vehicles that use a moved plate style switch to its new index automatically. Set an `Index` if you store plate indices, for example in a database, or look them up by name with this native.
 
 ```lua
 -- fxmanifest.lua
