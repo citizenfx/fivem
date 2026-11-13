@@ -236,7 +236,7 @@ bool Install_PerformInstallation()
 		// hand off to the actual game
 		if (!doHandoff())
 		{
-			MessageBox(nullptr, PRODUCT_NAME L" is already installed. You should launch it through the shortcut in the Start menu.\nIf you want to create a portable installation, put " PRODUCT_NAME L".exe into an empty folder instead.", PRODUCT_NAME, MB_OK | MB_ICONINFORMATION);
+			MessageBox(nullptr, PRODUCT_NAME L" is already installed. You should launch it through the shortcut in the Start menu.", PRODUCT_NAME, MB_OK | MB_ICONINFORMATION);
 		}
 
 		return true;
@@ -467,46 +467,34 @@ bool Install_RunInstallMode()
 		return false;
 	}
 
-	// if we're running from a folder that 'smells' like a downloads folder, run as installer
-	static HostSharedData<CfxState> hostData("CfxInitState");
-
-	bool isDownloadsFolder = false;
-
-	if (StrStrIW(hostData->GetInitPath().c_str(), L"downloads") != nullptr ||
-		StrStrIW(hostData->GetInitPath().c_str(), L"\\dls") != nullptr ||
-		StrStrIW(hostData->GetInitPath().c_str(), L"\\Desktop") != nullptr)
+	// if we're already running from the default install root, don't try to install into ourselves
 	{
-		isDownloadsFolder = true;
-	}
+		wchar_t thisFileName[MAX_PATH];
+		GetModuleFileNameW(NULL, thisFileName, std::size(thisFileName));
 
-	size_t maxOtherFiles = (isDownloadsFolder) ? 2 : 5;
+		auto rootPath = GetRootPath();
 
-	// count the amount of files 'together' with us in our folder
-	fs::directory_iterator it(hostData->GetInitPath()), end;
-	size_t numFiles = std::count_if(it, end, [](const fs::directory_entry& entry)
-	{
-		try
+		if (!rootPath.empty())
 		{
-			if (entry.path().filename().string()[0] == '.')
+			std::error_code ecExe, ecRoot;
+			auto exeDir = fs::weakly_canonical(fs::path(thisFileName).parent_path(), ecExe);
+			auto rootDir = fs::weakly_canonical(fs::path(rootPath), ecRoot);
+
+			if (!ecExe && !ecRoot && _wcsicmp(exeDir.c_str(), rootDir.c_str()) == 0)
 			{
 				return false;
 			}
 		}
-		catch (std::exception& e)
-		{
-
-		}
-
-		return true;
-	});
-
-	// compare
-	if (numFiles <= maxOtherFiles)
-	{
-		return false;
 	}
 
-	return Install_PerformInstallation();
+	// always install into the default install root (Local AppData), regardless of where we were run from
+	if (!Install_PerformInstallation())
+	{
+		UI_DisplayError(va(L"Failed to install " PRODUCT_NAME L" into %s. Make sure your Local AppData folder is accessible and not write-protected.", GetRootPath()));
+		ExitProcess(1);
+	}
+
+	return true;
 }
 #else
 bool Install_RunInstallMode()
