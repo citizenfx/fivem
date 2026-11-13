@@ -730,7 +730,7 @@ static bool(*g_origIsAnyoneTalking)(void*);
 
 static bool _isAnyoneTalking(void* mgr)
 {
-	return (g_origIsAnyoneTalking(mgr) || g_mumbleClient->IsAnyoneTalking());
+	return g_origIsAnyoneTalking(mgr) || g_talkers.any() || o_talkers.any();
 }
 
 static bool(*g_origIsPlayerTalking)(void*, void*);
@@ -972,8 +972,7 @@ static HookFunction hookFunction([]()
 				return;
 			}
 
-			std::vector<std::string> talkers;
-			g_mumbleClient->GetTalkers(&talkers);
+			auto talkers = g_mumbleClient->GetTalkers();
 
 			// match talkers by server ID, as the player name can change after connecting to Mumble (SET_PLAYER_NAME)
 			std::set<int> talkerSet;
