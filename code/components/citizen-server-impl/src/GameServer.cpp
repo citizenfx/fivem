@@ -204,6 +204,7 @@ namespace fx
 					auto frameTime = 1000 / 20;
 
 					auto mpd = mainData.get();
+					auto serverPerf = m_instance->GetComponent<ServerPerfComponent>();
 
 					static auto& collector = prometheus::BuildHistogram()
 						.Name("tickTime")
@@ -214,9 +215,10 @@ namespace fx
 						});
 
 					uv_timer_init(loop, &mainData->tickTimer);
-					uv_timer_start(&mainData->tickTimer, UvPersistentCallback(&mainData->tickTimer, [this, mpd](uv_timer_t*)
+					uv_timer_start(&mainData->tickTimer, UvPersistentCallback(&mainData->tickTimer, [this, mpd, serverPerf](uv_timer_t*)
 					{
 						auto now = msec();
+						auto tickStart = std::chrono::steady_clock::now();
 						auto thisTime = now - mpd->lastTime;
 						mpd->lastTime = now;
 
@@ -227,6 +229,7 @@ namespace fx
 						}
 
 						ProcessServerFrame(thisTime.count());
+						serverPerf->ObserveServerTick(std::chrono::steady_clock::now() - tickStart);
 
 						auto atEnd = msec();
 						collector.Observe((atEnd - now).count() / 1000.0);
