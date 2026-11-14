@@ -26,4 +26,8 @@ namespace ConHost
 	CONHOST_EXPORT void Print(const std::string& channel, const std::string& message);
 
 	CONHOST_EXPORT void SetCursorMode(bool mode);
+
+	CONHOST_EXPORT void SetConfirmationModal(const std::string& name, const std::string& description, std::function<void(bool)> callback);
+
+	CONHOST_EXPORT void ClearConfirmationModal();
 }

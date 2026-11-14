@@ -12,6 +12,7 @@
 #include <fmt/format.h>
 
 #include <UrlConfirmationExport.h>
+#include <ConfirmationModal.h>
 
 #if defined(GTA_FIVE)
 #define PRODUCT_NAME "FiveM"
@@ -232,6 +233,119 @@ void DrawUrlConfirmationModal()
 		{
 			nui::g_pendingUrl.clear();
 			nui::g_showUrlConfirmModal.store(false);
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::PopStyleVar(2);
+		ImGui::PopStyleColor(5);
+
+		ImGui::Dummy(ImVec2(0, 5.0f));
+
+		ImGui::EndPopup();
+	}
+
+	ImGui::PopStyleVar(3);
+	ImGui::PopStyleColor(2);
+}
+
+
+ConfirmationModal g_confirmationModal;
+
+void ConHost::SetConfirmationModal(const std::string& name, const std::string& description, std::function<void(bool)> callback)
+{
+	g_confirmationModal.Set(name, description, std::move(callback));
+}
+
+void ConHost::ClearConfirmationModal()
+{
+	g_confirmationModal.Clear();
+}
+
+void DrawConfirmationModal()
+{
+	if (!IsConfirmationModalVisible())
+	{
+		ImGuiContext& g = *ImGui::GetCurrentContext();
+		const ImGuiID popupId = ImGui::GetID("##ConfirmModal");
+
+		for (int n = 0; n < g.OpenPopupStack.Size; n++)
+		{
+			if (g.OpenPopupStack[n].PopupId == popupId)
+			{
+				ImGui::ClosePopupToLevel(n, true);
+				break;
+			}
+		}
+
+		return;
+	}
+
+	const auto modal = g_confirmationModal.GetSnapshot();
+
+	ImGui::OpenPopup("##ConfirmModal");
+
+	ImGui::PushStyleColor(ImGuiCol_PopupBg, IM_COL32(26, 26, 26, 255));
+	ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(26, 26, 26, 255));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(45.0f, 50.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+	ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowSize(ImVec2(960, 0), ImGuiCond_Always);
+
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
+
+	if (ImGui::BeginPopupModal("##ConfirmModal", nullptr, flags))
+	{
+		// Main heading
+		ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(235, 235, 235, 255));
+		ImGui::Text("%s", modal.title.c_str());
+		ImGui::PopStyleColor();
+
+		ImGui::Dummy(ImVec2(0, 8.0f));
+
+		// Warning text
+		ImGui::PushFont(consoleFontSmall);
+		ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(152, 152, 152, 255));
+		ImGui::TextWrapped("%s", modal.desc.c_str());
+		ImGui::PopStyleColor();
+		ImGui::PopFont();
+
+		ImGui::Dummy(ImVec2(0, 20.0f));
+
+		float buttonWidth = ImGui::GetContentRegionAvail().x;
+
+		// Accept button
+		ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(235, 235, 235, 255));
+		ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(23, 73, 138, 255));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(35, 95, 170, 255));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(18, 58, 110, 255));
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+
+		if (ImGui::Button("Accept", ImVec2(buttonWidth, 90.0f)))
+		{
+			g_confirmationModal.Finish(modal.generation, true);
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::PopStyleVar(2);
+		ImGui::PopStyleColor(3);
+
+		ImGui::Dummy(ImVec2(0, 30.0f));
+
+		// Cancel button
+		ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(26, 26, 26, 255));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(50, 50, 53, 255));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(35, 35, 38, 255));
+		ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(63, 63, 63, 255));
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+
+		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 80.0f)))
+		{
+			g_confirmationModal.Finish(modal.generation, false);
 			ImGui::CloseCurrentPopup();
 		}
 

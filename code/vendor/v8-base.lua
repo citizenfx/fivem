@@ -1,4 +1,4 @@
-local baseURL = 'https://content.cfx.re/mirrors'
+local baseURL = 'https://cfx-content.akamaized.net/mirrors'
 
 local version = ...
 local majorVersion, minorVersion = version:match("^(%d+)%.(%d+)")

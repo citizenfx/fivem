@@ -9,10 +9,10 @@ local soName = 'libuv.so'
 local linuxShortName = 'uv'
 
 local depotURLs = {
-	[dllName] = 'https://downloads.cfx-services.net/prod/01a1825c-41ca-7ce8-ad60-879018c0dcd7/libuv.dll',
-	[libName] = 'https://downloads.cfx-services.net/prod/01a1825c-450b-7a29-9e0a-54351c1694af/libuv.lib',
-	[pdbName] = 'https://downloads.cfx-services.net/prod/01a1825c-47c4-7437-8396-d26296811f35/libuv.pdb',
-	[soName]  = 'https://downloads.cfx-services.net/prod/01a1825c-4c4c-7d59-82e9-105f07ff9e06/libuv.so',
+	[dllName] = 'https://cfx-downloads.akamaized.net/prod/01a1825c-41ca-7ce8-ad60-879018c0dcd7/libuv.dll',
+	[libName] = 'https://cfx-downloads.akamaized.net/prod/01a1825c-450b-7a29-9e0a-54351c1694af/libuv.lib',
+	[pdbName] = 'https://cfx-downloads.akamaized.net/prod/01a1825c-47c4-7437-8396-d26296811f35/libuv.pdb',
+	[soName]  = 'https://cfx-downloads.akamaized.net/prod/01a1825c-4c4c-7d59-82e9-105f07ff9e06/libuv.so',
 }
 local function download(curl, dir, name)
 	local tlsFlags = (curl == 'curl.exe') and ' --ssl-revoke-best-effort' or ''

@@ -631,8 +631,6 @@ int RealMain()
 	LoadLibrary(MakeRelativeCitPath(L"v8.dll").c_str());
 #endif
 
-	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
-
 	if (addDllDirectory)
 	{
 		addDllDirectory(MakeRelativeGamePath(L"").c_str());

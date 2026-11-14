@@ -535,18 +535,6 @@ static InitFunction initFunction([] ()
 
 	OnGameFrame.Connect([]()
 	{
-		static bool wasSteamInitialized = cfx::legitimacy::IsSteamInitializedWrapper();
-
-		if (wasSteamInitialized && !cfx::legitimacy::IsSteamRunning())
-		{
-			FatalError("Steam process has exited. The game will now close.");
-		}
-
-		if (!wasSteamInitialized && cfx::legitimacy::IsSteamInitializedWrapper())
-		{
-			wasSteamInitialized = true;
-		}
-
 		if (disconnect)
 		{
 			DisconnectCmd();
@@ -613,7 +601,7 @@ static InitFunction initFunction([] ()
 
 				auto outInfo = nlohmann::json::object({ { "icon", iconUri }, { "token", svLicenseKeyToken }, { "vars", info["vars"] } });
 				auto outData = nlohmann::json::object({ { "nonce", g_connectNonce }, { "server", outInfo } }).dump();
-
+					
 				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "backfillServerInfo", "data": %s })", outData));
 				backfillDoneEvent = cb;
 			}
@@ -639,16 +627,6 @@ static InitFunction initFunction([] ()
 		netLibrary->OnConnectionErrorRichEvent.Connect([] (const std::string& errorOrig, const std::string& metaData)
 		{
 			std::string error = errorOrig;
-
-			if ((strstr(error.c_str(), "steam") || strstr(error.c_str(), "Steam")) && !strstr(error.c_str(), ".ms/verify"))
-			{
-				auto steamID = cfx::legitimacy::GetSteamIdAsIntWrapper();
-
-				if ((steamID & 0xFFFFFFFF00000000) != 0)
-				{
-					error += "\nThis is a Steam authentication failure, but you are running Steam and it is signed in. The server owner can find more information in their server console.";
-				}
-			}
 
 			console::Printf("no_console", "OnConnectionError: %s\n", error);
 
@@ -1251,6 +1229,10 @@ static InitFunction initFunction([] ()
 			{
 				trace("failed to set last servers: %s\n", e.what());
 			}
+		}
+		else if (!_wcsicmp(type, L"refreshIdentities"))
+		{
+			cfx::legitimacy::RefreshIdentities();
 		}
 	});
 

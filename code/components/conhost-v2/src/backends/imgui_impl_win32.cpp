@@ -28,6 +28,7 @@
 
 #ifndef IS_FXSERVER
 #include <UrlConfirmationExport.h>
+#include <ConfirmationModal.h>
 #else
 namespace nui
 {
@@ -319,7 +320,7 @@ static void ImGui_ImplWin32_UpdateMouseData()
 	{
 		auto& g = *ImGui::GetCurrentContext();
 
-		if (!g_consoleFlag && !g_cursorFlag && !g.MovingWindow && !nui::g_showUrlConfirmModal.load())
+		if (!g_consoleFlag && !g_cursorFlag && !g.MovingWindow && !nui::g_showUrlConfirmModal.load() && !IsConfirmationModalVisible())
 		{
 			return;
 		}
