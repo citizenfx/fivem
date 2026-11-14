@@ -34,6 +34,19 @@ static void __declspec(noinline) InflateFailureBaseGame(const std::string& filen
 		"To resolve this, verify your GTA V game files. See http://rsg.ms/verify for information on how to do so.", filename);
 }
 
+static bool __declspec(noinline) TryReadInflateDebugData(const void* source, void* destination, size_t size)
+{
+	__try
+	{
+		memcpy(destination, source, size);
+		return true;
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		return false;
+	}
+}
+
 static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, char* zlibStream)
 {
 	if (streaming::IsStreamerShuttingDown())
@@ -46,12 +59,41 @@ static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, 
 	uint8_t* nextIn = *(uint8_t**)(ioData + 8);
 	uint32_t availIn = *(uint32_t*)(ioData);
 	uint32_t totalIn = *(uint32_t*)(ioData + 16);
-	const char* msg = *(const char**)(zlibStream + 32);
-
 	if (zlibError == -5 /* Z_BUF_ERROR */ && availIn == 0)
 	{
 		trace("Ignoring Z_BUF_ERROR with avail_in == 0.\n");
 		return;
+	}
+
+	const char* msg = *(const char**)(zlibStream + 32);
+	void* nextOut = *(void**)(ioData + 0x20);
+	uint64_t availOut = *(uint64_t*)(ioData + 0x18);
+	uint64_t totalOut = *(uint64_t*)(ioData + 0x28);
+	void* state = *(void**)(zlibStream + 0x28);
+	uint32_t mode = 0;
+	bool modeReadable = state && TryReadInflateDebugData(state, &mode, sizeof(mode));
+
+	uint32_t pageCount = *(uint32_t*)requestData;
+	std::string pageData = fmt::sprintf("Request: %p\nPage count: %u\n", requestData, pageCount);
+	for (uint32_t i = 0; i < std::min(pageCount, 128u); i++)
+	{
+		struct
+		{
+			void* memory;
+			uint64_t size;
+		} page;
+
+		if (!TryReadInflateDebugData(requestData + 0x58 + i * 0x10, &page, sizeof(page)))
+		{
+			pageData += "Unreadable request page descriptors\n";
+			break;
+		}
+
+		pageData += fmt::sprintf("Page %u: memory %p, size %llu\n", i, page.memory, page.size);
+	}
+	if (pageCount > 128)
+	{
+		pageData += "Page descriptor output truncated\n";
 	}
 
 	// get the entry name
@@ -69,8 +111,29 @@ static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, 
 	std::string name = fmt::sprintf("unknown - handle %08x", handle);
 	std::string metaData;
 
-	// get the input bytes
-	auto compBytes = fmt::sprintf("%02x %02x %02x %02x %02x %02x %02x %02x", nextIn[0], nextIn[1], nextIn[2], nextIn[3], nextIn[4], nextIn[5], nextIn[6], nextIn[7]);
+	uint8_t inputBytes[8];
+	std::string compBytes = "<unavailable>";
+	if (availIn >= sizeof(inputBytes) && TryReadInflateDebugData(nextIn, inputBytes, sizeof(inputBytes)))
+	{
+		compBytes = fmt::sprintf("%02x %02x %02x %02x %02x %02x %02x %02x", inputBytes[0], inputBytes[1], inputBytes[2], inputBytes[3], inputBytes[4], inputBytes[5], inputBytes[6], inputBytes[7]);
+	}
+
+	char message[256] = {};
+	if (msg)
+	{
+		for (size_t i = 0; i < sizeof(message) - 1; i++)
+		{
+			if (!TryReadInflateDebugData(msg + i, &message[i], 1))
+			{
+				strcpy(message, "<unreadable>");
+				break;
+			}
+			if (!message[i])
+			{
+				break;
+			}
+		}
+	}
 
 	bool isBaseGame = true;
 
@@ -93,7 +156,10 @@ static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, 
 			GetRcdDebugInfoExtension ext;
 			ext.fileName = fileNameBuffer;
 
-			virtualDevice->ExtensionCtl(VFS_GET_RCD_DEBUG_INFO, &ext, sizeof(ext));
+			if (virtualDevice.GetRef())
+			{
+				virtualDevice->ExtensionCtl(VFS_GET_RCD_DEBUG_INFO, &ext, sizeof(ext));
+			}
 
 			metaData = ext.outData;
 
@@ -106,7 +172,7 @@ static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, 
 	}
 
 	// if 00s or FFs, this is likely a corrupted base game file (NTFS journal restore?)
-	if (compBytes == "00 00 00 00 00 00 00 00" || compBytes == "FF FF FF FF FF FF FF FF")
+	if (zlibError == -3 /* Z_DATA_ERROR */ && (compBytes == "00 00 00 00 00 00 00 00" || compBytes == "FF FF FF FF FF FF FF FF"))
 	{
 		if (isBaseGame)
 		{
@@ -117,10 +183,13 @@ static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, 
 
 	FatalError("Failed to call inflate() for streaming file %s.\n\n"
 		"Error: %d: %s\nRead bytes: %s\nTotal in: %d\nAvailable in: %d\n"
-		"%s\n\nPlease try restarting the game, or, if this occurs across servers, verifying your game files.",
+		"Next in: %p\nNext out: %p\nAvailable out: %llu\nTotal out: %llu\n"
+		"Zlib stream: %p\nState: %p\nMode readable: %d\nMode: %u\n"
+		"%s%s\n\nPlease try restarting the game, or, if this occurs across servers, verifying your game files.",
 		name,
-		zlibError, (msg) ? msg : "(null)", compBytes, totalIn, availIn,
-		metaData);
+		zlibError, (msg) ? message : "(null)", compBytes, totalIn, availIn,
+		nextIn, nextOut, availOut, totalOut, zlibStream, state, modeReadable, mode,
+		pageData, metaData);
 }
 
 static void CompTrace()

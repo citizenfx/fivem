@@ -30,6 +30,17 @@ void ChannelListener::removeListenerImpl(unsigned int userSession, int channelID
 	m_listenedChannels[channelID].erase(userSession);
 }
 
+void ChannelListener::batchRemoveListenerImpl(unsigned int userSession, const std::set<int>& channels)
+{
+	std::unique_lock lock(m_listenerLock);
+
+	for (auto channel : channels)
+	{
+		m_listeningUsers[userSession].erase(channel);
+		m_listenedChannels[channel].erase(userSession);
+	}
+}
+
 bool ChannelListener::isListeningImpl(unsigned int userSession, int channelID) const
 {
 	std::shared_lock lock(m_listenerLock);
@@ -145,6 +156,11 @@ void ChannelListener::addListener(const User* user, const Channel* channel)
 void ChannelListener::removeListener(unsigned int userSession, int channelID)
 {
 	get().removeListenerImpl(userSession, channelID);
+}
+
+void ChannelListener::batchRemoveListener(unsigned int userSession, const std::set<int>& channels)
+{
+	get().batchRemoveListenerImpl(userSession, channels);
 }
 
 void ChannelListener::removeListener(const User* user, const Channel* channel)

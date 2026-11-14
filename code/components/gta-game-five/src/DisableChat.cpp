@@ -99,7 +99,7 @@ static HookFunction hookFunction([] ()
 		void* disableChatFunc = nullptr;
 		if (xbr::IsGameBuildOrGreater<3258>())
 		{
-			disableChatFunc = hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8D ? ? 48 8B ? 48 8B ? E8 ? ? ? ? 84 C0 75");
+			disableChatFunc = hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8D ? 20 48 8B ? 48 8B ? E8 ? ? ? ? 84 C0 75");
 		}
 		else if (xbr::IsGameBuildOrGreater<2372>())
 		{

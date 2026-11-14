@@ -66,7 +66,7 @@ static void Msg_getPreamble(uint8_t* buffer, int* type, int* len)
 	*len = (int)msgLen;
 }
 
-#define MAX_MSGSIZE (BUFSIZE - PREAMBLE_SIZE)
+#define MAX_MSGSIZE (TCP_BUFSIZE - PREAMBLE_SIZE)
 int Msg_messageToNetwork(message_t* msg, uint8_t* buffer)
 {
 	int len;

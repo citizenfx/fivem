@@ -1642,9 +1642,11 @@ static HookFunction hookFunction([]()
 
 #ifdef GTA_FIVE
 		auto location = hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 85 C0 74 ? 48 8B CB E8 ? ? ? ? 48 8B CF");
-		hook::nop(location, 0x3F);
+		auto ownerCompare = hook::range_pattern((uintptr_t)location, (uintptr_t)location + 0x80, "40 3A EA 0F 85").count(1).get(0).get<char>();
+		auto testLocation = ownerCompare + 1;
+		hook::nop(location, testLocation - location);
 		hook::call_rcx(location, ownerLoop.GetCode());
-		hook::put<uint16_t>(location + 0x3F, 0xC084); // test al, al
+		hook::put<uint16_t>(testLocation, 0xC084); // test al, al
 #elif IS_RDR3
 		auto location = hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 85 C0 75 27 8D 50 01");
 		hook::nop(location, 0x6E);
@@ -1881,7 +1883,7 @@ static HookFunction hookFunction([]()
 	}
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", xbr::IsGameBuildOrGreater<3095>() ? -0x3D : -0x34),
+	MH_CreateHook((xbr::IsGameBuildOrGreater<3258>() ? hook::get_pattern("48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 48 89 78 20 41 56 48 83 EC 20 8A 81 E0 08 00 00 33 DB 45 8A F0 48 8B EA 48 8B F1 A8 01") : hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", xbr::IsGameBuildOrGreater<3095>() ? -0x3D : -0x34)),
 		(xbr::IsGameBuildOrGreater<2824>()) ? GetPlayerFromGamerId<2824> :
 		(xbr::IsGameBuildOrGreater<2372>()) ? GetPlayerFromGamerId<2372> :
 		(xbr::IsGameBuildOrGreater<2060>()) ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>,
@@ -1914,7 +1916,7 @@ static HookFunction hookFunction([]()
 	
 	if (xbr::IsGameBuildOrGreater<3258>())
 	{
-		MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 83 C4 ? 5B", 3))), PlayerManager_End, (void**)&g_origPlayerManager_End);
+		MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("84 C0 74 14 48 8B CB E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 83 C4 ? 5B C3", 7))), PlayerManager_End, (void**)&g_origPlayerManager_End);
 	}
 	else if (xbr::IsGameBuildOrGreater<2545>())
 	{

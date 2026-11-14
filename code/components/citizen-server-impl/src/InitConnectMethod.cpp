@@ -318,7 +318,7 @@ std::optional<TicketData> VerifyTicketEx(const std::string& ticket, const Botan:
 	size_t length = static_cast<size_t>(*(uint32_t*)&ticketData[20 + 4 + 128]);
 
 	// validate full length
-	if (ticketData.size() < 20 + 4 + 128 + 4 + length)
+	if (ticketData.size() < 20 + 4 + 128 + 4 + length + 4 + 128)
 	{
 		return {};
 	}
@@ -370,7 +370,7 @@ std::optional<TicketData> VerifyTicketEx(const std::string& ticket, const Botan:
 	{
 		uint32_t extraJsonLength = *(uint32_t*)&extraData[20];
 
-		if (length >= (24 + extraJsonLength))
+		if (extraJsonLength <= length - 24)
 		{
 			outData.extraJson = std::string{ (char*)&extraData[24], extraJsonLength };
 		}

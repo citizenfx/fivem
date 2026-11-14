@@ -343,7 +343,7 @@ static HookFunction hookFunction([] ()
 	if (xbr::IsGameBuildOrGreater<3407>())
 	{
 		auto ctor = hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 05 ? ? ? ? 48 8D BB ? ? ? ? 48 89 03 48 8B CF E8 ? ? ? ? 48 8D 05"));
-		CDynamicEntitySyncTreeBase = hook::get_address<void*>(ctor, 14, 7);
+		CDynamicEntitySyncTreeBase = hook::get_address<void*>(ctor, 0x11, 0x15);
 	}
 	else
 	{
@@ -356,7 +356,7 @@ static HookFunction hookFunction([] ()
 			"CGameScriptId"
 		},
 		{
-			hook::get_address<void*>((intptr_t)hook::get_call(xbr::IsGameBuildOrGreater<3407>() ? hook::get_pattern("48 89 33 E8 ? ? ? ? 48 8D 8F ? ? ? ? E8 ? ? ? ? 48 8B 5C 24", 3) : hook::get_pattern("E8 ? ? ? ? 48 8D 9F ? ? ? ? 48 8B CB E8 ? ? ? ? 48 8B 74 2")) + 0x8B, 3, 7),
+			xbr::IsGameBuildOrGreater<3407>() ? hook::get_address<void*>(hook::get_pattern("48 8D 05 ? ? ? ? 89 8B 14 01 00 00 48 89 83 C8 00 00 00"), 3, 7) : hook::get_address<void*>((intptr_t)hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 9F ? ? ? ? 48 8B CB E8 ? ? ? ? 48 8B 74 2")) + 0x8B, 3, 7),
 			"CGameScriptObjInfo"
 		},
 		{

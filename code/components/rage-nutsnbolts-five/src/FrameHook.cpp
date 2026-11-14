@@ -205,16 +205,26 @@ static HookFunction hookFunction([] ()
 		hook::call(waits.get(i).get<void>(7), WaitThing);
 	}
 
-	char* location = hook::pattern("66 89 41 16 83 C8 FF 4C 89 49 0C 44 89").count(1).get(0).get<char>(0xC - 0x2E);
+	if (xbr::IsGameBuildOrGreater<3258>())
+	{
+		auto runState = hook::get_pattern("48 83 EC 28 85 D2 78 ? 75 ? 41 83 F9 01 75 ? 48 83 C4 28 E9 ? ? ? ? 83 FA 01");
+		MH_Initialize();
+		MH_CreateHook(runState, DoAppState, (void**)&g_appState);
+		MH_EnableHook(runState);
+	}
+	else
+	{
+		char* location = hook::pattern("66 89 41 16 83 C8 FF 4C 89 49 0C 44 89").count(1).get(0).get<char>(0xC - 0x2E);
 
-	location = (char*)(location + *(int32_t*)location + 4);
+		location = (char*)(location + *(int32_t*)location + 4);
 
-	location += xbr::IsGameBuildOrGreater<2802>() ? 24 : 32;
+		location += xbr::IsGameBuildOrGreater<2802>() ? 24 : 32;
 
-	void** vt = (void**)location;
+		void** vt = (void**)location;
 
-	g_appState = (decltype(g_appState))vt[0];
-	hook::put(&vt[0], DoAppState);
+		g_appState = (decltype(g_appState))vt[0];
+		hook::put(&vt[0], DoAppState);
+	}
 
 	// loading screen render thread function, to 'safely' handle game frames while loading (as a kind of watchdog)
 	void* func = hook::pattern("83 FB 0A 0F 85 80 00 00 00 8B").count(1).get(0).get<void>(-17);
@@ -222,7 +232,7 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&g_origFrameFunc, func);
 	hook::call(func, DoLoadsFrame);
 
-	location = hook::get_pattern<char>("84 C9 74 0D 38 05 ? ? ? ? 75 05 B8 01 00", 6);
+	char* location = hook::get_pattern<char>("84 C9 74 0D 38 05 ? ? ? ? 75 05 B8 01 00", 6);
 
 	g_isD3DInvalid = (bool*)(location + *(int32_t*)location + 4);
 

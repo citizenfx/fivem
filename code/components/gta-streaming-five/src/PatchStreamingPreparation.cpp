@@ -178,29 +178,50 @@ struct RequestHandleExtension
 
 #include <tbb/concurrent_queue.h>
 
-static tbb::concurrent_queue<std::list<uint32_t>> g_removalQueue;
-static tbb::concurrent_queue<HANDLE> g_forceSemaQueue;
+struct FailedStreamingRequest
+{
+	void (*callback)(void*);
+	void* userData;
+	uint32_t streamingIndex;
+	HANDLE semaphore;
+	std::list<uint32_t> removeIndices;
+};
+
+static tbb::concurrent_queue<FailedStreamingRequest> g_failedRequestQueue;
 
 static void ProcessRemoval()
 {
-	// we need to signal all semas first for rage::strStreamingLoader::CancelRequest to actually
-	// cancel the request. this would be bad if we were already in pgStreamer, but since our custom requests
-	// never hit the real pgStreamer and are canceled for all intents and purposes, we can signal the sema safely
-	HANDLE h;
-	std::list<HANDLE> semas;
+	// These requests have not entered pgStreamer. Make cancellation observe them as
+	// complete before releasing their dependency trees, then clear any unconsumed
+	// completion so the loader cannot place pages that were never read.
+	std::list<FailedStreamingRequest> requests;
+	FailedStreamingRequest request;
 
-	while (g_forceSemaQueue.try_pop(h))
+	while (g_failedRequestQueue.try_pop(request))
 	{
-		ReleaseSemaphore(h, 1, NULL);
-		semas.push_front(h);
+		if (*(uint32_t*)((char*)request.userData + 4) != request.streamingIndex)
+		{
+			continue;
+		}
+
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			// The game's completion callback sets the loader slot's done byte.
+			request.callback(request.userData);
+		}
+		else
+		{
+			ReleaseSemaphore(request.semaphore, 1, NULL);
+		}
+
+		requests.push_back(std::move(request));
 	}
 
-	std::list<uint32_t> r;
 	auto str = streaming::Manager::GetInstance();
 
-	while (g_removalQueue.try_pop(r))
+	for (const auto& failed : requests)
 	{
-		for (auto i : r)
+		for (auto i : failed.removeIndices)
 		{
 			// ClearRequiredFlag
 			str->ReleaseObject(i, 0xF1);
@@ -213,13 +234,68 @@ static void ProcessRemoval()
 		}
 	}
 
-	// if any sema wasn't polled, unsignal so we won't accidentally trigger a load op
-	// (if a sema has >1 count, this'd be wrong, but they're used as an auto-reset event here since many platforms do not
-	// implement auto-reset events)
-	for (HANDLE h : semas)
+	for (const auto& failed : requests)
 	{
-		WaitForSingleObject(h, 0);
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			if (*(uint32_t*)((char*)failed.userData + 4) == failed.streamingIndex)
+			{
+				*((uint8_t*)failed.userData + 0x1848) = 0;
+			}
+		}
+		else
+		{
+			WaitForSingleObject(failed.semaphore, 0);
+		}
 	}
+}
+
+static void FailStreamingRequest(const std::string& fileName, void (*callback)(void*), void* userData, uint32_t streamingIndex, const std::string& error)
+{
+	if (*(uint32_t*)((char*)userData + 4) != streamingIndex)
+	{
+		trace("Ignoring stale failed streaming request for %s (index %u).\n", fileName, streamingIndex);
+		return;
+	}
+
+	std::string errorRef;
+	Instance<ICoreGameInit>::Get()->GetData("gta-core-five:loadCaller", &errorRef);
+	trace("Failed to request %s: %s. %s\n", fileName, error, errorRef);
+	rage::sysMemAllocator::UpdateAllocatorValue();
+
+	auto strMgr = streaming::Manager::GetInstance();
+	std::list<uint32_t> removeIndices;
+	std::unordered_set<uint32_t> visited;
+
+	std::function<void(uint32_t)> addDependents = [&](uint32_t strIdx)
+	{
+		if (strIdx >= static_cast<uint32_t>(strMgr->numEntries) || !visited.insert(strIdx).second)
+		{
+			return;
+		}
+
+		atArray<uint32_t> dependents;
+		strMgr->FindAllDependentsCustomPred(dependents, strIdx, [](const StreamingDataEntry& entry)
+		{
+			auto flags = entry.flags & 3;
+			return (flags == 2 || flags == 3);
+		});
+
+		for (auto dep : dependents)
+		{
+			addDependents(dep);
+		}
+
+		auto flags = strMgr->Entries[strIdx].flags & 3;
+		if (flags == 2 || flags == 3)
+		{
+			removeIndices.push_back(strIdx);
+		}
+	};
+
+	addDependents(streamingIndex);
+	HANDLE semaphore = xbr::IsGameBuildOrGreater<2699>() ? nullptr : *(HANDLE*)((char*)userData + 8);
+	g_failedRequestQueue.push({ callback, userData, streamingIndex, semaphore, std::move(removeIndices) });
 }
 
 bool IsHandleCache(uint32_t handle, std::string* outFileName)
@@ -286,6 +362,10 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 			}
 
 			auto device = vfs::GetDevice(fileName);
+			if (!device.GetRef())
+			{
+				return nullptr;
+			}
 
 			uint64_t ptr;
 			auto deviceHandle = device->OpenBulk(fileName, &ptr);
@@ -294,83 +374,38 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 			{
 				RequestHandleExtension ext;
 				ext.handle = deviceHandle;
-				auto resultCb = [fileName, handle, outChunks, numChunks, flags, callback, userData, streamerIdx, streamerFlags, unk9, unk10](bool success, const std::string& error)
+				auto streamingIndex = *(uint32_t*)((char*)userData + 4);
+				auto failRequest = [fileName, callback, userData, streamingIndex](const std::string& error)
 				{
-					if (success)
+					g_onCriticalFrameQueue.push([fileName, callback, userData, streamingIndex, error]()
 					{
-						g_origPgStreamerRead(handle, outChunks, numChunks, flags, callback, userData, streamerIdx, streamerFlags, unk9, unk10);
-					}
-					else
-					{
-						std::string errorRef;
-						ICoreGameInit* init = Instance<ICoreGameInit>::Get();
-
-						init->GetData("gta-core-five:loadCaller", &errorRef);
-
-						trace("Failed to request %s: %s. %s\n", fileName, error, errorRef);
-						rage::sysMemAllocator::UpdateAllocatorValue();
-
-						std::list<uint32_t> removeIndices;
-
-						// hunt down *requested* dependents on this failure
-						auto strMgr = streaming::Manager::GetInstance();
-						auto strIdx = *(uint32_t*)((char*)userData + 4);
-
-						std::function<void(uint32_t)> addDependents = [&addDependents, &removeIndices, strMgr](uint32_t strIdx)
-						{
-							if (strIdx == -1)
-							{
-								return;
-							}
-
-							atArray<uint32_t> dependents;
-							strMgr->FindAllDependentsCustomPred(dependents, strIdx, [](const StreamingDataEntry& entry)
-							{
-								auto flags = entry.flags & 3;
-
-								return (flags == 2 || flags == 3);
-							});
-
-							for (auto dep : dependents)
-							{
-								addDependents(dep);
-							}
-
-							auto flags = strMgr->Entries[strIdx].flags & 3;
-
-							if (flags == 2 || flags == 3)
-							{
-								removeIndices.push_back(strIdx);
-							}
-						};
-
-						addDependents(strIdx);
-
-						g_forceSemaQueue.push(*(HANDLE*)((char*)userData + 8));
-
-						if (!removeIndices.empty())
-						{
-							g_removalQueue.push(std::move(removeIndices));
-						}
-					}
-				};
-
-				ext.onRead = [resultCb](bool success, const std::string& error)
-				{
-					// if succeeding, report sooner rather than later
-					if (success)
-					{
-						resultCb(success, error);
-						return;
-					}
-
-					g_onCriticalFrameQueue.push([resultCb, error]()
-					{
-						resultCb(false, error);
+						FailStreamingRequest(fileName, callback, userData, streamingIndex, error);
 					});
 				};
 
-				device->ExtensionCtl(VFS_RCD_REQUEST_HANDLE, &ext, sizeof(ext));
+				ext.onRead = [handle, outChunks, numChunks, flags, callback, userData, streamerIdx, streamerFlags, unk9, unk10, failRequest](bool success, const std::string& error)
+				{
+					if (!success)
+					{
+						failRequest(error);
+						return;
+					}
+
+					if (!g_origPgStreamerRead(handle, outChunks, numChunks, flags, callback, userData, streamerIdx, streamerFlags, unk9, unk10))
+					{
+						failRequest("pgStreamer::Read could not enqueue the cached streaming request");
+					}
+				};
+
+				if (!device->ExtensionCtl(VFS_RCD_REQUEST_HANDLE, &ext, sizeof(ext)))
+				{
+					device->CloseBulk(deviceHandle);
+					return nullptr;
+				}
+			}
+			else
+			{
+				return nullptr;
 			}
 
 			static int hi;

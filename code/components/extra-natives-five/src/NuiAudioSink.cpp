@@ -1053,7 +1053,7 @@ namespace rage
 	static hook::thiscall_stub<void(void*, bool)> rage__audEntity__StopAllSounds([]()
 	{
 #ifdef GTA_FIVE
-		return hook::get_call(hook::get_pattern("0F 82 67 FF FF FF E8 ? ? ? ? 84 C0", 24));
+		return hook::get_call(hook::get_pattern("0F 82 67 FF FF FF E8 ? ? ? ? 84 C0", 33));
 #elif IS_RDR3
 		return hook::get_pattern("48 83 EC 28 B8 ? ? ? ? 66 39 41 10 74 12");
 #endif

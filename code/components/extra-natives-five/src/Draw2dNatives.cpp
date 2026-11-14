@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "Hooking.h"
 #include "ScriptEngine.h"
+#include "CrossBuildRuntime.h"
 
 static char* g_drawRects;
 static int g_drawRectsSize;
@@ -11,10 +12,27 @@ static hook::cdecl_stub<char*(void*)> _allocateDrawRect([]()
 	return hook::get_call(hook::get_pattern("F3 44 0F 59 0D ? ? ? ? E8 ? ? ? ? 33 FF", 9));
 });
 
-static hook::cdecl_stub<void(void*, float a2, float a3, float a4, float a5)> _setDrawRectCoords([]()
+static hook::cdecl_stub<void(void*, float, float, float, float)> _setDrawRectCoordsLegacy([]()
 {
-	return hook::get_call(hook::get_pattern("F3 44 0F 59 0D ? ? ? ? E8 ? ? ? ? 33 FF", xbr::IsGameBuildOrGreater<3407>() ? 0x4A : 0x45));
+	return xbr::IsGameBuildOrGreater<3407>() ? nullptr : hook::get_call(hook::get_pattern("F3 44 0F 59 0D ? ? ? ? E8 ? ? ? ? 33 FF", 0x45));
 });
+
+static hook::cdecl_stub<void(void*, float, float, float, float, bool)> _setDrawRectCoords3407([]()
+{
+	return xbr::IsGameBuildOrGreater<3407>() ? hook::get_call(hook::get_pattern("F3 44 0F 59 0D ? ? ? ? E8 ? ? ? ? 33 FF", 0x4A)) : nullptr;
+});
+
+static void SetDrawRectCoords(void* rect, float x1, float y1, float x2, float y2)
+{
+	if (xbr::IsGameBuildOrGreater<3407>())
+	{
+		_setDrawRectCoords3407(rect, x1, y1, x2, y2, true);
+	}
+	else
+	{
+		_setDrawRectCoordsLegacy(rect, x1, y1, x2, y2);
+	}
+}
 
 static InitFunction initFunction([]()
 {
@@ -34,7 +52,7 @@ static InitFunction initFunction([]()
 				(std::clamp(context.GetArgument<int>(7), 0, 255) << 0)
 			);
 
-			_setDrawRectCoords(rect, x - (w / 2), y - (h / 2), x + (w / 2), y + (h / 2));
+			SetDrawRectCoords(rect, x - (w / 2), y - (h / 2), x + (w / 2), y + (h / 2));
 			*(void**)(rect + 0) = nullptr; // texture
 			*(uint32_t*)(rect + 52) &= 0xF4;
 			*(uint32_t*)(rect + 52) |= 0x84;
@@ -59,7 +77,7 @@ static InitFunction initFunction([]()
 				(std::clamp(context.GetArgument<int>(7), 0, 255) << 0)
 			);
 
-			_setDrawRectCoords(rect, x1, y1, x2, y2);
+			SetDrawRectCoords(rect, x1, y1, x2, y2);
 			*(uint32_t*)(rect + 52) &= 0xFA;
 			*(uint32_t*)(rect + 52) |= 0x8A;
 			*(float*)(rect + 28) = context.GetArgument<float>(4);

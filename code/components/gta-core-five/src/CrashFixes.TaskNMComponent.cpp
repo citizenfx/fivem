@@ -56,9 +56,13 @@ static void CClonedNMFlinchInfo_Serialise(hook::FlexStruct* thisPtr, hook::FlexS
 {
 	g_CClonedNMFlinchInfo_Serialise(thisPtr, serialiser);
 
-	uint8_t& component = thisPtr->At<uint8_t>(0x7c);
+	int32_t& component = thisPtr->At<int32_t>(0x7c);
 
-	ClampRagdollComponent(component);
+	// Flinch stores a signed component and uses -1 to mean no component.
+	if (component != -1 && (component < 0 || component >= RAGDOLL_MAX_COMPONENTS))
+	{
+		component = RAGDOLL_HEAD;
+	}
 }
 
 static HookFunction hookFunction([]()

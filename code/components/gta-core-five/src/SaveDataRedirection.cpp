@@ -1,5 +1,6 @@
 #include <StdInc.h>
 #include <Hooking.h>
+#include <CrossBuildRuntime.h>
 
 #include <MinHook.h>
 
@@ -134,7 +135,7 @@ static void* GetDummyScProfile()
 static HookFunction hookFunction([]()
 {
 	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("FF 51 10 85 C0 78 32", -0x74), GetProfileFileName, (void**)&g_origGetProfileFileName);
+	MH_CreateHook(hook::get_pattern("FF 51 10 85 C0 78 32", xbr::IsGameBuildOrGreater<3258>() ? -0x75 : -0x74), GetProfileFileName, (void**)&g_origGetProfileFileName);
 
 	// force parts of game to think SC is always signed on
 	MH_CreateHook(hook::get_pattern("FF 52 08 84 C0 74 04 B0 01 EB", -0x26), ReturnTrue, (void**)&g_origIsScSignedIn);

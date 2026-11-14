@@ -49,6 +49,12 @@ protected:
 	/// @param channelID The ID of the channel
 	void removeListenerImpl(unsigned int userSession, int channelID);
 
+	/// Removes a listener from the channel.
+	///
+	/// @param userSession The session ID of the user
+	/// @param channels A set containing all of the channels to remove
+	void batchRemoveListenerImpl(unsigned int userSession, const std::set<int>& channels);
+
 	/// @param userSession The session ID of the user
 	/// @param channelID The ID of the channel
 	/// @returns Whether the given user is listening to the given channel
@@ -102,6 +108,12 @@ public:
 	/// @param userSession The session ID of the user
 	/// @param channelID The ID of the channel
 	static void removeListener(unsigned int userSession, int channelID);
+
+	/// Removes a listener from the channel.
+	///
+	/// @param userSession The session ID of the user
+	/// @param channels The channels to remove
+	static void batchRemoveListener(unsigned int userSession, const std::set<int>& channels);
 
 	/// Removes a listener from the channel.
 	///

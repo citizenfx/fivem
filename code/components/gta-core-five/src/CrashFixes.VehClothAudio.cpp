@@ -86,6 +86,9 @@ static HookFunction hookFunction([]()
 				test(al, al);
 				pop(rax);
 
+				// Replay the replaced pointer adjustment without changing the probe flags.
+				lea(rax, qword_ptr[rax + 0x148]);
+
 				// Return and execute next jz
 				ret();
 			}

@@ -3415,7 +3415,7 @@ static void CleanupStreaming()
 							{
 								if ((i + 1) < dependencyCount)
 								{
-									memmove(&dependencies.idxArray[i], &dependencies.idxArray[i + 1], sizeof(uint32_t) * (dependencyCount - i));
+									memmove(&dependencies.idxArray[i], &dependencies.idxArray[i + 1], sizeof(uint32_t) * (dependencyCount - i - 1));
 								}
 
 								dependencyCount--;
