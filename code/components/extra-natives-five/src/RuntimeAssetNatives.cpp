@@ -1190,11 +1190,12 @@ static InitFunction initFunction([]()
 		rclEntry.remoteUrl = fmt::sprintf("https://%s/files/%s/%s", Instance<NetLibrary>::Get()->GetCurrentPeer().ToString(), resourceName, fileName);
 
 		// resolve against a file the resource already downloads, so fileserver_add is honored
+		// entries without a reference hash come from REGISTER_STREAMING_FILE_FROM_URL and can point anywhere
 		auto entryList = resource->GetComponent<ResourceCacheEntryList>();
 
 		for (const auto& [basename, entry] : entryList->GetEntries())
 		{
-			if (basename.find('/') != std::string::npos)
+			if (basename.find('/') != std::string::npos || entry.referenceHash.empty())
 			{
 				continue;
 			}
