@@ -74,6 +74,9 @@ private:
 	std::unique_ptr<v8::String::Utf8Value> m_stringValues[50];
 	int m_curStringValue;
 
+	// set after an event or ref call, TickFast then runs the promise continuations they queued
+	mutable std::atomic<bool> m_hasPendingCallbacks = false;
+
 	// routines and callbacks
 	TTickRoutine m_tickRoutine;
 	TEventRoutine m_eventRoutine;
