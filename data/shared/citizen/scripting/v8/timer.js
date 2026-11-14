@@ -13,6 +13,24 @@
 
     let animationFrames = [];
 
+    // On the server (Node runtime) the resource's uv loop is polled every millisecond, but our
+    // tick-based timers only run once per server frame (50 ms). Keep Node's own setImmediate
+    // there so libraries that yield with it (e.g. database drivers) don't wait a whole frame.
+    const nativeSetImmediate = (global.process && global.process.versions && global.process.versions.node && typeof global.setImmediate === 'function')
+        ? global.setImmediate
+        : null;
+    const nativeClearImmediate = nativeSetImmediate ? global.clearImmediate : null;
+    const nativeImmediates = new WeakSet();
+    let immediateScopeName = null;
+
+    function getImmediateScopeName() {
+        if (immediateScopeName === null) {
+            immediateScopeName = `setImmediate (${GetCurrentResourceName()})`;
+        }
+
+        return immediateScopeName;
+    }
+
     function normalizeInterval(interval) {
         return Math.max(1, Math.min(2147483647, interval || 1)) | 0;
     }
@@ -103,6 +121,12 @@
             return;
         }
 
+        if (nativeImmediates.has(timer)) {
+            nativeImmediates.delete(timer);
+            nativeClearImmediate(timer);
+            return;
+        }
+
         if (timers[timer.id]) {
             activeTimersCount--;
             delete timers[timer.id];
@@ -156,6 +180,44 @@
     function setImmediate(callback, ...argsForCallback) {
         if (typeof callback !== 'function') {
             throw new TypeError(`Callback must be a function. Received ${callback}`);
+        }
+
+        if (nativeSetImmediate) {
+            const id = ++timerId;
+            const immediate = nativeSetImmediate(() => {
+                nativeImmediates.delete(immediate);
+
+                // these run outside the resource tick, so give them their own profiler scope
+                const profiling = ProfilerIsRecording();
+
+                if (profiling) {
+                    ProfilerEnterScope(getImmediateScopeName());
+                }
+
+                try {
+                    global.runWithBoundaryStart(() => {
+                        try {
+                            callback(...argsForCallback);
+                        } catch (e) {
+                            printError('timer', e);
+                        }
+                    });
+                } finally {
+                    if (profiling) {
+                        ProfilerExitScope();
+                    }
+                }
+            });
+
+            // keep the same shape as our own timer handles (id, refresh, converts to a number)
+            immediate.id = id;
+            immediate.refresh = function() {
+                return this;
+            };
+            immediate[Symbol.toPrimitive] = () => id;
+
+            nativeImmediates.add(immediate);
+            return immediate;
         }
 
         return setTimeout(callback, 0, ...argsForCallback);
