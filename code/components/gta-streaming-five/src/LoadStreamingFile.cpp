@@ -39,6 +39,10 @@
 #endif
 
 #ifdef GTA_FIVE
+#include <Local.h>
+#endif
+
+#ifdef GTA_FIVE
 static void(*dataFileMgr__loadDat)(void*, const char*, bool);
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
 #elif IS_RDR3
@@ -1735,6 +1739,10 @@ static std::set<std::string> g_pedsToRegister;
 
 static std::unordered_set<int> g_ourIndexes;
 
+#ifdef GTA_FIVE
+static bool g_loadingReplayDlc;
+#endif
+
 static std::string GetBaseName(const std::string& name)
 {
 	std::string retval = name;
@@ -1791,6 +1799,10 @@ static void LoadStreamingFiles(LoadType loadType)
 {
 	auto cstreaming = streaming::Manager::GetInstance();
 	std::vector<std::tuple<int, std::string>> newGfx;
+
+#ifdef GTA_FIVE
+	bool reloadedMetaData = false;
+#endif
 
 	// register any custom streaming assets
 	for (auto it = g_customStreamingFiles.begin(); it != g_customStreamingFiles.end(); )
@@ -1978,6 +1990,13 @@ static void LoadStreamingFiles(LoadType loadType)
 					entry.handle = (collectionId << 16) | idx;
 					g_handlesToTag[entry.handle] = tag;
 
+#ifdef GTA_FIVE
+					if (g_loadingReplayDlc && ext == "ymt" && ReloadOverriddenMetaData(strId + strModule->baseIdx, HashString(nameWithoutExt)))
+					{
+						reloadedMetaData = true;
+					}
+#endif
+
 					// save the new handle
 					hs.push_front(entry.handle);
 
@@ -2074,6 +2093,11 @@ static void LoadStreamingFiles(LoadType loadType)
 		{
 			initGfxTexture(id, name.c_str());
 		}
+	}
+
+	if (reloadedMetaData)
+	{
+		streaming::LoadObjectsNow(true);
 	}
 #endif
 }
@@ -3079,6 +3103,7 @@ static void (*g_origLoadReplayDlc)(void* ecw);
 static void LoadReplayDlc(void* ecw)
 {
 	g_lockReload = false;
+	g_loadingReplayDlc = true;
 
 	LoadStreamingFiles(LoadType::BeforeSession);
 
@@ -3086,6 +3111,9 @@ static void LoadReplayDlc(void* ecw)
 
 	LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 	LoadStreamingFiles(LoadType::AfterSession);
+
+	g_loadingReplayDlc = false;
+
 	LoadDataFiles();
 }
 
