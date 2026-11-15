@@ -461,6 +461,36 @@ uint16_t rage::fwArchetypeManager::RegisterStreamedArchetype(fwArchetype* archet
 	return result;
 }
 
+bool rage::fwArchetypeManager::IsMapTypesInUse(uint32_t mapTypeDefIndex)
+{
+	auto manager = streaming::Manager::GetInstance();
+	uint32_t baseIdx = GetStreamingModule()->baseIdx;
+
+	for (size_t index = 0; index < fwArchetypeManager__ms_ArchetypePool->m_Size; index++)
+	{
+		auto ppArchetype = fwArchetypeManager__ms_ArchetypePool->TryGetAt(static_cast<int>(index));
+
+		if (!ppArchetype || !*ppArchetype)
+		{
+			continue;
+		}
+
+		auto archetype = *ppArchetype;
+
+		if (archetype->cachedModelId.mapTypesIndex != (mapTypeDefIndex & 0xFFF))
+		{
+			continue;
+		}
+
+		if (archetype->numRefs != 0 || (manager->Entries[baseIdx + index].flags & 3) != 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 streaming::strStreamingModule* rage::fwArchetypeManager::GetStreamingModule()
 {
 	return streaming::Manager::GetInstance()->moduleMgr.modules[*fwArchetypeManager__ms_streamingId];

@@ -268,6 +268,8 @@ public:
 	static uint16_t RegisterStreamedArchetype(fwArchetype* archetype, uint32_t mapTypeDefIndex);
 
 	static streaming::strStreamingModule* GetStreamingModule();
+
+	static bool IsMapTypesInUse(uint32_t mapTypeDefIndex);
 };
 
 }

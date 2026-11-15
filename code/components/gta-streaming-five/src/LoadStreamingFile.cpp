@@ -1278,8 +1278,13 @@ public:
 	static inline CDataFileMountInterface** sm_Interfaces;
 };
 
+#ifdef GTA_FIVE
+#include <EntitySystem.h>
+#endif
+
 // TODO: this might need to be a ref counter instead?
 static std::set<std::string, IgnoreCaseLess> g_permanentItyps;
+static std::set<std::string, IgnoreCaseLess> g_keptItyps;
 static std::map<uint32_t, std::string> g_itypHashList;
 
 class CfxProxyItypMounter : public CDataFileMountInterface
@@ -1333,6 +1338,19 @@ public:
 
 				if (*flags & 4)
 				{
+#ifdef GTA_FIVE
+					if (rage::fwArchetypeManager::IsMapTypesInUse(slotId))
+					{
+						trace("Keeping existing #typ %s as it is in use\n", baseName);
+
+						g_keptItyps.insert(baseName);
+
+						return true;
+					}
+
+					g_keptItyps.erase(baseName);
+#endif
+
 					*flags &= ~0x14;
 
 					trace("Removing existing #typ %s\n", baseName);
@@ -1352,6 +1370,11 @@ public:
 	virtual void UnloadDataFile(CDataFileMgr::DataFile* entry) override
 	{
 		std::string baseName = ParseBaseName(entry);
+
+		if (g_keptItyps.find(baseName) != g_keptItyps.end())
+		{
+			return;
+		}
 
 		uint32_t slotId;
 
@@ -3358,6 +3381,8 @@ static void CleanupStreaming()
 	g_unloadingCfx = true;
 
 	UnloadDataFiles();
+
+	g_keptItyps.clear();
 
 	std::set<std::string> tags;
 
