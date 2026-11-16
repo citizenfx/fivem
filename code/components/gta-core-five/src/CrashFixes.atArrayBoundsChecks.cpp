@@ -3,6 +3,7 @@
 #include "atArray.h"
 #include "Hooking.Patterns.h"
 #include "Hooking.Stubs.h"
+#include <CrossBuildRuntime.h>
 
 namespace
 {
@@ -76,5 +77,10 @@ static HookFunction hookFunction([]
 	Orig_CWantedResponseOverrides_SetNumPedsToSpawn = hook::trampoline(hook::get_pattern("48 63 C2 44 88 04 08"), CWantedResponseOverrides_SetNumPedsToSpawn);
 
 	CPopZones_sm_popZoneSearchInfos = hook::get_address<atArray<void*>*>(hook::get_pattern("48 8D 0D ? ? ? ? F3 0F 2C C6"), 3, 7);
-	Orig_CPopZones_SetEnabled = hook::trampoline(hook::get_pattern("8B C1 80 E2 01 48 8D"), CPopZones_SetEnabled);
+
+	// Fixed in Sec-TU
+	if (!xbr::IsGameBuildOrGreater<xbr::Build::Patch_2026_1>())
+	{
+		Orig_CPopZones_SetEnabled = hook::trampoline(xbr::IsGameBuildOrGreater<xbr::Build::Patch_2026_1>() ? hook::get_pattern("85 C9 78 ? 0F B7 05 ? ? ? ? 3B C8 7D ? 8B C1 80 E2 01") : hook::get_pattern("8B C1 80 E2 01 48 8D"), CPopZones_SetEnabled);
+	}
 });

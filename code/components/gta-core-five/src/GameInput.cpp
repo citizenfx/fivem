@@ -1343,16 +1343,17 @@ static void MapControlInternal(void* control, uint32_t controlId, int sourceIdx,
 	return g_origMapControlInternal(control, controlId, sourceIdx, input, subIdx, persist);
 }
 
-static bool(*g_origHandleMappingConflicts)(void* control, uint32_t idx, rage::ioInputSource* input, void* a4, void* a5);
+// a6 is a stack argument
+static bool(*g_origHandleMappingConflicts)(void* control, uint32_t idx, rage::ioInputSource* input, void* a4, void* a5, bool a6);
 
-static bool HandleMappingConflicts(void* control, uint32_t idx, rage::ioInputSource* input, void* a4, void* a5)
+static bool HandleMappingConflicts(void* control, uint32_t idx, rage::ioInputSource* input, void* a4, void* a5, bool a6)
 {
 	if (idx & 0x80000000)
 	{
 		return false;
 	}
 
-	return g_origHandleMappingConflicts(control, idx, input, a4, a5);
+	return g_origHandleMappingConflicts(control, idx, input, a4, a5, a6);
 }
 
 static void(*g_origMapFunc)(void*, uint32_t, void*, void*);

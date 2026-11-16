@@ -205,7 +205,7 @@ static HookFunction hookFunction([] ()
 		hook::call(waits.get(i).get<void>(7), WaitThing);
 	}
 
-	if (xbr::IsGameBuildOrGreater<3258>())
+	if (xbr::IsGameBuildOrGreater<3095>())
 	{
 		auto runState = hook::get_pattern("48 83 EC 28 85 D2 78 ? 75 ? 41 83 F9 01 75 ? 48 83 C4 28 E9 ? ? ? ? 83 FA 01");
 		MH_Initialize();

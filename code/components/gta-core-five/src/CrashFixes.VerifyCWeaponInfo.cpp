@@ -65,8 +65,10 @@ static HookFunction hookFunction([]()
 			push(r9);
 
 			// Injected check to verify CWeaponInfo has a valid class instance
+			sub(rsp, 0x20);
 			mov(rax, reinterpret_cast<uintptr_t>(VerifyCWeaponInfoPtr));
 			call(rax);
+			add(rsp, 0x20);
 
 			// Restore registers
 			pop(r9);

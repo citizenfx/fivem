@@ -34,6 +34,7 @@ static HookFunction hookFunction([]
 			jmp(rax);							//
 												//
 			L("fail");							//	}
+			xor(r9d, r9d);						//	the game zeroes r9 on all paths to retFail (it is compared with a global flag there)
 			mov(rax, retFail);					//
 			jmp(rax);							//
 		}
