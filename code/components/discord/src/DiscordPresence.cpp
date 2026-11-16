@@ -105,8 +105,8 @@ static void UpdatePresence()
 
 		DiscordRichPresence discordPresence;
 		memset(&discordPresence, 0, sizeof(discordPresence));
-		discordPresence.state = line1.c_str();
-		discordPresence.details = line2.c_str();
+		discordPresence.details = line1.c_str();
+		discordPresence.state = line2.c_str();
 		discordPresence.startTimestamp = g_startTime;
 
 		if (!g_richPresenceOverrideAsset.empty())
