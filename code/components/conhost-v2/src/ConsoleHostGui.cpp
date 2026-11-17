@@ -33,6 +33,9 @@
 
 bool IsNonProduction();
 
+extern bool g_consoleFlag;
+extern bool g_cursorFlag;
+
 DLL_EXPORT console::Context* g_customConsoleContext;
 
 console::Context* GetConsoleContext()
@@ -556,9 +559,14 @@ struct CfxBigConsole : FiveMConsoleBase
 
 			ImGui::TableNextColumn();
 
-			if (ImGui::IsWindowAppearing() || !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow) ||
+			// in cursor-only mode (ENTER_CURSOR_MODE) the keyboard belongs to the game, so the always-visible
+			// windowed console must not grab focus on its own; clicking into the input still works
+			const bool cursorOnly = g_cursorFlag && !g_consoleFlag;
+
+			if (!cursorOnly &&
+				(ImGui::IsWindowAppearing() || !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow) ||
 				(ImGui::IsWindowFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)) ||
-				ImGui::IsKeyPressed(ImGuiKey_Tab))
+				ImGui::IsKeyPressed(ImGuiKey_Tab)))
 			{
 				ImGui::SetKeyboardFocusHere(-1);
 			}
