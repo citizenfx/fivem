@@ -502,7 +502,7 @@ namespace CitizenFX.Core
 				unsafe
 				{
 					// struct native, can't be converted.
-					if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_DATA, i, &data))
+					if (Function.CallUnchecked<bool>(Native.Hash.GET_DLC_WEAPON_DATA, i, &data))
 					{
 						if (data.Hash == hash)
 						{

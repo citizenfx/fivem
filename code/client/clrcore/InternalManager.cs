@@ -621,7 +621,7 @@ namespace CitizenFX.Core
 		{
 			fixed (byte* ptr = serializedFrames)
 			{
-				return Native.Function.Call<string>((Native.Hash)0xd70c3bca, ptr, serializedFrames.Length);
+				return Native.Function.CallUnchecked<string>((Native.Hash)0xd70c3bca, ptr, serializedFrames.Length);
 			}
 		}
 
