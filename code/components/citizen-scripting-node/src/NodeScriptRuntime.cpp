@@ -552,10 +552,43 @@ result_t NodeScriptRuntime::Destroy()
 
 void NodeScriptRuntime::TickFast() const
 {
-	SharedPushEnvironmentNoContext _(m_isolate);
-	// SharedPushEnvironment pushed(this);
-	uv_run(m_uvLoop, UV_RUN_NOWAIT);
-	g_nodeEnv.GetPlatform()->DrainTasks(m_isolate);
+	{
+		SharedPushEnvironmentNoContext _(m_isolate);
+		// SharedPushEnvironment pushed(this);
+		uv_run(m_uvLoop, UV_RUN_NOWAIT);
+		g_nodeEnv.GetPlatform()->DrainTasks(m_isolate);
+	}
+
+	// events and ref calls from other resources don't come through our uv loop, so the promise
+	// continuations they queue (e.g. `await` on a callback from another resource) would otherwise
+	// wait for our next tick. Run them here, outside of any JS, like node does after its own callbacks.
+	if (m_hasPendingCallbacks.exchange(false) && m_nodeEnvironment)
+	{
+		// this is outside the resource tick, so give it its own profiler scope
+		fwRefContainer<fx::ProfilerComponent> profiler;
+
+		if (m_parentObject)
+		{
+			profiler = m_parentObject->GetManager()->GetComponent<fx::ProfilerComponent>();
+		}
+
+		const bool profiling = profiler.GetRef() && profiler->IsRecording();
+
+		if (profiling)
+		{
+			profiler->EnterResource(m_resourceName, "callbacks");
+		}
+
+		{
+			SharedPushEnvironment pushed(this);
+			node::CallbackScope scope(m_nodeEnvironment, GetContext()->Global(), node::async_context{ 0, 0 });
+		}
+
+		if (profiling)
+		{
+			profiler->ExitResource();
+		}
+	}
 }
 
 result_t NodeScriptRuntime::Tick()
@@ -582,6 +615,7 @@ result_t NodeScriptRuntime::TriggerEvent(char* eventName, char* eventPayload, ui
 	{
 		SharedPushEnvironment pushed(this);
 		m_eventRoutine(eventName, eventPayload, payloadSize, eventSource);
+		m_hasPendingCallbacks = true;
 	}
 	return FX_S_OK;
 }
@@ -747,6 +781,7 @@ result_t NodeScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32
 		SharedPushEnvironment pushed(this);
 
 		auto rv = m_callRefRoutine(refIdx, argsSerialized, argsLength);
+		m_hasPendingCallbacks = true;
 		return rv.CopyTo(retval);
 	}
 	return FX_S_OK;
