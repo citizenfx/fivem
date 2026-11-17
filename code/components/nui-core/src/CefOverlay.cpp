@@ -160,6 +160,7 @@ bool g_shouldHideCursor;
 
 fwEvent<const wchar_t*, const wchar_t*> nui::OnInvokeNative;
 fwEvent<bool> nui::OnDrawBackground;
+fwEvent<> nui::OnPostRenderWindows;
 
 extern bool g_shouldCreateRootWindow;
 extern nui::GameInterface* g_nuiGi;
