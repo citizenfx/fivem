@@ -9,7 +9,7 @@ game: gta5
 void SET_VEHICLE_GEAR_RATIO(Vehicle vehicle, int gear, float ratio);
 ```
 
-Sets the vehicles gear ratio on choosen gear, reverse gear needs to be a negative float and forward moving gear needs to be a positive float. Refer to the examples if confused.
+Sets the vehicles gear ratio on chosen gear, reverse gear needs to be a negative float and forward moving gear needs to be a positive float. Refer to the examples if confused.
 
 ## Parameters
 * **vehicle**: The vehicle handle.
