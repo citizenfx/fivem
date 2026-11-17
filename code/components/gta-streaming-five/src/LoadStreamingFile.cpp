@@ -39,6 +39,10 @@
 #endif
 
 #ifdef GTA_FIVE
+#include <Local.h>
+#endif
+
+#ifdef GTA_FIVE
 static void(*dataFileMgr__loadDat)(void*, const char*, bool);
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
 #elif IS_RDR3
@@ -1503,8 +1507,13 @@ public:
 	static inline CDataFileMountInterface** sm_Interfaces;
 };
 
+#ifdef GTA_FIVE
+#include <EntitySystem.h>
+#endif
+
 // TODO: this might need to be a ref counter instead?
 static std::set<std::string, IgnoreCaseLess> g_permanentItyps;
+static std::set<std::string, IgnoreCaseLess> g_keptItyps;
 static std::map<uint32_t, std::string> g_itypHashList;
 
 class CfxProxyItypMounter : public CDataFileMountInterface
@@ -1558,6 +1567,19 @@ public:
 
 				if (*flags & 4)
 				{
+#ifdef GTA_FIVE
+					if (rage::fwArchetypeManager::IsMapTypesInUse(slotId))
+					{
+						trace("Keeping existing #typ %s as it is in use\n", baseName);
+
+						g_keptItyps.insert(baseName);
+
+						return true;
+					}
+
+					g_keptItyps.erase(baseName);
+#endif
+
 					*flags &= ~0x14;
 
 					trace("Removing existing #typ %s\n", baseName);
@@ -1577,6 +1599,11 @@ public:
 	virtual void UnloadDataFile(CDataFileMgr::DataFile* entry) override
 	{
 		std::string baseName = ParseBaseName(entry);
+
+		if (g_keptItyps.find(baseName) != g_keptItyps.end())
+		{
+			return;
+		}
 
 		uint32_t slotId;
 
@@ -1944,6 +1971,10 @@ static std::set<std::string> g_pedsToRegister;
 
 static std::unordered_set<int> g_ourIndexes;
 
+#ifdef GTA_FIVE
+static bool g_loadingReplayDlc;
+#endif
+
 static std::string GetBaseName(const std::string& name)
 {
 	std::string retval = name;
@@ -2000,6 +2031,10 @@ static void LoadStreamingFiles(LoadType loadType)
 {
 	auto cstreaming = streaming::Manager::GetInstance();
 	std::vector<std::tuple<int, std::string>> newGfx;
+
+#ifdef GTA_FIVE
+	bool reloadedMetaData = false;
+#endif
 
 	// register any custom streaming assets
 	for (auto it = g_customStreamingFiles.begin(); it != g_customStreamingFiles.end(); )
@@ -2187,6 +2222,13 @@ static void LoadStreamingFiles(LoadType loadType)
 					entry.handle = (collectionId << 16) | idx;
 					g_handlesToTag[entry.handle] = tag;
 
+#ifdef GTA_FIVE
+					if (g_loadingReplayDlc && ext == "ymt" && ReloadOverriddenMetaData(strId + strModule->baseIdx, HashString(nameWithoutExt)))
+					{
+						reloadedMetaData = true;
+					}
+#endif
+
 					// save the new handle
 					hs.push_front(entry.handle);
 
@@ -2283,6 +2325,11 @@ static void LoadStreamingFiles(LoadType loadType)
 		{
 			initGfxTexture(id, name.c_str());
 		}
+	}
+
+	if (reloadedMetaData)
+	{
+		streaming::LoadObjectsNow(true);
 	}
 #endif
 }
@@ -3288,6 +3335,7 @@ static void (*g_origLoadReplayDlc)(void* ecw);
 static void LoadReplayDlc(void* ecw)
 {
 	g_lockReload = false;
+	g_loadingReplayDlc = true;
 
 	LoadStreamingFiles(LoadType::BeforeSession);
 
@@ -3295,6 +3343,9 @@ static void LoadReplayDlc(void* ecw)
 
 	LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 	LoadStreamingFiles(LoadType::AfterSession);
+
+	g_loadingReplayDlc = false;
+
 	LoadDataFiles();
 }
 
@@ -3590,6 +3641,8 @@ static void CleanupStreaming()
 	g_unloadingCfx = true;
 
 	UnloadDataFiles();
+
+	g_keptItyps.clear();
 
 	std::set<std::string> tags;
 
