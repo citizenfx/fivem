@@ -9,7 +9,7 @@ local soName = 'libuv.so'
 local linuxShortName = 'uv'
 
 local depotURLs = {
-	[dllName] = 'https://cfx-downloads.akamaized.net/prod/01a1825c-41ca-7ce8-ad60-879018c0dcd7/libuv.dll',
+	[dllName] = 'https://cfx-downloads.akamaized.net/prod/01a1e9fb-fbdc-79f8-b0d6-67f225c20c91/libuv.dll',
 	[libName] = 'https://cfx-downloads.akamaized.net/prod/01a1825c-450b-7a29-9e0a-54351c1694af/libuv.lib',
 	[pdbName] = 'https://cfx-downloads.akamaized.net/prod/01a1825c-47c4-7437-8396-d26296811f35/libuv.pdb',
 	[soName]  = 'https://cfx-downloads.akamaized.net/prod/01a1825c-4c4c-7d59-82e9-105f07ff9e06/libuv.so',
