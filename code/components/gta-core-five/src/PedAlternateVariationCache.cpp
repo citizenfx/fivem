@@ -105,7 +105,7 @@ static void LoadAlternateVariationSwitches(TAlternateVariationsSwitchSet* switch
 	{
 		// outArray is stored on stack so we want
 		// to prevent atArray->Set from expanding it
-		// and possiblity causing issues
+		// and possibly causing issues
 		if (outArray->m_count >= outArray->GetSize())
 		{
 			trace("Overflowing alternates array max=%i dlcNameHash=%08X\n", outArray->GetSize(), cacheEntry->data.dlcNameHash);

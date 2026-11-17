@@ -13,7 +13,7 @@ static HookFunction hookFunction([]()
 		return;
 	}
 	// CTaskClimbLadder::IsMovementBlocked
-	// This function determines wether the ped can continue climbing the ladder
+	// This function determines whether the ped can continue climbing the ladder
 	// or if its movement should be blocked due some physical obstacle.
 	//
 	// The code assumes that the ped is a biped and tries to read the biped capsule

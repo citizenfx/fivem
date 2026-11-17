@@ -215,7 +215,7 @@ db2lin_alt2(float db)
 	if (db <= -200.0f)
 		return 0.0f;
 	else
-		return exp(db / 20 * log(10.0f)); // went mad with ambigous call with 10 (identified as int)
+		return exp(db / 20 * log(10.0f)); // went mad with ambiguous call with 10 (identified as int)
 }
 
 static inline float
