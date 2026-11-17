@@ -1377,6 +1377,22 @@ inline bool ShouldUseWorstCaseFrameBacklog(const std::chrono::milliseconds now, 
 	return now > lastSeen && (now - lastSeen) > 5s;
 }
 
+// how many frames to keep for a client, minRetentionSeconds comes from onesync_minFrameRetention (0 = off)
+// framesPerSecond is the current sync rate, the frame index goes up once per sync tick
+inline size_t GetFrameBacklogLimit(const bool useWorstCase, const int minRetentionSeconds, const int framesPerSecond)
+{
+	size_t limit = useWorstCase ? maxSavedClientFramesWorstCase : maxSavedClientFrames;
+
+	if (minRetentionSeconds > 0 && framesPerSecond > 0)
+	{
+		// never more than the worst case
+		const size_t minFrames = std::min<size_t>(size_t(minRetentionSeconds) * size_t(framesPerSecond), maxSavedClientFramesWorstCase);
+		limit = std::max(limit, minFrames);
+	}
+
+	return limit;
+}
+
 struct GameStateClientData
 {
 	rl::MessageBuffer ackBuffer{ 16384 };

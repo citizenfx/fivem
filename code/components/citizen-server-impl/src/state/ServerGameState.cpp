@@ -108,6 +108,10 @@ static bool g_protectServerEntitiesDeletion;
 static std::shared_ptr<ConVar<int>> g_requestControlVar;
 static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
 
+// minimum time in seconds to keep sent frames for every client, 0 keeps the default backlog
+static int g_oneSyncMinFrameRetention = 0;
+static std::shared_ptr<ConVar<int>> g_oneSyncMinFrameRetentionVar;
+
 static RequestControlFilterMode g_requestControlFilterState;
 static int g_requestControlSettleDelay;
 
@@ -1996,12 +2000,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			auto& firstFrameState = clientDataUnlocked->firstSavedFrameState;
 			if (firstFrameState != 0)
 			{
-				size_t thisMaxBacklog = maxSavedClientFrames;
-
-				if (ShouldUseWorstCaseFrameBacklog(curTime, client->GetLastUpdate()))
-				{
-					thisMaxBacklog = maxSavedClientFramesWorstCase;
-				}
+				size_t thisMaxBacklog = GetFrameBacklogLimit(ShouldUseWorstCaseFrameBacklog(curTime, client->GetLastUpdate()), g_oneSyncMinFrameRetention, effectiveTicksPerSecond);
 
 				// gradually remove if needed
 				thisMaxBacklog = std::max(thisMaxBacklog, clientDataUnlocked->frameStates.size() - 2);
@@ -7991,6 +7990,7 @@ static InitFunction initFunction([]()
 		g_oneSyncVar = instance->AddVariable<fx::OneSyncState>("onesync", ConVar_Internal, fx::OneSyncState::On);
 		g_oneSyncPopulation = instance->AddVariable<bool>("onesync_population", ConVar_ReadOnly, true);
 		g_oneSyncARQ = instance->AddVariable<bool>("onesync_automaticResend", ConVar_None, false);
+		g_oneSyncMinFrameRetentionVar = instance->AddVariable<int>("onesync_minFrameRetention", ConVar_None, 0, &g_oneSyncMinFrameRetention);
 
 		// .. to infinity?
 		g_oneSyncBigMode = instance->AddVariable<bool>("onesync_enableInfinity", ConVar_Internal, true);

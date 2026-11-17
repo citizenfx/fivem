@@ -73,3 +73,22 @@ TEST_CASE("Worst-case frame retention uses elapsed client silence")
 	REQUIRE(fx::ShouldUseWorstCaseFrameBacklog(now, now - 5001ms));
 	REQUIRE_FALSE(fx::ShouldUseWorstCaseFrameBacklog(now, now + 1s));
 }
+
+TEST_CASE("Minimum frame retention raises the frame backlog")
+{
+	// off: default and worst-case backlog like before
+	REQUIRE(fx::GetFrameBacklogLimit(false, 0, 40) == fx::maxSavedClientFrames);
+	REQUIRE(fx::GetFrameBacklogLimit(true, 0, 40) == fx::maxSavedClientFramesWorstCase);
+	REQUIRE(fx::GetFrameBacklogLimit(false, -5, 40) == fx::maxSavedClientFrames);
+	REQUIRE(fx::GetFrameBacklogLimit(false, 30, 0) == fx::maxSavedClientFrames);
+
+	// shorter than the default backlog doesn't lower it
+	REQUIRE(fx::GetFrameBacklogLimit(false, 10, 40) == fx::maxSavedClientFrames);
+
+	// longer keeps seconds * sync rate frames, capped at the worst case
+	REQUIRE(fx::GetFrameBacklogLimit(false, 30, 40) == 1200);
+	REQUIRE(fx::GetFrameBacklogLimit(false, 30, 20) == fx::maxSavedClientFrames);
+	REQUIRE(fx::GetFrameBacklogLimit(false, 60, 20) == 1200);
+	REQUIRE(fx::GetFrameBacklogLimit(false, 600, 40) == fx::maxSavedClientFramesWorstCase);
+	REQUIRE(fx::GetFrameBacklogLimit(true, 30, 40) == fx::maxSavedClientFramesWorstCase);
+}
