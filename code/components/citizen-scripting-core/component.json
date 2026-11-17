@@ -6,7 +6,9 @@
 		"citizen:resources:core",
 		"scripting",
 		"conhost",
-		"http-client"
+		"http-client",
+		"vendor:tbb",
+		"vendor:websocketpp"
 	],
 	"provides": []
 }
