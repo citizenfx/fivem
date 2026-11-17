@@ -11,6 +11,8 @@
 
 #include <VFSManager.h>
 #include <CrossBuildRuntime.h>
+#include <InteriorProxyCache.h>
+#include <Error.h>
 
 static hook::cdecl_stub<void(atHashMap<bool>*, const uint32_t&, const bool&)> atHashMap_bool_insert([]()
 {
@@ -162,6 +164,33 @@ static StreamingPackfileEntry* GetPackIndex(int handle)
 	return retval;
 }
 
+static CInteriorProxy* (*g_origAddCachedInterior)(void* definition, uint32_t mapData, const void* bounds);
+static void (*g_initInteriorDefinition)(CInteriorProxy* proxy, void* definition, uint32_t mapData, const void* bounds);
+static thread_local bool g_loadingResourceCache;
+
+static CInteriorProxy* AddCachedInterior(void* definition, uint32_t mapData, const void* bounds)
+{
+	if (!g_loadingResourceCache)
+	{
+		return g_origAddCachedInterior(definition, mapData, bounds);
+	}
+
+	const auto entry = FindInteriorProxyForCache(mapData);
+
+	switch (entry.action)
+	{
+		case InteriorProxyCacheAction::Update:
+			// Keep the live object's pool handle and references, but apply this cache's definition.
+			g_initInteriorDefinition(entry.proxy, definition, mapData, bounds);
+			return entry.proxy;
+		case InteriorProxyCacheAction::Conflict:
+			FatalError("Cannot load cached interior for map slot %u: its ordered proxy slot is unavailable.", mapData);
+			return nullptr;
+		default:
+			return g_origAddCachedInterior(definition, mapData, bounds);
+	}
+}
+
 static HookFunction hookFunction([]()
 {
 	{
@@ -206,6 +235,15 @@ static HookFunction hookFunction([]()
 	}
 
 	MH_Initialize();
+	// These call sites have been identified on b3889. Keep other builds' paths unchanged.
+	if (xbr::IsGameBuild<3889>())
+	{
+		hook::set_call(&g_initInteriorDefinition, hook::get_pattern("4D 8B CC 44 8B C3 49 8B D5 48 8B CF E8", 12));
+		auto addCall = hook::get_pattern("44 89 75 30 44 89 7D 48 0F 29 5D A0 E8", 12);
+		hook::set_call(&g_origAddCachedInterior, addCall);
+		// Only the cache reader is redirected; normal map preload and proxy destruction are untouched.
+		hook::call(addCall, AddCachedInterior);
+	}
 	MH_CreateHook(hook::get_pattern("B9 00 00 04 00 BF 01 00 00 00 39", -0x5D), LoadCacheHook, (void**)&g_loadCacheOld);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
@@ -224,6 +262,12 @@ void LoadCache(const char* tagName)
 	atHashMap_bool_insert(&packfileMap, index, true);
 
 	_loadCacheFile(tagName, va("resources:/%s/", tagName), true, packfileMap);
+	struct ResourceCacheScope
+	{
+		bool previous = g_loadingResourceCache;
+		ResourceCacheScope() { g_loadingResourceCache = true; }
+		~ResourceCacheScope() { g_loadingResourceCache = previous; }
+	} resourceCacheScope;
 
 	if (!_parseCache())
 	{
