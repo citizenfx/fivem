@@ -9,6 +9,7 @@
 
 #include <CrossBuildRuntime.h>
 #include <timeapi.h> // timeGetTime()
+#include <windowsx.h> // GET_X_LPARAM
 
 #include <ICoreGameInit.h>
 #include <GlobalInput.h>
@@ -24,6 +25,11 @@ static LPDIRECTINPUTDEVICEW* g_diMouseDevice = nullptr;
 static bool g_isFocused = true;
 static bool g_enableSetCursorPos = false;
 static bool g_isFocusStolen = false;
+
+// virtual cursor for UIs with SetNuiFocusKeepInput, see SetCursorPosWrap
+static std::atomic<bool> g_uiCursorActive;
+static bool g_cursorVirtual;
+static POINT g_cursorOffset;
 
 static int* g_mouseButtons;
 static int* g_inputOffset;
@@ -368,6 +374,12 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 		}
 	}
 
+	if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST && g_cursorVirtual)
+	{
+		// same shift as GetCursorPos; button and wheel messages carry a position too
+		lParam = MAKELPARAM(GET_X_LPARAM(lParam) + g_cursorOffset.x, GET_Y_LPARAM(lParam) + g_cursorOffset.y);
+	}
+
 	//return CallWindowProc(origWndProc, hwnd, uMsg, wParam, lParam);
 	lresult = origWndProc(hwnd, uMsg, wParam, lParam);
 
@@ -391,14 +403,59 @@ HKL WINAPI ActivateKeyboardLayoutWrap(IN HKL hkl, IN UINT flags)
 	return hkl;
 }
 
+// With the "Windows Input" mouse method the game measures mouse movement by moving the cursor back to
+// the window center every frame. While a UI shows its own cursor and the game keeps its input
+// (SetNuiFocusKeepInput), that recentering keeps the UI cursor stuck in the middle. Instead, the
+// recenter is applied to a virtual cursor: the real cursor stays where it is, and the positions the game
+// reads are shifted by the difference, so the game still sees the same movement it would otherwise.
+void InputHook::SetUiCursorActive(bool active)
+{
+	g_uiCursorActive = active;
+}
+
+static void UpdateVirtualCursor()
+{
+	if (g_cursorVirtual && (!g_uiCursorActive || !g_isFocused))
+	{
+		g_cursorVirtual = false;
+		g_cursorOffset = {};
+	}
+}
+
 BOOL WINAPI SetCursorPosWrap(int X, int Y)
 {
+	if (g_uiCursorActive && g_isFocused && !g_enableSetCursorPos)
+	{
+		POINT real;
+
+		if (GetCursorPos(&real))
+		{
+			g_cursorOffset = { X - real.x, Y - real.y };
+			g_cursorVirtual = true;
+		}
+
+		return TRUE;
+	}
+
 	if (!g_isFocusStolen || g_enableSetCursorPos)
 	{
 		return SetCursorPos(X, Y);
 	}
 
 	return TRUE;
+}
+
+BOOL WINAPI GetCursorPosWrap(LPPOINT lpPoint)
+{
+	BOOL result = GetCursorPos(lpPoint);
+
+	if (result && lpPoint && g_cursorVirtual)
+	{
+		lpPoint->x += g_cursorOffset.x;
+		lpPoint->y += g_cursorOffset.y;
+	}
+
+	return result;
 }
 
 #include <HostSharedData.h>
@@ -741,6 +798,7 @@ static HookFunction hookFunction([]()
 
 	OnGameFrame.Connect([]()
 	{
+		UpdateVirtualCursor();
 		SetInputWrap(-1, NULL, NULL, NULL);
 
 		int may = 1;
@@ -819,6 +877,7 @@ static HookFunction hookFunction([]()
 
 	// don't allow SetCursorPos during focus
 	hook::iat("user32.dll", SetCursorPosWrap, "SetCursorPos");
+	hook::iat("user32.dll", GetCursorPosWrap, "GetCursorPos");
 
 	hook::iat("user32.dll", HookShowCursor, "ShowCursor");
 

@@ -70,6 +70,9 @@ extern INPUT_DECL fwEvent<int&> QueryMayLockCursor;
 
 INPUT_DECL void SetGameMouseFocus(bool focus, bool flushMouse = true);
 
+// set while a UI shows its own cursor but the game keeps its input (SetNuiFocusKeepInput)
+INPUT_DECL void SetUiCursorActive(bool active);
+
 INPUT_DECL void EnableSetCursorPos(bool enabled);
 
 INPUT_DECL bool IsMouseButtonDown(int buttonFlag);
