@@ -6,6 +6,7 @@
 #include <ScriptEngine.h>
 
 #include <Resource.h>
+#include <ResourceMetaDataComponent.h>
 #include <fxScripting.h>
 
 static InitFunction initFunction([]()
@@ -43,6 +44,15 @@ static InitFunction initFunction([]()
 		resource->OnStart.Connect([resource]()
 		{
 			game::SetBindingTagActive(resource->GetName(), true);
+
+#ifdef GTA_FIVE
+			auto labels = resource->GetComponent<fx::ResourceMetaDataComponent>()->GetEntries("ui_label");
+
+			if (labels.begin() != labels.end())
+			{
+				game::SetBindingTagLabel(resource->GetName(), labels.begin()->second);
+			}
+#endif
 		}, INT32_MIN);
 
 		resource->OnStop.Connect([resource]()

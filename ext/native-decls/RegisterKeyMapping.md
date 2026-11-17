@@ -10,6 +10,8 @@ void REGISTER_KEY_MAPPING(char* commandString, char* description, char* defaultM
 
 Registers a key mapping for the current resource.
 
+In FiveM, the key bindings settings show each description after the name of its resource. To show a friendlier name, set `ui_label` in the resource manifest, e.g. `ui_label 'Police Job'`. The resource name is shown instead if the trimmed label isn't 2 to 32 characters long, contains control, invisible or unusual space characters or any of `~ < > &`, or matches the name or label of another running resource (ignoring case).
+
 See the related [cookbook post](https://cookbook.fivem.net/2020/01/06/using-the-new-console-key-bindings/) for more information.
 
 Below you can find some examples on how to create these keybindings as well as the alternate keybinding syntax, which is preceded by `~!` to indicate that it's an alternate key.
