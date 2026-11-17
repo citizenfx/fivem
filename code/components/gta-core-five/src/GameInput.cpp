@@ -1127,13 +1127,18 @@ namespace game
 
 	bool IsInputSourceDown(const rage::ioInputSource& controlData)
 	{
-		// mouse?
 		if (controlData.source == rage::IOMS_MOUSE_BUTTON)
 		{
 			return InputHook::IsMouseButtonDown(controlData.parameter);
 		}
 
-		return InputHook::IsKeyDown(controlData.parameter);
+		// an unbound slot (IOMS_UNDEFINED) or a pad binding has no meaningful VK in `parameter`
+		if (controlData.source == rage::IOMS_KEYBOARD && controlData.parameter != 0)
+		{
+			return InputHook::IsKeyDown(controlData.parameter);
+		}
+
+		return false;
 	}
 
 	bool IsControlKeyDown(int control)
