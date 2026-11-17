@@ -9,6 +9,7 @@
 
 #include <CrossBuildRuntime.h>
 #include <timeapi.h> // timeGetTime()
+#include <hidusage.h>
 
 #include <ICoreGameInit.h>
 #include <GlobalInput.h>
@@ -152,6 +153,13 @@ static std::atomic<int> g_isFocusStolenCount;
 
 static std::map<int, std::vector<InputHook::ControlBypass>> g_controlBypasses;
 
+static std::atomic<bool> g_legacyMouseRequired;
+
+void InputHook::SetLegacyMouseRequired(bool required)
+{
+	g_legacyMouseRequired = required;
+}
+
 void InputHook::SetGameMouseFocus(bool focus, bool flushMouse)
 {
 	if (focus)
@@ -241,6 +249,345 @@ bool InputHook::IsKeyDown(int vk_keycode)
 	}
 
 	return g_gameKeyArray[vk_keycode] & 0x80;
+}
+
+// high polling rate mice (4000/8000 Hz) queue one WM_INPUT message per report, and the game
+// reads each of them separately with GetRawInputData, after the message pump and our window
+// procedure have handled it. Instead, on the first WM_INPUT, read all raw input still pending
+// with GetRawInputBuffer (which removes it from the queue), merge runs of relative mouse
+// movement, and hand the game one WM_INPUT per merged event. The game's GetRawInputData call
+// for these messages is answered from our copy.
+//
+// the game also pumps messages until the queue is empty. At 8000 Hz a new report arrives every
+// 125 us, and every pump iteration takes the window manager lock several times, which other
+// processes reacting to the same mouse contend for, so an iteration can take longer than that
+// and the pump keeps going for most of the frame. Once a batch has been handed to the game, raw
+// input and mouse messages arriving later in the same pump pass are left for the next frame.
+static decltype(&GetRawInputData) g_origGetRawInputData;
+static decltype(&PeekMessageW) g_origPeekMessageW;
+
+static HRAWINPUT g_rawInputOverrideHandle;
+static const RAWINPUT* g_rawInputOverride;
+
+static thread_local bool g_rawInputHandledThisPass;
+
+// Even with batched reads, Windows still generates legacy mouse messages (WM_MOUSEMOVE, WM_SETCURSOR,
+// WM_NCHITTEST) for every raw report, which makes each PeekMessage call expensive at high polling rates.
+// While the game itself consumes the mouse, register it with RIDEV_NOLEGACY. Legacy messages are kept
+// whenever something else needs them: the window is inactive (clicking it back into focus), the cursor
+// belongs to the console/NUI, or a NUI frame has focus (also with SetNuiFocusKeepInput).
+static std::shared_ptr<ConVar<bool>> g_mouseNoLegacyVar;
+
+static void SetMouseNoLegacy(bool enable)
+{
+	RAWINPUTDEVICE devices[16];
+	UINT count = std::size(devices);
+	UINT registered = GetRegisteredRawInputDevices(devices, &count, sizeof(RAWINPUTDEVICE));
+
+	if (registered == (UINT)-1)
+	{
+		return;
+	}
+
+	for (UINT i = 0; i < registered; i++)
+	{
+		auto& device = devices[i];
+
+		if (device.usUsagePage != HID_USAGE_PAGE_GENERIC || device.usUsage != HID_USAGE_GENERIC_MOUSE)
+		{
+			continue;
+		}
+
+		DWORD flags = enable ? (device.dwFlags | RIDEV_NOLEGACY) : (device.dwFlags & ~RIDEV_NOLEGACY);
+
+		if (flags != device.dwFlags)
+		{
+			device.dwFlags = flags;
+
+			if (!RegisterRawInputDevices(&device, 1, sizeof(RAWINPUTDEVICE)))
+			{
+				trace("Failed to update mouse raw input flags (error %d).\n", GetLastError());
+				return;
+			}
+
+			trace("Legacy mouse messages %s.\n", enable ? "disabled" : "enabled");
+		}
+	}
+}
+
+// The game's mouse input method (PREF_MOUSE_TYPE): 0 raw input, 1 DirectInput, 2 "Windows Input".
+// gta-core-five mirrors the setting into the profile_mouseType convar. Returns -1 while unknown.
+static int GetMouseInputMethod()
+{
+	static int method = -1;
+	static DWORD lastLookup;
+
+	DWORD now = timeGetTime();
+
+	// look the convar up again each time instead of keeping the entry: the value loaded from the config
+	// file is a placeholder entry that gets replaced once gta-core-five registers the real convar
+	if (now - lastLookup >= 250)
+	{
+		lastLookup = now;
+
+		auto mouseTypeVar = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("profile_mouseType");
+		method = mouseTypeVar ? atoi(mouseTypeVar->GetValue().c_str()) : -1;
+	}
+
+	return method;
+}
+
+// A game started with "Windows Input" still has the raw mouse registration from startup, so every raw
+// report arrives as WM_INPUT on top of the legacy messages. Changing the mouse method in the settings
+// drops that registration, and so do we. Switching back to raw input makes the game register it again.
+static void RemoveUnusedRawMouse()
+{
+	RAWINPUTDEVICE devices[16];
+	UINT count = std::size(devices);
+	UINT registered = GetRegisteredRawInputDevices(devices, &count, sizeof(RAWINPUTDEVICE));
+
+	if (registered == (UINT)-1)
+	{
+		return;
+	}
+
+	for (UINT i = 0; i < registered; i++)
+	{
+		const auto& device = devices[i];
+
+		if (device.usUsagePage == HID_USAGE_PAGE_GENERIC && device.usUsage == HID_USAGE_GENERIC_MOUSE && !(device.dwFlags & RIDEV_INPUTSINK))
+		{
+			RAWINPUTDEVICE remove{ HID_USAGE_PAGE_GENERIC, HID_USAGE_GENERIC_MOUSE, RIDEV_REMOVE, NULL };
+
+			if (RegisterRawInputDevices(&remove, 1, sizeof(RAWINPUTDEVICE)))
+			{
+				trace("Removed the unused raw mouse registration (mouse input method is Windows Input).\n");
+			}
+
+			return;
+		}
+	}
+}
+
+// set once per frame: the mouse isn't read from raw input, so legacy mouse messages stay on and
+// WM_MOUSEMOVE has to be limited to one per pump pass instead. This also holds while NUI has the
+// cursor, it only needs the current position as well.
+static bool g_limitLegacyMoves;
+
+static void UpdateMouseNoLegacy()
+{
+	static bool applied = false;
+	static DWORD lastCheck = 0;
+
+	int mouseMethod = GetMouseInputMethod();
+	bool gameOwnsMouse = g_isFocused && !g_isFocusStolen && !g_legacyMouseRequired;
+
+	// only raw input can do without the legacy messages; the other methods read moves and clicks from them
+	bool wanted = g_mouseNoLegacyVar && g_mouseNoLegacyVar->GetValue() && gameOwnsMouse && mouseMethod == 0;
+
+	g_limitLegacyMoves = g_isFocused && mouseMethod > 0;
+
+	// also re-check now and then, in case the game registered the mouse again
+	DWORD now = timeGetTime();
+
+	if (wanted != applied || (wanted && now - lastCheck > 1000))
+	{
+		SetMouseNoLegacy(wanted);
+		applied = wanted;
+		lastCheck = now;
+	}
+
+	static DWORD lastUnusedCheck;
+
+	if (mouseMethod == 2 && now - lastUnusedCheck > 1000)
+	{
+		lastUnusedCheck = now;
+		RemoveUnusedRawMouse();
+	}
+}
+
+static BOOL WINAPI PeekMessageWWrap(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
+{
+	if (g_rawInputHandledThisPass && wMsgFilterMin == 0 && wMsgFilterMax == 0)
+	{
+		// only raw input and mouse moves are left for the next pass; buttons and the wheel always go through
+		static constexpr std::pair<UINT, UINT> ranges[] = {
+			{ 0, WM_INPUT - 1 },
+			{ WM_INPUT + 1, WM_MOUSEMOVE - 1 },
+			{ WM_MOUSEMOVE + 1, UINT_MAX },
+		};
+
+		for (auto [min, max] : ranges)
+		{
+			if (g_origPeekMessageW(lpMsg, hWnd, min, max, wRemoveMsg))
+			{
+				return TRUE;
+			}
+		}
+
+		// the pass is over
+		g_rawInputHandledThisPass = false;
+		return FALSE;
+	}
+
+	BOOL result = g_origPeekMessageW(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
+
+	// without raw input there is no batch that ends the pass, and at high polling rates a new
+	// WM_MOUSEMOVE is ready after every one the game handles. One per pass is enough: it carries the
+	// current cursor position.
+	if (result && g_limitLegacyMoves && (wRemoveMsg & PM_REMOVE) && lpMsg->message == WM_MOUSEMOVE && wMsgFilterMin == 0 && wMsgFilterMax == 0)
+	{
+		g_rawInputHandledThisPass = true;
+	}
+
+	return result;
+}
+
+static UINT WINAPI GetRawInputDataWrap(HRAWINPUT hRawInput, UINT uiCommand, LPVOID pData, PUINT pcbSize, UINT cbSizeHeader)
+{
+	if (g_rawInputOverride && hRawInput == g_rawInputOverrideHandle && (uiCommand == RID_INPUT || uiCommand == RID_HEADER) && pcbSize && cbSizeHeader == sizeof(RAWINPUTHEADER))
+	{
+		UINT size = (uiCommand == RID_INPUT) ? g_rawInputOverride->header.dwSize : sizeof(RAWINPUTHEADER);
+
+		if (!pData)
+		{
+			*pcbSize = size;
+			return 0;
+		}
+
+		if (*pcbSize < size)
+		{
+			SetLastError(ERROR_INSUFFICIENT_BUFFER);
+			return (UINT)-1;
+		}
+
+		memcpy(pData, g_rawInputOverride, size);
+		return size;
+	}
+
+	return g_origGetRawInputData(hRawInput, uiCommand, pData, pcbSize, cbSizeHeader);
+}
+
+static bool IsMergeableMouseMove(const RAWINPUT& input)
+{
+	return input.header.dwType == RIM_TYPEMOUSE &&
+		!(input.data.mouse.usFlags & (MOUSE_MOVE_ABSOLUTE | MOUSE_VIRTUAL_DESKTOP | MOUSE_ATTRIBUTES_CHANGED)) &&
+		input.data.mouse.usButtonFlags == 0;
+}
+
+static bool HandleRawInputBatch(HWND hwnd, WPARAM wParam, LPARAM lParam, bool passToGame, LRESULT& lresult)
+{
+	static bool inBatch;
+
+	if (!g_origGetRawInputData || inBatch)
+	{
+		return false;
+	}
+
+	inBatch = true;
+
+	RAWINPUT pending;
+	bool hasPending = false;
+
+	auto dispatch = [&](const RAWINPUT* input)
+	{
+		g_rawInputOverride = input;
+		g_rawInputOverrideHandle = reinterpret_cast<HRAWINPUT>(lParam);
+
+		lresult = origWndProc(hwnd, WM_INPUT, input->header.wParam, lParam);
+
+		g_rawInputOverride = nullptr;
+	};
+
+	auto flushPending = [&]()
+	{
+		if (hasPending)
+		{
+			hasPending = false;
+			dispatch(&pending);
+		}
+	};
+
+	auto add = [&](const RAWINPUT* input)
+	{
+		if (!IsMergeableMouseMove(*input))
+		{
+			flushPending();
+			dispatch(input);
+			return;
+		}
+
+		if (hasPending && pending.header.hDevice == input->header.hDevice && pending.header.wParam == input->header.wParam && pending.data.mouse.usFlags == input->data.mouse.usFlags)
+		{
+			pending.data.mouse.lLastX += input->data.mouse.lLastX;
+			pending.data.mouse.lLastY += input->data.mouse.lLastY;
+			pending.data.mouse.ulRawButtons = input->data.mouse.ulRawButtons;
+			pending.data.mouse.ulExtraInformation = input->data.mouse.ulExtraInformation;
+			return;
+		}
+
+		flushPending();
+		pending = *input;
+		hasPending = true;
+	};
+
+	if (passToGame)
+	{
+		RAWINPUT first;
+		UINT size = sizeof(first);
+		UINT copied = g_origGetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, &first, &size, sizeof(RAWINPUTHEADER));
+
+		if (copied != 0 && copied != (UINT)-1 && IsMergeableMouseMove(first))
+		{
+			pending = first;
+			hasPending = true;
+		}
+		else
+		{
+			// not a plain mouse move (or larger than a RAWINPUT), let the game read it as usual
+			lresult = origWndProc(hwnd, WM_INPUT, wParam, lParam);
+		}
+	}
+
+	// if the game doesn't get this message, it wouldn't get any of the pending ones either, so
+	// they're read and dropped
+	alignas(8) static uint8_t buffer[16 * 1024];
+
+	// bounded, so a steady stream of input can't keep us in here
+	for (int attempt = 0; attempt < 8; attempt++)
+	{
+		UINT size = sizeof(buffer);
+		UINT count = GetRawInputBuffer(reinterpret_cast<RAWINPUT*>(buffer), &size, sizeof(RAWINPUTHEADER));
+
+		if (count == 0 || count == (UINT)-1)
+		{
+			break;
+		}
+
+		if (passToGame)
+		{
+			auto input = reinterpret_cast<RAWINPUT*>(buffer);
+
+			for (UINT i = 0; i < count; i++)
+			{
+				add(input);
+
+				// NEXTRAWINPUTBLOCK, spelled out as QWORD isn't defined here
+				auto next = reinterpret_cast<uintptr_t>(input) + input->header.dwSize;
+				input = reinterpret_cast<RAWINPUT*>((next + sizeof(uint64_t) - 1) & ~(sizeof(uint64_t) - 1));
+			}
+		}
+	}
+
+	flushPending();
+
+	if (g_origPeekMessageW)
+	{
+		g_rawInputHandledThisPass = true;
+	}
+
+	inBatch = false;
+	return true;
 }
 
 LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -364,8 +711,18 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 		if (!shouldPassAnyway)
 		{
+			if (uMsg == WM_INPUT)
+			{
+				HandleRawInputBatch(hwnd, wParam, lParam, false, lresult);
+			}
+
 			return lresult;
 		}
+	}
+
+	if (uMsg == WM_INPUT && HandleRawInputBatch(hwnd, wParam, lParam, true, lresult))
+	{
+		return lresult;
 	}
 
 	//return CallWindowProc(origWndProc, hwnd, uMsg, wParam, lParam);
@@ -737,10 +1094,19 @@ static HookFunction hookFunction([]()
 		g_antiLagPresentConVar->GetHelper()->SetRawValue(true);
 	}
 
+	g_mouseNoLegacyVar = std::make_shared<ConVar<bool>>("in_mouseNoLegacy", ConVar_Archive | ConVar_UserPref, true);
+	g_origGetRawInputData = hook::iat("user32.dll", GetRawInputDataWrap, "GetRawInputData");
+	g_origPeekMessageW = hook::iat("user32.dll", PeekMessageWWrap, "PeekMessageW");
+
 	static int* captureCount = hook::get_address<int*>(hook::get_pattern("48 3B 05 ? ? ? ? 0F 45 CA 89 0D ? ? ? ? 48 83 C4 28", 12));
 
 	OnGameFrame.Connect([]()
 	{
+		// a pump pass that ended without PeekMessage running dry (e.g. on a message limit) must not
+		// hold back raw input in the next frame
+		g_rawInputHandledThisPass = false;
+
+		UpdateMouseNoLegacy();
 		SetInputWrap(-1, NULL, NULL, NULL);
 
 		int may = 1;
@@ -749,7 +1115,13 @@ static HookFunction hookFunction([]()
 		if (!may)
 		{
 			ClipHostCursor(nullptr);
-			*captureCount = 0;
+
+			// with "Windows Input" the game drops held mouse buttons when its capture count is reset (no
+			// dragging or clicking on the pause menu map), and it keeps the cursor centered there anyway
+			if (GetMouseInputMethod() != 2)
+			{
+				*captureCount = 0;
+			}
 		}
 	});
 

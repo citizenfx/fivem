@@ -70,6 +70,9 @@ extern INPUT_DECL fwEvent<int&> QueryMayLockCursor;
 
 INPUT_DECL void SetGameMouseFocus(bool focus, bool flushMouse = true);
 
+// set while a UI (e.g. NUI with SetNuiFocusKeepInput) needs legacy mouse messages
+INPUT_DECL void SetLegacyMouseRequired(bool required);
+
 INPUT_DECL void EnableSetCursorPos(bool enabled);
 
 INPUT_DECL bool IsMouseButtonDown(int buttonFlag);
