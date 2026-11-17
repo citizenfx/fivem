@@ -108,6 +108,11 @@ static std::string GetMtlGamePath(std::string_view gameName)
 
 		EVP_CIPHER_CTX_free(ctx);
 
+		if (finalLen <= 16)
+		{
+			return "";
+		}
+
 		try
 		{
 			std::string fileText(fileData.begin() + 16, fileData.begin() + finalLen);
@@ -129,6 +134,99 @@ static std::string GetMtlGamePath(std::string_view gameName)
 
 	return "";
 }
+
+#if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
+static const std::vector<std::string> g_gameFilesToCheck = {
+#if defined(GTA_FIVE)
+	"x64a.rpf",
+	"x64b.rpf",
+	"x64g.rpf",
+	"common.rpf",
+	"bink2w64.dll",
+	"x64\\audio\\audio_rel.rpf",
+	"GTA5.exe",
+	"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf",
+	"update\\x64\\dlcpacks\\mptuner\\dlc.rpf",
+	"update\\x64\\dlcpacks\\mpsum2\\dlc.rpf"
+#elif defined(IS_RDR3)
+	"common_0.rpf",
+	"appdata0_update.rpf",
+	"levels_7.rpf",
+	"RDR2.exe",
+	"x64\\dlcpacks\\mp007\\dlc.rpf"
+#elif defined(GTA_NY)
+	"pc/audio/sfx/general.rpf",
+#endif
+};
+
+static bool HasGameFiles(const std::wstring& gameRoot, const std::vector<std::string>& files)
+{
+	for (const auto& file : files)
+	{
+		if (GetFileAttributesW((gameRoot + (L"\\" + ToWide(file))).c_str()) == INVALID_FILE_ATTRIBUTES)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static bool IsCompleteGameRoot(const std::wstring& gameRoot)
+{
+	return HasGameFiles(gameRoot, g_gameFilesToCheck);
+}
+
+static std::vector<std::wstring> GetDetectedGameRoots()
+{
+	std::vector<std::wstring> roots;
+
+	auto mtlGamePath = GetMtlGamePath(
+#if defined(GTA_FIVE)
+	"gta5"
+#elif defined(IS_RDR3)
+	"rdr2"
+#elif defined(GTA_NY)
+	"gta4"
+#endif
+	);
+
+	if (!mtlGamePath.empty())
+	{
+		roots.push_back(ToWide(mtlGamePath));
+	}
+
+	// the int is the amount of characters to strip off the end
+	const std::tuple<std::wstring, std::wstring, int> folderAttempts[] = {
+#if defined(GTA_FIVE)
+		{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV", 5 },
+		{ L"InstallFolderEpic", L"SOFTWARE\\Rockstar Games\\Grand Theft Auto V", 0 },
+		{ L"InstallFolderEpic", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", 0 },
+		{ L"InstallFolderXboxPc", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", 0 },
+#elif defined(IS_RDR3)
+		{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Red Dead Redemption 2", strlen("Red Dead Redemption 2") },
+#elif defined(GTA_NY)
+		{ L"InstallFolder", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto IV", 0 },
+#endif
+	};
+
+	for (const auto& folder : folderAttempts)
+	{
+		wchar_t gameRootBuf[1024];
+		DWORD gameRootLength = sizeof(gameRootBuf);
+
+		if (RegGetValue(HKEY_LOCAL_MACHINE,
+			std::get<1>(folder).c_str(), std::get<0>(folder).c_str(),
+			RRF_RT_REG_SZ, nullptr, gameRootBuf, &gameRootLength) == ERROR_SUCCESS)
+		{
+			std::wstring gameRoot(gameRootBuf);
+			roots.push_back(gameRoot.substr(0, gameRoot.length() - std::get<int>(folder)));
+		}
+	}
+
+	return roots;
+}
+#endif
 
 std::optional<int> EnsureGamePath()
 {
@@ -173,6 +271,26 @@ std::optional<int> EnsureGamePath()
 
 			if (GetFileAttributes(gameExecutable.c_str()) != INVALID_FILE_ATTRIBUTES)
 			{
+#if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
+				// some saved paths still contain the executable but not the full game, so check other game files as well
+				if (!IsCompleteGameRoot(path))
+				{
+					for (const auto& gameRoot : GetDetectedGameRoots())
+					{
+						if (IsCompleteGameRoot(gameRoot))
+						{
+							trace("Game path '%s' is incomplete, switching to detected installation '%s'.\n", ToNarrow(path), ToNarrow(gameRoot));
+
+							WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
+
+							static HostSharedData<CfxState> initState("CfxInitState");
+							initState->gameDirectory[0] = L'\0';
+							break;
+						}
+					}
+				}
+#endif
+
 				return {};
 			}
 #if defined(GTA_FIVE)
@@ -214,109 +332,22 @@ std::optional<int> EnsureGamePath()
 	fileDialog->SetFileTypes(1, &filter);
 
 #if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
-	auto proposeDirectory = [&fileDialog](const std::wstring& gameRoot, const std::vector<std::string>& filesToCheck)
 	{
-		WRL::ComPtr<IShellItem> item;
+		bool folderSet = false;
 
-		if (FAILED(SHCreateItemFromParsingName(gameRoot.c_str(), nullptr, IID_PPV_ARGS(&item))))
+		for (const auto& gameRoot : GetDetectedGameRoots())
 		{
-			return false;
-		}
-
-		if (FAILED(fileDialog->SetFolder(item.Get())))
-		{
-			return false;
-		}
-
-		for (const auto& file : filesToCheck)
-		{
-			if (GetFileAttributesW((gameRoot + (L"\\" + ToWide(file))).c_str()) == INVALID_FILE_ATTRIBUTES)
+			if (IsCompleteGameRoot(gameRoot))
 			{
-				return false;
-			}
-		}
-
-		return true;
-	};
-
-	// set the default folder, if we can find one
-	{
-		std::vector<std::string> filesToCheck = {
-#if defined(GTA_FIVE)
-			"x64a.rpf",
-			"x64b.rpf",
-			"x64g.rpf",
-			"common.rpf",
-			"bink2w64.dll",
-			"x64\\audio\\audio_rel.rpf",
-			"GTA5.exe",
-			"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf",
-			"update\\x64\\dlcpacks\\mptuner\\dlc.rpf",
-			"update\\x64\\dlcpacks\\mpsum2\\dlc.rpf"
-#elif defined(IS_RDR3)
-			"common_0.rpf",
-			"appdata0_update.rpf",
-			"levels_7.rpf",
-			"RDR2.exe",
-			"x64\\dlcpacks\\mp007\\dlc.rpf"
-#elif defined(GTA_NY)
-			"pc/audio/sfx/general.rpf",
-#endif
-		};
-
-		wchar_t gameRootBuf[1024];
-		DWORD gameRootLength = sizeof(gameRootBuf);
-
-		// 5 is the amount of characters to strip off the end
-		const std::tuple<std::wstring, std::wstring, int> folderAttempts[] = {
-#if defined(GTA_FIVE)
-			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV", 5 },
-			{ L"InstallFolderEpic", L"SOFTWARE\\Rockstar Games\\Grand Theft Auto V", 0 },
-			{ L"InstallFolderEpic", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", 0 },
-			{ L"InstallFolderXboxPc", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", 0 },
-#elif defined(IS_RDR3)
-			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Red Dead Redemption 2", strlen("Red Dead Redemption 2") },
-#elif defined(GTA_NY)
-			{ L"InstallFolder", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto IV", 0 },
-#endif
-		};
-
-		// try finding the MTL game path first
-		auto mtlGamePath = GetMtlGamePath(
-#if defined(GTA_FIVE)
-		"gta5"
-#elif defined(IS_RDR3)
-		"rdr2"
-#elif defined(GTA_NY)
-		"gta4"
-#endif
-		);
-
-		if (!mtlGamePath.empty())
-		{
-			if (proposeDirectory(ToWide(mtlGamePath), filesToCheck))
-			{
-				WritePrivateProfileString(L"Game", pathKey, ToWide(mtlGamePath).c_str(), fpath.c_str());
+				WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
 				return {};
 			}
-		}
 
-		for (const auto& folder : folderAttempts)
-		{
-			if (RegGetValue(HKEY_LOCAL_MACHINE,
-				std::get<1>(folder).c_str(), std::get<0>(folder).c_str(),
-				RRF_RT_REG_SZ, nullptr, gameRootBuf, &gameRootLength) == ERROR_SUCCESS)
+			WRL::ComPtr<IShellItem> item;
+
+			if (!folderSet && SUCCEEDED(SHCreateItemFromParsingName(gameRoot.c_str(), nullptr, IID_PPV_ARGS(&item))))
 			{
-				std::wstring gameRoot(gameRootBuf);
-
-				// strip \GTAV if needed
-				gameRoot = gameRoot.substr(0, gameRoot.length() - std::get<int>(folder));
-
-				if (proposeDirectory(gameRoot, filesToCheck))
-				{
-					WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
-					return {};
-				}
+				folderSet = SUCCEEDED(fileDialog->SetFolder(item.Get()));
 			}
 		}
 	}
@@ -355,7 +386,7 @@ std::optional<int> EnsureGamePath()
 			{
 				std::wstring gameRoot(gameRootBuf);
 
-				if (proposeDirectory(gameRoot, filesToCheck))
+				if (HasGameFiles(gameRoot, filesToCheck))
 				{
 					static constexpr auto GEN9_ERROR = L"We could not detect a valid GTA V Legacy installation. However, we found a valid installation for GTA V Enhanced.\n\n"
 						L"Please ensure you have GTA V Legacy installed and select its installation folder in the file dialog after closing this message.";
