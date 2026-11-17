@@ -195,6 +195,15 @@ void MumbleAudioOutput::Initialize()
 	g_useNativeAudio = std::make_shared<ConVar<bool>>("voice_useNativeAudio", ConVar_None, false);
 	g_useAudioContext = std::make_shared<ConVar<bool>>("voice_useAudioContext", ConVar_None, false);
 
+	// rebuild existing clients on a runtime voice_useNativeAudio change like a device change does (convars are set on the game thread too)
+	console::GetDefaultContext()->GetVariableManager()->OnConvarModified.Connect([this](const std::string& name)
+	{
+		if (name == "voice_useNativeAudio" && m_client->GetConnectionInfo()->isConnected)
+		{
+			SetAudioDevice(m_deviceGuid, true);
+		}
+	});
+
 	m_initialized = false;
 	m_distance = FLT_MAX;
 	m_channelCount = 0;
@@ -1479,9 +1488,9 @@ void MumbleAudioOutput::ThreadFunc()
 	InitializeAudioDevice();
 }
 
-void MumbleAudioOutput::SetAudioDevice(const std::string& deviceId)
+void MumbleAudioOutput::SetAudioDevice(const std::string& deviceId, bool force)
 {
-	if (m_deviceGuid == deviceId)
+	if (m_deviceGuid == deviceId && !force)
 	{
 		return;
 	}
