@@ -429,9 +429,36 @@ static InitFunction initFunction([]()
 
 			ImGui::Text("Physical memory: %.2f MiB", usedPhys / 1024.0 / 1024.0);
 
-			ImGui::Text("grcore/ResourceCache usage: %.2f / %.2f MiB",
-				rage::grcResourceCache::GetInstance()->GetUsedPhysicalMemory() / 1024.0 / 1024.0,
-				rage::grcResourceCache::GetInstance()->GetTotalPhysicalMemory() / 1024.0 / 1024.0);
+			{
+				auto* rc = rage::grcResourceCache::GetInstance();
+				size_t rcUsed = rc->GetUsedPhysicalMemory();
+				size_t rcTotal = rc->GetTotalPhysicalMemory();
+				int rcPct = rcTotal > 0 ? (int)(rcUsed * 100 / rcTotal) : 0;
+
+				ImGui::Text("grcore/ResourceCache usage: %.2f / %.2f MiB (%d%%)",
+					rcUsed / 1024.0 / 1024.0,
+					rcTotal / 1024.0 / 1024.0,
+					rcPct);
+
+				// Look up the pressure threshold ConVar by name (lives in gta-streaming-five.dll)
+				int threshold = 0;
+				auto entry = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("str_resourceCachePressureThreshold");
+				if (entry)
+				{
+					threshold = atoi(entry->GetValue().c_str());
+				}
+				if (threshold > 0)
+				{
+					if (rcPct >= threshold)
+						ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Pressure throttle: ACTIVE (threshold %d%%)", threshold);
+					else
+						ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Pressure throttle: idle (threshold %d%%)", threshold);
+				}
+				else
+				{
+					ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Pressure throttle: disabled");
+				}
+			}
 
 			if (ImGui::BeginTable("##strmem", 4, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
 			{
