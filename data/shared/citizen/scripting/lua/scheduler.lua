@@ -493,6 +493,13 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 		elseif err then
 			Citizen.Trace(err)
 		end
+
+		-- callers that ignore the async return value (e.g. C++ state bag or command handlers) never release its reference
+		local retvalRef = funcRefs[cb.retvalIdx]
+
+		if retvalRef and retvalRef.func == cb.retval and retvalRef.refs <= 0 then
+			funcRefs[cb.retvalIdx] = nil
+		end
 	end, ('ref call [%s[%d..%d]]'):format(di.short_src, di.linedefined, di.lastlinedefined))
 
 	if not waited then
@@ -502,10 +509,15 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 
 		return msgpack_pack(retvals)
 	else
+		cb.retval = function(rvcb)
+			cb.cb = rvcb
+		end
+
+		-- packing cb.retval below makes its function reference at this index
+		cb.retvalIdx = funcRefIdx
+
 		return msgpack_pack({{
-			__cfx_async_retval = function(rvcb)
-				cb.cb = rvcb
-			end
+			__cfx_async_retval = cb.retval
 		}})
 	end
 end)
