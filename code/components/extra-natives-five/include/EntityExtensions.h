@@ -118,6 +118,7 @@ enum class EntityExtensionClassId : int
 	InstantiatedObjectRef,
 	DummyObjectRef,
 	OutlineSentinel,
+	PedCapsuleHeightOverride,
 };
 
 class InstantiatedObjectRefExtension : public rage::fwExtension

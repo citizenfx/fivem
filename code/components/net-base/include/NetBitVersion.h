@@ -53,6 +53,11 @@ namespace net
 		/// <summary>
 		/// Added new msgReassembledEventV2.
 		/// </summary>
-		netVersion5 = BuildNetVersion(2025, 01, 01, 00, 00)
+		netVersion5 = BuildNetVersion(2025, 01, 01, 00, 00),
+
+		/// <summary>
+		/// Added the mover capsule height override to CPedGameStateDataNode.
+		/// </summary>
+		netVersion6 = BuildNetVersion(2026, 10, 29, 00, 00)
 	};
 }
