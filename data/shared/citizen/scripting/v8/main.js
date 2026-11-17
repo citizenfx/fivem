@@ -92,26 +92,32 @@ const EXT_LOCALFUNCREF = 11;
 
 		return function (...args) {
 			return runWithBoundaryEnd(() => {
+				let success = false;
 				let retvals = null;
 				try {
-					retvals = unpack(fnRef(pack(args)));
+					[success, retvals] = unpack(fnRef(pack(args)));
 				} catch (e) {
 				}
 
-				if (retvals === null) {
-					let errorMessage = `Error in nested ref call for ${currentResourceName}. `
-					// invoker can be null, we don't want to give an even worse
+				if (!success) {
+					const err = new Error();
+					err.stack = '';
+					err.name = `Error in nested ref call for ${currentResourceName}`;
+
+					// invoker and retvals can be null, we don't want to give an even worse
 					// error by erroring here :P
-					if (invoker) {
-						errorMessage += `${currentResourceName} tried to call a function reference in ${invoker} but the reference wasn't valid. `
+					if (retvals !== null) {
+						err.message = retvals;
+					} else if (invoker) {
+						err.message = `${currentResourceName} tried to call a function reference in ${invoker} but the reference wasn't valid. `
 						if (GetResourceState(invoker) !== "started") {
-							errorMessage += `And ${invoker} isn't started, was the resource restarted mid call?`
+							err.message += `And ${invoker} isn't started, was the resource restarted mid call?`
 						} else {
-							errorMessage += `(did ${invoker} restart recently?)`
+							err.message += `(did ${invoker} restart recently?)`
 						}
 					}
 
-					throw new Error(errorMessage);
+					throw err;
 				}
 
 				switch (retvals.length) {
@@ -174,40 +180,38 @@ const EXT_LOCALFUNCREF = 11;
 	 */
 	Citizen.setCallRefFunction(function (ref, argsSerialized) {
 		if (!refFunctionsMap.has(ref)) {
-			console.error('Invalid ref call attempt:', ref);
-
-			return pack([]);
+			return pack([false, `Invalid ref call attempt: ${ref}`]);
 		}
 
 		try {
 			return runWithBoundaryStart(() => {
 				const rv = refFunctionsMap.get(ref).callback(...unpack(argsSerialized));
 				if (rv instanceof Promise) {
-					return pack([{'__cfx_async_retval': (cb) => {
-						rv.then(v => {
-							if (cb != null)
-								cb([v], null);
-						}).catch(err => {
-							if (cb != null) {
-								let msg = '';
-								if (err) {
-									if (err.message) {
-										msg = err.message.toString();
-									} else {
-										msg = err.toString();
+					return pack([true, [{
+						'__cfx_async_retval': (cb) => {
+							rv.then(v => {
+								if (cb != null)
+									cb([v], null);
+							}).catch(err => {
+								if (cb != null) {
+									let msg = '';
+									if (err) {
+										if (err.message) {
+											msg = err.message.toString();
+										} else {
+											msg = err.toString();
+										}
 									}
+									cb(null, msg);
 								}
-								cb(null, msg);
-							}
-						});
-					}}]);
+							});
+						}
+					}]]);
 				}
-				return pack([rv]);
+				return pack([true, [rv]]);
 			});
 		} catch (e) {
-			global.printError('call ref', e);
-
-			return pack(null);
+			return pack([false, getError('call ref', e)]);
 		}
 	});
 
@@ -425,7 +429,7 @@ const EXT_LOCALFUNCREF = 11;
 			return '^1SCRIPT ERROR in ' + where + ': ' + e.toString() + "^7\n" + fst;
 		}
 
-		return '';
+		return `${e}`;
 	}
 
 	global.printError = function (where, e) {
@@ -598,7 +602,7 @@ const EXT_LOCALFUNCREF = 11;
 							try {
 								return exportsCallbackCache[resource][k](...args);
 							} catch (e) {
-								throw new Error(`An error occurred while calling export ${k} of resource ${resource} - see above for details`);
+								throw new Error(`An error occurred while calling export ${k} of resource ${resource}: ${e}`);
 							}
 						};
 					},

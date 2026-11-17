@@ -466,9 +466,7 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 	local refPtr = funcRefs[refId]
 
 	if not refPtr then
-		Citizen.Trace('Invalid ref call attempt: ' .. refId .. "\n")
-
-		return msgpack_pack(nil)
+		return msgpack_pack({ false, 'Invalid ref call attempt: ' .. refId .. '\n' })
 	end
 
 	local ref = refPtr.func
@@ -483,30 +481,28 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 		local status, result = xpcall(function()
 			retvals = { ref(table_unpack(msgpack_unpack(argsSerialized))) }
 		end, doStackFormat)
-
+		
 		if not status then
 			err = result or ''
 		end
 
 		if cb.cb then
 			cb.cb(retvals, err)
-		elseif err then
-			Citizen.Trace(err)
 		end
 	end, ('ref call [%s[%d..%d]]'):format(di.short_src, di.linedefined, di.lastlinedefined))
 
 	if not waited then
 		if err then
-			return msgpack_pack(nil)
+			return msgpack_pack({ false, err })
 		end
 
-		return msgpack_pack(retvals)
+		return msgpack_pack({ true, retvals })
 	else
-		return msgpack_pack({{
+		return msgpack_pack({ true, {{
 			__cfx_async_retval = function(rvcb)
 				cb.cb = rvcb
 			end
-		}})
+		}} })
 	end
 end)
 
@@ -563,10 +559,14 @@ funcref_mt = msgpack.extend({
 		local rv = runWithBoundaryEnd(function()
 			return Citizen_InvokeFunctionReference(ref, args)
 		end)
-		local rvs = msgpack_unpack(rv)
+
+		local success, rvs = table_unpack(msgpack_unpack(rv))
+		if not success then
+			error(rvs, 2)
+		end
 
 		-- handle async retvals from refs
-		if rvs and type(rvs[1]) == 'table' and rawget(rvs[1], '__cfx_async_retval') and coroutine_running() then
+		if type(rvs[1]) == 'table' and rawget(rvs[1], '__cfx_async_retval') and coroutine_running() then
 			local p = promise.new()
 
 			rvs[1].__cfx_async_retval(function(r, e)
@@ -578,10 +578,6 @@ funcref_mt = msgpack.extend({
 			end)
 
 			return table_unpack(Citizen.Await(p))
-		end
-
-		if not rvs then
-			error()
 		end
 
 		return table_unpack(rvs)
