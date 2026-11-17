@@ -243,7 +243,8 @@ end)
 
 -- command suggestions for clients
 local function refreshCommands(player)
-    if GetRegisteredCommands then
+    -- use `set chat_autoRegisterServerCommandSuggestions false` to stop command suggestions from automatically being registered
+    if GetConvar('chat_autoRegisterServerCommandSuggestions', 'true') == 'true' then
         local registeredCommands = GetRegisteredCommands()
 
         local suggestions = {}
