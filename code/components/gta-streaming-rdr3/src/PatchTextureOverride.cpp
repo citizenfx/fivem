@@ -50,7 +50,7 @@ struct textureOverride
 	uintptr_t m_normalUAVOTSize; // 1824
 	uintptr_t m_materialUAVOT[6]; // 1832
 	uintptr_t m_materialUAVOTSize; // 1880
-	uint16_t m_textureOverrideReuseCount; // 1888
+	uint16_t m_generation; // 1888
 	uint16_t unk_143EC3622; // 1890
 	uint8_t m_normalUnkValue; // 1892
 	uint8_t m_materialUnkValue; // 1893
@@ -58,8 +58,8 @@ struct textureOverride
 	uint8_t m_UnkValue2; // 1895
 	uint8_t m_textureOverrideOwnerId; // 1896
 	uint8_t m_flags; // 1897;
-	char pad[5];
-	uint8_t componentId; // we use this as componentIndex
+	char pad[2]; // 1898-1899
+	uint32_t m_categoryHash; // we use this padding as categoryHash
 };
 
 struct PatternPair
@@ -166,7 +166,6 @@ static hook::cdecl_stub<void(textureOverride*, bool)> clearPedTexture([]()
 	return hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 8B A9 ? ? ? ? 33 F6 40 8A FA");
 });
 
-
 static hook::cdecl_stub<uint32_t(uint32_t, uint32_t*, uint32_t*, uint32_t*)> createPedTextureOverrideOverlay([]()
 {
 	return hook::get_pattern("4C 8B DC 53 55 56 57 41 54 41 56 41 57 48 83 EC ? 4C 8D 25");
@@ -183,19 +182,7 @@ static hook::cdecl_stub<uint32_t(fwEntity*)> getScriptGuidForEntity([]()
 	return hook::get_pattern("32 DB E8 ? ? ? ? 48 85 C0 75 ? 8A 05", -35);
 });
 
-static std::unordered_map<uint32_t, uint8_t> categoryHashMap = {
-	{ HashString("HEADS"), 1 },
-	{ HashString("BODIES_UPPER"), 2 },
-	{ HashString("BODIES_LOWER"), 3 },
-};
-
-static uint8_t getComponentId(uint32_t hash)
-{
-	auto it = categoryHashMap.find(hash);
-	return it != categoryHashMap.end() ? it->second : 0;
-}
-
-static uint8_t getCategoryIdFromComponent(CPed* ped, uint32_t targetHash)
+static uint32_t getCategoryHashFromComponent(CPed* ped, uint32_t targetHash)
 {
 	auto pedDrawHandler = getDrawHandler(ped);
 	if (!pedDrawHandler)
@@ -209,47 +196,13 @@ static uint8_t getCategoryIdFromComponent(CPed* ped, uint32_t targetHash)
 		{
 			uint32_t categoryHash;
 			getCategoryHash(&categoryHash, entry, 0);
-			return categoryHash ? getComponentId(categoryHash) : 0;
+			return categoryHash;
 		}
 	}
 	return 0;
 }
 
-static bool isOverlayDataEqual(AppearanceComponentOverlay componentOverlay, textureOverlay texOverlay)
-{
-	if (componentOverlay.m_unkType != (uint32_t)texOverlay.m_unkType)
-		return 0;
-	if (componentOverlay.m_albedoHash != texOverlay.m_albedoHash)
-		return 0;
-	if (componentOverlay.m_normalHash != texOverlay.m_normalHash)
-		return 0;
-	if (componentOverlay.m_materialHash != texOverlay.m_materialHash)
-		return 0;
-	if (componentOverlay.m_modTexture != texOverlay.m_modTexture)
-		return 0;
-	if (componentOverlay.m_colorType != texOverlay.m_colorType)
-		return 0;
-	if (componentOverlay.m_hasModLayers != texOverlay.m_hasModLayers)
-		return 0;
-	if (componentOverlay.m_tint1 != texOverlay.m_tint1)
-		return 0;
-	if (componentOverlay.m_tint2 != texOverlay.m_tint2)
-		return 0;
-	if (componentOverlay.m_tint3 != texOverlay.m_tint3)
-		return 0;
-	if (componentOverlay.m_albedoTextureIndex != texOverlay.m_albedoTextureIndex)
-		return 0;
-	if (fabsf(componentOverlay.m_roughness - texOverlay.m_roughness) > 0.01f)
-		return 0;
-	if (fabsf(componentOverlay.m_alpha - texOverlay.m_alpha) > 0.01f)
-		return 0;
-	if (fabsf(componentOverlay.m_modAlpha - texOverlay.m_modAlpha) > 0.01f)
-		return 0;
-
-	return 1;
-}
-
-static bool searchForTexture(uint8_t textureOwnerId, uint8_t componentId, AppearanceComponent* appearance, uint32_t* textureId)
+static bool searchForTexture(uint8_t textureOwnerId, uint32_t categoryHash, AppearanceComponent* appearance, uint32_t* textureId)
 {
 
 	int g_pedTextureOverridesCount = *(intptr_t*)textureCountLocation;
@@ -264,36 +217,14 @@ static bool searchForTexture(uint8_t textureOwnerId, uint8_t componentId, Appear
 	{
 		auto& entry = textureOverrideArray[i];
 
-		if (entry.m_textureOverrideOwnerId == textureOwnerId && entry.componentId == componentId)
+		if (entry.m_textureOverrideOwnerId == textureOwnerId && entry.m_categoryHash == categoryHash)
 		{
-#ifdef DEBUG
-			trace("Found texture | Index: %d | Component ID: %d | Owner: %d\n", i, componentId, textureOwnerId);
-#endif
 
-			// If the overlays count matches, here should be a check for an identical copy.
-			// If one is found, set textureId accordingly and return 0 (no clear).
-			if (entry.m_overlaysCount == appearance->overlaysCount)
-			{
-
-				for (int i = 0; i < entry.m_overlaysCount; i++)
-				{
-					if (!isOverlayDataEqual(appearance->overlays[i], entry.m_textureOverlays[i]))
-					{
-						// return texture id and clear
-						*textureId = i | (entry.m_textureOverrideReuseCount << 16);
-						return 1;
-					}
-				}
-#ifdef DEBUG
-				trace("Found identical copy | Index: %d | Component ID: %d | Owner: %d\n", i, componentId, textureOwnerId);
-#endif
-				// found identical copy, then set textureId and return 0.
-				*textureId = i | (entry.m_textureOverrideReuseCount << 16);
-				return 0;
-			}
+			// There should be check for identical copy but will be never used because WE alway clear all components textures before applying new ones.
+			//
 
 			// return texture id and clear
-			*textureId = i | (entry.m_textureOverrideReuseCount << 16);
+			*textureId = i | (entry.m_generation << 16);
 			return 1;
 		}
 	}
@@ -320,13 +251,10 @@ static void clearAllPedTextures(CPed* ped)
 
 		if (entry.m_textureOverrideOwnerId == textureOwnerId)
 		{
-			auto textureId = i | (entry.m_textureOverrideReuseCount << 16);
+			auto textureId = i | (entry.m_generation << 16);
 			if (doesTextureOverrideExists(textureId))
 			{
 				clearPedTexture(&entry, 0);
-#ifdef DEBUG
-				trace("Clearing texture before update | Index: %d | Owner: %d\n", i, textureOwnerId);
-#endif
 				
 			}
 		}
@@ -338,11 +266,8 @@ static uint32_t acquireTexture(uint32_t* albedoHash, uint32_t* normalHash, uint3
 
 	if (!ped)
 		return -1;
-#ifdef DEBUG
-	trace("-----------------------------------------------------\n");
-	trace("Albedo Hash: %d | Overlays Count: %d\n", *albedoHash, appearance->overlaysCount);
-#endif
-	uint8_t componentId = getCategoryIdFromComponent(ped, appearance->componentHash);
+
+	uint32_t categoryHash = getCategoryHashFromComponent(ped, appearance->componentHash);
 	*outFlag = 0;
 
 	int64_t unk_1 = 0; 
@@ -355,27 +280,21 @@ static uint32_t acquireTexture(uint32_t* albedoHash, uint32_t* normalHash, uint3
 
 
 	uint32_t textureId = -1;
-	if (searchForTexture(textureOwnerId, componentId, appearance, &textureId))
+	if (searchForTexture(textureOwnerId, categoryHash, appearance, &textureId))
 	{
 		uint16_t textureIndex = textureId & 0xFFFF;
 		auto& entry = textureOverrideArray[textureIndex];	
 
 		clearPedTexture(&entry, 0);
-		++entry.m_textureOverrideReuseCount;
+		++entry.m_generation;
 
 		auto newTextureId = createPedTextureOverrideOverlay(textureIndex, albedoHash, normalHash, materialHash);
-		entry.componentId = componentId;
+		entry.m_categoryHash = categoryHash;
 		*outFlag = 1;
-#ifdef DEBUG
-		trace("Reusing texture | Texture ID: %d | Index: %d\n", newTextureId, textureIndex);
-#endif
 		return newTextureId;
 	}
 	else if (doesTextureOverrideExists(textureId))
 	{
-#ifdef DEBUG
-		trace("Existing texture found, using the same one.\n");
-#endif
 		*outFlag = 0;
 		return textureId;
 	}
@@ -384,11 +303,8 @@ static uint32_t acquireTexture(uint32_t* albedoHash, uint32_t* normalHash, uint3
 		auto newTextureId = initPedTextureOverride(albedoHash, normalHash, materialHash);
 		uint16_t textureIndex = newTextureId & 0xFFFF;
 		if (textureIndex >= 0 && textureIndex < textureOverrideArraySize)
-			textureOverrideArray[textureIndex].componentId = componentId;
+			textureOverrideArray[textureIndex].m_categoryHash = categoryHash;
 		*outFlag = 1;
-#ifdef DEBUG
-		trace("Creating new texture | Texture ID: %d | Index: %d\n", newTextureId, newTextureId & 0xFFFF);
-#endif
 		return newTextureId;
 	}
 
@@ -510,7 +426,7 @@ static HookFunction hookFunction([]()
 	  
 	fx::ScriptEngine::RegisterNativeHandler("REMOVE_TEXTURE", [](fx::ScriptContext& context)
 	{
-		uint32_t fullTextureId = context.GetArgument<int>(0);
+		uint32_t fullTextureId = context.GetArgument<uint32_t>(0);
 		uint16_t textureIndex = fullTextureId & 0xFFFF;
 
 		if (textureIndex >= 0 && textureIndex < textureOverrideArraySize)
@@ -526,7 +442,7 @@ static HookFunction hookFunction([]()
 
     fx::ScriptEngine::RegisterNativeHandler("DOES_TEXTURE_EXIST", [](fx::ScriptContext& context)
 	{
-		uint32_t fullTextureId = context.GetArgument<int>(0);
+		uint32_t fullTextureId = context.GetArgument<uint32_t>(0);
 		uint16_t textureIndex = fullTextureId & 0xFFFF;
 
 		if (textureIndex >= 0 && textureIndex < textureOverrideArraySize)
@@ -538,6 +454,117 @@ static HookFunction hookFunction([]()
 		{
 			context.SetResult<bool>(false);
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_TEXTURE", [](fx::ScriptContext& context)
+	{
+		uint32_t playerId = context.GetArgument<uint32_t>(0);
+		uint32_t categoryHash = context.GetArgument<uint32_t>(1);
+
+		uint32_t textureId = -1;
+
+		for (int i = 0; i < textureOverrideArraySize; i++)
+		{
+			auto& entry = textureOverrideArray[i];
+
+			bool exists = (entry.m_flags & 4) != 0 || (entry.m_flags & 16) != 0;
+
+			if (!exists)
+				continue;
+
+			if (entry.m_textureOverrideOwnerId == (uint8_t)playerId && entry.m_categoryHash == categoryHash)
+			{
+				uint32_t fullTextureId = i | (entry.m_generation << 16);
+				textureId = fullTextureId;
+				break;
+			}
+		}
+
+		context.SetResult<uint32_t>(textureId);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TEXTURE_OVERLAYS", [](fx::ScriptContext& context)
+	{
+		uint32_t fullTextureId = context.GetArgument<uint32_t>(0);
+		uint16_t textureIndex = fullTextureId & 0xFFFF;
+
+		int count = 0;
+		if (textureIndex < textureOverrideArraySize && doesTextureOverrideExists(fullTextureId))
+			count = textureOverrideArray[textureIndex].m_overlaysCount;
+
+		context.SetResult<int>(count);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_FREE_TEXTURES", [](fx::ScriptContext& context)
+	{
+
+		// the count at textureCountLocation is how many entries the game initialised, not how many
+		// are taken, so count the free ones the way the allocator does
+		int free = 0;
+
+		for (uint32_t i = 0; i < textureOverrideArraySize; i++)
+		{
+			bool exists = (textureOverrideArray[i].m_flags & 4) != 0 || (textureOverrideArray[i].m_flags & 16) != 0;
+			if (!exists)
+			{
+				free++;
+			}
+		}
+
+		context.SetResult<int>(free);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TEXTURE_OWNER", [](fx::ScriptContext& context)
+	{
+		uint32_t fullTextureId = context.GetArgument<uint32_t>(0);
+		uint16_t textureIndex = fullTextureId & 0xFFFF;
+
+		int textureOwner = -1;
+		if (textureIndex < textureOverrideArraySize && doesTextureOverrideExists(fullTextureId))
+			textureOwner = textureOverrideArray[textureIndex].m_textureOverrideOwnerId;
+
+		context.SetResult<int>(textureOwner);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TEXTURE_COMPONENT_CATEGORY", [](fx::ScriptContext& context)
+	{
+		uint32_t fullTextureId = context.GetArgument<uint32_t>(0);
+		uint16_t textureIndex = fullTextureId & 0xFFFF;
+
+		uint32_t categoryHash = 0;
+		if (textureIndex < textureOverrideArraySize && doesTextureOverrideExists(fullTextureId))
+		{
+			categoryHash = textureOverrideArray[textureIndex].m_categoryHash;
+		}
+
+		context.SetResult<uint32_t>(categoryHash);
+	});
+
+	// textures built by a local client never reach acquireTexture, so record the component here as well
+	rage::scrEngine::OnScriptInit.Connect([]()
+	{
+		constexpr uint64_t applyTextureToPed = 0x0B46E25761519058;
+
+		auto handler = fx::ScriptEngine::GetNativeHandler(applyTextureToPed);
+
+		if (!handler)
+		{
+			return;
+		}
+
+		fx::ScriptEngine::RegisterNativeHandler(applyTextureToPed, [handler](fx::ScriptContext& context)
+		{
+			handler(context);
+
+			uint32_t categoryHash = context.GetArgument<uint32_t>(1);
+			uint32_t fullTextureId = context.GetArgument<uint32_t>(2);
+			uint16_t textureIndex = fullTextureId & 0xFFFF;
+
+			if (textureIndex < textureOverrideArraySize)
+			{
+				textureOverrideArray[textureIndex].m_categoryHash = categoryHash;
+			}
+		});
 	});
 
 
@@ -619,7 +646,7 @@ static HookFunction hookFunction([]()
 	patchPointer("48 8D 0D ? ? ? ? 48 69 C0 ? ? ? ? 48 8B 04 08 48 83 C4 ? 5B C3 48 63 15", 3, &textureOverrideArray->m_normalTexBlendTexturePtr);
 	patchPointer("48 8D 0D ? ? ? ? 48 69 C0 ? ? ? ? 48 8B 04 08 48 83 C4 ? 5B C3 F3 0F 10 05", 3, &textureOverrideArray->m_materialTexBlendTexturePtr);
 	patchPointer("48 8D 1D ? ? ? ? 45 33 FF 44 8D 71", 3, &textureOverrideArray->m_normalUAVOTSize);
-	patchPointer("48 8D 05 ? ? ? ? 41 8B C8 48 69 D1", 3, &textureOverrideArray->m_textureOverrideReuseCount);
+	patchPointer("48 8D 05 ? ? ? ? 41 8B C8 48 69 D1", 3, &textureOverrideArray->m_generation);
 	patchPointer("48 8D 05 ? ? ? ? 66 FF 04 01", 3, &textureOverrideArray->unk_143EC3622);
 	patchPointer("48 8D 05 ? ? ? ? 66 FF 0C 01", 3, &textureOverrideArray->unk_143EC3622);
 	patchPointer("48 8D 05 ? ? ? ? 88 1C 01", 3, &textureOverrideArray->m_textureOverrideOwnerId);
@@ -651,8 +678,8 @@ static HookFunction hookFunction([]()
 			jge("fail");
 
 			add(eax, r10d);
-			mov(rax, textureCount);
-			mov(dword_ptr[rax], eax);
+			mov(r11, textureCount);
+			mov(dword_ptr[r11], eax);
 			dec(eax);
 			ret();
 
