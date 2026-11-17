@@ -114,10 +114,42 @@ struct UdpSocket
 {
 	UvHandleContainer<uv_udp_t> udp;
 	std::deque<Datagram> recvQueue;
+	bool ipv4 = false;
 };
 
 static std::unordered_map<ENetSocket, std::shared_ptr<UdpSocket>>* g_sockets = new std::unordered_map<ENetSocket, std::shared_ptr<UdpSocket>>();
 static int g_curFd;
+
+static bool ipv4_from_mapped(const sockaddr_in6* in6, sockaddr_in* in4)
+{
+	if (!IN6_IS_ADDR_V4MAPPED(&in6->sin6_addr))
+	{
+		return false;
+	}
+
+	memset(in4, 0, sizeof(struct sockaddr_in));
+
+	in4->sin_family = AF_INET;
+	in4->sin_port = in6->sin6_port;
+	memcpy(&in4->sin_addr, &in6->sin6_addr.s6_addr[12], 4);
+
+	return true;
+}
+
+static sockaddr_in6 ipv4_to_mapped(const sockaddr_in* in4)
+{
+	struct sockaddr_in6 in6;
+
+	memset(&in6, 0, sizeof(struct sockaddr_in6));
+
+	in6.sin6_family = AF_INET6;
+	in6.sin6_port = in4->sin_port;
+	in6.sin6_addr.s6_addr[10] = 0xFF;
+	in6.sin6_addr.s6_addr[11] = 0xFF;
+	memcpy(&in6.sin6_addr.s6_addr[12], &in4->sin_addr, 4);
+
+	return in6;
+}
 
 extern "C" ENetSocket
 enet_socket_create(ENetSocketType type)
@@ -198,6 +230,16 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 
 	int rv = uv_udp_bind(&sd->udp, (sockaddr*)&sin, 0);
 
+	// IPv6 sockets can't be created if IPv6 is disabled in the kernel (ipv6.disable=1), so use IPv4
+	// for IPv4-mapped addresses - ENet keeps seeing IPv4-mapped addresses either way
+	struct sockaddr_in sin4;
+
+	if (rv == UV_EAFNOSUPPORT && ipv4_from_mapped(&sin, &sin4))
+	{
+		sd->ipv4 = true;
+		rv = uv_udp_bind(&sd->udp, (sockaddr*)&sin4, 0);
+	}
+
 	if (rv >= 0)
 	{
 		sd->udp.get()->data = sd.get();
@@ -215,6 +257,14 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 			}
 
 			auto udpSocket = (UdpSocket*)handle->data;
+
+			struct sockaddr_in6 mapped;
+
+			if (addr && addr->sa_family == AF_INET)
+			{
+				mapped = ipv4_to_mapped((const sockaddr_in*)addr);
+				addr = (const sockaddr*)&mapped;
+			}
 
 			if (addr && addr->sa_family == AF_INET6)
 			{
@@ -273,6 +323,9 @@ enet_socket_get_address(ENetSocket socket, ENetAddress* address)
 
 	if (uv_udp_getsockname(&sd->udp, (struct sockaddr*)&sin, &sinLength) < 0)
 		return -1;
+
+	if (sin.sin6_family == AF_INET)
+		sin = ipv4_to_mapped((struct sockaddr_in*)&sin);
 
 	address->host = sin.sin6_addr;
 	address->port = ENET_NET_TO_HOST_16(sin.sin6_port);
@@ -337,12 +390,15 @@ enet_socket_send(ENetSocket socket,
 	// start sending the buffer
 	auto sd = socketIt->second;
 
+	struct sockaddr_in sin4;
+	auto to = (address != NULL && sd->ipv4 && ipv4_from_mapped(&sin, &sin4)) ? (sockaddr*)&sin4 : (sockaddr*)&sin;
+
 	std::unique_lock<std::mutex> lock(sendAllocatorLock);
 	auto sendReq = std::unique_ptr<uv_udp_send_t, send_deleter>(new(sendAllocator->allocate(sizeof(uv_udp_send_t))) uv_udp_send_t());
 
 	auto reqRef = sendReq.get();
 
-	uv_udp_send(reqRef, &sd->udp, &uvBuf, 1, (sockaddr*)&sin, UvCallbackArgsPooled<int>::Get(reqRef, [sendReq = std::move(sendReq), uvBuf](uv_udp_send_t*, int)
+	uv_udp_send(reqRef, &sd->udp, &uvBuf, 1, to, UvCallbackArgsPooled<int>::Get(reqRef, [sendReq = std::move(sendReq), uvBuf](uv_udp_send_t*, int)
 	{
 		// alias sendReq
 		debug::Alias(&sendReq);
