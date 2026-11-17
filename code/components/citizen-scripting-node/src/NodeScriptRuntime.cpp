@@ -555,7 +555,8 @@ void NodeScriptRuntime::TickFast() const
 	SharedPushEnvironmentNoContext _(m_isolate);
 	// SharedPushEnvironment pushed(this);
 	uv_run(m_uvLoop, UV_RUN_NOWAIT);
-	g_nodeEnv.GetPlatform()->DrainTasks(m_isolate);
+	// only run tasks queued for this thread, DrainTasks would also wait for every worker task (e.g. concurrent GC) and stall svMain
+	g_nodeEnv.GetPlatform()->FlushForegroundTasks(m_isolate);
 }
 
 result_t NodeScriptRuntime::Tick()

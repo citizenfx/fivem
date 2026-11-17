@@ -66,7 +66,7 @@ result_t NodeParentEnvironment::Initialize()
 void NodeParentEnvironment::Tick() const
 {
 	SharedPushEnvironmentNoContext pushed(m_isolate);
-	m_platform->DrainTasks(m_isolate);
+	m_platform->FlushForegroundTasks(m_isolate);
 }
 
 bool NodeParentEnvironment::IsStartNode() const
