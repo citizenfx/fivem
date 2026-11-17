@@ -44,6 +44,16 @@ static std::string g_richPresenceOverrideAssetSmallText;
 
 static time_t g_startTime = time(nullptr);
 
+static int64_t g_startTimeOverride;
+
+static int64_t g_endTime;
+
+static std::string g_partyId;
+
+static int g_partySize;
+
+static int g_partyMax;
+
 static std::string g_discordAppId;
 
 static std::string g_lastDiscordAppId = DEFAULT_APP_ID;
@@ -107,7 +117,11 @@ static void UpdatePresence()
 		memset(&discordPresence, 0, sizeof(discordPresence));
 		discordPresence.state = line1.c_str();
 		discordPresence.details = line2.c_str();
-		discordPresence.startTimestamp = g_startTime;
+		discordPresence.startTimestamp = g_startTimeOverride ? g_startTimeOverride : g_startTime;
+		discordPresence.endTimestamp = g_endTime;
+		discordPresence.partyId = g_partyId.c_str();
+		discordPresence.partySize = g_partySize;
+		discordPresence.partyMax = g_partyMax;
 
 		if (!g_richPresenceOverrideAsset.empty())
 		{
@@ -274,6 +288,11 @@ static InitFunction initFunction([]()
 		g_richPresenceOverrideAssetText = DEFAULT_APP_ASSET_TEXT;
 		g_richPresenceOverrideAssetSmallText = DEFAULT_APP_ASSET_SMALL_TEXT;
 		g_buttons = {};
+		g_startTimeOverride = 0;
+		g_endTime = 0;
+		g_partyId = "";
+		g_partySize = 0;
+		g_partyMax = 0;
 		g_richPresenceChanged = true;
 
 		OnRichPresenceSetTemplate("In the menus\n");
@@ -394,6 +413,38 @@ static InitFunction initFunction([]()
 			g_richPresenceOverrideAssetSmallText = DEFAULT_APP_ASSET_SMALL_TEXT;
 		}
 
+		g_richPresenceChanged = true;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_DISCORD_RICH_PRESENCE_PARTY", [](fx::ScriptContext& context)
+	{
+		const char* id = context.GetArgument<const char*>(0);
+		int size = context.GetArgument<int>(1);
+		int max = context.GetArgument<int>(2);
+
+		if (size < 0 || max < 0 || size > max)
+		{
+			return;
+		}
+
+		g_partyId = id ? std::string(id).substr(0, 127) : "";
+		g_partySize = size;
+		g_partyMax = max;
+		g_richPresenceChanged = true;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_DISCORD_RICH_PRESENCE_TIMESTAMPS", [](fx::ScriptContext& context)
+	{
+		int64_t start = context.GetArgument<int64_t>(0);
+		int64_t end = context.GetArgument<int64_t>(1);
+
+		if (start < 0 || end < 0 || (start && end && end < start))
+		{
+			return;
+		}
+
+		g_startTimeOverride = start;
+		g_endTime = end;
 		g_richPresenceChanged = true;
 	});
 
