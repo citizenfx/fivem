@@ -94,6 +94,13 @@ public:
 		m_entries[entry.basename].resourceName = m_parentResource->GetName();
 	}
 
+	inline void AddEntry(Entry&& entry)
+	{
+		auto& target = m_entries[entry.basename];
+		target = std::move(entry);
+		target.resourceName = m_parentResource->GetName();
+	}
+
 	inline const std::string& GetInitUrl()
 	{
 		return m_initUrl;
@@ -154,6 +161,22 @@ public:
 		std::string GetHashString() const;
 	};
 
+	struct VerifiedFileStamp
+	{
+		uint64_t size = 0;
+		uint64_t lastWriteTime = 0;
+		uint64_t volumeSerial = 0;
+		std::string fileId;
+		std::string hash;
+
+		inline bool IsSameFile(const VerifiedFileStamp& other) const
+		{
+			return size == other.size && lastWriteTime == other.lastWriteTime && volumeSerial == other.volumeSerial && fileId == other.fileId;
+		}
+
+		MSGPACK_DEFINE_ARRAY(size, lastWriteTime, volumeSerial, fileId, hash);
+	};
+
 public:
 	ResourceCache(const std::string& cachePath, const std::string& physCachePath);
 
@@ -166,6 +189,12 @@ public:
 	std::optional<Entry> GetEntryFor(const std::string& hashString);
 
 	std::optional<Entry> GetEntryFor(const std::array<uint8_t, 20>& hash);
+
+	std::optional<VerifiedFileStamp> GetVerifiedStamp(const std::array<uint8_t, 20>& hash);
+
+	void SetVerifiedStamp(const std::array<uint8_t, 20>& hash, const VerifiedFileStamp& stamp);
+
+	void RemoveVerifiedStamp(const std::string& hashString);
 
 	inline const std::string& GetCachePath()
 	{
