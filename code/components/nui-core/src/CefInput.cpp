@@ -750,6 +750,7 @@ static HookFunction initFunction([] ()
 			} break;
 
 			case WM_MOUSEWHEEL:
+			case WM_MOUSEHWHEEL:
 			{
 				// Smooth scrolling while using OSR.
 				// See https://magpcss.org/ceforum/viewtopic.php?p=47550#p47550 for original issue and fix.
