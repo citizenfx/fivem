@@ -22,6 +22,6 @@ Don't create volumes when your local ped is swimming (e.g. use IS_PED_SWIMMING i
 * **yMax**: The max Y component for the AABB volume.
 * **zMax**: The max Z component for the AABB volume.
 
-## Returns
+## Return value
 
 The handle of the created volume.
