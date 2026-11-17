@@ -20,6 +20,10 @@
 #include <CoreConsole.h>
 #include <CL2LaunchMode.h>
 
+#ifdef IS_RDR3
+#include <AmvZones.h>
+#endif
+
 #ifdef GTA_FIVE
 #include <atPool.h>
 #include "XBRVirtual.h"
@@ -175,6 +179,11 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 		auto store = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule(*indexRet);
 		auto baseIdx = store->baseIdx;
 		auto baseFn = g_lastStreamingName.substr(0, g_lastStreamingName.find_last_of('.'));
+
+#ifdef IS_RDR3
+		// ambient mask volume zone files a resource streams under an "amv_zone_" name
+		streaming::AddAmvZoneFile(baseFn);
+#endif
 
 		{
 			std::unique_lock _(g_streamingMapMutex);
