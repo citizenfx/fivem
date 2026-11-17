@@ -21,8 +21,8 @@ local success = SetWeatherCycleEntry(0, "XMAS", 3) and
 ```
 
 ## Parameters
-* **numEntries**: The number of cycle entries. Must be between 1 and 256
+* **numEntries**: The number of cycle entries. Must be between 1 and 255
 * **msPerCycle**: The duration in milliseconds of each cycle. Must be between 1000 and 86400000 (24 hours)
 
 ## Return value
-Returns true if all parameters were valid, otherwise false.
+Returns true if all parameters were valid, otherwise false. The total duration of all entries (`msPerCycle` multiplied by each entry's `timeMult`, summed) must fit in an unsigned 32-bit integer (at most 4294967295 milliseconds, about 49.7 days).

@@ -101,7 +101,7 @@ static void RegisterExtraWeatherNatives()
 			return context.SetResult(false);
 		}
 
-		int systemTime = 0;
+		uint64_t systemTime = 0;
 
 		for (int i = 0; i < numCycleEntries; i++)
 		{
@@ -113,12 +113,18 @@ static void RegisterExtraWeatherNatives()
 				return context.SetResult(false);
 			}
 
-			systemTime += msPerCycle * cycleTimeMult;
+			systemTime += (uint64_t)msPerCycle * cycleTimeMult;
+		}
+
+		if (systemTime > UINT32_MAX)
+		{
+			trace("APPLY_WEATHER_CYCLES: total cycle duration of %llu ms does not fit in an unsigned 32-bit integer (max %u ms)\n", systemTime, UINT32_MAX);
+			return context.SetResult(false);
 		}
 
 		weather.numCycleEntries = numCycleEntries;
 		weather.msPerCycle = msPerCycle;
-		weather.systemTime = systemTime;
+		weather.systemTime = (uint32_t)systemTime;
 
 		for (int i = 0; i < numCycleEntries; i++)
 		{
