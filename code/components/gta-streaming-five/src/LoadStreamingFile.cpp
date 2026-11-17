@@ -1264,6 +1264,231 @@ public:
 
 static CfxCacheMounter g_staticCacheMounter;
 
+#ifdef GTA_FIVE
+namespace rage
+{
+struct ptxClipRegionData
+{
+	int numColumns;
+	int numRows;
+	void* data;
+};
+
+struct ptxClipRegionTable
+{
+	uint32_t* hashNames;
+	uint16_t hashNamesCount;
+	uint16_t hashNamesCapacity;
+	ptxClipRegionData* clipRegions;
+	uint16_t clipRegionsCount;
+	uint16_t clipRegionsCapacity;
+	void* clipRegionPool;
+	int numClipRegions;
+};
+}
+
+static rage::ptxClipRegionTable* g_clipRegionTable;
+static bool* g_clipRegionsInitialised;
+static bool (*g_loadClipRegionTable)(rage::ptxClipRegionTable* self, const char* fileName);
+
+class CfxPtxClipRegionsMounter : public CDataFileMountInterface
+{
+public:
+	virtual bool LoadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		CaptureBaseTable();
+
+		LoadedFile file;
+		file.name = entry->name;
+		memset(&file.table, 0, sizeof(file.table));
+
+		if (!g_loadClipRegionTable(&file.table, entry->name))
+		{
+			return false;
+		}
+
+		m_files.push_back(file);
+		Rebuild();
+
+		return true;
+	}
+
+	virtual void UnloadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		for (auto it = m_files.rbegin(); it != m_files.rend(); ++it)
+		{
+			if (it->name == entry->name)
+			{
+				auto table = it->table;
+				m_files.erase(std::next(it).base());
+
+				Rebuild();
+
+				m_retiredFiles.push_back(table);
+				break;
+			}
+		}
+	}
+
+private:
+	struct LoadedFile
+	{
+		std::string name;
+		rage::ptxClipRegionTable table;
+	};
+
+	static void FreeTable(rage::ptxClipRegionTable& table)
+	{
+		auto allocator = rage::GetAllocator();
+
+		if (table.clipRegionsCount > 0)
+		{
+			allocator->Free(table.clipRegions[0].data);
+		}
+
+		if (table.hashNames)
+		{
+			allocator->Free(table.hashNames);
+		}
+
+		if (table.clipRegions)
+		{
+			allocator->Free(table.clipRegions);
+		}
+
+		memset(&table, 0, sizeof(table));
+	}
+
+	void CaptureBaseTable()
+	{
+		if (m_baseCaptured)
+		{
+			return;
+		}
+
+		memcpy(&m_base, g_clipRegionTable, sizeof(m_base));
+		m_baseCaptured = true;
+	}
+
+	void Rebuild()
+	{
+		std::vector<uint32_t> hashes;
+		std::vector<rage::ptxClipRegionData> regions;
+		std::unordered_map<uint32_t, size_t> indices;
+		int numClipRegions = 0;
+
+		auto merge = [&](const rage::ptxClipRegionTable& table)
+		{
+			for (uint16_t i = 0; i < table.hashNamesCount && i < table.clipRegionsCount; i++)
+			{
+				auto hash = table.hashNames[i];
+				auto [it, inserted] = indices.emplace(hash, hashes.size());
+
+				if (inserted)
+				{
+					hashes.push_back(hash);
+					regions.push_back(table.clipRegions[i]);
+				}
+				else
+				{
+					regions[it->second] = table.clipRegions[i];
+				}
+			}
+
+			numClipRegions += table.numClipRegions;
+		};
+
+		merge(m_base);
+
+		for (const auto& file : m_files)
+		{
+			merge(file.table);
+		}
+
+		if (hashes.size() > UINT16_MAX)
+		{
+			trace("PTXCLIPREGIONS_FILE: %d clip region entries exceed the limit of %d, the rest are ignored.\n", static_cast<int>(hashes.size()), UINT16_MAX);
+
+			hashes.resize(UINT16_MAX);
+			regions.resize(UINT16_MAX);
+		}
+
+		auto allocator = rage::GetAllocator();
+		auto count = static_cast<uint16_t>(hashes.size());
+
+		auto newHashes = static_cast<uint32_t*>(allocator->Allocate(std::max<size_t>(hashes.size(), 1) * sizeof(uint32_t), 16, 0));
+		auto newRegions = static_cast<rage::ptxClipRegionData*>(allocator->Allocate(std::max<size_t>(regions.size(), 1) * sizeof(rage::ptxClipRegionData), 16, 0));
+
+		if (count > 0)
+		{
+			memcpy(newHashes, hashes.data(), count * sizeof(uint32_t));
+			memcpy(newRegions, regions.data(), count * sizeof(rage::ptxClipRegionData));
+		}
+
+		FreeRetired();
+
+		m_retiredHashes = m_mergedHashes;
+		m_retiredRegions = m_mergedRegions;
+		m_mergedHashes = newHashes;
+		m_mergedRegions = newRegions;
+
+		auto& live = *g_clipRegionTable;
+		live.hashNamesCount = 0;
+		_ReadWriteBarrier();
+
+		live.hashNames = newHashes;
+		live.hashNamesCapacity = std::max<uint16_t>(count, 1);
+		live.clipRegions = newRegions;
+		live.clipRegionsCapacity = std::max<uint16_t>(count, 1);
+		live.clipRegionsCount = count;
+		live.clipRegionPool = nullptr;
+		live.numClipRegions = numClipRegions;
+		_ReadWriteBarrier();
+
+		live.hashNamesCount = count;
+		*g_clipRegionsInitialised = true;
+	}
+
+	void FreeRetired()
+	{
+		auto allocator = rage::GetAllocator();
+
+		if (m_retiredHashes)
+		{
+			allocator->Free(m_retiredHashes);
+			m_retiredHashes = nullptr;
+		}
+
+		if (m_retiredRegions)
+		{
+			allocator->Free(m_retiredRegions);
+			m_retiredRegions = nullptr;
+		}
+
+		for (auto& table : m_retiredFiles)
+		{
+			FreeTable(table);
+		}
+
+		m_retiredFiles.clear();
+	}
+
+private:
+	bool m_baseCaptured = false;
+	rage::ptxClipRegionTable m_base{};
+
+	std::vector<LoadedFile> m_files;
+	std::vector<rage::ptxClipRegionTable> m_retiredFiles;
+
+	uint32_t* m_mergedHashes = nullptr;
+	rage::ptxClipRegionData* m_mergedRegions = nullptr;
+	uint32_t* m_retiredHashes = nullptr;
+	rage::ptxClipRegionData* m_retiredRegions = nullptr;
+};
+
+static CfxPtxClipRegionsMounter g_ptxClipRegionsMounter;
+#endif
+
 struct IgnoreCaseLess
 {
 	inline bool operator()(const std::string& left, const std::string& right) const
@@ -1497,6 +1722,13 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 	{
 		return &g_staticCacheMounter;
 	}
+
+#ifdef GTA_FIVE
+	if (type == "PTXCLIPREGIONS_FILE")
+	{
+		return &g_ptxClipRegionsMounter;
+	}
+#endif
 
 	int fileType = LookupDataFileType(type);
 
@@ -3532,6 +3764,13 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::pattern("BA A1 85 94 52 41 B8 01").count(1).get(0).get<char>(0x34);
 		g_interiorProxyPool = (decltype(g_interiorProxyPool))(location + *(int32_t*)location + 4);
+	}
+
+	{
+		auto location = hook::get_pattern<char>("48 83 EC 28 48 8B D1 48 8D 0D ? ? ? ? E8 ? ? ? ? 88 05");
+		g_clipRegionTable = hook::get_address<rage::ptxClipRegionTable*>(location + 10);
+		g_loadClipRegionTable = (decltype(g_loadClipRegionTable))hook::get_call(location + 14);
+		g_clipRegionsInitialised = hook::get_address<bool*>(location + 21);
 	}
 
 	g_interiorProxyArray = hook::get_address<decltype(g_interiorProxyArray)>(hook::get_pattern("83 FA FF 75 4D 48 8D 0D ? ? ? ? BA", 8));
