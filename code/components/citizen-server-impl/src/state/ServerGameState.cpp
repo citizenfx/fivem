@@ -3535,6 +3535,19 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		auto syncTree = entity->syncTree;
 		if (syncTree)
 		{
+#ifdef STATE_FIVE
+			// snapshot the vehicle state before parsing so every create/sync packet can be diffed
+			auto pedStateNode = (entity->type == sync::NetObjEntityType::Player && (m_pedEventFlags.load(std::memory_order_relaxed) & (PedEventVehicleEnter | PedEventVehicleExit | PedEventVehicleSeatChange)) != 0)
+				? syncTree->GetPedGameState()
+				: nullptr;
+
+			// the node only holds defaults until it was parsed for the first time, so a new ped has no previous vehicle
+			bool hadVehicleState = pedStateNode && syncTree->GetPedGameStateFrameIndex() != 0;
+
+			int oldVehicle = hadVehicleState ? pedStateNode->curVehicle : -1;
+			int oldVehicleSeat = hadVehicleState ? pedStateNode->curVehicleSeat : -1;
+#endif
+
 			if (parsingType == 2)
 			{
 				auto healthNode = (entity->type == sync::NetObjEntityType::Ped || entity->type == sync::NetObjEntityType::Player)
@@ -3566,6 +3579,14 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 					return true;
 				});
 			}
+
+#ifdef STATE_FIVE
+			// a packet that did not contain the node leaves the defaults in place, which must not be reported
+			if (pedStateNode && syncTree->GetPedGameStateFrameIndex() != 0)
+			{
+				HandlePedVehicleUpdate(entity, oldVehicle, oldVehicleSeat, pedStateNode->curVehicle, pedStateNode->curVehicleSeat);
+			}
+#endif
 		}
 	}
 
@@ -3817,6 +3838,134 @@ void ServerGameState::HandlePedHealthUpdate(const fx::sync::SyncEntityPtr& entit
 		}
 	});
 }
+
+#ifdef STATE_FIVE
+void ServerGameState::HandlePedVehicleUpdate(const fx::sync::SyncEntityPtr& entity, int oldVehicle, int oldSeat, int newVehicle, int newSeat)
+{
+	if (entity->type != sync::NetObjEntityType::Player)
+	{
+		return;
+	}
+
+	uint32_t flags = m_pedEventFlags.load(std::memory_order_relaxed);
+
+	// don't pay for events nobody is listening to
+	if ((flags & (PedEventVehicleEnter | PedEventVehicleExit | PedEventVehicleSeatChange)) == 0)
+	{
+		return;
+	}
+
+	auto client = entity->GetClient();
+
+	if (!client)
+	{
+		return;
+	}
+
+	// seat indices are stored offset by 2, so the driver (stored 1) becomes -1 like the natives
+	static constexpr int seatOffset = 2;
+
+	bool seatChange = false;
+	bool wantsExit = false;
+	bool wantsEnter = false;
+
+	if (oldVehicle != -1 && oldVehicle == newVehicle)
+	{
+		if (oldSeat == newSeat)
+		{
+			return;
+		}
+
+		seatChange = (flags & PedEventVehicleSeatChange) != 0;
+	}
+	else
+	{
+		if (oldVehicle == newVehicle)
+		{
+			// not in a vehicle before or after
+			return;
+		}
+
+		wantsExit = oldVehicle != -1 && (flags & PedEventVehicleExit) != 0;
+		wantsEnter = newVehicle != -1 && (flags & PedEventVehicleEnter) != 0;
+	}
+
+	if (!seatChange && !wantsExit && !wantsEnter)
+	{
+		return;
+	}
+
+	int serverId = client->GetNetId();
+
+	// pass values, not the node, as it may be parsed again before the callback runs
+	gscomms_execute_callback_on_main_thread([this, serverId, seatChange, wantsExit, wantsEnter, oldVehicle, oldSeat, newVehicle, newSeat]()
+	{
+		auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+
+		if (seatChange)
+		{
+			if (auto vehicle = GetEntity(0, newVehicle))
+			{
+				/*NETEV playerChangedVehicleSeat SERVER
+				/#*
+				 * Triggered when a player moves to another seat of the same vehicle.
+				 *
+				 * @param vehicle - The handle of the vehicle.
+				 * @param player - The server ID of the player.
+				 * @param seat - The seat the player moved to (-1 is the driver).
+				 * @param oldSeat - The seat the player moved from (-1 is the driver).
+				 #/
+				declare function playerChangedVehicleSeat(vehicle: number, player: number, seat: number, oldSeat: number): void;
+				*/
+				evComponent->TriggerEvent2("playerChangedVehicleSeat", {}, MakeScriptHandle(vehicle), serverId, newSeat - seatOffset, oldSeat - seatOffset);
+			}
+
+			return;
+		}
+
+		if (wantsExit)
+		{
+			// the vehicle may have been deleted while the player was inside, the event is still raised so scripts can clean up
+			uint32_t vehicleHandle = 0;
+
+			if (auto vehicle = GetEntity(0, oldVehicle))
+			{
+				vehicleHandle = MakeScriptHandle(vehicle);
+			}
+
+			/*NETEV playerLeftVehicle SERVER
+			/#*
+			 * Triggered when a player leaves a vehicle.
+			 *
+			 * @param vehicle - The handle of the vehicle the player left, or 0 if the vehicle no longer exists.
+			 * @param player - The server ID of the player.
+			 * @param seat - The seat the player was in (-1 is the driver).
+			 #/
+			declare function playerLeftVehicle(vehicle: number, player: number, seat: number): void;
+			*/
+			evComponent->TriggerEvent2("playerLeftVehicle", {}, vehicleHandle, serverId, oldSeat - seatOffset);
+		}
+
+		if (wantsEnter)
+		{
+			if (auto vehicle = GetEntity(0, newVehicle))
+			{
+				/*NETEV playerEnteredVehicle SERVER
+				/#*
+				 * Triggered when a player enters a vehicle.
+				 *
+				 * @param vehicle - The handle of the vehicle the player entered.
+				 * @param player - The server ID of the player.
+				 * @param seat - The seat the player took (-1 is the driver).
+				 #/
+				declare function playerEnteredVehicle(vehicle: number, player: number, seat: number): void;
+				*/
+				evComponent->TriggerEvent2("playerEnteredVehicle", {}, MakeScriptHandle(vehicle), serverId, newSeat - seatOffset);
+			}
+		}
+	});
+}
+#endif
 
 bool ServerGameState::ValidateEntity(EntityLockdownMode entityLockdownMode, const fx::sync::SyncEntityPtr& entity)
 {
@@ -4695,9 +4844,21 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 		{
 			flags = PedEventDeath;
 		}
+		else if (eventName == "playerEnteredVehicle")
+		{
+			flags = PedEventVehicleEnter;
+		}
+		else if (eventName == "playerLeftVehicle")
+		{
+			flags = PedEventVehicleExit;
+		}
+		else if (eventName == "playerChangedVehicleSeat")
+		{
+			flags = PedEventVehicleSeatChange;
+		}
 		else if (eventName == "*")
 		{
-			flags = PedEventHealthChanged | PedEventDeath;
+			flags = PedEventHealthChanged | PedEventDeath | PedEventVehicleEnter | PedEventVehicleExit | PedEventVehicleSeatChange;
 		}
 
 		if (flags)

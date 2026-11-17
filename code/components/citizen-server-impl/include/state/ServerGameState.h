@@ -1591,6 +1591,10 @@ private:
 
 	void HandlePedHealthUpdate(const fx::sync::SyncEntityPtr& entity, fx::sync::CPedHealthNodeData* healthNode, int oldHealth, int oldArmour);
 
+#ifdef STATE_FIVE
+	void HandlePedVehicleUpdate(const fx::sync::SyncEntityPtr& entity, int oldVehicle, int oldSeat, int newVehicle, int newSeat);
+#endif
+
 public:
 	std::unordered_set<uint32_t> blockedEvents;
 	std::shared_mutex blockedEventsMutex;
@@ -1614,6 +1618,9 @@ private:
 	{
 		PedEventHealthChanged = 1 << 0,
 		PedEventDeath = 1 << 1,
+		PedEventVehicleEnter = 1 << 2,
+		PedEventVehicleExit = 1 << 3,
+		PedEventVehicleSeatChange = 1 << 4,
 	};
 
 	// updated when a resource registers a handler, so the sync parse path only needs an

@@ -1,5 +1,6 @@
 #include <StdInc.h>
 #include <Hooking.h>
+#include <Hooking.Stubs.h>
 
 #include <EntitySystem.h>
 
@@ -313,6 +314,60 @@ static void EntityLogDamage(rage::fwEntity* victim, rage::fwEntity* culprit, uin
 	OnEntityDamaged(md);
 }
 
+// the ped whose seat change is being processed, a shuffle makes SetPedInVehicle call SetPedOutOfVehicle
+// and only the outermost call should be reported
+static rage::fwEntity* g_pedInVehicleCall;
+
+static int64_t (*origSetPedInVehicle)(rage::fwEntity* ped, rage::fwEntity* vehicle, int seat, uint32_t flags);
+
+static int64_t SetPedInVehicle(rage::fwEntity* ped, rage::fwEntity* vehicle, int seat, uint32_t flags)
+{
+	if (g_pedInVehicleCall == ped)
+	{
+		return origSetPedInVehicle(ped, vehicle, seat, flags);
+	}
+
+	auto previous = g_pedInVehicleCall;
+	g_pedInVehicleCall = ped;
+	int64_t retVal = origSetPedInVehicle(ped, vehicle, seat, flags);
+	g_pedInVehicleCall = previous;
+
+	OnPedVehicleEvent(PedVehicleEventMetaData{ ped, vehicle, PedVehicleEventMetaData::Type::StateChanged });
+
+	return retVal;
+}
+
+static int64_t (*origSetPedOutOfVehicle)(rage::fwEntity* ped, uint32_t flags, int frames);
+
+static int64_t SetPedOutOfVehicle(rage::fwEntity* ped, uint32_t flags, int frames)
+{
+	if (g_pedInVehicleCall == ped)
+	{
+		return origSetPedOutOfVehicle(ped, flags, frames);
+	}
+
+	auto previous = g_pedInVehicleCall;
+	g_pedInVehicleCall = ped;
+	int64_t retVal = origSetPedOutOfVehicle(ped, flags, frames);
+	g_pedInVehicleCall = previous;
+
+	OnPedVehicleEvent(PedVehicleEventMetaData{ ped, nullptr, PedVehicleEventMetaData::Type::StateChanged });
+
+	return retVal;
+}
+
+static int64_t (*origRemovePedFromSeat)(rage::fwEntity* vehicle, rage::fwEntity* ped, bool changeCarStatus, bool destroyWeaponMgr);
+
+static int64_t RemovePedFromSeat(rage::fwEntity* vehicle, rage::fwEntity* ped, bool changeCarStatus, bool destroyWeaponMgr)
+{
+	if (g_pedInVehicleCall != ped)
+	{
+		OnPedVehicleEvent(PedVehicleEventMetaData{ ped, vehicle, PedVehicleEventMetaData::Type::RemovedFromSeat });
+	}
+
+	return origRemovePedFromSeat(vehicle, ped, changeCarStatus, destroyWeaponMgr);
+}
+
 static HookFunction hookFunction([]()
 {
 	MH_Initialize();
@@ -355,6 +410,11 @@ static HookFunction hookFunction([]()
 	}
 	*/
 
+	// CPed::SetPedInVehicle, CPed::SetPedOutOfVehicle and CVehicle::RemovePedFromSeat, resolved through their call sites
+	origSetPedInVehicle = hook::trampoline(hook::get_call(hook::get_pattern("41 B9 20 00 00 00 49 8B D6 41 83 E0 3F 48 8B CF E8 ? ? ? ?", 16)), SetPedInVehicle);
+	origSetPedOutOfVehicle = hook::trampoline(hook::get_call(hook::get_pattern("BA 20 00 10 00 48 8B CF E8 ? ? ? ? 8B 87 ? ? ? ? C1 E8 1E A8 01", 8)), SetPedOutOfVehicle);
+	origRemovePedFromSeat = hook::trampoline(hook::get_call(hook::get_pattern("41 B1 01 48 8B D0 45 8A C1 49 8B CE E8 ? ? ? ?", 12)), RemovePedFromSeat);
+
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	/*
@@ -377,3 +437,4 @@ static HookFunction hookFunction([]()
 fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
 fwEvent<const GameEventData&> OnTriggerGameEventExt;
 fwEvent<const DamageEventMetaData&> OnEntityDamaged;
+fwEvent<const PedVehicleEventMetaData&> OnPedVehicleEvent;
