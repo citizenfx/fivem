@@ -93,6 +93,49 @@ namespace
 	
 	std::shared_ptr<ConVar<std::string>> g_citizenDir;
 
+	// how often each resource is currently on the script runtime stack. stopping a resource while
+	// its own code is still running (e.g. `ExecuteCommand('restart ' .. GetCurrentResourceName())`)
+	// destroys the runtime under that code and crashes the server (#1421)
+	std::mutex g_resourceDepthMutex;
+	std::unordered_map<std::string, std::shared_ptr<std::atomic<int>>> g_resourceDepth;
+
+	bool IsResourceExecuting(const std::string& resourceName)
+	{
+		std::lock_guard _(g_resourceDepthMutex);
+
+		auto it = g_resourceDepth.find(resourceName);
+		return it != g_resourceDepth.end() && it->second->load() > 0;
+	}
+
+	// run the command again on the next server tick, once the resource's code has returned
+	void DeferResourceCommand(fx::ServerInstanceBase* instance, const std::string& command, const std::string& resourceName)
+	{
+		// keep the permissions of whoever ran it, like ExecuteCommand does
+		std::string principal = "system.console";
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			if (auto invoker = reinterpret_cast<fx::Resource*>(runtime->GetParentObject()))
+			{
+				principal = "resource." + invoker->GetName();
+			}
+		}
+
+		gscomms_execute_callback_on_main_thread([instance, command, resourceName, principal]()
+		{
+			// don't queue it again, that would never end
+			if (IsResourceExecuting(resourceName))
+			{
+				trace("^3Couldn't %s resource %s, it's still running.^7\n", command, resourceName);
+				return;
+			}
+
+			se::ScopedPrincipal principalScope(se::Principal{ principal });
+			instance->GetComponent<console::Context>()->ExecuteSingleCommandDirect(ProgramArguments{ command, resourceName });
+		}, true);
+	}
+
 	void TriggerLatentClientEventInternal(fx::ScriptContext& context)
 	{
 		const std::string eventName = context.CheckArgument<const char*>(0);
@@ -479,6 +522,23 @@ static InitFunction initFunction([]()
 		fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
 		{
 			fx::ServerInstanceBase* instance = resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+			auto depth = std::make_shared<std::atomic<int>>(0);
+
+			{
+				std::lock_guard _(g_resourceDepthMutex);
+				g_resourceDepth[resource->GetName()] = depth;
+			}
+
+			resource->OnActivate.Connect([depth]()
+			{
+				++*depth;
+			}, INT32_MIN);
+
+			resource->OnDeactivate.Connect([depth]()
+			{
+				--*depth;
+			}, INT32_MAX);
 			
 			// resource game filtering
 			resource->OnStart.Connect([instance, resource]()
@@ -732,6 +792,12 @@ static InitFunction initFunction([]()
 				return;
 			}
 
+			if (IsResourceExecuting(resourceName))
+			{
+				DeferResourceCommand(instance, "stop", resourceName);
+				return;
+			}
+
 			if (!resource->Stop())
 			{
 				if (resource->GetState() != fx::ResourceState::Stopped)
@@ -755,6 +821,12 @@ static InitFunction initFunction([]()
 			if (resource->GetState() != fx::ResourceState::Started)
 			{
 				trace("Can't restart a stopped resource.\n");
+				return;
+			}
+
+			if (IsResourceExecuting(resourceName))
+			{
+				DeferResourceCommand(instance, "restart", resourceName);
 				return;
 			}
 
@@ -803,6 +875,12 @@ static InitFunction initFunction([]()
 				// #TODO: restarting behavior of stopped dependencies at runtime
 				if (configured && resource->GetState() == fx::ResourceState::Started)
 				{
+					if (IsResourceExecuting(resourceName))
+					{
+						DeferResourceCommand(instance, "ensure", resourceName);
+						return true;
+					}
+
 					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
 				}
 
