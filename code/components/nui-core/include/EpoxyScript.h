@@ -241,7 +241,7 @@ class CfxGameViewRenderer {
         this.#vao = null;
 
         if (this.#canvas && this.#canvas.parentNode) {
-			this.#canvas.parentNode.removeChild(canvas);
+			this.#canvas.parentNode.removeChild(this.#canvas);
         }
         this.#canvas = null;
 
@@ -344,9 +344,39 @@ CreateCanvasRenderer: function(canvas)
 
     resizeObserver.observe(canvas);
     canvas.addEventListener('remove', () => {
+      __cfx_game_view.LiveCanvases.delete(canvas);
+      __cfx_game_view.PendingRelease.delete(canvas);
       renderer.destroy();
       resizeObserver.disconnect();
-    });
+    }, { once: true });
+
+    __cfx_game_view.LiveCanvases.add(canvas);
+},
+
+// Compatibility canvases that still have a live renderer.
+// 'remove' is not a DOM event, so nothing dispatches it when a page removes the canvas;
+// the observer below uses this set to tear down renderers whose canvas left the document.
+LiveCanvases: new Set(),
+PendingRelease: new Set(),
+
+ReleaseDetachedCanvases: function()
+{
+  __cfx_game_view.LiveCanvases.forEach(canvas => {
+    if (canvas.isConnected || __cfx_game_view.PendingRelease.has(canvas))
+    {
+      return;
+    }
+
+    // give the page a moment to re-insert the same canvas (e.g. when moving it between containers)
+    __cfx_game_view.PendingRelease.add(canvas);
+    setTimeout(() => {
+      __cfx_game_view.PendingRelease.delete(canvas);
+      if (!canvas.isConnected)
+      {
+        canvas.dispatchEvent(new Event('remove'));
+      }
+    }, 1000);
+  });
 }
 };
 
@@ -354,6 +384,10 @@ CreateCanvasRenderer: function(canvas)
 // Originally implemented through the now removed PepperPlugins.
 document.addEventListener('DOMContentLoaded', () => {
 	const __cfx_game_view_observer = new MutationObserver(() => {
+		if (__cfx_game_view.LiveCanvases.size > 0) {
+		  __cfx_game_view.ReleaseDetachedCanvases();
+		}
+
 		const node = document.querySelector(
 			'[type="application/x-cfx-game-view"]'
 		);
