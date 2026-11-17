@@ -374,3 +374,63 @@ TEST_CASE("Server command invalid length test")
 
 	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.has_value() == false);
 }
+
+TEST_CASE("Server command script print forwarding test")
+{
+	const bool forwardScriptPrints = GENERATE(true, false);
+
+	fwRefContainer<fx::ServerInstanceBase> serverInstance = ServerInstance::Create();
+	serverInstance->SetComponent(new fx::ClientRegistry());
+	serverInstance->SetComponent<fx::ResourceManager>(fx::ResourceManagerInstance::Create());
+	serverInstance->GetComponent<fx::ResourceManager>()->SetComponent<fx::ResourceEventManagerComponent>(
+		new fx::ResourceEventManagerComponent());
+	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
+	serverInstance->SetComponent(new fx::ServerEventComponent());
+	// create client with privileges
+	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
+
+	seGetCurrentContext()->AddAccessControlEntry(
+		se::Principal{fmt::sprintf("player.%d", client->GetNetId())},
+		se::Object{"command.testCommandScriptPrint"},
+		se::AccessType::Allow
+	);
+
+	auto principalScope = client->EnterPrincipalScope();
+
+	ServerCommandPacketHandler handler(serverInstance.GetRef());
+
+	const auto variable = serverInstance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("sv_forwardScriptPrintsToCommandSource");
+	REQUIRE(variable->SetValue(forwardScriptPrints ? "true" : "false"));
+
+	ConsoleCommand testCommand(serverInstance->GetComponent<console::Context>().GetRef(), "testCommandScriptPrint",
+	                           []()
+	                           {
+		                           console::Printf("script:test", "script\n");
+		                           console::Printf("console", "reply\n");
+	                           });
+
+	net::Buffer buffer;
+	std::string command = "testCommandScriptPrint";
+	buffer.Write<uint16_t>(command.size()); // command length, unused
+	buffer.Write(command.data(), command.size());
+	buffer.Write<uint32_t>(HashString(command.c_str()));
+	buffer.Reset();
+
+	fx::ServerEventComponentInstance::lastClientEvent.reset();
+
+	fx::ENetPacketPtr packetPtr = fx::ENetPacketInstance::Create(buffer.GetBuffer(), buffer.GetLength());
+	net::ByteReader handlerReader(buffer.GetBuffer(), buffer.GetLength());
+	handler.Process(serverInstance.GetRef(), client, handlerReader, packetPtr);
+
+	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.has_value() == true);
+	REQUIRE(fx::ServerEventComponentInstance::lastClientEvent.value().eventName == "__cfx_internal:serverPrint");
+
+	auto msgPackData = msgpack::unpack(
+		reinterpret_cast<const char*>(fx::ServerEventComponentInstance::lastClientEvent.value().data.data()),
+		fx::ServerEventComponentInstance::lastClientEvent.value().data.size());
+	std::stringstream stream;
+	msgpack::object_stringize_visitor vis(stream);
+	msgpack::object_parser(msgPackData.get()).parse(vis);
+
+	REQUIRE(stream.str() == (forwardScriptPrints ? "[\"script\\nreply\\n\"]" : "[\"reply\\n\"]"));
+}

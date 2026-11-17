@@ -17,8 +17,12 @@
 #include <ByteReader.h>
 #include <ServerCommand.h>
 
+static std::shared_ptr<ConVar<bool>> g_forwardScriptPrintsVar;
+
 ServerCommandPacketHandler::ServerCommandPacketHandler(fx::ServerInstanceBase* instance)
 {
+	g_forwardScriptPrintsVar = instance->AddVariable<bool>("sv_forwardScriptPrintsToCommandSource", ConVar_None, true);
+
 	instance->GetComponent<console::Context>()->GetCommandManager()->FallbackEvent.Connect(
 	[this, instance](const std::string& commandName, const ProgramArguments& arguments, const std::string& context)
 	{
@@ -102,15 +106,25 @@ bool ServerCommandPacketHandler::Process(fx::ServerInstanceBase* instance, const
 			rawCommand = clientServerCommand.command;
 
 			std::string printString;
+			bool forwardPrint = true;
 
-			fx::PrintListenerContext context([&printString](std::string_view print)
+			fx::PrintListenerContext context([&printString, &forwardPrint](std::string_view print)
 			{
-				printString += print;
+				if (forwardPrint)
+				{
+					printString += print;
+				}
 			});
 
-			fx::PrintFilterContext filterContext([&client](ConsoleChannel& channel, std::string_view print)
+			fx::PrintFilterContext filterContext([&client, &forwardPrint](ConsoleChannel& channel, std::string_view print)
 			{
-				channel = fmt::sprintf("forward:%d/%s", client->GetNetId(), channel);
+				// the filter runs right before the listener above for each print, so it decides for both
+				forwardPrint = g_forwardScriptPrintsVar->GetValue() || channel.rfind("script:", 0) != 0;
+
+				if (forwardPrint)
+				{
+					channel = fmt::sprintf("forward:%d/%s", client->GetNetId(), channel);
+				}
 			});
 
 			fx::ScopeDestructor destructor([&]()
