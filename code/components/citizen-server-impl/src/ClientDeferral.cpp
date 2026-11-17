@@ -144,6 +144,13 @@ void ClientDeferral::UpdateDeferrals()
 		return;
 	}
 
+	// progress from other resources would replace a card that's still waiting for input,
+	// and nothing shows the card again
+	if (!m_pendingCardResource.empty())
+	{
+		return;
+	}
+
 	if (m_messageCallback)
 	{
 		m_messageCallback(progressMsg.str());
@@ -182,6 +189,14 @@ void ClientDeferral::PresentCard(const std::string& cardJson)
 
 void ClientDeferral::HandleCardResponse(const std::string& dataJson)
 {
+	gscomms_execute_callback_on_main_thread([weakSelf = weak_from_this()]
+	{
+		if (auto self = weakSelf.lock())
+		{
+			self->m_pendingCardResource.clear();
+		}
+	});
+
 	if (m_cardResponseCallback)
 	{
 		m_cardResponseCallback(dataJson);
@@ -249,6 +264,12 @@ TCallbackMap ClientDeferral::GetCallbacks()
 		{
 			deferralState.message = obj[0].as<std::string>();
 
+			// the resource that showed the card replaces it itself
+			if (self->m_pendingCardResource == deferralKey)
+			{
+				self->m_pendingCardResource.clear();
+			}
+
 			self->UpdateDeferrals();
 		}
 	}));
@@ -261,6 +282,10 @@ TCallbackMap ClientDeferral::GetCallbacks()
 
 		if (obj.size() >= 1)
 		{
+			// a new card replaces any earlier one, keep it on screen only if it waits for a response
+			const bool hasCallback = obj.size() >= 2 && obj[1].type == msgpack::type::EXT && (obj[1].via.ext.type() == 10 || obj[1].via.ext.type() == 11);
+			self->m_pendingCardResource = hasCallback ? deferralKey : std::string{};
+
 			if (obj[0].type == msgpack::type::STR || obj[0].type == msgpack::type::BIN)
 			{
 				self->PresentCard(obj[0].as<std::string>());
@@ -321,6 +346,11 @@ TCallbackMap ClientDeferral::GetCallbacks()
 	{
 		auto& deferralState = self->m_deferralStates[deferralKey];
 		deferralState.done = true;
+
+		if (self->m_pendingCardResource == deferralKey)
+		{
+			self->m_pendingCardResource.clear();
+		}
 
 		auto obj = unpacked.get().as<std::vector<msgpack::object>>();
 

@@ -114,6 +114,9 @@ private:
 
 	std::string m_nextCard;
 
+	// resource whose card is waiting for an Action.Submit response, empty if none
+	std::string m_pendingCardResource;
+
 	bool m_completed;
 	bool m_ranEvents = false;
 	bool m_pending = false;
