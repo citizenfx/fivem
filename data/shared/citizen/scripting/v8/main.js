@@ -50,6 +50,9 @@ const EXT_LOCALFUNCREF = 11;
 	const pack = data => msgpack.encode(data, { codec });
 	const unpack = data => msgpack.decode(data, { codec });
 
+	// Expose codec globally to allow adding custom types
+	global.msgpack_codec = codec;
+	
 	// store for use by natives.js
 	global.msgpack_pack = pack;
 	global.msgpack_unpack = unpack;
