@@ -628,6 +628,11 @@ void MumbleAudioOutput::ExternalAudioState::PushPosition(MumbleAudioOutput* base
 	sink->SetPosition(position, distance, client->overrideVolume);
 }
 
+void MumbleAudioOutput::ExternalAudioState::OnPositionOverrideChanged(bool overridden, int sourceServerId)
+{
+	sink->SetPositionOverride(overridden, sourceServerId);
+}
+
 void MumbleAudioOutput::ExternalAudioState::PushSound(int16_t* voiceBuffer, int len)
 {
 	// 48kHz = 48 samples/msec, 30ms to account for ticking anomaly
@@ -1138,7 +1143,7 @@ void MumbleAudioOutput::HandleClientDistance(const MumbleUser& user, float dista
 
 	if (client)
 	{
-		client->distance = distance;
+		client->distance = (client->positionOverridden) ? client->rangeOverride : distance;
 	}
 }
 
@@ -1162,6 +1167,52 @@ void MumbleAudioOutput::HandleClientVolumeOverride(const MumbleUser& user, float
 	}
 }
 
+void MumbleAudioOutput::HandleClientPositionOverride(const MumbleUser& user, const std::optional<MumblePositionOverride>& positionOverride)
+{
+	std::shared_ptr<BaseAudioState> client;
+
+	{
+		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
+		auto it = m_clients.find(user.GetSessionId());
+
+		if (it != m_clients.end())
+		{
+			client = it->second;
+		}
+	}
+
+	if (!client)
+	{
+		return;
+	}
+
+	int sourceServerId = -1;
+
+	if (positionOverride)
+	{
+		if (positionOverride->position)
+		{
+			client->positionOverride[0] = (*positionOverride->position)[0];
+			client->positionOverride[1] = (*positionOverride->position)[1];
+			client->positionOverride[2] = (*positionOverride->position)[2];
+		}
+
+		client->hasFixedPosition = positionOverride->position.has_value();
+		client->rangeOverride = positionOverride->range;
+		client->distance = positionOverride->range;
+		client->positionOverridden = true;
+
+		sourceServerId = positionOverride->sourceServerId;
+	}
+	else
+	{
+		// position and range return to the talker's own on their next voice packet
+		client->positionOverridden = false;
+	}
+
+	client->OnPositionOverrideChanged(client->positionOverridden, sourceServerId);
+}
+
 void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float position[3])
 {
 	std::shared_ptr<BaseAudioState> client;
@@ -1178,6 +1229,14 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 
 	if (client)
 	{
+		// without a fixed position, the position hook already supplies the followed player's position
+		if (client->positionOverridden && client->hasFixedPosition)
+		{
+			float overridePosition[3] = { client->positionOverride[0], client->positionOverride[1], client->positionOverride[2] };
+			client->PushPosition(this, overridePosition);
+			return;
+		}
+
 		client->PushPosition(this, position);
 	}
 }
