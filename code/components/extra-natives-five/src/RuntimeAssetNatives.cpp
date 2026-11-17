@@ -1188,6 +1188,28 @@ static InitFunction initFunction([]()
 		rclEntry.basename = fileName;
 		rclEntry.referenceHash = json.value("hash", "");
 		rclEntry.remoteUrl = fmt::sprintf("https://%s/files/%s/%s", Instance<NetLibrary>::Get()->GetCurrentPeer().ToString(), resourceName, fileName);
+
+		// resolve against a file the resource already downloads, so fileserver_add is honored
+		// entries without a reference hash come from REGISTER_STREAMING_FILE_FROM_URL and can point anywhere
+		auto entryList = resource->GetComponent<ResourceCacheEntryList>();
+
+		for (const auto& [basename, entry] : entryList->GetEntries())
+		{
+			if (basename.find('/') != std::string::npos || entry.referenceHash.empty())
+			{
+				continue;
+			}
+
+			if (auto baseUrl = skyr::make_url(entry.remoteUrl))
+			{
+				if (auto url = skyr::make_url(fileName, *baseUrl))
+				{
+					rclEntry.remoteUrl = url->href();
+				}
+			}
+
+			break;
+		}
 		rclEntry.resourceName = resource->GetName();
 		rclEntry.size = json.value("size", -1);
 		rclEntry.extData = {
