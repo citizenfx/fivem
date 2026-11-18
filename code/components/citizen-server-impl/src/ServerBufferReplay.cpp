@@ -59,7 +59,7 @@ static InitFunction initFunction([]()
 
 			if (resource)
 			{
-				std::string handlerRef = context.GetArgument<const char*>(0);
+				std::string handlerRef = context.CheckArgument<const char*>(0);
 
 				{
 					std::unique_lock<std::shared_mutex> lock(g_printListMutex);
