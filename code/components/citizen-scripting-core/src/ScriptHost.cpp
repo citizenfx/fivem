@@ -427,7 +427,18 @@ result_t TestScriptHost::InvokeFunctionReference(char* refId, char* argsSerializ
 
 	if (refRuntime.GetRef())
 	{
-		return refRuntime->CallRef(refIdx, argsSerialized, argsSize, ret);
+		// same as InvokeNative: a C++ callback throwing here would otherwise unwind through the calling runtime and terminate the process
+		try
+		{
+			return refRuntime->CallRef(refIdx, argsSerialized, argsSize, ret);
+		}
+		catch (std::exception& e)
+		{
+			trace("%s: execution failed: %s\n", __func__, e.what());
+			m_lastError = e.what();
+
+			return FX_E_INVALIDARG;
+		}
 	}
 
 	return FX_E_INVALIDARG;
