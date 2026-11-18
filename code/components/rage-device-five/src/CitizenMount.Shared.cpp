@@ -232,6 +232,93 @@ static HookFunction hookFunction([]()
 	g_origFiDeviceRelativeOpen = hook::trampoline(hook::get_pattern("48 89 5C 24 ? 57 48 81 EC ? ? ? ? 41 8A F8"), FiDeviceRelativeOpen);
 	g_origFiDeviceRelativeGetAttributes = hook::trampoline(hook::get_pattern("E8 31 ? ? ? 48 8B 4B 08 48 8D 54 24 20 48 8B 01 FF 90 58 01 00 00", -26), FiDeviceRelativeGetAttributes);
 });
+
+// The lowest 'Grass Level of Detail' the in-game menu offers is stored as 0.5. Values below that (0, negative)
+// can only be set by hand-editing system.xml, and they stop grass from rendering at all, which gives an unfair
+// advantage in multiplayer. The game never corrects them on its own, so bring them back to the menu minimum
+// before the game loads the file.
+static void ClampGrassLod(const std::wstring& fileName)
+{
+	constexpr float kMinGrassLod = 0.5f;
+	constexpr std::string_view kTag = "<grassLod value=\"";
+
+	std::string data;
+
+	{
+		FILE* f = _wfopen(fileName.c_str(), L"rb");
+
+		if (!f)
+		{
+			return;
+		}
+
+		char buffer[8192];
+		size_t read = 0;
+
+		while ((read = fread(buffer, 1, sizeof(buffer), f)) > 0)
+		{
+			data.append(buffer, read);
+		}
+
+		fclose(f);
+	}
+
+	size_t valueStart = data.find(kTag);
+
+	if (valueStart == std::string::npos)
+	{
+		return;
+	}
+
+	valueStart += kTag.size();
+	size_t valueEnd = data.find('"', valueStart);
+
+	if (valueEnd == std::string::npos)
+	{
+		return;
+	}
+
+	std::string value = data.substr(valueStart, valueEnd - valueStart);
+
+	char* parseEnd = nullptr;
+	float grassLod = strtof(value.c_str(), &parseEnd);
+
+	// NaN fails this comparison as well
+	if (parseEnd != value.c_str() && *parseEnd == '\0' && grassLod >= kMinGrassLod)
+	{
+		return;
+	}
+
+	data.replace(valueStart, valueEnd - valueStart, fmt::sprintf("%f", kMinGrassLod));
+
+	// a read-only flag is what keeps such an edit from being overwritten by the game
+	DWORD attributes = GetFileAttributesW(fileName.c_str());
+
+	if (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_READONLY))
+	{
+		SetFileAttributesW(fileName.c_str(), attributes & ~FILE_ATTRIBUTE_READONLY);
+	}
+
+	std::wstring tempName = fileName + L".tmp";
+	bool written = false;
+
+	if (FILE* f = _wfopen(tempName.c_str(), L"wb"))
+	{
+		written = (fwrite(data.data(), 1, data.size(), f) == data.size());
+		written = (fclose(f) == 0) && written;
+	}
+
+	if (!written || !MoveFileExW(tempName.c_str(), fileName.c_str(), MOVEFILE_REPLACE_EXISTING))
+	{
+		_wunlink(tempName.c_str());
+
+		FatalError("Your RedM graphics settings file contains an invalid grassLod value (%s) and could not be corrected:\n%s\n\n"
+			"Make sure the file is not write-protected, or delete it and restart RedM.",
+			value, ToNarrow(fileName));
+	}
+
+	trace("Corrected grassLod %s -> %f in %s\n", value, kMinGrassLod, ToNarrow(fileName));
+}
 #endif
 
 static InitFunction initFunction([]()
@@ -345,6 +432,8 @@ static InitFunction initFunction([]()
 #if defined(IS_RDR3)
 				CreateDirectoryW((profilePath + ToWide(settingsPath)).c_str(), NULL);
 				relativePaths.emplace_back("settings:/", "fxd:/" + settingsPath, false);
+
+				ClampGrassLod(profilePath + ToWide(settingsPath) + L"system.xml");
 #endif
 
 				CoTaskMemFree(appDataPath);
