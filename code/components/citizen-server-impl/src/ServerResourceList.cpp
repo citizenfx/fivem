@@ -206,21 +206,17 @@ void ServerResourceList::ScanResources(const std::string& resourceRoot, ScanResu
 							auto path = std::filesystem::u8path(resPath);
 
 							// get parent path components
-							std::error_code ec;
 							std::vector<std::string> components;
 
-							auto relPath = std::filesystem::relative(path, resourceRootPath, ec);
+							auto relPath = path.lexically_relative(resourceRootPath);
 
-							if (!ec)
+							for (const auto& component : relPath)
 							{
-								for (const auto& component : relPath)
-								{
-									auto name = component.filename().u8string();
+								auto name = component.filename().u8string();
 
-									if (name[0] == '[' && name[name.size() - 1] == ']')
-									{
-										components.push_back(name);
-									}
+								if (name[0] == '[' && name[name.size() - 1] == ']')
+								{
+									components.push_back(name);
 								}
 							}
 
