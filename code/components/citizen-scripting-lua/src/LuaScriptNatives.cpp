@@ -260,6 +260,13 @@ static int Lua_DoInvokeNative(lua_State* L, int arg_base, const ScriptNativeHand
 		context.PushArgument(arg);
 	}
 
+	fx::lineprof::lua::CallScope lineProfile(L);
+
+	if (lineProfile)
+	{
+		lineProfile.SetNative(handler.hash, arg_base);
+	}
+
 	context.Invoke();
 
 	int nrets = lua_gettop(L);
@@ -754,6 +761,13 @@ struct LuaNativeContext : public fxNativeContext
 	LUA_INLINE void Invoke(lua_State* L, uint64_t hash)
 	{
 		nativeIdentifier = hash;
+
+		fx::lineprof::lua::CallScope lineProfile(L);
+
+		if (lineProfile)
+		{
+			lineProfile.SetNative(hash, 1);
+		}
 
 		IScriptHost* lastScriptHost = fx::LuaScriptRuntime::GetLastHost();
 		if (lastScriptHost == nullptr || FX_FAILED(lastScriptHost->InvokeNative(*this)))
