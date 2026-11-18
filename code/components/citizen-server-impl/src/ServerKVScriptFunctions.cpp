@@ -276,6 +276,11 @@ static void FindKvp(fx::ScriptContext& context)
 	// get handle
 	auto handle = &g_handles[handleIdx];
 
+	if (!handle->dbIter)
+	{
+		return;
+	}
+
 	if (!handle->dbIter->Valid() || !handle->dbIter->key().starts_with(handle->key))
 	{
 		context.SetResult<const char*>(nullptr);
