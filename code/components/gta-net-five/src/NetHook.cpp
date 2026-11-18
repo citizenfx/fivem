@@ -841,8 +841,20 @@ static void RunGameFrame()
 	}
 }
 
+static void OnPeerTimeoutChange(internal::ConsoleVariableEntry<uint32_t>* peerTimeoutVar)
+{
+	const uint32_t timeout = peerTimeoutVar->GetRawValue();
+
+	if (g_netLibrary)
+	{
+		g_netLibrary->SetPeerTimeout(timeout);
+	}
+}
+
 static HookFunction initFunction([]()
 {
+	static ConVar<uint32_t> peerTimeoutVar("sv_peerTimeout", ConVar_Replicated, 30000, OnPeerTimeoutChange);
+
 	g_netLibrary = NetLibrary::Create();
 
 	Instance<NetLibrary>::Set(g_netLibrary);
