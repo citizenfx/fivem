@@ -489,10 +489,15 @@ void ShiftWeaponInfoBlobsDown(CWeaponInfoBlob* pArray[], uint16_t startIndex)
 {
 	uint16_t lastItemIndex = *g_weaponInfoArrayCount - 1;
 
+	uint16_t arraySize = g_weaponInfoArrayCount[1];
+
 	g_origShiftWeaponInfoBlobsDown(pArray, startIndex);
 
-	// Only clear if a shift occured
-	if (startIndex < lastItemIndex)
+	// Only clear if a shift occured, and only while the entry past the last one is still part of the
+	// allocation: a completely full array has no spare constructed blob to copy from, and reading one
+	// would be an out-of-bounds read of sizeof(CWeaponInfoBlob) bytes. This also covers an empty array,
+	// where lastItemIndex underflows to 0xFFFF.
+	if (startIndex < lastItemIndex && (lastItemIndex + 1) < arraySize)
 	{
 		// Copy the next empty weapon info into this unused one to reset it
 		(*pArray)[lastItemIndex] = (*pArray)[lastItemIndex + 1];
