@@ -60,6 +60,11 @@ public:
 	{
 	}
 
+	std::vector<fx::StateEntityDebugInfo> GetEntityDebugInfoList() override
+	{
+		return {};
+	}
+
 	bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<fx::StateBag>()> createStateBag) override
 	{
 		return false;
