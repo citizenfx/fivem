@@ -8,33 +8,31 @@ apiset: shared
 int ADD_STATE_BAG_CHANGE_HANDLER(char* keyFilter, char* bagFilter, func handler);
 ```
 
-Adds a handler for changes to a state bag.
+Registers a `StateBagChangeHandler` for the specified filters that you want to listen to.
 
-The function called expects to match the following signature:
-
+The function will be called with the following signature:
 ```ts
 function StateBagChangeHandler(bagName: string, key: string, value: any, reserved: number, replicated: boolean);
 ```
 
-* **bagName**: The internal bag ID for the state bag which changed. This is usually `player:Source`, `entity:NetID`
+* **bagName**: The string representation bag ID for the state bag which changed. This is usually `global`, `player:Source`, `entity:NetID`
   or `localEntity:Handle`.
-* **key**: The changed key.
-* **value**: The new value stored at key. The old value is still stored in the state bag at the time this callback executes.
+* **key**: The key that was changed
+* **value**: The new value that will be stored on the state bag `key`
 * **reserved**: Currently unused.
-* **replicated**: Whether the set is meant to be replicated.
+* **replicated**: Whether the change is meant to be replicated.
 
-At this time, the change handler can't opt to reject changes.
+You can use either [GET_ENTITY_FROM_STATE_BAG_NAME](#_0x4BDF1867) or [GET_PLAYER_FROM_STATE_BAG_NAME](#_0xA56135E0) to get the entit/playery handle from the state bag.
 
-If bagName refers to an entity, use [GET_ENTITY_FROM_STATE_BAG_NAME](#_0x4BDF1867) to get the entity handle
-If bagName refers to a player, use [GET_PLAYER_FROM_STATE_BAG_NAME](#_0xA56135E0) to get the player handle
+**NOTE**: Whenever using state bag change handlers you should always use the `value` field from the callback, not the `Entity(id).state[key]` or `GlobalState[key]` values.  The values in the state bag will be the old value until the change handler finishes running.
 
 ## Parameters
 * **keyFilter**: The key to check for, or null for no filter.
-* **bagFilter**: The bag ID to check for such as `entity:65535`, or null for no filter.
-* **handler**: The handler function.
+* **bagFilter**: The bag ID to check for such as `entity:65535`, `player:123`, `global`, or null for no filter.
+* **handler**: The function that will be called whenever the state bag gets changed
 
 ## Return value
-A cookie to remove the change handler.
+The cookie that can be used to remove the state bag change handler with [REMOVE_STATE_BAG_CHANGE_HANDLER](#_0xD36BE661)
 
 ## Examples
 ```js
