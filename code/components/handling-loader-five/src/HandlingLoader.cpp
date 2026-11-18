@@ -276,6 +276,13 @@ static void setFloatField(char* handlingChar, uint32_t offset, float value, cons
 }
 
 atArray<CHandlingData*>* g_handlingData;
+static constexpr uint32_t CHandlingDataAccelerationOffset = 0x4C;
+
+static bool IsAccelerationFieldHash(uint32_t fieldHash)
+{
+	return (fieldHash == HashRageString("m_acceleration")
+		|| fieldHash == HashRageString("fAcceleration"));
+}
 
 static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* handlingData, const char* fromFunction)
 {
@@ -321,12 +328,23 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 	if (isCHandling || isSubHandling)
 	{
 		uint32_t fieldHash = HashRageString(handlingField);
-
-		auto& members = parserStructure->m_members;
 		bool found = false;
 
+		if (isCHandling && IsAccelerationFieldHash(fieldHash))
+		{
+			setFloatField(handlingChar, CHandlingDataAccelerationOffset, context.GetArgument<float>(3), handlingField);
+			found = true;
+			context.SetResult(true);
+		}
+
+		auto& members = parserStructure->m_members;
 		for (rage::parMember* member : members)
 		{
+			if (found)
+			{
+				break;
+			}
+
 			if (member->m_definition->hash == fieldHash)
 			{
 				uint32_t offset = member->m_definition->offset;
@@ -449,12 +467,22 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 		if (isCHandling || isSubHandling)
 		{
 			uint32_t fieldHash = HashRageString(handlingField);
-
-			auto& members = parserStructure->m_members;
 			bool found = false;
 
+			if (isCHandling && IsAccelerationFieldHash(fieldHash))
+			{
+				context.SetResult<T>((T)(getFloatField(handlingChar, CHandlingDataAccelerationOffset, handlingField)));
+				found = true;
+			}
+
+			auto& members = parserStructure->m_members;
 			for (rage::parMember* member : members)
 			{
+				if (found)
+				{
+					break;
+				}
+
 				if (member->m_definition->hash == fieldHash)
 				{
 					uint32_t offset = member->m_definition->offset;
