@@ -1147,17 +1147,58 @@ namespace game
 	}
 }
 
-static uint32_t HashBinding(const std::string& key)
+static uint32_t HashBinding(std::string_view key)
 {
-	return HashString(key.c_str()) | 0x80000000;
+	return HashString(key) | 0x80000000;
 }
 
-static auto GetRegisteredBindingByHash(uint32_t hash)
+static uint32_t HashSecondaryBinding(std::string_view key)
 {
+	uint32_t hash = 0;
+
+	auto addChar = [&hash](char ch)
+	{
+		hash += ToLower(ch);
+		hash += (hash << 10);
+		hash ^= (hash >> 6);
+	};
+
+	addChar('~');
+	addChar('!');
+
+	for (char ch : key)
+	{
+		addChar(ch);
+	}
+
+	hash += (hash << 3);
+	hash ^= (hash >> 11);
+	hash += (hash << 15);
+
+	return hash | 0x80000000;
+}
+
+static auto GetRegisteredBindingByHash(uint32_t hash, bool* isSecondary = nullptr)
+{
+	if (isSecondary)
+	{
+		*isSecondary = false;
+	}
+
 	for (auto& b : g_registeredBindings)
 	{
 		if (HashBinding(b.first) == hash)
 		{
+			return b;
+		}
+
+		if (HashSecondaryBinding(b.first) == hash)
+		{
+			if (isSecondary)
+			{
+				*isSecondary = true;
+			}
+
 			return b;
 		}
 	}
@@ -1229,8 +1270,9 @@ static void* GetBindingForControl(void* control, rage::ioInputSource* outBinding
 		outBinding->source = rage::IOMS_UNDEFINED;
 		outBinding->unk = -1;
 
-		auto controlRef = GetRegisteredBindingByHash(controlId);
-		auto commandMatch = fmt::sprintf("%s%s", (subIdx == 0) ? "" : "~!", controlRef.first);
+		bool isSecondary = false;
+		auto controlRef = GetRegisteredBindingByHash(controlId, &isSecondary);
+		auto commandMatch = fmt::sprintf("%s%s", (subIdx != 0 || isSecondary) ? "~!" : "", controlRef.first);
 
 		// Hooked TextFormatting function: requires guarding.
 		auto [guard, bindings] = bindingManager.GetSafeBindings();
@@ -1259,7 +1301,7 @@ static const char* GetNameForControl(uint32_t controlId)
 		auto pair = GetRegisteredBindingByHash(controlId);
 
 		static std::string str;
-		str = fmt::sprintf("INPUT_%08X", HashString(pair.first.c_str()));
+		str = fmt::sprintf("INPUT_%08X", controlId & 0x7FFFFFFF);
 
 		auto resourceName = std::get<0>(pair.second);
 		auto actionName = std::get<1>(pair.second);
@@ -1294,16 +1336,26 @@ static uint32_t GetControlForName(const char* controlName)
 {
 	auto control = g_origGetControlForName(controlName);
 
-	if (control == -1)
+	if (control == -1 && strncmp(controlName, "INPUT_", 6) == 0)
 	{
-		for (auto& pair : g_registeredBindings)
-		{
-			auto str = fmt::sprintf("INPUT_%08X", HashString(pair.first.c_str()));
+		char* end = nullptr;
+		uint32_t targetHash = strtoul(controlName + 6, &end, 16);
 
-			if (str == controlName)
+		if (end && *end == '\0')
+		{
+			for (auto& pair : g_registeredBindings)
 			{
-				control = HashBinding(pair.first);
-				break;
+				if ((HashBinding(pair.first) & 0x7FFFFFFF) == targetHash)
+				{
+					control = HashBinding(pair.first);
+					break;
+				}
+
+				if ((HashSecondaryBinding(pair.first) & 0x7FFFFFFF) == targetHash)
+				{
+					control = HashSecondaryBinding(pair.first);
+					break;
+				}
 			}
 		}
 	}
