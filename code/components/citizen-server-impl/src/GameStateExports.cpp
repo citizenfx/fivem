@@ -10,6 +10,7 @@ static bool g_oneSyncPopulation;
 static bool(*g_onesync)();
 
 extern fx::GameBuild g_enforcedGameBuild;
+extern bool g_vehicleGadgetSyncFix;
 
 namespace fx
 {
@@ -36,6 +37,11 @@ bool IsOneSync()
 bool IsOneSyncPopulation()
 {
 	return g_oneSyncPopulation;
+}
+
+bool IsVehicleGadgetSyncFixEnabled()
+{
+	return g_vehicleGadgetSyncFix && IsOneSync();
 }
 
 void SetOneSyncGetCallback(bool (*cb)())
