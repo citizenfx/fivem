@@ -143,6 +143,8 @@ void InputHook::SetHostCursorEnabled(bool enabled)
 		DisableHostCursor();
 	}
 
+	lastEnabled = enabled;
+
 	g_useHostCursor = enabled;
 }
 
