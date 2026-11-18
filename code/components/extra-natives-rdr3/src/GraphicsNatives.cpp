@@ -29,50 +29,10 @@ struct ScriptImRequest
 static constexpr int kMaxScriptImRequests = 1024;
 static std::vector<ScriptImRequest> g_scriptImRequests{};
 
-static ScriptImRequest** g_scriptImBuffer;
+// The game's own (main thread) script im buffer and its entries count. The game never fills
+// this buffer itself and it only has room for 64 entries, so we keep our own list instead.
+static ScriptImRequest** g_scriptImUpdateBuffer;
 static uint16_t* g_scriptImEntriesCount;
-
-static hook::cdecl_stub<void()> initScriptImBuffer([]()
-{
-	return hook::get_pattern("48 89 5C 24 ? 57 48 83 EC 20 0F B7 05 ? ? ? ? 33 FF");
-});
-
-static void (*g_origRenderScriptIm)();
-static void RenderScriptIm()
-{
-	// The game never uses this buffer itself, but it *may* be changed in the future updates.
-	// This code isn't ready for such a scenario, so might potentially require tweaks.
-	// Like if something allocate script im buffer before us, we would need to resize it
-	// and not just rewrite everything without custom stuff.
-
-	if (g_scriptImRequests.empty())
-	{
-		return;
-	}
-
-	*g_scriptImEntriesCount = g_scriptImRequests.size();
-
-	// If the buffer isn't allocated, let's do it.
-	if (!*g_scriptImBuffer)
-	{
-		initScriptImBuffer();
-	}
-
-	// Failed to allocate? Bail out.
-	if (!*g_scriptImBuffer)
-	{
-		*g_scriptImEntriesCount = 0;
-		return;
-	}
-
-	// Move stuff from our temp vector to the in-game buffer.
-	std::move(g_scriptImRequests.begin(), g_scriptImRequests.end(), *g_scriptImBuffer);
-
-	g_origRenderScriptIm();
-
-	g_scriptImRequests.clear();
-	*g_scriptImEntriesCount = 0;
-}
 
 struct DrawOriginData
 {
@@ -88,12 +48,58 @@ struct DrawOriginStore
 	char pad_404[12];
 };
 
-static bool (*isGamePaused)();
-
-static int* g_frameDrawIndex1;
-static int* g_frameDrawIndex2;
 static DrawOriginStore* g_drawOriginStore;
 static uint32_t* g_scriptDrawOriginIndex;
+
+// Draw origins set by scripts during the current frame, main thread only.
+static DrawOriginData g_drawOrigins[32];
+static uint32_t g_drawOriginCount;
+
+static void SyncDrawOrigins()
+{
+	if (!g_drawOriginCount)
+	{
+		return;
+	}
+
+	// Sprites and texts only remember the index of their draw origin, the position is looked up
+	// while they are being rendered. So the origins have to reach the render thread together with
+	// the frame they were set in. The game keeps one store per frame buffer (update/render) and
+	// never fills them itself, so publish to both: whichever one gets read has this frame's data.
+	for (int buffer = 0; buffer < 2; buffer++)
+	{
+		auto& store = g_drawOriginStore[buffer];
+
+		std::copy(g_drawOrigins, g_drawOrigins + g_drawOriginCount, store.m_items);
+		store.m_count = g_drawOriginCount;
+	}
+
+	g_drawOriginCount = 0;
+}
+
+static void (*g_origSyncScriptIm)();
+static void SyncScriptIm()
+{
+	// The game calls this once per frame on the main thread while the render thread is parked.
+	// It copies 'entries count' requests from the update buffer into per-frame render memory,
+	// which the render thread draws from afterwards. Handing our requests over here (and not
+	// from the render thread) keeps 'g_scriptImRequests' main thread only.
+
+	SyncDrawOrigins();
+
+	// Let the game copy from our list instead of its own buffer.
+	auto gameBuffer = *g_scriptImUpdateBuffer;
+
+	*g_scriptImUpdateBuffer = g_scriptImRequests.data();
+	*g_scriptImEntriesCount = static_cast<uint16_t>(g_scriptImRequests.size());
+
+	// Resets the entries count once it's done.
+	g_origSyncScriptIm();
+
+	*g_scriptImUpdateBuffer = gameBuffer;
+
+	g_scriptImRequests.clear();
+}
 
 struct WorldhorizonManager
 {
@@ -124,11 +130,7 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern<char>("48 69 D0 10 04 00 00 48 8D 05 ? ? ? ? 48 03");
 
-		g_frameDrawIndex1 = hook::get_address<int*>(location - 20);
-		g_frameDrawIndex2 = hook::get_address<int*>(location - 7);
 		g_drawOriginStore = hook::get_address<DrawOriginStore*>(location + 10);
-
-		hook::set_call(&isGamePaused, location - 27);
 	}
 
 	{
@@ -137,15 +139,15 @@ static HookFunction hookFunction([]()
 	}
 
 	{
-		auto location = hook::get_pattern<char>("48 89 05 ? ? ? ? E8 ? ? ? ? 66 89 3D");
+		auto location = hook::get_pattern<char>("48 8B 15 ? ? ? ? 44 8B C3 48 8B C8 48 89 05 ? ? ? ? E8 ? ? ? ? 66 89 3D");
 
-		g_scriptImBuffer = hook::get_address<ScriptImRequest**>(location + 3);
-		g_scriptImEntriesCount = hook::get_address<uint16_t*>(location + 15);
+		g_scriptImUpdateBuffer = hook::get_address<ScriptImRequest**>(location + 3);
+		g_scriptImEntriesCount = hook::get_address<uint16_t*>(location + 28);
 	}
 
 	{
-		auto location = hook::get_pattern("33 C9 E8 ? ? ? ? E8 ? ? ? ? 33 C9 E8 ? ? ? ? 0F", -0x28);
-		g_origRenderScriptIm = hook::trampoline(location, RenderScriptIm);
+		auto location = hook::get_pattern("48 89 5C 24 ? 57 48 83 EC 20 0F B7 05 ? ? ? ? 33 FF");
+		g_origSyncScriptIm = hook::trampoline(location, SyncScriptIm);
 	}
 
 	{
@@ -157,10 +159,7 @@ static HookFunction hookFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_DRAW_ORIGIN", [](fx::ScriptContext& context)
 	{
-		auto drawIndex = *(isGamePaused() ? g_frameDrawIndex2 : g_frameDrawIndex1);
-
-		auto& store = g_drawOriginStore[drawIndex];
-		const auto index = store.m_count;
+		const auto index = g_drawOriginCount;
 
 		if (index >= 32)
 		{
@@ -173,8 +172,8 @@ static HookFunction hookFunction([]()
 		data.m_pos.z = context.GetArgument<float>(2);
 		data.m_is2d = context.GetArgument<bool>(3);
 
-		store.m_items[index] = data;
-		store.m_count += 1;
+		g_drawOrigins[index] = data;
+		g_drawOriginCount += 1;
 
 		*g_scriptDrawOriginIndex = index;
 	});
