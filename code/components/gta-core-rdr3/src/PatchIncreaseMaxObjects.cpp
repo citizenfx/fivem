@@ -28,4 +28,7 @@ static HookFunction hookFunction([]()
 	
 	// Allow registration of script/mission objects up to and past the 60 limit.
 	hook::put<uint32_t>(hook::get_pattern("BB ? ? ? ? EB ? BB ? ? ? ? EB ? BB ? ? ? ? EB ? 8B CF", 1), kDefaultMaxObjects + increaseSize);
+
+	// Patch GET_MAX_NUM_NETWORK_OBJECTS/0xC7BE335216B5EC7C to reflect the increased network object limit.
+	hook::put<uint32_t>(hook::get_pattern("48 8B 01 C7 00 3C 00 00 00", 5), kDefaultMaxObjects + increaseSize);
 });
