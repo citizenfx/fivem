@@ -135,9 +135,13 @@ public:
 };
 
 static GFxValue overlayRootClip;
-static void(*g_origSetupTerritories)();
+static GFxValue overlayBackgroundRootClip;
 
 static GFxValue* g_foregroundOverlay3D;
+static GFxValue* g_backgroundOverlay3D;
+
+static void(*g_origSetupTerritories)();
+
 static uint32_t* g_gfxId;
 
 static void SetupTerritories()
@@ -147,6 +151,10 @@ static void SetupTerritories()
 	overlayRootClip = {};
 
 	g_foregroundOverlay3D->CreateEmptyMovieClip(&overlayRootClip, "asTestClip3D", -1);
+
+	overlayBackgroundRootClip = {};
+
+	g_backgroundOverlay3D->CreateEmptyMovieClip(&overlayBackgroundRootClip, "asTestBgClip3D", 0);
 
 	auto movie = _getScaleformMovie(*g_gfxId);
 
@@ -160,8 +168,9 @@ static void SetupTerritories()
 
 struct MinimapOverlayLoadRequest
 {
-	int sfwId;
+	int swfId;
 	int depth;
+	bool background;
 };
 
 static std::map<std::string, MinimapOverlayLoadRequest> g_minimapOverlayLoadQueue;
@@ -185,11 +194,11 @@ static hook::cdecl_stub<bool(uint32_t, int, const char*, int, int)> _setupGfxCal
 
 namespace sf
 {
-	int AddMinimapOverlay(const std::string& swfName, int depth)
+	int AddMinimapOverlay(const std::string& swfName, int depth, bool background)
 	{
 		auto id = ++g_minimapOverlaySwfId;
 
-		g_minimapOverlayLoadQueue.insert({ swfName, { id, depth } });
+		g_minimapOverlayLoadQueue.insert({ swfName, { id, depth, background } });
 
 		return id;
 	}
@@ -287,16 +296,23 @@ static HookFunction hookFunction([]()
 		{
 			auto swf = std::make_shared<GFxValue>();
 
-			auto instanceName = va("id%d", request.sfwId);
+			auto instanceName = va("id%d", request.swfId);
 
-			overlayRootClip.CreateEmptyMovieClip(swf.get(), instanceName, request.depth);
+			if (request.background)
+			{
+				overlayBackgroundRootClip.CreateEmptyMovieClip(swf.get(), instanceName, request.depth);
+			}
+			else
+			{
+				overlayRootClip.CreateEmptyMovieClip(swf.get(), instanceName, request.depth);
+			}
 
 			GFxValue result;
 			GFxValue args(gfxFileName.c_str());
 
 			swf->Invoke("loadMovie", &result, &args, 1);
 
-			g_overlayClips[request.sfwId] = swf;
+			g_overlayClips[request.swfId] = swf;
 
 			toRemoveFromMinimapOverlayLoadQueue.insert(gfxFileName);
 		}
@@ -318,7 +334,13 @@ static HookFunction hookFunction([]()
 	});
 
 	{
-		auto location = hook::get_pattern<char>("74 3B E8 ? ? ? ? 33 C9 E8", 0x31);
+		// SetupFreeways
+		auto location = hook::get_pattern<char>("74 3B E8 ? ? ? ? 33 C9 E8", 0x2C);
+
+		g_backgroundOverlay3D = hook::get_address<decltype(g_backgroundOverlay3D)>(hook::get_call(location) + 0x18);
+
+		// SetupTerritories
+		location = hook::get_pattern<char>("74 3B E8 ? ? ? ? 33 C9 E8", 0x31);
 
 		g_foregroundOverlay3D = hook::get_address<decltype(g_foregroundOverlay3D)>(hook::get_call(location) + (xbr::IsGameBuildOrGreater<2372>() ? 0x18 : 0x1C));
 
