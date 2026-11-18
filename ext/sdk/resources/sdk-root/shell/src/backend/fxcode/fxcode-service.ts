@@ -9,6 +9,7 @@ import { concurrently } from "utils/concurrently";
 import { ShellBackend } from 'backend/shell-backend';
 import { URL } from 'url';
 import { NotificationService } from "backend/notification/notification-service";
+import * as path from 'path';
 
 interface FXCode {
   getRootPath(): string;
@@ -68,7 +69,12 @@ export class FXCodeService implements AppContribution {
 
     this.shellBackend.expressApp.get('/vscode-remote-resource', (req, res) => {
       if (this.fxcode) {
-        res.sendFile(this.fxcode.getRemoteResourcePath(getUrlQuery(req.url)));
+        const resourcePath = this.fxcode.getRemoteResourcePath(getUrlQuery(req.url));
+        if (!resourcePath || !isPathInside(resourcePath, this.configService.sdkRootFXCode)) {
+          res.status(400).send('Invalid resource path');
+          return;
+        }
+        res.sendFile(resourcePath);
       } else {
         res.send('FXCode not started it seems, rip');
       }
@@ -166,4 +172,12 @@ function getUrlQuery(url: string): Record<string, string> {
 
     return acc;
   }, {});
+}
+
+function isPathInside(candidate: string, root: string): boolean {
+  const resolvedRoot = path.resolve(root);
+  const resolvedCandidate = path.resolve(candidate);
+  const relativePath = path.relative(resolvedRoot, resolvedCandidate);
+
+  return relativePath === '' || (!!relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath));
 }
