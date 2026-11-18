@@ -245,7 +245,7 @@ TCallbackMap ClientDeferral::GetCallbacks()
 
 		auto obj = unpacked.get().as<std::vector<msgpack::object>>();
 
-		if (obj.size() == 1)
+		if (obj.size() == 1 && obj[0].type == msgpack::type::STR)
 		{
 			deferralState.message = obj[0].as<std::string>();
 
