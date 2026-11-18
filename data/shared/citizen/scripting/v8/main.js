@@ -47,7 +47,35 @@ const EXT_LOCALFUNCREF = 11;
 		binarraybuffer: true
 	});
 
-	const pack = data => msgpack.encode(data, { codec });
+	function materialize(value, refs = new WeakMap()) {
+		if (!value || typeof value !== 'object') return value;
+		if (refs.has(value)) return refs.get(value);
+		if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return value;
+
+		if (Array.isArray(value)) {
+			const copy = [];
+			refs.set(value, copy);
+			for (let i = 0; i < value.length; i++) copy[i] = materialize(value[i], refs);
+			return copy;
+		}
+
+		const copy = {};
+		refs.set(value, copy);
+		for (const key of Object.keys(value)) copy[key] = materialize(value[key], refs);
+		return copy;
+	}
+
+	const pack = data => {
+		try {
+			return msgpack.encode(data, { codec });
+		} catch (e) {
+			if (e instanceof TypeError) {
+				console.warn('msgpack encode failed, materializing data:', e.message);
+				return msgpack.encode(materialize(data), { codec });
+			}
+			throw e;
+		}
+	};
 	const unpack = data => msgpack.decode(data, { codec });
 
 	// store for use by natives.js
