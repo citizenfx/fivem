@@ -248,15 +248,18 @@ static void LogStubLog1(void* stub, const char* type, const char* format, ...)
 	}
 }
 
-static bool (*g_fiAssetManagerExists)(void*, const char*, const char*);
-static bool fiAssetManagerExists(void* self, const char* name, const char* extension)
+static void* (*g_loadStartupFile)(void*, const char*, uint8_t, void*);
+static void* LoadStartupFile(void* self, const char* filePath, uint8_t a3, void* a4)
 {
-	if ((extension && strcmp(extension, "meta") == 0) && strcmp(name, "platformcrc:/data/startup") == 0)
-	{
-		return false;
-	}
+	// Hasn't changed between gamebuilds.
+	static const size_t kMetaOffset = 0xE1;
+	assert(*(uint8_t*)((uintptr_t)g_loadStartupFile + kMetaOffset) == 0x74);
 
-	return g_fiAssetManagerExists(self, name, extension);
+	// Skip loading .meta for startup even if the file exists.
+	hook::put<uint8_t>((uintptr_t)g_loadStartupFile + kMetaOffset, 0xEB);
+	void* retnResult = g_loadStartupFile(self, filePath, a3, a4);
+	hook::put<uint8_t>((uintptr_t)g_loadStartupFile + kMetaOffset, 0x74);
+	return retnResult;
 }
 
 static HookFunction hookFunctionNet([]()
@@ -297,8 +300,10 @@ static HookFunction hookFunctionNet([]()
 	// allow the game to ensure static bounds, but don't block on it.
 	hook::nop(hook::get_pattern("E8 ? ? ? ? 66 44 39 65 ? 74 ? 48 8B 4D ? E8 ? ? ? ? 4C 8D 5C 24 ? 49 8B 5B ? 49 8B 73 ? 49 8B 7B ? 4D 8B 63"), 5);
 
-	// Block loading of custom startup.meta file. Completely breaks game loading
-	MH_Initialize();
-	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 3C ? 75 ? 48 8B 0D")), fiAssetManagerExists, (void**)&g_fiAssetManagerExists);
-	MH_EnableHook(MH_ALL_HOOKS);
+	// Don't allow the game to load a startup.meta file if present. This breaks game loading entirely.
+	{
+		auto location = hook::get_pattern("E8 ? ? ? ? 40 8A CE E8 ? ? ? ? E8");
+		hook::set_call(&g_loadStartupFile, location);
+		hook::call(location, LoadStartupFile);
+	}
 });
