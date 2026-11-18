@@ -655,7 +655,8 @@ end
 
 -- Remove cache when resource stop to avoid calling unexisting exports
 local function lazyEventHandler() -- lazy initializer so we don't add an event we don't need
-	AddEventHandler(('on%sResourceStop'):format(isDuplicityVersion and 'Server' or 'Client'), function(resource)
+	-- Use onResourceStop to not break cached exports for onResourceStart
+	AddEventHandler('onResourceStop', function(resource)
 		exportsCallbackCache[resource] = {}
 	end)
 
