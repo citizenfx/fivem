@@ -1326,7 +1326,7 @@ static HookFunction hookFunction([]()
 			int port = context.GetArgument<int>(1);
 			
 			// If we set our address to an empty and our port is -1 we should reset our override
-			if (address == "" && port == -1)
+			if ((!address || address[0] == '\0') && port == -1)
 			{
 				g_mumble.overridePeer = {};
 				Mumble_Disconnect(true);
