@@ -35,48 +35,24 @@ static inline auto GetGameBuild()
 #endif
 
 #ifdef IS_FXSERVER
-static bool IsPathWithinResourceRoot(const std::filesystem::path& rootPath, const std::filesystem::path& candidatePath)
+// checks whether a resource-relative path contains anything that'd climb out of the resource directory
+//
+// this is deliberately a lexical check: resolving the path on disk would also resolve symbolic links, and links inside
+// a resource are put there by the server owner rather than by the script asking for the file, so they're expected to
+// keep working. a script can't create them either, as there's no native to do so.
+static bool IsPathEscapingResourceRoot(const std::filesystem::path& relativePath)
 {
-#ifdef _WIN32
-	auto equalsPathPart = [](const std::filesystem::path& lhs, const std::filesystem::path& rhs)
+	static const std::filesystem::path parentDirectory{ ".." };
+
+	for (const auto& part : relativePath)
 	{
-		auto lhsString = lhs.wstring();
-		auto rhsString = rhs.wstring();
-
-		if (lhsString.size() != rhsString.size())
+		if (part == parentDirectory)
 		{
-			return false;
-		}
-
-		for (size_t i = 0; i < lhsString.size(); ++i)
-		{
-			if (towlower(lhsString[i]) != towlower(rhsString[i]))
-			{
-				return false;
-			}
-		}
-
-		return true;
-	};
-#else
-	auto equalsPathPart = [](const std::filesystem::path& lhs, const std::filesystem::path& rhs)
-	{
-		return lhs == rhs;
-	};
-#endif
-
-	auto rootIt = rootPath.begin();
-	auto candidateIt = candidatePath.begin();
-
-	for (; rootIt != rootPath.end(); ++rootIt, ++candidateIt)
-	{
-		if (candidateIt == candidatePath.end() || !equalsPathPart(*rootIt, *candidateIt))
-		{
-			return false;
+			return true;
 		}
 	}
 
-	return true;
+	return false;
 }
 #endif
 
@@ -176,8 +152,6 @@ static InitFunction initFunction([] ()
 #else
 		try
 		{
-			const std::filesystem::path resourceRoot = std::filesystem::weakly_canonical(std::filesystem::absolute(std::filesystem::u8path(rootPath)));
-
 			std::string sanitizedFileName = requestedFileName;
 			while (!sanitizedFileName.empty() && (sanitizedFileName[0] == '/' || sanitizedFileName[0] == '\\'))
 			{
@@ -186,15 +160,7 @@ static InitFunction initFunction([] ()
 
 			const std::filesystem::path requestedPath = std::filesystem::u8path(sanitizedFileName);
 
-			if (requestedPath.is_absolute() || requestedPath.has_root_name())
-			{
-				context.SetResult(nullptr);
-				return;
-			}
-
-			const std::filesystem::path absoluteRequestedPath = std::filesystem::weakly_canonical(std::filesystem::absolute(resourceRoot / requestedPath));
-
-			if (!IsPathWithinResourceRoot(resourceRoot, absoluteRequestedPath))
+			if (requestedPath.is_absolute() || requestedPath.has_root_name() || IsPathEscapingResourceRoot(requestedPath))
 			{
 				context.SetResult(nullptr);
 				return;
