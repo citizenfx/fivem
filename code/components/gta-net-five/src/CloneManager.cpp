@@ -996,11 +996,6 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	auto& objectData = m_trackedObjects[msg.GetObjectId()];
 
-	if (!objectData.stateBag)
-	{
-		objectData.stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", msg.GetObjectId()), true);
-	}
-
 	objectData.uniqifier = msg.GetUniqifier();
 
 	// owner ID (forced to be remote so we can call ChangeOwner later)
