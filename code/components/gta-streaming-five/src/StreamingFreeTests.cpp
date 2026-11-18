@@ -247,6 +247,8 @@ namespace streaming
 
 	uint32_t GetStreamingIndexForLocalHashKey(streaming::strStreamingModule* module, uint32_t hash)
 	{
+		std::shared_lock _(g_streamingMapMutex);
+
 		auto entry = g_streamingHashStoresToIndices.find({ module, hash });
 
 		if (entry != g_streamingHashStoresToIndices.end())
