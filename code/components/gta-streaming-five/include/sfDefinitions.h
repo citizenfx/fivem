@@ -282,6 +282,18 @@ public:
 		}
 	}
 
+	inline bool HasObjectInterface() const
+	{
+		return pObjectInterface != nullptr;
+	}
+
+	inline void Detach()
+	{
+		pObjectInterface = nullptr;
+		Type = VT_Undefined;
+		mValue.pData = nullptr;
+	}
+
 	inline ValueType GetType() const
 	{
 		return ValueType(Type & VTC_TypeMask);
