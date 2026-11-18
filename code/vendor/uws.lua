@@ -14,7 +14,7 @@ return {
 		
 		defines { "UWS_THREADSAFE", "LIBUS_NO_SSL" }
 
-		flags "NoRuntimeChecks"
+		runtimechecks "Off"
 
 		files_project '../vendor/uws/src/'
 		{

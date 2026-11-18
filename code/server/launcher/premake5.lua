@@ -8,7 +8,8 @@
 		
 		if os.istarget('windows') then
 			links { "psapi", "wininet", "winhttp" }
-			flags { "NoManifest", "NoImportLib" }
+			manifest "Off"
+			useimportlib "Off"
 			files { "server.rc" }
 
 			-- match the 4 MB stack size set on Linux in Main.cpp

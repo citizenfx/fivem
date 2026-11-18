@@ -26,7 +26,7 @@ return {
 			staticruntime 'On'
 		end
 
-		flags "NoRuntimeChecks"
+		runtimechecks "Off"
 
 		files_project '../vendor/nghttp2/lib/'
 		{

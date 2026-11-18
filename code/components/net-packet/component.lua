@@ -2,7 +2,7 @@ return function()
 	filter {}
 
 	if os.istarget('windows') then
-		flags { "LinkTimeOptimization" }
+		linktimeoptimization "On"
 	end
 end
 

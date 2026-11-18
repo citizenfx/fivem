@@ -10,7 +10,8 @@
 
 		if os.istarget('windows') then
 			links { "psapi", "wininet", "winhttp" }
-			flags { "NoManifest", "NoImportLib" }
+			manifest "Off"
+			useimportlib "Off"
 			add_dependencies { 'vendor:rpmalloc' }
 		else
 			links { 'dl', 'pthread' }
