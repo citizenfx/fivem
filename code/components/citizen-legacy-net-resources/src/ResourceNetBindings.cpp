@@ -293,8 +293,13 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 
 	auto curServerUrl = fmt::sprintf("https://%s/", m_netLibrary->GetCurrentPeer().ToString());
 
-	// #TODO: remove this once server version with `18d5259f60dd203b5705130491ddda4e95665171` becomes mandatory
+	// fallback only: servers that needed this (pre-`18d5259f6`, h2 stalling on large `/client` responses)
+	// can't connect anymore, and plaintext to a bare IP gets dropped by some ISP middleboxes
 	auto curServerUrlNonTls = fmt::sprintf("http://%s/", m_netLibrary->GetCurrentPeer().ToString());
+
+	// curl only writes this once a response arrived, telling a transport failure apart from an HTTP error
+	auto responseCode = std::make_shared<int>(0);
+	options.responseCode = responseCode;
 
 	options.progressCallback = [](const ProgressInfo& progress)
 	{
@@ -314,8 +319,10 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 
 	ThrottledConnectionProgress("Downloading content manifest...", 0, 1, false);
 
-	httpClient->DoPostRequest(fmt::sprintf("%sclient", curServerUrlNonTls), httpClient->BuildPostString(postMap), options,
-		[this, httpClient, address, curServerUrl, updateList, doneCb](bool result, const char* data, size_t size)
+	auto postData = httpClient->BuildPostString(postMap);
+
+	// completion handler shared by both attempts below
+	auto handleConfiguration = [this, httpClient, address, curServerUrl, updateList, doneCb](const std::string& extraErrorInfo, bool result, const char* data, size_t size)
 	{
 		// keep a reference to the HTTP client
 		auto httpClientRef = httpClient;
@@ -331,7 +338,7 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 									 .dump());
 
 			static ConVar<bool> streamerMode("ui_streamerMode", ConVar_UserPref, false);
-			std::string errorData = fmt::sprintf(" Error state: %s", std::string{ data, size });
+			std::string errorData = fmt::sprintf(" Error state: %s%s", std::string{ data, size }, extraErrorInfo);
 
 			if (streamerMode.GetValue())
 			{
@@ -627,6 +634,27 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 			doneCb();
 		},
 		cts.get_token());
+	};
+
+	// TLS first, retrying in plaintext at most once and only if no HTTP response arrived at all:
+	// falling back on a real 4xx/5xx would mask a server-side error
+	httpClient->DoPostRequest(fmt::sprintf("%sclient", curServerUrl), postData, options,
+		[httpClient, options, postData, curServerUrlNonTls, responseCode, handleConfiguration](bool result, const char* data, size_t size)
+	{
+		if (result || *responseCode != 0)
+		{
+			handleConfiguration("", result, data, size);
+			return;
+		}
+
+		std::string tlsError{ data, size };
+		trace("Content manifest request over TLS failed (%s), retrying without TLS.\n", tlsError);
+
+		httpClient->DoPostRequest(fmt::sprintf("%sclient", curServerUrlNonTls), postData, options,
+			[handleConfiguration, tlsError](bool result, const char* data, size_t size)
+		{
+			handleConfiguration(result ? "" : fmt::sprintf(" TLS attempt: %s", tlsError), result, data, size);
+		});
 	});
 }
 
