@@ -151,6 +151,7 @@ workspace "CitizenMP"
 		"../vendor/boost-submodules/boost-scope/include/",
 		"../vendor/boost-submodules/boost-align/include/",
 		"../vendor/boost-submodules/boost-static-string/include/",
+		"../vendor/boost-submodules/boost-pool/include/",
 	}
 
 	filter { 'language:C or language:C++'}
