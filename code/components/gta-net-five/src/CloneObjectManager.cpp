@@ -17,6 +17,8 @@
 #include <EntitySystem.h>
 #include <netPlayerManager.h>
 
+#include <set>
+
 static ICoreGameInit* icgi;
 
 extern void CD_AllocateSyncData(uint16_t objectId);
@@ -60,6 +62,10 @@ static void netObjectMgrBase__RegisterNetworkObject(rage::netObjectMgr* manager,
 	object->OnRegistered();
 }
 
+#ifdef IS_RDR3
+static std::set<uint16_t> g_trainsAwaitingCarriages;
+#endif
+
 static void(*g_orig_netObjectMgrBase__DestroyNetworkObject)(rage::netObjectMgr*, rage::netObject*);
 
 void ObjectIds_ReturnObjectId(uint16_t objectId);
@@ -76,6 +82,10 @@ static void netObjectMgrBase__DestroyNetworkObject(rage::netObjectMgr* manager, 
 	{
 		CD_FreeSyncData(object->GetObjectId());
 		CloneObjectMgr->DestroyNetworkObject(object);
+
+#ifdef IS_RDR3
+		g_trainsAwaitingCarriages.erase(object->GetObjectId());
+#endif
 
 		if (!object->syncData.isRemote && object->syncData.nextOwnerId == 0xFF)
 		{
@@ -98,6 +108,44 @@ static hook::cdecl_stub<bool(CVehicle*)> CTrain__IsCarriageEngine([]()
 {
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 80 A3 ? ? ? ? ? 24 ? 02 C0 08 83 ? ? ? ? F6 83 ? ? ? ? ? 74 ? 8A 05"));
 });
+#elif defined(IS_RDR3)
+static int g_trainPreviousCarriageOffset;
+static int g_trainCarriagesCreatedOffset;
+
+static hook::cdecl_stub<bool(fwEntity*, const float*, bool, int)> CTrain__SetTrainCoords([]()
+{
+	return hook::get_pattern("48 8B C4 48 89 58 ? 48 89 70 ? 57 48 83 EC ? 48 8B F2 48 8B F9 48 85 C9");
+});
+
+static bool CTrain__IsCarriageEngine(fwEntity* train)
+{
+	return *(void**)((uintptr_t)train + g_trainPreviousCarriageOffset) == nullptr;
+}
+
+static void (*g_orig_CNetObjTrain__Update)(rage::netObject*);
+
+static void CNetObjTrain__Update(rage::netObject* object)
+{
+	if (!object->syncData.isRemote && g_trainsAwaitingCarriages.find(object->GetObjectId()) != g_trainsAwaitingCarriages.end())
+	{
+		if (*(uint8_t*)((uintptr_t)object + g_trainCarriagesCreatedOffset))
+		{
+			g_trainsAwaitingCarriages.erase(object->GetObjectId());
+		}
+		else
+		{
+			object->syncData.isRemote = true;
+
+			g_orig_CNetObjTrain__Update(object);
+
+			object->syncData.isRemote = false;
+
+			return;
+		}
+	}
+
+	g_orig_CNetObjTrain__Update(object);
+}
 #endif
 
 static void(*g_orig_netObjectMgrBase__ChangeOwner)(rage::netObjectMgr*, rage::netObject*, CNetGamePlayer*, int);
@@ -129,6 +177,22 @@ static void netObjectMgrBase__ChangeOwner(rage::netObjectMgr* manager, rage::net
 				CTrain__SetTrainCoord(train, -1, -1);
 				// Force blend to apply location
 				object->GetBlender()->Update();
+			}
+		}
+	}
+#elif defined(IS_RDR3)
+	if (object->GetObjectType() == (uint16_t)NetObjEntityType::Train && targetPlayer->physicalPlayerIndex() == rage::GetLocalPlayer()->physicalPlayerIndex())
+	{
+		if (auto train = (fwEntity*)object->GetGameObject())
+		{
+			if (CTrain__IsCarriageEngine(train))
+			{
+				auto position = train->GetPosition();
+				alignas(16) float coords[4] = { position.x, position.y, position.z, 0.0f };
+
+				CTrain__SetTrainCoords(train, coords, true, -1);
+
+				g_trainsAwaitingCarriages.insert(object->GetObjectId());
 			}
 		}
 	}
@@ -204,6 +268,11 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("48 8B F2 41 B0 01 0F B7 52", -0x1B), netObjectMgrBase__RegisterNetworkObject, (void**)&g_orig_netObjectMgrBase__RegisterNetworkObject);
 	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8D 76 08 48 83 EB 01 75 E8")), netObjectMgrBase__DestroyNetworkObject, (void**)&g_orig_netObjectMgrBase__DestroyNetworkObject);
 	MH_CreateHook(hook::get_pattern("0F B6 43 ? 48 03 C0 48 8B 4C C7 08 EB", -0x64), netObjectMgrBase__GetNetworkObjectForPlayer, (void**)&g_orig_netObjectMgrBase__GetNetworkObjectForPlayer);
+
+	g_trainPreviousCarriageOffset = *hook::get_pattern<uint32_t>("48 8B 9F ? ? ? ? 48 85 DB 75 ? 48 8B 87 ? ? ? ? 48 8B DF", 15);
+	g_trainCarriagesCreatedOffset = *hook::get_pattern<uint32_t>("80 7B ? 00 0F 84 ? ? ? ? 80 BB ? ? ? ? 00 0F 85", 12);
+
+	MH_CreateHook(hook::get_pattern("48 89 5C 24 ? 57 48 83 EC ? 48 8B 79 ? 48 8B D9 0F 29 74 24 ? 48 85 FF"), CNetObjTrain__Update, (void**)&g_orig_CNetObjTrain__Update);
 
 	MH_CreateHook(hook::get_pattern("41 83 F9 04 75 ? 8D 4B 20 E8 ? ? ? ? 48", -0x39), netObjectMgrBase__ChangeOwner, (void**)&g_orig_netObjectMgrBase__ChangeOwner);
 	MH_CreateHook(hook::get_pattern("45 8A F0 0F B7 F2 E8 ? ? ? ? 33 DB 38", -0x24), netObjectMgrBase__GetNetworkObject, (void**)&g_orig_netObjectMgrBase__GetNetworkObject);
