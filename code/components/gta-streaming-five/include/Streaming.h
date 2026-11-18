@@ -54,6 +54,25 @@ struct StreamingDataEntry
 	size_t STREAMING_EXPORT ComputeVirtualSize(uint32_t strIndex, void* a3, bool a4);
 };
 
+class CDataFileMgr
+{
+public:
+	struct DataFile
+	{
+		char name[128];
+		char pad[16]; // 128
+		int32_t type; // 140
+		int32_t index; // 148
+		bool locked; // 152
+		bool flag2; // 153
+		bool flag3; // 154
+		bool disabled; // 155
+		bool persistent; // 156
+		bool overlay;
+		char pad2[10];
+	};
+};
+
 namespace streaming
 {
 	struct StreamingListEntry
