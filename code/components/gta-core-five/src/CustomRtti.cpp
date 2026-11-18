@@ -23,15 +23,44 @@ static hook::cdecl_stub<void*(void*, uint16_t)> getSyncTreeForType([]()
 });
 
 
+// Game vtables and their RTTI getters both live in the game executable image.
+bool IsInGameImage(const void* ptr, size_t size)
+{
+	static const auto [imageBase, imageEnd] = []()
+	{
+		auto base = (uintptr_t)GetModuleHandle(nullptr);
+		auto dosHeader = (PIMAGE_DOS_HEADER)base;
+		auto ntHeader = (PIMAGE_NT_HEADERS)(base + dosHeader->e_lfanew);
+		return std::make_pair(base, base + ntHeader->OptionalHeader.SizeOfImage);
+	}();
+
+	auto address = (uintptr_t)ptr;
+	return address >= imageBase && address < imageEnd && size <= imageEnd - address;
+}
+
 uint32_t ReadHashUnsafe(void* vtableEntryPtr)
 {
+	if (!IsInGameImage(vtableEntryPtr, sizeof(void*)))
+	{
+		return 0;
+	}
+
 	void* functionPtr = *(void**)vtableEntryPtr;
 	uint8_t* funcByteCode = (uint8_t*)functionPtr;
+
+	if (!IsInGameImage(funcByteCode, 7))
+	{
+		return 0;
+	}
 
 	// Corresponds to "mov eax, cs:dword_.* ; retn" assembly.
 	if (funcByteCode[0] == 0x8B && funcByteCode[1] == 0x05 && funcByteCode[6] == 0xC3)
 	{
 		uint32_t* hashAddress = hook::get_address<uint32_t*>(functionPtr, 2, 6);
+		if (!IsInGameImage(hashAddress, sizeof(uint32_t)))
+		{
+			return 0;
+		}
 		return *hashAddress;
 	}
 	return 0;

@@ -6,6 +6,7 @@
 #include <TimecycleEditor.h>
 #include <HostSharedData.h>
 #include <PureModeState.h>
+#include <Streaming.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_API DLL_IMPORT
@@ -943,6 +944,12 @@ static InitFunction initFunction([]()
 
 		if (TCEditor.ShouldDraw())
 		{
+			std::unique_lock lock(streaming::GetDataFileMountMutex(), std::try_to_lock);
+			if (!lock.owns_lock())
+			{
+				return;
+			}
+
 			TCEditor.Draw();
 		}
 	});
