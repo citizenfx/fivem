@@ -747,7 +747,7 @@ static int Lua_GetPointerField(lua_State* L)
 	else if constexpr (field == MetaField::PointerValueFloat)
 	{
 		float fvalue = static_cast<float>(luaL_checknumber(L, 1));
-		value = *reinterpret_cast<uint32_t*>(&value);
+		value = *reinterpret_cast<uint32_t*>(&fvalue);
 	}
 
 	lua_pushlightuserdata(L, ScriptNativeContext::GetPointerField(field, value));
