@@ -248,29 +248,41 @@ namespace fi
 			{
 				if (!m_isDirectory)
 				{
-					writer.WriteMark<uint32_t>("fOff_" + m_fullName, writer.Tell());
+					size_t fileStart = writer.Tell();
+					writer.WriteMark<uint32_t>("fOff_" + m_fullName, fileStart);
 
+					// the file may have been removed or locked since AddFile checked it was readable
 					auto backingStream = vfs::OpenRead(m_backingFile);
 
-					writer.WriteMark<uint32_t>("fLen_" + m_fullName, backingStream->GetLength());
-					writer.WriteMark<uint32_t>("fLen2_" + m_fullName, backingStream->GetLength());
-
-					std::array<uint8_t, 32768> buffer;
-					size_t read = 0;
-
-					do
+					if (backingStream.GetRef())
 					{
-						read = backingStream->Read(buffer.data(), buffer.size());
+						std::array<uint8_t, 32768> buffer;
+						size_t read = 0;
 
-						if (read == -1)
+						do
 						{
-							break;
-						}
-						else if (read > 0)
-						{
-							writer.Write(buffer.data(), read);
-						}
-					} while (read == buffer.size());
+							read = backingStream->Read(buffer.data(), buffer.size());
+
+							if (read == -1)
+							{
+								break;
+							}
+							else if (read > 0)
+							{
+								writer.Write(buffer.data(), read);
+							}
+						} while (read == buffer.size());
+					}
+					else
+					{
+						console::PrintWarning("resources", "Could not open %s while building a resource packfile, it will be empty.\n", m_backingFile);
+					}
+
+					// use the amount of data actually written, as the file may also have changed since then
+					size_t fileLength = writer.Tell() - fileStart;
+
+					writer.WriteMark<uint32_t>("fLen_" + m_fullName, fileLength);
+					writer.WriteMark<uint32_t>("fLen2_" + m_fullName, fileLength);
 
 					writer.Align(2048);
 				}
