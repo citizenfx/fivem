@@ -118,6 +118,7 @@ enum class EntityExtensionClassId : int
 	InstantiatedObjectRef,
 	DummyObjectRef,
 	OutlineSentinel,
+	InteriorEntitySet,
 };
 
 class InstantiatedObjectRefExtension : public rage::fwExtension
