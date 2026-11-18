@@ -112,8 +112,17 @@ static std::unordered_map<uint32_t, std::string> g_streamingIndexesToNames;
 static std::unordered_map<uint32_t, std::string> g_streamingHashesToNames;
 #endif
 
-// TODO: unordered_map with a custom hash
-static std::map<std::tuple<streaming::strStreamingModule*, uint32_t>, uint32_t> g_streamingHashStoresToIndices;
+struct StreamingHashStoreKeyHasher
+{
+	size_t operator()(const std::tuple<streaming::strStreamingModule*, uint32_t>& key) const noexcept
+	{
+		const auto pointerHash = std::hash<streaming::strStreamingModule*>{}(std::get<0>(key));
+		const auto valueHash = std::hash<uint32_t>{}(std::get<1>(key));
+		return pointerHash ^ (valueHash + 0x9e3779b9 + (pointerHash << 6) + (pointerHash >> 2));
+	}
+};
+
+static std::unordered_map<std::tuple<streaming::strStreamingModule*, uint32_t>, uint32_t, StreamingHashStoreKeyHasher> g_streamingHashStoresToIndices;
 
 extern std::unordered_set<std::string> g_streamingSuffixSet;
 
@@ -247,6 +256,7 @@ namespace streaming
 
 	uint32_t GetStreamingIndexForLocalHashKey(streaming::strStreamingModule* module, uint32_t hash)
 	{
+		std::shared_lock _(g_streamingMapMutex);
 		auto entry = g_streamingHashStoresToIndices.find({ module, hash });
 
 		if (entry != g_streamingHashStoresToIndices.end())
