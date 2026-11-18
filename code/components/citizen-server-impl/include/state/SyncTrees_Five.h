@@ -3046,7 +3046,8 @@ struct CPlayerGameStateDataNode
 
 		if (isSpectating)
 		{
-			auto spectatorId = state.buffer.ReadBit();
+			// object ID, 13 bits
+			auto spectatorId = state.buffer.Read<int>(13);
 			data.spectatorId = spectatorId;
 		}
 		else
@@ -3073,6 +3074,11 @@ struct CPlayerGameStateDataNode
 		{
 			int tutorialIndex = state.buffer.Read<int>(3);
 			int tutorialInstanceId = state.buffer.Read<int>(Is2060() ? 7 : 6);
+
+			if (IsWinterUpdate25())
+			{
+				auto unkTutorialFlag = state.buffer.ReadBit();
+			}
 		}
 
 		auto unk39 = state.buffer.ReadBit();
@@ -3242,12 +3248,12 @@ struct CPlayerGameStateDataNode
 		auto noCollision = state.buffer.ReadBit();
 		auto unk104 = state.buffer.ReadBit();
 		auto unk105 = state.buffer.ReadBit();
-		auto unk106 = state.buffer.ReadBit();
+		auto hasLockOnTarget = state.buffer.ReadBit();
 
-		if (unk106)
+		if (hasLockOnTarget)
 		{
-			auto unk107 = state.buffer.ReadBit();
-			int unk108 = state.buffer.Read<int>(2);
+			int lockOnTargetId = state.buffer.Read<int>(13);
+			int lockOnState = state.buffer.Read<int>(2);
 		}
 
 		float unk109 = state.buffer.ReadFloat(8, 10.0f);
