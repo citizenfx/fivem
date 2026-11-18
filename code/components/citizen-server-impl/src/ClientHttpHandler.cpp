@@ -11,10 +11,61 @@
 
 #include <FormData.h>
 
+#include <zlib.h>
+
 using json = nlohmann::json;
 
 static std::shared_ptr<ConVar<bool>> g_threadedHttpVar;
 static std::shared_ptr<ConVar<int>> g_maxClientEndpointRequestSize;
+
+namespace
+{
+bool ClientAcceptsGzip(const fwRefContainer<net::HttpRequest>& request)
+{
+	const auto header = request->GetHeader("accept-encoding");
+
+	for (size_t i = 0; i + 4 <= header.size(); ++i)
+	{
+		if ((header[i] | 0x20) == 'g' && (header[i + 1] | 0x20) == 'z' &&
+			(header[i + 2] | 0x20) == 'i' && (header[i + 3] | 0x20) == 'p')
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+std::optional<std::string> GzipCompress(std::string_view input)
+{
+	z_stream zs{};
+
+	// MAX_WBITS + 16 for the gzip wrapper format
+	if (deflateInit2(&zs, Z_BEST_SPEED, Z_DEFLATED, MAX_WBITS + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK)
+	{
+		return std::nullopt;
+	}
+
+	std::string output;
+	output.resize(deflateBound(&zs, static_cast<uLong>(input.size())));
+
+	zs.next_in = reinterpret_cast<z_const Bytef*>(const_cast<char*>(input.data()));
+	zs.avail_in = static_cast<uInt>(input.size());
+	zs.next_out = reinterpret_cast<Bytef*>(output.data());
+	zs.avail_out = static_cast<uInt>(output.size());
+
+	const int rc = deflate(&zs, Z_FINISH);
+	if (rc != Z_STREAM_END)
+	{
+		deflateEnd(&zs);
+		return std::nullopt;
+	}
+
+	output.resize(zs.total_out);
+	deflateEnd(&zs);
+	return output;
+}
+}
 
 namespace fx
 {
@@ -90,7 +141,7 @@ namespace fx
 					}
 					else if (handler->index() == 1)
 					{
-						(std::get<1>(*handler))(postMap, request, [response](const rapidjson::Document& data)
+						(std::get<1>(*handler))(postMap, request, [request, response](const rapidjson::Document& data)
 						{
 							if (data.IsNull())
 							{
@@ -110,12 +161,30 @@ namespace fx
 							sb.Put('\r');
 							sb.Put('\n');
 
+							// Compress with gzip when client supports it
+							constexpr size_t kGzipMinSize = 1024;
+
+							std::string compressedHolder;
+							std::string_view bodyView{ sb.GetString(), sb.GetSize() };
+
+							if (bodyView.size() >= kGzipMinSize && ClientAcceptsGzip(request))
+							{
+								if (auto compressed = GzipCompress(bodyView))
+								{
+									compressedHolder = std::move(*compressed);
+									bodyView = compressedHolder;
+									response->SetHeader(net::HeaderString{ "content-encoding" },
+										net::HeaderString{ "gzip" });
+								}
+							}
+
 							// for TCP write timeout bits, write this in chunks
 							constexpr size_t kChunkSize = 16384;
 
-							for (size_t i = 0; i < sb.GetLength(); i += kChunkSize)
+							for (size_t i = 0; i < bodyView.size(); i += kChunkSize)
 							{
-								response->Write(std::string{ sb.GetString() + i, std::min(kChunkSize, sb.GetLength() - i) });
+								response->Write(std::string{ bodyView.data() + i,
+									std::min(kChunkSize, bodyView.size() - i) });
 							}
 						});
 					}

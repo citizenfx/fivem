@@ -24,6 +24,7 @@
 		"vendor:eastl",
 		"vendor:thread-pool-cpp",
 		"vendor:utfcpp",
+		"vendor:zlib",
 		"vendor:breakpad",
 		"vendor:prometheus-cpp",
 		"vendor:folly",

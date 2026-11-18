@@ -58,10 +58,18 @@ return {
 			add_dependencies 'vendor:nghttp2-crt'
 		end
 
+		-- zlib
+		if not isCrt then
+			add_dependencies 'vendor:zlib'
+		else
+			add_dependencies 'vendor:zlib-crt'
+		end
+
 		-- all the disables except http/file
 		defines { 'BUILDING_LIBCURL', 'USE_IPV6', 'CURL_DISABLE_TFTP', 'CURL_DISABLE_FTP', 'CURL_DISABLE_LDAP', 'CURL_DISABLE_TELNET',
 				  'CURL_DISABLE_DICT', 'CURL_DISABLE_RTSP', 'CURL_DISABLE_POP3', 'CURL_DISABLE_IMAP', 'CURL_DISABLE_SMTP',
-				  'CURL_DISABLE_RTMP', 'CURL_DISABLE_GOPHER', 'CURL_DISABLE_SMB', 'USE_IPV6', 'USE_NGHTTP2' }
+				  'CURL_DISABLE_RTMP', 'CURL_DISABLE_GOPHER', 'CURL_DISABLE_SMB', 'USE_IPV6', 'USE_NGHTTP2',
+				  'HAVE_LIBZ', 'HAVE_ZLIB_H' }
 
 		if os.istarget('windows') then
 			defines { 'USE_WINDOWS_SSPI' }
