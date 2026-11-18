@@ -90,6 +90,11 @@ fwRefContainer<Device> Manager::GetNativeDevice(void* nativeDevice)
 	return nullptr;
 }
 
+fwRefContainer<Device> Manager::FindDevice(const std::string& absolutePath, std::string& transformedPath, const std::string&)
+{
+	return FindDevice(absolutePath, transformedPath);
+}
+
 fwRefContainer<Stream> OpenRead(const std::string& path)
 {
 	return Instance<Manager>::Get()->OpenRead(path);
@@ -123,6 +128,11 @@ fwRefContainer<Device> GetDevice(const std::string& path)
 fwRefContainer<Device> FindDevice(const std::string& absolutePath, std::string& transformedPath)
 {
 	return Instance<Manager>::Get()->FindDevice(absolutePath, transformedPath);
+}
+
+fwRefContainer<Device> FindDevice(const std::string& absolutePath, std::string& transformedPath, const std::string& preferredMountPrefix)
+{
+	return Instance<Manager>::Get()->FindDevice(absolutePath, transformedPath, preferredMountPrefix);
 }
 
 fwRefContainer<Device> GetNativeDevice(void* nativeDevice)
