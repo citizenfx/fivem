@@ -89,6 +89,7 @@ namespace {
 			for (int i = 0; i < clause_length - 1; ++i)
 			{
 				cef_composition_underline_t underline = {};
+				underline.size = sizeof(underline);
 				underline.range.from = clause_data[i];
 				underline.range.to = clause_data[i + 1];
 				underline.color = ColorUNDERLINE;
