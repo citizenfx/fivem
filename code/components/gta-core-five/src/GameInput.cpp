@@ -1538,8 +1538,9 @@ static HookFunction hookFunction([]()
 
 	// pad ignoring for control binds
 	{
+		// keep the jnz at location: it skips the scan while a conflicting input waits for the
+		// warning to be answered, without it the Enter that confirms the warning gets bound instead
 		auto location = hook::get_pattern<char>("83 F8 FD 75 49", 3);
-		hook::nop(location, 2);
 		hook::nop(location + 13, 2);
 		hook::nop(location + 69, 6);
 	}
