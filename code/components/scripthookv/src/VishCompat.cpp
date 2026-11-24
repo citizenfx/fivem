@@ -266,11 +266,27 @@ enum eGameVersion : int
 	VER_1_0_2802_0_NOSTEAM = 80,
 	VER_1_0_2944_0_NOSTEAM = 83,
 	VER_1_0_3095_0_NOSTEAM = 85,
+	VER_1_0_3258_0 = 87,
+	VER_1_0_3323_0 = 89,
+	VER_1_0_3407_0 = 92,
+	VER_1_0_3570_0 = 97,
+	VER_1_0_3717_0 = 99,
+	VER_1_0_3751_0 = 101,
+	VER_1_0_3788_0 = 102,
+	VER_1_0_3889_0 = 103,
 };
 
 // ScriptHookV uses incremental numbers instead of build
 DLL_EXPORT eGameVersion getGameVersion()
 {
+	if (xbr::IsGameBuildOrGreater<3889>()) return VER_1_0_3889_0;
+	if (xbr::IsGameBuildOrGreater<3788>()) return VER_1_0_3788_0;
+	if (xbr::IsGameBuildOrGreater<3751>()) return VER_1_0_3751_0;
+	if (xbr::IsGameBuildOrGreater<3717>()) return VER_1_0_3717_0;
+	if (xbr::IsGameBuildOrGreater<3570>()) return VER_1_0_3570_0;
+	if (xbr::IsGameBuildOrGreater<3407>()) return VER_1_0_3407_0;
+	if (xbr::IsGameBuildOrGreater<3323>()) return VER_1_0_3323_0;
+	if (xbr::IsGameBuildOrGreater<3258>()) return VER_1_0_3258_0;
 	if (xbr::IsGameBuildOrGreater<3095>()) return VER_1_0_3095_0_NOSTEAM;
 	if (xbr::IsGameBuildOrGreater<2944>()) return VER_1_0_2944_0_NOSTEAM;
 	if (xbr::IsGameBuildOrGreater<2802>()) return VER_1_0_2802_0_NOSTEAM;
@@ -417,6 +433,17 @@ int DLL_EXPORT worldGetAllPeds(int* array, int arraySize)
 int DLL_EXPORT worldGetAllObjects(int* array, int arraySize)
 {
 	return 0;
+}
+
+int DLL_EXPORT worldGetAllPickups(int* array, int arraySize)
+{
+	return 0;
+}
+
+// not supported, but plugins that merely reference it would fail to load without the export
+DLL_EXPORT BYTE* getScriptHandleBaseAddress(int handle)
+{
+	return nullptr;
 }
 
 typedef void(*PresentCallback)(void*);
