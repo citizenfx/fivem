@@ -133,7 +133,7 @@ declare var LocalPlayer : EntityInterface
 interface CitizenExports {
     (exportKey: string | number, exportFunction: Function): void;
     [resourceName: string] : {
-        [exportKey: string | number]: Function
+        [exportKey: string]: Function
     };
 }
 
