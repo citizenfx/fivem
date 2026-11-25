@@ -36,6 +36,7 @@
 #include <DebugAlias.h>
 
 #include <StateBagComponent.h>
+#include <UvLoopManager.h>
 
 #include <citizen_util/object_pool.h>
 #include <citizen_util/shared_reference.h>
@@ -4637,7 +4638,17 @@ void ServerGameState::SendPacket(int peer, net::packet::StateBagV2Packet& packet
 
 bool ServerGameState::IsAsynchronous()
 {
-	return true;
+	// State bag change handlers run script code, so they have to run on svMain. If we're already on svMain there's
+	// nothing to marshal, and deferring would only hide the new value from the caller until the queued task runs.
+	//
+	// This matters while server.cfg is being executed: that happens on svMain, but before the main thread callback
+	// list is bound to svMain, so queued tasks only run once the initial configuration is done. A resource started
+	// from server.cfg doing `GlobalState.x = 1; print(GlobalState.x)` would print nil as soon as any resource had
+	// registered a state bag change handler.
+	static auto uvLoopManager = Instance<net::UvLoopManager>::Get();
+	auto currentLoop = uvLoopManager->GetCurrent();
+
+	return !currentLoop.GetRef() || currentLoop->GetLoopTag() != "svMain";
 }
 
 void ServerGameState::QueueTask(std::function<void()>&& task)
